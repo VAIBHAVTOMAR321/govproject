@@ -1,0 +1,134 @@
+/* registration.css */
+
+/* --- 1. CSS Variables for Easy Theming --- */
+:root {
+  --primary-color: #006edc;
+  --secondary-color: #6c757d;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --border-color: #ced4da;
+  --input-bg: #fff;
+
+  --font-family-sans-serif: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-size-base: 0.9rem;
+  --font-size-sm: 0.8rem;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* --- 2. Layout & Sectioning --- */
+/* Styling for the two main sections (Excel Upload and Single Entry) */
+.form-section-card {
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  background-color: #fff;
+  margin-bottom: 2rem;
+  overflow: hidden; /* Ensures content respects border-radius */
+}
+
+.form-section-card .card-body {
+  padding: 2rem;
+}
+
+/* Separator between the two sections */
+.form-section-divider {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
+  margin: 2rem 0;
+}
+
+/* --- 3. Form Elements --- */
+.registration-form .form-label {
+  font-weight: 600;
+  color: var(--dark-color);
+  margin-bottom: 0.5rem;
+}
+
+.registration-form .form-control,
+.registration-form .form-select {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0.75rem;
+  font-size: var(--font-size-base);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.registration-form .form-control:focus,
+.registration-form .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 110, 220, 0.25);
+  outline: 0;
+}
+
+/* Placeholder text styling */
+.registration-form .form-control::placeholder {
+  color: var(--secondary-color);
+  opacity: 0.7;
+}
+
+/* Invalid feedback styling */
+.registration-form .form-control.is-invalid {
+  border-color: var(--danger-color);
+}
+
+.registration-form .invalid-feedback {
+  color: var(--danger-color);
+  font-size: var(--font-size-sm);
+  margin-top: 0.25rem;
+  display: block; /* Ensure feedback is always visible when invalid */
+}
+
+/* --- 4. Specific Components --- */
+
+/* File Input Styling */
+.form-section-card .form-control[type="file"] {
+  padding: 0.5rem;
+}
+
+/* Instructions text */
+.instructions-text {
+  font-size: var(--font-size-sm);
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+/* Buttons */
+.btn-submit-excel {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.btn-submit-excel:hover:not(:disabled) {
+  background-color: #218838;
+  border-color: #1e7e34;
+  transform: translateY(-1px);
+}
+
+.btn-submit-excel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --- 5. Responsive Design --- */
+@media (max-width: 767.98px) {
+  .form-section-card .card-body {
+    padding: 1rem;
+  }
+
+  .registration-form .form-control,
+  .registration-form .form-select {
+    font-size: var(--font-size-sm);
+    padding: 0.6rem;
+  }
+}
