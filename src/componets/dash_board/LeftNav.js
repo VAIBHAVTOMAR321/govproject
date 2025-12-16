@@ -17,6 +17,7 @@ import {
   FaPuzzlePiece,
   
 } from "react-icons/fa";
+import { FaFilter  } from "react-icons/fa6";
 import "../../assets/css/dashboard.css";
 
 const LeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet }) => {
@@ -41,6 +42,11 @@ const LeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet }) => {
       label: "डैशबोर्ड",
       path: "/MainDashboard",
       active: true,
+    },
+    {
+      icon: <FaFilter  />,
+      label: "फिल्टर",
+      path: "/Dashboard",
     },
      {
       icon: <FaChartBar />,
