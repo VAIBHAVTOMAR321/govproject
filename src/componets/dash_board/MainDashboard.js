@@ -432,7 +432,7 @@ const MainDashboard = () => {
       <div className="dashboard-container">
         <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
         <div className="main-content">
-          <DashBoardHeader toggleSidebar={toggleSidebar} />
+         <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
           <Container fluid className="dashboard-body">
             <h1 className="page-title small-fonts">डैशबोर्ड</h1>
 
@@ -522,7 +522,7 @@ const MainDashboard = () => {
                             (कुल आवंटित: {formatCurrency(tableTotals.allocated)}, कुल अपडेट किया गया: {formatCurrency(tableTotals.updated)})
                         </span>
                         {selectedCategory && <span className="heading-filter-info"> - <strong>{formatFieldTitle(selectedCategory)}</strong></span>}
-                        {selectedValue && <span className="heading-filter-info"> -> <strong>{selectedValue}</strong></span>}
+                        {selectedValue && <span className="heading-filter-info"> - <strong>{selectedValue}</strong></span>}
                       </h2>
                       
                       <Row className="mt-3">
