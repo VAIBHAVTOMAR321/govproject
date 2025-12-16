@@ -23,9 +23,9 @@ function DashBoardHeader({ toggleSidebar, sidebarOpen }) {
         </Button>
 
         <div className="d-flex align-items-center ms-2">
-            
+            {!sidebarOpen && ( 
           <img src={UkSasan} alt="logo" style={{ width: 50, marginRight: 5 }} />
-        
+        )}
           <img src={OIP} alt="logo" style={{ width: 50, marginRight: 10 }} />
 
           {/*  SHOW DASHBOARD TEXT ONLY WHEN SIDEBAR IS CLOSED */}

@@ -977,7 +977,7 @@ const Graph = () => {
     <div className="dashboard-container">
       <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
       <div className="main-content">
-        <DashBoardHeader toggleSidebar={toggleSidebar} />
+        <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <Container fluid className="dashboard-body">
           <h1 className="page-title small-fonts">{translations.graphs}</h1>
 
