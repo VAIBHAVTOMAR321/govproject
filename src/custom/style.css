@@ -88,6 +88,22 @@ body {
   line-height: 18px;
 
 }
+.copyright-footer {
+  background-color: #fff;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.copyright-footer p {
+  color: #000;
+  font-size: 0.8rem;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.copyright-footer {
+  border-top: 1px solid #fff;
+}
 @media only screen and (max-width: 568px) {
   .br-login {
     margin: var(--gov-space-200) var(--gov-space-0) var(--gov-space-0) var(--gov-space-0) !important;

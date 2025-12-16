@@ -1,9 +1,11 @@
-import React from 'react'
+import React from 'react';
 
 function Footer() {
   return (
-    <div>Footer</div>
-  )
+    <footer className="copyright-footer">
+      <p>© 2025 Horticulture. All Rights Reserved | Design by &nbsp;Brainrock</p>
+    </footer>
+  );
 }
 
-export default Footer
+export default Footer;

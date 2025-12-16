@@ -644,7 +644,6 @@ const MainDashboard = () => {
           </Container>
         </div>
       </div>
-      <Footer />
     </>
   );
 };
