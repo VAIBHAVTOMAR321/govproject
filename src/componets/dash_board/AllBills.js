@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col, Button, FormGroup, FormLabel, Collapse, Badge, Pagination } from "react-bootstrap";
+import { Container, Spinner, Alert, Row, Col, Button, FormGroup, FormLabel, Form, Collapse, Badge, Pagination } from "react-bootstrap";
 import Select from 'react-select';
 import * as XLSX from 'xlsx';
 import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
@@ -113,7 +113,35 @@ const translations = {
   viewReceipt: "रसीद देखें",
   receipt: "रसीद",
   downloadBill: "बिल डाउनलोड करें",
-  downloadCancelledBill: "रद्द किए गए बिल डाउनलोड करें"
+  downloadCancelledBill: "रद्द किए गए बिल डाउनलोड करें",
+  selectColumns: "कॉलम चुनें"
+};
+
+// Available columns for download
+const availableColumns = [
+  { key: 'reportId', label: translations.reportId },
+  { key: 'centerName', label: translations.centerName },
+  { key: 'sourceOfReceipt', label: translations.sourceOfReceipt },
+  { key: 'reportDate', label: translations.reportDate },
+  { key: 'status', label: translations.status },
+  { key: 'totalItems', label: translations.totalItems }
+];
+
+// Format date for display
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('hi-IN');
+};
+
+// Column mapping for data access
+const columnMapping = {
+  reportId: { header: translations.reportId, accessor: (item) => item.bill_report_id },
+  centerName: { header: translations.centerName, accessor: (item) => item.center_name },
+  sourceOfReceipt: { header: translations.sourceOfReceipt, accessor: (item) => item.source_of_receipt },
+  reportDate: { header: translations.reportDate, accessor: (item) => formatDate(item.created_at) },
+  status: { header: translations.status, accessor: (item) => item.status === 'accepted' ? translations.accepted : item.status === 'cancelled' ? translations.cancelled : item.status },
+  totalItems: { header: translations.totalItems, accessor: (item) => item.component_data.length }
 };
 
 const AllBills = () => {
@@ -145,8 +173,12 @@ const AllBills = () => {
   
   // State for filtering
   const [filters, setFilters] = useState({
-    center_name: null,
-    source_of_receipt: null
+    center_name: [],
+    source_of_receipt: [],
+    bill_id: [],
+    status: [],
+    dateFrom: '',
+    dateTo: ''
   });
   
   // State for pagination
@@ -155,6 +187,9 @@ const AllBills = () => {
   
   // State for bulk download options
   const [selectedReports, setSelectedReports] = useState([]); // For bulk download
+
+  // State for column selection
+  const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
 useEffect(() => {
   const checkDevice = () => {
     const width = window.innerWidth;
@@ -198,26 +233,34 @@ useEffect(() => {
     if (!reportsData || reportsData.length === 0) {
       return {
         center_name: [],
-        source_of_receipt: []
+        source_of_receipt: [],
+        bill_id: [],
+        status: []
       };
     }
 
     return {
       center_name: [...new Set(reportsData.map(item => item.center_name))].map(name => ({ value: name, label: name })),
-      source_of_receipt: filters.center_name 
-        ? [...new Set(reportsData.filter(item => item.center_name === filters.center_name.value)
-            .map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))
-        : [...new Set(reportsData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))
+      source_of_receipt: [...new Set(reportsData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name })),
+      bill_id: [...new Set(reportsData.map(item => item.bill_report_id))].map(id => ({ value: id, label: id })),
+      status: [...new Set(reportsData.map(item => item.status))].map(status => ({
+        value: status,
+        label: status === 'accepted' ? translations.accepted : status === 'cancelled' ? translations.cancelled : status
+      }))
     };
-  }, [reportsData, filters]);
+  }, [reportsData]);
 
   // Filter data based on selected filters
   const filteredData = useMemo(() => {
     return reportsData.filter(item => {
-      return (
-        (!filters.center_name || item.center_name === filters.center_name.value) &&
-        (!filters.source_of_receipt || item.source_of_receipt === filters.source_of_receipt.value)
-      );
+      const matchesCenter = filters.center_name.length === 0 || filters.center_name.some(c => c.value === item.center_name);
+      const matchesSource = filters.source_of_receipt.length === 0 || filters.source_of_receipt.some(s => s.value === item.source_of_receipt);
+      const matchesBillId = filters.bill_id.length === 0 || filters.bill_id.some(b => b.value === item.bill_report_id);
+      const matchesStatus = filters.status.length === 0 || filters.status.some(s => s.value === item.status);
+      const itemDate = new Date(item.created_at);
+      const matchesDateFrom = !filters.dateFrom || itemDate >= new Date(filters.dateFrom);
+      const matchesDateTo = !filters.dateTo || itemDate <= new Date(filters.dateTo + 'T23:59:59');
+      return matchesCenter && matchesSource && matchesBillId && matchesStatus && matchesDateFrom && matchesDateTo;
     });
   }, [reportsData, filters]);
   
@@ -231,19 +274,10 @@ useEffect(() => {
   
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
-    // Reset dependent filters when a filter changes
-    if (filterName === 'center_name') {
-      setFilters({
-        center_name: value,
-        source_of_receipt: null
-      });
-    } else {
-      // For source_of_receipt, just update the value
-      setFilters(prev => ({
-        ...prev,
-        [filterName]: value
-      }));
-    }
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
   };
   
   // Toggle report details
@@ -257,22 +291,20 @@ useEffect(() => {
   // Convert table data to Excel format and download
   const downloadExcel = (data, filename) => {
     try {
-      // Prepare data for Excel export
-      const excelData = data.map(item => ({
-        [translations.reportId]: item.bill_report_id,
-        [translations.billId]: item.bill_report_id, // Changed to show report ID instead of bill ID
-        [translations.centerName]: item.center_name,
-        [translations.sourceOfReceipt]: item.source_of_receipt,
-        [translations.reportDate]: formatDate(item.created_at),
-        [translations.status]: item.status,
-        [translations.totalItems]: item.component_data.length
-      }));
-      
+      // Prepare data for Excel export based on selected columns
+      const excelData = data.map(item => {
+        const row = {};
+        selectedColumns.forEach(col => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(item);
+        });
+        return row;
+      });
+
       // Create a new workbook
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
       XLSX.utils.book_append_sheet(wb, ws, "Reports");
-      
+
       // Save the file
       XLSX.writeFile(wb, `${filename}.xlsx`);
       setDownloadSuccess(true);
@@ -287,6 +319,13 @@ useEffect(() => {
   // Convert table data to PDF format and download
   const downloadPdf = (data, filename) => {
     try {
+      // Create headers and rows based on selected columns
+      const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
+      const rows = data.map(item => {
+        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(item)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+
       // Create a simple HTML table for PDF
       const tableHtml = `
         <html>
@@ -300,40 +339,24 @@ useEffect(() => {
           <body>
             <h2>${translations.allBills}</h2>
             <table>
-              <tr>
-                <th>${translations.reportId}</th>
-                <th>${translations.centerName}</th>
-                <th>${translations.sourceOfReceipt}</th>
-                <th>${translations.reportDate}</th>
-                <th>${translations.status}</th>
-                <th>${translations.totalItems}</th>
-              </tr>
-              ${data.map(item => `
-                <tr>
-                  <td>${item.bill_report_id}</td>
-                  <td>${item.center_name}</td>
-                  <td>${item.source_of_receipt}</td>
-                  <td>${formatDate(item.created_at)}</td>
-                  <td>${item.status === 'accepted' ? translations.accepted : item.status === 'cancelled' ? translations.cancelled : item.status}</td>
-                  <td>${item.component_data.length}</td>
-                </tr>
-              `).join('')}
+              <tr>${headers}</tr>
+              ${rows}
             </table>
           </body>
         </html>
       `;
-      
+
       // Create a new window and print
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
-      
+
       // Wait for the content to load, then trigger print
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
       }, 500);
-      
+
       setDownloadSuccess(true);
       setLastDownloadType('pdf');
       setTimeout(() => setDownloadSuccess(false), 3000);
@@ -358,7 +381,31 @@ useEffect(() => {
         [translations.soldAmount]: item.sold_amount,
         [translations.schemeName]: item.scheme_name
       }));
-      
+
+      // Calculate totals
+      const totals = componentData.reduce((acc, comp) => {
+        acc.allocated += parseFloat(comp.allocated_quantity) || 0;
+        acc.rate += parseFloat(comp.rate) || 0;
+        acc.updated += parseFloat(comp.updated_quantity) || 0;
+        acc.buy += parseFloat(comp.buy_amount) || 0;
+        acc.sold += parseFloat(comp.sold_amount) || 0;
+        return acc;
+      }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+
+      // Add total row
+      excelData.push({
+        [translations.reportId]: 'Total',
+        [translations.component]: '',
+        [translations.investmentName]: '',
+        [translations.unit]: '',
+        [translations.allocatedQuantity]: totals.allocated,
+        [translations.rate]: totals.rate,
+        [translations.updatedQuantity]: totals.updated,
+        [translations.buyAmount]: totals.buy,
+        [translations.soldAmount]: totals.sold,
+        [translations.schemeName]: ''
+      });
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
       XLSX.utils.book_append_sheet(wb, ws, "Components");
@@ -370,6 +417,16 @@ useEffect(() => {
   // Convert component data to PDF format and download
   const downloadPdfComponent = (componentData, filename) => {
     try {
+      // Calculate totals
+      const totals = componentData.reduce((acc, comp) => {
+        acc.allocated += parseFloat(comp.allocated_quantity) || 0;
+        acc.rate += parseFloat(comp.rate) || 0;
+        acc.updated += parseFloat(comp.updated_quantity) || 0;
+        acc.buy += parseFloat(comp.buy_amount) || 0;
+        acc.sold += parseFloat(comp.sold_amount) || 0;
+        return acc;
+      }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+
       const tableHtml = `
         <html>
           <head>
@@ -408,11 +465,23 @@ useEffect(() => {
                   <td>${item.scheme_name}</td>
                 </tr>
               `).join('')}
+              <tr>
+                <td><strong>Total</strong></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><strong>${totals.allocated}</strong></td>
+                <td><strong>${totals.rate}</strong></td>
+                <td><strong>${totals.updated}</strong></td>
+                <td><strong>${totals.buy}</strong></td>
+                <td><strong>${totals.sold}</strong></td>
+                <td></td>
+              </tr>
             </table>
           </body>
         </html>
       `;
-      
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
@@ -530,8 +599,12 @@ useEffect(() => {
   // Clear all filters
   const clearFilters = () => {
     setFilters({
-      center_name: null,
-      source_of_receipt: null
+      center_name: [],
+      source_of_receipt: [],
+      bill_id: [],
+      status: [],
+      dateFrom: '',
+      dateTo: ''
     });
   };
   
@@ -579,12 +652,6 @@ useEffect(() => {
     paginationItems.push(<Pagination.Item key={totalPages} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
   }
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('hi-IN');
-  };
   
   // Get status badge variant based on status
   const getStatusBadgeVariant = (status) => {
@@ -665,7 +732,7 @@ useEffect(() => {
               <Row className="mb-3">
                 <Col md={12} className="d-flex justify-content-between align-items-center">
                   <h5 className="mb-0 small-fonts">{translations.filters}</h5>
-                  {(filters.center_name || filters.source_of_receipt) && (
+                  {(filters.center_name.length > 0 || filters.source_of_receipt.length > 0 || filters.bill_id.length > 0 || filters.status.length > 0 || filters.dateFrom || filters.dateTo) && (
                     <Button variant="outline-secondary" size="sm" onClick={clearFilters} className="small-fonts">
                       {translations.clearAllFilters}
                     </Button>
@@ -674,13 +741,14 @@ useEffect(() => {
               </Row>
               
               <Row>
-                <Col md={6} className="mb-3">
+                <Col md={4} className="mb-3">
                   <FormGroup>
                     <FormLabel className="small-fonts">{translations.centerName}</FormLabel>
                     <Select
                       value={filters.center_name}
                       onChange={(value) => handleFilterChange('center_name', value)}
                       options={filterOptions.center_name}
+                      isMulti
                       isClearable
                       placeholder={translations.allCenters}
                       styles={customSelectStyles}
@@ -690,27 +758,116 @@ useEffect(() => {
                     />
                   </FormGroup>
                 </Col>
-                
-                <Col md={6} className="mb-3">
+
+                <Col md={4} className="mb-3">
                   <FormGroup>
                     <FormLabel className="small-fonts">{translations.sourceOfReceipt}</FormLabel>
                     <Select
                       value={filters.source_of_receipt}
                       onChange={(value) => handleFilterChange('source_of_receipt', value)}
                       options={filterOptions.source_of_receipt}
+                      isMulti
                       isClearable
-                      placeholder={filters.center_name ? translations.allSources : translations.selectCenterFirst}
+                      placeholder={translations.allSources}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
-                      isDisabled={!filters.center_name}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </FormGroup>
+                </Col>
+
+                <Col md={4} className="mb-3">
+                  <FormGroup>
+                    <FormLabel className="small-fonts">{translations.billId}</FormLabel>
+                    <Select
+                      value={filters.bill_id}
+                      onChange={(value) => handleFilterChange('bill_id', value)}
+                      options={filterOptions.bill_id}
+                      isMulti
+                      isClearable
+                      placeholder="बिल आईडी"
+                      styles={customSelectStyles}
+                      className="small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
               </Row>
+
+              <Row>
+                <Col md={4} className="mb-3">
+                  <FormGroup>
+                    <FormLabel className="small-fonts">{translations.status}</FormLabel>
+                    <Select
+                      value={filters.status}
+                      onChange={(value) => handleFilterChange('status', value)}
+                      options={filterOptions.status}
+                      isMulti
+                      isClearable
+                      placeholder="स्थिति"
+                      styles={customSelectStyles}
+                      className="small-fonts filter-dropdown"
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </FormGroup>
+                </Col>
+
+                <Col md={4} className="mb-3">
+                  <FormGroup>
+                    <FormLabel className="small-fonts">From Date</FormLabel>
+                    <input
+                      type="date"
+                      className="form-control small-fonts"
+                      value={filters.dateFrom}
+                      onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                    />
+                  </FormGroup>
+                </Col>
+
+                <Col md={4} className="mb-3">
+                  <FormGroup>
+                    <FormLabel className="small-fonts">To Date</FormLabel>
+                    <input
+                      type="date"
+                      className="form-control small-fonts"
+                      value={filters.dateTo}
+                      onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                    />
+                  </FormGroup>
+                </Col>
+              </Row>
             </div>
-            
+
+            {/* Column Selection Section */}
+            <div className="column-selection mb-4 p-3 border rounded bg-light">
+              <h5 className="small-fonts mb-3">{translations.selectColumns}</h5>
+              <Row>
+                <Col>
+                  <div className="d-flex flex-wrap">
+                    {availableColumns.map(col => (
+                      <Form.Check
+                        type="checkbox"
+                        id={col.key}
+                        label={col.label}
+                        checked={selectedColumns.includes(col.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedColumns([...selectedColumns, col.key]);
+                          } else {
+                            setSelectedColumns(selectedColumns.filter(c => c !== col.key));
+                          }
+                        }}
+                        className="me-3 small-fonts"
+                      />
+                    ))}
+                  </div>
+                </Col>
+              </Row>
+            </div>
+
             {/* Reports Section */}
             <div className="reports-container">
               <Row className="mt-3">
@@ -839,40 +996,62 @@ useEffect(() => {
                                             </Button>
                                           </div>
                                         </div>
-                                        {item.component_data.length > 0 ? (
-                                         <table className="table table-sm table-bordered">
-  <thead>
-    <tr>
-      <th>{translations.reportId}</th>
-      <th>{translations.component}</th>
-      <th>{translations.investmentName}</th>
-      <th>{translations.unit}</th>
-      <th>{translations.allocatedQuantity}</th>
-      <th>{translations.rate}</th>
-      <th>{translations.updatedQuantity}</th>
-      <th>{translations.buyAmount}</th>
-      <th>{translations.soldAmount}</th>
-      <th>{translations.schemeName}</th>
-    </tr>
-  </thead>
-  <tbody>
-    {item.component_data.map((component, compIndex) => (
-      <tr key={compIndex}>
-        <td>{item.bill_report_id}</td> {/* Use parent item's bill_report_id */}
-        <td>{component.component}</td>
-        <td>{component.investment_name}</td>
-        <td>{component.unit}</td>
-        <td>{component.allocated_quantity}</td>
-        <td>{component.rate}</td>
-        <td>{component.updated_quantity}</td>
-        <td>{component.buy_amount}</td>
-        <td>{component.sold_amount}</td>
-        <td>{component.scheme_name}</td>
-      </tr>
-    ))}
-  </tbody>
-</table>
-                                        ) : (
+                                        {item.component_data.length > 0 ? (() => {
+                                          const totals = item.component_data.reduce((acc, comp) => {
+                                            acc.allocated += parseFloat(comp.allocated_quantity) || 0;
+                                            acc.rate += parseFloat(comp.rate) || 0;
+                                            acc.updated += parseFloat(comp.updated_quantity) || 0;
+                                            acc.buy += parseFloat(comp.buy_amount) || 0;
+                                            acc.sold += parseFloat(comp.sold_amount) || 0;
+                                            return acc;
+                                          }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+
+                                          return (
+                                            <table className="table table-sm table-bordered">
+                                              <thead>
+                                                <tr>
+                                                  <th>{translations.reportId}</th>
+                                                  <th>{translations.component}</th>
+                                                  <th>{translations.investmentName}</th>
+                                                  <th>{translations.unit}</th>
+                                                  <th>{translations.allocatedQuantity}</th>
+                                                  <th>{translations.rate}</th>
+                                                  <th>{translations.updatedQuantity}</th>
+                                                  <th>{translations.buyAmount}</th>
+                                                  <th>{translations.soldAmount}</th>
+                                                  <th>{translations.schemeName}</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {item.component_data.map((component, compIndex) => (
+                                                  <tr key={compIndex}>
+                                                    <td>{item.bill_report_id}</td> {/* Use parent item's bill_report_id */}
+                                                    <td>{component.component}</td>
+                                                    <td>{component.investment_name}</td>
+                                                    <td>{component.unit}</td>
+                                                    <td>{component.allocated_quantity}</td>
+                                                    <td>{component.rate}</td>
+                                                    <td>{component.updated_quantity}</td>
+                                                    <td>{component.buy_amount}</td>
+                                                    <td>{component.sold_amount}</td>
+                                                    <td>{component.scheme_name}</td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                              <tfoot>
+                                                <tr>
+                                                  <td colSpan="4"><strong>Total</strong></td>
+                                                  <td><strong>{totals.allocated}</strong></td>
+                                                  <td><strong>{totals.rate}</strong></td>
+                                                  <td><strong>{totals.updated}</strong></td>
+                                                  <td><strong>{totals.buy}</strong></td>
+                                                  <td><strong>{totals.sold}</strong></td>
+                                                  <td></td>
+                                                </tr>
+                                              </tfoot>
+                                            </table>
+                                          );
+                                        })() : (
                                           <Alert variant="info">No component data available</Alert>
                                         )}
                                       </div>
@@ -943,9 +1122,7 @@ useEffect(() => {
           </div>
         </div>
       )}
-      
-      <Footer />
-    </>
+          </>
   );
 };
 
