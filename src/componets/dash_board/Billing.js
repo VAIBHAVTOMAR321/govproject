@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col,Form, Button, FormGroup, FormLabel, Pagination } from "react-bootstrap";
+import { Container, Spinner, Alert, Row, Col, Form, Button, FormGroup, FormLabel, Pagination } from "react-bootstrap";
 import Select from 'react-select';
 import * as XLSX from 'xlsx';
 import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
@@ -118,8 +118,31 @@ const translations = {
   // New translations for the modified columns
   soldRashi: "बेची राशि",
   allotedRashi: "आवंटित राशि",
-  totalBill: "कुल बिल" // New translation for total bill column
+  totalBill: "कुल बिल", // New translation for total bill column
+  billingDate: "बिलिंग तारीख", // New translation for billing date column
+  selectColumns: "कॉलम चुनें",
+  for: "के लिए"
 };
+
+// Available columns for download
+const availableColumns = [
+  { key: 'sno', label: 'क्र.सं.' },
+  { key: 'center_name', label: translations.centerName },
+  { key: 'source_of_receipt', label: translations.sourceOfReceipt },
+  { key: 'component', label: translations.component },
+  { key: 'investment_name', label: translations.investmentName },
+  { key: 'scheme_name', label: translations.schemeName },
+  { key: 'unit', label: translations.unit },
+  { key: 'allocated_quantity', label: translations.allocatedQuantity },
+  { key: 'updated_quantity', label: translations.updatedQuantity },
+  { key: 'quantity_left', label: translations.quantityLeft },
+  { key: 'alloted_rashi', label: translations.allotedRashi },
+  { key: 'sold_rashi', label: translations.soldRashi },
+  { key: 'cut_quantity', label: translations.cutQuantity },
+  { key: 'rate', label: translations.rate },
+  { key: 'total_bill', label: translations.totalBill },
+  { key: 'billing_date', label: translations.billingDate }
+];
 
 const Billing = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -129,31 +152,54 @@ const Billing = () => {
   // State for API data, loading, and errors
   const [billingData, setBillingData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null);  
   
   // State for user ID mapping from source of receipt
-  const [sourceUserMap, setSourceUserMap] = useState({});
+  const [sourceUserMap, setSourceUserMap] = useState({});  
   
   // State for tracking which items have been modified
   const [modifiedItems, setModifiedItems] = useState({});
-  
+
+  // State for selected columns for download
+  const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
+
   // State for form submission
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  
-  // State for filtering with multi-select for component, investment, and scheme
+
+  // State for filtering with multi-select for all fields
   const [filters, setFilters] = useState({
-    center_name: null,
-    source_of_receipt: null,
+    center_name: [], // Multi-select
+    source_of_receipt: [], // Multi-select
     component: [], // Multi-select
     investment_name: [], // Multi-select
     scheme_name: [] // Multi-select
   });
-  
+
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(50);
+
+  // Column mapping for data access
+  const columnMapping = {
+    sno: { header: 'क्र.सं.', accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
+    center_name: { header: translations.centerName, accessor: (item) => item.center_name },
+    source_of_receipt: { header: translations.sourceOfReceipt, accessor: (item) => item.source_of_receipt },
+    component: { header: translations.component, accessor: (item) => item.component },
+    investment_name: { header: translations.investmentName, accessor: (item) => item.investment_name },
+    scheme_name: { header: translations.schemeName, accessor: (item) => item.scheme_name },
+    unit: { header: translations.unit, accessor: (item) => item.unit },
+    allocated_quantity: { header: translations.allocatedQuantity, accessor: (item) => item.allocated_quantity },
+    updated_quantity: { header: translations.updatedQuantity, accessor: (item) => item.updated_quantity },
+    quantity_left: { header: translations.quantityLeft, accessor: (item) => calculateQuantityLeft(item.allocated_quantity, item.updated_quantity, item.cut_quantity) },
+    alloted_rashi: { header: translations.allotedRashi, accessor: (item) => calculateAllocatedAmount(item.allocated_quantity, item.rate) },
+    sold_rashi: { header: translations.soldRashi, accessor: (item) => calculateAmount(item.updated_quantity, item.rate) },
+    cut_quantity: { header: translations.cutQuantity, accessor: (item) => item.cut_quantity },
+    rate: { header: translations.rate, accessor: (item) => item.rate },
+    total_bill: { header: translations.totalBill, accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate) },
+    billing_date: { header: translations.billingDate, accessor: (item) => item.billing_date }
+  };
 
   // useEffect for fetching data from the API
   useEffect(() => {
@@ -166,7 +212,7 @@ const Billing = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        
+
         // Create a mapping of source_of_receipt to user_id
         const sourceMapping = {};
         data.forEach(item => {
@@ -175,11 +221,12 @@ const Billing = () => {
           }
         });
         setSourceUserMap(sourceMapping);
-        
-        // Initialize cut_quantity for each item
+
+        // Initialize cut_quantity and billing_date for each item
         const initializedData = data.map(item => ({
           ...item,
-          cut_quantity: ''
+          cut_quantity: '',
+          billing_date: ''
         }));
         setBillingData(initializedData);
       } catch (e) {
@@ -191,23 +238,25 @@ const Billing = () => {
 
     fetchData();
   }, []);
-useEffect(() => {
-  const checkDevice = () => {
-    const width = window.innerWidth;
-    setIsMobile(width < 768);
-    setIsTablet(width >= 768 && width < 1024);
-    setSidebarOpen(width >= 1024);
-  };
-  checkDevice();
-  window.addEventListener("resize", checkDevice);
-  return () => window.removeEventListener("resize", checkDevice);
-}, []);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
+      setSidebarOpen(width >= 1024);
+    };
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
 
-  // Get unique values for filters with sequential logic
+  // Get unique values for filters
   const filterOptions = useMemo(() => {
     if (!billingData || billingData.length === 0) {
       return {
@@ -219,87 +268,27 @@ useEffect(() => {
       };
     }
 
-    // Base data filtered by already selected filters
-    let baseFilteredData = billingData;
-    
-    // Filter by center_name if selected
-    if (filters.center_name) {
-      baseFilteredData = baseFilteredData.filter(item => item.center_name === filters.center_name.value);
-    }
-    
-    // Filter by source_of_receipt if selected
-    if (filters.source_of_receipt) {
-      baseFilteredData = baseFilteredData.filter(item => item.source_of_receipt === filters.source_of_receipt.value);
-    }
-    
-    // Filter by scheme_name if selected
-    if (filters.scheme_name && filters.scheme_name.length > 0) {
-      baseFilteredData = baseFilteredData.filter(item => 
-        filters.scheme_name.some(scheme => scheme.value === item.scheme_name)
-      );
-    }
-    
-    // Filter by component if selected
-    if (filters.component && filters.component.length > 0) {
-      baseFilteredData = baseFilteredData.filter(item => 
-        filters.component.some(comp => comp.value === item.component)
-      );
-    }
-    
-    // Filter by investment_name if selected
-    if (filters.investment_name && filters.investment_name.length > 0) {
-      baseFilteredData = baseFilteredData.filter(item => 
-        filters.investment_name.some(inv => inv.value === item.investment_name)
-      );
-    }
-
     return {
-      center_name: [...new Set(billingData.map(item => item.center_name))].map(name => ({ value: name, label: name })),
-      source_of_receipt: filters.center_name 
-        ? [...new Set(billingData.filter(item => item.center_name === filters.center_name.value)
-            .map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))
-        : [...new Set(billingData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name })),
-      component: filters.center_name && filters.source_of_receipt
-        ? [...new Set(billingData.filter(item => 
-            item.center_name === filters.center_name.value && 
-            item.source_of_receipt === filters.source_of_receipt.value)
-            .map(item => item.component))].map(name => ({ value: name, label: name }))
-        : filters.center_name
-        ? [...new Set(billingData.filter(item => item.center_name === filters.center_name.value)
-            .map(item => item.component))].map(name => ({ value: name, label: name }))
-        : [...new Set(billingData.map(item => item.component))].map(name => ({ value: name, label: name })),
-      investment_name: filters.center_name && filters.source_of_receipt && (filters.component.length > 0)
-        ? [...new Set(billingData.filter(item => 
-            item.center_name === filters.center_name.value && 
-            item.source_of_receipt === filters.source_of_receipt.value &&
-            filters.component.some(comp => comp.value === item.component))
-            .map(item => item.investment_name))].map(name => ({ value: name, label: name }))
-        : filters.center_name && filters.source_of_receipt
-        ? [...new Set(billingData.filter(item => 
-            item.center_name === filters.center_name.value && 
-            item.source_of_receipt === filters.source_of_receipt.value)
-            .map(item => item.investment_name))].map(name => ({ value: name, label: name }))
-        : [...new Set(billingData.map(item => item.investment_name))].map(name => ({ value: name, label: name })),
-      scheme_name: filters.center_name
-        ? [...new Set(billingData.filter(item => item.center_name === filters.center_name.value)
-            .map(item => item.scheme_name))].map(name => ({ value: name, label: name }))
-        : [...new Set(billingData.map(item => item.scheme_name))].map(name => ({ value: name, label: name }))
+      center_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.center_name))].map(name => ({ value: name, label: name }))],
+      source_of_receipt: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))],
+      component: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.component))].map(name => ({ value: name, label: name }))],
+      investment_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.investment_name))].map(name => ({ value: name, label: name }))],
+      scheme_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.scheme_name))].map(name => ({ value: name, label: name }))]
     };
-  }, [billingData, filters]);
+  }, [billingData]);
 
   // Filter data based on selected filters
   const filteredData = useMemo(() => {
     return billingData.filter(item => {
-      return (
-        (!filters.center_name || item.center_name === filters.center_name.value) &&
-        (!filters.source_of_receipt || item.source_of_receipt === filters.source_of_receipt.value) &&
-        (!filters.scheme_name || filters.scheme_name.length === 0 || filters.scheme_name.some(scheme => scheme.value === item.scheme_name)) &&
-        (!filters.component || filters.component.length === 0 || filters.component.some(comp => comp.value === item.component)) &&
-        (!filters.investment_name || filters.investment_name.length === 0 || filters.investment_name.some(inv => inv.value === item.investment_name))
-      );
+      const matchesCenter = filters.center_name.length === 0 || filters.center_name.some(c => c.value === item.center_name);
+      const matchesSource = filters.source_of_receipt.length === 0 || filters.source_of_receipt.some(s => s.value === item.source_of_receipt);
+      const matchesScheme = filters.scheme_name.length === 0 || filters.scheme_name.some(scheme => scheme.value === item.scheme_name);
+      const matchesComponent = filters.component.length === 0 || filters.component.some(comp => comp.value === item.component);
+      const matchesInvestment = filters.investment_name.length === 0 || filters.investment_name.some(inv => inv.value === item.investment_name);
+      return matchesCenter && matchesSource && matchesScheme && matchesComponent && matchesInvestment;
     });
   }, [billingData, filters]);
-  
+
   // Calculate paginated data based on filtered data
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -307,33 +296,38 @@ useEffect(() => {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
-  
+
   // Convert table data to Excel format and download
   const downloadExcel = (data, filename) => {
     try {
-      const excelData = data.map(item => ({
-        [translations.id]: item.id,
-        [translations.centerName]: item.center_name,
-        [translations.sourceOfReceipt]: item.source_of_receipt,
-        [translations.component]: item.component,
-        [translations.investmentName]: item.investment_name,
-        [translations.schemeName]: item.scheme_name,
-        [translations.unit]: item.unit,
-        [translations.allocatedQuantity]: item.allocated_quantity,
-        [translations.rate]: item.rate
-      }));
-      
+      // Prepare data for Excel export based on selected columns
+      const excelData = data.map((item, index) => {
+        const row = {};
+        selectedColumns.forEach(col => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(item, index, currentPage, itemsPerPage);
+        });
+        return row;
+      });
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
       XLSX.utils.book_append_sheet(wb, ws, "BillingItems");
       XLSX.writeFile(wb, `${filename}.xlsx`);
     } catch (e) {
+      console.error("Error generating Excel file:", e);
     }
   };
-  
+
   // Convert table data to PDF format and download
   const downloadPdf = (data, filename) => {
     try {
+      // Create headers and rows based on selected columns
+      const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
+      const rows = data.map((item, index) => {
+        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(item, index, currentPage, itemsPerPage)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+
       const tableHtml = `
         <html>
           <head>
@@ -346,35 +340,13 @@ useEffect(() => {
           <body>
             <h2>${translations.billingItems}</h2>
             <table>
-              <tr>
-                <th>${translations.id}</th>
-                <th>${translations.centerName}</th>
-                <th>${translations.sourceOfReceipt}</th>
-                <th>${translations.component}</th>
-                <th>${translations.investmentName}</th>
-                <th>${translations.schemeName}</th>
-                <th>${translations.unit}</th>
-                <th>${translations.allocatedQuantity}</th>
-                <th>${translations.rate}</th>
-              </tr>
-              ${data.map(item => `
-                <tr>
-                  <td>${item.id}</td>
-                  <td>${item.center_name}</td>
-                  <td>${item.source_of_receipt}</td>
-                  <td>${item.component}</td>
-                  <td>${item.investment_name}</td>
-                  <td>${item.scheme_name}</td>
-                  <td>${item.unit}</td>
-                  <td>${item.allocated_quantity}</td>
-                  <td>${item.rate}</td>
-                </tr>
-              `).join('')}
+              <tr>${headers}</tr>
+              ${rows}
             </table>
           </body>
         </html>
       `;
-      
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
@@ -383,36 +355,20 @@ useEffect(() => {
         printWindow.close();
       }, 500);
     } catch (e) {
+      console.error("Error generating PDF:", e);
     }
   };
   
-  // Handle filter changes with multi-select support
+  // Handle filter changes
   const handleFilterChange = (filterName, value) => {
-    // Reset dependent filters when a filter changes
-    if (filterName === 'center_name') {
-      setFilters({
-        center_name: value,
-        source_of_receipt: null,
-        component: [],
-        investment_name: [],
-        scheme_name: []
-      });
-    } else if (filterName === 'source_of_receipt') {
+    if (value && value.some(v => v.value === 'select_all')) {
+      // Select all options except 'select_all'
+      const allOptions = filterOptions[filterName].filter(opt => opt.value !== 'select_all');
       setFilters(prev => ({
         ...prev,
-        source_of_receipt: value,
-        component: [],
-        investment_name: [],
-        scheme_name: [] // Reset scheme_name as it might be dependent
-      }));
-    } else if (filterName === 'component') {
-      setFilters(prev => ({
-        ...prev,
-        component: value,
-        investment_name: [] // Reset investment_name as it's dependent on component
+        [filterName]: allOptions
       }));
     } else {
-      // For scheme_name and investment_name, just update the value
       setFilters(prev => ({
         ...prev,
         [filterName]: value
@@ -424,27 +380,39 @@ useEffect(() => {
   const handleCutQuantityChange = (id, value) => {
     // Ensure value is a non-negative number
     const numValue = Math.max(0, parseFloat(value) || 0);
-    
+
     // Get the item to check allocated quantity
     const item = billingData.find(item => item.id === id);
     const allocatedNum = parseFloat(item.allocated_quantity) || 0;
     const updatedNum = parseFloat(item.updated_quantity) || 0;
-    
+
     // Calculate the maximum allowed cut quantity
     const maxCut = allocatedNum - updatedNum;
-    
+
     // Validate that the cut quantity doesn't exceed the available quantity
     if (numValue > maxCut) {
       setSubmitError(`${translations.cannotCutMore} (${maxCut}) ${translations.for} ${item.bill_id}`);
       return;
     }
-    
-    setBillingData(prevData => 
-      prevData.map(item => 
+
+    setBillingData(prevData =>
+      prevData.map(item =>
         item.id === id ? { ...item, cut_quantity: numValue } : item
       )
     );
-    
+
+    // Track that this item has been modified
+    setModifiedItems(prev => ({ ...prev, [id]: true }));
+  };
+
+  // Handle billing date change
+  const handleBillingDateChange = (id, value) => {
+    setBillingData(prevData =>
+      prevData.map(item =>
+        item.id === id ? { ...item, billing_date: value } : item
+      )
+    );
+
     // Track that this item has been modified
     setModifiedItems(prev => ({ ...prev, [id]: true }));
   };
@@ -477,105 +445,147 @@ useEffect(() => {
     const r = parseFloat(rate) || 0;
     return (qty * r).toFixed(2);
   };
-  
+
   // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Get only the items that have been modified
+  const updatedItems = billingData.filter(item => modifiedItems[item.id] && item.cut_quantity > 0);
+  
+  if (updatedItems.length === 0) {
+    setSubmitError(translations.noItemsUpdated);
+    return;
+  }
+  
+  try {
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
     
-    // Get only the items that have been modified
-    const updatedItems = billingData.filter(item => modifiedItems[item.id] && item.cut_quantity > 0);
+    // Create payload in the exact format required
+    // Each inner array contains [bill_id, updated_quantity + cut_quantity]
+    const multiple_bills = updatedItems.map(item => {
+      const existingUpdated = parseFloat(item.updated_quantity) || 0;
+      const newCut = parseFloat(item.cut_quantity) || 0;
+      const totalUpdated = (existingUpdated + newCut).toString();
+
+      return [item.bill_id, totalUpdated];
+    });
     
-    if (updatedItems.length === 0) {
-      setSubmitError(translations.noItemsUpdated);
-      return;
+    // Get the user_id based on the selected source_of_receipt
+    // If a source is selected in filters, use the first one; otherwise use the first item's source
+    let selectedSource = filters.source_of_receipt.length > 0 ? filters.source_of_receipt[0].value : null;
+    if (!selectedSource && updatedItems.length > 0) {
+      selectedSource = updatedItems[0].source_of_receipt;
     }
     
+    const userId = sourceUserMap[selectedSource] || "USR-001"; // Fallback to default if not found
+    
+    // Format the date as YYYY-MM-DD (using 2024-01-15 as requested)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    
+    // Create the payload in the exact format shown in the example
+    const payload = {
+      user_id: userId,
+      multiple_bills: multiple_bills,
+      billing_date: formattedDate
+    };
+    
+    // Log the payload for debugging
+    console.log("Submitting payload:", JSON.stringify(payload, null, 2));
+    console.log("Selected source:", selectedSource);
+    console.log("User ID:", userId);
+    console.log("Billing date:", formattedDate);
+    
+    // Use the update API URL with POST method
+    const response = await fetch(UPDATE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authentication headers if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    
+    // Try to get response text for debugging
+    let responseText;
     try {
-      setSubmitting(true);
-      setSubmitError(null);
-      setSubmitSuccess(false);
-      
-      // Create payload in the required format - array of arrays
-      // Each inner array contains [bill_id, updated_quantity + cut_quantity]
-      const multiple_bills = updatedItems.map(item => {
-        const existingUpdated = parseFloat(item.updated_quantity) || 0;
-        const newCut = parseFloat(item.cut_quantity) || 0;
-        const totalUpdated = (existingUpdated + newCut).toString();
-        
-        return [
-          item.bill_id,
-          totalUpdated
-        ];
-      });
-      
-      // Get the user_id based on the selected source_of_receipt
-      // If a source is selected in filters, use that; otherwise use the first item's source
-      let selectedSource = filters.source_of_receipt?.value;
-      if (!selectedSource && updatedItems.length > 0) {
-        selectedSource = updatedItems[0].source_of_receipt;
-      }
-      
-      const userId = sourceUserMap[selectedSource] || "USR-001"; // Fallback to default if not found
-      
-      const payload = {
-        user_id: userId, // Use the user_id mapped from source_of_receipt
-        multiple_bills
-      };
-      
-      
-      // Use the update API URL with POST method
-      const response = await fetch(UPDATE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add authentication headers if needed
-          // 'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      setSubmitSuccess(true);
-      // Clear modified items after successful submission
-      setModifiedItems({});
-      
-      // Refresh data from the GET API
-      const refreshResponse = await fetch(GET_API_URL);
-      if (refreshResponse.ok) {
-        const data = await refreshResponse.json();
-        
-        // Update the source user mapping with new data
-        const sourceMapping = {};
-        data.forEach(item => {
-          if (item.source_of_receipt && item.user_id) {
-            sourceMapping[item.source_of_receipt] = item.user_id;
-          }
-        });
-        setSourceUserMap(sourceMapping);
-        
-        // Initialize cut_quantity for each item
-        const initializedData = data.map(item => ({
-          ...item,
-          cut_quantity: ''
-        }));
-        setBillingData(initializedData);
-      }
-      
+      responseText = await response.text();
+      console.log("Response text:", responseText);
     } catch (e) {
-      setSubmitError(e.message);
-    } finally {
-      setSubmitting(false);
+      console.error("Error reading response text:", e);
     }
-  };
+    
+    // Try to parse as JSON if possible
+    let responseData;
+    try {
+      if (responseText) {
+        responseData = JSON.parse(responseText);
+        console.log("Parsed response data:", responseData);
+      }
+    } catch (e) {
+      console.error("Error parsing response as JSON:", e);
+    }
+    
+    if (!response.ok) {
+      // Log more details about the failed request
+      console.error("Request failed with status:", response.status);
+      console.error("Status text:", response.statusText);
+      console.error("Response body:", responseText);
+      
+      // Create a more detailed error message
+      const errorMessage = responseData?.message || responseData?.error || 
+                         `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+    
+    setSubmitSuccess(true);
+    // Clear modified items after successful submission
+    setModifiedItems({});
+    
+    // Refresh data from the GET API
+    const refreshResponse = await fetch(GET_API_URL);
+    if (refreshResponse.ok) {
+      const data = await refreshResponse.json();
+      
+      // Update the source user mapping with new data
+      const sourceMapping = {};
+      data.forEach(item => {
+        if (item.source_of_receipt && item.user_id) {
+          sourceMapping[item.source_of_receipt] = item.user_id;
+        }
+      });
+      setSourceUserMap(sourceMapping);
+      
+      // Initialize cut_quantity and billing_date for each item
+      const initializedData = data.map(item => ({
+        ...item,
+        cut_quantity: '',
+        billing_date: ''
+      }));
+      setBillingData(initializedData);
+    }
+    
+  } catch (e) {
+    console.error("Submit error:", e);
+    setSubmitError(e.message);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // Clear all filters
   const clearFilters = () => {
     setFilters({
-      center_name: null,
-      source_of_receipt: null,
+      center_name: [],
+      source_of_receipt: [],
       component: [],
       investment_name: [],
       scheme_name: []
@@ -653,8 +663,8 @@ useEffect(() => {
   }
 
   // Get the current user_id based on selected source
-  const currentUserId = filters.source_of_receipt?.value 
-    ? sourceUserMap[filters.source_of_receipt.value] || "Not available"
+  const currentUserId = filters.source_of_receipt.length > 0
+    ? sourceUserMap[filters.source_of_receipt[0].value] || "Not available"
     : "Select a source to see user ID";
 
   return (
@@ -683,7 +693,7 @@ useEffect(() => {
               <Row className="mb-3">
                 <Col md={12} className="d-flex justify-content-between align-items-center">
                   <h5 className="mb-0 small-fonts">{translations.filters}</h5>
-                  {(filters.center_name || filters.source_of_receipt || filters.component.length > 0 || filters.investment_name.length > 0 || filters.scheme_name.length > 0) && (
+                  {(filters.center_name.length > 0 || filters.source_of_receipt.length > 0 || filters.component.length > 0 || filters.investment_name.length > 0 || filters.scheme_name.length > 0) && (
                     <Button variant="outline-secondary" size="sm" onClick={clearFilters} className="small-fonts">
                       {translations.clearAllFilters}
                     </Button>
@@ -699,7 +709,8 @@ useEffect(() => {
                       value={filters.center_name}
                       onChange={(value) => handleFilterChange('center_name', value)}
                       options={filterOptions.center_name}
-                      isClearable
+                      isMulti={true}
+                      isClearable={true}
                       placeholder={translations.allCenters}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
@@ -716,19 +727,15 @@ useEffect(() => {
                       value={filters.source_of_receipt}
                       onChange={(value) => handleFilterChange('source_of_receipt', value)}
                       options={filterOptions.source_of_receipt}
-                      isClearable
-                      placeholder={filters.center_name ? translations.allSources : translations.selectCenterFirst}
+                      isMulti={true}
+                      isClearable={true}
+                      placeholder={translations.allSources}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
-                      isDisabled={!filters.center_name}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
-                  {filters.source_of_receipt && (
-                    <Form.Text className="text-muted">
-                    </Form.Text>
-                  )}
                 </Col>
                 
                 <Col md={4} className="mb-3">
@@ -738,12 +745,11 @@ useEffect(() => {
                       value={filters.scheme_name}
                       onChange={(value) => handleFilterChange('scheme_name', value)}
                       options={filterOptions.scheme_name}
-                      isClearable
-                      isMulti // Multi-select
+                      isClearable={true}
+                      isMulti={true}
                       placeholder={translations.allSchemes}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
-                      isDisabled={!filters.center_name}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -759,12 +765,11 @@ useEffect(() => {
                       value={filters.component}
                       onChange={(value) => handleFilterChange('component', value)}
                       options={filterOptions.component}
-                      isClearable
-                      isMulti // Multi-select
-                      placeholder={filters.center_name && filters.source_of_receipt ? translations.allComponents : translations.selectSourceFirst}
+                      isClearable={true}
+                      isMulti={true}
+                      placeholder={translations.allComponents}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
-                      isDisabled={!filters.center_name || !filters.source_of_receipt}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -778,12 +783,11 @@ useEffect(() => {
                       value={filters.investment_name}
                       onChange={(value) => handleFilterChange('investment_name', value)}
                       options={filterOptions.investment_name}
-                      isClearable
-                      isMulti // Multi-select
-                      placeholder={filters.center_name && filters.source_of_receipt && filters.component.length > 0 ? translations.allInvestments : translations.selectComponentFirst}
+                      isClearable={true}
+                      isMulti={true}
+                      placeholder={translations.allInvestments}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
-                      isDisabled={!filters.center_name || !filters.source_of_receipt || filters.component.length === 0}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -825,6 +829,38 @@ useEffect(() => {
                               <span className="badge bg-primary">{itemsPerPage}</span>
                             </div>
                           </div>
+                          
+                          {/* Column Selection Section */}
+                          <div className="column-selection mb-3 p-3 border rounded bg-light">
+                            <h6 className="small-fonts mb-3">{translations.selectColumns}</h6>
+                            <Row>
+                              <Col>
+                                <div className="d-flex flex-wrap">
+                                  {availableColumns.map(col => (
+                                    <div key={col.key} className="form-check me-3 mb-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`col-${col.key}`}
+                                        checked={selectedColumns.includes(col.key)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setSelectedColumns([...selectedColumns, col.key]);
+                                          } else {
+                                            setSelectedColumns(selectedColumns.filter(c => c !== col.key));
+                                          }
+                                        }}
+                                        className="form-check-input"
+                                      />
+                                      <label className="form-check-label small-fonts ms-1" htmlFor={`col-${col.key}`}>
+                                        {col.label}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </Col>
+                            </Row>
+                          </div>
+                          
                           <table className="responsive-table small-fonts">
                             <thead>
                               <tr>
@@ -843,6 +879,7 @@ useEffect(() => {
                                 <th>{translations.cutQuantity}</th>
                                 <th>{translations.rate}</th>
                                 <th>{translations.totalBill}</th>
+                                <th>{translations.billingDate}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -887,6 +924,14 @@ useEffect(() => {
                                         className="bg-light small-fonts"
                                       />
                                     </td>
+                                    <td data-label={translations.billingDate}>
+                                      <Form.Control
+                                        type="date"
+                                        value={item.billing_date || ''}
+                                        onChange={(e) => handleBillingDateChange(item.id, e.target.value)}
+                                        className={`small-fonts ${modifiedItems[item.id] ? 'border-warning' : ''}`}
+                                      />
+                                    </td>
                                   </tr>
                                 );
                               })}
@@ -894,7 +939,7 @@ useEffect(() => {
                           </table>
                           
                           {totalPages > 1 && (
-                            <div className=" mt-2">
+                            <div className="mt-2">
                               <div className="small-fonts mb-3 text-center">
                                 {translations.page} {currentPage} {translations.of} {totalPages}
                               </div>
@@ -933,7 +978,6 @@ useEffect(() => {
           </Container>
         </div>
       </div>
-      <Footer />
     </>
   );
 };

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Row, Col, Form, Button, Spinner, Alert, Card, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Spinner, Alert, Card, OverlayTrigger, Tooltip, Badge, Table, Pagination } from "react-bootstrap";
+import { FaArrowLeft, FaTimes, FaFileExcel, FaFilePdf } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 import "../../assets/css/graph.css";
@@ -34,7 +36,7 @@ const translations = {
   allCenters: "सभी केंद्र",
   allComponents: "सभी घटक",
   allInvestments: "सभी निवेश",
-  allUnits: "सभी इकाइयाँ", // Corrected spelling
+  allUnits: "सभी इकाइयाँ",
   allSources: "सभी स्रोत",
   allSchemes: "सभी योजनाएं",
   schemeName: "योजना का नाम",
@@ -59,7 +61,6 @@ const translations = {
   itemsBySource: "स्रोत के अनुसार आइटम",
   itemsByCenter: "केंद्र के अनुसार आइटम",
   itemsByComponent: "घटक के अनुसार आइटम",
-  itemsByScheme: "योजना के अनुसार आइटम",
   quantityDistribution: "मात्रा वितरण",
   valueDistribution: "मूल्य वितरण",
   filterBy: "फिल्टर द्वारा",
@@ -76,7 +77,6 @@ const translations = {
   value: "मूल्य",
   percentage: "प्रतिशत",
   allDataBelongsTo: "सभी डेटा का संबंध है:",
-  // New translations for comparison filters
   dataView: "डेटा दृश्य",
   allocatedData: "आवंटित डेटा",
   soldData: "बेचा गया डेटा",
@@ -86,39 +86,27 @@ const translations = {
   showComparison: "आवंटित बनाम बेचा गया दिखाएं",
   allocatedVsSold: "आवंटित बनाम बेचा गया",
   remainingItems: "शेष आइटम्स",
-  
-  // More specific quantity labels
   allocatedQuantityLabel: "आवंटित मात्रा (इकाइयों में)",
   soldQuantityLabel: "बेची गई मात्रा (इकाइयों में)",
   remainingQuantityLabel: "शेष मात्रा (इकाइयों में)",
-  
-  // More specific value labels
   allocatedValueLabel: "आवंटित मूल्य (₹ में)",
   soldValueLabel: "बिक्री मूल्य (₹ में)",
   remainingValueLabel: "शेष मूल्य (₹ में)",
-  
-  // Chart specific labels
   allocatedItemsByCenter: "केंद्र के अनुसार आवंटित मात्रा",
   soldItemsByCenter: "केंद्र के अनुसार बेची गई मात्रा",
   remainingItemsByCenter: "केंद्र के अनुसार शेष मात्रा",
-  
   allocatedItemsBySource: "स्रोत के अनुसार आवंटित मात्रा",
   soldItemsBySource: "स्रोत के अनुसार बेची गई मात्रा",
   remainingItemsBySource: "स्रोत के अनुसार शेष मात्रा",
-  
   allocatedItemsByComponent: "घटक के अनुसार आवंटित मात्रा",
   soldItemsByComponent: "घटक के अनुसार बेची गई मात्रा",
   remainingItemsByComponent: "घटक के अनुसार शेष मात्रा",
-  
   allocatedItemsByScheme: "योजना के अनुसार आवंटित मात्रा",
   soldItemsByScheme: "योजना के अनुसार बेची गई मात्रा",
   remainingItemsByScheme: "योजना के अनुसार शेष मात्रा",
-  
   allocatedValueBySource: "स्रोत के अनुसार आवंटित मूल्य",
   soldValueBySource: "स्रोत के अनुसार बिक्री मूल्य",
   remainingValueBySource: "स्रोत के अनुसार शेष मूल्य",
-  
-  // Unit labels for scaling
   inUnits: "(इकाइयों में)",
   inThousands: "(हजारों में)",
   inLakhs: "(लाखों में)",
@@ -126,7 +114,28 @@ const translations = {
   inRupees: "(₹ में)",
   inThousandsRupees: "(हजार ₹ में)",
   inLakhsRupees: "(लाख ₹ में)",
-  inCroresRupees: "(करोड़ ₹ में)"
+  inCroresRupees: "(करोड़ ₹ में)",
+  activeFilters: "सक्रिय फ़िल्टर",
+  removeFilter: "फ़िल्टर हटाएं",
+  backToGraph: "ग्राफ पर वापस जाएं",
+  detailsFor: "के लिए विवरण",
+  noDataForFilter: "इस फ़िल्टर के लिए कोई डेटा नहीं",
+  selectMultiple: "एकाधिक चयन करें",
+  clearFilter: "फ़िल्टर साफ़ करें",
+  srNo: "क्र.सं.",
+  allocatedAmount: "आवंटित राशि",
+  soldQuantity: "बेची गई मात्रा",
+  soldAmount: "बिक्री राशि",
+  remainingAmount: "शेष राशि",
+  downloadExcel: "एक्सेल डाउनलोड करें",
+  downloadPdf: "पीडीएफ डाउनलोड करें",
+  showing: "दिखा रहे हैं",
+  to: "से",
+  entries: "प्रविष्टियां",
+  selectColumns: "कॉलम चुनें",
+  selectAll: "सभी चुनें",
+  deselectAll: "सभी हटाएं",
+  total: "कुल"
 };
 
 // Function to format large numbers with appropriate units
@@ -159,8 +168,105 @@ const formatNumber = (value, decimals = 2) => {
   return parseFloat(value).toFixed(decimals);
 };
 
+// Function to format currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
+// Available columns for DetailView table
+const detailViewColumns = [
+  { key: 'srNo', label: translations.srNo },
+  { key: 'centerName', label: translations.centerName },
+  { key: 'component', label: translations.component },
+  { key: 'investmentName', label: translations.investmentName },
+  { key: 'unit', label: translations.unit },
+  { key: 'allocatedQuantity', label: translations.allocatedQuantity },
+  { key: 'rate', label: translations.rate },
+  { key: 'allocatedAmount', label: translations.allocatedAmount },
+  { key: 'soldQuantity', label: translations.soldQuantity },
+  { key: 'soldAmount', label: translations.soldAmount },
+  { key: 'remainingQuantity', label: translations.remainingQuantity },
+  { key: 'remainingAmount', label: translations.remainingAmount },
+  { key: 'source', label: translations.source },
+  { key: 'scheme', label: translations.schemeName }
+];
+
+// Column mapping for DetailView table
+const detailViewColumnMapping = {
+  srNo: { header: translations.srNo, accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
+  centerName: { header: translations.centerName, accessor: (item) => item.center_name },
+  component: { header: translations.component, accessor: (item) => item.component },
+  investmentName: { header: translations.investmentName, accessor: (item) => item.investment_name },
+  unit: { header: translations.unit, accessor: (item) => item.unit },
+  allocatedQuantity: { header: translations.allocatedQuantity, accessor: (item) => item.allocated_quantity },
+  rate: { header: translations.rate, accessor: (item) => item.rate },
+  allocatedAmount: { header: translations.allocatedAmount, accessor: (item) => formatCurrency(parseFloat(item.allocated_quantity) * parseFloat(item.rate)) },
+  soldQuantity: { header: translations.soldQuantity, accessor: (item) => item.updated_quantity },
+  soldAmount: { header: translations.soldAmount, accessor: (item) => formatCurrency(parseFloat(item.updated_quantity) * parseFloat(item.rate)) },
+  remainingQuantity: { header: translations.remainingQuantity, accessor: (item) => (parseFloat(item.allocated_quantity) - parseFloat(item.updated_quantity)).toFixed(2) },
+  remainingAmount: { header: translations.remainingAmount, accessor: (item) => formatCurrency((parseFloat(item.allocated_quantity) - parseFloat(item.updated_quantity)) * parseFloat(item.rate)) },
+  source: { header: translations.source, accessor: (item) => item.source_of_receipt },
+  scheme: { header: translations.scheme, accessor: (item) => item.scheme_name }
+};
+
+// Reusable Column Selection Component
+const ColumnSelection = ({ columns, selectedColumns, setSelectedColumns, title }) => {
+  const handleColumnToggle = (columnKey) => {
+    if (selectedColumns.includes(columnKey)) {
+      setSelectedColumns(selectedColumns.filter(col => col !== columnKey));
+    } else {
+      setSelectedColumns([...selectedColumns, columnKey]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedColumns(columns.map(col => col.key));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedColumns([]);
+  };
+
+  return (
+    <div className="column-selection mb-3 p-3 border rounded bg-light">
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h6 className="small-fonts mb-0">{title}</h6>
+        <div>
+          <Button variant="outline-secondary" size="sm" onClick={handleSelectAll} className="me-2">
+            {translations.selectAll}
+          </Button>
+          <Button variant="outline-secondary" size="sm" onClick={handleDeselectAll}>
+            {translations.deselectAll}
+          </Button>
+        </div>
+      </div>
+      <Row>
+        <Col>
+          <div className="d-flex flex-wrap">
+            {columns.map(col => (
+              <Form.Check
+                key={col.key}
+                type="checkbox"
+                id={`col-${col.key}`}
+                checked={selectedColumns.includes(col.key)}
+                onChange={() => handleColumnToggle(col.key)}
+                className="me-3 mb-2"
+                label={<span className="small-fonts">{col.label}</span>}
+              />
+            ))}
+          </div>
+        </Col>
+      </Row>
+    </div>
+  );
+};
+
 // Custom Pie Chart Component with Hover Tooltips and 100% case handling
-const PieChart = ({ data, title, dataType }) => {
+const PieChart = ({ data, title, dataType, onBarClick, chartType }) => {
   if (!data || data.length === 0) return null;
 
   const colors = [
@@ -213,6 +319,8 @@ const PieChart = ({ data, title, dataType }) => {
           stroke={isFullCircle ? '#333' : '#fff'} // Darker stroke for full circle
           strokeWidth={isFullCircle ? 3 : 2} // Wider stroke for full circle
           className="pie-slice"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onBarClick && onBarClick(label, value, null, chartType)}
         />
       </OverlayTrigger>
     );
@@ -254,24 +362,22 @@ const PieChart = ({ data, title, dataType }) => {
           </svg>
         </div>
         
-        {/* 
-          CHANGE: Conditionally render legend and percentage distribution.
-          If it's a full circle (one item), this information is redundant.
-        */}
         {!isFullCircle && (
           <div className="">
             <Row>
               {data.map((item, index) => {
-                const percentage = (item.value / total) * 100; // Calculate percentage here
+                const percentage = (item.value / total) * 100;
                 const scaledValue = item.value * scaleFactor;
                 return (
                   <Col md={6} key={item.name} className="mb-2">
-                    <div className="legend-item">
-                      <div 
+                    <div className="legend-item" onClick={() => onBarClick && onBarClick(item.name, item.value, null, chartType)} style={{ cursor: 'pointer' }}>
+                      <div
                         className="legend-color-box"
                         style={{
                           backgroundColor: colors[index % colors.length],
+                          cursor: 'pointer'
                         }}
+                        onClick={() => onBarClick && onBarClick(item.name, item.value, null, chartType)}
                       />
                       <span className="small-fonts">
                         {item.name}: {dataType === 'quantity' ? 
@@ -292,7 +398,7 @@ const PieChart = ({ data, title, dataType }) => {
 };
 
 // Custom Comparison Bar Chart Component
-const ComparisonBarChart = ({ data, title }) => {
+const ComparisonBarChart = ({ data, title, onBarClick }) => {
   if (!data || data.length === 0) return null;
 
   const colors = {
@@ -306,9 +412,9 @@ const ComparisonBarChart = ({ data, title }) => {
   const scaleFactor = scaledMaxValue / maxValue;
   
   const barWidth = 30;
-  const chartHeight = 300;
-  const chartWidth = 800;
-  const margin = { top: 20, right: 20, bottom: 60, left: 40 };
+  const chartHeight = 450;
+  const chartWidth = 600;
+  const margin = { top: 20, right: 20, bottom: 80, left: 50 };
   const innerWidth = chartWidth - margin.left - margin.right;
   const innerHeight = chartHeight - margin.top - margin.bottom;
 
@@ -334,7 +440,7 @@ const ComparisonBarChart = ({ data, title }) => {
             <line x1={margin.left} y1={innerHeight + margin.top} x2={innerWidth + margin.left} y2={innerHeight + margin.top} stroke="#333" />
             
             {/* Y-axis labels */}
-            {[0, 0.25, 0.5, 0.75, 1].map(tick => {
+            {[0, 0.2, 0.4, 0.6, 0.8, 1].map(tick => {
               const y = innerHeight + margin.top - (tick * innerHeight);
               const value = formatNumber(tick * scaledMaxValue);
               return (
@@ -355,11 +461,11 @@ const ComparisonBarChart = ({ data, title }) => {
               const x = margin.left + (index * (innerWidth / data.length)) + (innerWidth / data.length) / 2;
               const groupWidth = innerWidth / data.length;
               const barSpacing = 5;
-              const actualBarWidth = Math.min((groupWidth - barSpacing * 2) / 3, 15);
+              const actualBarWidth = Math.min((innerWidth / data.length * 0.95) / 3, 10);
               
-              const allocatedHeight = (item.allocated / maxValue) * innerHeight;
-              const soldHeight = (item.sold / maxValue) * innerHeight;
-              const remainingHeight = (item.remaining / maxValue) * innerHeight;
+              const allocatedHeight = Math.max(5, (item.allocated / maxValue) * innerHeight);
+              const soldHeight = Math.max(5, (item.sold / maxValue) * innerHeight);
+              const remainingHeight = Math.max(5, (item.remaining / maxValue) * innerHeight);
               
               const allocatedY = innerHeight + margin.top - allocatedHeight;
               const soldY = innerHeight + margin.top - soldHeight;
@@ -379,6 +485,8 @@ const ComparisonBarChart = ({ data, title }) => {
                       height={allocatedHeight}
                       fill={colors.allocated}
                       className="bar-chart-bar"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => onBarClick && onBarClick(item.name, item.allocated, 'allocated')}
                     />
                   </OverlayTrigger>
                   
@@ -394,6 +502,8 @@ const ComparisonBarChart = ({ data, title }) => {
                       height={soldHeight}
                       fill={colors.sold}
                       className="bar-chart-bar"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => onBarClick && onBarClick(item.name, item.sold, 'sold')}
                     />
                   </OverlayTrigger>
                   
@@ -409,18 +519,20 @@ const ComparisonBarChart = ({ data, title }) => {
                       height={remainingHeight}
                       fill={colors.remaining}
                       className="bar-chart-bar"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => onBarClick && onBarClick(item.name, item.remaining, 'remaining')}
                     />
                   </OverlayTrigger>
                   
                   {/* X-axis label */}
                   <text
-                    x={x}
-                    y={innerHeight + margin.top + 20}
-                    textAnchor="middle"
-                    fontSize="12"
-                    transform={`rotate(-45, ${x}, ${innerHeight + margin.top + 20})`}
+                  x={x}
+                  y={innerHeight + margin.top + 20}
+                  textAnchor="middle"
+                  fontSize="14"
+                  transform={`rotate(-45, ${x}, ${innerHeight + margin.top + 20})`}
                   >
-                    {item.name}
+                  {item.name}
                   </text>
                 </g>
               );
@@ -429,13 +541,13 @@ const ComparisonBarChart = ({ data, title }) => {
             {/* Legend */}
             <g transform={`translate(${chartWidth - 150}, 20)`}>
               <rect x={0} y={0} width={15} height={15} fill={colors.allocated} />
-              <text x={20} y={12} fontSize="12">आवंटित मात्रा</text>
+              <text x={20} y={12} fontSize="14">आवंटित मात्रा</text>
               
               <rect x={0} y={20} width={15} height={15} fill={colors.sold} />
-              <text x={20} y={32} fontSize="12">बेची गई मात्रा</text>
+              <text x={20} y={32} fontSize="14">बेची गई मात्रा</text>
               
               <rect x={0} y={40} width={15} height={15} fill={colors.remaining} />
-              <text x={20} y={52} fontSize="12">शेष मात्रा</text>
+              <text x={20} y={52} fontSize="14">शेष मात्रा</text>
             </g>
           </svg>
         </div>
@@ -444,12 +556,12 @@ const ComparisonBarChart = ({ data, title }) => {
   );
 };
 
-// New Simple Bar Chart Component for filtered data
-const SimpleBarChart = ({ data, title, dataType }) => {
+// Simple Bar Chart Component
+const SimpleBarChart = ({ data, title, dataType, onBarClick, chartType }) => {
   if (!data || data.length === 0) return null;
 
   const colors = [
-    '#2C3E50', '#34495E', '#1F618D', '#27AE60', 
+    '#2C3E50', '#34495E', '#1F618D', '#27AE60',
     '#16A085', '#F39C12', '#E74C3C', '#7F8C8D',
     '#28a745', '#17a2b8', '#6c757d', '#fd7e14'
   ];
@@ -457,13 +569,13 @@ const SimpleBarChart = ({ data, title, dataType }) => {
   const maxValue = Math.max(...data.map(item => item.value));
   const { value: scaledMaxValue, unit: displayUnit } = formatNumberWithUnit(maxValue, dataType === 'value');
   const scaleFactor = scaledMaxValue / maxValue;
-  
-  const chartHeight = 300;
-  const chartWidth = 800;
-  const margin = { top: 20, right: 20, bottom: 60, left: 40 };
+
+  const chartHeight = 450;
+  const chartWidth = 600;
+  const margin = { top: 20, right: 20, bottom: 80, left: 50 };
   const innerWidth = chartWidth - margin.left - margin.right;
   const innerHeight = chartHeight - margin.top - margin.bottom;
-  const barWidth = Math.min(innerWidth / data.length * 0.7, 40);
+  const barWidth = Math.max(5, innerWidth / data.length * 0.95);
 
   const tooltip = (label, value) => (
     <Tooltip id={`tooltip-${label.replace(/\s+/g, '-').toLowerCase()}`}>
@@ -488,26 +600,26 @@ const SimpleBarChart = ({ data, title, dataType }) => {
             <line x1={margin.left} y1={innerHeight + margin.top} x2={innerWidth + margin.left} y2={innerHeight + margin.top} stroke="#333" />
             
             {/* Y-axis labels */}
-            {[0, 0.25, 0.5, 0.75, 1].map(tick => {
+            {[0, 0.2, 0.4, 0.6, 0.8, 1].map(tick => {
               const y = innerHeight + margin.top - (tick * innerHeight);
               const value = formatNumber(tick * scaledMaxValue);
               return (
                 <g key={tick}>
                   <line x1={margin.left - 5} y1={y} x2={margin.left} y2={y} stroke="#333" />
-                  <text x={margin.left - 10} y={y + 5} textAnchor="end" fontSize="12">{value}</text>
+                  <text x={margin.left - 10} y={y + 5} textAnchor="end" fontSize="14">{value}</text>
                 </g>
               );
             })}
             
             {/* Y-axis unit label */}
-            <text x={10} y={margin.top} textAnchor="start" fontSize="10" transform={`rotate(-90, 10, ${margin.top})`}>
+            <text x={10} y={margin.top} textAnchor="start" fontSize="12" transform={`rotate(-90, 10, ${margin.top})`}>
               {displayUnit}
             </text>
             
             {/* Bars and X-axis labels */}
             {data.map((item, index) => {
               const x = margin.left + (index * (innerWidth / data.length)) + (innerWidth / data.length - barWidth) / 2;
-              const barHeight = (item.value / maxValue) * innerHeight;
+              const barHeight = Math.max(5, (item.value / maxValue) * innerHeight);
               const y = innerHeight + margin.top - barHeight;
               
               return (
@@ -524,18 +636,20 @@ const SimpleBarChart = ({ data, title, dataType }) => {
                       height={barHeight}
                       fill={colors[index % colors.length]}
                       className="bar-chart-bar"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => onBarClick && onBarClick(item.name, item.value, null, chartType)}
                     />
                   </OverlayTrigger>
                   
                   {/* X-axis label */}
                   <text
-                    x={x + barWidth / 2}
-                    y={innerHeight + margin.top + 20}
-                    textAnchor="middle"
-                    fontSize="12"
-                    transform={`rotate(-45, ${x + barWidth / 2}, ${innerHeight + margin.top + 20})`}
+                  x={x + barWidth / 2}
+                  y={innerHeight + margin.top + 20}
+                  textAnchor="middle"
+                  fontSize="14"
+                  transform={`rotate(-45, ${x + barWidth / 2}, ${innerHeight + margin.top + 20})`}
                   >
-                    {item.name}
+                  {item.name}
                   </text>
                 </g>
               );
@@ -551,7 +665,7 @@ const SimpleBarChart = ({ data, title, dataType }) => {
               const scaledValue = item.value * scaleFactor;
               return (
                 <Col md={6} key={item.name} className="mb-2">
-                  <div className="legend-item">
+                  <div className="legend-item" onClick={() => onBarClick && onBarClick(item.name, item.value, null, chartType)} style={{ cursor: 'pointer' }}>
                     <div 
                       className="legend-color-box"
                       style={{
@@ -600,6 +714,560 @@ const SummaryCard = ({ title, value, unit, icon, color }) => (
   </Card>
 );
 
+// Detail View Component for showing details when a bar is clicked
+const DetailView = ({ title, data, onBack, dataType, filterType, selectedColumns, setSelectedColumns }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const [localSelectedColumns, setLocalSelectedColumns] = useState(selectedColumns || detailViewColumns.map(col => col.key));
+  
+  // Use local state if selectedColumns is not provided
+  const effectiveSelectedColumns = selectedColumns || localSelectedColumns;
+  const effectiveSetSelectedColumns = setSelectedColumns || setLocalSelectedColumns;
+  
+  // Filter data based on filterType
+  const filteredData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
+    // If filterType is 'sold', only show items that have been sold
+    if (filterType === 'sold') {
+      return data.filter(item => parseFloat(item.updated_quantity) > 0);
+    }
+    
+    // If filterType is 'remaining', only show items with remaining quantity
+    if (filterType === 'remaining') {
+      return data.filter(item => {
+        const allocated = parseFloat(item.allocated_quantity) || 0;
+        const sold = parseFloat(item.updated_quantity) || 0;
+        return (allocated - sold) > 0;
+      });
+    }
+    
+    // For 'allocated' or any other type, show all items
+    return data;
+  }, [data, filterType]);
+  
+  // Calculate totals
+  const totals = useMemo(() => {
+    if (!filteredData || filteredData.length === 0) {
+      return {
+        allocated: 0,
+        allocatedValue: 0,
+        sold: 0,
+        soldValue: 0,
+        remaining: 0,
+        remainingValue: 0
+      };
+    }
+    
+    return filteredData.reduce((acc, item) => {
+      const allocated = parseFloat(item.allocated_quantity) || 0;
+      const sold = parseFloat(item.updated_quantity) || 0;
+      const remaining = allocated - sold;
+      const rate = parseFloat(item.rate) || 0;
+      
+      acc.allocated += allocated;
+      acc.allocatedValue += allocated * rate;
+      acc.sold += sold;
+      acc.soldValue += sold * rate;
+      acc.remaining += remaining;
+      acc.remainingValue += remaining * rate;
+      
+      return acc;
+    }, {
+      allocated: 0,
+      allocatedValue: 0,
+      sold: 0,
+      soldValue: 0,
+      remaining: 0,
+      remainingValue: 0
+    });
+  }, [filteredData]);
+  
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+  
+ // In the DetailView component, modify the downloadExcel function:
+
+const downloadExcel = () => {
+  try {
+    // Use all filtered data for Excel export, not just paginated data
+    const excelData = filteredData.map((item, index) => {
+      const row = {};
+      effectiveSelectedColumns.forEach(col => {
+        // Use the same accessor as in the table to ensure consistency
+        row[detailViewColumnMapping[col].header] = detailViewColumnMapping[col].accessor(item, index + 1, 1, filteredData.length);
+      });
+      return row;
+    });
+    
+    // Add totals row at the end (directly after data)
+    const totalsRow = {};
+    
+    // Iterate through selected columns in order to maintain alignment
+    effectiveSelectedColumns.forEach(col => {
+      if (col === 'srNo') {
+        totalsRow[detailViewColumnMapping[col].header] = translations.total || "कुल";
+      } else if (col === 'centerName' || col === 'component' || col === 'investmentName' || 
+                 col === 'unit' || col === 'source' || col === 'scheme') {
+        totalsRow[detailViewColumnMapping[col].header] = "";
+      } else if (col === 'rate') {
+        totalsRow[detailViewColumnMapping[col].header] = "-";
+      } else if (col === 'allocatedQuantity') {
+        totalsRow[detailViewColumnMapping[col].header] = totals.allocated.toFixed(2);
+      } else if (col === 'allocatedAmount') {
+        totalsRow[detailViewColumnMapping[col].header] = formatCurrency(totals.allocatedValue);
+      } else if (col === 'soldQuantity') {
+        totalsRow[detailViewColumnMapping[col].header] = totals.sold.toFixed(2);
+      } else if (col === 'soldAmount') {
+        totalsRow[detailViewColumnMapping[col].header] = formatCurrency(totals.soldValue);
+      } else if (col === 'remainingQuantity') {
+        totalsRow[detailViewColumnMapping[col].header] = totals.remaining.toFixed(2);
+      } else if (col === 'remainingAmount') {
+        totalsRow[detailViewColumnMapping[col].header] = formatCurrency(totals.remainingValue);
+      }
+    });
+    
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet([...excelData, totalsRow]);
+    
+    // Set column widths
+    const colWidths = effectiveSelectedColumns.map(() => ({ wch: 15 }));
+    ws['!cols'] = colWidths;
+    
+    // Style the totals row
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const totalsRowNum = range.e.r; // Last row
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
+      if (!ws[cellAddress]) continue;
+      ws[cellAddress].s = {
+        font: { bold: true },
+        fill: { fgColor: { rgb: "FFFFAA00" } }
+      };
+    }
+    
+    XLSX.utils.book_append_sheet(wb, ws, "Details");
+    XLSX.writeFile(wb, `${title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  } catch (e) {
+    console.error("Error generating Excel file:", e);
+  }
+};
+
+// And modify the downloadPdf function:
+
+const downloadPdf = () => {
+  try {
+    // Use all filtered data for PDF export, not just paginated data
+    const tableHtml = `
+      <html>
+        <head>
+          <title>${title}</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
+            
+            body { 
+              font-family: 'Noto Sans', Arial, sans-serif; 
+              margin: 20px; 
+              direction: ltr;
+            }
+            h1 { 
+              text-align: center; 
+              font-size: 24px;
+              margin-bottom: 30px;
+              font-weight: bold;
+            }
+            table { 
+              border-collapse: collapse; 
+              width: 100%; 
+              margin-top: 20px; 
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+              text-align: left; 
+              font-size: 14px;
+            }
+            th { 
+              background-color: #f2f2f2; 
+              font-weight: bold; 
+            }
+            .totals-row { 
+              background-color: #f2f2f2; 
+              font-weight: bold;
+            }
+            @media print {
+              .no-print { display: none; }
+              body { margin: 0; }
+              h1 { font-size: 20px; }
+              th, td { font-size: 12px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <table>
+            <thead>
+              <tr>
+                ${effectiveSelectedColumns.map(col => `<th>${detailViewColumnMapping[col].header}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredData.map((item, index) => {
+                // Calculate values using the same logic as the table
+                const allocated = parseFloat(item.allocated_quantity) || 0;
+                const sold = parseFloat(item.updated_quantity) || 0;
+                const remaining = allocated - sold;
+                const rate = parseFloat(item.rate) || 0;
+                const allocatedValue = allocated * rate;
+                const soldValue = sold * rate;
+                const remainingValue = remaining * rate;
+                
+                return `
+                  <tr>
+                    ${effectiveSelectedColumns.map(col => {
+                      if (col === 'srNo') {
+                        return `<td>${detailViewColumnMapping.srNo.accessor(item, index + 1, 1, filteredData.length)}</td>`;
+                      } else if (col === 'centerName') {
+                        return `<td>${detailViewColumnMapping.centerName.accessor(item)}</td>`;
+                      } else if (col === 'component') {
+                        return `<td>${detailViewColumnMapping.component.accessor(item)}</td>`;
+                      } else if (col === 'investmentName') {
+                        return `<td>${detailViewColumnMapping.investmentName.accessor(item)}</td>`;
+                      } else if (col === 'unit') {
+                        return `<td>${detailViewColumnMapping.unit.accessor(item)}</td>`;
+                      } else if (col === 'allocatedQuantity') {
+                        return `<td>${detailViewColumnMapping.allocatedQuantity.accessor(item)}</td>`;
+                      } else if (col === 'rate') {
+                        return `<td>${detailViewColumnMapping.rate.accessor(item)}</td>`;
+                      } else if (col === 'allocatedAmount') {
+                        return `<td>${detailViewColumnMapping.allocatedAmount.accessor(item)}</td>`;
+                      } else if (col === 'soldQuantity') {
+                        return `<td>${detailViewColumnMapping.soldQuantity.accessor(item)}</td>`;
+                      } else if (col === 'soldAmount') {
+                        return `<td>${detailViewColumnMapping.soldAmount.accessor(item)}</td>`;
+                      } else if (col === 'remainingQuantity') {
+                        return `<td>${detailViewColumnMapping.remainingQuantity.accessor(item)}</td>`;
+                      } else if (col === 'remainingAmount') {
+                        return `<td>${detailViewColumnMapping.remainingAmount.accessor(item)}</td>`;
+                      } else if (col === 'source') {
+                        return `<td>${detailViewColumnMapping.source.accessor(item)}</td>`;
+                      } else if (col === 'scheme') {
+                        return `<td>${detailViewColumnMapping.scheme.accessor(item)}</td>`;
+                      }
+                      return `<td></td>`;
+                    }).join('')}
+                  </tr>
+                `;
+              }).join('')}
+              <!-- Totals row directly after data -->
+              <tr class="totals-row">
+                ${effectiveSelectedColumns.map(col => {
+                  if (col === 'srNo') {
+                    return `<td>${translations.total || "कुल"}</td>`;
+                  } else if (col === 'centerName' || col === 'component' || col === 'investmentName' || 
+                             col === 'unit' || col === 'source' || col === 'scheme') {
+                    return `<td></td>`;
+                  } else if (col === 'rate') {
+                    return `<td>-</td>`;
+                  } else if (col === 'allocatedQuantity') {
+                    return `<td>${totals.allocated.toFixed(2)}</td>`;
+                  } else if (col === 'allocatedAmount') {
+                    return `<td>${formatCurrency(totals.allocatedValue)}</td>`;
+                  } else if (col === 'soldQuantity') {
+                    return `<td>${totals.sold.toFixed(2)}</td>`;
+                  } else if (col === 'soldAmount') {
+                    return `<td>${formatCurrency(totals.soldValue)}</td>`;
+                  } else if (col === 'remainingQuantity') {
+                    return `<td>${totals.remaining.toFixed(2)}</td>`;
+                  } else if (col === 'remainingAmount') {
+                    return `<td>${formatCurrency(totals.remainingValue)}</td>`;
+                  }
+                  return `<td></td>`;
+                }).join('')}
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(tableHtml);
+    printWindow.document.close();
+    
+    // Wait for the content to load before printing
+    printWindow.onload = function() {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 1000); // Increased timeout to ensure content is fully loaded
+    };
+  } catch (e) {
+    console.error("Error generating PDF:", e);
+  }
+};
+  
+  // Toggle row expansion
+  const toggleRowExpansion = (index) => {
+    const newExpandedRows = new Set(expandedRows);
+    if (newExpandedRows.has(index)) {
+      newExpandedRows.delete(index);
+    } else {
+      newExpandedRows.add(index);
+    }
+    setExpandedRows(newExpandedRows);
+  };
+
+  // Pagination controls
+  const paginationItems = [];
+  const maxVisiblePages = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  
+  if (endPage - startPage < maxVisiblePages - 1) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+  
+  if (startPage > 1) {
+    paginationItems.push(<Pagination.Item key={1} onClick={() => setCurrentPage(1)}>1</Pagination.Item>);
+    if (startPage > 2) {
+      paginationItems.push(<Pagination.Ellipsis key="start-ellipsis" disabled />);
+    }
+  }
+  
+  for (let number = startPage; number <= endPage; number++) {
+    paginationItems.push(
+      <Pagination.Item 
+        key={number} 
+        active={number === currentPage}
+        onClick={() => setCurrentPage(number)}
+      >
+        {number}
+      </Pagination.Item>
+    );
+  }
+  
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      paginationItems.push(<Pagination.Ellipsis key="end-ellipsis" disabled />);
+    }
+    paginationItems.push(<Pagination.Item key={totalPages} onClick={() => setCurrentPage(totalPages)}>{totalPages}</Pagination.Item>);
+  }
+
+  if (!filteredData || filteredData.length === 0) {
+    return (
+      <Card className="detail-view-card">
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">{title}</h5>
+          <Button variant="outline-secondary" size="sm" onClick={onBack}>
+            <FaArrowLeft className="me-1" /> {translations.backToGraph}
+          </Button>
+        </Card.Header>
+        <Card.Body>
+          <Alert variant="info">{translations.noDataForFilter}</Alert>
+        </Card.Body>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="detail-view-card">
+      <Card.Header className="d-flex justify-content-between align-items-center">
+        <h5 className="mb-0">{title}</h5>
+        <div className="d-flex gap-2">
+          <Button variant="outline-success" size="sm" onClick={downloadExcel}>
+            <FaFileExcel className="me-1" /> {translations.downloadExcel}
+          </Button>
+          <Button variant="outline-danger" size="sm" onClick={downloadPdf}>
+            <FaFilePdf className="me-1" /> {translations.downloadPdf}
+          </Button>
+          <Button variant="outline-secondary" size="sm" onClick={onBack}>
+            <FaArrowLeft className="me-1" /> {translations.backToGraph}
+          </Button>
+        </div>
+      </Card.Header>
+      <Card.Body>
+        <div className="table-info mb-2 d-flex justify-content-between align-items-center">
+          <span className="small-fonts">
+            {translations.showing} {startIndex + 1} {translations.to} {Math.min(endIndex, filteredData.length)} {translations.of} {filteredData.length} {translations.entries}
+          </span>
+          <span className="small-fonts">
+            {translations.page} {currentPage} {translations.of} {totalPages}
+          </span>
+        </div>
+        
+        {/* Column Selection for Detail View */}
+        <ColumnSelection
+          columns={detailViewColumns}
+          selectedColumns={effectiveSelectedColumns}
+          setSelectedColumns={effectiveSetSelectedColumns}
+          title={translations.selectColumns}
+        />
+        
+        <div className="table-responsive">
+           <table className="responsive-table small-fonts">
+             <thead>
+               <tr>
+                 {effectiveSelectedColumns.includes('srNo') && <th>{translations.srNo}</th>}
+                 {effectiveSelectedColumns.includes('centerName') && <th>{translations.centerName}</th>}
+                 {effectiveSelectedColumns.includes('component') && <th>{translations.component}</th>}
+                 {effectiveSelectedColumns.includes('investmentName') && <th>{translations.investmentName}</th>}
+                 {effectiveSelectedColumns.includes('unit') && <th>{translations.unit}</th>}
+                 {effectiveSelectedColumns.includes('allocatedQuantity') && <th>{translations.allocatedQuantity}</th>}
+                 {effectiveSelectedColumns.includes('rate') && <th>{translations.rate}</th>}
+                 {effectiveSelectedColumns.includes('allocatedAmount') && <th>{translations.allocatedAmount}</th>}
+                 {effectiveSelectedColumns.includes('soldQuantity') && <th>{translations.soldQuantity}</th>}
+                 {effectiveSelectedColumns.includes('soldAmount') && <th>{translations.soldAmount}</th>}
+                 {effectiveSelectedColumns.includes('remainingQuantity') && <th>{translations.remainingQuantity}</th>}
+                 {effectiveSelectedColumns.includes('remainingAmount') && <th>{translations.remainingAmount}</th>}
+                 {effectiveSelectedColumns.includes('source') && <th>{translations.source}</th>}
+                 {effectiveSelectedColumns.includes('scheme') && <th>{translations.scheme}</th>}
+               </tr>
+             </thead>
+             <tbody>
+               {paginatedData.map((item, index) => {
+                 const allocated = parseFloat(item.allocated_quantity) || 0;
+                 const sold = parseFloat(item.updated_quantity) || 0;
+                 const remaining = allocated - sold;
+                 const rate = parseFloat(item.rate) || 0;
+                 const allocatedValue = allocated * rate;
+                 const soldValue = sold * rate;
+                 const remainingValue = remaining * rate;
+                 const isExpanded = expandedRows.has(startIndex + index);
+
+                 return (
+                   <React.Fragment key={startIndex + index}>
+                     <tr
+                           onClick={() => toggleRowExpansion(startIndex + index)}
+                           style={{ cursor: 'pointer' }}
+                           className={isExpanded ? 'table-active' : ''}
+                     >
+                       {effectiveSelectedColumns.includes('srNo') && <td data-label={translations.srNo}>
+                         {isExpanded ? '▼' : '▶'} {startIndex + index + 1}
+                       </td>}
+                       {effectiveSelectedColumns.includes('centerName') && <td data-label={translations.centerName}>{item.center_name}</td>}
+                       {effectiveSelectedColumns.includes('component') && <td data-label={translations.component}>{item.component}</td>}
+                       {effectiveSelectedColumns.includes('investmentName') && <td data-label={translations.investmentName}>{item.investment_name}</td>}
+                       {effectiveSelectedColumns.includes('unit') && <td data-label={translations.unit}>{item.unit}</td>}
+                       {effectiveSelectedColumns.includes('allocatedQuantity') && <td data-label={translations.allocatedQuantity}>{allocated.toFixed(2)}</td>}
+                       {effectiveSelectedColumns.includes('rate') && <td data-label={translations.rate}>{rate.toFixed(2)}</td>}
+                       {effectiveSelectedColumns.includes('allocatedAmount') && <td data-label={translations.allocatedAmount}>{formatCurrency(allocatedValue)}</td>}
+                       {effectiveSelectedColumns.includes('soldQuantity') && <td data-label={translations.soldQuantity}>{sold.toFixed(2)}</td>}
+                       {effectiveSelectedColumns.includes('soldAmount') && <td data-label={translations.soldAmount}>{formatCurrency(soldValue)}</td>}
+                       {effectiveSelectedColumns.includes('remainingQuantity') && <td data-label={translations.remainingQuantity}>{remaining.toFixed(2)}</td>}
+                       {effectiveSelectedColumns.includes('remainingAmount') && <td data-label={translations.remainingAmount}>{formatCurrency(remainingValue)}</td>}
+                       {effectiveSelectedColumns.includes('source') && <td data-label={translations.source}>{item.source_of_receipt}</td>}
+                       {effectiveSelectedColumns.includes('scheme') && <td data-label={translations.scheme}>{item.scheme_name}</td>}
+                     </tr>
+                     {isExpanded && (
+                       <tr className="expanded-row">
+                         <td colSpan={effectiveSelectedColumns.length} className="p-3 bg-light">
+                           <div className="row">
+                             <div className="col-md-6">
+                               <h6>विवरण:</h6>
+                               <p><strong>केंद्र:</strong> {item.center_name}</p>
+                               <p><strong>घटक:</strong> {item.component}</p>
+                               <p><strong>निवेश:</strong> {item.investment_name}</p>
+                               <p><strong>इकाई:</strong> {item.unit}</p>
+                               <p><strong>स्रोत:</strong> {item.source_of_receipt}</p>
+                               <p><strong>योजना:</strong> {item.scheme_name}</p>
+                             </div>
+                             <div className="col-md-6">
+                               <h6>वित्तीय सारांश:</h6>
+                               <p><strong>आवंटित मात्रा:</strong> {allocated.toFixed(2)} {item.unit}</p>
+                               <p><strong>दर:</strong> ₹{rate.toFixed(2)}</p>
+                               <p><strong>आवंटित मूल्य:</strong> {formatCurrency(allocatedValue)}</p>
+                               <p><strong>बेची गई मात्रा:</strong> {sold.toFixed(2)} {item.unit}</p>
+                               <p><strong>बिक्री मूल्य:</strong> {formatCurrency(soldValue)}</p>
+                               <p><strong>शेष मात्रा:</strong> {remaining.toFixed(2)} {item.unit}</p>
+                               <p><strong>शेष मूल्य:</strong> {formatCurrency(remainingValue)}</p>
+                             </div>
+                           </div>
+                         </td>
+                       </tr>
+                     )}
+                   </React.Fragment>
+                 );
+               })}
+             </tbody>
+             <tfoot>
+               {/* First row: Column labels and totals */}
+               <tr className="font-weight-bold">
+                 {/* For each column, show either the label or the total */}
+                 {effectiveSelectedColumns.includes('srNo') && 
+                   <td>{translations.total || "कुल"}</td>
+                 }
+                 {effectiveSelectedColumns.includes('centerName') && 
+                   <td></td>
+                 }
+                 {effectiveSelectedColumns.includes('component') && 
+                   <td></td>
+                 }
+                 {effectiveSelectedColumns.includes('investmentName') && 
+                   <td></td>
+                 }
+                 {effectiveSelectedColumns.includes('unit') && 
+                   <td></td>
+                 }
+                 {effectiveSelectedColumns.includes('allocatedQuantity') && 
+                   <td>{totals.allocated.toFixed(2)}</td>
+                 }
+                 {effectiveSelectedColumns.includes('rate') && 
+                   <td>-</td>
+                 }
+                 {effectiveSelectedColumns.includes('allocatedAmount') && 
+                   <td>{formatCurrency(totals.allocatedValue)}</td>
+                 }
+                 {effectiveSelectedColumns.includes('soldQuantity') && 
+                   <td>{totals.sold.toFixed(2)}</td>
+                 }
+                 {effectiveSelectedColumns.includes('soldAmount') && 
+                   <td>{formatCurrency(totals.soldValue)}</td>
+                 }
+                 {effectiveSelectedColumns.includes('remainingQuantity') && 
+                   <td>{totals.remaining.toFixed(2)}</td>
+                 }
+                 {effectiveSelectedColumns.includes('remainingAmount') && 
+                   <td>{formatCurrency(totals.remainingValue)}</td>
+                 }
+                 {effectiveSelectedColumns.includes('source') && 
+                   <td></td>
+                 }
+                 {effectiveSelectedColumns.includes('scheme') && 
+                   <td></td>
+                 }
+               </tr>
+               
+             </tfoot>
+           </table>
+         </div>
+        
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-center mt-3">
+            <Pagination>
+              <Pagination.Prev 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(currentPage - 1)}
+              />
+              {paginationItems}
+              <Pagination.Next 
+                disabled={currentPage === totalPages} 
+                onClick={() => setCurrentPage(currentPage + 1)}
+              />
+            </Pagination>
+          </div>
+        )}
+      </Card.Body>
+    </Card>
+  );
+};
+
 const Graph = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -609,34 +1277,158 @@ const Graph = () => {
   const [error, setError] = useState(null);
   const [, setErrorType] = useState("");
   const [activeTab, setActiveTab] = useState("overall");
-  
-  // Filter states - reordered to put scheme before component
-  const [centerFilter, setCenterFilter] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
-  const [schemeFilter, setSchemeFilter] = useState(""); // Moved before component
-  const [componentFilter, setComponentFilter] = useState(""); // Moved after scheme
-  const [investmentFilter, setInvestmentFilter] = useState("");
-  const [unitFilter, setUnitFilter] = useState("");
-  
+
+  // State for multi-filtering
+  const [activeFilters, setActiveFilters] = useState({});
+  const [filterCategory, setFilterCategory] = useState(null);
+
+  // State for detail view
+  const [showDetailView, setShowDetailView] = useState(false);
+  const [detailViewData, setDetailViewData] = useState({
+    title: "",
+    data: [],
+    dataType: "",
+    filterType: ""
+  });
+
   // New filter states for comparison
   const [dataViewFilter, setDataViewFilter] = useState("allocated"); // allocated, sold, remaining, comparison
   const [dataTypeFilter, setDataTypeFilter] = useState("quantity"); // quantity, value
   const [showWorkingItemsOnly, setShowWorkingItemsOnly] = useState(false); // Filter for items with remaining quantity > 0
-  
-  // State to track if graph should be generated based on filters
-  const [generateFromFilters, setGenerateFromFilters] = useState(false);
-  
-  // State to store previously applied filters
-  const [savedFilters, setSavedFilters] = useState({
-    center: "",
-    source: "",
-    scheme: "", // Added scheme
-    component: "",
-    investment: "",
-    unit: ""
-  });
+  const [chartType, setChartType] = useState("pie"); // pie, bar, line, area, scatter, radar
 
-  // Extract unique values for each filter with cascading logic - updated order
+  // State for selected columns for DetailView
+  const [selectedDetailColumns, setSelectedDetailColumns] = useState(detailViewColumns.map(col => col.key));
+
+  // Check device width
+  useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
+      setSidebarOpen(width >= 1024);
+    };
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
+  // Fetch billing data
+  useEffect(() => {
+    const fetchBillingData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/");
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setBillingData(data);
+      } catch (err) {
+        
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          setErrorType("network");
+          setError(translations.networkError);
+        } else if (err.message.includes('HTTP error')) {
+          setErrorType("server");
+          setError(translations.serverError);
+        } else {
+          setErrorType("data");
+          setError(translations.dataError);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBillingData();
+  }, []);
+
+  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+
+  // Handler for clicking category cards
+  const handleCategoryCardClick = (category) => {
+    setFilterCategory(category);
+  };
+
+  // Handler for clicking filter buttons
+  const handleFilterButtonClick = (category, value) => {
+    setActiveFilters(prev => {
+      const currentValues = prev[category] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+      
+      if (newValues.length === 0) {
+        const newFilters = { ...prev };
+        delete newFilters[category];
+        return newFilters;
+      }
+
+      return { ...prev, [category]: newValues };
+    });
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setActiveFilters({});
+    setFilterCategory(null);
+    setShowWorkingItemsOnly(false);
+  };
+
+  // Handler for clicking on a graph bar
+  const handleBarClick = (name, value, type = null, chartType = null) => {
+    // Find the data for the clicked bar
+    let chartData = [];
+    
+    // Determine which chart data to use based on chart type
+    if (chartType === 'comparison') {
+      chartData = getChartData.comparisonData;
+    } else if (chartType === 'center_name') {
+      chartData = getChartData.centerData;
+    } else if (chartType === 'source_of_receipt') {
+      chartData = getChartData.sourceData;
+    } else if (chartType === 'scheme_name') {
+      chartData = getChartData.schemeData;
+    } else if (chartType === 'component') {
+      chartData = getChartData.componentData;
+    } else if (chartType === 'investment_name') {
+      chartData = getChartData.investmentData;
+    } else if (chartType === 'unit') {
+      chartData = getChartData.unitData;
+    } else {
+      // Default to center data
+      chartData = getChartData.centerData;
+    }
+
+    // Find the clicked item in the chart data
+    const clickedItem = chartData.find(item => item.name === name);
+
+    if (clickedItem && clickedItem.items) {
+      // Set the detail view data
+      setDetailViewData({
+        title: ` ${name} ${translations.detailsFor}`,
+        data: clickedItem.items,
+        dataType: dataTypeFilter,
+        filterType: type || dataViewFilter // Use type if provided, otherwise use dataViewFilter
+      });
+
+      // Show the detail view
+      setShowDetailView(true);
+    }
+  };
+
+  // Check if there are active filters
+  const hasActiveFilters = Object.keys(activeFilters).length > 0;
+
+  // Determine whether to show pie charts or bar charts
+  const showPieCharts = !hasActiveFilters; // Show pie charts when no filters, bar charts when filters applied
+
+  // Extract unique values for each filter
   const uniqueCenters = useMemo(() => {
     if (!billingData.length) return [];
     const centers = [...new Set(billingData.map(item => item.center_name))];
@@ -645,86 +1437,143 @@ const Graph = () => {
 
   const uniqueSources = useMemo(() => {
     if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) {
-      filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    }
-    const sources = [...new Set(filteredData.map(item => item.source_of_receipt))];
+    const sources = [...new Set(billingData.map(item => item.source_of_receipt))];
     return sources.filter(Boolean).sort();
-  }, [billingData, centerFilter]);
+  }, [billingData]);
 
-  // Changed order: scheme now comes before component
   const uniqueSchemes = useMemo(() => {
     if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    const schemes = [...new Set(filteredData.map(item => item.scheme_name))];
+    const schemes = [...new Set(billingData.map(item => item.scheme_name))];
     return schemes.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter]);
+  }, [billingData]);
 
   const uniqueComponents = useMemo(() => {
     if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    if (schemeFilter) filteredData = filteredData.filter(item => item.scheme_name === schemeFilter); // Now depends on scheme
-    const components = [...new Set(filteredData.map(item => item.component))];
+    const components = [...new Set(billingData.map(item => item.component))];
     return components.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter, schemeFilter]);
+  }, [billingData]);
 
   const uniqueInvestments = useMemo(() => {
     if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    if (schemeFilter) filteredData = filteredData.filter(item => item.scheme_name === schemeFilter);
-    if (componentFilter) filteredData = filteredData.filter(item => item.component === componentFilter);
-    const investments = [...new Set(filteredData.map(item => item.investment_name))];
+    const investments = [...new Set(billingData.map(item => item.investment_name))];
     return investments.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter, schemeFilter, componentFilter]);
+  }, [billingData]);
 
   const uniqueUnits = useMemo(() => {
     if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    if (schemeFilter) filteredData = filteredData.filter(item => item.scheme_name === schemeFilter);
-    if (componentFilter) filteredData = filteredData.filter(item => item.component === componentFilter);
-    if (investmentFilter) filteredData = filteredData.filter(item => item.investment_name === investmentFilter);
-    const units = [...new Set(filteredData.map(item => item.unit))];
+    const units = [...new Set(billingData.map(item => item.unit))];
     return units.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter, schemeFilter, componentFilter, investmentFilter]);
+  }, [billingData]);
 
-  // Filter data based on all selected filters - updated to include scheme
-  const filteredData = useMemo(() => {
-    let data = billingData.filter(item => {
-      return (
-        (!centerFilter || item.center_name === centerFilter) &&
-        (!sourceFilter || item.source_of_receipt === sourceFilter) &&
-        (!schemeFilter || item.scheme_name === schemeFilter) && // Added scheme filter
-        (!componentFilter || item.component === componentFilter) &&
-        (!investmentFilter || item.investment_name === investmentFilter) &&
-        (!unitFilter || item.unit === unitFilter)
-      );
-    });
-    
-    // Filter for working items (remaining quantity > 0) if requested
-    if (showWorkingItemsOnly) {
-      data = data.filter(item => {
+  // Prepare data for charts based on filtered data
+  const getChartData = useMemo(() => {
+    const dataToUse = billingData.filter(item => {
+      // Apply multi-filters
+      const multiFilters = Object.keys(activeFilters).every(category => {
+        const values = activeFilters[category];
+        if (!values || values.length === 0) return true;
+        return values.includes(item[category]);
+      });
+
+      // Filter for working items (remaining quantity > 0) if requested
+      if (showWorkingItemsOnly) {
         const allocated = parseFloat(item.allocated_quantity) || 0;
         const sold = parseFloat(item.updated_quantity) || 0;
         return (allocated - sold) > 0;
-      });
-    }
-    
-    return data;
-  }, [billingData, centerFilter, sourceFilter, schemeFilter, componentFilter, investmentFilter, unitFilter, showWorkingItemsOnly]);
+      }
 
-  // Calculate summary statistics based on active tab and data view
-  const summaryStats = useMemo(() => {
-    const dataToUse = generateFromFilters ? filteredData : billingData;
+      return multiFilters;
+    });
+
+    // Helper function to create data based on view type
+    const createData = (groupByField) => {
+      const data = {};
+      
+      dataToUse.forEach(item => {
+        const key = item[groupByField] || 'Unknown';
+        if (!data[key]) {
+          data[key] = {
+            allocated: 0,
+            sold: 0,
+            remaining: 0,
+            allocatedValue: 0,
+            soldValue: 0,
+            remainingValue: 0,
+            items: [] // Store items for detail view
+          };
+        }
+        
+        const allocated = parseFloat(item.allocated_quantity) || 0;
+        const sold = parseFloat(item.updated_quantity) || 0;
+        const remaining = allocated - sold;
+        const rate = parseFloat(item.rate) || 0;
+        
+        data[key].allocated += allocated;
+        data[key].sold += sold;
+        data[key].remaining += remaining;
+        data[key].allocatedValue += allocated * rate;
+        data[key].soldValue += sold * rate;
+        data[key].remainingValue += remaining * rate;
+        
+        // Store the item for detail view
+        data[key].items.push(item);
+      });
+      
+      // Transform data based on view type
+      if (dataViewFilter === "comparison") {
+        return Object.entries(data).map(([key, values]) => ({
+          name: key,
+          allocated: values.allocated,
+          sold: values.sold,
+          remaining: values.remaining,
+          items: values.items // Store items for detail view
+        })).sort((a, b) => b.allocated - a.allocated);
+      } else {
+        const valueField = dataViewFilter === "allocated" ?
+          (dataTypeFilter === "quantity" ? "allocated" : "allocatedValue") :
+          dataViewFilter === "sold" ?
+          (dataTypeFilter === "quantity" ? "sold" : "soldValue") :
+          (dataTypeFilter === "quantity" ? "remaining" : "remainingValue");
+        
+        return Object.entries(data).map(([key, values]) => ({
+          name: key,
+          value: values[valueField],
+          items: values.items // Store items for detail view
+        })).sort((a, b) => b.value - a.value);
+      }
+    };
     
+    return {
+      sourceData: createData('source_of_receipt'),
+      centerData: createData('center_name'),
+      componentData: createData('component'),
+      investmentData: createData('investment_name'),
+      unitData: createData('unit'),
+      schemeData: createData('scheme_name'),
+      comparisonData: createData('center_name') // Use center for comparison chart
+    };
+  }, [billingData, activeFilters, showWorkingItemsOnly, dataViewFilter, dataTypeFilter]);
+
+  // Calculate summary statistics based on filtered data
+  const summaryStats = useMemo(() => {
+    const dataToUse = billingData.filter(item => {
+      // Apply multi-filters
+      const multiFilters = Object.keys(activeFilters).every(category => {
+        const values = activeFilters[category];
+        if (!values || values.length === 0) return true;
+        return values.includes(item[category]);
+      });
+
+      // Filter for working items (remaining quantity > 0) if requested
+      if (showWorkingItemsOnly) {
+        const allocated = parseFloat(item.allocated_quantity) || 0;
+        const sold = parseFloat(item.updated_quantity) || 0;
+        return (allocated - sold) > 0;
+      }
+
+      return multiFilters;
+    });
+
     if (!dataToUse.length) {
       return { 
         totalAllocated: 0, 
@@ -764,214 +1613,63 @@ const Graph = () => {
       totalRemainingValue: totalRemainingValue.toFixed(2),
       totalItems: dataToUse.length
     };
-  }, [billingData, filteredData, generateFromFilters]);
+  }, [billingData, activeFilters, showWorkingItemsOnly]);
 
-  // Prepare data for charts based on active tab and data view
-  const getChartData = useMemo(() => {
-    const dataToUse = generateFromFilters ? filteredData : billingData;
-    if (!dataToUse.length) return { sourceData: [], centerData: [], componentData: [], investmentData: [], unitData: [], schemeData: [], comparisonData: [] };
+  // Helper to render filter buttons for a category
+  const renderFilterButtons = (category) => {
+    let values = [];
     
-    // Helper function to create data based on view type
-    const createData = (groupByField) => {
-      const data = {};
-      
-      dataToUse.forEach(item => {
-        const key = item[groupByField] || 'Unknown';
-        if (!data[key]) {
-          data[key] = {
-            allocated: 0,
-            sold: 0,
-            remaining: 0,
-            allocatedValue: 0,
-            soldValue: 0,
-            remainingValue: 0
-          };
-        }
-        
-        const allocated = parseFloat(item.allocated_quantity) || 0;
-        const sold = parseFloat(item.updated_quantity) || 0;
-        const remaining = allocated - sold;
-        const rate = parseFloat(item.rate) || 0;
-        
-        data[key].allocated += allocated;
-        data[key].sold += sold;
-        data[key].remaining += remaining;
-        
-        data[key].allocatedValue += allocated * rate;
-        data[key].soldValue += sold * rate;
-        data[key].remainingValue += remaining * rate;
-      });
-      
-      // Transform data based on view type
-      if (dataViewFilter === "comparison") {
-        return Object.entries(data).map(([key, values]) => ({
-          name: key,
-          allocated: values.allocated,
-          sold: values.sold,
-          remaining: values.remaining
-        })).sort((a, b) => b.allocated - a.allocated);
-      } else {
-        const valueField = dataViewFilter === "allocated" ? 
-          (dataTypeFilter === "quantity" ? "allocated" : "allocatedValue") : 
-          dataViewFilter === "sold" ? 
-          (dataTypeFilter === "quantity" ? "sold" : "soldValue") : 
-          (dataTypeFilter === "quantity" ? "remaining" : "remainingValue");
-        
-        return Object.entries(data).map(([key, values]) => ({
-          name: key,
-          value: values[valueField]
-        })).sort((a, b) => b.value - a.value);
-      }
-    };
+    // Get the values for the selected category
+    if (category === 'center_name') {
+      values = uniqueCenters;
+    } else if (category === 'source_of_receipt') {
+      values = uniqueSources;
+    } else if (category === 'scheme_name') {
+      values = uniqueSchemes;
+    } else if (category === 'component') {
+      values = uniqueComponents;
+    } else if (category === 'investment_name') {
+      values = uniqueInvestments;
+    } else if (category === 'unit') {
+      values = uniqueUnits;
+    }
     
-    return {
-      sourceData: createData('source_of_receipt'),
-      centerData: createData('center_name'),
-      componentData: createData('component'),
-      investmentData: createData('investment_name'),
-      unitData: createData('unit'),
-      schemeData: createData('scheme_name'),
-      comparisonData: createData('center_name') // Use center for comparison chart
-    };
-  }, [billingData, filteredData, generateFromFilters, dataViewFilter, dataTypeFilter]);
-
-  // Check device width
-  useEffect(() => {
-    const checkDevice = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
-      setSidebarOpen(width >= 1024);
-    };
-    checkDevice();
-    window.addEventListener("resize", checkDevice);
-    return () => window.removeEventListener("resize", checkDevice);
-  }, []);
-
-  // Apply saved filters when switching to filtered tab
-  useEffect(() => {
-    if (activeTab === "filtered" && generateFromFilters) {
-      setCenterFilter(savedFilters.center);
-      setSourceFilter(savedFilters.source);
-      setSchemeFilter(savedFilters.scheme); // Added scheme
-      setComponentFilter(savedFilters.component);
-      setInvestmentFilter(savedFilters.investment);
-      setUnitFilter(savedFilters.unit);
-    }
-  }, [activeTab, generateFromFilters, savedFilters]);
-
-  // Fetch billing data
-  useEffect(() => {
-    const fetchBillingData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setErrorType("");
-        
-        const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/");
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setBillingData(data);
-      } catch (err) {
-        
-        if (err.name === 'TypeError' && err.message.includes('fetch')) {
-          setErrorType("network");
-          setError(translations.networkError);
-        } else if (err.message.includes('HTTP error')) {
-          setErrorType("server");
-          setError(translations.serverError);
-        } else {
-          setErrorType("data");
-          setError(translations.dataError);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBillingData();
-  }, []);
-
-  const retryFetch = () => {
-    // This is a simple retry, you could add more sophisticated logic
-    window.location.reload();
+    return values.map((value) => (
+      <Col key={value} xs="auto" className="mb-2">
+        <Button 
+          variant={(activeFilters[category] || []).includes(value) ? "primary" : "outline-secondary"}
+          size="sm"
+          className="filter-button"
+          onClick={() => handleFilterButtonClick(category, value)}
+        >
+          {value}
+        </Button>
+      </Col>
+    ));
   };
 
-  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
-
-  const handleFilterChange = (filterType, value) => {
-    switch (filterType) {
-      case 'center':
-        setCenterFilter(value);
-        setSourceFilter("");
-        setSchemeFilter(""); // Added scheme
-        setComponentFilter("");
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'source':
-        setSourceFilter(value);
-        setSchemeFilter(""); // Added scheme
-        setComponentFilter("");
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'scheme': // Added new case for scheme
-        setSchemeFilter(value);
-        setComponentFilter("");
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'component':
-        setComponentFilter(value);
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'investment':
-        setInvestmentFilter(value);
-        setUnitFilter("");
-        break;
-      case 'unit':
-        setUnitFilter(value);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const clearAllFilters = () => {
-    setCenterFilter("");
-    setSourceFilter("");
-    setSchemeFilter(""); // Added scheme
-    setComponentFilter("");
-    setInvestmentFilter("");
-    setUnitFilter("");
-    setGenerateFromFilters(false);
-    setSavedFilters({ center: "", source: "", scheme: "", component: "", investment: "", unit: "" }); // Added scheme
-    setShowWorkingItemsOnly(false);
-  };
-
-  const generateGraphFromFilters = () => {
-    setSavedFilters({
-      center: centerFilter, 
-      source: sourceFilter, 
-      scheme: schemeFilter, // Added scheme
-      component: componentFilter,
-      investment: investmentFilter, 
-      unit: unitFilter
-    });
-    setGenerateFromFilters(true);
-    setActiveTab("filtered");
-  };
-
-  const hasActiveFilters = centerFilter || sourceFilter || schemeFilter || componentFilter || investmentFilter || unitFilter; // Added scheme
-
-  // Determine whether to show pie charts or bar charts
-  const showPieCharts = !generateFromFilters; // Show pie charts until filters are applied
+  // If showing detail view, render it instead of graph
+  if (showDetailView) {
+    return (
+      <div className="dashboard-container">
+        <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
+        <div className="main-content">
+          <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+          <Container fluid className="dashboard-body">
+            <DetailView 
+              title={detailViewData.title} 
+              data={detailViewData.data} 
+              onBack={() => setShowDetailView(false)}
+              dataType={detailViewData.dataType}
+              filterType={detailViewData.filterType}
+              selectedColumns={selectedDetailColumns}
+              setSelectedColumns={setSelectedDetailColumns}
+            />
+          </Container>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -981,371 +1679,493 @@ const Graph = () => {
         <Container fluid className="dashboard-body">
           <h1 className="page-title small-fonts">{translations.graphs}</h1>
 
+          {/* Summary Cards */}
           <Row className="summary-cards mb-4">
             <Col md={2}>
               <SummaryCard 
-                title={translations.totalAllocated} 
-                value={summaryStats.totalAllocated} 
-                unit={translations.allocatedQuantityLabel} 
-                icon="fa-cubes" 
-                color="#2C3E50" 
+                    title={translations.totalAllocated} 
+                    value={summaryStats.totalAllocated} 
+                    unit={translations.allocatedQuantityLabel} 
+                    icon="fa-cubes" 
+                    color="#2C3E50" 
               />
             </Col>
             <Col md={2}>
               <SummaryCard 
-                title={translations.totalSold} 
-                value={summaryStats.totalSold} 
-                unit={translations.soldQuantityLabel} 
-                icon="fa-shopping-cart" 
-                color="#E74C3C" 
+                    title={translations.totalSold} 
+                    value={summaryStats.totalSold} 
+                    unit={translations.soldQuantityLabel} 
+                    icon="fa-shopping-cart" 
+                    color="#E74C3C" 
               />
             </Col>
             <Col md={2}>
               <SummaryCard 
-                title={translations.totalRemaining} 
-                value={summaryStats.totalRemaining} 
-                unit={translations.remainingQuantityLabel} 
-                icon="fa-box" 
-                color="#27AE60" 
+                    title={translations.totalRemaining} 
+                    value={summaryStats.totalRemaining} 
+                    unit={translations.remainingQuantityLabel} 
+                    icon="fa-box" 
+                    color="#27AE60" 
               />
             </Col>
             <Col md={2}>
               <SummaryCard 
-                title={translations.totalValue} 
-                value={`₹${summaryStats.totalAllocatedValue}`} 
-                unit={translations.allocatedValueLabel} 
-                icon="fa-rupee-sign" 
-                color="#28a745" 
+                    title={translations.totalValue} 
+                    value={`₹${summaryStats.totalAllocatedValue}`} 
+                    unit={translations.allocatedValueLabel} 
+                    icon="fa-rupee-sign" 
+                    color="#28a745" 
               />
             </Col>
             <Col md={2}>
               <SummaryCard 
-                title={translations.totalSoldValue} 
-                value={`₹${summaryStats.totalSoldValue}`} 
-                unit={translations.soldValueLabel} 
-                icon="fa-money-bill-wave" 
-                color="#F39C12" 
+                    title={translations.totalSoldValue} 
+                    value={`₹${summaryStats.totalSoldValue}`} 
+                    unit={translations.soldValueLabel} 
+                    icon="fa-money-bill-wave" 
+                    color="#F39C12" 
               />
             </Col>
             <Col md={2}>
               <SummaryCard 
-                title={translations.totalRemainingValue} 
-                value={`₹${summaryStats.totalRemainingValue}`} 
-                unit={translations.remainingValueLabel} 
-                icon="fa-piggy-bank" 
-                color="#3498DB" 
+                    title={translations.totalRemainingValue} 
+                    value={`₹${summaryStats.totalRemainingValue}`} 
+                    unit={translations.remainingValueLabel} 
+                    icon="fa-piggy-bank" 
+                    color="#3498DB" 
               />
             </Col>
           </Row>
 
-          <div className="filter-section mt-3 mb-3">
-            <Row className="mb-3">
-              <Col md={12} className="d-flex justify-content-between align-items-center">
-                <h5 className="mb-0 small-fonts">{translations.filters} {generateFromFilters && <span className="badge bg-info ms-2 small-fonts">{translations.filtersApplied}</span>}</h5>
-                <div>
-                  {hasActiveFilters && <Button variant="outline-primary" size="sm" onClick={generateGraphFromFilters} className="small-fonts me-2">{translations.generateGraph}</Button>}
-                  <Button variant="outline-secondary" size="sm" onClick={clearAllFilters} className="small-fonts">{translations.clearAllFilters}</Button>
+          {/* Filter Section */}
+          <div className="filter-section mt-3 mb-3 p-3 border rounded bg-light">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="mb-0 small-fonts">{translations.filters} {hasActiveFilters && <span className="badge bg-info ms-2 small-fonts">{translations.filtersApplied}</span>}</h5>
+              <Button variant="outline-secondary" size="sm" onClick={clearAllFilters} className="small-fonts">{translations.clearAllFilters}</Button>
+            </div>
+            
+            {/* Multi-filter category cards */}
+            <Row className="g-3 mb-3">
+              <Col xs={6} md={2}>
+                <Card 
+                      className={`high-level-summary-card text-center h-100 ${activeFilters['center_name'] ? 'active' : ''}`}
+                      onClick={() => handleCategoryCardClick('center_name')}
+                >
+                  <Card.Body>
+                        <div className="card-icon">🏢</div>
+                        <Card.Title className="small-fonts">{translations.centerName}</Card.Title>
+                        <Card.Text className="summary-value small-fonts">{getChartData.centerData.length} प्रकार</Card.Text>
+                        {activeFilters['center_name'] && (
+                          <Badge bg="success" pill>{activeFilters['center_name'].length} चयनित</Badge>
+                        )}
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2}>
+                <Card 
+                      className={`high-level-summary-card text-center h-100 ${activeFilters['source_of_receipt'] ? 'active' : ''}`}
+                      onClick={() => handleCategoryCardClick('source_of_receipt')}
+                >
+                  <Card.Body>
+                        <div className="card-icon">💰</div>
+                        <Card.Title className="small-fonts">{translations.sourceOfReceipt}</Card.Title>
+                        <Card.Text className="summary-value small-fonts">{getChartData.sourceData.length} प्रकार</Card.Text>
+                        {activeFilters['source_of_receipt'] && (
+                          <Badge bg="success" pill>{activeFilters['source_of_receipt'].length} चयनित</Badge>
+                        )}
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2}>
+                <Card 
+                      className={`high-level-summary-card text-center h-100 ${activeFilters['scheme_name'] ? 'active' : ''}`}
+                      onClick={() => handleCategoryCardClick('scheme_name')}
+                >
+                  <Card.Body>
+                        <div className="card-icon">📋</div>
+                        <Card.Title className="small-fonts">{translations.schemeName}</Card.Title>
+                        <Card.Text className="summary-value small-fonts">{getChartData.schemeData.length} प्रकार</Card.Text>
+                        {activeFilters['scheme_name'] && (
+                          <Badge bg="success" pill>{activeFilters['scheme_name'].length} चयनित</Badge>
+                        )}
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2}>
+                <Card 
+                      className={`high-level-summary-card text-center h-100 ${activeFilters['component'] ? 'active' : ''}`}
+                      onClick={() => handleCategoryCardClick('component')}
+                >
+                  <Card.Body>
+                        <div className="card-icon">📦</div>
+                        <Card.Title className="small-fonts">{translations.component}</Card.Title>
+                        <Card.Text className="summary-value small-fonts">{getChartData.componentData.length} प्रकार</Card.Text>
+                        {activeFilters['component'] && (
+                          <Badge bg="success" pill>{activeFilters['component'].length} चयनित</Badge>
+                        )}
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2}>
+                <Card 
+                      className={`high-level-summary-card text-center h-100 ${activeFilters['investment_name'] ? 'active' : ''}`}
+                      onClick={() => handleCategoryCardClick('investment_name')}
+                >
+                  <Card.Body>
+                        <div className="card-icon">💼</div>
+                        <Card.Title className="small-fonts">{translations.investmentName}</Card.Title>
+                        <Card.Text className="summary-value small-fonts">{getChartData.investmentData.length} प्रकार</Card.Text>
+                        {activeFilters['investment_name'] && (
+                          <Badge bg="success" pill>{activeFilters['investment_name'].length} चयनित</Badge>
+                        )}
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col xs={6} md={2}>
+                <Card 
+                      className={`high-level-summary-card text-center h-100 ${activeFilters['unit'] ? 'active' : ''}`}
+                      onClick={() => handleCategoryCardClick('unit')}
+                >
+                  <Card.Body>
+                        <div className="card-icon">📏</div>
+                        <Card.Title className="small-fonts">{translations.unit}</Card.Title>
+                        <Card.Text className="summary-value small-fonts">{getChartData.unitData.length} प्रकार</Card.Text>
+                        {activeFilters['unit'] && (
+                          <Badge bg="success" pill>{activeFilters['unit'].length} चयनित</Badge>
+                        )}
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Filter Buttons Section - Shows directly when a card is clicked */}
+            {filterCategory && (
+              <div className="filter-buttons-container mb-4 p-3 border rounded bg-light">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0 small-fonts">
+                    {filterCategory === 'center_name' ? translations.centerName :
+                     filterCategory === 'source_of_receipt' ? translations.sourceOfReceipt :
+                     filterCategory === 'scheme_name' ? translations.schemeName :
+                     filterCategory === 'component' ? translations.component :
+                     filterCategory === 'investment_name' ? translations.investmentName :
+                     filterCategory === 'unit' ? translations.unit : filterCategory} 
+                    का चयन करें
+                  </h5>
+                  <Button variant="outline-secondary" size="sm" onClick={() => setFilterCategory(null)}>
+                    <FaTimes className="me-1" /> बंद करें
+                  </Button>
                 </div>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="centerFilter">
-                  <Form.Label className="small-fonts">{translations.centerName}:</Form.Label>
-                  <Form.Select value={centerFilter} onChange={(e) => handleFilterChange('center', e.target.value)} className="filter-dropdown small-fonts">
-                    <option value="">{translations.allCenters}</option>
-                    {uniqueCenters.map(center => <option key={center} value={center}>{center}</option>)}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="sourceFilter">
-                  <Form.Label className="small-fonts">{translations.sourceOfReceipt}:</Form.Label>
-                  <Form.Select value={sourceFilter} onChange={(e) => handleFilterChange('source', e.target.value)} className="filter-dropdown small-fonts" disabled={!centerFilter}>
-                    <option value="">{centerFilter ? translations.allSources : translations.selectCenterFirst}</option>
-                    {centerFilter && uniqueSources.map(source => <option key={source} value={source}>{source}</option>)}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="schemeFilter">
-                  <Form.Label className="small-fonts">{translations.schemeName}:</Form.Label>
-                  <Form.Select value={schemeFilter} onChange={(e) => handleFilterChange('scheme', e.target.value)} className="filter-dropdown small-fonts" disabled={!sourceFilter}>
-                    <option value="">{sourceFilter ? translations.allSchemes : translations.selectSourceFirst}</option>
-                    {sourceFilter && uniqueSchemes.map(scheme => <option key={scheme} value={scheme}>{scheme}</option>)}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="componentFilter">
-                  <Form.Label className="small-fonts">{translations.component}:</Form.Label>
-                  <Form.Select value={componentFilter} onChange={(e) => handleFilterChange('component', e.target.value)} className="filter-dropdown small-fonts" disabled={!schemeFilter}>
-                    <option value="">{schemeFilter ? translations.allComponents : translations.selectSchemeFirst}</option>
-                    {schemeFilter && uniqueComponents.map(component => <option key={component} value={component}>{component}</option>)}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="investmentFilter">
-                  <Form.Label className="small-fonts">{translations.investmentName}:</Form.Label>
-                  <Form.Select value={investmentFilter} onChange={(e) => handleFilterChange('investment', e.target.value)} className="filter-dropdown small-fonts" disabled={!componentFilter}>
-                    <option value="">{componentFilter ? translations.allInvestments : translations.selectComponentFirst}</option>
-                    {componentFilter && uniqueInvestments.map(investment => <option key={investment} value={investment}>{investment}</option>)}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="unitFilter">
-                  <Form.Label className="small-fonts">{translations.unit}:</Form.Label>
-                  <Form.Select value={unitFilter} onChange={(e) => handleFilterChange('unit', e.target.value)} className="filter-dropdown small-fonts" disabled={!investmentFilter}>
-                    <option value="">{investmentFilter ? translations.allUnits : translations.selectInvestmentFirst}</option>
-                    {investmentFilter && uniqueUnits.map(unit => <option key={unit} value={unit}>{unit}</option>)}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="dataViewFilter">
-                  <Form.Label className="small-fonts">{translations.dataView}:</Form.Label>
-                  <Form.Select value={dataViewFilter} onChange={(e) => setDataViewFilter(e.target.value)} className="filter-dropdown small-fonts">
-                    <option value="allocated">{translations.allocatedData}</option>
-                    <option value="sold">{translations.soldData}</option>
-                    <option value="remaining">{translations.remainingData}</option>
-                    <option value="comparison">{translations.comparisonData}</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="dataTypeFilter">
-                  <Form.Label className="small-fonts">डेटा प्रकार:</Form.Label>
-                  <Form.Select value={dataTypeFilter} onChange={(e) => setDataTypeFilter(e.target.value)} className="filter-dropdown small-fonts" disabled={dataViewFilter === "comparison"}>
-                    <option value="quantity">मात्रा</option>
-                    <option value="value">मूल्य</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4} className="mb-3">
-                <Form.Group controlId="showWorkingItemsOnly">
-                  <Form.Check 
-                    type="checkbox" 
-                    label={translations.workingItems} 
-                    checked={showWorkingItemsOnly}
-                    onChange={(e) => setShowWorkingItemsOnly(e.target.checked)}
-                    className="small-fonts mt-4"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={12} className="mb-3 d-flex align-items-end">
-                {hasActiveFilters && <div className="filter-info small-fonts">{translations.showingItems} {filteredData.length} {translations.of} {billingData.length} {translations.items}</div>}
-              </Col>
-            </Row>
+                <Row className="g-1 align-items-center">
+                  {renderFilterButtons(filterCategory)}
+                </Row>
+              </div>
+            )}
+
+            {/* Active Filters Section */}
+            {Object.keys(activeFilters).length > 0 && (
+              <div className="active-filters-container mb-4 p-2 border rounded bg-light">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="mb-0 small-fonts">{translations.activeFilters}:</h6>
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  {Object.keys(activeFilters).map((categoryKey) => (
+                    <div key={categoryKey} className="filter-category">
+                      <strong>
+                        {categoryKey === 'center_name' ? translations.centerName :
+                         categoryKey === 'source_of_receipt' ? translations.sourceOfReceipt :
+                         categoryKey === 'scheme_name' ? translations.schemeName :
+                         categoryKey === 'component' ? translations.component :
+                         categoryKey === 'investment_name' ? translations.investmentName :
+                         categoryKey === 'unit' ? translations.unit : categoryKey}:
+                      </strong>
+                      <div className="d-flex flex-wrap gap-1 mt-1">
+                        {activeFilters[categoryKey].map((value) => (
+                          <Badge 
+                                key={value} 
+                                bg="primary" 
+                                pill 
+                                className="filter-badge"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => {
+                                  const newValues = activeFilters[categoryKey].filter(v => v !== value);
+                                  if (newValues.length === 0) {
+                                    const newFilters = { ...activeFilters };
+                                    delete newFilters[categoryKey];
+                                    setActiveFilters(newFilters);
+                                  } else {
+                                    setActiveFilters(prev => ({ ...prev, [categoryKey]: newValues }));
+                                  }
+                                }}
+                          >
+                            {value} <FaTimes style={{ fontSize: '0.6em' }} />
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          
-          {loading ? <div className="text-center my-5"><Spinner animation="border" role="status"><span className="visually-hidden">{translations.loading}</span></Spinner></div> : error ? (
-            <Alert variant="danger" className="small-fonts">{error}<div className="mt-2"><Button variant="outline-danger" size="sm" onClick={retryFetch}>{translations.retry}</Button></div></Alert>
-          ) : (
+        
+          <Row>
+            <Col md={3} className="mb-3">
+              <Form.Group controlId="dataViewFilter">
+                <Form.Label className="small-fonts">{translations.dataView}:</Form.Label>
+                <Form.Select value={dataViewFilter} onChange={(e) => setDataViewFilter(e.target.value)} className="filter-dropdown small-fonts" disabled={dataViewFilter === "comparison"}>
+                  <option value="allocated">{translations.allocatedData}</option>
+                  <option value="sold">{translations.soldData}</option>
+                  <option value="remaining">{translations.remainingData}</option>
+                  <option value="comparison">{translations.comparisonData}</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            <Col md={3} className="mb-3">
+              <Form.Group controlId="dataTypeFilter">
+                <Form.Label className="small-fonts">{translations.quantity}:</Form.Label>
+                <Form.Select value={dataTypeFilter} onChange={(e) => setDataTypeFilter(e.target.value)} className="filter-dropdown small-fonts" disabled={dataViewFilter === "comparison"}>
+                  <option value="quantity">मात्रा</option>
+                  <option value="value">मूल्य</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            {/* <Col md={3} className="mb-3">
+              <Form.Group controlId="chartTypeFilter">
+                <Form.Label className="small-fonts">{translations.filterBy}:</Form.Label>
+                <Form.Select value={chartType} onChange={(e) => setChartType(e.target.value)} className="filter-dropdown small-fonts">
+                  <option value="pie">पाई चार्ट</option>
+                  <option value="bar">बार चार्ट</option>
+                  <option value="line">लाइन चार्ट</option>
+                  <option value="area">एरिया चार्ट</option>
+                  <option value="scatter">स्कैटर प्लॉट</option>
+                  <option value="radar">राडार चार्ट</option>
+                </Form.Select>
+              </Form.Group>
+            </Col> */}
+            <Col md={3} className="mb-3">
+              <Form.Group controlId="showWorkingItemsOnly">
+                <Form.Check
+                  type="checkbox"
+                  label={translations.workingItems}
+                  checked={showWorkingItemsOnly}
+                  onChange={(e) => setShowWorkingItemsOnly(e.target.checked)}
+                  className="small-fonts mt-4"
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+          <Row>
+            <Col md={12} className="mb-3 d-flex align-items-end">
+              {hasActiveFilters && <div className="filter-info small-fonts">{translations.showingItems} {getChartData.centerData.length} {translations.of} {billingData.length} {translations.items}</div>}
+            </Col>
+          </Row>
+        
+          {/* Tab Navigation */}
+          <Row className="mb-3">
+            <Col md={12}>
+              <ul className="nav nav-tabs">
+                <li className={`nav-item ${activeTab === "overall" ? "active" : ""}`}>
+                  {/* <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab("overall") }}>{translations.overallData}</a> */}
+                </li>
+                <li className={`nav-item ${activeTab === "comparison" ? "active" : ""}`}>
+                  {/* <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab("comparison") }}>{translations.comparisonData}</a> */}
+                </li>
+              </ul>
+            </Col>
+          </Row>
+
+          {/* Tab Content */}
+          {activeTab === "overall" && (
             <>
-              {billingData.length > 0 ? (
+              {showPieCharts ? (
+                // Show pie charts by default (until filters are applied)
                 <>
-                  {showPieCharts ? (
-                    // Show pie charts by default (until filters are applied)
-                    <>
-                      {dataViewFilter === "comparison" ? (
-                        <Row className="chart-container mt-4">
-                          <Col md={12} className="mb-4">
-                            <ComparisonBarChart 
-                              data={getChartData.comparisonData} 
-                              title={translations.allocatedVsSold} 
-                            />
-                          </Col>
-                        </Row>
-                      ) : (
-                        <>
-                          <Row className="chart-container mt-4">
-                            <Col md={6} className="mb-4">
-                              <PieChart 
-                                data={getChartData.centerData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsByCenter : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsByCenter : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsByCenter : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                            <Col md={6} className="mb-4">
-                              <PieChart 
-                                data={getChartData.sourceData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsBySource : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsBySource : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsBySource : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                          </Row>
-                          <Row className="chart-container">
-                            <Col md={6} className="mb-4">
-                              <PieChart 
-                                data={getChartData.schemeData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsByScheme : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsByScheme : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsByScheme : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                            <Col md={6} className="mb-4">
-                              <PieChart 
-                                data={getChartData.componentData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsByComponent : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsByComponent : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsByComponent : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                          </Row>
-                          <Row className="chart-container">
-                            <Col md={6} className="mb-4">
-                              <PieChart 
-                                data={getChartData.investmentData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                            <Col md={6} className="mb-4">
-                              <PieChart 
-                                data={getChartData.unitData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                          </Row>
-                        </>
-                      )}
-                    </>
+                  <Row className="chart-container mt-4">
+                    <Col md={6} className="mb-4">
+                      <PieChart
+                        data={getChartData.centerData}
+                        title={translations.allocatedItemsByCenter}
+                        dataType={dataTypeFilter}
+                        onBarClick={handleBarClick}
+                        chartType="center_name"
+                      />
+                    </Col>
+                    <Col md={6} className="mb-4">
+                      <PieChart
+                        data={getChartData.sourceData}
+                        title={dataViewFilter === "allocated" ?
+                          (dataTypeFilter === "quantity" ? translations.allocatedItemsBySource : translations.allocatedValueBySource) :
+                          dataViewFilter === "sold" ?
+                            (dataTypeFilter === "quantity" ? translations.soldItemsBySource : translations.soldValueBySource) :
+                            (dataTypeFilter === "quantity" ? translations.remainingItemsBySource : translations.remainingValueBySource)
+                        }
+                        dataType={dataTypeFilter}
+                        onBarClick={handleBarClick}
+                        chartType="source_of_receipt"
+                      />
+                    </Col>
+                    <Col md={6} className="mb-4">
+                      <PieChart
+                        data={getChartData.schemeData}
+                        title={dataViewFilter === "allocated" ?
+                          (dataTypeFilter === "quantity" ? translations.allocatedItemsByScheme : translations.allocatedValueBySource) :
+                            dataViewFilter === "sold" ?
+                            (dataTypeFilter === "quantity" ? translations.soldItemsByScheme : translations.soldValueBySource) :
+                            (dataTypeFilter === "quantity" ? translations.remainingItemsByScheme : translations.remainingValueBySource)
+                        }
+                        dataType={dataTypeFilter}
+                        onBarClick={handleBarClick}
+                        chartType="scheme_name"
+                      />
+                    </Col>
+                    <Col md={6} className="mb-4">
+                      <PieChart
+                        data={getChartData.componentData}
+                        title={dataViewFilter === "allocated" ?
+                          (dataTypeFilter === "quantity" ? translations.allocatedItemsByComponent : translations.allocatedValueBySource) :
+                            dataViewFilter === "sold" ?
+                            (dataTypeFilter === "quantity" ? translations.soldItemsByComponent : translations.soldValueBySource) :
+                            (dataTypeFilter === "quantity" ? translations.remainingItemsByComponent : translations.remainingValueBySource)
+                        }
+                        dataType={dataTypeFilter}
+                        onBarClick={handleBarClick}
+                        chartType="component"
+                      />
+                    </Col>
+                    <Col md={6} className="mb-4">
+                      <PieChart
+                        data={getChartData.investmentData}
+                        title={dataViewFilter === "allocated" ?
+                          (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
+                            dataViewFilter === "sold" ?
+                            (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
+                            (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`)
+                        }
+                        dataType={dataTypeFilter}
+                        onBarClick={handleBarClick}
+                        chartType="investment_name"
+                      />
+                    </Col>
+                    <Col md={6} className="mb-4">
+                      <PieChart
+                        data={getChartData.unitData}
+                        title={dataViewFilter === "allocated" ?
+                          (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
+                            dataViewFilter === "sold" ?
+                            (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
+                            (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`)
+                        }
+                        dataType={dataTypeFilter}
+                        onBarClick={handleBarClick}
+                        chartType="unit"
+                      />
+                    </Col>
+                  </Row>
+                </>
+              ) : (
+                // Show bar charts after filters are applied
+                <>
+                  {dataViewFilter === "comparison" ? (
+                    <Row className="chart-container mt-4">
+                      <Col md={12} className="mb-4">
+                        <ComparisonBarChart 
+                          data={getChartData.comparisonData} 
+                          title={translations.allocatedVsSold} 
+                          onBarClick={handleBarClick}
+                        />
+                      </Col>
+                    </Row>
                   ) : (
-                    // Show bar charts after filters are applied
                     <>
-                      {dataViewFilter === "comparison" ? (
-                        <Row className="chart-container mt-4">
-                          <Col md={12} className="mb-4">
-                            <ComparisonBarChart 
-                              data={getChartData.comparisonData} 
-                              title={translations.allocatedVsSold} 
-                            />
-                          </Col>
-                        </Row>
-                      ) : (
-                        <>
-                          <Row className="chart-container mt-4">
-                            <Col md={6} className="mb-4">
-                              <SimpleBarChart 
-                                data={getChartData.centerData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsByCenter : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsByCenter : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsByCenter : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                            <Col md={6} className="mb-4">
-                              <SimpleBarChart 
-                                data={getChartData.sourceData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsBySource : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsBySource : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsBySource : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                          </Row>
-                          <Row className="chart-container">
-                            <Col md={6} className="mb-4">
-                              <SimpleBarChart 
-                                data={getChartData.schemeData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsByScheme : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsByScheme : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsByScheme : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                            <Col md={6} className="mb-4">
-                              <SimpleBarChart 
-                                data={getChartData.componentData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? translations.allocatedItemsByComponent : translations.allocatedValueBySource) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? translations.soldItemsByComponent : translations.soldValueBySource) :
-                                  (dataTypeFilter === "quantity" ? translations.remainingItemsByComponent : translations.remainingValueBySource)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                          </Row>
-                          <Row className="chart-container">
-                            <Col md={6} className="mb-4">
-                              <SimpleBarChart 
-                                data={getChartData.investmentData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                            <Col md={6} className="mb-4">
-                              <SimpleBarChart 
-                                data={getChartData.unitData} 
-                                title={dataViewFilter === "allocated" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
-                                  dataViewFilter === "sold" ? 
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
-                                  (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`)
-                                }
-                                dataType={dataTypeFilter}
-                              />
-                            </Col>
-                          </Row>
-                        </>
-                      )}
+                      <Row className="chart-container mt-4">
+                        <Col md={6} className="mb-4">
+                          <SimpleBarChart
+                            data={getChartData.centerData}
+                            title={dataViewFilter === "allocated" ?
+                              (dataTypeFilter === "quantity" ? translations.allocatedItemsByCenter : translations.allocatedValueBySource) :
+                              dataViewFilter === "sold" ?
+                                (dataTypeFilter === "quantity" ? translations.soldItemsByCenter : translations.soldValueBySource) :
+                                (dataTypeFilter === "quantity" ? translations.remainingItemsByCenter : translations.remainingValueBySource)
+                            }
+                            dataType={dataTypeFilter}
+                            onBarClick={(name, value) => handleBarClick(name, value, null, 'center_name')}
+                            chartType="center_name"
+                          />
+                        </Col>
+                        <Col md={6} className="mb-4">
+                          <SimpleBarChart
+                            data={getChartData.sourceData}
+                            title={dataViewFilter === "allocated" ?
+                              (dataTypeFilter === "quantity" ? translations.allocatedItemsBySource : translations.allocatedValueBySource) :
+                              dataViewFilter === "sold" ?
+                                (dataTypeFilter === "quantity" ? translations.soldItemsBySource : translations.soldValueBySource) :
+                                (dataTypeFilter === "quantity" ? translations.remainingItemsBySource : translations.remainingValueBySource)
+                            }
+                            dataType={dataTypeFilter}
+                            onBarClick={(name, value) => handleBarClick(name, value, null, 'source_of_receipt')}
+                            chartType="source_of_receipt"
+                          />
+                        </Col>
+                        <Col md={6} className="mb-4">
+                          <SimpleBarChart
+                            data={getChartData.schemeData}
+                            title={dataViewFilter === "allocated" ?
+                              (dataTypeFilter === "quantity" ? translations.allocatedItemsByScheme : translations.allocatedValueBySource) :
+                                dataViewFilter === "sold" ?
+                                    (dataTypeFilter === "quantity" ? translations.soldItemsByScheme : translations.soldValueBySource) :
+                                    (dataTypeFilter === "quantity" ? translations.remainingItemsByScheme : translations.remainingValueBySource)
+                            }
+                            dataType={dataTypeFilter}
+                            onBarClick={(name, value) => handleBarClick(name, value, null, 'scheme_name')}
+                            chartType="scheme_name"
+                          />
+                        </Col>
+                        <Col md={6} className="mb-4">
+                          <SimpleBarChart
+                            data={getChartData.componentData}
+                            title={dataViewFilter === "allocated" ?
+                              (dataTypeFilter === "quantity" ? translations.allocatedItemsByComponent : translations.allocatedValueBySource) :
+                                dataViewFilter === "sold" ?
+                                    (dataTypeFilter === "quantity" ? translations.soldItemsByComponent : translations.soldValueBySource) :
+                                    (dataTypeFilter === "quantity" ? translations.remainingItemsByComponent : translations.remainingValueBySource)
+                            }
+                            dataType={dataTypeFilter}
+                            onBarClick={(name, value) => handleBarClick(name, value, null, 'component')}
+                            chartType="component"
+                          />
+                        </Col>
+                        <Col md={6} className="mb-4">
+                          <SimpleBarChart
+                            data={getChartData.investmentData}
+                            title={dataViewFilter === "allocated" ?
+                              (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
+                                dataViewFilter === "sold" ?
+                                    (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`) :
+                                    (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.investment})` : `${translations.valueDistribution} (${translations.investment})`)
+                            }
+                            dataType={dataTypeFilter}
+                            onBarClick={(name, value) => handleBarClick(name, value, null, 'investment_name')}
+                            chartType="investment_name"
+                          />
+                        </Col>
+                        <Col md={6} className="mb-4">
+                          <SimpleBarChart
+                            data={getChartData.unitData}
+                            title={dataViewFilter === "allocated" ?
+                              (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
+                                dataViewFilter === "sold" ?
+                                    (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`) :
+                                    (dataTypeFilter === "quantity" ? `${translations.itemsByComponent} (${translations.unit})` : `${translations.valueDistribution} (${translations.unit})`)
+                            }
+                            dataType={dataTypeFilter}
+                            onBarClick={(name, value) => handleBarClick(name, value, null, 'unit')}
+                            chartType="unit"
+                          />
+                        </Col>
+                      </Row>
                     </>
                   )}
                 </>
-              ) : (
-                <Alert variant="info" className="small-fonts">{hasActiveFilters ? translations.noMatchingItems : translations.noItemsFound}</Alert>
               )}
             </>
           )}

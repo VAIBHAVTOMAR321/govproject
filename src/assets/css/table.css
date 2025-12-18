@@ -35,6 +35,7 @@
 .table-wrapper {
   width: 100%;
   position: relative;
+  overflow-x: auto;
 }
 
 /* Base Table Styles */
@@ -134,10 +135,12 @@
 
 .small-fonts th {
   font-size: 0.75rem !important;
+  padding: 4px 6px !important;
 }
 
 .small-fonts td {
   font-size: 0.75rem !important;
+  padding: 4px 6px !important;
 }
 
 .small-fonts .page-title {
@@ -284,17 +287,17 @@
   .responsive-table {
     font-size: 0.7rem;
   }
-  
+
   .responsive-table th, .responsive-table td {
-    padding: 8px 10px;
+    padding: 4px 6px;
   }
-  
+
   /* Allow text wrapping for long content */
   .responsive-table th, .responsive-table td {
     white-space: normal;
     word-break: break-word;
   }
-  
+
   .filter-dropdown {
     min-width: 160px;
   }
@@ -337,7 +340,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px; /* Slightly reduced padding */
+    padding: 6px 8px; /* Further reduced padding */
     border-bottom: 1px solid #eee;
     position: relative;
   }
@@ -403,7 +406,7 @@
 /* Small Mobile Styles (480px and below) */
 @media (max-width: 480px) {
   .responsive-table td {
-    padding: 8px 10px;
+    padding: 4px 6px;
   }
   
   .responsive-table td:before {
@@ -413,7 +416,10 @@
   
   /* Hide less important columns on very small screens */
   .responsive-table td[data-label="ID"],
-  .responsive-table td[data-label="Unit"] {
+  .responsive-table td[data-label="Unit"],
+  .responsive-table td[data-label="आवंटित राशि"],
+  .responsive-table td[data-label="बेची राशि"],
+  .responsive-table td[data-label="कुल बिल"] {
     display: none;
   }
   
@@ -641,48 +647,101 @@
   .small-fonts {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts th {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts td {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts .page-title {
     font-size: 0.9rem !important;
   }
-  
+
   .small-fonts .section-title {
     font-size: 0.8rem !important;
   }
-  
+
   .small-fonts .filter-dropdown {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts .form-label {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts .filter-info {
     font-size: 0.6rem !important;
   }
-  
+
   .small-fonts .pagination-btn {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts .page-info {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts .btn {
     font-size: 0.65rem !important;
   }
-  
+
   .small-fonts h5 {
     font-size: 0.75rem !important;
+  }
+}
+
+/* Expandable table rows */
+.expanded-row {
+  background-color: #f8f9fa !important;
+  border-top: 1px solid #dee2e6;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.expanded-row td {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.expanded-row .row {
+  margin: 0;
+}
+
+.expanded-row .col-md-6 {
+  padding: 15px;
+}
+
+.expanded-row h6 {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #0d6efd;
+  padding-bottom: 5px;
+}
+
+.expanded-row p {
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.expanded-row strong {
+  color: #495057;
+  font-weight: 600;
+}
+
+/* Mobile styles for expanded rows */
+@media (max-width: 767px) {
+  .expanded-row .col-md-6 {
+    padding: 10px;
+  }
+
+  .expanded-row h6 {
+    font-size: 0.9rem;
+  }
+
+  .expanded-row p {
+    font-size: 0.8rem;
   }
 }

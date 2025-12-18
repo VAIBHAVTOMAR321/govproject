@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col, Card, Button, ListGroup, Pagination, Badge, Accordion, Table } from "react-bootstrap";
+import { Container, Spinner, Alert, Row, Col, Card, Button, ListGroup, Pagination, Badge, Accordion, Table, Form } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaArrowLeft, FaTimes, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
@@ -39,7 +39,148 @@ const paginationTranslations = {
     of: "का",
     entries: "प्रविष्टियां",
     page: "पृष्ठ",
-    itemsPerPage: "प्रति पृष्ठ आइटम:"
+    itemsPerPage: "प्रति पृष्ठ आइटम:",
+    selectColumns: "कॉलम चुनें"
+};
+
+// Available columns for different tables
+const mainTableColumns = [
+  { key: 'sno', label: 'क्र.सं.' },
+  { key: 'center_name', label: 'केंद्र का नाम' },
+  { key: 'component', label: 'घटक' },
+  { key: 'investment_name', label: 'निवेश का नाम' },
+  { key: 'unit', label: 'इकाई' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'allocated_amount', label: 'आवंटित राशि' },
+  { key: 'updated_quantity', label: 'अपडेट की गई मात्रा' },
+  { key: 'updated_amount', label: 'अपडेट की गई राशि' },
+  { key: 'source_of_receipt', label: 'स्रोत' },
+  { key: 'scheme_name', label: 'योजना' }
+];
+
+const groupedSummaryColumns = [
+  { key: 'sno', label: 'क्र.सं.' },
+  { key: 'group_name', label: 'समूह' },
+  { key: 'investment_names', label: 'निवेश का नाम' },
+  { key: 'center_names', label: 'केंद्र का नाम' },
+  { key: 'components', label: 'घटक' },
+  { key: 'units', label: 'इकाई' },
+  { key: 'totalAllocated', label: 'आवंटित राशि' },
+  { key: 'totalUpdated', label: 'अपडेट की गई राशि' },
+  { key: 'sources', label: 'स्रोत' },
+  { key: 'schemes', label: 'योजना' }
+];
+
+const componentDetailColumns = [
+  { key: 'sno', label: 'क्र.सं.' },
+  { key: 'center_name', label: 'केंद्र का नाम' },
+  { key: 'component', label: 'घटक' },
+  { key: 'investment_name', label: 'निवेश का नाम' },
+  { key: 'unit', label: 'इकाई' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'allocated_amount', label: 'आवंटित राशि' },
+  { key: 'updated_quantity', label: 'अपडेट की गई मात्रा' },
+  { key: 'updated_amount', label: 'अपडेट की गई राशि' },
+  { key: 'source_of_receipt', label: 'स्रोत' },
+  { key: 'scheme_name', label: 'योजना' }
+];
+
+// Column mapping for data access
+const mainTableColumnMapping = {
+  sno: { header: 'क्र.सं.', accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
+  center_name: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
+  component: { header: 'घटक', accessor: (item) => item.component },
+  investment_name: { header: 'निवेश का नाम', accessor: (item) => item.investment_name },
+  unit: { header: 'इकाई', accessor: (item) => item.unit },
+  allocated_quantity: { header: 'आवंटित मात्रा', accessor: (item) => item.allocated_quantity },
+  rate: { header: 'दर', accessor: (item) => item.rate },
+  allocated_amount: { header: 'आवंटित राशि', accessor: (item) => (parseFloat(item.allocated_quantity) * parseFloat(item.rate)).toFixed(2) },
+  updated_quantity: { header: 'अपडेट की गई मात्रा', accessor: (item) => item.updated_quantity },
+  updated_amount: { header: 'अपडेट की गई राशि', accessor: (item) => (parseFloat(item.updated_quantity) * parseFloat(item.rate)).toFixed(2) },
+  source_of_receipt: { header: 'स्रोत', accessor: (item) => item.source_of_receipt },
+  scheme_name: { header: 'योजना', accessor: (item) => item.scheme_name }
+};
+
+const groupedSummaryColumnMapping = {
+  sno: { header: 'क्र.सं.', accessor: (item, index) => index + 1 },
+  group_name: { header: 'समूह', accessor: (item) => item.group_name },
+  investment_names: { header: 'निवेश का नाम', accessor: (item) => item.investment_names },
+  center_names: { header: 'केंद्र का नाम', accessor: (item) => item.center_names },
+  components: { header: 'घटक', accessor: (item) => item.components },
+  units: { header: 'इकाई', accessor: (item) => item.units },
+  totalAllocated: { header: 'आवंटित राशि', accessor: (item) => formatCurrency(item.totalAllocated) },
+  totalUpdated: { header: 'अपडेट की गई राशि', accessor: (item) => formatCurrency(item.totalUpdated) },
+  sources: { header: 'स्रोत', accessor: (item) => item.sources },
+  schemes: { header: 'योजना', accessor: (item) => item.schemes }
+};
+
+const componentDetailColumnMapping = {
+  sno: { header: 'क्र.सं.', accessor: (item, index) => index + 1 },
+  center_name: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
+  component: { header: 'घटक', accessor: (item) => item.component },
+  investment_name: { header: 'निवेश का नाम', accessor: (item) => item.investment_name },
+  unit: { header: 'इकाई', accessor: (item) => item.unit },
+  allocated_quantity: { header: 'आवंटित मात्रा', accessor: (item) => item.allocated_quantity },
+  rate: { header: 'दर', accessor: (item) => item.rate },
+  allocated_amount: { header: 'आवंटित राशि', accessor: (item) => (parseFloat(item.allocated_quantity) * parseFloat(item.rate)).toFixed(2) },
+  updated_quantity: { header: 'अपडेट की गई मात्रा', accessor: (item) => item.updated_quantity },
+  updated_amount: { header: 'अपडेट की गई राशि', accessor: (item) => (parseFloat(item.updated_quantity) * parseFloat(item.rate)).toFixed(2) },
+  source_of_receipt: { header: 'स्रोत', accessor: (item) => item.source_of_receipt },
+  scheme_name: { header: 'योजना', accessor: (item) => item.scheme_name }
+};
+
+// Reusable Column Selection Component
+const ColumnSelection = ({ columns, selectedColumns, setSelectedColumns, title }) => {
+  const handleColumnToggle = (columnKey) => {
+    if (selectedColumns.includes(columnKey)) {
+      setSelectedColumns(selectedColumns.filter(col => col !== columnKey));
+    } else {
+      setSelectedColumns([...selectedColumns, columnKey]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedColumns(columns.map(col => col.key));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedColumns([]);
+  };
+
+  return (
+    <div className="column-selection mb-3 p-3 border rounded bg-light">
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h6 className="small-fonts mb-0">{title}</h6>
+        <div>
+          <Button variant="outline-secondary" size="sm" onClick={handleSelectAll} className="me-2">
+            सभी चुनें
+          </Button>
+          <Button variant="outline-secondary" size="sm" onClick={handleDeselectAll}>
+            सभी हटाएं
+          </Button>
+        </div>
+      </div>
+      <Row>
+        <Col>
+          <div className="d-flex flex-wrap">
+            {columns.map(col => (
+              <Form.Check
+                key={col.key}
+                type="checkbox"
+                id={`col-${col.key}`}
+                checked={selectedColumns.includes(col.key)}
+                onChange={() => handleColumnToggle(col.key)}
+                className="me-3 mb-2"
+                label={<span className="small-fonts">{col.label}</span>}
+              />
+            ))}
+          </div>
+        </Col>
+      </Row>
+    </div>
+  );
 };
 
 // Component for expandable section
@@ -104,6 +245,11 @@ const MainDashboard = () => {
   // State for expanded investment rows
   const [expandedInvestments, setExpandedInvestments] = useState({});
 
+  // State for selected columns for different tables
+  const [mainTableSelectedColumns, setMainTableSelectedColumns] = useState(mainTableColumns.map(col => col.key));
+  const [groupedSummarySelectedColumns, setGroupedSummarySelectedColumns] = useState(groupedSummaryColumns.map(col => col.key));
+  const [componentDetailSelectedColumns, setComponentDetailSelectedColumns] = useState(componentDetailColumns.map(col => col.key));
+
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
@@ -162,7 +308,7 @@ const MainDashboard = () => {
         return { 
             categoryCardsData: [], 
             filteredTableData: [], 
-            tableTotals: { allocated: 0, updated: 0 },
+            tableTotals: { allocated: 0, updated: 0, allocatedQuantity: 0, updatedQuantity: 0 },
             paginatedData: [],
             totalPages: 0,
             hierarchicalData: null,
@@ -183,7 +329,7 @@ const MainDashboard = () => {
         };
     });
     
-    // --- 2. Filter Data for Table based on ALL activeFilters from ANY category
+    // --- 2. Filter Data for Table based on ALL activeFilters from ANY category ---
     let filtered = billingData;
     // This loop applies every active filter, regardless of its category
     Object.keys(activeFilters).forEach(category => {
@@ -382,10 +528,12 @@ const MainDashboard = () => {
     const totals = filtered.reduce((acc, item) => {
         acc.allocated += parseFloat(item.allocated_quantity) * parseFloat(item.rate);
         acc.updated += parseFloat(item.updated_quantity) * parseFloat(item.rate);
+        acc.allocatedQuantity += parseFloat(item.allocated_quantity || 0);
+        acc.updatedQuantity += parseFloat(item.updated_quantity || 0);
         return acc;
-    }, { allocated: 0, updated: 0 });
+    }, { allocated: 0, updated: 0, allocatedQuantity: 0, updatedQuantity: 0 });
     
-    // --- 4. Paginate the filtered data ---
+    // --- 4. Paginate filtered data ---
     const totalPagesCount = Math.ceil(filtered.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
@@ -402,26 +550,71 @@ const MainDashboard = () => {
 
   }, [billingData, activeFilters, currentPage, itemsPerPage]);
 
-  const downloadExcel = (data, filename) => {
+  // Generic download Excel function that works with any table
+  const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = null) => {
     try {
-      const excelData = data.map((item, index) => ({
-        'क्र.सं.': (currentPage - 1) * itemsPerPage + index + 1,
-        'केंद्र का नाम': item.center_name,
-        'घटक': item.component,
-        'निवेश का नाम': item.investment_name,
-        'इकाई': item.unit,
-        'आवंटित मात्रा': item.allocated_quantity,
-        'दर': item.rate,
-        'आवंटित राशि': (parseFloat(item.allocated_quantity) * parseFloat(item.rate)).toFixed(2),
-        'अपडेट की गई मात्रा': item.updated_quantity,
-        'अपडेट की गई राशि': (parseFloat(item.updated_quantity) * parseFloat(item.rate)).toFixed(2),
-        'स्रोत': item.source_of_receipt,
-        'योजना': item.scheme_name
-      }));
+      // Prepare data for Excel export based on selected columns
+      const excelData = data.map((item, index) => {
+        const row = {};
+        selectedColumns.forEach(col => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(item, index, currentPage, itemsPerPage);
+        });
+        return row;
+      });
+      
+      // Add totals row if provided
+      if (totals) {
+        const totalsRow = {};
+        
+        // Iterate through selected columns in order to maintain alignment
+        selectedColumns.forEach(col => {
+          if (col === 'sno') {
+            totalsRow[columnMapping[col].header] = "कुल";
+          } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
+                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name') {
+            totalsRow[columnMapping[col].header] = "";
+          } else if (col === 'rate') {
+            totalsRow[columnMapping[col].header] = "-";
+          } else if (col === 'allocated_quantity') {
+            totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
+          } else if (col === 'allocated_amount') {
+            totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
+          } else if (col === 'updated_quantity') {
+            totalsRow[columnMapping[col].header] = totals.updatedQuantity.toFixed(2);
+          } else if (col === 'updated_amount') {
+            totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
+          } else if (col === 'totalAllocated') {
+            totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
+          } else if (col === 'totalUpdated') {
+            totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
+          }
+        });
+        
+        excelData.push(totalsRow);
+      }
       
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(wb, ws, "Billing Data");
+      
+      // Set column widths
+      const colWidths = selectedColumns.map(() => ({ wch: 15 }));
+      ws['!cols'] = colWidths;
+      
+      // Style the totals row
+      if (totals) {
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const totalsRowNum = range.e.r; // Last row
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
+          if (!ws[cellAddress]) continue;
+          ws[cellAddress].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: "FFFFAA00" } }
+          };
+        }
+      }
+      
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
       XLSX.writeFile(wb, `${filename}.xlsx`);
     } catch (e) {
       console.error("Error generating Excel file:", e);
@@ -429,6 +622,7 @@ const MainDashboard = () => {
     }
   };
   
+  // Specialized function for investment summary Excel
   const downloadInvestmentSummaryExcel = (data, filename) => {
     try {
       const excelData = data.map((item, index) => {
@@ -437,35 +631,92 @@ const MainDashboard = () => {
             [formatFieldTitle(item.group_field)]: item.group_name
         };
         
-        // Only include columns that are not the grouping field
-        if (item.group_field !== 'investment_name') {
+        // Only include columns that are not the grouping field and are selected
+        if (item.group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names')) {
             row['निवेश का नाम'] = item.investment_names;
         }
-        if (item.group_field !== 'center_name') {
+        if (item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) {
             row['केंद्र का नाम'] = item.center_names;
         }
-        if (item.group_field !== 'component') {
+        if (item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components')) {
             row['घटक'] = item.components;
         }
-        if (item.group_field !== 'unit') {
+        if (item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units')) {
             row['इकाई'] = item.units;
         }
         
-        row['आवंटित राशि'] = item.totalAllocated.toFixed(2);
-        row['अपडेट की गई राशि'] = item.totalUpdated.toFixed(2);
+        if (groupedSummarySelectedColumns.includes('totalAllocated')) {
+            row['आवंटित राशि'] = item.totalAllocated.toFixed(2);
+        }
+        if (groupedSummarySelectedColumns.includes('totalUpdated')) {
+            row['अपडेट की गई राशि'] = item.totalUpdated.toFixed(2);
+        }
         
-        if (item.group_field !== 'source_of_receipt') {
+        if (item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) {
             row['स्रोत'] = item.sources;
         }
-        if (item.group_field !== 'scheme_name') {
+        if (item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes')) {
             row['योजना'] = item.schemes;
         }
         
         return row;
       });
       
+      // Add totals row
+      const totalsRow = {};
+      
+      // Determine headers based on grouping field and selected columns
+      if (data.length > 0) {
+        const groupField = data[0].group_field;
+        
+        totalsRow['क्र.सं.'] = "कुल";
+        totalsRow[formatFieldTitle(groupField)] = "";
+        
+        if (groupField !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names')) {
+            totalsRow['निवेश का नाम'] = "";
+        }
+        if (groupField !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) {
+            totalsRow['केंद्र का नाम'] = "";
+        }
+        if (groupField !== 'component' && groupedSummarySelectedColumns.includes('components')) {
+            totalsRow['घटक'] = "";
+        }
+        if (groupField !== 'unit' && groupedSummarySelectedColumns.includes('units')) {
+            totalsRow['इकाई'] = "";
+        }
+        
+        if (groupedSummarySelectedColumns.includes('totalAllocated')) {
+            totalsRow['आवंटित राशि'] = tableTotals.allocated.toFixed(2);
+        }
+        if (groupedSummarySelectedColumns.includes('totalUpdated')) {
+            totalsRow['अपडेट की गई राशि'] = tableTotals.updated.toFixed(2);
+        }
+        
+        if (groupField !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) {
+            totalsRow['स्रोत'] = "";
+        }
+        if (groupField !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes')) {
+            totalsRow['योजना'] = "";
+        }
+      }
+      
+      excelData.push(totalsRow);
+      
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Style the totals row
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const totalsRowNum = range.e.r; // Last row
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
+        if (!ws[cellAddress]) continue;
+        ws[cellAddress].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "FFFFAA00" } }
+        };
+      }
+      
       XLSX.utils.book_append_sheet(wb, ws, "Grouped Summary");
       XLSX.writeFile(wb, `${filename}.xlsx`);
     } catch (e) {
@@ -474,81 +725,109 @@ const MainDashboard = () => {
     }
   };
   
-  const downloadPdf = (data, filename) => {
+  // Generic download PDF function that works with any table
+  const downloadPdf = (data, filename, columnMapping, selectedColumns, title, totals = null) => {
     try {
       const filterInfoText = Object.keys(activeFilters).map(cat => 
         `${formatFieldTitle(cat)}: ${activeFilters[cat].join(', ')}`
       ).join(' | ');
 
+      // Create headers and rows based on selected columns
+      const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
+      const rows = data.map((item, index) => {
+        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(item, index, currentPage, itemsPerPage)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      
+      // Create totals row if provided
+      let totalsRow = '';
+      if (totals) {
+        const totalsCells = selectedColumns.map(col => {
+          if (col === 'sno') {
+            return `<td>कुल</td>`;
+          } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
+                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name') {
+            return `<td></td>`;
+          } else if (col === 'rate') {
+            return `<td>-</td>`;
+          } else if (col === 'allocated_quantity') {
+            return `<td>${totals.allocatedQuantity.toFixed(2)}</td>`;
+          } else if (col === 'allocated_amount') {
+            return `<td>${formatCurrency(totals.allocated)}</td>`;
+          } else if (col === 'updated_quantity') {
+            return `<td>${totals.updatedQuantity.toFixed(2)}</td>`;
+          } else if (col === 'updated_amount') {
+            return `<td>${formatCurrency(totals.updated)}</td>`;
+          } else if (col === 'totalAllocated') {
+            return `<td>${formatCurrency(totals.allocated)}</td>`;
+          } else if (col === 'totalUpdated') {
+            return `<td>${formatCurrency(totals.updated)}</td>`;
+          }
+          return `<td></td>`;
+        }).join('');
+        
+        totalsRow = `<tr class="totals-row">${totalsCells}</tr>`;
+      }
+
       const tableHtml = `
         <html>
           <head>
-            <title>बिलिंग विवरण</title>
+            <title>${title}</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
-              h1 { text-align: center; }
+              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
+              
+              body { 
+                font-family: 'Noto Sans', Arial, sans-serif; 
+                margin: 20px; 
+                direction: ltr;
+              }
+              h1 { 
+                text-align: center; 
+                font-size: 24px;
+                margin-bottom: 30px;
+                font-weight: bold;
+              }
               p { text-align: center; font-weight: bold; }
-              table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; font-weight: bold; }
-              .summary { margin-top: 20px; font-weight: bold; }
+              table { 
+                border-collapse: collapse; 
+                width: 100%; 
+                margin-top: 20px; 
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+                font-size: 14px;
+              }
+              th { 
+                background-color: #f2f2f2; 
+                font-weight: bold; 
+              }
+              .totals-row { 
+                background-color: #f2f2f2; 
+                font-weight: bold;
+              }
               @media print {
                 .no-print { display: none; }
                 body { margin: 0; }
+                h1 { font-size: 20px; }
+                th, td { font-size: 12px; }
               }
             </style>
           </head>
           <body>
-            <h1>बिलिंग विवरण</h1>
+            <h1>${title}</h1>
             ${filterInfoText ? `<p>फ़िल्टर: ${filterInfoText}</p>` : ''}
             <table>
               <thead>
-                <tr>
-                  <th>क्र.सं.</th>
-                  <th>केंद्र का नाम</th>
-                  <th>घटक</th>
-                  <th>निवेश का नाम</th>
-                  <th>इकाई</th>
-                  <th>आवंटित मात्रा</th>
-                  <th>दर</th>
-                  <th>आवंटित राशि</th>
-                  <th>अपडेट की गई मात्रा</th>
-                  <th>अपडेट की गई राशि</th>
-                  <th>स्रोत</th>
-                  <th>योजना</th>
-                </tr>
+                <tr>${headers}</tr>
               </thead>
               <tbody>
-                ${data.map((item, index) => {
-                  const allocatedAmount = (parseFloat(item.allocated_quantity) * parseFloat(item.rate)).toFixed(2);
-                  const updatedAmount = (parseFloat(item.updated_quantity) * parseFloat(item.rate)).toFixed(2);
-                  return `
-                    <tr>
-                      <td>${(currentPage - 1) * itemsPerPage + index + 1}</td>
-                      <td>${item.center_name}</td>
-                      <td>${item.component}</td>
-                      <td>${item.investment_name}</td>
-                      <td>${item.unit}</td>
-                      <td>${item.allocated_quantity}</td>
-                      <td>${item.rate}</td>
-                      <td>${allocatedAmount}</td>
-                      <td>${item.updated_quantity}</td>
-                      <td>${updatedAmount}</td>
-                      <td>${item.source_of_receipt}</td>
-                      <td>${item.scheme_name}</td>
-                    </tr>
-                  `;
-                }).join('')}
+                ${rows}
+                ${totalsRow}
               </tbody>
-              <tfoot>
-                <tr class="summary">
-                  <td colspan="7">कुल</td>
-                  <td>${formatCurrency(tableTotals.allocated)}</td>
-                  <td colspan="1"></td>
-                  <td>${formatCurrency(tableTotals.updated)}</td>
-                  <td colspan="2"></td>
-                </tr>
-              </tfoot>
             </table>
           </body>
         </html>
@@ -557,36 +836,42 @@ const MainDashboard = () => {
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+      
+      // Wait for the content to load before printing
+      printWindow.onload = function() {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 1000); // Increased timeout to ensure content is fully loaded
+      };
     } catch (e) {
       console.error("Error generating PDF:", e);
       setError("PDF generation failed. Please try again.");
     }
   };
   
+  // Specialized function for investment summary PDF
   const downloadInvestmentSummaryPdf = (data, filename) => {
     try {
       const filterInfoText = Object.keys(activeFilters).map(cat => 
         `${formatFieldTitle(cat)}: ${activeFilters[cat].join(', ')}`
       ).join(' | ');
 
-      // Dynamically create table headers based on grouping field
+      // Dynamically create table headers based on grouping field and selected columns
       const getTableHeaders = () => {
         if (data.length === 0) return ['समूह', 'निवेश का नाम', 'केंद्र का नाम', 'घटक', 'इकाई', 'आवंटित राशि', 'अपडेट की गई राशि', 'स्रोत', 'योजना'];
         
         const groupField = data[0].group_field;
         const headers = ['क्र.सं.', formatFieldTitle(groupField)];
         
-        if (groupField !== 'investment_name') headers.push('निवेश का नाम');
-        if (groupField !== 'center_name') headers.push('केंद्र का नाम');
-        if (groupField !== 'component') headers.push('घटक');
-        if (groupField !== 'unit') headers.push('इकाई');
-        headers.push('आवंटित राशि', 'अपडेट की गई राशि');
-        if (groupField !== 'source_of_receipt') headers.push('स्रोत');
-        if (groupField !== 'scheme_name') headers.push('योजना');
+        if (groupField !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names')) headers.push('निवेश का नाम');
+        if (groupField !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) headers.push('केंद्र का नाम');
+        if (groupField !== 'component' && groupedSummarySelectedColumns.includes('components')) headers.push('घटक');
+        if (groupField !== 'unit' && groupedSummarySelectedColumns.includes('units')) headers.push('इकाई');
+        if (groupedSummarySelectedColumns.includes('totalAllocated')) headers.push('आवंटित राशि');
+        if (groupedSummarySelectedColumns.includes('totalUpdated')) headers.push('अपडेट की गई राशि');
+        if (groupField !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) headers.push('स्रोत');
+        if (groupField !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes')) headers.push('योजना');
         
         return headers;
       };
@@ -597,18 +882,48 @@ const MainDashboard = () => {
         <html>
           <head>
             <title>समूह विवरण</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
-              h1 { text-align: center; }
+              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
+              
+              body { 
+                font-family: 'Noto Sans', Arial, sans-serif; 
+                margin: 20px; 
+                direction: ltr;
+              }
+              h1 { 
+                text-align: center; 
+                font-size: 24px;
+                margin-bottom: 30px;
+                font-weight: bold;
+              }
               p { text-align: center; font-weight: bold; }
-              table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; font-weight: bold; }
-              .summary { margin-top: 20px; font-weight: bold; }
+              table { 
+                border-collapse: collapse; 
+                width: 100%; 
+                margin-top: 20px; 
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+                font-size: 14px;
+              }
+              th { 
+                background-color: #f2f2f2; 
+                font-weight: bold; 
+              }
+              .totals-row { 
+                background-color: #f2f2f2; 
+                font-weight: bold;
+              }
               .expandable-row { cursor: pointer; }
               @media print {
                 .no-print { display: none; }
                 body { margin: 0; }
+                h1 { font-size: 20px; }
+                th, td { font-size: 12px; }
               }
             </style>
           </head>
@@ -629,30 +944,42 @@ const MainDashboard = () => {
                         `<td>${item.group_name}</td>`
                     ];
                     
-                    if (item.group_field !== 'investment_name') cells.push(`<td>${item.investment_names}</td>`);
-                    if (item.group_field !== 'center_name') cells.push(`<td>${item.center_names}</td>`);
-                    if (item.group_field !== 'component') cells.push(`<td>${item.components}</td>`);
-                    if (item.group_field !== 'unit') cells.push(`<td>${item.units}</td>`);
-                    cells.push(`<td>${formatCurrency(item.totalAllocated)}</td>`);
-                    cells.push(`<td>${formatCurrency(item.totalUpdated)}</td>`);
-                    if (item.group_field !== 'source_of_receipt') cells.push(`<td>${item.sources}</td>`);
-                    if (item.group_field !== 'scheme_name') cells.push(`<td>${item.schemes}</td>`);
+                    if (item.group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names')) cells.push(`<td>${item.investment_names}</td>`);
+                    if (item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) cells.push(`<td>${item.center_names}</td>`);
+                    if (item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components')) cells.push(`<td>${item.components}</td>`);
+                    if (item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units')) cells.push(`<td>${item.units}</td>`);
+                    if (groupedSummarySelectedColumns.includes('totalAllocated')) cells.push(`<td>${formatCurrency(item.totalAllocated)}</td>`);
+                    if (groupedSummarySelectedColumns.includes('totalUpdated')) cells.push(`<td>${formatCurrency(item.totalUpdated)}</td>`);
+                    if (item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) cells.push(`<td>${item.sources}</td>`);
+                    if (item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes')) cells.push(`<td>${item.schemes}</td>`);
                     
                     return `<tr class="expandable-row">${cells.join('')}</tr>`;
                   };
                   
                   return getTableRow();
                 }).join('')}
-              </tbody>
-              <tfoot>
-                <tr class="summary">
-                  <td colspan="${headers.length - 3}">कुल</td>
-                  <td>${formatCurrency(tableTotals.allocated)}</td>
-                  <td colspan="1"></td>
-                  <td>${formatCurrency(tableTotals.updated)}</td>
-                  <td colspan="${headers.length - 7}"></td>
+                <!-- Totals row directly after data -->
+                <tr class="totals-row">
+                  ${data.length > 0 ? (() => {
+                    const groupField = data[0].group_field;
+                    const cells = [
+                        `<td>कुल</td>`,
+                        `<td></td>`
+                    ];
+                    
+                    if (groupField !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names')) cells.push(`<td></td>`);
+                    if (groupField !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) cells.push(`<td></td>`);
+                    if (groupField !== 'component' && groupedSummarySelectedColumns.includes('components')) cells.push(`<td></td>`);
+                    if (groupField !== 'unit' && groupedSummarySelectedColumns.includes('units')) cells.push(`<td></td>`);
+                    if (groupedSummarySelectedColumns.includes('totalAllocated')) cells.push(`<td>${formatCurrency(tableTotals.allocated)}</td>`);
+                    if (groupedSummarySelectedColumns.includes('totalUpdated')) cells.push(`<td>${formatCurrency(tableTotals.updated)}</td>`);
+                    if (groupField !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) cells.push(`<td></td>`);
+                    if (groupField !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes')) cells.push(`<td></td>`);
+                    
+                    return cells.join('');
+                  })() : ''}
                 </tr>
-              </tfoot>
+              </tbody>
             </table>
           </body>
         </html>
@@ -661,10 +988,14 @@ const MainDashboard = () => {
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+      
+      // Wait for the content to load before printing
+      printWindow.onload = function() {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 1000); // Increased timeout to ensure content is fully loaded
+      };
     } catch (e) {
       console.error("Error generating PDF:", e);
       setError("PDF generation failed. Please try again.");
@@ -678,7 +1009,7 @@ const MainDashboard = () => {
     // Find the card with the clicked key to get its values
     const card = categoryCardsData.find(c => c.key === key);
     if (card && card.values.length > 0) {
-        // Set the filter category to show the buttons
+        // Set the filter category to show buttons
         setFilterCategory(key);
         
         // If this category doesn't have active filters yet, set the first value as default
@@ -827,22 +1158,62 @@ const MainDashboard = () => {
                                                     return (
                                                         <ExpandableSection 
                                                             key={componentKey}
-                                                            title={`घटक: ${component.name}`}
-                                                            count={component.items.length}
-                                                            totalAmount={component.totalAllocated}
-                                                            level={3}
-                                                        >
+                                                                title={`घटक: ${component.name}`}
+                                                                count={component.items.length}
+                                                                totalAmount={component.totalAllocated}
+                                                                level={3}
+                                                            >
+                                                            <div className="mb-3">
+                                                                <ColumnSelection
+                                                                    columns={componentDetailColumns}
+                                                                    selectedColumns={componentDetailSelectedColumns}
+                                                                    setSelectedColumns={setComponentDetailSelectedColumns}
+                                                                    title="कॉलम चुनें"
+                                                                />
+                                                                <div className="d-flex justify-content-end mb-2">
+                                                                    <Button 
+                                                                        variant="outline-success" 
+                                                                        size="sm" 
+                                                                        onClick={() => downloadExcel(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
+                                                                            allocated: component.totalAllocated,
+                                                                            updated: component.totalUpdated,
+                                                                            allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                                                            updatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                                                        })}
+                                                                        className="me-2"
+                                                                    >
+                                                                        <FaFileExcel className="me-1" />Excel
+                                                                    </Button>
+                                                                    <Button 
+                                                                        variant="outline-danger" 
+                                                                        size="sm" 
+                                                                        onClick={() => downloadPdf(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${component.name} Details`, {
+                                                                            allocated: component.totalAllocated,
+                                                                            updated: component.totalUpdated,
+                                                                            allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                                                            updatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                                                        })}
+                                                                    >
+                                                                        <FaFilePdf className="me-1" />
+                                                                        PDF
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
                                                             <Table striped bordered hover responsive className="small-fonts">
                                                                 <thead>
                                                                     <tr>
-                                                                        <th>क्र.सं.</th>
-                                                                        <th>निवेश का नाम</th>
-                                                                        <th>आवंटित मात्रा</th>
-                                                                        <th>दर</th>
-                                                                        <th>आवंटित राशि</th>
-                                                                        <th>अपडेट की गई मात्रा</th>
-                                                                        <th>अपडेट की गई राशि</th>
-                                                                        <th>स्रोत</th>
+                                                                        {componentDetailSelectedColumns.includes('sno') && <th>क्र.सं.</th>}
+                                                                        {componentDetailSelectedColumns.includes('center_name') && <th>केंद्र का नाम</th>}
+                                                                        {componentDetailSelectedColumns.includes('component') && <th>घटक</th>}
+                                                                        {componentDetailSelectedColumns.includes('investment_name') && <th>निवेश का नाम</th>}
+                                                                        {componentDetailSelectedColumns.includes('unit') && <th>इकाई</th>}
+                                                                        {componentDetailSelectedColumns.includes('allocated_quantity') && <th>आवंटित मात्रा</th>}
+                                                                        {componentDetailSelectedColumns.includes('rate') && <th>दर</th>}
+                                                                        {componentDetailSelectedColumns.includes('allocated_amount') && <th>आवंटित राशि</th>}
+                                                                        {componentDetailSelectedColumns.includes('updated_quantity') && <th>अपडेट की गई मात्रा</th>}
+                                                                        {componentDetailSelectedColumns.includes('updated_amount') && <th>अपडेट की गई राशि</th>}
+                                                                        {componentDetailSelectedColumns.includes('source_of_receipt') && <th>स्रोत</th>}
+                                                                        {componentDetailSelectedColumns.includes('scheme_name') && <th>योजना</th>}
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -851,25 +1222,31 @@ const MainDashboard = () => {
                                                                         const updatedAmount = (parseFloat(item.updated_quantity) * parseFloat(item.rate)).toFixed(2);
                                                                         return (
                                                                             <tr key={index}>
-                                                                                <td>{index + 1}</td>
-                                                                                <td>{item.investment_name}</td>
-                                                                                <td>{item.allocated_quantity}</td>
-                                                                                <td>{item.rate}</td>
-                                                                                <td>{allocatedAmount}</td>
-                                                                                <td>{item.updated_quantity}</td>
-                                                                                <td>{updatedAmount}</td>
-                                                                                <td>{item.source_of_receipt}</td>
+                                                                                {componentDetailSelectedColumns.includes('sno') && <td>{index + 1}</td>}
+                                                                                {componentDetailSelectedColumns.includes('center_name') && <td>{item.center_name}</td>}
+                                                                                {componentDetailSelectedColumns.includes('component') && <td>{item.component}</td>}
+                                                                                {componentDetailSelectedColumns.includes('investment_name') && <td>{item.investment_name}</td>}
+                                                                                {componentDetailSelectedColumns.includes('unit') && <td>{item.unit}</td>}
+                                                                                {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{item.allocated_quantity}</td>}
+                                                                                {componentDetailSelectedColumns.includes('rate') && <td>{item.rate}</td>}
+                                                                                {componentDetailSelectedColumns.includes('allocated_amount') && <td>{allocatedAmount}</td>}
+                                                                                {componentDetailSelectedColumns.includes('updated_quantity') && <td>{item.updated_quantity}</td>}
+                                                                                {componentDetailSelectedColumns.includes('updated_amount') && <td>{updatedAmount}</td>}
+                                                                                {componentDetailSelectedColumns.includes('source_of_receipt') && <td>{item.source_of_receipt}</td>}
+                                                                                {componentDetailSelectedColumns.includes('scheme_name') && <td>{item.scheme_name}</td>}
                                                                             </tr>
                                                                         );
                                                                     })}
                                                                 </tbody>
                                                                 <tfoot>
                                                                     <tr className="font-weight-bold">
-                                                                        <td colSpan="4">कुल</td>
-                                                                        <td>{formatCurrency(component.totalAllocated)}</td>
-                                                                        <td colSpan="1"></td>
-                                                                        <td>{formatCurrency(component.totalUpdated)}</td>
-                                                                        <td colSpan="1"></td>
+                                                                        <td colSpan={componentDetailSelectedColumns.filter(col => col !== 'sno' && col !== 'center_name' && col !== 'component' && col !== 'investment_name' && col !== 'unit' && col !== 'allocated_quantity' && col !== 'rate' && col !== 'updated_quantity' && col !== 'source_of_receipt' && col !== 'scheme_name').length + 4}>कुल</td>
+                                                                        {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2)}</td>}
+                                                                        {componentDetailSelectedColumns.includes('rate') && <td></td>}
+                                                                        {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(component.totalAllocated)}</td>}
+                                                                        {componentDetailSelectedColumns.includes('updated_quantity') && <td>{component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2)}</td>}
+                                                                        {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(component.totalUpdated)}</td>}
+                                                                        <td colSpan={componentDetailSelectedColumns.includes('source_of_receipt') ? 0 : 1}></td>
                                                                     </tr>
                                                                 </tfoot>
                                                             </Table>
@@ -894,18 +1271,46 @@ const MainDashboard = () => {
     const card = categoryCardsData.find(c => c.key === category);
     if (!card) return null;
     
-    return card.values.map((value) => (
-        <Col key={value} xs="auto" className="mb-2">
-            <Button 
-                variant={(activeFilters[category] || []).includes(value) ? "primary" : "outline-secondary"}
-                size="sm"
-                className="filter-button"
-                onClick={() => handleFilterButtonClick(category, value)}
-            >
-                {value}
-            </Button>
-        </Col>
-    ));
+    const allSelected = (activeFilters[category] || []).length === card.values.length;
+    
+    return (
+        <>
+            <Col xs="auto" className="mb-2">
+                <Button 
+                    variant={allSelected ? "primary" : "outline-secondary"}
+                    size="sm"
+                    className="filter-button"
+                    onClick={() => {
+                        if (allSelected) {
+                            // Deselect all
+                            setActiveFilters(prev => {
+                                const newFilters = { ...prev };
+                                delete newFilters[category];
+                                return newFilters;
+                            });
+                        } else {
+                            // Select all
+                            setActiveFilters(prev => ({ ...prev, [category]: card.values }));
+                        }
+                    }}
+                >
+                    सभी चुनें
+                </Button>
+            </Col>
+            {card.values.map((value) => (
+                <Col key={value} xs="auto" className="mb-2">
+                    <Button 
+                        variant={(activeFilters[category] || []).includes(value) ? "primary" : "outline-secondary"}
+                        size="sm"
+                        className="filter-button"
+                        onClick={() => handleFilterButtonClick(category, value)}
+                    >
+                        {value}
+                    </Button>
+                </Col>
+            ))}
+        </>
+    );
   };
 
   return (
@@ -1000,10 +1405,10 @@ const MainDashboard = () => {
             {/* Billing Items Table - Always show table with filtered data */}
             <div className="billing-table-container">
               <h2 className="dynamic-table-heading small-fonts">
-                बिलिंग विवरण
-                <span className="heading-totals">
-                    (कुल आवंटित: {formatCurrency(tableTotals.allocated)}, कुल अपडेट किया गया: {formatCurrency(tableTotals.updated)})
-                </span>
+                  बिलिंग विवरण
+                  <span className="heading-totals">
+                      (कुल आवंटित मात्रा: {tableTotals.allocatedQuantity.toFixed(2)}, कुल आवंटित: {formatCurrency(tableTotals.allocated)}, कुल अपडेट मात्रा: {tableTotals.updatedQuantity.toFixed(2)}, कुल अपडेट किया गया: {formatCurrency(tableTotals.updated)})
+                  </span>
                 {Object.keys(activeFilters).length > 0 && (
                     <span className="heading-filter-info">
                         - <strong>
@@ -1028,11 +1433,19 @@ const MainDashboard = () => {
                                 </div>
                             </div>
                             
+                            {/* Column Selection Section for Main Table */}
+                            <ColumnSelection
+                                columns={mainTableColumns}
+                                selectedColumns={mainTableSelectedColumns}
+                                setSelectedColumns={setMainTableSelectedColumns}
+                                title="कॉलम चुनें"
+                            />
+                            
                             <div className="d-flex justify-content-end mb-2">
                               <Button 
                                 variant="outline-success" 
                                 size="sm" 
-                                onClick={() => downloadExcel(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`)}
+                                onClick={() => downloadExcel(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, tableTotals)}
                                 className="me-2"
                               >
                                 <FaFileExcel className="me-1" />Excel
@@ -1040,7 +1453,7 @@ const MainDashboard = () => {
                               <Button 
                                 variant="outline-danger" 
                                 size="sm" 
-                                onClick={() => downloadPdf(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`)}
+                                onClick={() => downloadPdf(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "बिलिंग विवरण", tableTotals)}
                               >
                                 <FaFilePdf className="me-1" />
                                 PDF
@@ -1050,18 +1463,18 @@ const MainDashboard = () => {
                             <table className="responsive-table small-fonts">
                               <thead>
                                 <tr>
-                                  <th>क्र.सं.</th>
-                                  <th>केंद्र का नाम</th>
-                                  <th>घटक</th>
-                                  <th>निवेश का नाम</th>
-                                  <th>इकाई</th>
-                                  <th>आवंटित मात्रा</th>
-                                  <th>दर</th>
-                                  <th>आवंटित राशि</th>
-                                  <th>अपडेट की गई मात्रा</th>
-                                  <th>अपडेट की गई राशि</th>
-                                  <th>स्रोत</th>
-                                  <th>योजना</th>
+                                  {mainTableSelectedColumns.includes('sno') && <th>क्र.सं.</th>}
+                                  {mainTableSelectedColumns.includes('center_name') && <th>केंद्र का नाम</th>}
+                                  {mainTableSelectedColumns.includes('component') && <th>घटक</th>}
+                                  {mainTableSelectedColumns.includes('investment_name') && <th>निवेश का नाम</th>}
+                                  {mainTableSelectedColumns.includes('unit') && <th>इकाई</th>}
+                                  {mainTableSelectedColumns.includes('allocated_quantity') && <th>आवंटित मात्रा</th>}
+                                  {mainTableSelectedColumns.includes('rate') && <th>दर</th>}
+                                  {mainTableSelectedColumns.includes('allocated_amount') && <th>आवंटित राशि</th>}
+                                  {mainTableSelectedColumns.includes('updated_quantity') && <th>अपडेट की गई मात्रा</th>}
+                                  {mainTableSelectedColumns.includes('updated_amount') && <th>अपडेट की गई राशि</th>}
+                                  {mainTableSelectedColumns.includes('source_of_receipt') && <th>स्रोत</th>}
+                                  {mainTableSelectedColumns.includes('scheme_name') && <th>योजना</th>}
                                 </tr>
                               </thead>
                               <tbody>
@@ -1070,29 +1483,36 @@ const MainDashboard = () => {
                                     const updatedAmount = (parseFloat(item.updated_quantity) * parseFloat(item.rate)).toFixed(2);
                                     return (
                                     <tr key={item.id}>
-                                        <td data-label="क्र.सं.">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                        <td data-label="केंद्र का नाम">{item.center_name}</td>
-                                        <td data-label="घटक">{item.component}</td>
-                                        <td data-label="निवेश का नाम">{item.investment_name}</td>
-                                        <td data-label="इकाई">{item.unit}</td>
-                                        <td data-label="आवंटित मात्रा">{item.allocated_quantity}</td>
-                                        <td data-label="दर">{item.rate}</td>
-                                        <td data-label="आवंटित राशि">{allocatedAmount}</td>
-                                        <td data-label="अपडेट की गई मात्रा">{item.updated_quantity}</td>
-                                        <td data-label="अपडेट की गई राशि">{updatedAmount}</td>
-                                        <td data-label="स्रोत">{item.source_of_receipt}</td>
-                                        <td data-label="योजना">{item.scheme_name}</td>
+                                        {mainTableSelectedColumns.includes('sno') && <td data-label="क्र.सं.">{(currentPage - 1) * itemsPerPage + index + 1}</td>}
+                                        {mainTableSelectedColumns.includes('center_name') && <td data-label="केंद्र का नाम">{item.center_name}</td>}
+                                        {mainTableSelectedColumns.includes('component') && <td data-label="घटक">{item.component}</td>}
+                                        {mainTableSelectedColumns.includes('investment_name') && <td data-label="निवेश का नाम">{item.investment_name}</td>}
+                                        {mainTableSelectedColumns.includes('unit') && <td data-label="इकाई">{item.unit}</td>}
+                                        {mainTableSelectedColumns.includes('allocated_quantity') && <td data-label="आवंटित मात्रा">{item.allocated_quantity}</td>}
+                                        {mainTableSelectedColumns.includes('rate') && <td data-label="दर">{item.rate}</td>}
+                                        {mainTableSelectedColumns.includes('allocated_amount') && <td data-label="आवंटित राशि">{allocatedAmount}</td>}
+                                        {mainTableSelectedColumns.includes('updated_quantity') && <td data-label="अपडेट की गई मात्रा">{item.updated_quantity}</td>}
+                                        {mainTableSelectedColumns.includes('updated_amount') && <td data-label="अपडेट की गई राशि">{updatedAmount}</td>}
+                                        {mainTableSelectedColumns.includes('source_of_receipt') && <td data-label="स्रोत">{item.source_of_receipt}</td>}
+                                        {mainTableSelectedColumns.includes('scheme_name') && <td data-label="योजना">{item.scheme_name}</td>}
                                     </tr>
                                     );
                                 })}
                               </tbody>
                               <tfoot>
                                 <tr className="font-weight-bold">
-                                    <td colSpan="7">कुल</td>
-                                    <td>{formatCurrency(tableTotals.allocated)}</td>
-                                    <td colSpan="1"></td>
-                                    <td>{formatCurrency(tableTotals.updated)}</td>
-                                    <td colSpan="2"></td>
+                                    {mainTableSelectedColumns.includes('sno') && <td>कुल</td>}
+                                    {mainTableSelectedColumns.includes('center_name') && <td></td>}
+                                    {mainTableSelectedColumns.includes('component') && <td></td>}
+                                    {mainTableSelectedColumns.includes('investment_name') && <td></td>}
+                                    {mainTableSelectedColumns.includes('unit') && <td></td>}
+                                    {mainTableSelectedColumns.includes('allocated_quantity') && <td>{tableTotals.allocatedQuantity.toFixed(2)}</td>}
+                                    {mainTableSelectedColumns.includes('rate') && <td></td>}
+                                    {mainTableSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(tableTotals.allocated)}</td>}
+                                    {mainTableSelectedColumns.includes('updated_quantity') && <td>{tableTotals.updatedQuantity.toFixed(2)}</td>}
+                                    {mainTableSelectedColumns.includes('updated_amount') && <td>{formatCurrency(tableTotals.updated)}</td>}
+                                    {mainTableSelectedColumns.includes('source_of_receipt') && <td></td>}
+                                    {mainTableSelectedColumns.includes('scheme_name') && <td></td>}
                                 </tr>
                               </tfoot>
                             </table>
@@ -1136,6 +1556,14 @@ const MainDashboard = () => {
                         </span>
                     </h2>
                     
+                    {/* Column Selection Section for Grouped Summary Table */}
+                    <ColumnSelection
+                        columns={groupedSummaryColumns}
+                        selectedColumns={groupedSummarySelectedColumns}
+                        setSelectedColumns={setGroupedSummarySelectedColumns}
+                        title="समूह विवरण के लिए कॉलम चुनें"
+                    />
+                    
                     <div className="d-flex justify-content-end mb-2">
                       <Button 
                         variant="outline-success" 
@@ -1158,16 +1586,16 @@ const MainDashboard = () => {
                     <table className="responsive-table small-fonts">
                       <thead>
                         <tr>
-                          <th>क्र.सं.</th>
-                          <th>{investmentSummaryData.length > 0 ? formatFieldTitle(investmentSummaryData[0].group_field) : 'समूह'}</th>
-                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'investment_name' && <th>निवेश का नाम</th>}
-                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'center_name' && <th>केंद्र का नाम</th>}
-                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'component' && <th>घटक</th>}
-                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'unit' && <th>इकाई</th>}
-                          <th>आवंटित राशि</th>
-                          <th>अपडेट की गई राशि</th>
-                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'source_of_receipt' && <th>स्रोत</th>}
-                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'scheme_name' && <th>योजना</th>}
+                          {groupedSummarySelectedColumns.includes('sno') && <th>क्र.सं.</th>}
+                          {groupedSummarySelectedColumns.includes('group_name') && <th>{investmentSummaryData.length > 0 ? formatFieldTitle(investmentSummaryData[0].group_field) : 'समूह'}</th>}
+                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && <th>निवेश का नाम</th>}
+                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <th>केंद्र का नाम</th>}
+                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && <th>घटक</th>}
+                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && <th>इकाई</th>}
+                          {groupedSummarySelectedColumns.includes('totalAllocated') && <th>आवंटित राशि</th>}
+                          {groupedSummarySelectedColumns.includes('totalUpdated') && <th>अपडेट की गई राशि</th>}
+                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && <th>स्रोत</th>}
+                          {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && <th>योजना</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -1178,35 +1606,54 @@ const MainDashboard = () => {
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => toggleInvestmentExpansion(item.group_name)}
                                 >
-                                    <td>{index + 1}</td>
-                                    <td>{item.group_name}</td>
-                                    {item.group_field !== 'investment_name' && <td>{item.investment_names}</td>}
-                                    {item.group_field !== 'center_name' && <td>{item.center_names}</td>}
-                                    {item.group_field !== 'component' && <td>{item.components}</td>}
-                                    {item.group_field !== 'unit' && <td>{item.units}</td>}
-                                    <td>{formatCurrency(item.totalAllocated)}</td>
-                                    <td>{formatCurrency(item.totalUpdated)}</td>
-                                    {item.group_field !== 'source_of_receipt' && <td>{item.sources}</td>}
-                                    {item.group_field !== 'scheme_name' && <td>{item.schemes}</td>}
+                                    {groupedSummarySelectedColumns.includes('sno') && <td>{index + 1}</td>}
+                                    {groupedSummarySelectedColumns.includes('group_name') && <td>{item.group_name}</td>}
+                                    {item.group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && <td>{item.investment_names}</td>}
+                                    {item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <td>{item.center_names}</td>}
+                                    {item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && <td>{item.components}</td>}
+                                    {item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && <td>{item.units}</td>}
+                                    {groupedSummarySelectedColumns.includes('totalAllocated') && <td>{formatCurrency(item.totalAllocated)}</td>}
+                                    {groupedSummarySelectedColumns.includes('totalUpdated') && <td>{formatCurrency(item.totalUpdated)}</td>}
+                                    {item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && <td>{item.sources}</td>}
+                                    {item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && <td>{item.schemes}</td>}
                                 </tr>
                                 {expandedInvestments[item.group_name] && (
                                     <tr>
                                         <td colSpan="12">
                                             <div className="p-3">
                                                 <h5 className="mb-3">{item.group_name} - विस्तृत विवरण</h5>
+                                                
+                                                {/* Column Selection Section for Component Details */}
+                                                <ColumnSelection
+                                                    columns={componentDetailColumns}
+                                                    selectedColumns={componentDetailSelectedColumns}
+                                                    setSelectedColumns={setComponentDetailSelectedColumns}
+                                                    title="घटक विवरण के लिए कॉलम चुनें"
+                                                />
+                                                
                                                 <div className="d-flex justify-content-end mb-2">
                                                   <Button 
                                                     variant="outline-success" 
-                                                    size="sm" 
-                                                    onClick={() => downloadExcel(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`)}
+                                                        size="sm" 
+                                                        onClick={() => downloadExcel(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
+                                                            allocated: item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            updated: item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            allocatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                                            updatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                                        })}
                                                     className="me-2"
                                                   >
                                                     <FaFileExcel className="me-1" />Excel
                                                   </Button>
                                                   <Button 
-                                                    variant="outline-danger" 
-                                                    size="sm" 
-                                                    onClick={() => downloadPdf(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`)}
+                                                        variant="outline-danger" 
+                                                        size="sm" 
+                                                        onClick={() => downloadPdf(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${item.group_name} Details`, {
+                                                            allocated: item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            updated: item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            allocatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                                            updatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                                        })}
                                                   >
                                                     <FaFilePdf className="me-1" />
                                                     PDF
@@ -1215,18 +1662,18 @@ const MainDashboard = () => {
                                                 <table className="responsive-table small-fonts">
                                                     <thead>
                                                         <tr>
-                                                            <th>क्र.सं.</th>
-                                                            <th>केंद्र का नाम</th>
-                                                            <th>घटक</th>
-                                                            <th>निवेश का नाम</th>
-                                                            <th>इकाई</th>
-                                                            <th>आवंटित मात्रा</th>
-                                                            <th>दर</th>
-                                                            <th>आवंटित राशि</th>
-                                                            <th>अपडेट की गई मात्रा</th>
-                                                            <th>अपडेट की गई राशि</th>
-                                                            <th>स्रोत</th>
-                                                            <th>योजना</th>
+                                                            {componentDetailSelectedColumns.includes('sno') && <th>क्र.सं.</th>}
+                                                            {componentDetailSelectedColumns.includes('center_name') && <th>केंद्र का नाम</th>}
+                                                            {componentDetailSelectedColumns.includes('component') && <th>घटक</th>}
+                                                            {componentDetailSelectedColumns.includes('investment_name') && <th>निवेश का नाम</th>}
+                                                            {componentDetailSelectedColumns.includes('unit') && <th>इकाई</th>}
+                                                            {componentDetailSelectedColumns.includes('allocated_quantity') && <th>आवंटित मात्रा</th>}
+                                                            {componentDetailSelectedColumns.includes('rate') && <th>दर</th>}
+                                                            {componentDetailSelectedColumns.includes('allocated_amount') && <th>आवंटित राशि</th>}
+                                                            {componentDetailSelectedColumns.includes('updated_quantity') && <th>अपडेट की गई मात्रा</th>}
+                                                            {componentDetailSelectedColumns.includes('updated_amount') && <th>अपडेट की गई राशि</th>}
+                                                            {componentDetailSelectedColumns.includes('source_of_receipt') && <th>स्रोत</th>}
+                                                            {componentDetailSelectedColumns.includes('scheme_name') && <th>योजना</th>}
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -1235,22 +1682,37 @@ const MainDashboard = () => {
                                                             const updatedAmount = (parseFloat(detailItem.updated_quantity) * parseFloat(detailItem.rate)).toFixed(2);
                                                             return (
                                                                 <tr key={detailIndex}>
-                                                                    <td>{detailIndex + 1}</td>
-                                                                    <td>{detailItem.center_name}</td>
-                                                                    <td>{detailItem.component}</td>
-                                                                    <td>{detailItem.investment_name}</td>
-                                                                    <td>{detailItem.unit}</td>
-                                                                    <td>{detailItem.allocated_quantity}</td>
-                                                                    <td>{detailItem.rate}</td>
-                                                                    <td>{allocatedAmount}</td>
-                                                                    <td>{detailItem.updated_quantity}</td>
-                                                                    <td>{updatedAmount}</td>
-                                                                    <td>{detailItem.source_of_receipt}</td>
-                                                                    <td>{detailItem.scheme_name}</td>
+                                                                    {componentDetailSelectedColumns.includes('sno') && <td>{detailIndex + 1}</td>}
+                                                                    {componentDetailSelectedColumns.includes('center_name') && <td>{detailItem.center_name}</td>}
+                                                                    {componentDetailSelectedColumns.includes('component') && <td>{detailItem.component}</td>}
+                                                                    {componentDetailSelectedColumns.includes('investment_name') && <td>{detailItem.investment_name}</td>}
+                                                                    {componentDetailSelectedColumns.includes('unit') && <td>{detailItem.unit}</td>}
+                                                                    {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{detailItem.allocated_quantity}</td>}
+                                                                    {componentDetailSelectedColumns.includes('rate') && <td>{detailItem.rate}</td>}
+                                                                    {componentDetailSelectedColumns.includes('allocated_amount') && <td>{allocatedAmount}</td>}
+                                                                    {componentDetailSelectedColumns.includes('updated_quantity') && <td>{detailItem.updated_quantity}</td>}
+                                                                    {componentDetailSelectedColumns.includes('updated_amount') && <td>{updatedAmount}</td>}
+                                                                    {componentDetailSelectedColumns.includes('source_of_receipt') && <td>{detailItem.source_of_receipt}</td>}
+                                                                    {componentDetailSelectedColumns.includes('scheme_name') && <td>{detailItem.scheme_name}</td>}
                                                                 </tr>
                                                             );
                                                         })}
                                                     </tbody>
+                                                    <tfoot>
+                                                        <tr className="font-weight-bold">
+                                                            <td colSpan={componentDetailSelectedColumns.indexOf('sno') + 1}>कुल</td>
+                                                            {componentDetailSelectedColumns.includes('center_name') && <td></td>}
+                                                            {componentDetailSelectedColumns.includes('component') && <td></td>}
+                                                            {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
+                                                            {componentDetailSelectedColumns.includes('unit') && <td></td>}
+                                                            {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2)}</td>}
+                                                            {componentDetailSelectedColumns.includes('rate') && <td></td>}
+                                                            {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0))}</td>}
+                                                            {componentDetailSelectedColumns.includes('updated_quantity') && <td>{item.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2)}</td>}
+                                                            {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0))}</td>}
+                                                            <td colSpan={componentDetailSelectedColumns.includes('source_of_receipt') && componentDetailSelectedColumns.includes('scheme_name') ? 2 : componentDetailSelectedColumns.includes('source_of_receipt') || componentDetailSelectedColumns.includes('scheme_name') ? 1 : 0}></td>
+                                                        </tr>
+                                                    </tfoot>
                                                 </table>
                                             </div>
                                         </td>
@@ -1261,11 +1723,11 @@ const MainDashboard = () => {
                       </tbody>
                       <tfoot>
                         <tr className="font-weight-bold">
-                            <td colSpan="6">कुल</td>
-                            <td>{formatCurrency(tableTotals.allocated)}</td>
-                            <td colSpan="1"></td>
-                            <td>{formatCurrency(tableTotals.updated)}</td>
-                            <td colSpan="2"></td>
+                            <td colSpan={groupedSummarySelectedColumns.indexOf('sno') + 1}>कुल</td>
+                            {groupedSummarySelectedColumns.includes('group_name') && <td></td>}
+                            {groupedSummarySelectedColumns.includes('totalAllocated') && <td>{formatCurrency(tableTotals.allocated)}</td>}
+                            {groupedSummarySelectedColumns.includes('totalUpdated') && <td>{formatCurrency(tableTotals.updated)}</td>}
+                            <td colSpan={groupedSummarySelectedColumns.includes('sources') && groupedSummarySelectedColumns.includes('schemes') ? 2 : groupedSummarySelectedColumns.includes('sources') || groupedSummarySelectedColumns.includes('schemes') ? 1 : 0}></td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1286,7 +1748,7 @@ const MainDashboard = () => {
                       <Button 
                         variant="outline-success" 
                         size="sm" 
-                        onClick={() => downloadExcel(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`)}
+                        onClick={() => downloadExcel(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, tableTotals)}
                         className="me-2"
                       >
                         <FaFileExcel className="me-1" />Excel
@@ -1294,7 +1756,7 @@ const MainDashboard = () => {
                       <Button 
                         variant="outline-danger" 
                         size="sm" 
-                        onClick={() => downloadPdf(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`)}
+                        onClick={() => downloadPdf(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "विस्तृत दृश्य", tableTotals)}
                       >
                         <FaFilePdf className="me-1" />
                         PDF

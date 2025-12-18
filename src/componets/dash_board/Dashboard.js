@@ -53,7 +53,8 @@ const translations = {
   retry: "पुनः प्रयास करें",
   // New translations for dynamic heading
   filterSeparator: " > ",
-  itemsPerPage: "प्रति पृष्ठ आइटम:"
+  itemsPerPage: "प्रति पृष्ठ आइटम:",
+  selectColumns: "कॉलम चुनें"
 };
 
 const Dashboard = () => {
@@ -76,6 +77,22 @@ const Dashboard = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(50); // Changed from 30 to 50 to match the first component
+
+  // Column selection states
+  const availableColumns = [
+    { key: 'sno', label: translations.sno },
+    { key: 'id', label: translations.id },
+    { key: 'centerName', label: translations.centerName },
+    { key: 'component', label: translations.component },
+    { key: 'investmentName', label: translations.investmentName },
+    { key: 'unit', label: translations.unit },
+    { key: 'allocatedQuantity', label: translations.allocatedQuantity },
+    { key: 'rate', label: translations.rate },
+    { key: 'amount', label: translations.amount },
+    { key: 'sourceOfReceipt', label: translations.sourceOfReceipt },
+    { key: 'schemeName', label: translations.schemeName }
+  ];
+  const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
 
   // Extract unique values for each filter with cascading logic
   const uniqueCenters = useMemo(() => {
@@ -243,18 +260,24 @@ const Dashboard = () => {
   // Convert table data to Excel format and download
   const downloadExcel = (data, filename) => {
     try {
-      const excelData = data.map(item => ({
-        [translations.sno]: '',
-        [translations.centerName]: item.center_name,
-        [translations.sourceOfReceipt]: item.source_of_receipt,
-        [translations.component]: item.component,
-        [translations.investmentName]: item.investment_name,
-        [translations.schemeName]: item.scheme_name,
-        [translations.unit]: item.unit,
-        [translations.allocatedQuantity]: item.allocated_quantity,
-        [translations.rate]: item.rate
-      }));
-      
+      const excelData = data.map((item, index) => {
+        const row = {};
+        selectedColumns.forEach(col => {
+          if (col === 'sno') row[translations.sno] = index + 1;
+          else if (col === 'id') row[translations.id] = item.id;
+          else if (col === 'centerName') row[translations.centerName] = item.center_name;
+          else if (col === 'component') row[translations.component] = item.component;
+          else if (col === 'investmentName') row[translations.investmentName] = item.investment_name;
+          else if (col === 'unit') row[translations.unit] = item.unit;
+          else if (col === 'allocatedQuantity') row[translations.allocatedQuantity] = item.allocated_quantity;
+          else if (col === 'rate') row[translations.rate] = item.rate;
+          else if (col === 'amount') row[translations.amount] = calculateAmount(item.allocated_quantity, item.rate);
+          else if (col === 'sourceOfReceipt') row[translations.sourceOfReceipt] = item.source_of_receipt;
+          else if (col === 'schemeName') row[translations.schemeName] = item.scheme_name;
+        });
+        return row;
+      });
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
       XLSX.utils.book_append_sheet(wb, ws, "BillingItems");
@@ -266,6 +289,37 @@ const Dashboard = () => {
   // Convert table data to PDF format and download
   const downloadPdf = (data, filename) => {
     try {
+      const headers = selectedColumns.map(col => {
+        if (col === 'sno') return `<th>${translations.sno}</th>`;
+        else if (col === 'id') return `<th>${translations.id}</th>`;
+        else if (col === 'centerName') return `<th>${translations.centerName}</th>`;
+        else if (col === 'component') return `<th>${translations.component}</th>`;
+        else if (col === 'investmentName') return `<th>${translations.investmentName}</th>`;
+        else if (col === 'unit') return `<th>${translations.unit}</th>`;
+        else if (col === 'allocatedQuantity') return `<th>${translations.allocatedQuantity}</th>`;
+        else if (col === 'rate') return `<th>${translations.rate}</th>`;
+        else if (col === 'amount') return `<th>${translations.amount}</th>`;
+        else if (col === 'sourceOfReceipt') return `<th>${translations.sourceOfReceipt}</th>`;
+        else if (col === 'schemeName') return `<th>${translations.schemeName}</th>`;
+      }).join('');
+
+      const rows = data.map((item, index) => {
+        const cells = selectedColumns.map(col => {
+          if (col === 'sno') return `<td>${index + 1}</td>`;
+          else if (col === 'id') return `<td>${item.id}</td>`;
+          else if (col === 'centerName') return `<td>${item.center_name}</td>`;
+          else if (col === 'component') return `<td>${item.component}</td>`;
+          else if (col === 'investmentName') return `<td>${item.investment_name}</td>`;
+          else if (col === 'unit') return `<td>${item.unit}</td>`;
+          else if (col === 'allocatedQuantity') return `<td>${item.allocated_quantity}</td>`;
+          else if (col === 'rate') return `<td>${item.rate}</td>`;
+          else if (col === 'amount') return `<td>${calculateAmount(item.allocated_quantity, item.rate)}</td>`;
+          else if (col === 'sourceOfReceipt') return `<td>${item.source_of_receipt}</td>`;
+          else if (col === 'schemeName') return `<td>${item.scheme_name}</td>`;
+        }).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+
       const tableHtml = `
         <html>
           <head>
@@ -278,35 +332,13 @@ const Dashboard = () => {
           <body>
             <h2>${dynamicTableHeading}</h2>
             <table>
-              <tr>
-                <th>${translations.sno}</th>
-                <th>${translations.centerName}</th>
-                <th>${translations.sourceOfReceipt}</th>
-                <th>${translations.component}</th>
-                <th>${translations.investmentName}</th>
-                <th>${translations.schemeName}</th>
-                <th>${translations.unit}</th>
-                <th>${translations.allocatedQuantity}</th>
-                <th>${translations.rate}</th>
-              </tr>
-              ${data.map((item, index) => `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${item.center_name}</td>
-                  <td>${item.source_of_receipt}</td>
-                  <td>${item.component}</td>
-                  <td>${item.investment_name}</td>
-                  <td>${item.scheme_name}</td>
-                  <td>${item.unit}</td>
-                  <td>${item.allocated_quantity}</td>
-                  <td>${item.rate}</td>
-                </tr>
-              `).join('')}
+              <tr>${headers}</tr>
+              ${rows}
             </table>
           </body>
         </html>
       `;
-      
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
@@ -572,7 +604,34 @@ const Dashboard = () => {
             
             {/* Dynamic Heading Above Table */}
             <h2 className="dynamic-table-heading small-fonts">{dynamicTableHeading}</h2>
-            
+
+            {/* Column Selection Section */}
+            <div className="column-selection mb-4 p-3 border rounded bg-light">
+              <h5 className="small-fonts mb-3">{translations.selectColumns}</h5>
+              <Row>
+                <Col>
+                  <div className="d-flex flex-wrap">
+                    {availableColumns.map(col => (
+                      <Form.Check
+                        type="checkbox"
+                        id={col.key}
+                        label={col.label}
+                        checked={selectedColumns.includes(col.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedColumns([...selectedColumns, col.key]);
+                          } else {
+                            setSelectedColumns(selectedColumns.filter(c => c !== col.key));
+                          }
+                        }}
+                        className="me-3 small-fonts"
+                      />
+                    ))}
+                  </div>
+                </Col>
+              </Row>
+            </div>
+
             {loading ? (
               <div className="text-center my-5">
                 <Spinner animation="border" role="status">

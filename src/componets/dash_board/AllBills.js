@@ -114,7 +114,13 @@ const translations = {
   receipt: "रसीद",
   downloadBill: "बिल डाउनलोड करें",
   downloadCancelledBill: "रद्द किए गए बिल डाउनलोड करें",
-  selectColumns: "कॉलम चुनें"
+  selectColumns: "कॉलम चुनें",
+  quantityLeft: "बची हुई मात्रा",
+  allotedRashi: "आवंटित राशि",
+  soldRashi: "बेची गई राशि",
+  cutQuantity: "कट मात्रा",
+  totalBill: "कुल बिल",
+  billingDate: "बिलिंग दिनांक"
 };
 
 // Available columns for download
@@ -127,6 +133,20 @@ const availableColumns = [
   { key: 'totalItems', label: translations.totalItems }
 ];
 
+// Available columns for component download
+const availableComponentColumns = [
+  { key: 'reportId', label: translations.reportId },
+  { key: 'component', label: translations.component },
+  { key: 'investment_name', label: translations.investmentName },
+  { key: 'unit', label: translations.unit },
+  { key: 'allocated_quantity', label: translations.allocatedQuantity },
+  { key: 'rate', label: translations.rate },
+  { key: 'updated_quantity', label: translations.updatedQuantity },
+  { key: 'buyAmount', label: translations.buyAmount },
+  { key: 'soldAmount', label: translations.soldAmount },
+  { key: 'scheme_name', label: translations.schemeName }
+];
+
 // Format date for display
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -134,8 +154,46 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('hi-IN');
 };
 
-// Column mapping for data access
+// Calculation functions
+const calculateQuantityLeft = (allocated, updated, cut) => {
+  return (parseFloat(allocated) || 0) - (parseFloat(updated) || 0) - (parseFloat(cut) || 0);
+};
+
+const calculateAllocatedAmount = (allocated, rate) => {
+  return (parseFloat(allocated) || 0) * (parseFloat(rate) || 0);
+};
+
+const calculateAmount = (updated, rate) => {
+  return (parseFloat(updated) || 0) * (parseFloat(rate) || 0);
+};
+
+const calculateTotalBill = (cut, rate) => {
+  return (parseFloat(cut) || 0) * (parseFloat(rate) || 0);
+};
+
+// Column mapping for component data access
 const columnMapping = {
+  reportId: { header: translations.reportId, accessor: (item) => item.report_id || '' },
+  component: { header: translations.component, accessor: (item) => item.component },
+  investment_name: { header: translations.investmentName, accessor: (item) => item.investment_name },
+  scheme_name: { header: translations.schemeName, accessor: (item) => item.scheme_name },
+  unit: { header: translations.unit, accessor: (item) => item.unit },
+  allocated_quantity: { header: translations.allocatedQuantity, accessor: (item) => item.allocated_quantity },
+  updated_quantity: { header: translations.updatedQuantity, accessor: (item) => item.updated_quantity },
+  quantity_left: { header: translations.quantityLeft, accessor: (item) => calculateQuantityLeft(item.allocated_quantity, item.updated_quantity, item.cut_quantity) },
+  alloted_rashi: { header: translations.allotedRashi, accessor: (item) => calculateAllocatedAmount(item.allocated_quantity, item.rate) },
+  sold_rashi: { header: translations.soldRashi, accessor: (item) => calculateAmount(item.updated_quantity, item.rate) },
+  cut_quantity: { header: translations.cutQuantity, accessor: (item) => item.cut_quantity },
+  rate: { header: translations.rate, accessor: (item) => item.rate },
+  buyAmount: { header: translations.buyAmount, accessor: (item) => item.buy_amount },
+  soldAmount: { header: translations.soldAmount, accessor: (item) => item.sold_amount },
+  total_bill: { header: translations.totalBill, accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate) },
+  billing_date: { header: translations.billingDate, accessor: (item) => item.billing_date }
+};
+
+// Column mapping for reports data access
+const reportsColumnMapping = {
+  sno: { header: translations.sno, accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
   reportId: { header: translations.reportId, accessor: (item) => item.bill_report_id },
   centerName: { header: translations.centerName, accessor: (item) => item.center_name },
   sourceOfReceipt: { header: translations.sourceOfReceipt, accessor: (item) => item.source_of_receipt },
@@ -190,6 +248,9 @@ const AllBills = () => {
 
   // State for column selection
   const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
+
+  // State for component column selection
+  const [selectedComponentColumns, setSelectedComponentColumns] = useState(availableComponentColumns.map(col => col.key));
 useEffect(() => {
   const checkDevice = () => {
     const width = window.innerWidth;
@@ -295,7 +356,7 @@ useEffect(() => {
       const excelData = data.map(item => {
         const row = {};
         selectedColumns.forEach(col => {
-          row[columnMapping[col].header] = columnMapping[col].accessor(item);
+          row[reportsColumnMapping[col].header] = reportsColumnMapping[col].accessor(item);
         });
         return row;
       });
@@ -320,9 +381,9 @@ useEffect(() => {
   const downloadPdf = (data, filename) => {
     try {
       // Create headers and rows based on selected columns
-      const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
+      const headers = selectedColumns.map(col => `<th>${reportsColumnMapping[col].header}</th>`).join('');
       const rows = data.map(item => {
-        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(item)}</td>`).join('');
+        const cells = selectedColumns.map(col => `<td>${reportsColumnMapping[col].accessor(item)}</td>`).join('');
         return `<tr>${cells}</tr>`;
       }).join('');
 
@@ -369,42 +430,38 @@ useEffect(() => {
   // Convert component data to Excel format and download
   const downloadExcelComponent = (componentData, filename) => {
     try {
-      const excelData = componentData.map(item => ({
-        [translations.reportId]: item.report_id || '',
-        [translations.component]: item.component,
-        [translations.investmentName]: item.investment_name,
-        [translations.unit]: item.unit,
-        [translations.allocatedQuantity]: item.allocated_quantity,
-        [translations.rate]: item.rate,
-        [translations.updatedQuantity]: item.updated_quantity,
-        [translations.buyAmount]: item.buy_amount,
-        [translations.soldAmount]: item.sold_amount,
-        [translations.schemeName]: item.scheme_name
-      }));
+      const excelData = componentData.map(item => {
+        const row = {};
+        selectedComponentColumns.forEach(col => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(item);
+        });
+        return row;
+      });
 
-      // Calculate totals
+      // Calculate totals only for selected columns
       const totals = componentData.reduce((acc, comp) => {
-        acc.allocated += parseFloat(comp.allocated_quantity) || 0;
-        acc.rate += parseFloat(comp.rate) || 0;
-        acc.updated += parseFloat(comp.updated_quantity) || 0;
-        acc.buy += parseFloat(comp.buy_amount) || 0;
-        acc.sold += parseFloat(comp.sold_amount) || 0;
+        if (selectedComponentColumns.includes('allocatedQuantity')) acc.allocated += parseFloat(comp.allocated_quantity) || 0;
+        if (selectedComponentColumns.includes('rate')) acc.rate += parseFloat(comp.rate) || 0;
+        if (selectedComponentColumns.includes('updatedQuantity')) acc.updated += parseFloat(comp.updated_quantity) || 0;
+        if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.buy_amount) || 0;
+        if (selectedComponentColumns.includes('soldAmount')) acc.sold += parseFloat(comp.sold_amount) || 0;
         return acc;
       }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
 
-      // Add total row
-      excelData.push({
-        [translations.reportId]: 'Total',
-        [translations.component]: '',
-        [translations.investmentName]: '',
-        [translations.unit]: '',
-        [translations.allocatedQuantity]: totals.allocated,
-        [translations.rate]: totals.rate,
-        [translations.updatedQuantity]: totals.updated,
-        [translations.buyAmount]: totals.buy,
-        [translations.soldAmount]: totals.sold,
-        [translations.schemeName]: ''
-      });
+      // Add total row if any totals are calculated
+      if (selectedComponentColumns.some(col => ['allocatedQuantity', 'rate', 'updatedQuantity', 'buyAmount', 'soldAmount'].includes(col))) {
+        const totalRow = {};
+        selectedComponentColumns.forEach(col => {
+          if (col === 'reportId') totalRow[columnMapping[col].header] = 'Total';
+          else if (col === 'allocatedQuantity') totalRow[columnMapping[col].header] = totals.allocated;
+          else if (col === 'rate') totalRow[columnMapping[col].header] = totals.rate;
+          else if (col === 'updatedQuantity') totalRow[columnMapping[col].header] = totals.updated;
+          else if (col === 'buyAmount') totalRow[columnMapping[col].header] = totals.buy;
+          else if (col === 'soldAmount') totalRow[columnMapping[col].header] = totals.sold;
+          else totalRow[columnMapping[col].header] = '';
+        });
+        excelData.push(totalRow);
+      }
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
@@ -417,15 +474,37 @@ useEffect(() => {
   // Convert component data to PDF format and download
   const downloadPdfComponent = (componentData, filename) => {
     try {
-      // Calculate totals
+      // Create headers and rows based on selected columns
+      const headers = selectedComponentColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
+      const rows = componentData.map(item => {
+        const cells = selectedComponentColumns.map(col => `<td>${columnMapping[col].accessor(item)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+
+      // Calculate totals only for selected columns
       const totals = componentData.reduce((acc, comp) => {
-        acc.allocated += parseFloat(comp.allocated_quantity) || 0;
-        acc.rate += parseFloat(comp.rate) || 0;
-        acc.updated += parseFloat(comp.updated_quantity) || 0;
-        acc.buy += parseFloat(comp.buy_amount) || 0;
-        acc.sold += parseFloat(comp.sold_amount) || 0;
+        if (selectedComponentColumns.includes('allocatedQuantity')) acc.allocated += parseFloat(comp.allocated_quantity) || 0;
+        if (selectedComponentColumns.includes('rate')) acc.rate += parseFloat(comp.rate) || 0;
+        if (selectedComponentColumns.includes('updatedQuantity')) acc.updated += parseFloat(comp.updated_quantity) || 0;
+        if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.buy_amount) || 0;
+        if (selectedComponentColumns.includes('soldAmount')) acc.sold += parseFloat(comp.sold_amount) || 0;
         return acc;
       }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+
+      // Create total row if any totals are calculated
+      let totalRow = '';
+      if (selectedComponentColumns.some(col => ['allocatedQuantity', 'rate', 'updatedQuantity', 'buyAmount', 'soldAmount'].includes(col))) {
+        const totalCells = selectedComponentColumns.map(col => {
+          if (col === 'reportId') return '<td><strong>Total</strong></td>';
+          else if (col === 'allocatedQuantity') return `<td><strong>${totals.allocated}</strong></td>`;
+          else if (col === 'rate') return `<td><strong>${totals.rate}</strong></td>`;
+          else if (col === 'updatedQuantity') return `<td><strong>${totals.updated}</strong></td>`;
+          else if (col === 'buyAmount') return `<td><strong>${totals.buy}</strong></td>`;
+          else if (col === 'soldAmount') return `<td><strong>${totals.sold}</strong></td>`;
+          else return '<td></td>';
+        }).join('');
+        totalRow = `<tr>${totalCells}</tr>`;
+      }
 
       const tableHtml = `
         <html>
@@ -439,44 +518,9 @@ useEffect(() => {
           <body>
             <h2>${translations.component}</h2>
             <table>
-              <tr>
-                <th>${translations.reportId}</th>
-                <th>${translations.component}</th>
-                <th>${translations.investmentName}</th>
-                <th>${translations.unit}</th>
-                <th>${translations.allocatedQuantity}</th>
-                <th>${translations.rate}</th>
-                <th>${translations.updatedQuantity}</th>
-                <th>${translations.buyAmount}</th>
-                <th>${translations.soldAmount}</th>
-                <th>${translations.schemeName}</th>
-              </tr>
-              ${componentData.map(item => `
-                <tr>
-                  <td>${item.report_id || ''}</td>
-                  <td>${item.component}</td>
-                  <td>${item.investment_name}</td>
-                  <td>${item.unit}</td>
-                  <td>${item.allocated_quantity}</td>
-                  <td>${item.rate}</td>
-                  <td>${item.updated_quantity}</td>
-                  <td>${item.buy_amount}</td>
-                  <td>${item.sold_amount}</td>
-                  <td>${item.scheme_name}</td>
-                </tr>
-              `).join('')}
-              <tr>
-                <td><strong>Total</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td><strong>${totals.allocated}</strong></td>
-                <td><strong>${totals.rate}</strong></td>
-                <td><strong>${totals.updated}</strong></td>
-                <td><strong>${totals.buy}</strong></td>
-                <td><strong>${totals.sold}</strong></td>
-                <td></td>
-              </tr>
+              <tr>${headers}</tr>
+              ${rows}
+              ${totalRow}
             </table>
           </body>
         </html>
@@ -979,17 +1023,38 @@ useEffect(() => {
                                         <div className="d-flex justify-content-between align-items-center mb-3">
                                           <h5 className="mb-0">{translations.component}</h5>
                                           <div>
-                                            <Button 
-                                              variant="outline-success" 
-                                              size="sm" 
+                                            <div className="column-selection mb-2">
+                                              <h6 className="small-fonts mb-2">{translations.selectColumns}</h6>
+                                              <div className="d-flex flex-wrap">
+                                                {availableComponentColumns.map(col => (
+                                                  <Form.Check
+                                                    type="checkbox"
+                                                    id={`comp-${col.key}`}
+                                                    label={col.label}
+                                                    checked={selectedComponentColumns.includes(col.key)}
+                                                    onChange={(e) => {
+                                                      if (e.target.checked) {
+                                                        setSelectedComponentColumns([...selectedComponentColumns, col.key]);
+                                                      } else {
+                                                        setSelectedComponentColumns(selectedComponentColumns.filter(c => c !== col.key));
+                                                      }
+                                                    }}
+                                                    className="me-3 small-fonts"
+                                                  />
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <Button
+                                              variant="outline-success"
+                                              size="sm"
                                               onClick={() => downloadExcelComponent(item.component_data, `Component_${item.bill_report_id}`)}
                                               className="me-2"
                                             >
                                               <FaFileExcel className="me-1" />Excel
                                             </Button>
-                                            <Button 
-                                              variant="outline-danger" 
-                                              size="sm" 
+                                            <Button
+                                              variant="outline-danger"
+                                              size="sm"
                                               onClick={() => downloadPdfComponent(item.component_data, `Component_${item.bill_report_id}`)}
                                             >
                                               <FaFilePdf className="me-1" />PDF

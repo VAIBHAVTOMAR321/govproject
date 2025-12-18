@@ -43,11 +43,11 @@ const LeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet }) => {
       path: "/MainDashboard",
       active: true,
     },
-    {
-      icon: <FaFilter  />,
-      label: "फिल्टर",
-      path: "/Dashboard",
-    },
+    // {
+    //   icon: <FaFilter  />,
+    //   label: "फिल्टर",
+    //   path: "/Dashboard",
+    // },
      {
       icon: <FaChartBar />,
       label: "ग्राफ / पंजीकरण",

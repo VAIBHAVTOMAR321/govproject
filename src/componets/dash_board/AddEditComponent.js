@@ -631,7 +631,7 @@ const AddEditComponent = () => {
                             <Card.Body>
                               <Card.Title className="small-fonts">{item.scheme_name}</Card.Title>
                               <Card.Text className="small-fonts text-muted">
-                                {formatDate(item.create_at)}
+                                
                               </Card.Text>
                             </Card.Body>
                           </Card>

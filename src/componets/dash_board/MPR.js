@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Form, Button, Alert, Row, Col, Card, Spinner, Badge, Pagination, Collapse } from "react-bootstrap";
+import { Container, Form, Button, Alert, Row, Col, Card, Spinner, Badge, Pagination, Collapse, ProgressBar } from "react-bootstrap";
 import Select from 'react-select';
 import axios from "axios";
 import * as XLSX from 'xlsx';
@@ -14,12 +14,105 @@ import LeftNav from "./LeftNav";
 const YEARLY_DATA_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 const MONTHLY_DATA_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/report-billing-items/";
 
+// Helper function to format numbers as currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
+// Helper to convert field key to a readable title (Hindi)
+const formatFieldTitle = (fieldKey) => {
+  const titles = {
+    center_name: 'केंद्र का नाम',
+    component: 'घटक',
+    investment_name: 'निवेश का नाम',
+    unit: 'इकाई',
+    source_of_receipt: 'रसीद का स्रोत',
+    scheme_name: 'योजना का नाम'
+  };
+  return titles[fieldKey] || fieldKey;
+};
+
+// Column mappings for main table
+const mainTableColumnMapping = {
+  sno: { header: 'क्र.सं.', accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
+  reportId: { header: 'रिपोर्ट आईडी', accessor: (item) => item.bill_report_id || '-' },
+  centerName: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
+  sourceOfReceipt: { header: 'रसीद का स्रोत', accessor: (item) => item.source_of_receipt },
+  reportDate: { header: 'रिपोर्ट तारीख', accessor: (item) => new Date(item.created_at).toLocaleDateString('hi-IN') },
+  status: { header: 'स्थिति', accessor: (item) => item.status === 'accepted' ? 'स्वीकृत' : item.status === 'cancelled' ? 'रद्द' : 'लंबित' },
+  totalItems: { header: 'कुल आइटम', accessor: (item) => item.component_data ? item.component_data.length : 0 },
+  totalAmount: { header: 'कुल राशि', accessor: (item) => item.total_amount }
+};
+
+// Column mappings for component table
+const componentColumnMapping = {
+  reportId: { 
+    header: 'रिपोर्ट आईडी', 
+    accessor: (item, index, currentPage, itemsPerPage, parentReport) => {
+      // If parentReport is provided, use its bill_report_id
+      if (parentReport) {
+        return parentReport.bill_report_id;
+      }
+      // Otherwise, try to get it from the item itself, or return a default
+      return item.bill_report_id || '-';
+    }
+  },
+  component: { header: 'घटक', accessor: (item) => item.component },
+  investment_name: { header: 'निवेश का नाम', accessor: (item) => item.investment_name },
+  unit: { header: 'इकाई', accessor: (item) => item.unit },
+  allocated_quantity: { header: 'आवंटित मात्रा', accessor: (item) => item.allocated_quantity },
+  updated_quantity: { header: 'अपडेट की गई मात्रा', accessor: (item) => item.updated_quantity || '-' },
+  rate: { header: 'दर', accessor: (item) => `₹${item.rate}` },
+  buyAmount: { header: 'खरीद राशि', accessor: (item) => `₹${item.buy_amount}` },
+  soldAmount: { header: 'बेची गई राशि', accessor: (item) => `₹${item.sold_amount}` },
+  scheme_name: { header: 'योजना का नाम', accessor: (item) => item.scheme_name },
+  total_amount: { header: 'कुल राशि', accessor: (item) => `₹${item.total_amount?.toFixed(2) || '0.00'}` }
+};
+
+// Available columns for main table download
+const availableColumns = [
+  { key: 'sno', label: 'क्र.सं.' },
+  { key: 'reportId', label: 'रिपोर्ट आईडी' },
+  { key: 'centerName', label: 'केंद्र का नाम' },
+  { key: 'sourceOfReceipt', label: 'रसीद का स्रोत' },
+  { key: 'reportDate', label: 'रिपोर्ट तारीख' },
+  { key: 'status', label: 'स्थिति' },
+  { key: 'totalItems', label: 'कुल आइटम' },
+  { key: 'totalAmount', label: 'कुल राशि' }
+];
+
+// Available columns for component tables
+const availableComponentColumns = [
+  { key: 'reportId', label: 'रिपोर्ट आईडी' },
+  { key: 'component', label: 'घटक' },
+  { key: 'investment_name', label: 'निवेश का नाम' },
+  { key: 'unit', label: 'इकाई' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'updated_quantity', label: 'अपडेट की गई मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'buyAmount', label: 'खरीद राशि' },
+  { key: 'soldAmount', label: 'बेची गई राशि' },
+  { key: 'scheme_name', label: 'योजना का नाम' },
+  { key: 'total_amount', label: 'कुल राशि' }
+];
+
 // Hindi translations
 const translations = {
   pageTitle: "मासिक प्रगति रिपोर्ट (MPR)",
   filters: "फिल्टर",
+  clearAllFilters: "सभी फिल्टर हटाएं",
   centerName: "केंद्र का नाम",
   sourceOfReceipt: "रसीद का स्रोत",
+  component: "घटक",
+  investmentName: "निवेश का नाम",
+  schemeName: "योजना का नाम",
+  fromDate: "आरंभ तिथि",
+  toDate: "अंतिम तिथि",
+  selectedDates: "चयनित तिथियां (कॉमा से अलग) YYYY-DD-MM",
   month: "महीना",
   year: "वर्ष",
   viewReport: "रिपोर्ट देखें",
@@ -39,6 +132,7 @@ const translations = {
   totalAmount: "कुल राशि",
   monthlyProgress: "मासिक प्रगति",
   yearlyProgress: "वार्षिक प्रगति",
+  monthlyProgressReport: "मासिक प्रगति रिपोर्ट",
   comparison: "तुलना",
   acceptReport: "रिपोर्ट स्वीकार करें",
   rejectReport: "रिपोर्ट अस्वीकार करें",
@@ -57,6 +151,18 @@ const translations = {
   itemsPerPage: "प्रति पृष्ठ आइटम:",
   error: "त्रुटि",
   fetchError: "डेटा लाने में विफल। कृपया बाद में पुन: प्रयास करें।",
+  networkError: "नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।",
+  serverError: "सर्वर त्रुटि। कृपया बाद में पुन: प्रयास करें।",
+  dataError: "डेटा प्रोसेस करने में त्रुटि।",
+  retry: "पुनः प्रयास करें",
+  filterSeparator: " > ",
+  billId: "बिल आईडी",
+  updatedQuantity: "अपडेट की गई मात्रा",
+  cutQuantity: "कटी हुई मात्रा",
+  quantityLeft: "शेष मात्रा",
+  submitUpdates: "अपडेट सबमिट करें",
+  billing: "बिलिंग",
+  billingDataUpdated: "बिलिंग डेटा सफलतापूर्वक अपडेट किया गया!",
   statusUpdateSuccess: "रिपोर्ट स्थिति सफलतापूर्वक अपडेट की गई।",
   statusUpdateError: "रिपोर्ट स्थिति अपडेट करने में त्रुटि। कृपया बाद में पुन: प्रयास करें।",
   confirmAccept: "क्या आप वाकई इस रिपोर्ट को स्वीकार करना चाहते हैं?",
@@ -68,7 +174,19 @@ const translations = {
   viewDetails: "विवरण देखें",
   viewReceipt: "रसीद देखें",
   schemeName: "योजना का नाम",
-  totalItems: "कुल आइटम"
+  totalItems: "कुल आइटम",
+  reportDate: "रिपोर्ट तारीख",
+  expand: "विस्तार",
+  collapse: "संक्षिप्त",
+  progress: "प्रगति",
+  allocated: "आवंटित",
+  updated: "अपडेट",
+  originalAllocation: "मूल आवंटन (वार्षिक)",
+  updatedAllocation: "अपडेट आवंटन (वार्षिक)",
+  soldAmountMonthly: "बेची गई राशि (मासिक)",
+  selectColumns: "कॉलम चुनें",
+  selectAll: "सभी चुनें",
+  deselectAll: "सभी हटाएं"
 };
 
 // Month options for dropdown
@@ -86,6 +204,9 @@ const monthOptions = [
   { value: 11, label: "नवंबर" },
   { value: 12, label: "दिसंबर" }
 ];
+
+// Year options for dropdown
+const yearOptions = Array.from({ length: 11 }, (_, i) => ({ value: 2020 + i, label: (2020 + i).toString() }));
 
 // Custom styles for react-select components
 const customSelectStyles = {
@@ -118,6 +239,58 @@ const customSelectStyles = {
   }),
 };
 
+// Reusable Column Selection Component
+const ColumnSelection = ({ columns, selectedColumns, setSelectedColumns, title }) => {
+  const handleColumnToggle = (columnKey) => {
+    if (selectedColumns.includes(columnKey)) {
+      setSelectedColumns(selectedColumns.filter(col => col !== columnKey));
+    } else {
+      setSelectedColumns([...selectedColumns, columnKey]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedColumns(columns.map(col => col.key));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedColumns([]);
+  };
+
+  return (
+    <div className="column-selection mb-3 p-3 border rounded bg-light">
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h6 className="small-fonts mb-0">{title}</h6>
+        <div>
+          <Button variant="outline-secondary" size="sm" onClick={handleSelectAll} className="me-2">
+            {translations.selectAll}
+          </Button>
+          <Button variant="outline-secondary" size="sm" onClick={handleDeselectAll}>
+            {translations.deselectAll}
+          </Button>
+        </div>
+      </div>
+      <Row>
+        <Col>
+          <div className="d-flex flex-wrap">
+            {columns.map(col => (
+              <Form.Check
+                key={col.key}
+                type="checkbox"
+                id={`col-${col.key}`}
+                checked={selectedColumns.includes(col.key)}
+                onChange={() => handleColumnToggle(col.key)}
+                className="me-3 mb-2"
+                label={<span className="small-fonts">{col.label}</span>}
+              />
+            ))}
+          </div>
+        </Col>
+      </Row>
+    </div>
+  );
+};
+
 const MPR = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -125,11 +298,20 @@ const MPR = () => {
   
   // State for filters
   const [filters, setFilters] = useState({
-    center_name: null,
-    source_of_receipt: null,
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear()
+    center_name: [],
+    source_of_receipt: [],
+    component: [],
+    investment_name: [],
+    scheme_name: [],
+    from_date: '',
+    to_date: '',
+    selected_dates: '',
+    month: null,
+    year: null
   });
+  
+  // Local state for selected_dates input to prevent auto-fetch on every keystroke
+  const [selectedDatesInput, setSelectedDatesInput] = useState('');
   
   // State for data
   const [yearlyData, setYearlyData] = useState([]);
@@ -151,6 +333,12 @@ const MPR = () => {
   
   // State for tracking which reports are expanded
   const [expandedReports, setExpandedReports] = useState({});
+
+  // State for selected columns for main table
+  const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
+
+  // State for selected columns for component tables
+  const [selectedComponentColumns, setSelectedComponentColumns] = useState(availableComponentColumns.map(col => col.key));
 
   // Check device width
   useEffect(() => {
@@ -176,20 +364,49 @@ const MPR = () => {
   const fetchData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Fetch yearly data
       const yearlyResponse = await axios.get(YEARLY_DATA_URL);
-      let filteredYearlyData = yearlyResponse.data;
-      
+      let filteredYearlyData = filters.year ? yearlyResponse.data.filter(item => new Date(item.created_at).getFullYear() === filters.year) : yearlyResponse.data;
+
       // Apply filters to yearly data
-      if (filters.center_name) {
-        filteredYearlyData = filteredYearlyData.filter(item => item.center_name === filters.center_name.value);
+      if (filters.center_name && filters.center_name.length > 0) {
+        const selectedCenters = filters.center_name.map(c => c.value);
+        filteredYearlyData = filteredYearlyData.filter(item => selectedCenters.includes(item.center_name));
       }
-      if (filters.source_of_receipt) {
-        filteredYearlyData = filteredYearlyData.filter(item => item.source_of_receipt === filters.source_of_receipt.value);
+      if (filters.source_of_receipt && filters.source_of_receipt.length > 0) {
+        const selectedSources = filters.source_of_receipt.map(s => s.value);
+        filteredYearlyData = filteredYearlyData.filter(item => selectedSources.includes(item.source_of_receipt));
       }
-      
+      if (filters.component && filters.component.length > 0) {
+        const selectedComponents = filters.component.map(c => c.value);
+        filteredYearlyData = filteredYearlyData.filter(item => selectedComponents.includes(item.component));
+      }
+      if (filters.investment_name && filters.investment_name.length > 0) {
+        const selectedInvestments = filters.investment_name.map(i => i.value);
+        filteredYearlyData = filteredYearlyData.filter(item => selectedInvestments.includes(item.investment_name));
+      }
+      if (filters.scheme_name && filters.scheme_name.length > 0) {
+        const selectedSchemes = filters.scheme_name.map(s => s.value);
+        filteredYearlyData = filteredYearlyData.filter(item => selectedSchemes.includes(item.scheme_name));
+      }
+      if (filters.from_date && filters.to_date) {
+        const fromDate = new Date(filters.from_date);
+        const toDate = new Date(filters.to_date);
+        filteredYearlyData = filteredYearlyData.filter(item => {
+          const itemDate = new Date(item.created_at);
+          return itemDate >= fromDate && itemDate <= toDate;
+        });
+      }
+      if (filters.selected_dates) {
+        const selectedDates = filters.selected_dates.split(',').map(d => d.trim());
+        filteredYearlyData = filteredYearlyData.filter(item => {
+          const itemDateStr = new Date(item.created_at).toISOString().split('T')[0];
+          return selectedDates.includes(itemDateStr);
+        });
+      }
+
       // Calculate total amount for each item
       filteredYearlyData = filteredYearlyData.map(item => ({
         ...item,
@@ -199,38 +416,84 @@ const MPR = () => {
       setYearlyData(filteredYearlyData);
       
       // Fetch monthly data
-      let monthlyUrl = `${MONTHLY_DATA_URL}?year=${filters.year}&month=${filters.month}`;
-      
-      // Add center_id or user_id filter if selected
-      if (filters.center_name) {
+      let monthlyUrl = MONTHLY_DATA_URL;
+      if (filters.year) {
+        monthlyUrl += `?year=${filters.year}`;
+        if (filters.month) {
+          monthlyUrl += `&month=${filters.month}`;
+        }
+      } else if (filters.month) {
+        monthlyUrl += `?month=${filters.month}`;
+      }
+
+      // Add center_id filter if single center selected
+      if (filters.center_name && filters.center_name.length === 1) {
         // Find center_id from yearly data
-        const center = filteredYearlyData.find(item => item.center_name === filters.center_name.value);
+        const center = filteredYearlyData.find(item => item.center_name === filters.center_name[0].value);
         if (center) {
           monthlyUrl += `&center_id=${center.center_id}`;
         }
       }
-      
+
       const monthlyResponse = await axios.get(monthlyUrl);
       let filteredMonthlyData = monthlyResponse.data;
-      
-      // Apply filters to monthly data if not already applied via API
-      if (filters.source_of_receipt && !filters.center_name) {
-        filteredMonthlyData = filteredMonthlyData.filter(item => item.source_of_receipt === filters.source_of_receipt.value);
+
+      // Apply additional filters to monthly data
+      if (filters.center_name && filters.center_name.length > 1) {
+        const selectedCenters = filters.center_name.map(c => c.value);
+        filteredMonthlyData = filteredMonthlyData.filter(item => selectedCenters.includes(item.center_name));
+      }
+      if (filters.source_of_receipt && filters.source_of_receipt.length > 0) {
+        const selectedSources = filters.source_of_receipt.map(s => s.value);
+        filteredMonthlyData = filteredMonthlyData.filter(item => selectedSources.includes(item.source_of_receipt));
+      }
+      if (filters.component && filters.component.length > 0) {
+        const selectedComponents = filters.component.map(c => c.value);
+        filteredMonthlyData = filteredMonthlyData.filter(item =>
+          item.component_data && item.component_data.some(comp => selectedComponents.includes(comp.component))
+        );
+      }
+      if (filters.investment_name && filters.investment_name.length > 0) {
+        const selectedInvestments = filters.investment_name.map(i => i.value);
+        filteredMonthlyData = filteredMonthlyData.filter(item =>
+          item.component_data && item.component_data.some(comp => selectedInvestments.includes(comp.investment_name))
+        );
+      }
+      if (filters.scheme_name && filters.scheme_name.length > 0) {
+        const selectedSchemes = filters.scheme_name.map(s => s.value);
+        filteredMonthlyData = filteredMonthlyData.filter(item =>
+          item.component_data && item.component_data.some(comp => selectedSchemes.includes(comp.scheme_name))
+        );
+      }
+      if (filters.from_date && filters.to_date) {
+        const fromDate = new Date(filters.from_date);
+        const toDate = new Date(filters.to_date);
+        filteredMonthlyData = filteredMonthlyData.filter(item => {
+          const itemDate = new Date(item.created_at);
+          return itemDate >= fromDate && itemDate <= toDate;
+        });
+      }
+      if (filters.selected_dates) {
+        const selectedDates = filters.selected_dates.split(',').map(d => d.trim());
+        filteredMonthlyData = filteredMonthlyData.filter(item => {
+          const itemDateStr = new Date(item.created_at).toISOString().split('T')[0];
+          return selectedDates.includes(itemDateStr);
+        });
       }
       
       // Calculate total amount for each report and component
       filteredMonthlyData = filteredMonthlyData.map(report => {
-        const componentData = report.component_data.map(component => ({
+        const componentData = report.component_data ? report.component_data.map(component => ({
           ...component,
-          total_amount: parseFloat(component.allocated_quantity) * parseFloat(component.rate)
-        }));
-        
+          total_amount: parseFloat(component.sold_amount) || (parseFloat(component.updated_quantity) * parseFloat(component.rate))
+        })) : [];
+
         const reportTotal = componentData.reduce((sum, component) => sum + component.total_amount, 0);
-        
+
         return {
           ...report,
           component_data: componentData,
-          total_amount: reportTotal
+          total_amount: report.status === 'cancelled' ? 0 : reportTotal
         };
       });
       
@@ -253,63 +516,203 @@ const MPR = () => {
   // Clear all filters
   const clearFilters = () => {
     setFilters({
-      center_name: null,
-      source_of_receipt: null,
-      month: new Date().getMonth() + 1,
-      year: new Date().getFullYear()
+      center_name: [],
+      source_of_receipt: [],
+      component: [],
+      investment_name: [],
+      scheme_name: [],
+      from_date: '',
+      to_date: '',
+      selected_dates: '',
+      month: null,
+      year: null
     });
+    setSelectedDatesInput('');
   };
   
-  // Convert table data to Excel format and download
-  const downloadExcel = (data, filename) => {
+  // Calculate totals for main table
+  const calculateMainTableTotals = (data) => {
+    return data.reduce((acc, item) => {
+      acc.allocated += parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0);
+      acc.updated += parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0);
+      acc.allocatedQuantity += parseFloat(item.allocated_quantity || 0);
+      acc.updatedQuantity += parseFloat(item.updated_quantity || 0);
+      return acc;
+    }, { allocated: 0, updated: 0, allocatedQuantity: 0, updatedQuantity: 0 });
+  };
+  
+  // Generic download Excel function that works with any table
+  const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = null) => {
     try {
-      const excelData = data.map(item => ({
-        [translations.reportId]: item.id,
-        [translations.centerName]: item.center_name,
-        [translations.sourceOfReceipt]: item.source_of_receipt,
-        [translations.totalItems]: item.component_data ? item.component_data.length : 0,
-        [translations.totalAmount]: item.total_amount
-      }));
+      // If totals is not provided, calculate it from data
+      if (!totals) {
+        totals = calculateMainTableTotals(data);
+      }
+      
+      // Prepare data for Excel export based on selected columns
+      const excelData = data.map((item, index) => {
+        const row = {};
+        selectedColumns.forEach(col => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(item, index, currentPage, itemsPerPage);
+        });
+        return row;
+      });
+      
+      // Add totals row
+      const totalsRow = {};
+      selectedColumns.forEach(col => {
+        if (col === 'sno') {
+          totalsRow[columnMapping[col].header] = "कुल";
+        } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
+                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name' || 
+                     col === 'reportDate' || col === 'status' || col === 'totalItems') {
+          totalsRow[columnMapping[col].header] = "";
+        } else if (col === 'rate') {
+          totalsRow[columnMapping[col].header] = "-";
+        } else if (col === 'allocated_quantity') {
+          totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
+        } else if (col === 'allocated_amount') {
+          totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
+        } else if (col === 'updated_quantity') {
+          totalsRow[columnMapping[col].header] = totals.updatedQuantity.toFixed(2);
+        } else if (col === 'updated_amount') {
+          totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
+        } else if (col === 'totalAmount') {
+          totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
+        }
+      });
+      
+      excelData.push(totalsRow);
       
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(wb, ws, "MPR");
+      
+      // Set column widths
+      const colWidths = selectedColumns.map(() => ({ wch: 15 }));
+      ws['!cols'] = colWidths;
+      
+      // Style the totals row
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const totalsRowNum = range.e.r; // Last row
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
+        if (!ws[cellAddress]) continue;
+        ws[cellAddress].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "FFFFAA00" } }
+        };
+      }
+      
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
       XLSX.writeFile(wb, `${filename}.xlsx`);
     } catch (e) {
+      console.error("Error generating Excel file:", e);
+      setError("Excel file generation failed. Please try again.");
     }
   };
   
-  // Convert table data to PDF format and download
-  const downloadPdf = (data, filename) => {
+  // Generic download PDF function that works with any table
+  const downloadPdf = (data, filename, columnMapping, selectedColumns, title, totals = null) => {
     try {
+      // If totals is not provided, calculate it from data
+      if (!totals) {
+        totals = calculateMainTableTotals(data);
+      }
+      
+      // Create headers and rows based on selected columns
+      const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
+      const rows = data.map((item, index) => {
+        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(item, index, currentPage, itemsPerPage)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      
+      // Create totals row
+      let totalsRow = '';
+      if (totals) {
+        const totalsCells = selectedColumns.map(col => {
+          if (col === 'sno') {
+            return `<td>कुल</td>`;
+          } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
+                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name' || 
+                     col === 'reportDate' || col === 'status' || col === 'totalItems') {
+            return `<td></td>`;
+          } else if (col === 'rate') {
+            return `<td>-</td>`;
+          } else if (col === 'allocated_quantity') {
+            return `<td>${totals.allocatedQuantity.toFixed(2)}</td>`;
+          } else if (col === 'allocated_amount') {
+            return `<td>${formatCurrency(totals.allocated)}</td>`;
+          } else if (col === 'updated_quantity') {
+            return `<td>${totals.updatedQuantity.toFixed(2)}</td>`;
+          } else if (col === 'updated_amount') {
+            return `<td>${formatCurrency(totals.updated)}</td>`;
+          } else if (col === 'totalAmount') {
+            return `<td>${formatCurrency(totals.updated)}</td>`;
+          }
+          return `<td></td>`;
+        }).join('');
+        
+        totalsRow = `<tr class="totals-row">${totalsCells}</tr>`;
+      }
+
       const tableHtml = `
         <html>
           <head>
+            <title>${title}</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; font-weight: bold; }
+              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
+              
+              body { 
+                font-family: 'Noto Sans', Arial, sans-serif; 
+                margin: 20px; 
+                direction: ltr;
+              }
+              h1 { 
+                text-align: center; 
+                font-size: 24px;
+                margin-bottom: 30px;
+                font-weight: bold;
+              }
+              p { text-align: center; font-weight: bold; }
+              table { 
+                border-collapse: collapse; 
+                width: 100%; 
+                margin-top: 20px; 
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+                font-size: 14px;
+              }
+              th { 
+                background-color: #f2f2f2; 
+                font-weight: bold; 
+              }
+              .totals-row { 
+                background-color: #f2f2f2; 
+                font-weight: bold;
+              }
+              @media print {
+                .no-print { display: none; }
+                body { margin: 0; }
+                h1 { font-size: 20px; }
+                th, td { font-size: 12px; }
+              }
             </style>
           </head>
           <body>
-            <h2>${translations.monthlyProgressReport}</h2>
+            <h1>${title}</h1>
             <table>
-              <tr>
-                <th>${translations.reportId}</th>
-                <th>${translations.centerName}</th>
-                <th>${translations.sourceOfReceipt}</th>
-                <th>${translations.totalItems}</th>
-                <th>${translations.totalAmount}</th>
-              </tr>
-              ${data.map(item => `
-                <tr>
-                  <td>${item.id}</td>
-                  <td>${item.center_name}</td>
-                  <td>${item.source_of_receipt}</td>
-                  <td>${item.component_data ? item.component_data.length : 0}</td>
-                  <td>${item.total_amount}</td>
-                </tr>
-              `).join('')}
+              <thead>
+                <tr>${headers}</tr>
+              </thead>
+              <tbody>
+                ${rows}
+                ${totalsRow}
+              </tbody>
             </table>
           </body>
         </html>
@@ -318,11 +721,17 @@ const MPR = () => {
       const printWindow = window.open('', '_blank');
       printWindow.document.write(tableHtml);
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+      
+      // Wait for content to load before printing
+      printWindow.onload = function() {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 1000);
+      };
     } catch (e) {
+      console.error("Error generating PDF:", e);
+      setError("PDF generation failed. Please try again.");
     }
   };
   
@@ -331,18 +740,22 @@ const MPR = () => {
     if (!yearlyData || yearlyData.length === 0) {
       return {
         center_name: [],
-        source_of_receipt: []
+        source_of_receipt: [],
+        component: [],
+        investment_name: [],
+        scheme_name: []
       };
     }
 
     return {
       center_name: [...new Set(yearlyData.map(item => item.center_name))].map(name => ({ value: name, label: name })),
-      source_of_receipt: filters.center_name 
-        ? [...new Set(yearlyData.filter(item => item.center_name === filters.center_name.value)
-            .map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))
-        : [...new Set(yearlyData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))
+      source_of_receipt: [...new Set(yearlyData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name })),
+      component: [...new Set(yearlyData.map(item => item.component))].map(name => ({ value: name, label: name })),
+      investment_name: [...new Set(yearlyData.map(item => item.investment_name))].map(name => ({ value: name, label: name })),
+      scheme_name: [...new Set(yearlyData.map(item => item.scheme_name))].map(name => ({ value: name, label: name })),
+      dates: [...new Set(yearlyData.map(item => new Date(item.created_at).toISOString().split('T')[0]))].sort().map(date => ({ value: date, label: date }))
     };
-  }, [yearlyData, filters]);
+  }, [yearlyData]);
   
   // Calculate paginated data
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -411,6 +824,11 @@ const MPR = () => {
   const monthlyTotal = monthlyData.reduce((sum, item) => sum + item.total_amount, 0);
   const progressPercentage = yearlyTotal > 0 ? (monthlyTotal / yearlyTotal * 100).toFixed(2) : 0;
   
+  // Calculate comparison totals
+  const allocatedTotal = yearlyTotal; // allocated * rate
+  const updatedTotal = yearlyData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || item.allocated_quantity) * parseFloat(item.rate)), 0);
+  const soldTotal = monthlyTotal;
+  
   // Toggle report details
   const toggleReportDetails = (reportId) => {
     setExpandedReports(prev => ({
@@ -435,7 +853,7 @@ const MPR = () => {
       // Use PUT method to update status
       await axios.put(YEARLY_DATA_URL, payload);
       
-      // Update local state to reflect the status change
+      // Update local state to reflect status change
       setMonthlyData(prevData => 
         prevData.map(item => 
           item.id === reportToUpdate.id ? { ...item, status: updateAction } : item
@@ -478,26 +896,26 @@ const MPR = () => {
   // Render loading state
   if (loading && yearlyData.length === 0 && monthlyData.length === 0) {
     return (
-        <div className="dashboard-container">
-            <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
-            <div className="main-content d-flex justify-content-center align-items-center">
-                <Spinner animation="border" />
-            </div>
+      <div className="dashboard-container">
+        <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
+        <div className="main-content d-flex justify-content-center align-items-center">
+          <Spinner animation="border" />
         </div>
+      </div>
     );
   }
 
   // Render error state
   if (error && yearlyData.length === 0 && monthlyData.length === 0) {
     return (
-        <div className="dashboard-container">
-            <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
-            <div className="main-content">
-                <Container fluid className="dashboard-body">
-                    <Alert variant="danger">{translations.error}: {error}</Alert>
-                </Container>
-            </div>
+      <div className="dashboard-container">
+        <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
+        <div className="main-content">
+          <Container fluid className="dashboard-body">
+            <Alert variant="danger">{translations.error}: {error}</Alert>
+          </Container>
         </div>
+      </div>
     );
   }
 
@@ -541,6 +959,7 @@ const MPR = () => {
                       value={filters.center_name}
                       onChange={(value) => handleFilterChange('center_name', value)}
                       options={filterOptions.center_name}
+                      isMulti
                       isClearable
                       placeholder={translations.allCenters}
                       styles={customSelectStyles}
@@ -550,7 +969,7 @@ const MPR = () => {
                     />
                   </Form.Group>
                 </Col>
-                
+
                 <Col md={3} className="mb-3">
                   <Form.Group>
                     <Form.Label className="small-fonts">{translations.sourceOfReceipt}</Form.Label>
@@ -558,17 +977,113 @@ const MPR = () => {
                       value={filters.source_of_receipt}
                       onChange={(value) => handleFilterChange('source_of_receipt', value)}
                       options={filterOptions.source_of_receipt}
+                      isMulti
                       isClearable
-                      placeholder={filters.center_name ? translations.allSources : translations.selectCenterFirst}
+                      placeholder={translations.allSources}
                       styles={customSelectStyles}
                       className="small-fonts filter-dropdown"
-                      isDisabled={!filters.center_name}
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
-                
+
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label className="small-fonts">{translations.component}</Form.Label>
+                    <Select
+                      value={filters.component}
+                      onChange={(value) => handleFilterChange('component', value)}
+                      options={filterOptions.component}
+                      isMulti
+                      isClearable
+                      placeholder="सभी घटक"
+                      styles={customSelectStyles}
+                      className="small-fonts filter-dropdown"
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label className="small-fonts">{translations.investmentName}</Form.Label>
+                    <Select
+                      value={filters.investment_name}
+                      onChange={(value) => handleFilterChange('investment_name', value)}
+                      options={filterOptions.investment_name}
+                      isMulti
+                      isClearable
+                      placeholder="सभी निवेश"
+                      styles={customSelectStyles}
+                      className="small-fonts filter-dropdown"
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label className="small-fonts">{translations.schemeName}</Form.Label>
+                    <Select
+                      value={filters.scheme_name}
+                      onChange={(value) => handleFilterChange('scheme_name', value)}
+                      options={filterOptions.scheme_name}
+                      isMulti
+                      isClearable
+                      placeholder="सभी योजनाएं"
+                      styles={customSelectStyles}
+                      className="small-fonts filter-dropdown"
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label className="small-fonts">{translations.fromDate}</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={filters.from_date}
+                      onChange={(e) => handleFilterChange('from_date', e.target.value)}
+                      className="small-fonts"
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label className="small-fonts">{translations.toDate}</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={filters.to_date}
+                      onChange={(e) => handleFilterChange('to_date', e.target.value)}
+                      className="small-fonts"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label className="small-fonts">{translations.selectedDates}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={selectedDatesInput}
+                      onChange={(e) => setSelectedDatesInput(e.target.value)}
+                      onBlur={() => setFilters(prev => ({ ...prev, selected_dates: selectedDatesInput }))}
+                      placeholder="2025-01-01,2025-01-02"
+                      className="small-fonts"
+                    />
+                  </Form.Group>
+                </Col>
+
                 <Col md={3} className="mb-3">
                   <Form.Group>
                     <Form.Label className="small-fonts">{translations.month}</Form.Label>
@@ -583,17 +1098,18 @@ const MPR = () => {
                     />
                   </Form.Group>
                 </Col>
-                
+
                 <Col md={3} className="mb-3">
                   <Form.Group>
                     <Form.Label className="small-fonts">{translations.year}</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      value={filters.year}
-                      onChange={(e) => handleFilterChange('year', parseInt(e.target.value))}
-                      min="2020"
-                      max="2030"
-                      className="small-fonts"
+                    <Select
+                      value={yearOptions.find(option => option.value === filters.year)}
+                      onChange={(value) => handleFilterChange('year', value ? value.value : null)}
+                      options={yearOptions}
+                      styles={customSelectStyles}
+                      className="small-fonts filter-dropdown"
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
@@ -641,10 +1157,43 @@ const MPR = () => {
                 </Card>
               </Col>
             </Row>
+
+            {/* Comparison Table */}
+            <Card className="mb-4">
+              <Card.Header>
+                <h5 className="mb-0 small-fonts">{translations.comparison}</h5>
+              </Card.Header>
+              <Card.Body>
+                <table className="table table-bordered small-fonts">
+                  <thead>
+                    <tr>
+                      <th>{translations.component}</th>
+                      <th>{translations.totalAmount}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{translations.originalAllocation}</td>
+                      <td>₹{allocatedTotal.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td>{translations.updatedAllocation}</td>
+                      <td>₹{updatedTotal.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td>{translations.soldAmountMonthly}</td>
+                      <td>₹{soldTotal.toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </Card.Body>
+            </Card>
             
-            {/* Monthly Report Table - Using AllBills table structure */}
+            {/* Monthly Report Table */}
             <Card className="p-3">
-              <h2 className="section-title small-fonts mb-3">{translations.monthlyProgress} - {monthOptions.find(m => m.value === filters.month)?.label} {filters.year}</h2>
+              <h2 className="section-title small-fonts mb-3">
+                {translations.monthlyProgress}{filters.year ? (filters.month ? ` - ${monthOptions.find(m => m.value === filters.month)?.label} ${filters.year}` : ` - ${filters.year}`) : (filters.month ? ` - ${monthOptions.find(m => m.value === filters.month)?.label}` : '')}
+              </h2>
               
               {monthlyData.length > 0 ? (
                 <>
@@ -657,58 +1206,71 @@ const MPR = () => {
                       <span className="badge bg-primary">{itemsPerPage}</span>
                     </div>
                   </div>
+                  
+                  {/* Column Selection Section for Main Table */}
+                  <ColumnSelection
+                    columns={availableColumns}
+                    selectedColumns={selectedColumns}
+                    setSelectedColumns={setSelectedColumns}
+                    title={translations.selectColumns}
+                  />
+                  
                   <div className="d-flex justify-content-end mb-2">
-                    <Button 
-                      variant="outline-success" 
-                      size="sm" 
-                      onClick={() => downloadExcel(monthlyData, `MPR_${filters.month}_${filters.year}`)}
+                    <Button
+                      variant="outline-success"
+                      size="sm"
+                      onClick={() => downloadExcel(monthlyData, `MPR_${filters.month || 'All'}_${filters.year || 'All'}_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, selectedColumns)}
                       className="me-2"
                     >
                       <FaFileExcel className="me-1" />Excel
                     </Button>
-                    <Button 
-                      variant="outline-danger" 
-                      size="sm" 
-                      onClick={() => downloadPdf(monthlyData, `MPR_${filters.month}_${filters.year}`)}
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => downloadPdf(monthlyData, `MPR_${filters.month || 'All'}_${filters.year || 'All'}_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, selectedColumns, "मासिक प्रगति रिपोर्ट")}
                     >
                       <FaFilePdf className="me-1" />PDF
                     </Button>
                   </div>
+                  
                   <div className="table-wrapper">
                     <table className="responsive-table small-fonts">
                       <thead>
                         <tr>
-                          <th>{translations.sno}</th>
-                          <th>{translations.reportId}</th>
-                          <th>{translations.centerName}</th>
-                          <th>{translations.sourceOfReceipt}</th>
-                          <th>{translations.reportDate}</th>
-                          <th>{translations.status}</th>
-                          <th>{translations.totalItems}</th>
+                          {selectedColumns.includes('sno') && <th>{translations.sno}</th>}
+                          {selectedColumns.includes('reportId') && <th>{translations.reportId}</th>}
+                          {selectedColumns.includes('centerName') && <th>{translations.centerName}</th>}
+                          {selectedColumns.includes('sourceOfReceipt') && <th>{translations.sourceOfReceipt}</th>}
+                          {selectedColumns.includes('reportDate') && <th>{translations.reportDate}</th>}
+                          {selectedColumns.includes('status') && <th>{translations.status}</th>}
+                          {selectedColumns.includes('totalItems') && <th>{translations.totalItems}</th>}
                           <th>{translations.viewDetails}</th>
                           <th>{translations.viewReceipt}</th>
-                          <th>क्रियाएं</th>
                         </tr>
                       </thead>
                       <tbody>
                         {paginatedData.map((item, index) => (
                           <React.Fragment key={item.id}>
                             <tr>
-                              <td data-label={translations.sno}>{indexOfFirstItem + index + 1}</td>
-                              <td data-label={translations.reportId}>{item.bill_report_id || '-'}</td>
-                              <td data-label={translations.centerName}>{item.center_name}</td>
-                              <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>
-                              <td data-label={translations.reportDate}>{new Date(item.created_at).toLocaleDateString('hi-IN')}</td>
-                              <td data-label={translations.status}>
-                                <Badge bg={getStatusBadgeVariant(item.status)}>
-                                  {item.status === 'accepted' ? translations.accepted : 
-                                   item.status === 'cancelled' ? translations.cancelled : 
-                                   translations.pending}
-                                </Badge>
-                              </td>
-                              <td data-label={translations.totalItems}>
-                                <Badge bg="info">{item.component_data ? item.component_data.length : 0}</Badge>
-                              </td>
+                              {selectedColumns.includes('sno') && <td data-label={translations.sno}>{indexOfFirstItem + index + 1}</td>}
+                              {selectedColumns.includes('reportId') && <td data-label={translations.reportId}>{item.bill_report_id || '-'}</td>}
+                              {selectedColumns.includes('centerName') && <td data-label={translations.centerName}>{item.center_name}</td>}
+                              {selectedColumns.includes('sourceOfReceipt') && <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>}
+                              {selectedColumns.includes('reportDate') && <td data-label={translations.reportDate}>{new Date(item.created_at).toLocaleDateString('hi-IN')}</td>}
+                              {selectedColumns.includes('status') && (
+                                <td data-label={translations.status}>
+                                  <Badge bg={getStatusBadgeVariant(item.status)}>
+                                    {item.status === 'accepted' ? translations.accepted : 
+                                     item.status === 'cancelled' ? translations.cancelled : 
+                                     translations.pending}
+                                  </Badge>
+                                </td>
+                              )}
+                              {selectedColumns.includes('totalItems') && (
+                                <td data-label={translations.totalItems}>
+                                  <Badge bg="info">{item.component_data ? item.component_data.length : 0}</Badge>
+                                </td>
+                              )}
                               <td data-label={translations.viewDetails}>
                                 <Button 
                                   variant="outline-primary" 
@@ -722,9 +1284,9 @@ const MPR = () => {
                               </td>
                               <td data-label={translations.viewReceipt}>
                                 {item.recipt_file ? (
-                                  <Button 
-                                    variant="outline-success" 
-                                    size="sm" 
+                                  <Button
+                                    variant="outline-success"
+                                    size="sm"
                                     onClick={() => viewReceipt(item.recipt_file)}
                                     className="small-fonts"
                                   >
@@ -734,72 +1296,104 @@ const MPR = () => {
                                   <span>-</span>
                                 )}
                               </td>
-                              <td data-label="क्रियाएं">
-                                {item.status === 'pending' && (
-                                  <div className="d-flex gap-2">
-                                    <Button 
-                                      variant="success" 
-                                      size="sm"
-                                      onClick={() => confirmStatusUpdate(item, 'accepted')}
-                                      disabled={updatingStatus === item.id}
-                                      className="small-fonts"
-                                    >
-                                      {updatingStatus === item.id ? 
-                                        <Spinner as="span" animation="border" size="sm" /> : null}
-                                      {translations.acceptReport}
-                                    </Button>
-                                    <Button 
-                                      variant="danger" 
-                                      size="sm"
-                                      onClick={() => confirmStatusUpdate(item, 'cancelled')}
-                                      disabled={updatingStatus === item.id}
-                                      className="small-fonts"
-                                    >
-                                      {updatingStatus === item.id ? 
-                                        <Spinner as="span" animation="border" size="sm" /> : null}
-                                      {translations.rejectReport}
-                                    </Button>
-                                  </div>
-                                )}
-                              </td>
                             </tr>
                             <tr>
-                              <td colSpan="10" className="p-0">
+                              <td colSpan="9" className="p-0">
                                 <Collapse in={expandedReports[item.id]}>
                                   <div className="p-3 bg-light">
                                     <h5 className="mb-3">{translations.component}</h5>
+
+                                    {/* Column Selection for Component Table */}
+                                    <ColumnSelection
+                                      columns={availableComponentColumns}
+                                      selectedColumns={selectedComponentColumns}
+                                      setSelectedColumns={setSelectedComponentColumns}
+                                      title={`${translations.component} ${translations.selectColumns}`}
+                                    />
+
+                                    <div className="d-flex justify-content-end mb-2">
+                                      <Button
+                                        variant="outline-success"
+                                        size="sm"
+                                        onClick={() => downloadExcel(item.component_data, `Component_${item.bill_report_id}_${new Date().toISOString().slice(0, 10)}`, componentColumnMapping, selectedComponentColumns)}
+                                        className="me-2"
+                                      >
+                                        <FaFileExcel className="me-1" />Excel
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => downloadPdf(item.component_data, `Component_${item.bill_report_id}_${new Date().toISOString().slice(0, 10)}`, componentColumnMapping, selectedComponentColumns, `${translations.component} ${translations.viewDetails}`, item)}
+                                        className="me-2"
+                                      >
+                                        <FaFilePdf className="me-1" />PDF
+                                      </Button>
+                                    </div>
+
                                     {item.component_data && item.component_data.length > 0 ? (
                                       <table className="table table-sm table-bordered">
                                         <thead>
                                           <tr>
-                                            <th>{translations.reportId}</th>
-                                            <th>{translations.component}</th>
-                                            <th>{translations.investmentName}</th>
-                                            <th>{translations.unit}</th>
-                                            <th>{translations.allocatedQuantity}</th>
-                                            <th>{translations.updatedQuantity}</th>
-                                            <th>{translations.rate}</th>
-                                            <th>{translations.buyAmount}</th>
-                                            <th>{translations.soldAmount}</th>
-                                            <th>{translations.schemeName}</th>
+                                            {selectedComponentColumns.map(col => {
+                                              if (col === 'reportId') return <th key={col}>{translations.reportId}</th>;
+                                              if (col === 'component') return <th key={col}>{translations.component}</th>;
+                                              if (col === 'investment_name') return <th key={col}>{translations.investmentName}</th>;
+                                              if (col === 'unit') return <th key={col}>{translations.unit}</th>;
+                                              if (col === 'allocated_quantity') return <th key={col}>{translations.allocatedQuantity}</th>;
+                                              if (col === 'updated_quantity') return <th key={col}>{translations.updatedQuantity}</th>;
+                                              if (col === 'rate') return <th key={col}>{translations.rate}</th>;
+                                              if (col === 'buyAmount') return <th key={col}>{translations.buyAmount}</th>;
+                                              if (col === 'soldAmount') return <th key={col}>{translations.soldAmount}</th>;
+                                              if (col === 'scheme_name') return <th key={col}>{translations.schemeName}</th>;
+                                              if (col === 'total_amount') return <th key={col}>{translations.totalAmount}</th>;
+                                              return null;
+                                            })}
                                           </tr>
                                         </thead>
                                         <tbody>
                                           {item.component_data.map((component, compIndex) => (
                                             <tr key={compIndex}>
-                                              <td>{item.bill_report_id}</td>
-                                              <td>{component.component}</td>
-                                              <td>{component.investment_name}</td>
-                                              <td>{component.unit}</td>
-                                              <td>{component.allocated_quantity}</td>
-                                              <td>{component.updated_quantity || '-'}</td>
-                                              <td>₹{component.rate}</td>
-                                              <td>₹{component.buy_amount}</td>
-                                              <td>₹{component.sold_amount}</td>
-                                              <td>{component.scheme_name}</td>
+                                              {selectedComponentColumns.map(col => {
+                                                if (col === 'reportId') return <td key={col}>{item.bill_report_id}</td>;
+                                                if (col === 'component') return <td key={col}>{component.component}</td>;
+                                                if (col === 'investment_name') return <td key={col}>{component.investment_name}</td>;
+                                                if (col === 'unit') return <td key={col}>{component.unit}</td>;
+                                                if (col === 'allocated_quantity') return <td key={col}>{component.allocated_quantity}</td>;
+                                                if (col === 'updated_quantity') return <td key={col}>{component.updated_quantity || '-'}</td>;
+                                                if (col === 'rate') return <td key={col}>₹{component.rate}</td>;
+                                                if (col === 'buyAmount') return <td key={col}>₹{component.buy_amount}</td>;
+                                                if (col === 'soldAmount') return <td key={col}>₹{component.sold_amount}</td>;
+                                                if (col === 'scheme_name') return <td key={col}>{component.scheme_name}</td>;
+                                                if (col === 'total_amount') return <td key={col}>₹{component.total_amount?.toFixed(2) || '0.00'}</td>;
+                                                return null;
+                                              })}
                                             </tr>
                                           ))}
                                         </tbody>
+                                        <tfoot>
+                                          <tr className="font-weight-bold">
+                                            <td colSpan={selectedComponentColumns.filter(col => col !== 'reportId' && col !== 'component' && col !== 'investment_name' && col !== 'unit' && col !== 'allocated_quantity' && col !== 'updated_quantity' && col !== 'rate' && col !== 'buyAmount' && col !== 'soldAmount' && col !== 'scheme_name' && col !== 'total_amount').length + 4}>
+                                              {translations.total}
+                                            </td>
+                                            {selectedComponentColumns.includes('allocated_quantity') && (
+                                              <td>{item.component_data.reduce((sum, comp) => sum + parseFloat(comp.allocated_quantity || 0), 0).toFixed(2)}</td>
+                                            )}
+                                            {selectedComponentColumns.includes('updated_quantity') && (
+                                              <td>{item.component_data.reduce((sum, comp) => sum + parseFloat(comp.updated_quantity || 0), 0).toFixed(2)}</td>
+                                            )}
+                                            {selectedComponentColumns.includes('rate') && <td></td>}
+                                            {selectedComponentColumns.includes('buyAmount') && (
+                                              <td>₹{item.component_data.reduce((sum, comp) => sum + parseFloat(comp.buy_amount || 0), 0).toFixed(2)}</td>
+                                            )}
+                                            {selectedComponentColumns.includes('soldAmount') && (
+                                              <td>₹{item.component_data.reduce((sum, comp) => sum + parseFloat(comp.sold_amount || 0), 0).toFixed(2)}</td>
+                                            )}
+                                            {selectedComponentColumns.includes('total_amount') && (
+                                              <td>₹{item.component_data.reduce((sum, comp) => sum + (parseFloat(comp.total_amount) || 0), 0).toFixed(2)}</td>
+                                            )}
+                                            <td colSpan={selectedComponentColumns.includes('scheme_name') ? 0 : 1}></td>
+                                          </tr>
+                                        </tfoot>
                                       </table>
                                     ) : (
                                       <Alert variant="info">No component data available</Alert>
@@ -813,9 +1407,9 @@ const MPR = () => {
                       </tbody>
                       <tfoot>
                         <tr>
-                          <td colSpan="6" className="text-end fw-bold">{translations.total}</td>
-                          <td>₹{monthlyTotal.toFixed(2)}</td>
-                          <td colSpan="3"></td>
+                          <td colSpan={selectedColumns.filter(col => col !== 'totalAmount').length + 2} className="text-end fw-bold">{translations.total}</td>
+                          <td>{formatCurrency(calculateMainTableTotals(monthlyData).updated)}</td>
+                          <td></td>
                         </tr>
                       </tfoot>
                     </table>
