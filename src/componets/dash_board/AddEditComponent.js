@@ -70,6 +70,111 @@ const translations = {
   viewAll: "सभी देखें",
 };
 
+// Reusable Column Selection Component
+const ColumnSelection = ({ columns, selectedColumns, setSelectedColumns, title }) => {
+  const handleColumnToggle = (columnKey) => {
+    if (selectedColumns.includes(columnKey)) {
+      setSelectedColumns(selectedColumns.filter(col => col !== columnKey));
+    } else {
+      setSelectedColumns([...selectedColumns, columnKey]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedColumns(columns.map(col => col.key));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedColumns([]);
+  };
+
+  return (
+    <div className="column-selection mb-3 p-3 border rounded bg-light">
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h6 className="small-fonts mb-0">{title}</h6>
+        <div>
+          <Button variant="outline-secondary" size="sm" onClick={handleSelectAll} className="me-2">
+            सभी चुनें
+          </Button>
+          <Button variant="outline-secondary" size="sm" onClick={handleDeselectAll}>
+            सभी अचयनित करें
+          </Button>
+        </div>
+      </div>
+      <Row>
+        <Col>
+          <div className="d-flex flex-wrap">
+            {columns.map(col => (
+              <Form.Check
+                key={col.key}
+                type="checkbox"
+                id={`col-${col.key}`}
+                checked={selectedColumns.includes(col.key)}
+                onChange={() => handleColumnToggle(col.key)}
+                className="me-3 mb-2"
+                label={<span className="small-fonts">{col.label}</span>}
+              />
+            ))}
+          </div>
+        </Col>
+      </Row>
+    </div>
+  );
+};
+
+// Column definitions for expandable tables
+const componentDetailColumns = [
+  { key: 'bill_id', label: 'बिल आईडी' },
+  { key: 'center_name', label: 'केंद्र' },
+  { key: 'component', label: 'घटक' },
+  { key: 'scheme_name', label: 'योजना' },
+  { key: 'unit', label: 'इकाई' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'updated_quantity', label: 'बिकी मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'source_of_receipt', label: 'स्रोत' },
+  { key: 'allocated_value', label: 'आवंटित मूल्य' }
+];
+
+const schemeDetailColumns = [
+  { key: 'bill_id', label: 'बिल आईडी' },
+  { key: 'center_name', label: 'केंद्र' },
+  { key: 'component', label: 'घटक' },
+  { key: 'scheme_name', label: 'योजना' },
+  { key: 'investment_name', label: 'निवेश' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'updated_quantity', label: 'बिकी मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'source_of_receipt', label: 'स्रोत' },
+  { key: 'allocated_value', label: 'आवंटित मूल्य' }
+];
+
+const investmentDetailColumns = [
+  { key: 'bill_id', label: 'बिल आईडी' },
+  { key: 'center_name', label: 'केंद्र' },
+  { key: 'component', label: 'घटक' },
+  { key: 'scheme_name', label: 'योजना' },
+  { key: 'unit', label: 'इकाई' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'updated_quantity', label: 'बिकी मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'source_of_receipt', label: 'स्रोत' },
+  { key: 'allocated_value', label: 'आवंटित मूल्य' }
+];
+
+const unitDetailColumns = [
+  { key: 'bill_id', label: 'बिल आईडी' },
+  { key: 'center_name', label: 'केंद्र' },
+  { key: 'component', label: 'घटक' },
+  { key: 'scheme_name', label: 'योजना' },
+  { key: 'investment_name', label: 'निवेश' },
+  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'updated_quantity', label: 'बिकी मात्रा' },
+  { key: 'rate', label: 'दर' },
+  { key: 'source_of_receipt', label: 'स्रोत' },
+  { key: 'allocated_value', label: 'आवंटित मूल्य' }
+];
+
 const AddEditComponent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -116,6 +221,27 @@ const AddEditComponent = () => {
     "unit",
   ]);
 
+  // Billing items for showing component/scheme/investment/unit details (from billing-items API)
+  const [billingItems, setBillingItems] = useState([]);
+  const [billingItemsLoading, setBillingItemsLoading] = useState(false);
+  // Track which component names are expanded
+  const [expandedComponentsMap, setExpandedComponentsMap] = useState({});
+  // Expand maps for schemes, investments and units
+  const [expandedSchemesMap, setExpandedSchemesMap] = useState({});
+  const [expandedInvestmentsMap, setExpandedInvestmentsMap] = useState({});
+  const [expandedUnitsMap, setExpandedUnitsMap] = useState({});
+  // Search filters for expanded views
+  const [componentSearch, setComponentSearch] = useState('');
+  const [schemeSearch, setSchemeSearch] = useState('');
+  const [investmentSearch, setInvestmentSearch] = useState('');
+  const [unitSearch, setUnitSearch] = useState('');
+
+  // Column selection states for expandable tables
+  const [componentDetailSelectedColumns, setComponentDetailSelectedColumns] = useState(['bill_id', 'center_name', 'component', 'scheme_name', 'unit', 'allocated_quantity', 'updated_quantity', 'rate', 'source_of_receipt', 'allocated_value']);
+  const [schemeDetailSelectedColumns, setSchemeDetailSelectedColumns] = useState(['bill_id', 'center_name', 'component', 'scheme_name', 'investment_name', 'allocated_quantity', 'updated_quantity', 'rate', 'source_of_receipt', 'allocated_value']);
+  const [investmentDetailSelectedColumns, setInvestmentDetailSelectedColumns] = useState(['bill_id', 'center_name', 'component', 'scheme_name', 'unit', 'allocated_quantity', 'updated_quantity', 'rate', 'source_of_receipt', 'allocated_value']);
+  const [unitDetailSelectedColumns, setUnitDetailSelectedColumns] = useState(['bill_id', 'center_name', 'component', 'scheme_name', 'investment_name', 'allocated_quantity', 'updated_quantity', 'rate', 'source_of_receipt', 'allocated_value']);
+
   // State for active tab
   const [activeTab, setActiveTab] = useState("components");
 
@@ -136,6 +262,7 @@ const AddEditComponent = () => {
   useEffect(() => {
     fetchComponents();
     fetchSchemes();
+    fetchBillingItems();
   }, []);
 
   // Fetch components from API
@@ -146,7 +273,7 @@ const AddEditComponent = () => {
     try {
       const response = await axios.get(COMPONENT_API_URL);
       setComponents(response.data || []);
-      // Extract unique investments and units from components
+      // Extract unique investments and units from components (fallback)
       const uniqueInvestments = new Set();
       const uniqueUnits = new Set();
 
@@ -155,6 +282,7 @@ const AddEditComponent = () => {
         if (item.unit) uniqueUnits.add(item.unit);
       });
 
+      // Set fallback values, but billing-items will override these
       setInvestments(Array.from(uniqueInvestments));
       setUnits(Array.from(uniqueUnits));
     } catch (e) {
@@ -170,6 +298,46 @@ const AddEditComponent = () => {
       const response = await axios.get(SCHEME_API_URL);
       setSchemes(response.data || []);
     } catch (e) {}
+  };
+
+  // Fetch billing items for details
+  const fetchBillingItems = async () => {
+    setBillingItemsLoading(true);
+    try {
+      const resp = await axios.get("https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/");
+      setBillingItems(resp.data || []);
+
+      // Extract unique values from billing-items API for consistency
+      const uniqueComponents = new Set();
+      const uniqueInvestments = new Set();
+      const uniqueUnits = new Set();
+      const uniqueSchemes = new Set();
+
+      resp.data.forEach((item) => {
+        if (item.component) uniqueComponents.add(item.component);
+        if (item.investment_name) uniqueInvestments.add(item.investment_name);
+        if (item.unit) uniqueUnits.add(item.unit);
+        if (item.scheme_name) uniqueSchemes.add(item.scheme_name);
+      });
+
+      // Update states with billing-items data
+      setInvestments(Array.from(uniqueInvestments));
+      setUnits(Array.from(uniqueUnits));
+      setSchemes(Array.from(uniqueSchemes).map(name => ({ scheme_name: name })));
+    } catch (err) {
+      // ignore silently, billing details are optional
+      console.error('Failed to fetch billing-items:', err);
+    } finally {
+      setBillingItemsLoading(false);
+    }
+  };
+
+  // Format currency helper
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('hi-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(amount || 0);
   };
 
   const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), []);
@@ -318,15 +486,15 @@ const AddEditComponent = () => {
     return date.toLocaleDateString("hi-IN");
   };
 
-  // Get unique components by filtering duplicates
+  // Get unique components by filtering duplicates from billing-items
   const getUniqueComponents = () => {
     const uniqueComponents = [];
     const seen = new Set();
 
-    components.forEach((item) => {
+    billingItems.forEach((item) => {
       if (item.component && !seen.has(item.component)) {
         seen.add(item.component);
-        uniqueComponents.push(item);
+        uniqueComponents.push({ component: item.component, id: item.id });
       }
     });
 
@@ -472,6 +640,146 @@ const AddEditComponent = () => {
       };
     } catch (e) {
       setError("PDF generation failed.");
+    }
+  };
+
+  // Generic Excel/PDF helpers for export of billing details
+  const downloadDetailsExcel = (rows, filename, selectedColumns) => {
+    try {
+      // Column mapping for expandable tables
+      const columnMapping = {
+        bill_id: { header: 'Bill ID', accessor: (item) => item.bill_id },
+        center_name: { header: 'Center', accessor: (item) => item.center_name },
+        component: { header: 'Component', accessor: (item) => item.component },
+        scheme_name: { header: 'Scheme', accessor: (item) => item.scheme_name },
+        investment_name: { header: 'Investment', accessor: (item) => item.investment_name },
+        unit: { header: 'Unit', accessor: (item) => item.unit },
+        allocated_quantity: { header: 'Allocated Qty', accessor: (item) => (parseFloat(item.allocated_quantity) || 0).toFixed(2) },
+        updated_quantity: { header: 'Sold Qty', accessor: (item) => (parseFloat(item.updated_quantity) || 0).toFixed(2) },
+        rate: { header: 'Rate', accessor: (item) => (parseFloat(item.rate) || 0).toFixed(2) },
+        source_of_receipt: { header: 'Source', accessor: (item) => item.source_of_receipt },
+        allocated_value: { header: 'Allocated Value', accessor: (item) => formatCurrency((parseFloat(item.allocated_quantity) || 0) * (parseFloat(item.rate) || 0)) }
+      };
+
+      // Prepare data for Excel export based on selected columns
+      const excelData = rows.map((item) => {
+        const row = {};
+        selectedColumns.forEach(col => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(item);
+        });
+        return row;
+      });
+
+      // Add totals row if there are rows
+      if (rows.length > 0) {
+        const totals = rows.reduce((acc, r) => {
+          acc.allocated += parseFloat(r.allocated_quantity) || 0;
+          acc.sold += parseFloat(r.updated_quantity) || 0;
+          acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+          return acc;
+        }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+        const totalsRow = {};
+        selectedColumns.forEach(col => {
+          if (col === 'bill_id') {
+            totalsRow[columnMapping[col].header] = 'कुल';
+          } else if (col === 'center_name' || col === 'component' || col === 'scheme_name' || col === 'investment_name' || col === 'unit' || col === 'source_of_receipt') {
+            totalsRow[columnMapping[col].header] = '-';
+          } else if (col === 'rate') {
+            totalsRow[columnMapping[col].header] = '-';
+          } else if (col === 'allocated_quantity') {
+            totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
+          } else if (col === 'updated_quantity') {
+            totalsRow[columnMapping[col].header] = totals.sold.toFixed(2);
+          } else if (col === 'allocated_value') {
+            totalsRow[columnMapping[col].header] = formatCurrency(totals.allocatedValue);
+          }
+        });
+
+        excelData.push(totalsRow);
+      }
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Details');
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+    } catch (e) {
+      console.error('Excel export failed', e);
+    }
+  };
+
+  const downloadDetailsPdf = (rows, filename, title, selectedColumns) => {
+    try {
+      const totals = rows.reduce((acc, r) => {
+        acc.allocated += parseFloat(r.allocated_quantity) || 0;
+        acc.sold += parseFloat(r.updated_quantity) || 0;
+        acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+        return acc;
+      }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+      // Column mapping for PDF
+      const columnMapping = {
+        bill_id: { header: 'Bill ID', accessor: (item) => item.bill_id },
+        center_name: { header: 'Center', accessor: (item) => item.center_name },
+        component: { header: 'Component', accessor: (item) => item.component },
+        scheme_name: { header: 'Scheme', accessor: (item) => item.scheme_name },
+        investment_name: { header: 'Investment', accessor: (item) => item.investment_name },
+        unit: { header: 'Unit', accessor: (item) => item.unit },
+        allocated_quantity: { header: 'Allocated Qty', accessor: (item) => (parseFloat(item.allocated_quantity) || 0).toFixed(2) },
+        updated_quantity: { header: 'Sold Qty', accessor: (item) => (parseFloat(item.updated_quantity) || 0).toFixed(2) },
+        rate: { header: 'Rate', accessor: (item) => (parseFloat(item.rate) || 0).toFixed(2) },
+        source_of_receipt: { header: 'Source', accessor: (item) => item.source_of_receipt },
+        allocated_value: { header: 'Allocated Value', accessor: (item) => formatCurrency((parseFloat(item.allocated_quantity) || 0) * (parseFloat(item.rate) || 0)) }
+      };
+
+      const headers = selectedColumns.map(col => columnMapping[col].header);
+      const rowsHtml = rows.map(r => {
+        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(r)}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+
+      // Calculate colspan for totals row
+      const nonTotalCols = selectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length;
+      const totalColsSpan = nonTotalCols;
+
+      const tableHtml = `
+        <html>
+          <head>
+            <title>${title}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h2>${title}</h2>
+            <table>
+              <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+              <tbody>${rowsHtml}</tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="${totalColsSpan}">कुल</td>
+                  ${selectedColumns.includes('allocated_quantity') ? `<td>${totals.allocated.toFixed(2)}</td>` : ''}
+                  ${selectedColumns.includes('rate') ? `<td>-</td>` : ''}
+                  ${selectedColumns.includes('updated_quantity') ? `<td>${totals.sold.toFixed(2)}</td>` : ''}
+                  ${selectedColumns.includes('source_of_receipt') ? `<td>-</td>` : ''}
+                  ${selectedColumns.includes('scheme_name') ? `<td>-</td>` : ''}
+                  ${selectedColumns.includes('allocated_value') ? `<td>${formatCurrency(totals.allocatedValue)}</td>` : ''}
+                </tr>
+              </tfoot>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(tableHtml);
+      printWindow.document.close();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+    } catch (e) {
+      console.error('PDF export failed', e);
     }
   };
 
@@ -978,17 +1286,141 @@ const AddEditComponent = () => {
 
                   {displayComponents.length > 0 ? (
                     <Row className="g-3">
-                      {displayComponents.map((item, index) => (
-                        <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
-                          <Card className="component-card text-center h-100">
-                            <Card.Body>
-                              <Card.Title className="small-fonts">
-                                {item.component}
-                              </Card.Title>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
+                      {displayComponents.map((item, index) => {
+                        const componentName = item.component;
+                        const isExpanded = expandedComponentsMap[componentName];
+                        const componentDetails = billingItems.filter(b => b.component === componentName);
+                        const totals = componentDetails.reduce((acc, r) => {
+                          acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                          acc.sold += parseFloat(r.updated_quantity) || 0;
+                          acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                          return acc;
+                        }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                        return (
+                          <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
+                            <Card className={`component-card text-center h-100 ${isExpanded ? 'expanded' : ''}`}>
+                              <Card.Body
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedComponentsMap(prev => ({ ...prev, [componentName]: !prev[componentName] }))}
+                              >
+                                <Card.Title className="small-fonts">
+                                  {componentName}
+                                </Card.Title>
+                                <Card.Text className="small-fonts text-muted">
+                                  {componentDetails.length} entries • {formatCurrency(totals.allocatedValue)}
+                                </Card.Text>
+                              </Card.Body>
+                              {isExpanded && componentDetails.length > 0 && (
+                                <div className="card-expansion p-3 border-top">
+                                  <ColumnSelection
+                                    columns={componentDetailColumns}
+                                    selectedColumns={componentDetailSelectedColumns}
+                                    setSelectedColumns={setComponentDetailSelectedColumns}
+                                    title="कॉलम चुनें"
+                                  />
+                                  <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <div className="d-flex align-items-center gap-2">
+                                      <Button
+                                        variant="outline-success"
+                                        size="sm"
+                                        onClick={() => downloadDetailsExcel(componentDetails, `${componentName}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailSelectedColumns)}
+                                      >
+                                        <FaFileExcel className="me-1" />
+                                        Excel
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => downloadDetailsPdf(componentDetails, `${componentName}_Details_${new Date().toISOString().slice(0, 10)}`, `${componentName} Details`, componentDetailSelectedColumns)}
+                                      >
+                                        <FaFilePdf className="me-1" />
+                                        PDF
+                                      </Button>
+                                    </div>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Search centers, schemes..."
+                                      value={componentSearch}
+                                      onChange={(e) => setComponentSearch(e.target.value)}
+                                      size="sm"
+                                      style={{ width: '200px' }}
+                                    />
+                                  </div>
+                                  {(() => {
+                                    const filteredDetails = componentDetails.filter(detail =>
+                                      !componentSearch ||
+                                      detail.center_name?.toLowerCase().includes(componentSearch.toLowerCase()) ||
+                                      detail.scheme_name?.toLowerCase().includes(componentSearch.toLowerCase()) ||
+                                      detail.investment_name?.toLowerCase().includes(componentSearch.toLowerCase()) ||
+                                      detail.source_of_receipt?.toLowerCase().includes(componentSearch.toLowerCase())
+                                    );
+                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
+                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                                      acc.sold += parseFloat(r.updated_quantity) || 0;
+                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                      return acc;
+                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                                    return (
+                                      <>
+                                        <Table striped bordered hover responsive className="small-fonts">
+                                          <thead>
+                                            <tr>
+                                              {componentDetailSelectedColumns.map(col => (
+                                                <th key={col}>
+                                                  {componentDetailColumns.find(c => c.key === col)?.label}
+                                                </th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {filteredDetails.map((detail, i) => {
+                                              const allocated = parseFloat(detail.allocated_quantity) || 0;
+                                              const sold = parseFloat(detail.updated_quantity) || 0;
+                                              const rate = parseFloat(detail.rate) || 0;
+                                              const allocatedValue = allocated * rate;
+                                              return (
+                                                <tr key={i}>
+                                                  {componentDetailSelectedColumns.map(col => {
+                                                    switch(col) {
+                                                      case 'bill_id': return <td key={col}>{detail.bill_id}</td>;
+                                                      case 'center_name': return <td key={col}>{detail.center_name}</td>;
+                                                      case 'component': return <td key={col}>{detail.component}</td>;
+                                                      case 'scheme_name': return <td key={col}>{detail.scheme_name}</td>;
+                                                      case 'unit': return <td key={col}>{detail.unit}</td>;
+                                                      case 'allocated_quantity': return <td key={col}>{allocated.toFixed(2)}</td>;
+                                                      case 'updated_quantity': return <td key={col}>{sold.toFixed(2)}</td>;
+                                                      case 'rate': return <td key={col}>{rate.toFixed(2)}</td>;
+                                                      case 'source_of_receipt': return <td key={col}>{detail.source_of_receipt}</td>;
+                                                      case 'allocated_value': return <td key={col}>{formatCurrency(allocatedValue)}</td>;
+                                                      default: return null;
+                                                    }
+                                                  })}
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr>
+                                              <td colSpan={componentDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
+                                              {componentDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
+                                              {componentDetailSelectedColumns.includes('rate') && <td>-</td>}
+                                              {componentDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
+                                              {componentDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
+                                              {componentDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            </tr>
+                                          </tfoot>
+                                        </Table>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        );
+                      })}
                     </Row>
                   ) : (
                     <Alert variant="info">{translations.noDataFound}</Alert>
@@ -1101,18 +1533,141 @@ const AddEditComponent = () => {
 
                   {displaySchemes.length > 0 ? (
                     <Row className="g-3">
-                      {displaySchemes.map((item, index) => (
-                        <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
-                          <Card className="scheme-card text-center h-100">
-                            <Card.Body>
-                              <Card.Title className="small-fonts">
-                                {item.scheme_name}
-                              </Card.Title>
-                              <Card.Text className="small-fonts text-muted"></Card.Text>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
+                      {displaySchemes.map((item, index) => {
+                        const schemeName = item.scheme_name || item;
+                        const isExpanded = expandedSchemesMap[schemeName];
+                        const schemeDetails = billingItems.filter(b => b.scheme_name === schemeName);
+                        const totals = schemeDetails.reduce((acc, r) => {
+                          acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                          acc.sold += parseFloat(r.updated_quantity) || 0;
+                          acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                          return acc;
+                        }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                        return (
+                          <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
+                            <Card className={`scheme-card text-center h-100 ${isExpanded ? 'expanded' : ''}`}>
+                              <Card.Body
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedSchemesMap(prev => ({ ...prev, [schemeName]: !prev[schemeName] }))}
+                              >
+                                <Card.Title className="small-fonts">
+                                  {schemeName}
+                                </Card.Title>
+                                <Card.Text className="small-fonts text-muted">
+                                  {schemeDetails.length} entries • {formatCurrency(totals.allocatedValue)}
+                                </Card.Text>
+                              </Card.Body>
+                              {isExpanded && schemeDetails.length > 0 && (
+                                <div className="card-expansion p-3 border-top">
+                                  <ColumnSelection
+                                    columns={schemeDetailColumns}
+                                    selectedColumns={schemeDetailSelectedColumns}
+                                    setSelectedColumns={setSchemeDetailSelectedColumns}
+                                    title="कॉलम चुनें"
+                                  />
+                                  <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <div className="d-flex align-items-center gap-2">
+                                      <Button
+                                        variant="outline-success"
+                                        size="sm"
+                                        onClick={() => downloadDetailsExcel(schemeDetails, `${schemeName}_Details_${new Date().toISOString().slice(0, 10)}`, schemeDetailSelectedColumns)}
+                                      >
+                                        <FaFileExcel className="me-1" />
+                                        Excel
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => downloadDetailsPdf(schemeDetails, `${schemeName}_Details_${new Date().toISOString().slice(0, 10)}`, `${schemeName} Details`, schemeDetailSelectedColumns)}
+                                      >
+                                        <FaFilePdf className="me-1" />
+                                        PDF
+                                      </Button>
+                                    </div>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Search centers, components..."
+                                      value={schemeSearch}
+                                      onChange={(e) => setSchemeSearch(e.target.value)}
+                                      size="sm"
+                                      style={{ width: '200px' }}
+                                    />
+                                  </div>
+                                  {(() => {
+                                    const filteredDetails = schemeDetails.filter(detail =>
+                                      !schemeSearch ||
+                                      detail.center_name?.toLowerCase().includes(schemeSearch.toLowerCase()) ||
+                                      detail.component?.toLowerCase().includes(schemeSearch.toLowerCase()) ||
+                                      detail.investment_name?.toLowerCase().includes(schemeSearch.toLowerCase()) ||
+                                      detail.source_of_receipt?.toLowerCase().includes(schemeSearch.toLowerCase())
+                                    );
+                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
+                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                                      acc.sold += parseFloat(r.updated_quantity) || 0;
+                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                      return acc;
+                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                                    return (
+                                      <>
+                                        <Table striped bordered hover responsive className="small-fonts">
+                                          <thead>
+                                            <tr>
+                                              {schemeDetailSelectedColumns.map(col => (
+                                                <th key={col}>
+                                                  {schemeDetailColumns.find(c => c.key === col)?.label}
+                                                </th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {filteredDetails.map((detail, i) => {
+                                              const allocated = parseFloat(detail.allocated_quantity) || 0;
+                                              const sold = parseFloat(detail.updated_quantity) || 0;
+                                              const rate = parseFloat(detail.rate) || 0;
+                                              const allocatedValue = allocated * rate;
+                                              return (
+                                                <tr key={i}>
+                                                  {schemeDetailSelectedColumns.map(col => {
+                                                    switch(col) {
+                                                      case 'bill_id': return <td key={col}>{detail.bill_id}</td>;
+                                                      case 'center_name': return <td key={col}>{detail.center_name}</td>;
+                                                      case 'component': return <td key={col}>{detail.component}</td>;
+                                                      case 'scheme_name': return <td key={col}>{detail.scheme_name}</td>;
+                                                      case 'investment_name': return <td key={col}>{detail.investment_name}</td>;
+                                                      case 'allocated_quantity': return <td key={col}>{allocated.toFixed(2)}</td>;
+                                                      case 'updated_quantity': return <td key={col}>{sold.toFixed(2)}</td>;
+                                                      case 'rate': return <td key={col}>{rate.toFixed(2)}</td>;
+                                                      case 'source_of_receipt': return <td key={col}>{detail.source_of_receipt}</td>;
+                                                      case 'allocated_value': return <td key={col}>{formatCurrency(allocatedValue)}</td>;
+                                                      default: return null;
+                                                    }
+                                                  })}
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr>
+                                              <td colSpan={schemeDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
+                                              {schemeDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
+                                              {schemeDetailSelectedColumns.includes('rate') && <td>-</td>}
+                                              {schemeDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
+                                              {schemeDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
+                                              {schemeDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            </tr>
+                                          </tfoot>
+                                        </Table>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        );
+                      })}
                     </Row>
                   ) : (
                     <Alert variant="info">{translations.noDataFound}</Alert>
@@ -1159,17 +1714,141 @@ const AddEditComponent = () => {
 
                   {displayInvestments.length > 0 ? (
                     <Row className="g-3">
-                      {displayInvestments.map((item, index) => (
-                        <Col key={index} xs={12} sm={6} md={4} lg={3}>
-                          <Card className="investment-card text-center h-100">
-                            <Card.Body>
-                              <Card.Title className="small-fonts">
-                                {item}
-                              </Card.Title>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
+                      {displayInvestments.map((item, index) => {
+                        const investmentName = item;
+                        const isExpanded = expandedInvestmentsMap[investmentName];
+                        const investmentDetails = billingItems.filter(b => b.investment_name === investmentName);
+                        const totals = investmentDetails.reduce((acc, r) => {
+                          acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                          acc.sold += parseFloat(r.updated_quantity) || 0;
+                          acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                          return acc;
+                        }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                        return (
+                          <Col key={index} xs={12} sm={6} md={4} lg={3}>
+                            <Card className={`investment-card text-center h-100 ${isExpanded ? 'expanded' : ''}`}>
+                              <Card.Body
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedInvestmentsMap(prev => ({ ...prev, [investmentName]: !prev[investmentName] }))}
+                              >
+                                <Card.Title className="small-fonts">
+                                  {investmentName}
+                                </Card.Title>
+                                <Card.Text className="small-fonts text-muted">
+                                  {investmentDetails.length} entries • {formatCurrency(totals.allocatedValue)}
+                                </Card.Text>
+                              </Card.Body>
+                              {isExpanded && investmentDetails.length > 0 && (
+                                <div className="card-expansion p-3 border-top">
+                                  <ColumnSelection
+                                    columns={investmentDetailColumns}
+                                    selectedColumns={investmentDetailSelectedColumns}
+                                    setSelectedColumns={setInvestmentDetailSelectedColumns}
+                                    title="कॉलम चुनें"
+                                  />
+                                  <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <div className="d-flex align-items-center gap-2">
+                                      <Button
+                                        variant="outline-success"
+                                        size="sm"
+                                        onClick={() => downloadDetailsExcel(investmentDetails, `${investmentName}_Details_${new Date().toISOString().slice(0, 10)}`, investmentDetailSelectedColumns)}
+                                      >
+                                        <FaFileExcel className="me-1" />
+                                        Excel
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => downloadDetailsPdf(investmentDetails, `${investmentName}_Details_${new Date().toISOString().slice(0, 10)}`, `${investmentName} Details`, investmentDetailSelectedColumns)}
+                                      >
+                                        <FaFilePdf className="me-1" />
+                                        PDF
+                                      </Button>
+                                    </div>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Search centers, schemes..."
+                                      value={investmentSearch}
+                                      onChange={(e) => setInvestmentSearch(e.target.value)}
+                                      size="sm"
+                                      style={{ width: '200px' }}
+                                    />
+                                  </div>
+                                  {(() => {
+                                    const filteredDetails = investmentDetails.filter(detail =>
+                                      !investmentSearch ||
+                                      detail.center_name?.toLowerCase().includes(investmentSearch.toLowerCase()) ||
+                                      detail.scheme_name?.toLowerCase().includes(investmentSearch.toLowerCase()) ||
+                                      detail.component?.toLowerCase().includes(investmentSearch.toLowerCase()) ||
+                                      detail.source_of_receipt?.toLowerCase().includes(investmentSearch.toLowerCase())
+                                    );
+                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
+                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                                      acc.sold += parseFloat(r.updated_quantity) || 0;
+                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                      return acc;
+                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                                    return (
+                                      <>
+                                        <Table striped bordered hover responsive className="small-fonts">
+                                          <thead>
+                                            <tr>
+                                              {investmentDetailSelectedColumns.map(col => (
+                                                <th key={col}>
+                                                  {investmentDetailColumns.find(c => c.key === col)?.label}
+                                                </th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {filteredDetails.map((detail, i) => {
+                                              const allocated = parseFloat(detail.allocated_quantity) || 0;
+                                              const sold = parseFloat(detail.updated_quantity) || 0;
+                                              const rate = parseFloat(detail.rate) || 0;
+                                              const allocatedValue = allocated * rate;
+                                              return (
+                                                <tr key={i}>
+                                                  {investmentDetailSelectedColumns.map(col => {
+                                                    switch(col) {
+                                                      case 'bill_id': return <td key={col}>{detail.bill_id}</td>;
+                                                      case 'center_name': return <td key={col}>{detail.center_name}</td>;
+                                                      case 'component': return <td key={col}>{detail.component}</td>;
+                                                      case 'scheme_name': return <td key={col}>{detail.scheme_name}</td>;
+                                                      case 'unit': return <td key={col}>{detail.unit}</td>;
+                                                      case 'allocated_quantity': return <td key={col}>{allocated.toFixed(2)}</td>;
+                                                      case 'updated_quantity': return <td key={col}>{sold.toFixed(2)}</td>;
+                                                      case 'rate': return <td key={col}>{rate.toFixed(2)}</td>;
+                                                      case 'source_of_receipt': return <td key={col}>{detail.source_of_receipt}</td>;
+                                                      case 'allocated_value': return <td key={col}>{formatCurrency(allocatedValue)}</td>;
+                                                      default: return null;
+                                                    }
+                                                  })}
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr>
+                                              <td colSpan={investmentDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
+                                              {investmentDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
+                                              {investmentDetailSelectedColumns.includes('rate') && <td>-</td>}
+                                              {investmentDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
+                                              {investmentDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
+                                              {investmentDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            </tr>
+                                          </tfoot>
+                                        </Table>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        );
+                      })}
                     </Row>
                   ) : (
                     <Alert variant="info">{translations.noDataFound}</Alert>
@@ -1210,17 +1889,143 @@ const AddEditComponent = () => {
 
                   {displayUnits.length > 0 ? (
                     <Row className="g-3">
-                      {displayUnits.map((item, index) => (
-                        <Col key={index} xs={12} sm={6} md={4} lg={3}>
-                          <Card className="unit-card text-center h-100">
-                            <Card.Body>
-                              <Card.Title className="small-fonts">
-                                {item}
-                              </Card.Title>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
+                      {displayUnits.map((item, index) => {
+                        const unitName = item;
+                        const isExpanded = expandedUnitsMap[unitName];
+                        const unitDetails = billingItems.filter(b => b.unit === unitName);
+                        const totals = unitDetails.reduce((acc, r) => {
+                          acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                          acc.sold += parseFloat(r.updated_quantity) || 0;
+                          acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                          return acc;
+                        }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                        return (
+                          <Col key={index} xs={12} sm={6} md={4} lg={3}>
+                            <Card className={`unit-card text-center h-100 ${isExpanded ? 'expanded' : ''}`}>
+                              <Card.Body
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedUnitsMap(prev => ({ ...prev, [unitName]: !prev[unitName] }))}
+                              >
+                                <Card.Title className="small-fonts">
+                                  {unitName}
+                                </Card.Title>
+                                <Card.Text className="small-fonts text-muted">
+                                  {unitDetails.length} entries • {formatCurrency(totals.allocatedValue)}
+                                </Card.Text>
+                              </Card.Body>
+                              {isExpanded && unitDetails.length > 0 && (
+                                <div className="card-expansion p-3 border-top">
+                                  <ColumnSelection
+                                    columns={unitDetailColumns}
+                                    selectedColumns={unitDetailSelectedColumns}
+                                    setSelectedColumns={setUnitDetailSelectedColumns}
+                                    title="कॉलम चुनें"
+                                  />
+                                  <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <div className="d-flex align-items-center gap-2">
+                                      <Button
+                                        variant="outline-success"
+                                        size="sm"
+                                        onClick={() => downloadDetailsExcel(unitDetails, `${unitName}_Details_${new Date().toISOString().slice(0, 10)}`, unitDetailSelectedColumns)}
+                                      >
+                                        <FaFileExcel className="me-1" />
+                                        Excel
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => downloadDetailsPdf(unitDetails, `${unitName}_Details_${new Date().toISOString().slice(0, 10)}`, `${unitName} Details`, unitDetailSelectedColumns)}
+                                      >
+                                        <FaFilePdf className="me-1" />
+                                        PDF
+                                      </Button>
+                                    </div>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Search centers, schemes..."
+                                      value={unitSearch}
+                                      onChange={(e) => setUnitSearch(e.target.value)}
+                                      size="sm"
+                                      style={{ width: '200px' }}
+                                    />
+                                  </div>
+                                  </div>
+                                  {(() => {
+                                    const filteredDetails = unitDetails.filter(detail =>
+                                      !unitSearch ||
+                                      detail.center_name?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                                      detail.scheme_name?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                                      detail.component?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                                      detail.investment_name?.toLowerCase().includes(unitSearch.toLowerCase()) ||
+                                      detail.source_of_receipt?.toLowerCase().includes(unitSearch.toLowerCase())
+                                    );
+                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
+                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
+                                      acc.sold += parseFloat(r.updated_quantity) || 0;
+                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                      return acc;
+                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+
+                                    return (
+                                      <>
+                                        <Table striped bordered hover responsive className="small-fonts">
+                                          <thead>
+                                            <tr>
+                                              {unitDetailSelectedColumns.map(col => (
+                                                <th key={col}>
+                                                  {unitDetailColumns.find(c => c.key === col)?.label}
+                                                </th>
+                                              ))}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {filteredDetails.map((detail, i) => {
+                                              const allocated = parseFloat(detail.allocated_quantity) || 0;
+                                              const sold = parseFloat(detail.updated_quantity) || 0;
+                                              const rate = parseFloat(detail.rate) || 0;
+                                              const allocatedValue = allocated * rate;
+                                              return (
+                                                <tr key={i}>
+                                                  {unitDetailSelectedColumns.map(col => {
+                                                    switch(col) {
+                                                      case 'bill_id': return <td key={col}>{detail.bill_id}</td>;
+                                                      case 'center_name': return <td key={col}>{detail.center_name}</td>;
+                                                      case 'component': return <td key={col}>{detail.component}</td>;
+                                                      case 'scheme_name': return <td key={col}>{detail.scheme_name}</td>;
+                                                      case 'investment_name': return <td key={col}>{detail.investment_name}</td>;
+                                                      case 'allocated_quantity': return <td key={col}>{allocated.toFixed(2)}</td>;
+                                                      case 'updated_quantity': return <td key={col}>{sold.toFixed(2)}</td>;
+                                                      case 'rate': return <td key={col}>{rate.toFixed(2)}</td>;
+                                                      case 'source_of_receipt': return <td key={col}>{detail.source_of_receipt}</td>;
+                                                      case 'allocated_value': return <td key={col}>{formatCurrency(allocatedValue)}</td>;
+                                                      default: return null;
+                                                    }
+                                                  })}
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr>
+                                              <td colSpan={unitDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
+                                              {unitDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
+                                              {unitDetailSelectedColumns.includes('rate') && <td>-</td>}
+                                              {unitDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
+                                              {unitDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
+                                              {unitDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            </tr>
+                                          </tfoot>
+                                        </Table>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </Card>
+                          </Col>
+                        );
+                      })}
                     </Row>
                   ) : (
                     <Alert variant="info">{translations.noDataFound}</Alert>
