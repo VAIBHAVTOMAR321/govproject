@@ -1950,7 +1950,6 @@ const AddEditComponent = () => {
                                       style={{ width: '200px' }}
                                     />
                                   </div>
-                                  </div>
                                   {(() => {
                                     const filteredDetails = unitDetails.filter(detail =>
                                       !unitSearch ||

@@ -1405,7 +1405,7 @@ const MainDashboard = () => {
             {/* Billing Items Table - Always show table with filtered data */}
             <div className="billing-table-container">
               <h2 className="dynamic-table-heading small-fonts">
-                  बिलिंग विवरण
+                  कुल विवरण
                   <span className="heading-totals">
                       (कुल आवंटित मात्रा: {tableTotals.allocatedQuantity.toFixed(2)}, कुल आवंटित: {formatCurrency(tableTotals.allocated)}, कुल अपडेट मात्रा: {tableTotals.updatedQuantity.toFixed(2)}, कुल अपडेट किया गया: {formatCurrency(tableTotals.updated)})
                   </span>
@@ -1453,7 +1453,7 @@ const MainDashboard = () => {
                               <Button 
                                 variant="outline-danger" 
                                 size="sm" 
-                                onClick={() => downloadPdf(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "बिलिंग विवरण", tableTotals)}
+                                onClick={() => downloadPdf(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "कुल विवरण", tableTotals)}
                               >
                                 <FaFilePdf className="me-1" />
                                 PDF
