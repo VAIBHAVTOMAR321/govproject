@@ -175,6 +175,17 @@ const unitDetailColumns = [
   { key: 'allocated_value', label: 'आवंटित मूल्य' }
 ];
 
+const summableColumns = ['allocated_quantity', 'updated_quantity', 'rate', 'allocated_value'];
+
+// Helper to calculate allocated_value for totals
+const calculateAllocatedValueTotal = (rows) => {
+  return rows.reduce((sum, row) => {
+    const qty = parseFloat(row.allocated_quantity) || 0;
+    const rate = parseFloat(row.rate) || 0;
+    return sum + (qty * rate);
+  }, 0);
+};
+
 const AddEditComponent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -644,55 +655,61 @@ const AddEditComponent = () => {
   };
 
   // Generic Excel/PDF helpers for export of billing details
-  const downloadDetailsExcel = (rows, filename, selectedColumns) => {
+  const downloadDetailsExcel = (rows, filename, selectedColumns, columns) => {
     try {
-      // Column mapping for expandable tables
-      const columnMapping = {
-        bill_id: { header: 'Bill ID', accessor: (item) => item.bill_id },
-        center_name: { header: 'Center', accessor: (item) => item.center_name },
-        component: { header: 'Component', accessor: (item) => item.component },
-        scheme_name: { header: 'Scheme', accessor: (item) => item.scheme_name },
-        investment_name: { header: 'Investment', accessor: (item) => item.investment_name },
-        unit: { header: 'Unit', accessor: (item) => item.unit },
-        allocated_quantity: { header: 'Allocated Qty', accessor: (item) => (parseFloat(item.allocated_quantity) || 0).toFixed(2) },
-        updated_quantity: { header: 'Sold Qty', accessor: (item) => (parseFloat(item.updated_quantity) || 0).toFixed(2) },
-        rate: { header: 'Rate', accessor: (item) => (parseFloat(item.rate) || 0).toFixed(2) },
-        source_of_receipt: { header: 'Source', accessor: (item) => item.source_of_receipt },
-        allocated_value: { header: 'Allocated Value', accessor: (item) => formatCurrency((parseFloat(item.allocated_quantity) || 0) * (parseFloat(item.rate) || 0)) }
-      };
-
-      // Prepare data for Excel export based on selected columns
+      // Prepare data for Excel export based on selected columns (using Hindi headers)
       const excelData = rows.map((item) => {
         const row = {};
         selectedColumns.forEach(col => {
-          row[columnMapping[col].header] = columnMapping[col].accessor(item);
+          const colDef = columns.find(c => c.key === col);
+          const header = colDef ? colDef.label : col; // Use Hindi label
+          const accessor = (item) => {
+            switch(col) {
+              case 'bill_id': return item.bill_id;
+              case 'center_name': return item.center_name;
+              case 'component': return item.component;
+              case 'scheme_name': return item.scheme_name;
+              case 'investment_name': return item.investment_name;
+              case 'unit': return item.unit;
+              case 'allocated_quantity': return (parseFloat(item.allocated_quantity) || 0).toFixed(2);
+              case 'updated_quantity': return (parseFloat(item.updated_quantity) || 0).toFixed(2);
+              case 'rate': return (parseFloat(item.rate) || 0).toFixed(2);
+              case 'source_of_receipt': return item.source_of_receipt;
+              case 'allocated_value': return formatCurrency((parseFloat(item.allocated_quantity) || 0) * (parseFloat(item.rate) || 0));
+              default: return '';
+            }
+          };
+          row[header] = accessor(item);
         });
         return row;
       });
 
-      // Add totals row if there are rows
+      // Add totals row at the end (for Excel - will be on last row)
       if (rows.length > 0) {
-        const totals = rows.reduce((acc, r) => {
-          acc.allocated += parseFloat(r.allocated_quantity) || 0;
-          acc.sold += parseFloat(r.updated_quantity) || 0;
-          acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
-          return acc;
-        }, { allocated: 0, sold: 0, allocatedValue: 0 });
+        // Calculate totals including allocated_value
+        const totals = {};
+        summableColumns.forEach(col => {
+          if (col === 'allocated_value') {
+            totals[col] = calculateAllocatedValueTotal(rows);
+          } else {
+            totals[col] = rows.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0);
+          }
+        });
 
         const totalsRow = {};
         selectedColumns.forEach(col => {
+          const colDef = columns.find(c => c.key === col);
+          const header = colDef ? colDef.label : col;
           if (col === 'bill_id') {
-            totalsRow[columnMapping[col].header] = 'कुल';
-          } else if (col === 'center_name' || col === 'component' || col === 'scheme_name' || col === 'investment_name' || col === 'unit' || col === 'source_of_receipt') {
-            totalsRow[columnMapping[col].header] = '-';
-          } else if (col === 'rate') {
-            totalsRow[columnMapping[col].header] = '-';
-          } else if (col === 'allocated_quantity') {
-            totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
-          } else if (col === 'updated_quantity') {
-            totalsRow[columnMapping[col].header] = totals.sold.toFixed(2);
-          } else if (col === 'allocated_value') {
-            totalsRow[columnMapping[col].header] = formatCurrency(totals.allocatedValue);
+            totalsRow[header] = `कुल (${rows.length} प्रविष्टियाँ)`;
+          } else if (summableColumns.includes(col)) {
+            if (col === 'allocated_value') {
+              totalsRow[header] = formatCurrency(totals[col]);
+            } else {
+              totalsRow[header] = totals[col].toFixed(2);
+            }
+          } else {
+            totalsRow[header] = '';
           }
         });
 
@@ -701,6 +718,21 @@ const AddEditComponent = () => {
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Style the totals row if present
+      if (rows.length > 0) {
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const totalsRowNum = range.e.r; // Last row
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
+          if (!ws[cellAddress]) continue;
+          ws[cellAddress].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: "FFFFAA00" } }
+          };
+        }
+      }
+      
       XLSX.utils.book_append_sheet(wb, ws, 'Details');
       XLSX.writeFile(wb, `${filename}.xlsx`);
     } catch (e) {
@@ -708,67 +740,88 @@ const AddEditComponent = () => {
     }
   };
 
-  const downloadDetailsPdf = (rows, filename, title, selectedColumns) => {
+  const downloadDetailsPdf = (rows, filename, title, selectedColumns, columns) => {
     try {
-      const totals = rows.reduce((acc, r) => {
-        acc.allocated += parseFloat(r.allocated_quantity) || 0;
-        acc.sold += parseFloat(r.updated_quantity) || 0;
-        acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
-        return acc;
-      }, { allocated: 0, sold: 0, allocatedValue: 0 });
+      // Calculate totals including allocated_value
+      const totals = {};
+      summableColumns.forEach(col => {
+        if (col === 'allocated_value') {
+          totals[col] = calculateAllocatedValueTotal(rows);
+        } else {
+          totals[col] = rows.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0);
+        }
+      });
 
-      // Column mapping for PDF
-      const columnMapping = {
-        bill_id: { header: 'Bill ID', accessor: (item) => item.bill_id },
-        center_name: { header: 'Center', accessor: (item) => item.center_name },
-        component: { header: 'Component', accessor: (item) => item.component },
-        scheme_name: { header: 'Scheme', accessor: (item) => item.scheme_name },
-        investment_name: { header: 'Investment', accessor: (item) => item.investment_name },
-        unit: { header: 'Unit', accessor: (item) => item.unit },
-        allocated_quantity: { header: 'Allocated Qty', accessor: (item) => (parseFloat(item.allocated_quantity) || 0).toFixed(2) },
-        updated_quantity: { header: 'Sold Qty', accessor: (item) => (parseFloat(item.updated_quantity) || 0).toFixed(2) },
-        rate: { header: 'Rate', accessor: (item) => (parseFloat(item.rate) || 0).toFixed(2) },
-        source_of_receipt: { header: 'Source', accessor: (item) => item.source_of_receipt },
-        allocated_value: { header: 'Allocated Value', accessor: (item) => formatCurrency((parseFloat(item.allocated_quantity) || 0) * (parseFloat(item.rate) || 0)) }
-      };
+      // Use Hindi headers from column definitions
+      const headers = selectedColumns.map(col => {
+        const colDef = columns.find(c => c.key === col);
+        return colDef ? colDef.label : col;
+      });
 
-      const headers = selectedColumns.map(col => columnMapping[col].header);
       const rowsHtml = rows.map(r => {
-        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(r)}</td>`).join('');
+        const cells = selectedColumns.map(col => {
+          const accessor = (item) => {
+            switch(col) {
+              case 'bill_id': return item.bill_id;
+              case 'center_name': return item.center_name;
+              case 'component': return item.component;
+              case 'scheme_name': return item.scheme_name;
+              case 'investment_name': return item.investment_name;
+              case 'unit': return item.unit;
+              case 'allocated_quantity': return (parseFloat(item.allocated_quantity) || 0).toFixed(2);
+              case 'updated_quantity': return (parseFloat(item.updated_quantity) || 0).toFixed(2);
+              case 'rate': return (parseFloat(item.rate) || 0).toFixed(2);
+              case 'source_of_receipt': return item.source_of_receipt;
+              case 'allocated_value': return formatCurrency((parseFloat(item.allocated_quantity) || 0) * (parseFloat(item.rate) || 0));
+              default: return '';
+            }
+          };
+          return `<td>${accessor(r)}</td>`;
+        }).join('');
         return `<tr>${cells}</tr>`;
       }).join('');
 
-      // Calculate colspan for totals row
-      const nonTotalCols = selectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length;
-      const totalColsSpan = nonTotalCols;
+      const totalsCells = selectedColumns.map(col => {
+        if (col === 'bill_id') {
+          return `<td><strong>कुल (${rows.length} प्रविष्टियाँ)</strong></td>`;
+        } else if (summableColumns.includes(col)) {
+          const value = col === 'allocated_value' ? formatCurrency(totals[col]) : totals[col].toFixed(2);
+          return `<td><strong>${value}</strong></td>`;
+        } else {
+          return `<td></td>`;
+        }
+      }).join('');
 
       const tableHtml = `
         <html>
           <head>
+            <meta charset="utf-8" />
             <title>${title}</title>
             <style>
+              @page {
+                size: A4 landscape;
+                margin: 10mm;
+              }
               body { font-family: Arial, sans-serif; margin: 20px; }
-              table { border-collapse: collapse; width: 100%; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background: #f2f2f2; }
+              table { border-collapse: collapse; width: 100%; page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+              th { background: #f2f2f2; font-weight: bold; }
+              .totals-row { 
+                background-color: #f2f2f2; 
+                font-weight: bold;
+                page-break-inside: avoid;
+              }
             </style>
           </head>
           <body>
             <h2>${title}</h2>
             <table>
               <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-              <tbody>${rowsHtml}</tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="${totalColsSpan}">कुल</td>
-                  ${selectedColumns.includes('allocated_quantity') ? `<td>${totals.allocated.toFixed(2)}</td>` : ''}
-                  ${selectedColumns.includes('rate') ? `<td>-</td>` : ''}
-                  ${selectedColumns.includes('updated_quantity') ? `<td>${totals.sold.toFixed(2)}</td>` : ''}
-                  ${selectedColumns.includes('source_of_receipt') ? `<td>-</td>` : ''}
-                  ${selectedColumns.includes('scheme_name') ? `<td>-</td>` : ''}
-                  ${selectedColumns.includes('allocated_value') ? `<td>${formatCurrency(totals.allocatedValue)}</td>` : ''}
-                </tr>
-              </tfoot>
+              <tbody>
+                ${rowsHtml}
+                <tr class="totals-row">${totalsCells}</tr>
+              </tbody>
             </table>
           </body>
         </html>
@@ -1324,7 +1377,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-success"
                                         size="sm"
-                                        onClick={() => downloadDetailsExcel(componentDetails, `${componentName}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsExcel(componentDetails, `${componentName}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailSelectedColumns, componentDetailColumns)}
                                       >
                                         <FaFileExcel className="me-1" />
                                         Excel
@@ -1332,7 +1385,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        onClick={() => downloadDetailsPdf(componentDetails, `${componentName}_Details_${new Date().toISOString().slice(0, 10)}`, `${componentName} Details`, componentDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsPdf(componentDetails, `${componentName}_Details_${new Date().toISOString().slice(0, 10)}`, `${componentName} Details`, componentDetailSelectedColumns, componentDetailColumns)}
                                       >
                                         <FaFilePdf className="me-1" />
                                         PDF
@@ -1355,12 +1408,18 @@ const AddEditComponent = () => {
                                       detail.investment_name?.toLowerCase().includes(componentSearch.toLowerCase()) ||
                                       detail.source_of_receipt?.toLowerCase().includes(componentSearch.toLowerCase())
                                     );
-                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
-                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
-                                      acc.sold += parseFloat(r.updated_quantity) || 0;
-                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                    const totals = summableColumns.reduce((acc, col) => {
+                                      if (col === 'allocated_value') {
+                                        acc[col] = filteredDetails.reduce((sum, row) => {
+                                          const qty = parseFloat(row.allocated_quantity) || 0;
+                                          const rate = parseFloat(row.rate) || 0;
+                                          return sum + (qty * rate);
+                                        }, 0);
+                                      } else {
+                                        acc[col] = filteredDetails.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0);
+                                      }
                                       return acc;
-                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+                                    }, {});
 
                                     return (
                                       <>
@@ -1402,13 +1461,22 @@ const AddEditComponent = () => {
                                             })}
                                           </tbody>
                                           <tfoot>
-                                            <tr>
-                                              <td colSpan={componentDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
-                                              {componentDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
-                                              {componentDetailSelectedColumns.includes('rate') && <td>-</td>}
-                                              {componentDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
-                                              {componentDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
-                                              {componentDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            <tr className="table-totals">
+                                              {componentDetailSelectedColumns.map(col => {
+                                                const colDef = componentDetailColumns.find(c => c.key === col);
+                                                const header = colDef ? colDef.label : col;
+                                                if (col === 'bill_id') {
+                                                  return <td key={col} className="fw-bold">{`कुल (${filteredDetails.length} प्रविष्टियाँ)`}</td>;
+                                                } else if (summableColumns.includes(col)) {
+                                                  if (col === 'allocated_value') {
+                                                    return <td key={col} className="fw-bold">{formatCurrency(totals[col])}</td>;
+                                                  } else {
+                                                    return <td key={col} className="fw-bold">{totals[col].toFixed(2)}</td>;
+                                                  }
+                                                } else {
+                                                  return <td key={col} className="fw-bold"></td>;
+                                                }
+                                              })}
                                             </tr>
                                           </tfoot>
                                         </Table>
@@ -1571,7 +1639,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-success"
                                         size="sm"
-                                        onClick={() => downloadDetailsExcel(schemeDetails, `${schemeName}_Details_${new Date().toISOString().slice(0, 10)}`, schemeDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsExcel(schemeDetails, `${schemeName}_Details_${new Date().toISOString().slice(0, 10)}`, schemeDetailSelectedColumns, schemeDetailColumns)}
                                       >
                                         <FaFileExcel className="me-1" />
                                         Excel
@@ -1579,7 +1647,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        onClick={() => downloadDetailsPdf(schemeDetails, `${schemeName}_Details_${new Date().toISOString().slice(0, 10)}`, `${schemeName} Details`, schemeDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsPdf(schemeDetails, `${schemeName}_Details_${new Date().toISOString().slice(0, 10)}`, `${schemeName} Details`, schemeDetailSelectedColumns, schemeDetailColumns)}
                                       >
                                         <FaFilePdf className="me-1" />
                                         PDF
@@ -1602,12 +1670,18 @@ const AddEditComponent = () => {
                                       detail.investment_name?.toLowerCase().includes(schemeSearch.toLowerCase()) ||
                                       detail.source_of_receipt?.toLowerCase().includes(schemeSearch.toLowerCase())
                                     );
-                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
-                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
-                                      acc.sold += parseFloat(r.updated_quantity) || 0;
-                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                    const totals = summableColumns.reduce((acc, col) => {
+                                      if (col === 'allocated_value') {
+                                        acc[col] = filteredDetails.reduce((sum, row) => {
+                                          const qty = parseFloat(row.allocated_quantity) || 0;
+                                          const rate = parseFloat(row.rate) || 0;
+                                          return sum + (qty * rate);
+                                        }, 0);
+                                      } else {
+                                        acc[col] = filteredDetails.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0);
+                                      }
                                       return acc;
-                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+                                    }, {});
 
                                     return (
                                       <>
@@ -1649,13 +1723,22 @@ const AddEditComponent = () => {
                                             })}
                                           </tbody>
                                           <tfoot>
-                                            <tr>
-                                              <td colSpan={schemeDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
-                                              {schemeDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
-                                              {schemeDetailSelectedColumns.includes('rate') && <td>-</td>}
-                                              {schemeDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
-                                              {schemeDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
-                                              {schemeDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            <tr className="table-totals">
+                                              {schemeDetailSelectedColumns.map(col => {
+                                                const colDef = schemeDetailColumns.find(c => c.key === col);
+                                                const header = colDef ? colDef.label : col;
+                                                if (col === 'bill_id') {
+                                                  return <td key={col} className="fw-bold">{`कुल (${filteredDetails.length} प्रविष्टियाँ)`}</td>;
+                                                } else if (summableColumns.includes(col)) {
+                                                  if (col === 'allocated_value') {
+                                                    return <td key={col} className="fw-bold">{formatCurrency(totals[col])}</td>;
+                                                  } else {
+                                                    return <td key={col} className="fw-bold">{totals[col].toFixed(2)}</td>;
+                                                  }
+                                                } else {
+                                                  return <td key={col} className="fw-bold"></td>;
+                                                }
+                                              })}
                                             </tr>
                                           </tfoot>
                                         </Table>
@@ -1752,7 +1835,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-success"
                                         size="sm"
-                                        onClick={() => downloadDetailsExcel(investmentDetails, `${investmentName}_Details_${new Date().toISOString().slice(0, 10)}`, investmentDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsExcel(investmentDetails, `${investmentName}_Details_${new Date().toISOString().slice(0, 10)}`, investmentDetailSelectedColumns, investmentDetailColumns)}
                                       >
                                         <FaFileExcel className="me-1" />
                                         Excel
@@ -1760,7 +1843,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        onClick={() => downloadDetailsPdf(investmentDetails, `${investmentName}_Details_${new Date().toISOString().slice(0, 10)}`, `${investmentName} Details`, investmentDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsPdf(investmentDetails, `${investmentName}_Details_${new Date().toISOString().slice(0, 10)}`, `${investmentName} Details`, investmentDetailSelectedColumns, investmentDetailColumns)}
                                       >
                                         <FaFilePdf className="me-1" />
                                         PDF
@@ -1783,12 +1866,18 @@ const AddEditComponent = () => {
                                       detail.component?.toLowerCase().includes(investmentSearch.toLowerCase()) ||
                                       detail.source_of_receipt?.toLowerCase().includes(investmentSearch.toLowerCase())
                                     );
-                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
-                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
-                                      acc.sold += parseFloat(r.updated_quantity) || 0;
-                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                    const totals = summableColumns.reduce((acc, col) => {
+                                      if (col === 'allocated_value') {
+                                        acc[col] = filteredDetails.reduce((sum, row) => {
+                                          const qty = parseFloat(row.allocated_quantity) || 0;
+                                          const rate = parseFloat(row.rate) || 0;
+                                          return sum + (qty * rate);
+                                        }, 0);
+                                      } else {
+                                        acc[col] = filteredDetails.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0);
+                                      }
                                       return acc;
-                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+                                    }, {});
 
                                     return (
                                       <>
@@ -1830,13 +1919,22 @@ const AddEditComponent = () => {
                                             })}
                                           </tbody>
                                           <tfoot>
-                                            <tr>
-                                              <td colSpan={investmentDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
-                                              {investmentDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
-                                              {investmentDetailSelectedColumns.includes('rate') && <td>-</td>}
-                                              {investmentDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
-                                              {investmentDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
-                                              {investmentDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            <tr className="table-totals">
+                                              {investmentDetailSelectedColumns.map(col => {
+                                                const colDef = investmentDetailColumns.find(c => c.key === col);
+                                                const header = colDef ? colDef.label : col;
+                                                if (col === 'bill_id') {
+                                                  return <td key={col} className="fw-bold">{`कुल (${filteredDetails.length} प्रविष्टियाँ)`}</td>;
+                                                } else if (summableColumns.includes(col)) {
+                                                  if (col === 'allocated_value') {
+                                                    return <td key={col} className="fw-bold">{formatCurrency(totals[col])}</td>;
+                                                  } else {
+                                                    return <td key={col} className="fw-bold">{totals[col].toFixed(2)}</td>;
+                                                  }
+                                                } else {
+                                                  return <td key={col} className="fw-bold"></td>;
+                                                }
+                                              })}
                                             </tr>
                                           </tfoot>
                                         </Table>
@@ -1927,7 +2025,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-success"
                                         size="sm"
-                                        onClick={() => downloadDetailsExcel(unitDetails, `${unitName}_Details_${new Date().toISOString().slice(0, 10)}`, unitDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsExcel(unitDetails, `${unitName}_Details_${new Date().toISOString().slice(0, 10)}`, unitDetailSelectedColumns, unitDetailColumns)}
                                       >
                                         <FaFileExcel className="me-1" />
                                         Excel
@@ -1935,7 +2033,7 @@ const AddEditComponent = () => {
                                       <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        onClick={() => downloadDetailsPdf(unitDetails, `${unitName}_Details_${new Date().toISOString().slice(0, 10)}`, `${unitName} Details`, unitDetailSelectedColumns)}
+                                        onClick={() => downloadDetailsPdf(unitDetails, `${unitName}_Details_${new Date().toISOString().slice(0, 10)}`, `${unitName} Details`, unitDetailSelectedColumns, unitDetailColumns)}
                                       >
                                         <FaFilePdf className="me-1" />
                                         PDF
@@ -1959,12 +2057,18 @@ const AddEditComponent = () => {
                                       detail.investment_name?.toLowerCase().includes(unitSearch.toLowerCase()) ||
                                       detail.source_of_receipt?.toLowerCase().includes(unitSearch.toLowerCase())
                                     );
-                                    const filteredTotals = filteredDetails.reduce((acc, r) => {
-                                      acc.allocated += parseFloat(r.allocated_quantity) || 0;
-                                      acc.sold += parseFloat(r.updated_quantity) || 0;
-                                      acc.allocatedValue += (parseFloat(r.allocated_quantity) || 0) * (parseFloat(r.rate) || 0);
+                                    const totals = summableColumns.reduce((acc, col) => {
+                                      if (col === 'allocated_value') {
+                                        acc[col] = filteredDetails.reduce((sum, row) => {
+                                          const qty = parseFloat(row.allocated_quantity) || 0;
+                                          const rate = parseFloat(row.rate) || 0;
+                                          return sum + (qty * rate);
+                                        }, 0);
+                                      } else {
+                                        acc[col] = filteredDetails.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0);
+                                      }
                                       return acc;
-                                    }, { allocated: 0, sold: 0, allocatedValue: 0 });
+                                    }, {});
 
                                     return (
                                       <>
@@ -2006,13 +2110,22 @@ const AddEditComponent = () => {
                                             })}
                                           </tbody>
                                           <tfoot>
-                                            <tr>
-                                              <td colSpan={unitDetailSelectedColumns.filter(col => !['allocated_quantity', 'updated_quantity', 'allocated_value'].includes(col)).length} className="text-end fw-bold">कुल ({filteredDetails.length} entries)</td>
-                                              {unitDetailSelectedColumns.includes('allocated_quantity') && <td className="fw-bold">{filteredTotals.allocated.toFixed(2)}</td>}
-                                              {unitDetailSelectedColumns.includes('rate') && <td>-</td>}
-                                              {unitDetailSelectedColumns.includes('updated_quantity') && <td className="fw-bold">{filteredTotals.sold.toFixed(2)}</td>}
-                                              {unitDetailSelectedColumns.includes('source_of_receipt') && <td>-</td>}
-                                              {unitDetailSelectedColumns.includes('allocated_value') && <td className="fw-bold">{formatCurrency(filteredTotals.allocatedValue)}</td>}
+                                            <tr className="table-totals">
+                                              {unitDetailSelectedColumns.map(col => {
+                                                const colDef = unitDetailColumns.find(c => c.key === col);
+                                                const header = colDef ? colDef.label : col;
+                                                if (col === 'bill_id') {
+                                                  return <td key={col} className="fw-bold">{`कुल (${filteredDetails.length} प्रविष्टियाँ)`}</td>;
+                                                } else if (summableColumns.includes(col)) {
+                                                  if (col === 'allocated_value') {
+                                                    return <td key={col} className="fw-bold">{formatCurrency(totals[col])}</td>;
+                                                  } else {
+                                                    return <td key={col} className="fw-bold">{totals[col].toFixed(2)}</td>;
+                                                  }
+                                                } else {
+                                                  return <td key={col} className="fw-bold"></td>;
+                                                }
+                                              })}
                                             </tr>
                                           </tfoot>
                                         </Table>

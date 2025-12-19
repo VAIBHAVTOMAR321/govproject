@@ -18,7 +18,7 @@ const translations = {
   unit: "इकाई",
   allocatedQuantity: "आवंटित मात्रा",
   rate: "दर",
-  sourceOfReceipt: "रसीद का स्रोत",
+  sourceOfReceipt: "प्राप्ति का स्रोत",
   schemeName: "योजना का नाम",
   submitButton: "आइटम जोड़ें",
   uploading: "अपलोड हो रहा है...",

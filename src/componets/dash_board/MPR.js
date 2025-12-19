@@ -30,7 +30,7 @@ const formatFieldTitle = (fieldKey) => {
     component: 'घटक',
     investment_name: 'निवेश का नाम',
     unit: 'इकाई',
-    source_of_receipt: 'रसीद का स्रोत',
+    source_of_receipt: 'प्राप्ति का स्रोत',
     scheme_name: 'योजना का नाम'
   };
   return titles[fieldKey] || fieldKey;
@@ -41,7 +41,7 @@ const mainTableColumnMapping = {
   sno: { header: 'क्र.सं.', accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
   reportId: { header: 'रिपोर्ट आईडी', accessor: (item) => item.bill_report_id || '-' },
   centerName: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
-  sourceOfReceipt: { header: 'रसीद का स्रोत', accessor: (item) => item.source_of_receipt },
+  sourceOfReceipt: { header: 'प्राप्ति का स्रोत', accessor: (item) => item.source_of_receipt },
   reportDate: { header: 'रिपोर्ट तारीख', accessor: (item) => new Date(item.created_at).toLocaleDateString('hi-IN') },
   status: { header: 'स्थिति', accessor: (item) => item.status === 'accepted' ? 'स्वीकृत' : item.status === 'cancelled' ? 'रद्द' : 'लंबित' },
   totalItems: { header: 'कुल आइटम', accessor: (item) => item.component_data ? item.component_data.length : 0 },
@@ -78,7 +78,7 @@ const availableColumns = [
   { key: 'sno', label: 'क्र.सं.' },
   { key: 'reportId', label: 'रिपोर्ट आईडी' },
   { key: 'centerName', label: 'केंद्र का नाम' },
-  { key: 'sourceOfReceipt', label: 'रसीद का स्रोत' },
+  { key: 'sourceOfReceipt', label: 'प्राप्ति का स्रोत' },
   { key: 'reportDate', label: 'रिपोर्ट तारीख' },
   { key: 'status', label: 'स्थिति' },
   { key: 'totalItems', label: 'कुल आइटम' },
@@ -106,7 +106,7 @@ const translations = {
   filters: "फिल्टर",
   clearAllFilters: "सभी फिल्टर हटाएं",
   centerName: "केंद्र का नाम",
-  sourceOfReceipt: "रसीद का स्रोत",
+  sourceOfReceipt: "प्राप्ति का स्रोत",
   component: "घटक",
   investmentName: "निवेश का नाम",
   schemeName: "योजना का नाम",
@@ -542,7 +542,7 @@ const MPR = () => {
   };
   
   // Generic download Excel function that works with any table
-const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = null, parentReport = null) => {
+const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTotals = true, parentReport = null) => {
   try {
     // Prepare data for Excel export based on selected columns
     const excelData = data.map((item, index) => {
@@ -554,9 +554,9 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
       return row;
     });
     
-    // Calculate totals if not provided
-    if (!totals) {
-      // Check if this is component data or main table data
+    // Calculate totals if includeTotals is true
+    let totals = null;
+    if (includeTotals) {
       if (parentReport) {
         // Component table totals
         totals = data.reduce((acc, item) => {
@@ -575,58 +575,60 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
         });
       } else {
         // Main table totals
-        totals = calculateMainTableTotals(data);
+        totals = data.reduce((acc, item) => {
+          acc.totalReports += 1;
+          acc.totalAmount += parseFloat(item.total_amount || 0);
+          acc.totalItems += item.component_data ? item.component_data.length : 0;
+          return acc;
+        }, { 
+          totalReports: 0,
+          totalAmount: 0, 
+          totalItems: 0
+        });
       }
+      
+      // Add totals row
+      const totalsRow = {};
+      selectedColumns.forEach(col => {
+        if (parentReport) {
+          // Component table totals
+          if (col === 'reportId') {
+            totalsRow[columnMapping[col].header] = "कुल";
+          } else if (col === 'component' || col === 'investment_name' || 
+                     col === 'unit' || col === 'scheme_name') {
+            totalsRow[columnMapping[col].header] = "";
+          } else if (col === 'allocated_quantity') {
+            totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
+          } else if (col === 'updated_quantity') {
+            totalsRow[columnMapping[col].header] = totals.updatedQuantity.toFixed(2);
+          } else if (col === 'rate') {
+            totalsRow[columnMapping[col].header] = "-";
+          } else if (col === 'buyAmount') {
+            totalsRow[columnMapping[col].header] = `₹${totals.buyAmount.toFixed(2)}`;
+          } else if (col === 'soldAmount') {
+            totalsRow[columnMapping[col].header] = `₹${totals.soldAmount.toFixed(2)}`;
+          } else if (col === 'total_amount') {
+            totalsRow[columnMapping[col].header] = `₹${totals.totalAmount.toFixed(2)}`;
+          }
+        } else {
+          // Main table totals
+          if (col === 'sno') {
+            totalsRow[columnMapping[col].header] = "कुल";
+          } else if (col === 'reportId') {
+            totalsRow[columnMapping[col].header] = totals.totalReports;
+          } else if (col === 'centerName' || col === 'sourceOfReceipt' || 
+                     col === 'reportDate' || col === 'status') {
+            totalsRow[columnMapping[col].header] = "";
+          } else if (col === 'totalItems') {
+            totalsRow[columnMapping[col].header] = totals.totalItems;
+          } else if (col === 'totalAmount') {
+            totalsRow[columnMapping[col].header] = `₹${totals.totalAmount.toFixed(2)}`;
+          }
+        }
+      });
+      
+      excelData.push(totalsRow);
     }
-    
-    // Add totals row
-    const totalsRow = {};
-    selectedColumns.forEach(col => {
-      if (parentReport) {
-        // Component table totals
-        if (col === 'reportId') {
-          totalsRow[columnMapping[col].header] = "कुल";
-        } else if (col === 'component' || col === 'investment_name' || 
-                   col === 'unit' || col === 'scheme_name') {
-          totalsRow[columnMapping[col].header] = "";
-        } else if (col === 'allocated_quantity') {
-          totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
-        } else if (col === 'updated_quantity') {
-          totalsRow[columnMapping[col].header] = totals.updatedQuantity.toFixed(2);
-        } else if (col === 'rate') {
-          totalsRow[columnMapping[col].header] = "-";
-        } else if (col === 'buyAmount') {
-          totalsRow[columnMapping[col].header] = `₹${totals.buyAmount.toFixed(2)}`;
-        } else if (col === 'soldAmount') {
-          totalsRow[columnMapping[col].header] = `₹${totals.soldAmount.toFixed(2)}`;
-        } else if (col === 'total_amount') {
-          totalsRow[columnMapping[col].header] = `₹${totals.totalAmount.toFixed(2)}`;
-        }
-      } else {
-        // Main table totals
-        if (col === 'sno') {
-          totalsRow[columnMapping[col].header] = "कुल";
-        } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
-                   col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name' || 
-                   col === 'reportDate' || col === 'status' || col === 'totalItems') {
-          totalsRow[columnMapping[col].header] = "";
-        } else if (col === 'rate') {
-          totalsRow[columnMapping[col].header] = "-";
-        } else if (col === 'allocated_quantity') {
-          totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
-        } else if (col === 'allocated_amount') {
-          totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
-        } else if (col === 'updated_quantity') {
-          totalsRow[columnMapping[col].header] = totals.updatedQuantity.toFixed(2);
-        } else if (col === 'updated_amount') {
-          totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
-        } else if (col === 'totalAmount') {
-          totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
-        }
-      }
-    });
-    
-    excelData.push(totalsRow);
     
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(excelData);
@@ -635,16 +637,18 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
     const colWidths = selectedColumns.map(() => ({ wch: 15 }));
     ws['!cols'] = colWidths;
     
-    // Style the totals row
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    const totalsRowNum = range.e.r; // Last row
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
-      if (!ws[cellAddress]) continue;
-      ws[cellAddress].s = {
-        font: { bold: true },
-        fill: { fgColor: { rgb: "FFFFAA00" } }
-      };
+    // Style the totals row if it exists
+    if (includeTotals && excelData.length > 0) {
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const totalsRowNum = range.e.r; // Last row
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: totalsRowNum, c: C });
+        if (!ws[cellAddress]) continue;
+        ws[cellAddress].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "FFFFAA00" } }
+        };
+      }
     }
     
     XLSX.utils.book_append_sheet(wb, ws, "Data");
@@ -656,13 +660,8 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
 };
   
   // Generic download PDF function for main table
-  const downloadMainTablePdf = (data, filename, selectedColumns, title, totals = null) => {
+  const downloadMainTablePdf = (data, filename, selectedColumns, title, includeTotals = true) => {
     try {
-      // If totals is not provided, calculate it from data
-      if (!totals) {
-        totals = calculateMainTableTotals(data);
-      }
-      
       // Create headers and rows based on selected columns
       const headers = selectedColumns.map(col => `<th>${mainTableColumnMapping[col].header}</th>`).join('');
       const rows = data.map((item, index) => {
@@ -670,33 +669,37 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
         return `<tr>${cells}</tr>`;
       }).join('');
       
-      // Create totals row
+      // Create totals row if requested
       let totalsRow = '';
-      if (totals) {
+      if (includeTotals) {
+        const totals = data.reduce((acc, item) => {
+          acc.totalReports += 1;
+          acc.totalAmount += parseFloat(item.total_amount || 0);
+          acc.totalItems += item.component_data ? item.component_data.length : 0;
+          return acc;
+        }, { 
+          totalReports: 0,
+          totalAmount: 0, 
+          totalItems: 0
+        });
+        
         const totalsCells = selectedColumns.map(col => {
           if (col === 'sno') {
-            return `<td>कुल</td>`;
-          } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
-                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name' || 
-                     col === 'reportDate' || col === 'status' || col === 'totalItems') {
+            return `<td class="text-end fw-bold">कुल</td>`;
+          } else if (col === 'reportId') {
+            return `<td>${totals.totalReports}</td>`;
+          } else if (col === 'centerName' || col === 'sourceOfReceipt' || 
+                     col === 'reportDate' || col === 'status') {
             return `<td></td>`;
-          } else if (col === 'rate') {
-            return `<td>-</td>`;
-          } else if (col === 'allocated_quantity') {
-            return `<td>${totals.allocatedQuantity.toFixed(2)}</td>`;
-          } else if (col === 'allocated_amount') {
-            return `<td>${formatCurrency(totals.allocated)}</td>`;
-          } else if (col === 'updated_quantity') {
-            return `<td>${totals.updatedQuantity.toFixed(2)}</td>`;
-          } else if (col === 'updated_amount') {
-            return `<td>${formatCurrency(totals.updated)}</td>`;
+          } else if (col === 'totalItems') {
+            return `<td>${totals.totalItems}</td>`;
           } else if (col === 'totalAmount') {
-            return `<td>${formatCurrency(totals.updated)}</td>`;
+            return `<td class="fw-bold">${formatCurrency(totals.totalAmount)}</td>`;
           }
           return `<td></td>`;
         }).join('');
         
-        totalsRow = `<tr class="totals-row">${totalsCells}</tr>`;
+        totalsRow = `<tr style="background-color: #e3f2fd; font-weight: bold;">${totalsCells}</tr>`;
       }
 
       const tableHtml = `
@@ -736,7 +739,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                 font-weight: bold; 
               }
               .totals-row { 
-                background-color: #f2f2f2; 
+                background-color: #e3f2fd; 
                 font-weight: bold;
               }
               @media print {
@@ -809,7 +812,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
       let totalsRow = '';
       const totalsCells = selectedColumns.map(col => {
         if (col === 'reportId') {
-          return `<td>कुल</td>`; // Only show "कुल" in Report ID column
+          return `<td class="fw-bold">कुल</td>`; // Only show "कुल" in Report ID column
         } else if (col === 'component' || col === 'investment_name' || 
                    col === 'unit' || col === 'scheme_name') {
           return `<td></td>`; // Empty cells for text columns
@@ -824,12 +827,12 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
         } else if (col === 'soldAmount') {
           return `<td>₹${totals.soldAmount.toFixed(2)}</td>`;
         } else if (col === 'total_amount') {
-          return `<td>₹${totals.totalAmount.toFixed(2)}</td>`;
+          return `<td class="fw-bold">₹${totals.totalAmount.toFixed(2)}</td>`;
         }
         return `<td></td>`;
       }).join('');
       
-      totalsRow = `<tr class="totals-row">${totalsCells}</tr>`;
+      totalsRow = `<tr style="background-color: #e8f5e8; font-weight: bold;">${totalsCells}</tr>`;
       
       const tableHtml = `
         <html>
@@ -867,7 +870,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                   font-weight: bold; 
                 }
                 .totals-row { 
-                  background-color: #f2f2f2; 
+                  background-color: #e8f5e8; 
                   font-weight: bold;
                 }
                 @media print {
@@ -1397,7 +1400,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                         `MPR_${filters.month || 'All'}_${filters.year || 'All'}_${new Date().toISOString().slice(0, 10)}`, 
                         mainTableColumnMapping, 
                         selectedColumns,
-                        null, // Don't include totals
+                        true, // Include totals
                         null // No parent report for main table
                       )}
                       className="me-2"
@@ -1424,8 +1427,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                           {selectedColumns.includes('reportDate') && <th>{translations.reportDate}</th>}
                           {selectedColumns.includes('status') && <th>{translations.status}</th>}
                           {selectedColumns.includes('totalItems') && <th>{translations.totalItems}</th>}
-                          <th>{translations.viewDetails}</th>
-                          <th>{translations.viewReceipt}</th>
+                          {selectedColumns.includes('totalAmount') && <th>{translations.totalAmount}</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -1451,34 +1453,14 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                                   <Badge bg="info">{item.component_data ? item.component_data.length : 0}</Badge>
                                 </td>
                               )}
-                              <td data-label={translations.viewDetails}>
-                                <Button 
-                                  variant="outline-primary" 
-                                  size="sm" 
-                                  onClick={() => toggleReportDetails(item.id)}
-                                  disabled={!item.component_data || item.component_data.length === 0}
-                                  className="small-fonts"
-                                >
-                                  {translations.viewDetails}
-                                </Button>
-                              </td>
-                              <td data-label={translations.viewReceipt}>
-                                {item.recipt_file ? (
-                                  <Button
-                                    variant="outline-success"
-                                    size="sm"
-                                    onClick={() => viewReceipt(item.recipt_file)}
-                                    className="small-fonts"
-                                  >
-                                    {translations.viewReceipt}
-                                  </Button>
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </td>
+                              {selectedColumns.includes('totalAmount') && (
+                                <td data-label={translations.totalAmount}>
+                                  {formatCurrency(item.total_amount || 0)}
+                                </td>
+                              )}
                             </tr>
                             <tr>
-                              <td colSpan="9" className="p-0">
+                              <td colSpan="7" className="p-0">
                                 <Collapse in={expandedReports[item.id]}>
                                   <div className="p-3 bg-light">
                                     <h5 className="mb-3">{translations.component}</h5>
@@ -1500,7 +1482,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                                           `Component_${item.bill_report_id}_${new Date().toISOString().slice(0, 10)}`, 
                                           componentColumnMapping, 
                                           selectedComponentColumns,
-                                          null, // Don't include totals
+                                          true, // Include totals
                                           item // Pass the parent report as the last parameter
                                         )}
                                         className="me-2"
@@ -1594,10 +1576,22 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, totals = 
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr>
-                          <td colSpan={selectedColumns.filter(col => col !== 'totalAmount').length + 2} className="text-end fw-bold">{translations.total}</td>
-                          <td>{formatCurrency(monthlyData.reduce((sum, item) => sum + (item.total_amount || 0), 0))}</td>
-                          <td></td>
+                        <tr className="table-primary fw-bold">
+                          {selectedColumns.map(col => {
+                            if (col === 'sno') {
+                              return <td key={col} className="text-end">{translations.total}</td>;
+                            } else if (col === 'reportId') {
+                              return <td key={col}>{monthlyData.length}</td>;
+                            } else if (col === 'centerName' || col === 'sourceOfReceipt' || 
+                                       col === 'reportDate' || col === 'status') {
+                              return <td key={col}></td>;
+                            } else if (col === 'totalItems') {
+                              return <td key={col}>{monthlyData.reduce((sum, item) => sum + (item.component_data ? item.component_data.length : 0), 0)}</td>;
+                            } else if (col === 'totalAmount') {
+                              return <td key={col}>{formatCurrency(monthlyData.reduce((sum, item) => sum + (item.total_amount || 0), 0))}</td>;
+                            }
+                            return <td key={col}></td>;
+                          })}
                         </tr>
                       </tfoot>
                     </table>

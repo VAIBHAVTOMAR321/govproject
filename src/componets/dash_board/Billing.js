@@ -71,7 +71,7 @@ const translations = {
   component: "घटक",
   investmentName: "निवेश का नाम",
   unit: "इकाई",
-  sourceOfReceipt: "रसीद का स्रोत",
+  sourceOfReceipt: "प्राप्ति का स्रोत",
   allocatedQuantity: "आवंटित मात्रा",
   rate: "दर",
   sno: "क्र.सं.",

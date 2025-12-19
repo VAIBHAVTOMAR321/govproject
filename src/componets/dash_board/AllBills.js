@@ -52,7 +52,7 @@ const translations = {
   filters: "फिल्टर",
   clearAllFilters: "सभी फिल्टर हटाएं",
   centerName: "केंद्र का नाम",
-  sourceOfReceipt: "रसीद का स्रोत",
+  sourceOfReceipt: "प्राप्ति का स्रोत",
   sno: "क्र.सं.",
   reportId: "रिपोर्ट आईडी",
   billId: "बिल आईडी", // Updated to show in Hindi
