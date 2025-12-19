@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Row, Col, Form, Button, Spinner, Alert, Card, OverlayTrigger, Tooltip, Badge, Table, Pagination } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Spinner, Alert, Card, OverlayTrigger, Tooltip, Badge, Table, Pagination, Collapse } from "react-bootstrap";
 import { FaArrowLeft, FaTimes, FaFileExcel, FaFilePdf } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
@@ -1291,6 +1291,19 @@ const Graph = () => {
     filterType: ""
   });
 
+  // State for bills view (when sold filter is active)
+  const [showBillsView, setShowBillsView] = useState(false);
+  const [billsViewData, setBillsViewData] = useState({
+    title: "",
+    data: [],
+    category: "",
+    categoryValue: ""
+  });
+  
+  // State for bills data and loading
+  const [billsData, setBillsData] = useState([]);
+  const [billsLoading, setBillsLoading] = useState(false);
+
   // New filter states for comparison
   const [dataViewFilter, setDataViewFilter] = useState("allocated"); // allocated, sold, remaining, comparison
   const [dataTypeFilter, setDataTypeFilter] = useState("quantity"); // quantity, value
@@ -1299,6 +1312,25 @@ const Graph = () => {
 
   // State for selected columns for DetailView
   const [selectedDetailColumns, setSelectedDetailColumns] = useState(detailViewColumns.map(col => col.key));
+
+  // State for bills filtering and pagination
+  const [billsFilters, setBillsFilters] = useState({
+    center_name: [],
+    source_of_receipt: [],
+    bill_id: [],
+    status: [],
+    dateFrom: '',
+    dateTo: ''
+  });
+  const [billsCurrentPage, setBillsCurrentPage] = useState(1);
+  const [billsItemsPerPage] = useState(10);
+  const [billsExpandedReports, setBillsExpandedReports] = useState({});
+  const [billsSelectedColumns, setBillsSelectedColumns] = useState([
+    'reportId', 'centerName', 'sourceOfReceipt', 'reportDate', 'status', 'totalItems', 'buyAmount'
+  ]);
+  const [billsSelectedComponentColumns, setBillsSelectedComponentColumns] = useState([
+    'reportId', 'component', 'investment_name', 'unit', 'allocated_quantity', 'rate', 'updated_quantity', 'buyAmount', 'scheme_name'
+  ]);
 
   // Check device width
   useEffect(() => {
@@ -1348,7 +1380,78 @@ const Graph = () => {
     fetchBillingData();
   }, []);
 
+  // Fetch bills data when bills view is needed
+  useEffect(() => {
+    if (showBillsView && billsData.length === 0) {
+      const fetchBillsData = async () => {
+        try {
+          setBillsLoading(true);
+          const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/report-billing-items/");
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          setBillsData(data);
+        } catch (e) {
+          console.error('Error fetching bills data:', e);
+        } finally {
+          setBillsLoading(false);
+        }
+      };
+
+      fetchBillsData();
+    }
+  }, [showBillsView, billsData.length]);
+
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // Helper function to calculate report totals from component_data
+  const calculateReportBuyAmount = (item) => {
+    return item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0) || 0;
+  };
+
+  // Helper function to format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('hi-IN');
+  };
+
+  // Get filtered bills data based on category and value
+  const getFilteredBillsData = () => {
+    if (!billsViewData.category || !billsViewData.categoryValue) {
+      return billsData;
+    }
+
+    return billsData.filter(item => {
+      // Filter based on the category and value
+      switch (billsViewData.category) {
+        case 'center_name':
+          return item.center_name === billsViewData.categoryValue;
+        case 'source_of_receipt':
+          return item.source_of_receipt === billsViewData.categoryValue;
+        case 'component':
+          return item.component_data?.some(comp => comp.component === billsViewData.categoryValue);
+        case 'investment_name':
+          return item.component_data?.some(comp => comp.investment_name === billsViewData.categoryValue);
+        case 'scheme_name':
+          return item.component_data?.some(comp => comp.scheme_name === billsViewData.categoryValue);
+        case 'unit':
+          return item.component_data?.some(comp => comp.unit === billsViewData.categoryValue);
+        default:
+          return true;
+      }
+    });
+  };
 
   // Handler for clicking category cards
   const handleCategoryCardClick = (category) => {
@@ -1382,6 +1485,17 @@ const Graph = () => {
 
   // Handler for clicking on a graph bar
   const handleBarClick = (name, value, type = null, chartType = null) => {
+    // If sold filter is active, show bills view instead of detail view
+    if (dataViewFilter === 'sold') {
+      setBillsViewData({
+        title: `${name} - बेचे गए आइटम्स के बिल`,
+        category: chartType || 'center_name',
+        categoryValue: name
+      });
+      setShowBillsView(true);
+      return;
+    }
+
     // Find the data for the clicked bar
     let chartData = [];
     
@@ -1647,6 +1761,788 @@ const Graph = () => {
       </Col>
     ));
   };
+
+  // Bills View Component for showing bills when sold filter is active
+  const BillsView = ({ title, onBack, category, categoryValue }) => {
+    const filteredBillsData = getFilteredBillsData();
+    const [billsExpandedReportsLocal, setBillsExpandedReportsLocal] = useState({});
+    const [currentPageLocal, setCurrentPageLocal] = useState(1);
+    const [localBillsSelectedColumns, setLocalBillsSelectedColumns] = useState([
+      'reportId', 'centerName', 'sourceOfReceipt', 'reportDate', 'status', 'totalItems', 'buyAmount'
+    ]);
+    
+    // Use local state if billsSelectedColumns is not provided
+    const effectiveBillsSelectedColumns = localBillsSelectedColumns;
+    
+    const indexOfLastItem = currentPageLocal * billsItemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - billsItemsPerPage;
+    const paginatedBillsData = filteredBillsData.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredBillsData.length / billsItemsPerPage);
+
+    const toggleReportDetails = (reportId) => {
+      setBillsExpandedReportsLocal(prev => ({
+        ...prev,
+        [reportId]: !prev[reportId]
+      }));
+    };
+
+    // Excel download function
+    const downloadExcel = () => {
+      try {
+        // Prepare data for Excel export based on selected columns
+        const excelData = filteredBillsData.map(item => {
+          const row = {};
+          effectiveBillsSelectedColumns.forEach(col => {
+            switch (col) {
+              case 'reportId':
+                row['रिपोर्ट आईडी'] = item.bill_report_id;
+                break;
+              case 'centerName':
+                row['केंद्र का नाम'] = item.center_name;
+                break;
+              case 'sourceOfReceipt':
+                row['प्राप्ति का स्रोत'] = item.source_of_receipt;
+                break;
+              case 'reportDate':
+                row['रिपोर्ट दिनांक'] = formatDate(item.billing_date);
+                break;
+              case 'status':
+                row['स्थिति'] = item.status === 'accepted' ? 'स्वीकृत' : 
+                               item.status === 'cancelled' ? 'रद्द' : item.status;
+                break;
+              case 'totalItems':
+                row['कुल आइटम'] = item.component_data.length;
+                break;
+              case 'buyAmount':
+                row['खरीद राशि'] = item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0);
+                break;
+            }
+          });
+          return row;
+        });
+
+        // Calculate totals
+        const totalItems = filteredBillsData.reduce((sum, item) => sum + (item.component_data?.length || 0), 0);
+        const totalBuyAmount = filteredBillsData.reduce((sum, item) => sum + calculateReportBuyAmount(item), 0);
+        
+        // Add total row
+        const totalRow = {};
+        effectiveBillsSelectedColumns.forEach(col => {
+          if (col === 'reportId') {
+            totalRow['रिपोर्ट आईडी'] = 'कुल';
+          } else if (col === 'totalItems') {
+            totalRow['कुल आइटम'] = totalItems;
+          } else if (col === 'buyAmount') {
+            totalRow['खरीद राशि'] = totalBuyAmount;
+          } else {
+            totalRow[col === 'centerName' ? 'केंद्र का नाम' : 
+                   col === 'sourceOfReceipt' ? 'प्राप्ति का स्रोत' :
+                   col === 'reportDate' ? 'रिपोर्ट दिनांक' :
+                   col === 'status' ? 'स्थिति' : ''] = '';
+          }
+        });
+        excelData.push(totalRow);
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        XLSX.utils.book_append_sheet(wb, ws, "Bills");
+        XLSX.writeFile(wb, `${title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      } catch (e) {
+        console.error("Error generating Excel file:", e);
+      }
+    };
+
+    // PDF download function
+    const downloadPdf = () => {
+      try {
+        // Create headers and rows based on selected columns
+        const headers = effectiveBillsSelectedColumns.map(col => {
+          switch (col) {
+            case 'reportId': return '<th>रिपोर्ट आईडी</th>';
+            case 'centerName': return '<th>केंद्र का नाम</th>';
+            case 'sourceOfReceipt': return '<th>प्राप्ति का स्रोत</th>';
+            case 'reportDate': return '<th>रिपोर्ट दिनांक</th>';
+            case 'status': return '<th>स्थिति</th>';
+            case 'totalItems': return '<th>कुल आइटम</th>';
+            case 'buyAmount': return '<th>खरीद राशि</th>';
+            default: return '';
+          }
+        }).join('');
+
+        const rows = filteredBillsData.map(item => {
+          const cells = effectiveBillsSelectedColumns.map(col => {
+            switch (col) {
+              case 'reportId': return `<td>${item.bill_report_id}</td>`;
+              case 'centerName': return `<td>${item.center_name}</td>`;
+              case 'sourceOfReceipt': return `<td>${item.source_of_receipt}</td>`;
+              case 'reportDate': return `<td>${formatDate(item.billing_date)}</td>`;
+              case 'status': return `<td>${item.status === 'accepted' ? 'स्वीकृत' : 
+                                           item.status === 'cancelled' ? 'रद्द' : item.status}</td>`;
+              case 'totalItems': return `<td>${item.component_data.length}</td>`;
+              case 'buyAmount': return `<td>${item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0)}</td>`;
+              default: return '<td></td>';
+            }
+          }).join('');
+          return `<tr>${cells}</tr>`;
+        }).join('');
+
+        // Calculate totals
+        const totalItems = filteredBillsData.reduce((sum, item) => sum + (item.component_data?.length || 0), 0);
+        const totalBuyAmount = filteredBillsData.reduce((sum, item) => sum + calculateReportBuyAmount(item), 0);
+        
+        // Create total row
+        const totalCells = effectiveBillsSelectedColumns.map(col => {
+          if (col === 'reportId') return '<td><strong>कुल</strong></td>';
+          else if (col === 'totalItems') return `<td><strong>${totalItems}</strong></td>`;
+          else if (col === 'buyAmount') return `<td><strong>${totalBuyAmount}</strong></td>`;
+          else return '<td></td>';
+        }).join('');
+        const totalRow = `<tr>${totalCells}</tr>`;
+
+        const tableHtml = `
+          <html>
+            <head>
+              <style>
+                table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <h2>${title}</h2>
+              <table>
+                <tr>${headers}</tr>
+                ${rows}
+                ${totalRow}
+              </table>
+            </body>
+          </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(tableHtml);
+        printWindow.document.close();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      } catch (e) {
+        console.error("Error generating PDF:", e);
+      }
+    };
+
+    // Component Excel download function
+    const downloadComponentExcel = (componentData, reportId) => {
+      try {
+        const excelData = componentData.map(item => {
+          const row = {};
+          billsSelectedComponentColumns.forEach(col => {
+            switch (col) {
+              case 'reportId':
+                row['रिपोर्ट आईडी'] = item.bill_report_id || reportId;
+                break;
+              case 'component':
+                row['घटक'] = item.component;
+                break;
+              case 'investment_name':
+                row['निवेश का नाम'] = item.investment_name;
+                break;
+              case 'unit':
+                row['इकाई'] = item.unit;
+                break;
+              case 'allocated_quantity':
+                row['आवंटित मात्रा'] = item.allocated_quantity;
+                break;
+              case 'rate':
+                row['दर'] = item.rate;
+                break;
+              case 'updated_quantity':
+                row['अपडेट की गई मात्रा'] = item.updated_quantity;
+                break;
+              case 'buyAmount':
+                row['खरीद राशि'] = item.buy_amount;
+                break;
+              case 'scheme_name':
+                row['योजना का नाम'] = item.scheme_name;
+                break;
+            }
+          });
+          return row;
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        XLSX.utils.book_append_sheet(wb, ws, "Components");
+        XLSX.writeFile(wb, `Components_${reportId}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      } catch (e) {
+        console.error("Error generating component Excel file:", e);
+      }
+    };
+
+    // Component PDF download function
+    const downloadComponentPdf = (componentData, reportId) => {
+      try {
+        const headers = billsSelectedComponentColumns.map(col => {
+          switch (col) {
+            case 'reportId': return '<th>रिपोर्ट आईडी</th>';
+            case 'component': return '<th>घटक</th>';
+            case 'investment_name': return '<th>निवेश का नाम</th>';
+            case 'unit': return '<th>इकाई</th>';
+            case 'allocated_quantity': return '<th>आवंटित मात्रा</th>';
+            case 'rate': return '<th>दर</th>';
+            case 'updated_quantity': return '<th>अपडेट की गई मात्रा</th>';
+            case 'buyAmount': return '<th>खरीद राशि</th>';
+            case 'scheme_name': return '<th>योजना का नाम</th>';
+            default: return '';
+          }
+        }).join('');
+
+        const rows = componentData.map(item => {
+          const cells = billsSelectedComponentColumns.map(col => {
+            switch (col) {
+              case 'reportId': return `<td>${item.bill_report_id || reportId}</td>`;
+              case 'component': return `<td>${item.component}</td>`;
+              case 'investment_name': return `<td>${item.investment_name}</td>`;
+              case 'unit': return `<td>${item.unit}</td>`;
+              case 'allocated_quantity': return `<td>${item.allocated_quantity}</td>`;
+              case 'rate': return `<td>${item.rate}</td>`;
+              case 'updated_quantity': return `<td>${item.updated_quantity}</td>`;
+              case 'buyAmount': return `<td>${item.buy_amount}</td>`;
+              case 'scheme_name': return `<td>${item.scheme_name}</td>`;
+              default: return '<td></td>';
+            }
+          }).join('');
+          return `<tr>${cells}</tr>`;
+        }).join('');
+
+        const tableHtml = `
+          <html>
+            <head>
+              <style>
+                table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <h2>घटक विवरण - ${reportId}</h2>
+              <table>
+                <tr>${headers}</tr>
+                ${rows}
+              </table>
+            </body>
+          </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(tableHtml);
+        printWindow.document.close();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      } catch (e) {
+        console.error("Error generating component PDF:", e);
+      }
+    };
+
+    const getStatusBadgeVariant = (status) => {
+      switch (status) {
+        case 'accepted':
+          return 'success';
+        case 'cancelled':
+          return 'danger';
+        default:
+          return 'secondary';
+      }
+    };
+
+    // Build pagination items
+    const paginationItems = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPageLocal - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    if (startPage > 1) {
+      paginationItems.push(<Pagination.Item key={1} onClick={() => setCurrentPageLocal(1)}>1</Pagination.Item>);
+      if (startPage > 2) {
+        paginationItems.push(<Pagination.Ellipsis key="start-ellipsis" disabled />);
+      }
+    }
+    
+    for (let number = startPage; number <= endPage; number++) {
+      paginationItems.push(
+        <Pagination.Item 
+          key={number} 
+          active={number === currentPageLocal}
+          onClick={() => setCurrentPageLocal(number)}
+        >
+          {number}
+        </Pagination.Item>
+      );
+    }
+    
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        paginationItems.push(<Pagination.Ellipsis key="end-ellipsis" disabled />);
+      }
+      paginationItems.push(<Pagination.Item key={totalPages} onClick={() => setCurrentPageLocal(totalPages)}>{totalPages}</Pagination.Item>);
+    }
+
+    if (billsLoading) {
+      return (
+        <div className="dashboard-container">
+          <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
+          <div className="main-content">
+            <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+            <Container fluid className="dashboard-body">
+              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+                <Spinner animation="border" />
+              </div>
+            </Container>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="dashboard-container">
+        <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
+        <div className="main-content">
+          <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+          <Container fluid className="dashboard-body">
+            <Card className="detail-view-card">
+              <Card.Header className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">{title}</h5>
+                <div className="d-flex gap-2">
+                  <Button variant="outline-success" size="sm" onClick={downloadExcel}>
+                    <FaFileExcel className="me-1" /> {translations.downloadExcel}
+                  </Button>
+                  <Button variant="outline-danger" size="sm" onClick={downloadPdf}>
+                    <FaFilePdf className="me-1" /> {translations.downloadPdf}
+                  </Button>
+                  <Button variant="outline-secondary" size="sm" onClick={onBack}>
+                    <FaArrowLeft className="me-1" /> {translations.backToGraph}
+                  </Button>
+                </div>
+              </Card.Header>
+              <Card.Body>
+                <div className="table-info mb-2 d-flex justify-content-between align-items-center">
+                  <span className="small-fonts">
+                    {translations.showing} {indexOfFirstItem + 1} {translations.to} {Math.min(indexOfLastItem, filteredBillsData.length)} {translations.of} {filteredBillsData.length} {translations.entries}
+                  </span>
+                  <span className="small-fonts">
+                    {translations.page} {currentPageLocal} {translations.of} {totalPages}
+                  </span>
+                </div>
+                
+                {/* Column Selection Section */}
+                <div className="column-selection mb-4 p-3 border rounded bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="small-fonts mb-0">{translations.selectColumns}</h5>
+                    <div>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm" 
+                        onClick={() => setLocalBillsSelectedColumns(['reportId', 'centerName', 'sourceOfReceipt', 'reportDate', 'status', 'totalItems', 'buyAmount'])}
+                        className="me-2 small-fonts"
+                      >
+                        {translations.selectAll}
+                      </Button>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm" 
+                        onClick={() => setLocalBillsSelectedColumns([])}
+                        className="small-fonts"
+                      >
+                        {translations.deselectAll}
+                      </Button>
+                    </div>
+                  </div>
+                  <Row>
+                    <Col>
+                      <div className="d-flex flex-wrap">
+                        <Form.Check
+                          type="checkbox"
+                          id="col-reportId"
+                          label="रिपोर्ट आईडी"
+                          checked={effectiveBillsSelectedColumns.includes('reportId')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'reportId']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'reportId'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id="col-centerName"
+                          label="केंद्र का नाम"
+                          checked={effectiveBillsSelectedColumns.includes('centerName')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'centerName']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'centerName'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id="col-sourceOfReceipt"
+                          label="प्राप्ति का स्रोत"
+                          checked={effectiveBillsSelectedColumns.includes('sourceOfReceipt')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'sourceOfReceipt']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'sourceOfReceipt'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id="col-reportDate"
+                          label="रिपोर्ट दिनांक"
+                          checked={effectiveBillsSelectedColumns.includes('reportDate')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'reportDate']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'reportDate'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id="col-status"
+                          label="स्थिति"
+                          checked={effectiveBillsSelectedColumns.includes('status')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'status']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'status'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id="col-totalItems"
+                          label="कुल आइटम"
+                          checked={effectiveBillsSelectedColumns.includes('totalItems')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'totalItems']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'totalItems'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id="col-buyAmount"
+                          label="खरीद राशि"
+                          checked={effectiveBillsSelectedColumns.includes('buyAmount')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setLocalBillsSelectedColumns([...effectiveBillsSelectedColumns, 'buyAmount']);
+                            } else {
+                              setLocalBillsSelectedColumns(effectiveBillsSelectedColumns.filter(c => c !== 'buyAmount'));
+                            }
+                          }}
+                          className="me-3 small-fonts"
+                        />
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+                
+                {filteredBillsData.length > 0 ? (
+                  <>
+                    <div className="table-responsive">
+                      <table className="responsive-table small-fonts">
+                        <thead>
+                          <tr>
+                            <th>क्र.सं.</th>
+                            {effectiveBillsSelectedColumns.includes('reportId') && <th>रिपोर्ट आईडी</th>}
+                            {effectiveBillsSelectedColumns.includes('centerName') && <th>केंद्र का नाम</th>}
+                            {effectiveBillsSelectedColumns.includes('sourceOfReceipt') && <th>प्राप्ति का स्रोत</th>}
+                            {effectiveBillsSelectedColumns.includes('reportDate') && <th>रिपोर्ट दिनांक</th>}
+                            {effectiveBillsSelectedColumns.includes('status') && <th>स्थिति</th>}
+                            {effectiveBillsSelectedColumns.includes('totalItems') && <th>कुल आइटम</th>}
+                            {effectiveBillsSelectedColumns.includes('buyAmount') && <th>खरीद राशि</th>}
+                            <th>विवरण देखें</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedBillsData.map((item, index) => (
+                            <React.Fragment key={item.id}>
+                              <tr>
+                                <td data-label="क्र.सं.">{indexOfFirstItem + index + 1}</td>
+                                {effectiveBillsSelectedColumns.includes('reportId') && <td data-label="रिपोर्ट आईडी">{item.bill_report_id}</td>}
+                                {effectiveBillsSelectedColumns.includes('centerName') && <td data-label="केंद्र का नाम">{item.center_name}</td>}
+                                {effectiveBillsSelectedColumns.includes('sourceOfReceipt') && <td data-label="प्राप्ति का स्रोत">{item.source_of_receipt}</td>}
+                                {effectiveBillsSelectedColumns.includes('reportDate') && <td data-label="रिपोर्ट दिनांक">{formatDate(item.billing_date)}</td>}
+                                {effectiveBillsSelectedColumns.includes('status') && <td data-label="स्थिति">
+                                  <Badge bg={getStatusBadgeVariant(item.status)}>
+                                    {item.status === 'accepted' ? 'स्वीकृत' : 
+                                     item.status === 'cancelled' ? 'रद्द' : item.status}
+                                  </Badge>
+                                </td>}
+                                {effectiveBillsSelectedColumns.includes('totalItems') && <td data-label="कुल आइटम">
+                                  <Badge bg="info">{item.component_data.length}</Badge>
+                                </td>}
+                                {effectiveBillsSelectedColumns.includes('buyAmount') && <td data-label="खरीद राशि">
+                                  {item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0)}
+                                </td>}
+                                <td data-label="विवरण देखें">
+                                  <Button 
+                                    variant="outline-primary" 
+                                    size="sm" 
+                                    onClick={() => toggleReportDetails(item.id)}
+                                    className="small-fonts"
+                                  >
+                                    विवरण देखें
+                                  </Button>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td colSpan={effectiveBillsSelectedColumns.length + 2} className="p-0">
+                                  <Collapse in={billsExpandedReportsLocal[item.id]}>
+                                    <div className="p-3 bg-light">
+                                      <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 className="mb-0">घटक विवरण</h5>
+                                        <div>
+                                          <div className="column-selection mb-2">
+                                            <h6 className="small-fonts mb-2">कॉलम चुनें</h6>
+                                            <div className="d-flex flex-wrap">
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-reportId"
+                                                label="रिपोर्ट आईडी"
+                                                checked={billsSelectedComponentColumns.includes('reportId')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'reportId']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'reportId'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-component"
+                                                label="घटक"
+                                                checked={billsSelectedComponentColumns.includes('component')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'component']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'component'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-investment_name"
+                                                label="निवेश का नाम"
+                                                checked={billsSelectedComponentColumns.includes('investment_name')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'investment_name']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'investment_name'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-unit"
+                                                label="इकाई"
+                                                checked={billsSelectedComponentColumns.includes('unit')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'unit']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'unit'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-allocated_quantity"
+                                                label="आवंटित मात्रा"
+                                                checked={billsSelectedComponentColumns.includes('allocated_quantity')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'allocated_quantity']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'allocated_quantity'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-rate"
+                                                label="दर"
+                                                checked={billsSelectedComponentColumns.includes('rate')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'rate']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'rate'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-updated_quantity"
+                                                label="अपडेट की गई मात्रा"
+                                                checked={billsSelectedComponentColumns.includes('updated_quantity')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'updated_quantity']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'updated_quantity'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-buyAmount"
+                                                label="खरीद राशि"
+                                                checked={billsSelectedComponentColumns.includes('buyAmount')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'buyAmount']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'buyAmount'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                              <Form.Check
+                                                type="checkbox"
+                                                id="comp-scheme_name"
+                                                label="योजना का नाम"
+                                                checked={billsSelectedComponentColumns.includes('scheme_name')}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setBillsSelectedComponentColumns([...billsSelectedComponentColumns, 'scheme_name']);
+                                                  } else {
+                                                    setBillsSelectedComponentColumns(billsSelectedComponentColumns.filter(c => c !== 'scheme_name'));
+                                                  }
+                                                }}
+                                                className="me-3 small-fonts"
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {item.component_data.length > 0 ? (
+                                        <table className="table table-sm table-bordered">
+                                          <thead>
+                                            <tr>
+                                              {billsSelectedComponentColumns.includes('reportId') && <th>रिपोर्ट आईडी</th>}
+                                              {billsSelectedComponentColumns.includes('component') && <th>घटक</th>}
+                                              {billsSelectedComponentColumns.includes('investment_name') && <th>निवेश का नाम</th>}
+                                              {billsSelectedComponentColumns.includes('unit') && <th>इकाई</th>}
+                                              {billsSelectedComponentColumns.includes('allocated_quantity') && <th>आवंटित मात्रा</th>}
+                                              {billsSelectedComponentColumns.includes('rate') && <th>दर</th>}
+                                              {billsSelectedComponentColumns.includes('updated_quantity') && <th>अपडेट की गई मात्रा</th>}
+                                              {billsSelectedComponentColumns.includes('buyAmount') && <th>खरीद राशि</th>}
+                                              {billsSelectedComponentColumns.includes('scheme_name') && <th>योजना का नाम</th>}
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {item.component_data.map((component, compIndex) => (
+                                              <tr key={compIndex}>
+                                                {billsSelectedComponentColumns.includes('reportId') && <td>{item.bill_report_id}</td>}
+                                                {billsSelectedComponentColumns.includes('component') && <td>{component.component}</td>}
+                                                {billsSelectedComponentColumns.includes('investment_name') && <td>{component.investment_name}</td>}
+                                                {billsSelectedComponentColumns.includes('unit') && <td>{component.unit}</td>}
+                                                {billsSelectedComponentColumns.includes('allocated_quantity') && <td>{component.allocated_quantity}</td>}
+                                                {billsSelectedComponentColumns.includes('rate') && <td>{component.rate}</td>}
+                                                {billsSelectedComponentColumns.includes('updated_quantity') && <td>{component.updated_quantity}</td>}
+                                                {billsSelectedComponentColumns.includes('buyAmount') && <td>{component.buy_amount}</td>}
+                                                {billsSelectedComponentColumns.includes('scheme_name') && <td>{component.scheme_name}</td>}
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      ) : (
+                                        <Alert variant="info">कोई घटक डेटा उपलब्ध नहीं</Alert>
+                                      )}
+                                    </div>
+                                  </Collapse>
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {totalPages > 1 && (
+                      <div className="d-flex justify-content-center mt-3">
+                        <Pagination>
+                          <Pagination.Prev 
+                            disabled={currentPageLocal === 1} 
+                            onClick={() => setCurrentPageLocal(currentPageLocal - 1)}
+                          />
+                          {paginationItems}
+                          <Pagination.Next 
+                            disabled={currentPageLocal === totalPages} 
+                            onClick={() => setCurrentPageLocal(currentPageLocal + 1)}
+                          />
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Alert variant="info">इस चयन के लिए कोई बिल नहीं मिला।</Alert>
+                )}
+              </Card.Body>
+            </Card>
+          </Container>
+        </div>
+      </div>
+    );
+  };
+
+  // If showing bills view, render it instead of graph
+  if (showBillsView) {
+    return (
+      <BillsView 
+        title={billsViewData.title}
+        onBack={() => {
+          setShowBillsView(false);
+          setBillsViewData({ title: "", data: [], category: "", categoryValue: "" });
+        }}
+        category={billsViewData.category}
+        categoryValue={billsViewData.categoryValue}
+      />
+    );
+  }
 
   // If showing detail view, render it instead of graph
   if (showDetailView) {
