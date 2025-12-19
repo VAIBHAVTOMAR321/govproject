@@ -89,7 +89,6 @@ const translations = {
   rate: "दर",
   updatedQuantity: "अपडेट की गई मात्रा",
   buyAmount: "खरीद राशि",
-  soldAmount: "बेची गई राशि",
   schemeName: "योजना का नाम",
   totalItems: "कुल आइटम",
   // Pagination translations
@@ -130,7 +129,8 @@ const availableColumns = [
   { key: 'sourceOfReceipt', label: translations.sourceOfReceipt },
   { key: 'reportDate', label: translations.reportDate },
   { key: 'status', label: translations.status },
-  { key: 'totalItems', label: translations.totalItems }
+  { key: 'totalItems', label: translations.totalItems },
+  { key: 'buyAmount', label: translations.buyAmount }
 ];
 
 // Available columns for component download
@@ -143,7 +143,6 @@ const availableComponentColumns = [
   { key: 'rate', label: translations.rate },
   { key: 'updated_quantity', label: translations.updatedQuantity },
   { key: 'buyAmount', label: translations.buyAmount },
-  { key: 'soldAmount', label: translations.soldAmount },
   { key: 'scheme_name', label: translations.schemeName }
 ];
 
@@ -186,9 +185,13 @@ const columnMapping = {
   cut_quantity: { header: translations.cutQuantity, accessor: (item) => item.cut_quantity },
   rate: { header: translations.rate, accessor: (item) => item.rate },
   buyAmount: { header: translations.buyAmount, accessor: (item) => item.buy_amount },
-  soldAmount: { header: translations.soldAmount, accessor: (item) => item.sold_amount },
   total_bill: { header: translations.totalBill, accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate) },
   billing_date: { header: translations.billingDate, accessor: (item) => item.billing_date }
+};
+
+// Helper function to calculate report totals from component_data
+const calculateReportBuyAmount = (item) => {
+  return item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0) || 0;
 };
 
 // Column mapping for reports data access
@@ -199,7 +202,8 @@ const reportsColumnMapping = {
   sourceOfReceipt: { header: translations.sourceOfReceipt, accessor: (item) => item.source_of_receipt },
   reportDate: { header: translations.reportDate, accessor: (item) => formatDate(item.billing_date) },
   status: { header: translations.status, accessor: (item) => item.status === 'accepted' ? translations.accepted : item.status === 'cancelled' ? translations.cancelled : item.status },
-  totalItems: { header: translations.totalItems, accessor: (item) => item.component_data.length }
+  totalItems: { header: translations.totalItems, accessor: (item) => item.component_data.length },
+  buyAmount: { header: translations.buyAmount, accessor: (item) => calculateReportBuyAmount(item) }
 };
 
 const AllBills = () => {
@@ -361,6 +365,20 @@ useEffect(() => {
         return row;
       });
 
+      // Calculate totals for numeric columns
+      const totalItems = data.reduce((sum, item) => sum + (item.component_data?.length || 0), 0);
+      const totalBuyAmount = data.reduce((sum, item) => sum + calculateReportBuyAmount(item), 0);
+      
+      // Add total row
+      const totalRow = {};
+      selectedColumns.forEach(col => {
+        if (col === 'sno' || col === 'reportId') totalRow[reportsColumnMapping[col].header] = 'Total';
+        else if (col === 'totalItems') totalRow[reportsColumnMapping[col].header] = totalItems;
+        else if (col === 'buyAmount') totalRow[reportsColumnMapping[col].header] = totalBuyAmount;
+        else totalRow[reportsColumnMapping[col].header] = '';
+      });
+      excelData.push(totalRow);
+
       // Create a new workbook
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
@@ -387,6 +405,19 @@ useEffect(() => {
         return `<tr>${cells}</tr>`;
       }).join('');
 
+      // Calculate totals for numeric columns
+      const totalItems = data.reduce((sum, item) => sum + (item.component_data?.length || 0), 0);
+      const totalBuyAmount = data.reduce((sum, item) => sum + calculateReportBuyAmount(item), 0);
+      
+      // Create total row
+      const totalCells = selectedColumns.map(col => {
+        if (col === 'sno' || col === 'reportId') return '<td><strong>Total</strong></td>';
+        else if (col === 'totalItems') return `<td><strong>${totalItems}</strong></td>`;
+        else if (col === 'buyAmount') return `<td><strong>${totalBuyAmount}</strong></td>`;
+        else return '<td></td>';
+      }).join('');
+      const totalRow = `<tr>${totalCells}</tr>`;
+
       // Create a simple HTML table for PDF
       const tableHtml = `
         <html>
@@ -402,6 +433,7 @@ useEffect(() => {
             <table>
               <tr>${headers}</tr>
               ${rows}
+              ${totalRow}
             </table>
           </body>
         </html>
@@ -444,12 +476,11 @@ useEffect(() => {
         if (selectedComponentColumns.includes('rate')) acc.rate += parseFloat(comp.rate) || 0;
         if (selectedComponentColumns.includes('updatedQuantity')) acc.updated += parseFloat(comp.updated_quantity) || 0;
         if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.buy_amount) || 0;
-        if (selectedComponentColumns.includes('soldAmount')) acc.sold += parseFloat(comp.sold_amount) || 0;
         return acc;
-      }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+      }, { allocated: 0, rate: 0, updated: 0, buy: 0 });
 
       // Add total row if any totals are calculated
-      if (selectedComponentColumns.some(col => ['allocatedQuantity', 'rate', 'updatedQuantity', 'buyAmount', 'soldAmount'].includes(col))) {
+      if (selectedComponentColumns.some(col => ['allocatedQuantity', 'rate', 'updatedQuantity', 'buyAmount'].includes(col))) {
         const totalRow = {};
         selectedComponentColumns.forEach(col => {
           if (col === 'reportId') totalRow[columnMapping[col].header] = 'Total';
@@ -457,7 +488,6 @@ useEffect(() => {
           else if (col === 'rate') totalRow[columnMapping[col].header] = totals.rate;
           else if (col === 'updatedQuantity') totalRow[columnMapping[col].header] = totals.updated;
           else if (col === 'buyAmount') totalRow[columnMapping[col].header] = totals.buy;
-          else if (col === 'soldAmount') totalRow[columnMapping[col].header] = totals.sold;
           else totalRow[columnMapping[col].header] = '';
         });
         excelData.push(totalRow);
@@ -487,20 +517,18 @@ useEffect(() => {
         if (selectedComponentColumns.includes('rate')) acc.rate += parseFloat(comp.rate) || 0;
         if (selectedComponentColumns.includes('updatedQuantity')) acc.updated += parseFloat(comp.updated_quantity) || 0;
         if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.buy_amount) || 0;
-        if (selectedComponentColumns.includes('soldAmount')) acc.sold += parseFloat(comp.sold_amount) || 0;
         return acc;
-      }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+      }, { allocated: 0, rate: 0, updated: 0, buy: 0 });
 
       // Create total row if any totals are calculated
       let totalRow = '';
-      if (selectedComponentColumns.some(col => ['allocatedQuantity', 'rate', 'updatedQuantity', 'buyAmount', 'soldAmount'].includes(col))) {
+      if (selectedComponentColumns.some(col => ['allocatedQuantity', 'rate', 'updatedQuantity', 'buyAmount'].includes(col))) {
         const totalCells = selectedComponentColumns.map(col => {
           if (col === 'reportId') return '<td><strong>Total</strong></td>';
           else if (col === 'allocatedQuantity') return `<td><strong>${totals.allocated}</strong></td>`;
           else if (col === 'rate') return `<td><strong>${totals.rate}</strong></td>`;
           else if (col === 'updatedQuantity') return `<td><strong>${totals.updated}</strong></td>`;
           else if (col === 'buyAmount') return `<td><strong>${totals.buy}</strong></td>`;
-          else if (col === 'soldAmount') return `<td><strong>${totals.sold}</strong></td>`;
           else return '<td></td>';
         }).join('');
         totalRow = `<tr>${totalCells}</tr>`;
@@ -950,13 +978,9 @@ useEffect(() => {
                         <table className="responsive-table small-fonts">
                           <thead>
                             <tr>
-                              <th>{translations.sno}</th>
-                              <th>{translations.reportId}</th>
-                              <th>{translations.centerName}</th>
-                              <th>{translations.sourceOfReceipt}</th>
-                              <th>{translations.reportDate}</th>
-                              <th>{translations.status}</th>
-                              <th>{translations.totalItems}</th>
+                              {selectedColumns.map(col => (
+                                <th key={col}>{reportsColumnMapping[col].header}</th>
+                              ))}
                               <th>{translations.viewDetails}</th>
                               <th>{translations.receipt}</th>
                               <th>{translations.cancelReport}</th>
@@ -966,20 +990,27 @@ useEffect(() => {
                             {paginatedReportsData.map((item, index) => (
                               <React.Fragment key={item.id}>
                                 <tr>
-                                  <td data-label={translations.sno}>{indexOfFirstItem + index + 1}</td>
-                                  <td data-label={translations.reportId}>{item.bill_report_id}</td>
-                                  <td data-label={translations.centerName}>{item.center_name}</td>
-                                  <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>
-                                  <td data-label={translations.reportDate}>{formatDate(item.billing_date)}</td>
-                                  <td data-label={translations.status}>
-                                    <Badge bg={getStatusBadgeVariant(item.status)}>
-                                      {item.status === 'accepted' ? translations.accepted : 
-                                       item.status === 'cancelled' ? translations.cancelled : item.status}
-                                    </Badge>
-                                  </td>
-                                  <td data-label={translations.totalItems}>
-                                    <Badge bg="info">{item.component_data.length}</Badge>
-                                  </td>
+                                  {selectedColumns.map(col => (
+                                    <td key={`${item.id}-${col}`} data-label={reportsColumnMapping[col].header}>
+                                      {col === 'sno' ? (indexOfFirstItem + index + 1) :
+                                       col === 'reportId' ? item.bill_report_id :
+                                       col === 'centerName' ? item.center_name :
+                                       col === 'sourceOfReceipt' ? item.source_of_receipt :
+                                       col === 'reportDate' ? formatDate(item.billing_date) :
+                                       col === 'status' ? (
+                                         <Badge bg={getStatusBadgeVariant(item.status)}>
+                                           {item.status === 'accepted' ? translations.accepted : 
+                                            item.status === 'cancelled' ? translations.cancelled : item.status}
+                                         </Badge>
+                                       ) :
+                                       col === 'totalItems' ? (
+                                         <Badge bg="info">{item.component_data.length}</Badge>
+                                       ) :
+                                       col === 'buyAmount' ? (
+                                         item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0)
+                                       ) : ''}
+                                    </td>
+                                  ))}
                                   <td data-label={translations.viewDetails}>
                                     <Button 
                                       variant="outline-primary" 
@@ -1017,7 +1048,7 @@ useEffect(() => {
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td colSpan="10" className="p-0">
+                                  <td colSpan={`${selectedColumns.length + 3}`} className="p-0">
                                     <Collapse in={expandedReports[item.id]}>
                                       <div className="p-3 bg-light">
                                         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -1067,9 +1098,8 @@ useEffect(() => {
                                             acc.rate += parseFloat(comp.rate) || 0;
                                             acc.updated += parseFloat(comp.updated_quantity) || 0;
                                             acc.buy += parseFloat(comp.buy_amount) || 0;
-                                            acc.sold += parseFloat(comp.sold_amount) || 0;
                                             return acc;
-                                          }, { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 });
+                                          }, { allocated: 0, rate: 0, updated: 0, buy: 0 });
 
                                           return (
                                             <table className="table table-sm table-bordered">
@@ -1083,7 +1113,6 @@ useEffect(() => {
                                                   <th>{translations.rate}</th>
                                                   <th>{translations.updatedQuantity}</th>
                                                   <th>{translations.buyAmount}</th>
-                                                  <th>{translations.soldAmount}</th>
                                                   <th>{translations.schemeName}</th>
                                                 </tr>
                                               </thead>
@@ -1098,7 +1127,6 @@ useEffect(() => {
                                                     <td>{component.rate}</td>
                                                     <td>{component.updated_quantity}</td>
                                                     <td>{component.buy_amount}</td>
-                                                    <td>{component.sold_amount}</td>
                                                     <td>{component.scheme_name}</td>
                                                   </tr>
                                                 ))}
@@ -1110,7 +1138,6 @@ useEffect(() => {
                                                   <td><strong>{totals.rate}</strong></td>
                                                   <td><strong>{totals.updated}</strong></td>
                                                   <td><strong>{totals.buy}</strong></td>
-                                                  <td><strong>{totals.sold}</strong></td>
                                                   <td></td>
                                                 </tr>
                                               </tfoot>
@@ -1126,6 +1153,24 @@ useEffect(() => {
                               </React.Fragment>
                             ))}
                           </tbody>
+                          <tfoot>
+                            <tr>
+                              {selectedColumns.map((col, index) => (
+                                <td key={`total-${col}`}>
+                                  {index === 0 ? (
+                                    <strong>Total</strong>
+                                  ) : col === 'totalItems' ? (
+                                    <strong><Badge bg="info">{filteredData.reduce((sum, item) => sum + (item.component_data?.length || 0), 0)}</Badge></strong>
+                                  ) : col === 'buyAmount' ? (
+                                    <strong>{filteredData.reduce((sum, item) => sum + (item.component_data?.reduce((s, c) => s + (parseFloat(c.buy_amount) || 0), 0) || 0), 0)}</strong>
+                                  ) : (
+                                    <strong></strong>
+                                  )}
+                                </td>
+                              ))}
+                              <td colSpan="3"></td>
+                            </tr>
+                          </tfoot>
                         </table>
                         
                         {totalPages > 1 && (

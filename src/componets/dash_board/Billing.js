@@ -224,11 +224,32 @@ const Billing = () => {
 
         // Initialize cut_quantity and billing_date for each item
         // Use billing_date from API response, fallback to created_at if billing_date not available
-        const initializedData = data.map(item => ({
-          ...item,
-          cut_quantity: '',
-          billing_date: item.billing_date || item.created_at || ''
-        }));
+        const initializedData = data.map(item => {
+          let formattedDate = '';
+          if (item.billing_date) {
+            // Ensure date is in YYYY-MM-DD format
+            if (/^\d{4}-\d{2}-\d{2}$/.test(item.billing_date)) {
+              formattedDate = item.billing_date;
+            } else {
+              // Try to parse and format the date
+              const date = new Date(item.billing_date);
+              if (!isNaN(date.getTime())) {
+                formattedDate = date.toISOString().split('T')[0];
+              }
+            }
+          } else if (item.created_at) {
+            const date = new Date(item.created_at);
+            if (!isNaN(date.getTime())) {
+              formattedDate = date.toISOString().split('T')[0];
+            }
+          }
+          
+          return {
+            ...item,
+            cut_quantity: '',
+            billing_date: formattedDate
+          };
+        });
         setBillingData(initializedData);
       } catch (e) {
         setError(e.message);
@@ -408,9 +429,24 @@ const Billing = () => {
 
   // Handle billing date change
   const handleBillingDateChange = (id, value) => {
+    // Ensure the date is in YYYY-MM-DD format
+    let formattedDate = value;
+    if (value && value.length > 0) {
+      // If the value is already in YYYY-MM-DD format, keep it
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        formattedDate = value;
+      } else {
+        // Try to parse and format the date
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+    }
+
     setBillingData(prevData =>
       prevData.map(item =>
-        item.id === id ? { ...item, billing_date: value } : item
+        item.id === id ? { ...item, billing_date: formattedDate } : item
       )
     );
 
@@ -468,6 +504,14 @@ const Billing = () => {
       const itemsWithoutDate = updatedItems.filter(item => !item.billing_date);
       if (itemsWithoutDate.length > 0) {
         setSubmitError(`Please select billing date for all items. Missing dates for ${itemsWithoutDate.length} item(s).`);
+        return;
+      }
+      
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      const itemsWithInvalidDate = updatedItems.filter(item => !dateRegex.test(item.billing_date));
+      if (itemsWithInvalidDate.length > 0) {
+        setSubmitError(`Invalid date format found. All dates must be in YYYY-MM-DD format. Please check ${itemsWithInvalidDate.length} item(s).`);
         return;
       }
       
@@ -579,11 +623,32 @@ const Billing = () => {
         
         // Initialize cut_quantity and billing_date for each item
         // Use billing_date from API response, fallback to created_at if billing_date not available
-        const initializedData = data.map(item => ({
-          ...item,
-          cut_quantity: '',
-          billing_date: item.billing_date || item.created_at || ''
-        }));
+        const initializedData = data.map(item => {
+          let formattedDate = '';
+          if (item.billing_date) {
+            // Ensure date is in YYYY-MM-DD format
+            if (/^\d{4}-\d{2}-\d{2}$/.test(item.billing_date)) {
+              formattedDate = item.billing_date;
+            } else {
+              // Try to parse and format the date
+              const date = new Date(item.billing_date);
+              if (!isNaN(date.getTime())) {
+                formattedDate = date.toISOString().split('T')[0];
+              }
+            }
+          } else if (item.created_at) {
+            const date = new Date(item.created_at);
+            if (!isNaN(date.getTime())) {
+              formattedDate = date.toISOString().split('T')[0];
+            }
+          }
+          
+          return {
+            ...item,
+            cut_quantity: '',
+            billing_date: formattedDate
+          };
+        });
         setBillingData(initializedData);
       }
       
