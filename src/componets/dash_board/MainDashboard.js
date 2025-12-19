@@ -66,6 +66,7 @@ const groupedSummaryColumns = [
   { key: 'center_names', label: 'केंद्र का नाम' },
   { key: 'components', label: 'घटक' },
   { key: 'units', label: 'इकाई' },
+  { key: 'totalAllocatedQuantity', label: 'आवंटित मात्रा' },
   { key: 'totalAllocated', label: 'आवंटित राशि' },
   { key: 'totalUpdated', label: 'अपडेट की गई राशि' },
   { key: 'sources', label: 'स्रोत' },
@@ -110,6 +111,7 @@ const groupedSummaryColumnMapping = {
   center_names: { header: 'केंद्र का नाम', accessor: (item) => item.center_names },
   components: { header: 'घटक', accessor: (item) => item.components },
   units: { header: 'इकाई', accessor: (item) => item.units },
+  totalAllocatedQuantity: { header: 'आवंटित मात्रा', accessor: (item) => item.totalAllocatedQuantity.toFixed(2) },
   totalAllocated: { header: 'आवंटित राशि', accessor: (item) => formatCurrency(item.totalAllocated) },
   totalUpdated: { header: 'अपडेट की गई राशि', accessor: (item) => formatCurrency(item.totalUpdated) },
   sources: { header: 'स्रोत', accessor: (item) => item.sources },
@@ -481,6 +483,7 @@ const MainDashboard = () => {
                 schemes: new Set(),
                 totalAllocated: 0,
                 totalUpdated: 0,
+                totalAllocatedQuantity: 0,
                 items: []
             };
         }
@@ -510,6 +513,7 @@ const MainDashboard = () => {
         
         investmentSummary[groupValue].totalAllocated += allocatedAmount;
         investmentSummary[groupValue].totalUpdated += updatedAmount;
+        investmentSummary[groupValue].totalAllocatedQuantity += parseFloat(item.allocated_quantity);
         investmentSummary[groupValue].items.push(item);
     });
     
@@ -645,6 +649,9 @@ const MainDashboard = () => {
             row['इकाई'] = item.units;
         }
         
+        if (groupedSummarySelectedColumns.includes('totalAllocatedQuantity')) {
+            row['आवंटित मात्रा'] = item.totalAllocatedQuantity.toFixed(2);
+        }
         if (groupedSummarySelectedColumns.includes('totalAllocated')) {
             row['आवंटित राशि'] = item.totalAllocated.toFixed(2);
         }
@@ -685,6 +692,9 @@ const MainDashboard = () => {
             totalsRow['इकाई'] = "";
         }
         
+        if (groupedSummarySelectedColumns.includes('totalAllocatedQuantity')) {
+            totalsRow['आवंटित मात्रा'] = tableTotals.allocatedQuantity.toFixed(2);
+        }
         if (groupedSummarySelectedColumns.includes('totalAllocated')) {
             totalsRow['आवंटित राशि'] = tableTotals.allocated.toFixed(2);
         }
@@ -868,6 +878,7 @@ const MainDashboard = () => {
         if (groupField !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) headers.push('केंद्र का नाम');
         if (groupField !== 'component' && groupedSummarySelectedColumns.includes('components')) headers.push('घटक');
         if (groupField !== 'unit' && groupedSummarySelectedColumns.includes('units')) headers.push('इकाई');
+        if (groupedSummarySelectedColumns.includes('totalAllocatedQuantity')) headers.push('आवंटित मात्रा');
         if (groupedSummarySelectedColumns.includes('totalAllocated')) headers.push('आवंटित राशि');
         if (groupedSummarySelectedColumns.includes('totalUpdated')) headers.push('अपडेट की गई राशि');
         if (groupField !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) headers.push('स्रोत');
@@ -948,6 +959,7 @@ const MainDashboard = () => {
                     if (item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) cells.push(`<td>${item.center_names}</td>`);
                     if (item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components')) cells.push(`<td>${item.components}</td>`);
                     if (item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units')) cells.push(`<td>${item.units}</td>`);
+                    if (groupedSummarySelectedColumns.includes('totalAllocatedQuantity')) cells.push(`<td>${item.totalAllocatedQuantity.toFixed(2)}</td>`);
                     if (groupedSummarySelectedColumns.includes('totalAllocated')) cells.push(`<td>${formatCurrency(item.totalAllocated)}</td>`);
                     if (groupedSummarySelectedColumns.includes('totalUpdated')) cells.push(`<td>${formatCurrency(item.totalUpdated)}</td>`);
                     if (item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) cells.push(`<td>${item.sources}</td>`);
@@ -971,6 +983,7 @@ const MainDashboard = () => {
                     if (groupField !== 'center_name' && groupedSummarySelectedColumns.includes('center_names')) cells.push(`<td></td>`);
                     if (groupField !== 'component' && groupedSummarySelectedColumns.includes('components')) cells.push(`<td></td>`);
                     if (groupField !== 'unit' && groupedSummarySelectedColumns.includes('units')) cells.push(`<td></td>`);
+                    if (groupedSummarySelectedColumns.includes('totalAllocatedQuantity')) cells.push(`<td>${tableTotals.allocatedQuantity.toFixed(2)}</td>`);
                     if (groupedSummarySelectedColumns.includes('totalAllocated')) cells.push(`<td>${formatCurrency(tableTotals.allocated)}</td>`);
                     if (groupedSummarySelectedColumns.includes('totalUpdated')) cells.push(`<td>${formatCurrency(tableTotals.updated)}</td>`);
                     if (groupField !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources')) cells.push(`<td></td>`);
@@ -1240,13 +1253,18 @@ const MainDashboard = () => {
                                                                 </tbody>
                                                                 <tfoot>
                                                                     <tr className="font-weight-bold">
-                                                                        <td colSpan={componentDetailSelectedColumns.filter(col => col !== 'sno' && col !== 'center_name' && col !== 'component' && col !== 'investment_name' && col !== 'unit' && col !== 'allocated_quantity' && col !== 'rate' && col !== 'updated_quantity' && col !== 'source_of_receipt' && col !== 'scheme_name').length + 4}>कुल</td>
+                                                                        {componentDetailSelectedColumns.includes('sno') && <td>कुल</td>}
+                                                                        {componentDetailSelectedColumns.includes('center_name') && <td></td>}
+                                                                        {componentDetailSelectedColumns.includes('component') && <td></td>}
+                                                                        {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
+                                                                        {componentDetailSelectedColumns.includes('unit') && <td></td>}
                                                                         {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2)}</td>}
                                                                         {componentDetailSelectedColumns.includes('rate') && <td></td>}
                                                                         {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(component.totalAllocated)}</td>}
                                                                         {componentDetailSelectedColumns.includes('updated_quantity') && <td>{component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2)}</td>}
                                                                         {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(component.totalUpdated)}</td>}
-                                                                        <td colSpan={componentDetailSelectedColumns.includes('source_of_receipt') ? 0 : 1}></td>
+                                                                        {componentDetailSelectedColumns.includes('source_of_receipt') && <td></td>}
+                                                                        {componentDetailSelectedColumns.includes('scheme_name') && <td></td>}
                                                                     </tr>
                                                                 </tfoot>
                                                             </Table>
@@ -1402,7 +1420,8 @@ const MainDashboard = () => {
                 </div>
             )}
 
-            {/* Billing Items Table - Always show table with filtered data */}
+            {/* Billing Items Table - Only show when no filters are applied */}
+            {Object.keys(activeFilters).length === 0 && (
             <div className="billing-table-container">
               <h2 className="dynamic-table-heading small-fonts">
                   कुल विवरण
@@ -1545,6 +1564,7 @@ const MainDashboard = () => {
                 </div>
               </Row>
             </div>
+            )}
 
             {/* Grouped Summary Table - Initially shows by center (केंद्र) */}
             {filteredTableData.length > 0 && (
@@ -1592,6 +1612,7 @@ const MainDashboard = () => {
                           {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <th>केंद्र का नाम</th>}
                           {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && <th>घटक</th>}
                           {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && <th>इकाई</th>}
+                          {groupedSummarySelectedColumns.includes('totalAllocatedQuantity') && <th>आवंटित मात्रा</th>}
                           {groupedSummarySelectedColumns.includes('totalAllocated') && <th>आवंटित राशि</th>}
                           {groupedSummarySelectedColumns.includes('totalUpdated') && <th>अपडेट की गई राशि</th>}
                           {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && <th>स्रोत</th>}
@@ -1612,6 +1633,7 @@ const MainDashboard = () => {
                                     {item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <td>{item.center_names}</td>}
                                     {item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && <td>{item.components}</td>}
                                     {item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && <td>{item.units}</td>}
+                                    {groupedSummarySelectedColumns.includes('totalAllocatedQuantity') && <td>{item.totalAllocatedQuantity.toFixed(2)}</td>}
                                     {groupedSummarySelectedColumns.includes('totalAllocated') && <td>{formatCurrency(item.totalAllocated)}</td>}
                                     {groupedSummarySelectedColumns.includes('totalUpdated') && <td>{formatCurrency(item.totalUpdated)}</td>}
                                     {item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && <td>{item.sources}</td>}
@@ -1700,17 +1722,18 @@ const MainDashboard = () => {
                                                     </tbody>
                                                     <tfoot>
                                                         <tr className="font-weight-bold">
-                                                            <td colSpan={componentDetailSelectedColumns.indexOf('sno') + 1}>कुल</td>
+                                                            {componentDetailSelectedColumns.includes('sno') && <td>कुल</td>}
                                                             {componentDetailSelectedColumns.includes('center_name') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('component') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('unit') && <td></td>}
-                                                            {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2)}</td>}
+                                                            {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{item.items.reduce((sum, i) => sum + parseFloat(i.allocated_quantity || 0), 0).toFixed(2)}</td>}
                                                             {componentDetailSelectedColumns.includes('rate') && <td></td>}
-                                                            {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0))}</td>}
-                                                            {componentDetailSelectedColumns.includes('updated_quantity') && <td>{item.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2)}</td>}
-                                                            {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0))}</td>}
-                                                            <td colSpan={componentDetailSelectedColumns.includes('source_of_receipt') && componentDetailSelectedColumns.includes('scheme_name') ? 2 : componentDetailSelectedColumns.includes('source_of_receipt') || componentDetailSelectedColumns.includes('scheme_name') ? 1 : 0}></td>
+                                                            {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(item.items.reduce((sum, i) => sum + (parseFloat(i.allocated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
+                                                            {componentDetailSelectedColumns.includes('updated_quantity') && <td>{item.items.reduce((sum, i) => sum + parseFloat(i.updated_quantity || 0), 0).toFixed(2)}</td>}
+                                                            {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(item.items.reduce((sum, i) => sum + (parseFloat(i.updated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
+                                                            {componentDetailSelectedColumns.includes('source_of_receipt') && <td></td>}
+                                                            {componentDetailSelectedColumns.includes('scheme_name') && <td></td>}
                                                         </tr>
                                                     </tfoot>
                                                 </table>
@@ -1723,11 +1746,17 @@ const MainDashboard = () => {
                       </tbody>
                       <tfoot>
                         <tr className="font-weight-bold">
-                            <td colSpan={groupedSummarySelectedColumns.indexOf('sno') + 1}>कुल</td>
-                            {groupedSummarySelectedColumns.includes('group_name') && <td></td>}
+                            {groupedSummarySelectedColumns.includes('sno') ? <td>कुल</td> : (groupedSummarySelectedColumns.includes('group_name') ? <td>कुल</td> : null)}
+                            {groupedSummarySelectedColumns.includes('sno') && groupedSummarySelectedColumns.includes('group_name') && <td></td>}
+                            {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && <td></td>}
+                            {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <td></td>}
+                            {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && <td></td>}
+                            {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && <td></td>}
+                            {groupedSummarySelectedColumns.includes('totalAllocatedQuantity') && <td>{tableTotals.allocatedQuantity.toFixed(2)}</td>}
                             {groupedSummarySelectedColumns.includes('totalAllocated') && <td>{formatCurrency(tableTotals.allocated)}</td>}
                             {groupedSummarySelectedColumns.includes('totalUpdated') && <td>{formatCurrency(tableTotals.updated)}</td>}
-                            <td colSpan={groupedSummarySelectedColumns.includes('sources') && groupedSummarySelectedColumns.includes('schemes') ? 2 : groupedSummarySelectedColumns.includes('sources') || groupedSummarySelectedColumns.includes('schemes') ? 1 : 0}></td>
+                            {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && <td></td>}
+                            {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && <td></td>}
                         </tr>
                       </tfoot>
                     </table>
