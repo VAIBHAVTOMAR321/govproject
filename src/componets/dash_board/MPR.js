@@ -42,7 +42,7 @@ const mainTableColumnMapping = {
   reportId: { header: 'रिपोर्ट आईडी', accessor: (item) => item.bill_report_id || '-' },
   centerName: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
   sourceOfReceipt: { header: 'प्राप्ति का स्रोत', accessor: (item) => item.source_of_receipt },
-  reportDate: { header: 'रिपोर्ट तारीख', accessor: (item) => new Date(item.created_at).toLocaleDateString('hi-IN') },
+  reportDate: { header: 'रिपोर्ट तारीख', accessor: (item) => item.billing_date ? new Date(item.billing_date).toLocaleDateString('hi-IN') : 'N/A' },
   status: { header: 'स्थिति', accessor: (item) => item.status === 'accepted' ? 'स्वीकृत' : item.status === 'cancelled' ? 'रद्द' : 'लंबित' },
   totalItems: { header: 'कुल आइटम', accessor: (item) => item.component_data ? item.component_data.length : 0 },
   totalAmount: { header: 'कुल राशि', accessor: (item) => item.total_amount }
@@ -368,7 +368,7 @@ const MPR = () => {
     try {
       // Fetch yearly data
       const yearlyResponse = await axios.get(YEARLY_DATA_URL);
-      let filteredYearlyData = filters.year ? yearlyResponse.data.filter(item => new Date(item.created_at).getFullYear() === filters.year) : yearlyResponse.data;
+      let filteredYearlyData = filters.year ? yearlyResponse.data.filter(item => item.billing_date && new Date(item.billing_date).getFullYear() === filters.year) : yearlyResponse.data;
 
       // Apply filters to yearly data
       if (filters.center_name && filters.center_name.length > 0) {
@@ -395,14 +395,16 @@ const MPR = () => {
         const fromDate = new Date(filters.from_date);
         const toDate = new Date(filters.to_date);
         filteredYearlyData = filteredYearlyData.filter(item => {
-          const itemDate = new Date(item.created_at);
+          if (!item.billing_date) return false;
+          const itemDate = new Date(item.billing_date);
           return itemDate >= fromDate && itemDate <= toDate;
         });
       }
       if (filters.selected_dates) {
         const selectedDates = filters.selected_dates.split(',').map(d => d.trim());
         filteredYearlyData = filteredYearlyData.filter(item => {
-          const itemDateStr = new Date(item.created_at).toISOString().split('T')[0];
+          if (!item.billing_date) return false;
+          const itemDateStr = new Date(item.billing_date).toISOString().split('T')[0];
           return selectedDates.includes(itemDateStr);
         });
       }
@@ -469,14 +471,16 @@ const MPR = () => {
         const fromDate = new Date(filters.from_date);
         const toDate = new Date(filters.to_date);
         filteredMonthlyData = filteredMonthlyData.filter(item => {
-          const itemDate = new Date(item.created_at);
+          if (!item.billing_date) return false;
+          const itemDate = new Date(item.billing_date);
           return itemDate >= fromDate && itemDate <= toDate;
         });
       }
       if (filters.selected_dates) {
         const selectedDates = filters.selected_dates.split(',').map(d => d.trim());
         filteredMonthlyData = filteredMonthlyData.filter(item => {
-          const itemDateStr = new Date(item.created_at).toISOString().split('T')[0];
+          if (!item.billing_date) return false;
+          const itemDateStr = new Date(item.billing_date).toISOString().split('T')[0];
           return selectedDates.includes(itemDateStr);
         });
       }
@@ -931,7 +935,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
       component: [...new Set(yearlyData.map(item => item.component))].map(name => ({ value: name, label: name })),
       investment_name: [...new Set(yearlyData.map(item => item.investment_name))].map(name => ({ value: name, label: name })),
       scheme_name: [...new Set(yearlyData.map(item => item.scheme_name))].map(name => ({ value: name, label: name })),
-      dates: [...new Set(yearlyData.map(item => new Date(item.created_at).toISOString().split('T')[0]))].sort().map(date => ({ value: date, label: date }))
+      dates: [...new Set(yearlyData.filter(item => item.billing_date).map(item => new Date(item.billing_date).toISOString().split('T')[0]))].sort().map(date => ({ value: date, label: date }))
     };
   }, [yearlyData]);
   
@@ -1438,7 +1442,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                               {selectedColumns.includes('reportId') && <td data-label={translations.reportId}>{item.bill_report_id || '-'}</td>}
                               {selectedColumns.includes('centerName') && <td data-label={translations.centerName}>{item.center_name}</td>}
                               {selectedColumns.includes('sourceOfReceipt') && <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>}
-                              {selectedColumns.includes('reportDate') && <td data-label={translations.reportDate}>{new Date(item.created_at).toLocaleDateString('hi-IN')}</td>}
+                              {selectedColumns.includes('reportDate') && <td data-label={translations.reportDate}>{item.billing_date ? new Date(item.billing_date).toLocaleDateString('hi-IN') : 'N/A'}</td>}
                               {selectedColumns.includes('status') && (
                                 <td data-label={translations.status}>
                                   <Badge bg={getStatusBadgeVariant(item.status)}>
