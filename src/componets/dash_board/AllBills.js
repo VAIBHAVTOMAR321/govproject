@@ -197,7 +197,7 @@ const reportsColumnMapping = {
   reportId: { header: translations.reportId, accessor: (item) => item.bill_report_id },
   centerName: { header: translations.centerName, accessor: (item) => item.center_name },
   sourceOfReceipt: { header: translations.sourceOfReceipt, accessor: (item) => item.source_of_receipt },
-  reportDate: { header: translations.reportDate, accessor: (item) => formatDate(item.created_at) },
+  reportDate: { header: translations.reportDate, accessor: (item) => formatDate(item.billing_date) },
   status: { header: translations.status, accessor: (item) => item.status === 'accepted' ? translations.accepted : item.status === 'cancelled' ? translations.cancelled : item.status },
   totalItems: { header: translations.totalItems, accessor: (item) => item.component_data.length }
 };
@@ -318,7 +318,7 @@ useEffect(() => {
       const matchesSource = filters.source_of_receipt.length === 0 || filters.source_of_receipt.some(s => s.value === item.source_of_receipt);
       const matchesBillId = filters.bill_id.length === 0 || filters.bill_id.some(b => b.value === item.bill_report_id);
       const matchesStatus = filters.status.length === 0 || filters.status.some(s => s.value === item.status);
-      const itemDate = new Date(item.created_at);
+      const itemDate = new Date(item.billing_date);
       const matchesDateFrom = !filters.dateFrom || itemDate >= new Date(filters.dateFrom);
       const matchesDateTo = !filters.dateTo || itemDate <= new Date(filters.dateTo + 'T23:59:59');
       return matchesCenter && matchesSource && matchesBillId && matchesStatus && matchesDateFrom && matchesDateTo;
@@ -970,7 +970,7 @@ useEffect(() => {
                                   <td data-label={translations.reportId}>{item.bill_report_id}</td>
                                   <td data-label={translations.centerName}>{item.center_name}</td>
                                   <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>
-                                  <td data-label={translations.reportDate}>{formatDate(item.created_at)}</td>
+                                  <td data-label={translations.reportDate}>{formatDate(item.billing_date)}</td>
                                   <td data-label={translations.status}>
                                     <Badge bg={getStatusBadgeVariant(item.status)}>
                                       {item.status === 'accepted' ? translations.accepted : 

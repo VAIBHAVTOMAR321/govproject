@@ -223,10 +223,11 @@ const Billing = () => {
         setSourceUserMap(sourceMapping);
 
         // Initialize cut_quantity and billing_date for each item
+        // Use billing_date from API response, fallback to created_at if billing_date not available
         const initializedData = data.map(item => ({
           ...item,
           cut_quantity: '',
-          billing_date: ''
+          billing_date: item.billing_date || item.created_at || ''
         }));
         setBillingData(initializedData);
       } catch (e) {
@@ -447,139 +448,152 @@ const Billing = () => {
   };
 
   // Handle form submission
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // Get only the items that have been modified
-  const updatedItems = billingData.filter(item => modifiedItems[item.id] && item.cut_quantity > 0);
-  
-  if (updatedItems.length === 0) {
-    setSubmitError(translations.noItemsUpdated);
-    return;
-  }
-  
-  try {
-    setSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    // Create payload in the exact format required
-    // Each inner array contains [bill_id, updated_quantity + cut_quantity]
-    const multiple_bills = updatedItems.map(item => {
-      const existingUpdated = parseFloat(item.updated_quantity) || 0;
-      const newCut = parseFloat(item.cut_quantity) || 0;
-      const totalUpdated = (existingUpdated + newCut).toString();
-
-      return [item.bill_id, totalUpdated];
-    });
+    // Get only the items that have been modified
+    const updatedItems = billingData.filter(item => modifiedItems[item.id] && item.cut_quantity > 0);
     
-    // Get the user_id based on the selected source_of_receipt
-    // If a source is selected in filters, use the first one; otherwise use the first item's source
-    let selectedSource = filters.source_of_receipt.length > 0 ? filters.source_of_receipt[0].value : null;
-    if (!selectedSource && updatedItems.length > 0) {
-      selectedSource = updatedItems[0].source_of_receipt;
+    if (updatedItems.length === 0) {
+      setSubmitError(translations.noItemsUpdated);
+      return;
     }
     
-    const userId = sourceUserMap[selectedSource] || "USR-001"; // Fallback to default if not found
-    
-    // Format the date as YYYY-MM-DD (using 2024-01-15 as requested)
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
-    
-    // Create the payload in the exact format shown in the example
-    const payload = {
-      user_id: userId,
-      multiple_bills: multiple_bills,
-      billing_date: formattedDate
-    };
-    
-    // Log the payload for debugging
-    console.log("Submitting payload:", JSON.stringify(payload, null, 2));
-    console.log("Selected source:", selectedSource);
-    console.log("User ID:", userId);
-    console.log("Billing date:", formattedDate);
-    
-    // Use the update API URL with POST method
-    const response = await fetch(UPDATE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authentication headers if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    
-    
-    // Try to get response text for debugging
-    let responseText;
     try {
-      responseText = await response.text();
-      console.log("Response text:", responseText);
-    } catch (e) {
-      console.error("Error reading response text:", e);
-    }
-    
-    // Try to parse as JSON if possible
-    let responseData;
-    try {
-      if (responseText) {
-        responseData = JSON.parse(responseText);
-        console.log("Parsed response data:", responseData);
+      setSubmitting(true);
+      setSubmitError(null);
+      setSubmitSuccess(false);
+      
+      // Check if all items have billing dates selected
+      const itemsWithoutDate = updatedItems.filter(item => !item.billing_date);
+      if (itemsWithoutDate.length > 0) {
+        setSubmitError(`Please select billing date for all items. Missing dates for ${itemsWithoutDate.length} item(s).`);
+        return;
       }
-    } catch (e) {
-      console.error("Error parsing response as JSON:", e);
-    }
-    
-    if (!response.ok) {
-      // Log more details about the failed request
-      console.error("Request failed with status:", response.status);
-      console.error("Status text:", response.statusText);
-      console.error("Response body:", responseText);
       
-      // Create a more detailed error message
-      const errorMessage = responseData?.message || responseData?.error || 
-                         `HTTP error! status: ${response.status}`;
-      throw new Error(errorMessage);
-    }
-    
-    setSubmitSuccess(true);
-    // Clear modified items after successful submission
-    setModifiedItems({});
-    
-    // Refresh data from the GET API
-    const refreshResponse = await fetch(GET_API_URL);
-    if (refreshResponse.ok) {
-      const data = await refreshResponse.json();
-      
-      // Update the source user mapping with new data
-      const sourceMapping = {};
-      data.forEach(item => {
-        if (item.source_of_receipt && item.user_id) {
-          sourceMapping[item.source_of_receipt] = item.user_id;
+      // Group items by user_id and billing_date
+      const itemsByUserAndDate = {};
+      updatedItems.forEach(item => {
+        const source = item.source_of_receipt;
+        const userId = sourceUserMap[source];
+        const billingDate = item.billing_date;
+        
+        if (!userId) {
+          console.warn(`No user_id found for source: ${source}`);
+          return;
         }
+        
+        // Create composite key for user_id + billing_date
+        const compositeKey = `${userId}_${billingDate}`;
+        
+        if (!itemsByUserAndDate[compositeKey]) {
+          itemsByUserAndDate[compositeKey] = {
+            user_id: userId,
+            billing_date: billingDate,
+            items: []
+          };
+        }
+        itemsByUserAndDate[compositeKey].items.push(item);
       });
-      setSourceUserMap(sourceMapping);
       
-      // Initialize cut_quantity and billing_date for each item
-      const initializedData = data.map(item => ({
-        ...item,
-        cut_quantity: '',
-        billing_date: ''
-      }));
-      setBillingData(initializedData);
+      // Create separate payloads for each user and billing date combination
+      const payloads = Object.keys(itemsByUserAndDate).map(compositeKey => {
+        const group = itemsByUserAndDate[compositeKey];
+        const multiple_bills = group.items.map(item => {
+          const existingUpdated = parseFloat(item.updated_quantity) || 0;
+          const newCut = parseFloat(item.cut_quantity) || 0;
+          const totalUpdated = (existingUpdated + newCut).toString();
+          return [item.bill_id, totalUpdated];
+        });
+        
+        return {
+          user_id: group.user_id,
+          billing_date: group.billing_date,
+          multiple_bills: multiple_bills
+        };
+      });
+      
+      // Log the payloads for debugging
+      console.log("Submitting payloads:", JSON.stringify({ data: payloads }, null, 2));
+      
+      // Send POST request with the array of billing data
+      const response = await fetch(UPDATE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authentication headers if needed
+          // 'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ data: payloads }),
+      });
+      
+      // Try to get response text for debugging
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log("Response text:", responseText);
+      } catch (e) {
+        console.error("Error reading response text:", e);
+      }
+      
+      // Try to parse as JSON if possible
+      let responseData;
+      try {
+        if (responseText) {
+          responseData = JSON.parse(responseText);
+          console.log("Parsed response data:", responseData);
+        }
+      } catch (e) {
+        console.error("Error parsing response as JSON:", e);
+      }
+      
+      if (!response.ok) {
+        // Log more details about the failed request
+        console.error("Request failed with status:", response.status);
+        console.error("Status text:", response.statusText);
+        console.error("Response body:", responseText);
+        
+        // Create a more detailed error message
+        const errorMessage = responseData?.message || responseData?.error || 
+                           `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
+      }
+      
+      setSubmitSuccess(true);
+      // Clear modified items after successful submission
+      setModifiedItems({});
+      
+      // Refresh data from the GET API
+      const refreshResponse = await fetch(GET_API_URL);
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        
+        // Update the source user mapping with new data
+        const sourceMapping = {};
+        data.forEach(item => {
+          if (item.source_of_receipt && item.user_id) {
+            sourceMapping[item.source_of_receipt] = item.user_id;
+          }
+        });
+        setSourceUserMap(sourceMapping);
+        
+        // Initialize cut_quantity and billing_date for each item
+        // Use billing_date from API response, fallback to created_at if billing_date not available
+        const initializedData = data.map(item => ({
+          ...item,
+          cut_quantity: '',
+          billing_date: item.billing_date || item.created_at || ''
+        }));
+        setBillingData(initializedData);
+      }
+      
+    } catch (e) {
+      console.error("Submit error:", e);
+      setSubmitError(e.message);
+    } finally {
+      setSubmitting(false);
     }
-    
-  } catch (e) {
-    console.error("Submit error:", e);
-    setSubmitError(e.message);
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   // Clear all filters
   const clearFilters = () => {
