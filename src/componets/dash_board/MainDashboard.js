@@ -27,12 +27,28 @@ const formatFieldTitle = (fieldKey) => {
         investment_name: 'निवेश का नाम',
         unit: 'इकाई',
         source_of_receipt: 'प्राप्ति का स्रोत',
-        scheme_name: 'योजना का नाम'
+        scheme_name: 'योजना का नाम',
+        // Additional mappings for better Hindi representation
+        allocated_quantity: 'आवंटित मात्रा',
+        rate: 'दर',
+        allocated_amount: 'आवंटित राशि',
+        updated_quantity: 'अपडेट की गई मात्रा',
+        updated_amount: 'अपडेट की गई राशि',
+        totalAllocatedQuantity: 'कुल आवंटित मात्रा',
+        totalAllocated: 'कुल आवंटित राशि',
+        totalUpdated: 'कुल अपडेट राशि',
+        sources: 'स्रोत',
+        schemes: 'योजनाएं',
+        investment_names: 'निवेश के नाम',
+        center_names: 'केंद्रों के नाम',
+        components: 'घटक',
+        units: 'इकाइयां',
+        group_name: 'समूह का नाम'
     };
     return titles[fieldKey] || fieldKey;
 };
 
-// Hindi translations for pagination
+// Hindi translations for pagination and common terms
 const paginationTranslations = {
     showing: "दिखा रहे हैं",
     to: "से",
@@ -40,7 +56,14 @@ const paginationTranslations = {
     entries: "प्रविष्टियां",
     page: "पृष्ठ",
     itemsPerPage: "प्रति पृष्ठ आइटम:",
-    selectColumns: "कॉलम चुनें"
+    selectColumns: "कॉलम चुनें",
+    total: "कुल",
+    details: "विवरण",
+    summary: "सारांश",
+    billing: "बिलिंग",
+    data: "डेटा",
+    amount: "राशि",
+    quantity: "मात्रा"
 };
 
 // Available columns for different tables
@@ -573,24 +596,28 @@ const MainDashboard = () => {
         // Iterate through selected columns in order to maintain alignment
         selectedColumns.forEach(col => {
           if (col === 'sno') {
-            totalsRow[columnMapping[col].header] = "कुल";
+            totalsRow[columnMapping[col].header] = paginationTranslations.total;
           } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
-                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name') {
+                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name' ||
+                     col === 'investment_names' || col === 'center_names' || col === 'components' ||
+                     col === 'units' || col === 'sources' || col === 'schemes' || col === 'group_name') {
             totalsRow[columnMapping[col].header] = "";
           } else if (col === 'rate') {
             totalsRow[columnMapping[col].header] = "-";
           } else if (col === 'allocated_quantity') {
             totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
           } else if (col === 'allocated_amount') {
-            totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
+            totalsRow[columnMapping[col].header] = formatCurrency(totals.allocated);
           } else if (col === 'updated_quantity') {
             totalsRow[columnMapping[col].header] = totals.updatedQuantity.toFixed(2);
           } else if (col === 'updated_amount') {
-            totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
+            totalsRow[columnMapping[col].header] = formatCurrency(totals.updated);
+          } else if (col === 'totalAllocatedQuantity') {
+            totalsRow[columnMapping[col].header] = totals.allocatedQuantity.toFixed(2);
           } else if (col === 'totalAllocated') {
-            totalsRow[columnMapping[col].header] = totals.allocated.toFixed(2);
+            totalsRow[columnMapping[col].header] = formatCurrency(totals.allocated);
           } else if (col === 'totalUpdated') {
-            totalsRow[columnMapping[col].header] = totals.updated.toFixed(2);
+            totalsRow[columnMapping[col].header] = formatCurrency(totals.updated);
           }
         });
         
@@ -676,7 +703,7 @@ const MainDashboard = () => {
       if (data.length > 0) {
         const groupField = data[0].group_field;
         
-        totalsRow['क्र.सं.'] = "कुल";
+        totalsRow['क्र.सं.'] = paginationTranslations.total;
         totalsRow[formatFieldTitle(groupField)] = "";
         
         if (groupField !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names')) {
@@ -738,10 +765,6 @@ const MainDashboard = () => {
   // Generic download PDF function that works with any table
   const downloadPdf = (data, filename, columnMapping, selectedColumns, title, totals = null) => {
     try {
-      const filterInfoText = Object.keys(activeFilters).map(cat => 
-        `${formatFieldTitle(cat)}: ${activeFilters[cat].join(', ')}`
-      ).join(' | ');
-
       // Create headers and rows based on selected columns
       const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
       const rows = data.map((item, index) => {
@@ -754,9 +777,11 @@ const MainDashboard = () => {
       if (totals) {
         const totalsCells = selectedColumns.map(col => {
           if (col === 'sno') {
-            return `<td>कुल</td>`;
+            return `<td>${paginationTranslations.total}</td>`;
           } else if (col === 'center_name' || col === 'component' || col === 'investment_name' || 
-                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name') {
+                     col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name' ||
+                     col === 'investment_names' || col === 'center_names' || col === 'components' ||
+                     col === 'units' || col === 'sources' || col === 'schemes' || col === 'group_name') {
             return `<td></td>`;
           } else if (col === 'rate') {
             return `<td>-</td>`;
@@ -768,6 +793,8 @@ const MainDashboard = () => {
             return `<td>${totals.updatedQuantity.toFixed(2)}</td>`;
           } else if (col === 'updated_amount') {
             return `<td>${formatCurrency(totals.updated)}</td>`;
+          } else if (col === 'totalAllocatedQuantity') {
+            return `<td>${totals.allocatedQuantity.toFixed(2)}</td>`;
           } else if (col === 'totalAllocated') {
             return `<td>${formatCurrency(totals.allocated)}</td>`;
           } else if (col === 'totalUpdated') {
@@ -829,7 +856,6 @@ const MainDashboard = () => {
           </head>
           <body>
             <h1>${title}</h1>
-            ${filterInfoText ? `<p>फ़िल्टर: ${filterInfoText}</p>` : ''}
             <table>
               <thead>
                 <tr>${headers}</tr>
@@ -863,10 +889,6 @@ const MainDashboard = () => {
   // Specialized function for investment summary PDF
   const downloadInvestmentSummaryPdf = (data, filename) => {
     try {
-      const filterInfoText = Object.keys(activeFilters).map(cat => 
-        `${formatFieldTitle(cat)}: ${activeFilters[cat].join(', ')}`
-      ).join(' | ');
-
       // Dynamically create table headers based on grouping field and selected columns
       const getTableHeaders = () => {
         if (data.length === 0) return ['समूह', 'निवेश का नाम', 'केंद्र का नाम', 'घटक', 'इकाई', 'आवंटित राशि', 'अपडेट की गई राशि', 'स्रोत', 'योजना'];
@@ -940,7 +962,6 @@ const MainDashboard = () => {
           </head>
           <body>
             <h1>समूह विवरण</h1>
-            ${filterInfoText ? `<p>फ़िल्टर: ${filterInfoText}</p>` : ''}
             <table>
               <thead>
                 <tr>
@@ -975,7 +996,7 @@ const MainDashboard = () => {
                   ${data.length > 0 ? (() => {
                     const groupField = data[0].group_field;
                     const cells = [
-                        `<td>कुल</td>`,
+                        `<td>${paginationTranslations.total}</td>`,
                         `<td></td>`
                     ];
                     
@@ -1200,7 +1221,7 @@ const MainDashboard = () => {
                                                                     <Button 
                                                                         variant="outline-danger" 
                                                                         size="sm" 
-                                                                        onClick={() => downloadPdf(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${component.name} Details`, {
+                                                                        onClick={() => downloadPdf(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${component.name} विवरण`, {
                                                                             allocated: component.totalAllocated,
                                                                             updated: component.totalUpdated,
                                                                             allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
@@ -1253,7 +1274,7 @@ const MainDashboard = () => {
                                                                 </tbody>
                                                                 <tfoot>
                                                                     <tr className="font-weight-bold">
-                                                                        {componentDetailSelectedColumns.includes('sno') && <td>कुल</td>}
+                                                                        {componentDetailSelectedColumns.includes('sno') && <td>{paginationTranslations.total}</td>}
                                                                         {componentDetailSelectedColumns.includes('center_name') && <td></td>}
                                                                         {componentDetailSelectedColumns.includes('component') && <td></td>}
                                                                         {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
@@ -1520,7 +1541,7 @@ const MainDashboard = () => {
                               </tbody>
                               <tfoot>
                                 <tr className="font-weight-bold">
-                                    {mainTableSelectedColumns.includes('sno') && <td>कुल</td>}
+                                    {mainTableSelectedColumns.includes('sno') && <td>{paginationTranslations.total}</td>}
                                     {mainTableSelectedColumns.includes('center_name') && <td></td>}
                                     {mainTableSelectedColumns.includes('component') && <td></td>}
                                     {mainTableSelectedColumns.includes('investment_name') && <td></td>}
@@ -1643,7 +1664,7 @@ const MainDashboard = () => {
                                     <tr>
                                         <td colSpan="12">
                                             <div className="p-3">
-                                                <h5 className="mb-3">{item.group_name} - विस्तृत विवरण</h5>
+                                                <h5 className="mb-3">{item.group_name} - {paginationTranslations.details}</h5>
                                                 
                                                 {/* Column Selection Section for Component Details */}
                                                 <ColumnSelection
@@ -1670,7 +1691,7 @@ const MainDashboard = () => {
                                                   <Button 
                                                         variant="outline-danger" 
                                                         size="sm" 
-                                                        onClick={() => downloadPdf(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${item.group_name} Details`, {
+                                                        onClick={() => downloadPdf(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${item.group_name} विवरण`, {
                                                             allocated: item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
                                                             updated: item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
                                                             allocatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
@@ -1722,7 +1743,7 @@ const MainDashboard = () => {
                                                     </tbody>
                                                     <tfoot>
                                                         <tr className="font-weight-bold">
-                                                            {componentDetailSelectedColumns.includes('sno') && <td>कुल</td>}
+                                                            {componentDetailSelectedColumns.includes('sno') && <td>{paginationTranslations.total}</td>}
                                                             {componentDetailSelectedColumns.includes('center_name') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('component') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
@@ -1746,7 +1767,7 @@ const MainDashboard = () => {
                       </tbody>
                       <tfoot>
                         <tr className="font-weight-bold">
-                            {groupedSummarySelectedColumns.includes('sno') ? <td>कुल</td> : (groupedSummarySelectedColumns.includes('group_name') ? <td>कुल</td> : null)}
+                            {groupedSummarySelectedColumns.includes('sno') ? <td>{paginationTranslations.total}</td> : (groupedSummarySelectedColumns.includes('group_name') ? <td>{paginationTranslations.total}</td> : null)}
                             {groupedSummarySelectedColumns.includes('sno') && groupedSummarySelectedColumns.includes('group_name') && <td></td>}
                             {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && <td></td>}
                             {investmentSummaryData.length > 0 && investmentSummaryData[0].group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <td></td>}

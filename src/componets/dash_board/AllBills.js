@@ -172,7 +172,7 @@ const calculateTotalBill = (cut, rate) => {
 
 // Column mapping for component data access
 const columnMapping = {
-  reportId: { header: translations.reportId, accessor: (item) => item.report_id || '' },
+  reportId: { header: translations.reportId, accessor: (item, billReportId) => billReportId || item.bill_report_id || item.report_id || '' },
   component: { header: translations.component, accessor: (item) => item.component },
   investment_name: { header: translations.investmentName, accessor: (item) => item.investment_name },
   scheme_name: { header: translations.schemeName, accessor: (item) => item.scheme_name },
@@ -460,12 +460,12 @@ useEffect(() => {
   };
   
   // Convert component data to Excel format and download
-  const downloadExcelComponent = (componentData, filename) => {
+  const downloadExcelComponent = (componentData, filename, billReportId) => {
     try {
       const excelData = componentData.map(item => {
         const row = {};
         selectedComponentColumns.forEach(col => {
-          row[columnMapping[col].header] = columnMapping[col].accessor(item);
+          row[columnMapping[col].header] = columnMapping[col].accessor(item, billReportId);
         });
         return row;
       });
@@ -502,12 +502,12 @@ useEffect(() => {
   };
   
   // Convert component data to PDF format and download
-  const downloadPdfComponent = (componentData, filename) => {
+  const downloadPdfComponent = (componentData, filename, centerName, sourceOfReceipt, billReportId) => {
     try {
       // Create headers and rows based on selected columns
       const headers = selectedComponentColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
       const rows = componentData.map(item => {
-        const cells = selectedComponentColumns.map(col => `<td>${columnMapping[col].accessor(item)}</td>`).join('');
+        const cells = selectedComponentColumns.map(col => `<td>${columnMapping[col].accessor(item, billReportId)}</td>`).join('');
         return `<tr>${cells}</tr>`;
       }).join('');
 
@@ -544,7 +544,7 @@ useEffect(() => {
             </style>
           </head>
           <body>
-            <h2>${translations.component}</h2>
+            <h2>${centerName} - ${sourceOfReceipt}</h2>
             <table>
               <tr>${headers}</tr>
               ${rows}
@@ -1078,7 +1078,7 @@ useEffect(() => {
                                             <Button
                                               variant="outline-success"
                                               size="sm"
-                                              onClick={() => downloadExcelComponent(item.component_data, `Component_${item.bill_report_id}`)}
+                                              onClick={() => downloadExcelComponent(item.component_data, `Component_${item.bill_report_id}`, item.bill_report_id)}
                                               className="me-2"
                                             >
                                               <FaFileExcel className="me-1" />Excel
@@ -1086,7 +1086,7 @@ useEffect(() => {
                                             <Button
                                               variant="outline-danger"
                                               size="sm"
-                                              onClick={() => downloadPdfComponent(item.component_data, `Component_${item.bill_report_id}`)}
+                                              onClick={() => downloadPdfComponent(item.component_data, `Component_${item.bill_report_id}`, item.center_name, item.source_of_receipt, item.bill_report_id)}
                                             >
                                               <FaFilePdf className="me-1" />PDF
                                             </Button>
@@ -1105,40 +1105,44 @@ useEffect(() => {
                                             <table className="table table-sm table-bordered">
                                               <thead>
                                                 <tr>
-                                                  <th>{translations.reportId}</th>
-                                                  <th>{translations.component}</th>
-                                                  <th>{translations.investmentName}</th>
-                                                  <th>{translations.unit}</th>
-                                                  <th>{translations.allocatedQuantity}</th>
-                                                  <th>{translations.rate}</th>
-                                                  <th>{translations.updatedQuantity}</th>
-                                                  <th>{translations.buyAmount}</th>
-                                                  <th>{translations.schemeName}</th>
+                                                  {selectedComponentColumns.map(col => (
+                                                    <th key={col}>{columnMapping[col].header}</th>
+                                                  ))}
                                                 </tr>
                                               </thead>
                                               <tbody>
                                                 {item.component_data.map((component, compIndex) => (
                                                   <tr key={compIndex}>
-                                                    <td>{item.bill_report_id}</td> {/* Use parent item's bill_report_id */}
-                                                    <td>{component.component}</td>
-                                                    <td>{component.investment_name}</td>
-                                                    <td>{component.unit}</td>
-                                                    <td>{component.allocated_quantity}</td>
-                                                    <td>{component.rate}</td>
-                                                    <td>{component.updated_quantity}</td>
-                                                    <td>{component.buy_amount}</td>
-                                                    <td>{component.scheme_name}</td>
+                                                    {selectedComponentColumns.map(col => (
+                                                      <td key={`${compIndex}-${col}`} data-label={columnMapping[col].header}>
+                                                        {columnMapping[col].accessor(component, item.bill_report_id)}
+                                                      </td>
+                                                    ))}
                                                   </tr>
                                                 ))}
                                               </tbody>
                                               <tfoot>
                                                 <tr>
-                                                  <td colSpan="4"><strong>Total</strong></td>
-                                                  <td><strong>{totals.allocated}</strong></td>
-                                                  <td><strong>{totals.rate}</strong></td>
-                                                  <td><strong>{totals.updated}</strong></td>
-                                                  <td><strong>{totals.buy}</strong></td>
-                                                  <td></td>
+                                                  {selectedComponentColumns.map((col, index) => {
+                                                    let totalValue = '';
+                                                    if (index === 0) {
+                                                      totalValue = 'Total';
+                                                    } else if (col === 'allocated_quantity' && selectedComponentColumns.includes('allocated_quantity')) {
+                                                      totalValue = totals.allocated;
+                                                    } else if (col === 'rate' && selectedComponentColumns.includes('rate')) {
+                                                      totalValue = totals.rate;
+                                                    } else if (col === 'updated_quantity' && selectedComponentColumns.includes('updated_quantity')) {
+                                                      totalValue = totals.updated;
+                                                    } else if (col === 'buyAmount' && selectedComponentColumns.includes('buyAmount')) {
+                                                      totalValue = totals.buy;
+                                                    }
+                                                    
+                                                    return (
+                                                      <td key={`comp-total-${col}`}>
+                                                        {totalValue && <strong>{totalValue}</strong>}
+                                                      </td>
+                                                    );
+                                                  })}
                                                 </tr>
                                               </tfoot>
                                             </table>
@@ -1155,19 +1159,22 @@ useEffect(() => {
                           </tbody>
                           <tfoot>
                             <tr>
-                              {selectedColumns.map((col, index) => (
-                                <td key={`total-${col}`}>
-                                  {index === 0 ? (
-                                    <strong>Total</strong>
-                                  ) : col === 'totalItems' ? (
-                                    <strong><Badge bg="info">{filteredData.reduce((sum, item) => sum + (item.component_data?.length || 0), 0)}</Badge></strong>
-                                  ) : col === 'buyAmount' ? (
-                                    <strong>{filteredData.reduce((sum, item) => sum + (item.component_data?.reduce((s, c) => s + (parseFloat(c.buy_amount) || 0), 0) || 0), 0)}</strong>
-                                  ) : (
-                                    <strong></strong>
-                                  )}
-                                </td>
-                              ))}
+                              {selectedColumns.map((col, index) => {
+                                let totalValue = '';
+                                if (index === 0) {
+                                  totalValue = 'Total';
+                                } else if (col === 'totalItems' && selectedColumns.includes('totalItems')) {
+                                  totalValue = <Badge bg="info">{filteredData.reduce((sum, item) => sum + (item.component_data?.length || 0), 0)}</Badge>;
+                                } else if (col === 'buyAmount' && selectedColumns.includes('buyAmount')) {
+                                  totalValue = filteredData.reduce((sum, item) => sum + (item.component_data?.reduce((s, c) => s + (parseFloat(c.buy_amount) || 0), 0) || 0), 0);
+                                }
+                                
+                                return (
+                                  <td key={`total-${col}`}>
+                                    {totalValue && <strong>{totalValue}</strong>}
+                                  </td>
+                                );
+                              })}
                               <td colSpan="3"></td>
                             </tr>
                           </tfoot>
