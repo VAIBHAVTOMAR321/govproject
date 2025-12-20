@@ -12,15 +12,18 @@
     margin-left: 260px;
     transition: all 0.3s ease;
 }
-.uk-logo{
-    width:60px;
+
+.uk-logo {
+    width: 60px;
 }
-.sidebar-closed + .main-content {
+
+.sidebar-closed+.main-content {
     margin-left: 70px;
 }
 
 .dashboard-body {
-    padding: 0.75rem; /* Reduced padding */
+    padding: 0.75rem;
+    /* Reduced padding */
 }
 
 /* ============================================
@@ -28,7 +31,7 @@
    ============================================ */
 .sidebar {
     width: 260px;
-    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    background: #008cff;
     color: white;
     transition: all 0.3s ease;
     position: fixed;
@@ -39,6 +42,7 @@
     line-height: 8px !important;
     overflow-y: auto !important;
 }
+
 .logo p {
     font-size: 12px;
     font-weight: 450;
@@ -46,6 +50,7 @@
     line-height: 14px;
     margin-top: 12px;
 }
+
 .sidebar-closed {
     width: 70px;
 }
@@ -311,15 +316,18 @@
     font-size: 2rem;
     font-weight: 600;
     color: #2c3e50;
-    margin-bottom: 0.5rem; /* Reduced margin */
-    margin-top: 0.5rem; /* Reduced margin */
+    margin-bottom: 0.5rem;
+    /* Reduced margin */
+    margin-top: 0.5rem;
+    /* Reduced margin */
 }
 
 .dynamic-table-heading {
     font-size: 1.25rem;
     font-weight: 600;
     color: #2c3e50;
-    margin-top: 1rem; /* Reduced margin */
+    margin-top: 1rem;
+    /* Reduced margin */
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #e9ecef;
@@ -336,11 +344,22 @@
 .high-level-summary-card {
     border: none;
     border-radius: 15px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px 0 rgb(218 218 253 / 65%), 0 2px 6px 0 rgb(206 206 238 / 54%);
     transition: all 0.3s ease;
     height: 100%;
-    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    border-width: 4px !important;
+
+    --bs-border-opacity: 1;
+    border-color: #0dcaf0 !important;
+    border-top: 4px solid #008cff !important;
+}
+
+.card-title {
+    color: #008cff !important;
+}
+
+.card-body p {
+    color: #000 !important;
 }
 
 .high-level-summary-card:hover {
@@ -775,6 +794,7 @@
     .stat-card {
         margin-bottom: 1rem;
     }
+
     .quick-actions-card {
         margin-top: 1rem;
     }
@@ -819,7 +839,7 @@
     .notification-dropdown {
         width: 300px;
     }
-    
+
     .submenu-container {
         padding-left: 1rem;
     }
@@ -828,31 +848,53 @@
         font-size: 1rem;
         margin-bottom: 1rem;
     }
-    
+
     /* Form Mobile Styles */
     .registration-form {
         padding: 0.75rem;
         font-size: 0.6rem;
     }
-    .registration-form .form-label { font-size: 0.6rem; }
+
+    .registration-form .form-label {
+        font-size: 0.6rem;
+    }
+
     .registration-form .form-control,
     .registration-form .form-select {
         font-size: 0.6rem;
         padding: 0.45rem 0.65rem;
         min-height: 1.8rem;
     }
-    .registration-form .form-control::placeholder { font-size: 0.55rem; }
-    .registration-form .form-check-label { font-size: 0.6rem; }
-    .registration-form .form-check-input { width: 0.7rem; height: 0.7rem; }
+
+    .registration-form .form-control::placeholder {
+        font-size: 0.55rem;
+    }
+
+    .registration-form .form-check-label {
+        font-size: 0.6rem;
+    }
+
+    .registration-form .form-check-input {
+        width: 0.7rem;
+        height: 0.7rem;
+    }
+
     .registration-form .invalid-feedback,
-    .registration-form .valid-feedback { font-size: 0.55rem; }
+    .registration-form .valid-feedback {
+        font-size: 0.55rem;
+    }
+
     .registration-form .btn {
         font-size: 0.6rem;
         padding: 0.45rem 1.25rem;
         min-height: 1.8rem;
     }
+
     .registration-form .form-group,
-    .registration-form .mb-3 { margin-bottom: 0.65rem !important; }
+    .registration-form .mb-3 {
+        margin-bottom: 0.65rem !important;
+    }
+
     .registration-form .alert {
         font-size: 0.6rem;
         padding: 0.65rem 0.85rem;
@@ -865,39 +907,70 @@
         transform: translateX(0) !important;
         display: flex !important;
     }
-    .sidebar-closed { width: 70px; }
-    .main-content { margin-left: 260px; }
-    .sidebar-closed + .main-content { margin-left: 70px; }
-    
+
+    .sidebar-closed {
+        width: 70px;
+    }
+
+    .main-content {
+        margin-left: 260px;
+    }
+
+    .sidebar-closed+.main-content {
+        margin-left: 70px;
+    }
+
     .page-title {
         font-size: 1.1rem;
         margin-bottom: 1.2rem;
     }
-    
+
     /* Form Tablet Styles */
     .registration-form {
         padding: 0.85rem;
         font-size: 0.62rem;
     }
-    .registration-form .form-label { font-size: 0.62rem; }
+
+    .registration-form .form-label {
+        font-size: 0.62rem;
+    }
+
     .registration-form .form-control,
     .registration-form .form-select {
         font-size: 0.62rem;
         padding: 0.48rem 0.7rem;
         min-height: 1.9rem;
     }
-    .registration-form .form-control::placeholder { font-size: 0.58rem; }
-    .registration-form .form-check-label { font-size: 0.62rem; }
-    .registration-form .form-check-input { width: 0.75rem; height: 0.75rem; }
+
+    .registration-form .form-control::placeholder {
+        font-size: 0.58rem;
+    }
+
+    .registration-form .form-check-label {
+        font-size: 0.62rem;
+    }
+
+    .registration-form .form-check-input {
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+
     .registration-form .invalid-feedback,
-    .registration-form .valid-feedback { font-size: 0.58rem; }
+    .registration-form .valid-feedback {
+        font-size: 0.58rem;
+    }
+
     .registration-form .btn {
         font-size: 0.62rem;
         padding: 0.48rem 1.35rem;
         min-height: 1.9rem;
     }
+
     .registration-form .form-group,
-    .registration-form .mb-3 { margin-bottom: 0.7rem !important; }
+    .registration-form .mb-3 {
+        margin-bottom: 0.7rem !important;
+    }
+
     .registration-form .alert {
         font-size: 0.62rem;
         padding: 0.7rem 0.9rem;
@@ -906,19 +979,34 @@
 
 /* Reset sidebar state when viewport changes */
 @media (min-width: 768px) {
-    .sidebar { transform: translateX(0) !important; display: flex !important; }
+    .sidebar {
+        transform: translateX(0) !important;
+        display: flex !important;
+    }
 }
+
 @media (max-width: 767.98px) {
-    .sidebar { transform: translateX(-100%) !important; display: none !important; }
+    .sidebar {
+        transform: translateX(-100%) !important;
+        display: none !important;
+    }
 }
 
 /* Other Mobile Specific Overrides */
 @media (max-width: 844px) {
-    .br-offcanvas { line-height: 8px; }
+    .br-offcanvas {
+        line-height: 8px;
+    }
 }
+
 @media (max-width: 576px) {
-    .br-offcanvas { line-height: 8px !important; }
-    .br-nav-text-mob { margin-left: 12px !important; }
+    .br-offcanvas {
+        line-height: 8px !important;
+    }
+
+    .br-nav-text-mob {
+        margin-left: 12px !important;
+    }
 }
 
 /* Large Desktop Styles */
@@ -927,6 +1015,7 @@
         font-size: 1.2rem;
         margin-bottom: 1.5rem;
     }
+
     .registration-form {
         font-size: 0.65rem;
         max-width: 1200px;
@@ -939,27 +1028,33 @@
    ============================================ */
 /* Mobile Sidebar (for Offcanvas component) */
 .mobile-sidebar {
-   background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-   z-index: 1055;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    z-index: 1055;
 }
+
 .mobile-sidebar .nav-item {
     color: white;
     padding: 1rem;
 }
+
 .mobile-sidebar .nav-item:hover {
     background: rgba(255, 255, 255, 0.1);
 }
+
 .mobile-sidebar .nav-item.active {
     background: rgba(255, 255, 255, 0.2);
 }
+
 .mobile-sidebar .submenu-container {
     background: rgba(0, 0, 0, 0.1);
     padding-left: 2rem;
 }
+
 .mobile-sidebar .submenu-item {
     color: rgba(255, 255, 255, 0.7);
     padding: 0.5rem 1rem;
 }
+
 .mobile-sidebar .submenu-item:hover {
     color: white;
     background: rgba(255, 255, 255, 0.05);
@@ -972,7 +1067,11 @@
         box-shadow: none;
         border: 1px solid #ddd;
     }
-    .registration-form .btn { display: none; }
+
+    .registration-form .btn {
+        display: none;
+    }
+
     .registration-form .form-control {
         border: 1px solid #ddd;
         background: transparent;
@@ -981,13 +1080,22 @@
 
 /* High Contrast Mode Support */
 @media (prefers-contrast: high) {
-    .registration-form { border: 2px solid #000; }
-    .registration-form .form-control { border: 2px solid #000; }
-    .registration-form .btn { border: 2px solid #000; }
+    .registration-form {
+        border: 2px solid #000;
+    }
+
+    .registration-form .form-control {
+        border: 2px solid #000;
+    }
+
+    .registration-form .btn {
+        border: 2px solid #000;
+    }
 }
 
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
+
     .registration-form .form-control,
     .registration-form .form-select,
     .registration-form .btn {
