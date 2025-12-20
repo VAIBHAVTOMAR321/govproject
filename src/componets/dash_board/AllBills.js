@@ -88,7 +88,7 @@ const translations = {
   allocatedQuantity: "आवंटित मात्रा",
   rate: "दर",
   updatedQuantity: "अपडेट की गई मात्रा",
-  buyAmount: "खरीद राशि",
+  buyAmount: "कुल राशि",
   schemeName: "योजना का नाम",
   totalItems: "कुल आइटम",
   // Pagination translations
@@ -184,14 +184,14 @@ const columnMapping = {
   sold_rashi: { header: translations.soldRashi, accessor: (item) => calculateAmount(item.updated_quantity, item.rate) },
   cut_quantity: { header: translations.cutQuantity, accessor: (item) => item.cut_quantity },
   rate: { header: translations.rate, accessor: (item) => item.rate },
-  buyAmount: { header: translations.buyAmount, accessor: (item) => item.buy_amount },
+  buyAmount: { header: translations.buyAmount, accessor: (item) => item.sold_amount },
   total_bill: { header: translations.totalBill, accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate) },
   billing_date: { header: translations.billingDate, accessor: (item) => item.billing_date }
 };
 
-// Helper function to calculate report totals from component_data
-const calculateReportBuyAmount = (item) => {
-  return item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0) || 0;
+// Helper function to calculate report sold amount from component_data
+const calculateReportSoldAmount = (item) => {
+  return item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.sold_amount) || 0), 0) || 0;
 };
 
 // Column mapping for reports data access
@@ -203,7 +203,7 @@ const reportsColumnMapping = {
   reportDate: { header: translations.reportDate, accessor: (item) => formatDate(item.billing_date) },
   status: { header: translations.status, accessor: (item) => item.status === 'accepted' ? translations.accepted : item.status === 'cancelled' ? translations.cancelled : item.status },
   totalItems: { header: translations.totalItems, accessor: (item) => item.component_data.length },
-  buyAmount: { header: translations.buyAmount, accessor: (item) => calculateReportBuyAmount(item) }
+  buyAmount: { header: translations.buyAmount, accessor: (item) => calculateReportSoldAmount(item) }
 };
 
 const AllBills = () => {
@@ -367,14 +367,14 @@ useEffect(() => {
 
       // Calculate totals for numeric columns
       const totalItems = data.reduce((sum, item) => sum + (item.component_data?.length || 0), 0);
-      const totalBuyAmount = data.reduce((sum, item) => sum + calculateReportBuyAmount(item), 0);
+      const totalAmount = data.reduce((sum, item) => sum + calculateReportSoldAmount(item), 0);
       
       // Add total row
       const totalRow = {};
       selectedColumns.forEach(col => {
         if (col === 'sno' || col === 'reportId') totalRow[reportsColumnMapping[col].header] = 'Total';
         else if (col === 'totalItems') totalRow[reportsColumnMapping[col].header] = totalItems;
-        else if (col === 'buyAmount') totalRow[reportsColumnMapping[col].header] = totalBuyAmount;
+        else if (col === 'buyAmount') totalRow[reportsColumnMapping[col].header] = totalAmount;
         else totalRow[reportsColumnMapping[col].header] = '';
       });
       excelData.push(totalRow);
@@ -407,13 +407,13 @@ useEffect(() => {
 
       // Calculate totals for numeric columns
       const totalItems = data.reduce((sum, item) => sum + (item.component_data?.length || 0), 0);
-      const totalBuyAmount = data.reduce((sum, item) => sum + calculateReportBuyAmount(item), 0);
+      const totalAmount = data.reduce((sum, item) => sum + calculateReportSoldAmount(item), 0);
       
       // Create total row
       const totalCells = selectedColumns.map(col => {
         if (col === 'sno' || col === 'reportId') return '<td><strong>Total</strong></td>';
         else if (col === 'totalItems') return `<td><strong>${totalItems}</strong></td>`;
-        else if (col === 'buyAmount') return `<td><strong>${totalBuyAmount}</strong></td>`;
+        else if (col === 'buyAmount') return `<td><strong>${totalAmount}</strong></td>`;
         else return '<td></td>';
       }).join('');
       const totalRow = `<tr>${totalCells}</tr>`;
@@ -475,7 +475,7 @@ useEffect(() => {
         if (selectedComponentColumns.includes('allocatedQuantity')) acc.allocated += parseFloat(comp.allocated_quantity) || 0;
         if (selectedComponentColumns.includes('rate')) acc.rate += parseFloat(comp.rate) || 0;
         if (selectedComponentColumns.includes('updatedQuantity')) acc.updated += parseFloat(comp.updated_quantity) || 0;
-        if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.buy_amount) || 0;
+        if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.sold_amount) || 0;
         return acc;
       }, { allocated: 0, rate: 0, updated: 0, buy: 0 });
 
@@ -516,7 +516,7 @@ useEffect(() => {
         if (selectedComponentColumns.includes('allocatedQuantity')) acc.allocated += parseFloat(comp.allocated_quantity) || 0;
         if (selectedComponentColumns.includes('rate')) acc.rate += parseFloat(comp.rate) || 0;
         if (selectedComponentColumns.includes('updatedQuantity')) acc.updated += parseFloat(comp.updated_quantity) || 0;
-        if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.buy_amount) || 0;
+        if (selectedComponentColumns.includes('buyAmount')) acc.buy += parseFloat(comp.sold_amount) || 0;
         return acc;
       }, { allocated: 0, rate: 0, updated: 0, buy: 0 });
 
@@ -1007,7 +1007,7 @@ useEffect(() => {
                                          <Badge bg="info">{item.component_data.length}</Badge>
                                        ) :
                                        col === 'buyAmount' ? (
-                                         item.component_data?.reduce((sum, comp) => sum + (parseFloat(comp.buy_amount) || 0), 0)
+                                         calculateReportSoldAmount(item)
                                        ) : ''}
                                     </td>
                                   ))}
@@ -1097,7 +1097,7 @@ useEffect(() => {
                                             acc.allocated += parseFloat(comp.allocated_quantity) || 0;
                                             acc.rate += parseFloat(comp.rate) || 0;
                                             acc.updated += parseFloat(comp.updated_quantity) || 0;
-                                            acc.buy += parseFloat(comp.buy_amount) || 0;
+                                            acc.buy += parseFloat(comp.sold_amount) || 0;
                                             return acc;
                                           }, { allocated: 0, rate: 0, updated: 0, buy: 0 });
 
@@ -1166,7 +1166,7 @@ useEffect(() => {
                                 } else if (col === 'totalItems' && selectedColumns.includes('totalItems')) {
                                   totalValue = <Badge bg="info">{filteredData.reduce((sum, item) => sum + (item.component_data?.length || 0), 0)}</Badge>;
                                 } else if (col === 'buyAmount' && selectedColumns.includes('buyAmount')) {
-                                  totalValue = filteredData.reduce((sum, item) => sum + (item.component_data?.reduce((s, c) => s + (parseFloat(c.buy_amount) || 0), 0) || 0), 0);
+                                  totalValue = filteredData.reduce((sum, item) => sum + calculateReportSoldAmount(item), 0);
                                 }
                                 
                                 return (

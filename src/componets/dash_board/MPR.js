@@ -1432,6 +1432,8 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                           {selectedColumns.includes('status') && <th>{translations.status}</th>}
                           {selectedColumns.includes('totalItems') && <th>{translations.totalItems}</th>}
                           {selectedColumns.includes('totalAmount') && <th>{translations.totalAmount}</th>}
+                          <th>{translations.viewDetails}</th>
+                          <th>{translations.viewReceipt}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1462,9 +1464,29 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                                   {formatCurrency(item.total_amount || 0)}
                                 </td>
                               )}
+                              <td data-label={translations.viewDetails}>
+                                <Button 
+                                  variant="outline-primary" 
+                                  size="sm" 
+                                  onClick={() => toggleReportDetails(item.id)}
+                                  className="small-fonts"
+                                >
+                                  {translations.viewDetails}
+                                </Button>
+                              </td>
+                              <td data-label={translations.viewReceipt}>
+                                <Button 
+                                  variant="outline-success" 
+                                  size="sm" 
+                                  onClick={() => viewReceipt(item.recipt_file)}
+                                  className="small-fonts"
+                                >
+                                  {translations.viewReceipt}
+                                </Button>
+                              </td>
                             </tr>
                             <tr>
-                              <td colSpan="7" className="p-0">
+                              <td colSpan={`${selectedColumns.length + 2}`} className="p-0">
                                 <Collapse in={expandedReports[item.id]}>
                                   <div className="p-3 bg-light">
                                     <h5 className="mb-3">{translations.component}</h5>
