@@ -269,6 +269,9 @@ const MainDashboard = () => {
   
   // State for expanded investment rows
   const [expandedInvestments, setExpandedInvestments] = useState({});
+  
+  // State for additional filter when clicking on specific item in expanded row
+  const [expandedRowFilter, setExpandedRowFilter] = useState({});
 
   // State for selected columns for different tables
   const [mainTableSelectedColumns, setMainTableSelectedColumns] = useState(mainTableColumns.map(col => col.key));
@@ -1087,6 +1090,43 @@ const MainDashboard = () => {
         ...prev,
         [groupValue]: !prev[groupValue]
     }));
+    // Clear any filter when toggling
+    if (expandedInvestments[groupValue]) {
+      setExpandedRowFilter(prev => {
+        const newFilters = { ...prev };
+        delete newFilters[groupValue];
+        return newFilters;
+      });
+    }
+  };
+  
+  // Handle click on a specific item value to filter expanded data
+  const handleItemClick = (groupValue, filterField, filterValue, e) => {
+    e.stopPropagation(); // Prevent row toggle
+    
+    // If already expanded, just update the filter
+    if (!expandedInvestments[groupValue]) {
+      setExpandedInvestments(prev => ({ ...prev, [groupValue]: true }));
+    }
+    
+    // Set or toggle the filter
+    setExpandedRowFilter(prev => {
+      const currentFilter = prev[groupValue] || {};
+      if (currentFilter.field === filterField && currentFilter.value === filterValue) {
+        // Clear filter if clicking same item
+        const newFilters = { ...prev };
+        delete newFilters[groupValue];
+        return newFilters;
+      }
+      return { ...prev, [groupValue]: { field: filterField, value: filterValue } };
+    });
+  };
+  
+  // Get filtered items for expanded row based on any additional filter
+  const getFilteredExpandedItems = (groupValue, items) => {
+    const filter = expandedRowFilter[groupValue];
+    if (!filter) return items;
+    return items.filter(item => item[filter.field] === filter.value);
   };
 
   if (loading) {
@@ -1385,8 +1425,10 @@ const MainDashboard = () => {
             </div>
 
             {/* Filter Buttons Section - Shows directly when a card is clicked */}
+            <div className="d-flex flex-column flex-md-row gap-3">
+            {/* Filter Buttons Section - Shows directly when a card is clicked */}
             {filterCategory && (
-                <div className="filter-buttons-container mb-4 p-3 border rounded bg-light">
+                <div className="filter-buttons-container mb-4 p-3 border rounded bg-light col-md-6">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <h5 className="mb-0 small-fonts">{formatFieldTitle(filterCategory)} का चयन करें</h5>
                         <Button variant="outline-secondary" size="sm" onClick={() => setFilterCategory(null)}>
@@ -1401,7 +1443,7 @@ const MainDashboard = () => {
 
             {/* Active Filters Section */}
             {Object.keys(activeFilters).length > 0 && (
-                <div className="active-filters-container mb-4 p-2 border rounded bg-light">
+                <div className="active-filters-container mb-4 p-2 border rounded bg-light col-md-6">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <h6 className="mb-0 small-fonts">लागू फ़िल्टर:</h6>
                         <Button variant="danger" size="sm" onClick={clearAllFilters}>
@@ -1440,6 +1482,7 @@ const MainDashboard = () => {
                     </div>
                 </div>
             )}
+</div>
 
             {/* Billing Items Table - Only show when no filters are applied */}
             {Object.keys(activeFilters).length === 0 && (
@@ -1650,21 +1693,121 @@ const MainDashboard = () => {
                                 >
                                     {groupedSummarySelectedColumns.includes('sno') && <td>{index + 1}</td>}
                                     {groupedSummarySelectedColumns.includes('group_name') && <td>{item.group_name}</td>}
-                                    {item.group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && <td>{item.investment_names}</td>}
-                                    {item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && <td>{item.center_names}</td>}
-                                    {item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && <td>{item.components}</td>}
-                                    {item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && <td>{item.units}</td>}
+                                    {item.group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && (
+                                      <td>
+                                        {item.investment_names.split(', ').map((name, i) => (
+                                          <Badge 
+                                            key={i} 
+                                            bg={expandedRowFilter[item.group_name]?.field === 'investment_name' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                            className="me-1 mb-1" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => handleItemClick(item.group_name, 'investment_name', name, e)}
+                                          >
+                                            {name}
+                                          </Badge>
+                                        ))}
+                                      </td>
+                                    )}
+                                    {item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && (
+                                      <td>
+                                        {item.center_names.split(', ').map((name, i) => (
+                                          <Badge 
+                                            key={i} 
+                                            bg={expandedRowFilter[item.group_name]?.field === 'center_name' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                            className="me-1 mb-1" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => handleItemClick(item.group_name, 'center_name', name, e)}
+                                          >
+                                            {name}
+                                          </Badge>
+                                        ))}
+                                      </td>
+                                    )}
+                                    {item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && (
+                                      <td>
+                                        {item.components.split(', ').map((name, i) => (
+                                          <Badge 
+                                            key={i} 
+                                            bg={expandedRowFilter[item.group_name]?.field === 'component' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                            className="me-1 mb-1" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => handleItemClick(item.group_name, 'component', name, e)}
+                                          >
+                                            {name}
+                                          </Badge>
+                                        ))}
+                                      </td>
+                                    )}
+                                    {item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && (
+                                      <td>
+                                        {item.units.split(', ').map((name, i) => (
+                                          <Badge 
+                                            key={i} 
+                                            bg={expandedRowFilter[item.group_name]?.field === 'unit' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                            className="me-1 mb-1" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => handleItemClick(item.group_name, 'unit', name, e)}
+                                          >
+                                            {name}
+                                          </Badge>
+                                        ))}
+                                      </td>
+                                    )}
                                     {groupedSummarySelectedColumns.includes('totalAllocatedQuantity') && <td>{item.totalAllocatedQuantity.toFixed(2)}</td>}
                                     {groupedSummarySelectedColumns.includes('totalAllocated') && <td>{formatCurrency(item.totalAllocated)}</td>}
                                     {groupedSummarySelectedColumns.includes('totalUpdated') && <td>{formatCurrency(item.totalUpdated)}</td>}
-                                    {item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && <td>{item.sources}</td>}
-                                    {item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && <td>{item.schemes}</td>}
+                                    {item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && (
+                                      <td>
+                                        {item.sources.split(', ').map((name, i) => (
+                                          <Badge 
+                                            key={i} 
+                                            bg={expandedRowFilter[item.group_name]?.field === 'source_of_receipt' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                            className="me-1 mb-1" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => handleItemClick(item.group_name, 'source_of_receipt', name, e)}
+                                          >
+                                            {name}
+                                          </Badge>
+                                        ))}
+                                      </td>
+                                    )}
+                                    {item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && (
+                                      <td>
+                                        {item.schemes.split(', ').map((name, i) => (
+                                          <Badge 
+                                            key={i} 
+                                            bg={expandedRowFilter[item.group_name]?.field === 'scheme_name' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                            className="me-1 mb-1" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => handleItemClick(item.group_name, 'scheme_name', name, e)}
+                                          >
+                                            {name}
+                                          </Badge>
+                                        ))}
+                                      </td>
+                                    )}
                                 </tr>
                                 {expandedInvestments[item.group_name] && (
                                     <tr>
                                         <td colSpan="12">
                                             <div className="p-3">
-                                                <h5 className="mb-3">{item.group_name} - {paginationTranslations.details}</h5>
+                                                <h5 className="mb-3">
+                                                  {item.group_name} - {paginationTranslations.details}
+                                                  {expandedRowFilter[item.group_name] && (
+                                                    <Badge bg="info" className="ms-2">
+                                                      {formatFieldTitle(expandedRowFilter[item.group_name].field)}: {expandedRowFilter[item.group_name].value}
+                                                      <FaTimes 
+                                                        className="ms-1" 
+                                                        style={{ cursor: 'pointer' }} 
+                                                        onClick={() => setExpandedRowFilter(prev => {
+                                                          const newFilters = { ...prev };
+                                                          delete newFilters[item.group_name];
+                                                          return newFilters;
+                                                        })}
+                                                      />
+                                                    </Badge>
+                                                  )}
+                                                </h5>
                                                 
                                                 {/* Column Selection Section for Component Details */}
                                                 <ColumnSelection
@@ -1678,12 +1821,15 @@ const MainDashboard = () => {
                                                   <Button 
                                                     variant="outline-success" 
                                                         size="sm" 
-                                                        onClick={() => downloadExcel(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
-                                                            allocated: item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                                            updated: item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                                            allocatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
-                                                            updatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
-                                                        })}
+                                                        onClick={() => {
+                                                          const filteredItems = getFilteredExpandedItems(item.group_name, item.items);
+                                                          downloadExcel(filteredItems, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
+                                                            allocated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            updated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            allocatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                                            updatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                                          });
+                                                        }}
                                                     className="me-2"
                                                   >
                                                     <FaFileExcel className="me-1" />Excel
@@ -1691,12 +1837,15 @@ const MainDashboard = () => {
                                                   <Button 
                                                         variant="outline-danger" 
                                                         size="sm" 
-                                                        onClick={() => downloadPdf(item.items, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${item.group_name} विवरण`, {
-                                                            allocated: item.items.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                                            updated: item.items.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                                            allocatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
-                                                            updatedQuantity: item.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
-                                                        })}
+                                                        onClick={() => {
+                                                          const filteredItems = getFilteredExpandedItems(item.group_name, item.items);
+                                                          downloadPdf(filteredItems, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${item.group_name} विवरण`, {
+                                                            allocated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            updated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
+                                                            allocatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                                            updatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                                          });
+                                                        }}
                                                   >
                                                     <FaFilePdf className="me-1" />
                                                     PDF
@@ -1720,7 +1869,7 @@ const MainDashboard = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {item.items.map((detailItem, detailIndex) => {
+                                                        {getFilteredExpandedItems(item.group_name, item.items).map((detailItem, detailIndex) => {
                                                             const allocatedAmount = (parseFloat(detailItem.allocated_quantity) * parseFloat(detailItem.rate)).toFixed(2);
                                                             const updatedAmount = (parseFloat(detailItem.updated_quantity) * parseFloat(detailItem.rate)).toFixed(2);
                                                             return (
@@ -1748,11 +1897,11 @@ const MainDashboard = () => {
                                                             {componentDetailSelectedColumns.includes('component') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('unit') && <td></td>}
-                                                            {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{item.items.reduce((sum, i) => sum + parseFloat(i.allocated_quantity || 0), 0).toFixed(2)}</td>}
+                                                            {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + parseFloat(i.allocated_quantity || 0), 0).toFixed(2)}</td>}
                                                             {componentDetailSelectedColumns.includes('rate') && <td></td>}
-                                                            {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(item.items.reduce((sum, i) => sum + (parseFloat(i.allocated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
-                                                            {componentDetailSelectedColumns.includes('updated_quantity') && <td>{item.items.reduce((sum, i) => sum + parseFloat(i.updated_quantity || 0), 0).toFixed(2)}</td>}
-                                                            {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(item.items.reduce((sum, i) => sum + (parseFloat(i.updated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
+                                                            {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + (parseFloat(i.allocated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
+                                                            {componentDetailSelectedColumns.includes('updated_quantity') && <td>{getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + parseFloat(i.updated_quantity || 0), 0).toFixed(2)}</td>}
+                                                            {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + (parseFloat(i.updated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
                                                             {componentDetailSelectedColumns.includes('source_of_receipt') && <td></td>}
                                                             {componentDetailSelectedColumns.includes('scheme_name') && <td></td>}
                                                         </tr>
