@@ -6,8 +6,12 @@ import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
-import Footer from "../footer/Footer";
-
+import { ImOffice } from "react-icons/im";
+import { GrServices } from "react-icons/gr";
+import { RiMoneyRupeeCircleLine } from "react-icons/ri";
+import { FaRegLightbulb } from "react-icons/fa";
+import { BsFillDiagram3Fill } from "react-icons/bs";
+import { GrCubes } from "react-icons/gr";
 const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 
 // Helper function to format numbers as currency
@@ -317,17 +321,17 @@ const MainDashboard = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeFilters]);
-
+ 
   const getFieldIcon = (field) => {
     const icons = {
-      center_name: '🏢',
-      component: '📦',
-      investment_name: '💼',
-      unit: '📏',
-      source_of_receipt: '💰',
-      scheme_name: '📋'
+      center_name: <ImOffice />, // Return as React component
+      component: <GrServices />,
+      investment_name: <RiMoneyRupeeCircleLine />,
+      unit: <GrCubes />,
+      source_of_receipt: <FaRegLightbulb />,
+      scheme_name: <BsFillDiagram3Fill />
     };
-    return icons[field] || '📊';
+    return icons[field];
   };
 
   // --- useMemo for processing data for cards and table ---
@@ -1406,8 +1410,7 @@ const MainDashboard = () => {
               <Row className="g-3">
                 {categoryCardsData.map((card) => (
                   <div className="col">
-                    <div className="card radius-10 border-start border-0 border-4 border-info">
-                      <div className="card-body">
+<div className="card radius-10 border-start border-0 border-4 border-info" key={card.key} onClick={() => handleCategoryCardClick(card.key)} style={{ cursor: 'pointer' }}>                      <div className="card-body">
                         <div className="d-flex align-items-center">
                           <div>
                             <p className="mb-0 text-secondary">{card.title}</p>
