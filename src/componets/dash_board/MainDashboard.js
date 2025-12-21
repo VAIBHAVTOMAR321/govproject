@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col, Card, Button, ListGroup, Pagination, Badge, Accordion, Table, Form } from "react-bootstrap";
-import { FaFileExcel, FaFilePdf, FaArrowLeft, FaTimes, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { Container, Spinner, Alert, Row, Col, Card, Button, Pagination, Badge, Table, Form } from "react-bootstrap";
+import { FaFileExcel, FaFilePdf, FaTimes, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
+import VivranSummaryModal from "./VivranSummaryModal";
 import { ImOffice } from "react-icons/im";
 import { GrServices } from "react-icons/gr";
 import { RiMoneyRupeeCircleLine } from "react-icons/ri";
@@ -271,16 +272,15 @@ const MainDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // State for expanded investment rows
-  const [expandedInvestments, setExpandedInvestments] = useState({});
-
-  // State for additional filter when clicking on specific item in expanded row
-  const [expandedRowFilter, setExpandedRowFilter] = useState({});
 
   // State for selected columns for different tables
   const [mainTableSelectedColumns, setMainTableSelectedColumns] = useState(mainTableColumns.map(col => col.key));
   const [groupedSummarySelectedColumns, setGroupedSummarySelectedColumns] = useState(groupedSummaryColumns.map(col => col.key));
   const [componentDetailSelectedColumns, setComponentDetailSelectedColumns] = useState(componentDetailColumns.map(col => col.key));
+
+  // State for modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedGroupData, setSelectedGroupData] = useState(null);
 
   useEffect(() => {
     const checkDevice = () => {
@@ -321,7 +321,7 @@ const MainDashboard = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeFilters]);
- 
+  
   const getFieldIcon = (field) => {
     const icons = {
       center_name: <ImOffice />, // Return as React component
@@ -547,15 +547,15 @@ const MainDashboard = () => {
       investmentSummary[groupValue].items.push(item);
     });
 
-    // Convert sets to comma-separated strings and create array
+    // Convert sets to arrays and comma-separated strings where needed, and create array
     const investmentSummaryArray = Object.values(investmentSummary).map(item => ({
       ...item,
       investment_names: Array.from(item.investment_names).join(', '),
       center_names: Array.from(item.center_names).join(', '),
       components: Array.from(item.components).join(', '),
       units: Array.from(item.units).join(', '),
-      sources: Array.from(item.sources).join(', '),
-      schemes: Array.from(item.schemes).join(', ')
+      sources: Array.from(item.sources),
+      schemes: Array.from(item.schemes)
     }));
 
     // --- 3. Calculate Totals for the Filtered Table ---
@@ -821,7 +821,7 @@ const MainDashboard = () => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
-              
+               
               body { 
                 font-family: 'Noto Sans', Arial, sans-serif; 
                 margin: 20px; 
@@ -926,7 +926,7 @@ const MainDashboard = () => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
-              
+               
               body { 
                 font-family: 'Noto Sans', Arial, sans-serif; 
                 margin: 20px; 
@@ -1043,8 +1043,6 @@ const MainDashboard = () => {
     }
   };
 
-  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
-
   // Handler for clicking category cards
   const handleCategoryCardClick = (key) => {
     // Find the card with the clicked key to get its values
@@ -1088,49 +1086,27 @@ const MainDashboard = () => {
     setCurrentPage(pageNumber);
   };
 
-  // Toggle investment row expansion
-  const toggleInvestmentExpansion = (groupValue) => {
-    setExpandedInvestments(prev => ({
-      ...prev,
-      [groupValue]: !prev[groupValue]
-    }));
-    // Clear any filter when toggling
-    if (expandedInvestments[groupValue]) {
-      setExpandedRowFilter(prev => {
-        const newFilters = { ...prev };
-        delete newFilters[groupValue];
-        return newFilters;
-      });
-    }
+  // Handle badge click to open modal with filtered data
+  const handleBadgeClick = (field, value) => {
+    const filteredItems = filteredTableData.filter(item => item[field] === value);
+    const totalAllocated = filteredItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate), 0);
+    const totalUpdated = filteredItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity) * parseFloat(item.rate), 0);
+    const groupData = {
+      group_name: value,
+      group_field: field,
+      items: filteredItems,
+      totalAllocated,
+      totalUpdated,
+      // Add other necessary fields if needed
+    };
+    setSelectedGroupData(groupData);
+    setShowModal(true);
   };
 
-  // Handle click on a specific item value to filter expanded data
-  const handleItemClick = (groupValue, filterField, filterValue, e) => {
-    e.stopPropagation(); // Prevent row toggle
-
-    // If already expanded, just update the filter
-    if (!expandedInvestments[groupValue]) {
-      setExpandedInvestments(prev => ({ ...prev, [groupValue]: true }));
-    }
-
-    // Set or toggle the filter
-    setExpandedRowFilter(prev => {
-      const currentFilter = prev[groupValue] || {};
-      if (currentFilter.field === filterField && currentFilter.value === filterValue) {
-        // Clear filter if clicking same item
-        const newFilters = { ...prev };
-        delete newFilters[groupValue];
-        return newFilters;
-      }
-      return { ...prev, [groupValue]: { field: filterField, value: filterValue } };
-    });
-  };
-
-  // Get filtered items for expanded row based on any additional filter
-  const getFilteredExpandedItems = (groupValue, items) => {
-    const filter = expandedRowFilter[groupValue];
-    if (!filter) return items;
-    return items.filter(item => item[filter.field] === filter.value);
+  // Close modal
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedGroupData(null);
   };
 
   if (loading) {
@@ -1427,7 +1403,6 @@ const MainDashboard = () => {
                   </div>
 
 
-
                 ))}
               </Row>
             </div>
@@ -1696,8 +1671,6 @@ const MainDashboard = () => {
                       <React.Fragment key={index}>
                         <tr
                           className="grouped-summary-row"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => toggleInvestmentExpansion(item.group_name)}
                         >
                           {groupedSummarySelectedColumns.includes('sno') && <td>{index + 1}</td>}
                           {groupedSummarySelectedColumns.includes('group_name') && <td>{item.group_name}</td>}
@@ -1706,10 +1679,10 @@ const MainDashboard = () => {
                               {item.investment_names.split(', ').map((name, i) => (
                                 <Badge
                                   key={i}
-                                  bg={expandedRowFilter[item.group_name]?.field === 'investment_name' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                  bg="secondary"
                                   className="me-1 mb-1"
                                   style={{ cursor: 'pointer' }}
-                                  onClick={(e) => handleItemClick(item.group_name, 'investment_name', name, e)}
+                                  onClick={() => handleBadgeClick('investment_name', name)}
                                 >
                                   {name}
                                 </Badge>
@@ -1721,10 +1694,10 @@ const MainDashboard = () => {
                               {item.center_names.split(', ').map((name, i) => (
                                 <Badge
                                   key={i}
-                                  bg={expandedRowFilter[item.group_name]?.field === 'center_name' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                  bg="secondary"
                                   className="me-1 mb-1"
                                   style={{ cursor: 'pointer' }}
-                                  onClick={(e) => handleItemClick(item.group_name, 'center_name', name, e)}
+                                  onClick={() => handleBadgeClick('center_name', name)}
                                 >
                                   {name}
                                 </Badge>
@@ -1736,10 +1709,10 @@ const MainDashboard = () => {
                               {item.components.split(', ').map((name, i) => (
                                 <Badge
                                   key={i}
-                                  bg={expandedRowFilter[item.group_name]?.field === 'component' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                  bg="secondary"
                                   className="me-1 mb-1"
                                   style={{ cursor: 'pointer' }}
-                                  onClick={(e) => handleItemClick(item.group_name, 'component', name, e)}
+                                  onClick={() => handleBadgeClick('component', name)}
                                 >
                                   {name}
                                 </Badge>
@@ -1751,10 +1724,10 @@ const MainDashboard = () => {
                               {item.units.split(', ').map((name, i) => (
                                 <Badge
                                   key={i}
-                                  bg={expandedRowFilter[item.group_name]?.field === 'unit' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                  bg="secondary"
                                   className="me-1 mb-1"
                                   style={{ cursor: 'pointer' }}
-                                  onClick={(e) => handleItemClick(item.group_name, 'unit', name, e)}
+                                  onClick={() => handleBadgeClick('unit', name)}
                                 >
                                   {name}
                                 </Badge>
@@ -1766,13 +1739,13 @@ const MainDashboard = () => {
                           {groupedSummarySelectedColumns.includes('totalUpdated') && <td>{formatCurrency(item.totalUpdated)}</td>}
                           {item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && (
                             <td>
-                              {item.sources.split(', ').map((name, i) => (
+                              {item.sources.map((name, i) => (
                                 <Badge
                                   key={i}
-                                  bg={expandedRowFilter[item.group_name]?.field === 'source_of_receipt' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                  bg="secondary"
                                   className="me-1 mb-1"
                                   style={{ cursor: 'pointer' }}
-                                  onClick={(e) => handleItemClick(item.group_name, 'source_of_receipt', name, e)}
+                                  onClick={() => handleBadgeClick('source_of_receipt', name)}
                                 >
                                   {name}
                                 </Badge>
@@ -1781,13 +1754,13 @@ const MainDashboard = () => {
                           )}
                           {item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && (
                             <td>
-                              {item.schemes.split(', ').map((name, i) => (
+                              {item.schemes.map((name, i) => (
                                 <Badge
                                   key={i}
-                                  bg={expandedRowFilter[item.group_name]?.field === 'scheme_name' && expandedRowFilter[item.group_name]?.value === name ? 'success' : 'secondary'}
+                                  bg="secondary"
                                   className="me-1 mb-1"
                                   style={{ cursor: 'pointer' }}
-                                  onClick={(e) => handleItemClick(item.group_name, 'scheme_name', name, e)}
+                                  onClick={() => handleBadgeClick('scheme_name', name)}
                                 >
                                   {name}
                                 </Badge>
@@ -1795,130 +1768,6 @@ const MainDashboard = () => {
                             </td>
                           )}
                         </tr>
-                        {expandedInvestments[item.group_name] && (
-                          <tr>
-                            <td colSpan="12">
-                              <div className="p-3">
-                                <h5 className="mb-3">
-                                  {item.group_name} - {paginationTranslations.details}
-                                  {expandedRowFilter[item.group_name] && (
-                                    <Badge bg="info" className="ms-2">
-                                      {formatFieldTitle(expandedRowFilter[item.group_name].field)}: {expandedRowFilter[item.group_name].value}
-                                      <FaTimes
-                                        className="ms-1"
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => setExpandedRowFilter(prev => {
-                                          const newFilters = { ...prev };
-                                          delete newFilters[item.group_name];
-                                          return newFilters;
-                                        })}
-                                      />
-                                    </Badge>
-                                  )}
-                                </h5>
-
-                                {/* Column Selection Section for Component Details */}
-                                <ColumnSelection
-                                  columns={componentDetailColumns}
-                                  selectedColumns={componentDetailSelectedColumns}
-                                  setSelectedColumns={setComponentDetailSelectedColumns}
-                                  title="घटक विवरण के लिए कॉलम चुनें"
-                                />
-
-                                <div className="d-flex justify-content-end mb-2">
-                                  <Button
-                                    variant="outline-success"
-                                    size="sm"
-                                    onClick={() => {
-                                      const filteredItems = getFilteredExpandedItems(item.group_name, item.items);
-                                      downloadExcel(filteredItems, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
-                                        allocated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                        updated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                        allocatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
-                                        updatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
-                                      });
-                                    }}
-                                    className="me-2"
-                                  >
-                                    <FaFileExcel className="me-1" />Excel
-                                  </Button>
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() => {
-                                      const filteredItems = getFilteredExpandedItems(item.group_name, item.items);
-                                      downloadPdf(filteredItems, `${item.group_name}_Details_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${item.group_name} विवरण`, {
-                                        allocated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                        updated: filteredItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0)), 0),
-                                        allocatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
-                                        updatedQuantity: filteredItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
-                                      });
-                                    }}
-                                  >
-                                    <FaFilePdf className="me-1" />
-                                    PDF
-                                  </Button>
-                                </div>
-                                <table className="responsive-table small-fonts">
-                                  <thead>
-                                    <tr>
-                                      {componentDetailSelectedColumns.includes('sno') && <th>क्र.सं.</th>}
-                                      {componentDetailSelectedColumns.includes('center_name') && <th>केंद्र का नाम</th>}
-                                      {componentDetailSelectedColumns.includes('component') && <th>घटक</th>}
-                                      {componentDetailSelectedColumns.includes('investment_name') && <th>निवेश का नाम</th>}
-                                      {componentDetailSelectedColumns.includes('unit') && <th>इकाई</th>}
-                                      {componentDetailSelectedColumns.includes('allocated_quantity') && <th>आवंटित मात्रा</th>}
-                                      {componentDetailSelectedColumns.includes('rate') && <th>दर</th>}
-                                      {componentDetailSelectedColumns.includes('allocated_amount') && <th>आवंटित राशि</th>}
-                                      {componentDetailSelectedColumns.includes('updated_quantity') && <th>अपडेट की गई मात्रा</th>}
-                                      {componentDetailSelectedColumns.includes('updated_amount') && <th>अपडेट की गई राशि</th>}
-                                      {componentDetailSelectedColumns.includes('source_of_receipt') && <th>स्रोत</th>}
-                                      {componentDetailSelectedColumns.includes('scheme_name') && <th>योजना</th>}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {getFilteredExpandedItems(item.group_name, item.items).map((detailItem, detailIndex) => {
-                                      const allocatedAmount = (parseFloat(detailItem.allocated_quantity) * parseFloat(detailItem.rate)).toFixed(2);
-                                      const updatedAmount = (parseFloat(detailItem.updated_quantity) * parseFloat(detailItem.rate)).toFixed(2);
-                                      return (
-                                        <tr key={detailIndex}>
-                                          {componentDetailSelectedColumns.includes('sno') && <td>{detailIndex + 1}</td>}
-                                          {componentDetailSelectedColumns.includes('center_name') && <td>{detailItem.center_name}</td>}
-                                          {componentDetailSelectedColumns.includes('component') && <td>{detailItem.component}</td>}
-                                          {componentDetailSelectedColumns.includes('investment_name') && <td>{detailItem.investment_name}</td>}
-                                          {componentDetailSelectedColumns.includes('unit') && <td>{detailItem.unit}</td>}
-                                          {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{detailItem.allocated_quantity}</td>}
-                                          {componentDetailSelectedColumns.includes('rate') && <td>{detailItem.rate}</td>}
-                                          {componentDetailSelectedColumns.includes('allocated_amount') && <td>{allocatedAmount}</td>}
-                                          {componentDetailSelectedColumns.includes('updated_quantity') && <td>{detailItem.updated_quantity}</td>}
-                                          {componentDetailSelectedColumns.includes('updated_amount') && <td>{updatedAmount}</td>}
-                                          {componentDetailSelectedColumns.includes('source_of_receipt') && <td>{detailItem.source_of_receipt}</td>}
-                                          {componentDetailSelectedColumns.includes('scheme_name') && <td>{detailItem.scheme_name}</td>}
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                  <tfoot>
-                                    <tr className="font-weight-bold">
-                                      {componentDetailSelectedColumns.includes('sno') && <td>{paginationTranslations.total}</td>}
-                                      {componentDetailSelectedColumns.includes('center_name') && <td></td>}
-                                      {componentDetailSelectedColumns.includes('component') && <td></td>}
-                                      {componentDetailSelectedColumns.includes('investment_name') && <td></td>}
-                                      {componentDetailSelectedColumns.includes('unit') && <td></td>}
-                                      {componentDetailSelectedColumns.includes('allocated_quantity') && <td>{getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + parseFloat(i.allocated_quantity || 0), 0).toFixed(2)}</td>}
-                                      {componentDetailSelectedColumns.includes('rate') && <td></td>}
-                                      {componentDetailSelectedColumns.includes('allocated_amount') && <td>{formatCurrency(getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + (parseFloat(i.allocated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
-                                      {componentDetailSelectedColumns.includes('updated_quantity') && <td>{getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + parseFloat(i.updated_quantity || 0), 0).toFixed(2)}</td>}
-                                      {componentDetailSelectedColumns.includes('updated_amount') && <td>{formatCurrency(getFilteredExpandedItems(item.group_name, item.items).reduce((sum, i) => sum + (parseFloat(i.updated_quantity || 0) * parseFloat(i.rate || 0)), 0))}</td>}
-                                      {componentDetailSelectedColumns.includes('source_of_receipt') && <td></td>}
-                                      {componentDetailSelectedColumns.includes('scheme_name') && <td></td>}
-                                    </tr>
-                                  </tfoot>
-                                </table>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
                       </React.Fragment>
                     ))}
                   </tbody>
@@ -1976,6 +1825,15 @@ const MainDashboard = () => {
           </Container>
         </div>
       </div>
+
+      {/* Vivran Summary Modal */}
+      <VivranSummaryModal
+        show={showModal}
+        onHide={closeModal}
+        groupData={selectedGroupData}
+        selectedColumns={componentDetailSelectedColumns}
+        setSelectedColumns={setComponentDetailSelectedColumns}
+      />
     </>
   );
 };
