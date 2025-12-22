@@ -22,7 +22,7 @@ const customSelectStyles = {
     '&:hover': {
       borderColor: '#3b82f6',
     },
-    minHeight: '38px', // Match height of Form.Select
+    minHeight: '32px', // Smaller height for compact layout
     fontSize: '14px', // Match small-fonts
   }),
   menu: (baseStyles) => ({
@@ -745,9 +745,9 @@ const Billing = () => {
               </Row>
               
               <Row>
-                <Col md={4} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.centerName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.centerName}</FormLabel>
                     <Select
                       value={filters.center_name}
                       onChange={(value) => handleFilterChange('center_name', value)}
@@ -756,16 +756,16 @@ const Billing = () => {
                       isClearable={true}
                       placeholder={translations.allCenters}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
-                
-                <Col md={4} className="mb-3">
+
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.sourceOfReceipt}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.sourceOfReceipt}</FormLabel>
                     <Select
                       value={filters.source_of_receipt}
                       onChange={(value) => handleFilterChange('source_of_receipt', value)}
@@ -774,16 +774,16 @@ const Billing = () => {
                       isClearable={true}
                       placeholder={translations.allSources}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
-                
-                <Col md={4} className="mb-3">
+
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.schemeName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.schemeName}</FormLabel>
                     <Select
                       value={filters.scheme_name}
                       onChange={(value) => handleFilterChange('scheme_name', value)}
@@ -792,18 +792,16 @@ const Billing = () => {
                       isMulti={true}
                       placeholder={translations.allSchemes}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
-              </Row>
-              
-              <Row>
-                <Col md={6} className="mb-3">
+
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.component}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.component}</FormLabel>
                     <Select
                       value={filters.component}
                       onChange={(value) => handleFilterChange('component', value)}
@@ -812,16 +810,18 @@ const Billing = () => {
                       isMulti={true}
                       placeholder={translations.allComponents}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
-                
-                <Col md={6} className="mb-3">
+              </Row>
+
+              <Row>
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.investmentName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.investmentName}</FormLabel>
                     <Select
                       value={filters.investment_name}
                       onChange={(value) => handleFilterChange('investment_name', value)}
@@ -830,7 +830,7 @@ const Billing = () => {
                       isMulti={true}
                       placeholder={translations.allInvestments}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />

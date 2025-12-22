@@ -217,7 +217,7 @@ const customSelectStyles = {
     '&:hover': {
       borderColor: '#3b82f6',
     },
-    minHeight: '38px',
+    minHeight: '32px', // Smaller height for compact layout
     fontSize: '14px',
   }),
   menu: (baseStyles) => ({
@@ -315,6 +315,7 @@ const MPR = () => {
   
   // State for data
   const [yearlyData, setYearlyData] = useState([]);
+  const [originalYearlyData, setOriginalYearlyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -366,9 +367,25 @@ const MPR = () => {
     setError(null);
 
     try {
-      // Fetch yearly data
-      const yearlyResponse = await axios.get(YEARLY_DATA_URL);
-      let filteredYearlyData = filters.year ? yearlyResponse.data.filter(item => item.billing_date && new Date(item.billing_date).getFullYear() === filters.year) : yearlyResponse.data;
+      // Only fetch yearly data if we don't have it yet
+      let originalData = originalYearlyData.length > 0 ? originalYearlyData : (await axios.get(YEARLY_DATA_URL)).data;
+      
+      // Only update original data if we fetched new data
+      if (originalYearlyData.length === 0) {
+        setOriginalYearlyData(originalData);
+      }
+      
+      let filteredYearlyData = originalData;
+      
+      // Apply year filter to yearly data
+      if (filters.year) {
+        filteredYearlyData = filteredYearlyData.filter(item => item.billing_date && new Date(item.billing_date).getFullYear() === filters.year);
+      }
+      
+      // Apply month filter to yearly data
+      if (filters.month) {
+        filteredYearlyData = filteredYearlyData.filter(item => item.billing_date && new Date(item.billing_date).getMonth() + 1 === filters.month);
+      }
 
       // Apply filters to yearly data
       if (filters.center_name && filters.center_name.length > 0) {
@@ -419,29 +436,31 @@ const MPR = () => {
       
       // Fetch monthly data
       let monthlyUrl = MONTHLY_DATA_URL;
+      const params = [];
+      
+      // Add year parameter if selected
       if (filters.year) {
-        monthlyUrl += `?year=${filters.year}`;
-        if (filters.month) {
-          monthlyUrl += `&month=${filters.month}`;
-        }
-      } else if (filters.month) {
-        monthlyUrl += `?month=${filters.month}`;
+        params.push(`year=${filters.year}`);
+      }
+      
+      // Add month parameter if selected (works independently of year)
+      if (filters.month) {
+        params.push(`month=${filters.month}`);
+      }
+      
+      // Build the URL with all selected parameters
+      if (params.length > 0) {
+        monthlyUrl += `?${params.join('&')}`;
       }
 
-      // Add center_id filter if single center selected
-      if (filters.center_name && filters.center_name.length === 1) {
-        // Find center_id from yearly data
-        const center = filteredYearlyData.find(item => item.center_name === filters.center_name[0].value);
-        if (center) {
-          monthlyUrl += `&center_id=${center.center_id}`;
-        }
-      }
+      // Don't add center_id filter to API URL - we'll filter locally for consistency
+      // This ensures the center filter works the same way regardless of how many centers are selected
 
       const monthlyResponse = await axios.get(monthlyUrl);
       let filteredMonthlyData = monthlyResponse.data;
 
       // Apply additional filters to monthly data
-      if (filters.center_name && filters.center_name.length > 1) {
+      if (filters.center_name && filters.center_name.length > 0) {
         const selectedCenters = filters.center_name.map(c => c.value);
         filteredMonthlyData = filteredMonthlyData.filter(item => selectedCenters.includes(item.center_name));
       }
@@ -511,10 +530,26 @@ const MPR = () => {
   
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterName]: value
-    }));
+    // Check if this is a multi-select filter (array) or single-select (object)
+    if (Array.isArray(value) && value.some(v => v.value === 'select_all')) {
+      // Select all options except 'select_all' for multi-select filters
+      const allOptions = filterOptions[filterName].filter(opt => opt.value !== 'select_all');
+      setFilters(prev => ({
+        ...prev,
+        [filterName]: allOptions
+      }));
+    } else if (value === null || (Array.isArray(value) && value.length === 0)) {
+      // Clear the filter
+      setFilters(prev => ({
+        ...prev,
+        [filterName]: []
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [filterName]: value
+      }));
+    }
   };
   
   // Clear all filters
@@ -919,7 +954,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
 
   // Get unique values for filters
   const filterOptions = useMemo(() => {
-    if (!yearlyData || yearlyData.length === 0) {
+    if (!originalYearlyData || originalYearlyData.length === 0) {
       return {
         center_name: [],
         source_of_receipt: [],
@@ -930,14 +965,14 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
     }
 
     return {
-      center_name: [...new Set(yearlyData.map(item => item.center_name))].map(name => ({ value: name, label: name })),
-      source_of_receipt: [...new Set(yearlyData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name })),
-      component: [...new Set(yearlyData.map(item => item.component))].map(name => ({ value: name, label: name })),
-      investment_name: [...new Set(yearlyData.map(item => item.investment_name))].map(name => ({ value: name, label: name })),
-      scheme_name: [...new Set(yearlyData.map(item => item.scheme_name))].map(name => ({ value: name, label: name })),
-      dates: [...new Set(yearlyData.filter(item => item.billing_date).map(item => new Date(item.billing_date).toISOString().split('T')[0]))].sort().map(date => ({ value: date, label: date }))
+      center_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.center_name))].map(name => ({ value: name, label: name }))],
+      source_of_receipt: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))],
+      component: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.component))].map(name => ({ value: name, label: name }))],
+      investment_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.investment_name))].map(name => ({ value: name, label: name }))],
+      scheme_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.scheme_name))].map(name => ({ value: name, label: name }))],
+      dates: [...new Set(originalYearlyData.filter(item => item.billing_date).map(item => new Date(item.billing_date).toISOString().split('T')[0]))].sort().map(date => ({ value: date, label: date }))
     };
-  }, [yearlyData]);
+  }, [originalYearlyData]);
   
   // Calculate paginated data
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -1134,9 +1169,9 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
               </Row>
               
               <Row>
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.centerName}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.centerName}</Form.Label>
                     <Select
                       value={filters.center_name}
                       onChange={(value) => handleFilterChange('center_name', value)}
@@ -1145,16 +1180,16 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                       isClearable
                       placeholder={translations.allCenters}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.sourceOfReceipt}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.sourceOfReceipt}</Form.Label>
                     <Select
                       value={filters.source_of_receipt}
                       onChange={(value) => handleFilterChange('source_of_receipt', value)}
@@ -1163,16 +1198,16 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                       isClearable
                       placeholder={translations.allSources}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.component}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.component}</Form.Label>
                     <Select
                       value={filters.component}
                       onChange={(value) => handleFilterChange('component', value)}
@@ -1181,16 +1216,16 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                       isClearable
                       placeholder="सभी घटक"
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.investmentName}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.investmentName}</Form.Label>
                     <Select
                       value={filters.investment_name}
                       onChange={(value) => handleFilterChange('investment_name', value)}
@@ -1199,16 +1234,16 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                       isClearable
                       placeholder="सभी निवेश"
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.schemeName}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.schemeName}</Form.Label>
                     <Select
                       value={filters.scheme_name}
                       onChange={(value) => handleFilterChange('scheme_name', value)}
@@ -1217,7 +1252,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                       isClearable
                       placeholder="सभी योजनाएं"
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
@@ -1226,68 +1261,68 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
               </Row>
 
               <Row>
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.fromDate}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.fromDate}</Form.Label>
                     <Form.Control
                       type="date"
                       value={filters.from_date}
                       onChange={(e) => handleFilterChange('from_date', e.target.value)}
-                      className="small-fonts"
+                      className="compact-input small-fonts"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.toDate}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.toDate}</Form.Label>
                     <Form.Control
                       type="date"
                       value={filters.to_date}
                       onChange={(e) => handleFilterChange('to_date', e.target.value)}
-                      className="small-fonts"
+                      className="compact-input small-fonts"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.selectedDates}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.selectedDates}</Form.Label>
                     <Form.Control
                       type="text"
                       value={selectedDatesInput}
                       onChange={(e) => setSelectedDatesInput(e.target.value)}
                       onBlur={() => setFilters(prev => ({ ...prev, selected_dates: selectedDatesInput }))}
                       placeholder="2025-01-01,2025-01-02"
-                      className="small-fonts"
+                      className="compact-input small-fonts"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.month}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.month}</Form.Label>
                     <Select
                       value={monthOptions.find(option => option.value === filters.month)}
                       onChange={(value) => handleFilterChange('month', value ? value.value : null)}
                       options={monthOptions}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </Form.Group>
                 </Col>
 
-                <Col md={3} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts">{translations.year}</Form.Label>
+                    <Form.Label className="small-fonts fw-bold">{translations.year}</Form.Label>
                     <Select
                       value={yearOptions.find(option => option.value === filters.year)}
                       onChange={(value) => handleFilterChange('year', value ? value.value : null)}
                       options={yearOptions}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />

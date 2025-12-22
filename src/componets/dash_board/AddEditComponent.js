@@ -876,85 +876,89 @@ const AddEditComponent = () => {
             {/* Summary Cards Section */}
             <Row className="g-3 mb-4">
               <Col xs={6} md={3}>
-                <Card
-                  className={`high-level-summary-card text-center h-100 ${
+                <div
+                  className={`card radius-10 border-start border-0 border-4 border-info ${
                     activeTab === "components" ? "active-tab" : ""
                   }`}
                   onClick={() => setActiveTab("components")}
+                  style={{ cursor: 'pointer' }}
                 >
                   <Card.Body>
-                    <div className="card-icon">📦</div>
-                    <Card.Title className="small-fonts">
-                      {translations.totalComponents}
-                    </Card.Title>
-                    <Card.Text className="summary-value small-fonts">
-                      {uniqueComponents.length}
-                    </Card.Text>
+                    <div className="d-flex align-items-center">
+                      <div>
+                        <p className="mb-0 text-secondary">{translations.totalComponents}</p>
+                        <h4 className="my-1 text-info">{uniqueComponents.length}</h4>
+                      </div>
+                      <div className="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">📦</div>
+                    </div>
                   </Card.Body>
-                </Card>
+                </div>
               </Col>
               <Col xs={6} md={3}>
-                <Card
-                  className={`high-level-summary-card text-center h-100 ${
+                <div
+                  className={`card radius-10 border-start border-0 border-4 border-info ${
                     activeTab === "schemes" ? "active-tab" : ""
                   }`}
                   onClick={() => {
                     setActiveTab("schemes");
                     handleSummaryCardClick("schemes");
                   }}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <Card.Body>
-                    <div className="card-icon">📋</div>
-                    <Card.Title className="small-fonts">
-                      {translations.totalSchemes}
-                    </Card.Title>
-                    <Card.Text className="summary-value small-fonts">
-                      {schemes.length}
-                    </Card.Text>
-                  </Card.Body>
-                </Card>
+                  <div className="card-body">
+                    <div className="d-flex align-items-center">
+                      <div>
+                        <p className="mb-0 text-secondary">{translations.totalSchemes}</p>
+                        <h4 className="my-1 text-info">{schemes.length}</h4>
+                      </div>
+                      <div className="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">📋</div>
+                    </div>
+                  </div>
+                </div>
               </Col>
               <Col xs={6} md={3}>
-                <Card
-                  className={`high-level-summary-card text-center h-100 ${
+                <div
+                  className={`card radius-10 border-start border-0 border-4 border-info ${
                     activeTab === "investments" ? "active-tab" : ""
                   }`}
                   onClick={() => {
                     setActiveTab("investments");
                     handleSummaryCardClick("investments");
                   }}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <Card.Body>
-                    <div className="card-icon">💼</div>
-                    <Card.Title className="small-fonts">
-                      {translations.totalInvestments}
-                    </Card.Title>
-                    <Card.Text className="summary-value small-fonts">
-                      {investments.length}
-                    </Card.Text>
-                  </Card.Body>
-                </Card>
+                  <div className="card-body">
+                    <div className="d-flex align-items-center">
+                      <div>
+                        <p className="mb-0 text-secondary">{translations.totalInvestments}</p>
+                        <h4 className="my-1 text-info">{investments.length}</h4>
+                      </div>
+                      <div className="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">💼</div>
+                    </div>
+                  </div>
+                </div>
               </Col>
               <Col xs={6} md={3}>
-                <Card
-                  className={`high-level-summary-card text-center h-100 ${
+                <div
+                  className={`card radius-10 border-start border-0 border-4 border-info ${
                     activeTab === "units" ? "active-tab" : ""
                   }`}
                   onClick={() => {
                     setActiveTab("units");
                     handleSummaryCardClick("units");
                   }}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <Card.Body>
-                    <div className="card-icon">📏</div>
-                    <Card.Title className="small-fonts">
-                      {translations.totalUnits}
-                    </Card.Title>
-                    <Card.Text className="summary-value small-fonts">
-                      {units.length}
-                    </Card.Text>
-                  </Card.Body>
-                </Card>
+                  <div className="card-body">
+                    <div className="d-flex align-items-center">
+                      <div>
+                        <p className="mb-0 text-secondary">{translations.totalUnits}</p>
+                        <h4 className="my-1 text-info">{units.length}</h4>
+                      </div>
+                      <div className="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">📏</div>
+                    </div>
+                  </div>
+                </div>
               </Col>
             </Row>
 

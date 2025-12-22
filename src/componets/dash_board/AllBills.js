@@ -23,7 +23,7 @@ const customSelectStyles = {
     '&:hover': {
       borderColor: '#3b82f6',
     },
-    minHeight: '38px', // Match height of Form.Select
+    minHeight: '32px', // Smaller height for compact layout
     fontSize: '14px', // Match small-fonts
   }),
   menu: (baseStyles) => ({
@@ -813,9 +813,9 @@ useEffect(() => {
               </Row>
               
               <Row>
-                <Col md={4} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.centerName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.centerName}</FormLabel>
                     <Select
                       value={filters.center_name}
                       onChange={(value) => handleFilterChange('center_name', value)}
@@ -824,16 +824,16 @@ useEffect(() => {
                       isClearable
                       placeholder={translations.allCenters}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
 
-                <Col md={4} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.sourceOfReceipt}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.sourceOfReceipt}</FormLabel>
                     <Select
                       value={filters.source_of_receipt}
                       onChange={(value) => handleFilterChange('source_of_receipt', value)}
@@ -842,16 +842,16 @@ useEffect(() => {
                       isClearable
                       placeholder={translations.allSources}
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
 
-                <Col md={4} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.billId}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.billId}</FormLabel>
                     <Select
                       value={filters.bill_id}
                       onChange={(value) => handleFilterChange('bill_id', value)}
@@ -860,18 +860,16 @@ useEffect(() => {
                       isClearable
                       placeholder="बिल आईडी"
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
-              </Row>
 
-              <Row>
-                <Col md={4} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">{translations.status}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">{translations.status}</FormLabel>
                     <Select
                       value={filters.status}
                       onChange={(value) => handleFilterChange('status', value)}
@@ -880,31 +878,33 @@ useEffect(() => {
                       isClearable
                       placeholder="स्थिति"
                       styles={customSelectStyles}
-                      className="small-fonts filter-dropdown"
+                      className="compact-input small-fonts filter-dropdown"
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
                   </FormGroup>
                 </Col>
+              </Row>
 
-                <Col md={4} className="mb-3">
+              <Row>
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">From Date</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">From Date</FormLabel>
                     <input
                       type="date"
-                      className="form-control small-fonts"
+                      className="form-control compact-input small-fonts"
                       value={filters.dateFrom}
                       onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
                     />
                   </FormGroup>
                 </Col>
 
-                <Col md={4} className="mb-3">
+                <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts">To Date</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">To Date</FormLabel>
                     <input
                       type="date"
-                      className="form-control small-fonts"
+                      className="form-control compact-input small-fonts"
                       value={filters.dateTo}
                       onChange={(e) => handleFilterChange('dateTo', e.target.value)}
                     />
