@@ -739,34 +739,32 @@ const Registration = () => {
     setApiResponse(null);
     
     try {
-      // Prepare the payload as FormData to match API requirements
-      const formDataToSend = new FormData();
-      formDataToSend.append('farmer_name', formData.farmer_name);
-      formDataToSend.append('father_name', formData.father_name);
-      formDataToSend.append('address', formData.address);
-      formDataToSend.append('block_name', formData.block_name);
-      formDataToSend.append('assembly_name', formData.assembly_name);
-      formDataToSend.append('center_name', formData.center_name);
-      formDataToSend.append('supplied_item_name', formData.supplied_item_name);
-      formDataToSend.append('unit', formData.unit);
-      formDataToSend.append('quantity', formData.quantity);
-      formDataToSend.append('rate', formData.rate);
-      formDataToSend.append('amount', (parseFloat(formData.amount) || 0).toString());
-      formDataToSend.append('aadhaar_number', formData.aadhaar_number);
-      formDataToSend.append('bank_account_number', formData.bank_account_number);
-      formDataToSend.append('ifsc_code', formData.ifsc_code);
-      formDataToSend.append('mobile_number', formData.mobile_number);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('scheme_name', formData.scheme_name);
-
-      const response = await axios.post(REGISTRATION_API_URL, formDataToSend);
-
-      // Handle API response
-      if (response.data && response.data.message) {
-        setApiResponse(response.data.message);
-      } else {
-        setApiResponse(translations.successMessage);
-      }
+      // Prepare the payload to match API requirements
+      const payload = {
+        farmer_name: formData.farmer_name,
+        father_name: formData.father_name,
+        address: formData.address,
+        block_name: formData.block_name,
+        assembly_name: formData.assembly_name,
+        center_name: formData.center_name,
+        supplied_item_name: formData.supplied_item_name,
+        unit: formData.unit,
+        quantity: formData.quantity,
+        rate: formData.rate,
+        amount: formData.amount.toString(),
+        aadhaar_number: formData.aadhaar_number,
+        bank_account_number: formData.bank_account_number,
+        ifsc_code: formData.ifsc_code,
+        mobile_number: formData.mobile_number,
+        category: formData.category,
+        scheme_name: formData.scheme_name
+      };
+      
+      const response = await axios.post(REGISTRATION_API_URL, payload);
+      
+      // Handle both possible response structures
+      const responseData = response.data && response.data.data ? response.data.data : response.data;
+      setApiResponse(responseData);
       
       // Reset form after successful submission
       setFormData({
@@ -792,28 +790,17 @@ const Registration = () => {
       // Refresh table data after successful submission
       fetchRegistrations();
     } catch (error) {
-      console.log('API Error:', error);
       // Handle different error response formats
       let errorMessage = translations.genericError;
       if (error.response) {
-        console.log('Error Response:', error.response);
-        if (error.response.data) {
-          if (typeof error.response.data === 'string') {
-            errorMessage = error.response.data;
-          } else if (error.response.data.message) {
-            errorMessage = error.response.data.message;
-          } else if (error.response.data.error) {
-            errorMessage = error.response.data.error;
-          } else if (error.response.data.detail) {
-            errorMessage = error.response.data.detail;
-          } else {
-            errorMessage = `Server Error: ${JSON.stringify(error.response.data)}`;
-          }
-        }
-        if (error.response.status === 400) {
-          errorMessage = `Bad Request (${error.response.status}): ${errorMessage}`;
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.status === 400) {
+          errorMessage = "डेटा में त्रुटि। कृपया सभी आवश्यक फ़ील्ड भरें।";
         } else if (error.response.status === 500) {
-          errorMessage = `Server Error (${error.response.status}): ${errorMessage}`;
+          errorMessage = "सर्वर त्रुटि। कृपया बाद में प्रयास करें।";
         }
       } else if (error.request) {
         errorMessage = "नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।";
@@ -942,7 +929,7 @@ const Registration = () => {
         <Container fluid className="dashboard-body" style={{ overflowX: 'hidden' }}>
           <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
           
-          {apiResponse && <Alert variant="success" className="small-fonts">{apiResponse}</Alert>}
+          {apiResponse && <Alert variant="success" className="small-fonts">{translations.successMessage}</Alert>}
           {apiError && <Alert variant="danger" className="small-fonts">{apiError}</Alert>}
           {uploadResults && (
             <Alert variant="info" className="small-fonts">
