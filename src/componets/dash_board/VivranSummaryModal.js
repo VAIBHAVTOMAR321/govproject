@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Form } from "react-bootstrap";
+import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Form, Tab, Tabs } from "react-bootstrap";
 import { FaTimes, FaFileExcel, FaFilePdf, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
@@ -80,11 +80,13 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
     investment_name: true,
     component: true,
     source_of_receipt: true,
-    scheme_name: true
+    scheme_name: true,
+    financial_summary: false
   });
   const [showOnlySold, setShowOnlySold] = useState(false);
   const [showOnlyAllocated, setShowOnlyAllocated] = useState(false);
   const [showOnlyRemaining, setShowOnlyRemaining] = useState(false);
+
 
   // Format currency function
   const formatCurrency = (amount) => {
@@ -159,6 +161,16 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
     }
   }, [groupData]);
 
+  // Reset filters when modal is closed
+  useEffect(() => {
+    if (!show) {
+      setActiveFilters({});
+      setShowOnlySold(false);
+      setShowOnlyAllocated(false);
+      setShowOnlyRemaining(false);
+    }
+  }, [show]);
+
   // Data for comparison chart
   const chartData = useMemo(() => {
     const data = {};
@@ -176,6 +188,32 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
     });
     return Object.entries(data).map(([name, values]) => ({ name, ...values }));
   }, [filteredItems]);
+
+  // Data for pie chart
+  const pieChartData = useMemo(() => {
+    return [
+      { name: 'आवंटित', value: totalAllocated, color: '#2C3E50' },
+      { name: 'बेचा गया', value: totalUpdated, color: '#E74C3C' },
+      { name: 'शेष', value: totalRemaining, color: '#27AE60' }
+    ];
+  }, [totalAllocated, totalUpdated, totalRemaining]);
+
+  // Handle pie chart click
+  const handlePieClick = (item) => {
+    // Reset all filters
+    setShowOnlySold(false);
+    setShowOnlyAllocated(false);
+    setShowOnlyRemaining(false);
+    
+    // Set specific filter based on pie slice clicked
+    if (item.name === 'बेचा गया') {
+      setShowOnlySold(true);
+    } else if (item.name === 'आवंटित') {
+      setShowOnlyAllocated(true);
+    } else if (item.name === 'शेष') {
+      setShowOnlyRemaining(true);
+    }
+  };
 
   // Handle filter changes
   const handleFilterChange = (category, value) => {
@@ -225,9 +263,37 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
     setActiveFilters({});
   };
 
+
+
   // Comparison Bar Chart Component
   const ComparisonBarChart = ({ data, title, onBarClick }) => {
+    // Local tooltip state for this chart instance - must be called before any early returns
+    const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, data: null });
+
     if (!data || data.length === 0) return null;
+
+    // Tooltip Component
+    const ChartTooltip = ({ tooltip }) => {
+      if (!tooltip.visible || !tooltip.data) return null;
+
+      // Check if tooltip would be hidden above viewport
+      const isAboveViewport = tooltip.y < 50;
+      
+      return (
+        <div
+          className={`chart-tooltip ${isAboveViewport ? 'tooltip-below' : 'tooltip-above'}`}
+          style={{
+            left: tooltip.x,
+            top: tooltip.y
+          }}
+        >
+          <div><strong>{tooltip.data.name}</strong></div>
+          <div>आवंटित: {tooltip.data.allocated.toFixed(0)}</div>
+          <div>बेचा गया: {tooltip.data.sold.toFixed(0)}</div>
+          <div>शेष: {tooltip.data.remaining.toFixed(0)}</div>
+        </div>
+      );
+    };
 
     const colors = {
       allocated: '#2C3E50',
@@ -239,17 +305,42 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
     const scaleFactor = maxValue > 0 ? 100 / maxValue : 1;
 
     const barWidth = 20;
-    const chartHeight = 400;
+    const chartHeight = 200;
     const chartWidth = Math.max(600, data.length * 60);
-    const margin = { top: 20, right: 20, bottom: 80, left: 50 };
+    const margin = { top: 20, right: 20, bottom: 40, left: 50 };
     const innerWidth = chartWidth - margin.left - margin.right;
     const innerHeight = chartHeight - margin.top - margin.bottom;
+
+    // Tooltip handlers
+    const handleMouseEnter = (event, item) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const containerRect = event.currentTarget.closest('.comparison-chart-container').getBoundingClientRect();
+      setTooltip({
+        visible: true,
+        x: rect.left - containerRect.left + rect.width / 2,
+        y: rect.top - containerRect.top,
+        data: item
+      });
+    };
+
+    const handleMouseMove = (event) => {
+      const containerRect = event.currentTarget.closest('.comparison-chart-container').getBoundingClientRect();
+      setTooltip(prev => ({
+        ...prev,
+        x: event.clientX - containerRect.left,
+        y: event.clientY - containerRect.top - 10
+      }));
+    };
+
+    const handleMouseLeave = () => {
+      setTooltip(prev => ({ ...prev, visible: false }));
+    };
 
     return (
       <Card className="comparison-chart-card">
         <Card.Header className="small-fonts text-center">{title}</Card.Header>
-        <Card.Body className="text-center">
-          <div className="comparison-chart-container">
+        <Card.Body className="text-center position-relative" style={{ overflow: 'visible' }}>
+          <div className="comparison-chart-container" style={{ position: 'relative' }}>
             <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="xMinYMin meet">
               {/* Grid lines */}
               {[0, 0.25, 0.5, 0.75, 1].map(tick => {
@@ -319,6 +410,9 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                       className="bar-chart-bar"
                       style={{ cursor: 'pointer' }}
                       onClick={() => onBarClick && onBarClick(item.name, item.allocated, 'allocated')}
+                      onMouseEnter={(e) => handleMouseEnter(e, item)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
                     />
                     <text x={x - actualBarWidth - barSpacing + actualBarWidth / 2} y={allocatedY - 5} textAnchor="middle" fontSize="10" fill={colors.allocated} style={{ cursor: 'pointer' }} onClick={() => onBarClick && onBarClick(item.name, item.allocated, 'allocated')}>
                       {item.allocated.toFixed(0)}
@@ -334,6 +428,9 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                       className="bar-chart-bar"
                       style={{ cursor: 'pointer' }}
                       onClick={() => onBarClick && onBarClick(item.name, item.sold, 'sold')}
+                      onMouseEnter={(e) => handleMouseEnter(e, item)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
                     />
                     <text x={x + actualBarWidth / 2} y={soldY - 5} textAnchor="middle" fontSize="10" fill={colors.sold} style={{ cursor: 'pointer' }} onClick={() => onBarClick && onBarClick(item.name, item.sold, 'sold')}>
                       {item.sold.toFixed(0)}
@@ -349,6 +446,9 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                       className="bar-chart-bar"
                       style={{ cursor: 'pointer' }}
                       onClick={() => onBarClick && onBarClick(item.name, item.remaining, 'remaining')}
+                      onMouseEnter={(e) => handleMouseEnter(e, item)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
                     />
                     <text x={x + actualBarWidth + barSpacing + actualBarWidth / 2} y={remainingY - 5} textAnchor="middle" fontSize="10" fill={colors.remaining} style={{ cursor: 'pointer' }} onClick={() => onBarClick && onBarClick(item.name, item.remaining, 'remaining')}>
                       {item.remaining.toFixed(0)}
@@ -357,10 +457,10 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                     {/* X-axis label */}
                     <text
                     x={x}
-                    y={innerHeight + margin.top + 20}
+                    y={innerHeight + margin.top + 15}
                     textAnchor="middle"
-                    fontSize="12"
-                    transform={`rotate(-45, ${x}, ${innerHeight + margin.top + 20})`}
+                    fontSize="10"
+                    transform={`rotate(-45, ${x}, ${innerHeight + margin.top + 15})`}
                     >
                     {item.name}
                     </text>
@@ -381,6 +481,119 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
               </g>
             </svg>
           </div>
+          <ChartTooltip tooltip={tooltip} />
+        </Card.Body>
+      </Card>
+    );
+  };
+
+  // Pie Chart Component
+  const PieChart = ({ data, title, onPieClick }) => {
+    // Local tooltip state for this chart instance
+    const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, data: null });
+
+    if (!data || data.length === 0) return null;
+
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    const radius = 80;
+    const centerX = 100;
+    const centerY = 100;
+
+    // Tooltip Component
+    const ChartTooltip = ({ tooltip }) => {
+      if (!tooltip.visible || !tooltip.data) return null;
+
+      // Check if tooltip would be hidden above viewport
+      const isAboveViewport = tooltip.y < 50;
+      
+      return (
+        <div
+          className={`chart-tooltip ${isAboveViewport ? 'tooltip-below' : 'tooltip-above'}`}
+          style={{
+            left: tooltip.x,
+            top: tooltip.y
+          }}
+        >
+          <div><strong>{tooltip.data.name}</strong></div>
+          <div>मूल्य: {tooltip.data.value.toFixed(0)}</div>
+          <div>प्रतिशत: {((tooltip.data.value / total) * 100).toFixed(1)}%</div>
+        </div>
+      );
+    };
+
+    // Tooltip handlers
+    const handleMouseEnter = (event, item) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const containerRect = event.currentTarget.closest('.comparison-chart-container').getBoundingClientRect();
+      setTooltip({
+        visible: true,
+        x: rect.left - containerRect.left + rect.width / 2,
+        y: rect.top - containerRect.top,
+        data: item
+      });
+    };
+
+    const handleMouseMove = (event) => {
+      const containerRect = event.currentTarget.closest('.comparison-chart-container').getBoundingClientRect();
+      setTooltip(prev => ({
+        ...prev,
+        x: event.clientX - containerRect.left,
+        y: event.clientY - containerRect.top - 10
+      }));
+    };
+
+    const handleMouseLeave = () => {
+      setTooltip(prev => ({ ...prev, visible: false }));
+    };
+
+    let cumulativeAngle = 0;
+
+    return (
+      <Card className="comparison-chart-card">
+        <Card.Header className="small-fonts text-center">{title}</Card.Header>
+        <Card.Body className="text-center position-relative" style={{ overflow: 'visible' }}>
+          <div className="comparison-chart-container" style={{ position: 'relative' }}>
+            <svg width="400" height="200" viewBox="0 0 400 200">
+              {data.map((item, index) => {
+                const angle = (item.value / total) * 360;
+                const startAngle = cumulativeAngle;
+                const endAngle = cumulativeAngle + angle;
+                cumulativeAngle = endAngle;
+
+                const x1 = centerX + radius * Math.cos((startAngle * Math.PI) / 180);
+                const y1 = centerY + radius * Math.sin((startAngle * Math.PI) / 180);
+                const x2 = centerX + radius * Math.cos((endAngle * Math.PI) / 180);
+                const y2 = centerY + radius * Math.sin((endAngle * Math.PI) / 180);
+
+                const largeArcFlag = angle > 180 ? 1 : 0;
+                const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+                return (
+                  <path 
+                    key={index} 
+                    d={pathData} 
+                    fill={item.color}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => onPieClick && onPieClick(item)}
+                    onMouseEnter={(e) => handleMouseEnter(e, item)}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                  />
+                );
+              })}
+              {/* Legend in top right */}
+              {data.map((item, index) => {
+                const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
+                return (
+                  <g key={`legend-${index}`}>
+                    <rect x={200} y={10 + index * 15} width={8} height={8} fill={item.color} />
+                    <text x={215} y={18 + index * 15} fontSize="10" fill="#333">{item.name}: {item.value.toFixed(0)} ({percentage}%)</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+          <ChartTooltip tooltip={tooltip} />
         </Card.Body>
       </Card>
     );
@@ -572,39 +785,55 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
         <Modal.Title>{groupData.group_name} - विवरण</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {/* Info Section on Top */}
-        <Card className="mb-3">
-          <Card.Body className="py-2">
-            <Row className="text-center">
-              <Col md={4}>
-                <h6 className="mb-1">आवंटित राशि</h6>
-                <p className="mb-0 fw-bold">{formatCurrency(totalAllocated)}</p>
-              </Col>
-              <Col md={4}>
-                <h6 className="mb-1">शेष राशि</h6>
-                <p className="mb-0 text-success fw-bold">{formatCurrency(totalRemaining)}</p>
-              </Col>
-              <Col md={4}>
-                <h6 className="mb-1">बेची गई राशि</h6>
-                <p className="mb-0 text-warning fw-bold">{formatCurrency(totalUpdated)}</p>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
-
-        {/* Collapsible Filters Section */}
+        {/* Collapsible Filters and Charts Section */}
         <Card className="mb-3">
           <Card.Header>
             <div className="d-flex justify-content-between align-items-center">
-              <h6 className="mb-0">फिल्टर</h6>
+              <h6 className="mb-0">फिल्टर और ग्राफ</h6>
               <Button variant="outline-secondary" size="sm" onClick={clearAllFilters}>
                 सभी फिल्टर हटाएं
               </Button>
             </div>
           </Card.Header>
           <Card.Body>
+
             <Row>
               <Col md={6}>
+                {/* Financial Summary Section */}
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse('financial_summary')}
+                    style={{ cursor: 'pointer' }}
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <span>वित्तीय सारांश</span>
+                    {collapsedSections.financial_summary ? <FaChevronDown /> : <FaChevronUp />}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.financial_summary}>
+                    <Card.Body>
+                      <Row className="text-center g-2">
+                        <Col md={4}>
+                          <div className="p-2 border rounded">
+                            <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
+                            <p className="mb-0 fw-bold small">{formatCurrency(totalAllocated)}</p>
+                          </div>
+                        </Col>
+                        <Col md={4}>
+                          <div className="p-2 border rounded">
+                            <h6 className="mb-1 small-fonts">शेष राशि</h6>
+                            <p className="mb-0 text-success fw-bold small">{formatCurrency(totalRemaining)}</p>
+                          </div>
+                        </Col>
+                        <Col md={4}>
+                          <div className="p-2 border rounded">
+                            <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
+                            <p className="mb-0 text-warning fw-bold small">{formatCurrency(totalUpdated)}</p>
+                          </div>
+                        </Col>
+                      </Row>
+                    </Card.Body>
+                  </Collapse>
+                </Card>
                 <Card className="mb-2">
                   <Card.Header
                     onClick={() => toggleCollapse('center_name')}
@@ -691,8 +920,7 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                     </Card.Body>
                   </Collapse>
                 </Card>
-              </Col>
-              <Col md={6}>
+
                 <Card className="mb-2">
                   <Card.Header
                     onClick={() => toggleCollapse('source_of_receipt')}
@@ -751,6 +979,18 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                   </Collapse>
                 </Card>
               </Col>
+              <Col md={6}>
+                <Tabs defaultActiveKey="bar" id="graph-tabs" className="mb-3">
+                  <Tab eventKey="bar" title="बार ग्राफ">
+                    <div style={{ overflowX: 'auto' }}>
+                      <ComparisonBarChart data={chartData} title="आवंटित बनाम बेचा गया" onBarClick={handleBarClick} />
+                    </div>
+                  </Tab>
+                  <Tab eventKey="pie" title="पाई चार्ट">
+                    <PieChart data={pieChartData} title="विवरण पाई चार्ट" onPieClick={handlePieClick} />
+                  </Tab>
+                </Tabs>
+              </Col>
             </Row>
           </Card.Body>
         </Card>
@@ -776,7 +1016,7 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
               setSelectedColumns={setSelectedColumns}
               title="कॉलम चुनें"
             />
-            <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
               <table className="responsive-table small-fonts">
                 <thead className="table-light">
                   <tr>
@@ -842,10 +1082,17 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
           <Card.Header>
             <h6 className="mb-0">विवरण ग्राफ</h6>
           </Card.Header>
-          <Card.Body>
-            <div style={{ overflowX: 'auto' }}>
-              <ComparisonBarChart data={chartData} title="आवंटित बनाम बेचा गया" onBarClick={handleBarClick} />
-            </div>
+          <Card.Body className="text-center position-relative" style={{ overflow: 'visible' }}>
+            <Tabs defaultActiveKey="bar" id="graph-tabs-bottom" className="mb-3">
+              <Tab eventKey="bar" title="बार ग्राफ">
+                <div style={{ overflowX: 'auto' }}>
+                  <ComparisonBarChart data={chartData} title="आवंटित बनाम बेचा गया" onBarClick={handleBarClick} />
+                </div>
+              </Tab>
+              <Tab eventKey="pie" title="पाई चार्ट">
+                <PieChart data={pieChartData} title="विवरण पाई चार्ट" onPieClick={handlePieClick} />
+              </Tab>
+            </Tabs>
           </Card.Body>
         </Card>
       </Modal.Body>

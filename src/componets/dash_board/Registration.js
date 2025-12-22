@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Container, Form, Button, Alert, Row, Col, Card } from "react-bootstrap";
-import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Container, Form, Button, Alert, Row, Col, Card, Badge } from "react-bootstrap";
+import { FaFileExcel, FaFilePdf, FaTimes } from 'react-icons/fa';
 import axios from "axios";
 import * as XLSX from 'xlsx';
 import "../../assets/css/registration.css";
@@ -336,7 +336,14 @@ const Registration = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [selectedColumns, setSelectedColumns] = useState(beneficiariesColumns.map(col => col.key));
   const [error, setError] = useState(null);
-  
+
+  // Filter states
+  const [activeFilters, setActiveFilters] = useState({});
+  const [filterCategory, setFilterCategory] = useState(null);
+  const [showWorkingItemsOnly, setShowWorkingItemsOnly] = useState(false);
+  const [dataViewFilter, setDataViewFilter] = useState("all");
+  const [dataTypeFilter, setDataTypeFilter] = useState("quantity");
+
   const fileInputRef = useRef(null);
 
   // Check device width
@@ -406,6 +413,48 @@ const Registration = () => {
     fetchData();
   }, []);
 
+  // Unique values for filters
+  const uniqueCenters = useMemo(() => {
+    if (!beneficiariesData.length) return [];
+    const centers = [...new Set(beneficiariesData.map(item => item.center_name))];
+    return centers.filter(Boolean).sort();
+  }, [beneficiariesData]);
+
+  const uniqueBlocks = useMemo(() => {
+    if (!beneficiariesData.length) return [];
+    const blocks = [...new Set(beneficiariesData.map(item => item.block_name))];
+    return blocks.filter(Boolean).sort();
+  }, [beneficiariesData]);
+
+  const uniqueAssemblies = useMemo(() => {
+    if (!beneficiariesData.length) return [];
+    const assemblies = [...new Set(beneficiariesData.map(item => item.assembly_name))];
+    return assemblies.filter(Boolean).sort();
+  }, [beneficiariesData]);
+
+  const uniqueSchemes = useMemo(() => {
+    if (!beneficiariesData.length) return [];
+    const schemes = [...new Set(beneficiariesData.map(item => item.scheme_name))];
+    return schemes.filter(Boolean).sort();
+  }, [beneficiariesData]);
+
+  const uniqueCategories = useMemo(() => {
+    if (!beneficiariesData.length) return [];
+    const categories = [...new Set(beneficiariesData.map(item => item.category))];
+    return categories.filter(Boolean).sort();
+  }, [beneficiariesData]);
+
+  // Filtered beneficiaries data
+  const filteredBeneficiariesData = useMemo(() => {
+    return beneficiariesData.filter(item => {
+      return Object.keys(activeFilters).every(category => {
+        const values = activeFilters[category];
+        if (!values || values.length === 0) return true;
+        return values.includes(item[category]);
+      });
+    });
+  }, [beneficiariesData, activeFilters]);
+
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
 
   // Handle form field changes for single entry
@@ -422,6 +471,59 @@ const Registration = () => {
         [name]: null
       });
     }
+  };
+
+  // Filter functions
+  const handleFilterButtonClick = (category, value) => {
+    setActiveFilters(prev => {
+      const currentValues = prev[category] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+
+      if (newValues.length === 0) {
+        const newFilters = { ...prev };
+        delete newFilters[category];
+        return newFilters;
+      }
+
+      return { ...prev, [category]: newValues };
+    });
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters({});
+    setFilterCategory(null);
+    setShowWorkingItemsOnly(false);
+  };
+
+  const renderFilterButtons = (category) => {
+    let values = [];
+
+    if (category === 'center_name') {
+      values = uniqueCenters;
+    } else if (category === 'block_name') {
+      values = uniqueBlocks;
+    } else if (category === 'assembly_name') {
+      values = uniqueAssemblies;
+    } else if (category === 'scheme_name') {
+      values = uniqueSchemes;
+    } else if (category === 'category') {
+      values = uniqueCategories;
+    }
+
+    return values.map((value) => (
+      <Col key={value} xs="auto" className="mb-2">
+        <Button
+          variant={(activeFilters[category] || []).includes(value) ? "primary" : "outline-secondary"}
+          size="sm"
+          className="filter-button"
+          onClick={() => handleFilterButtonClick(category, value)}
+        >
+          {value}
+        </Button>
+      </Col>
+    ));
   };
 
   // Handle Excel file upload
@@ -846,6 +948,134 @@ const Registration = () => {
               </Form>
             )}
 
+            {/* Filter Section */}
+            <div className="filter-section mt-3 mb-3 p-3 border rounded bg-light">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0 small-fonts">फिल्टर {Object.keys(activeFilters).length > 0 && <span className="badge bg-info ms-2 small-fonts">फिल्टर लागू हैं</span>}</h5>
+                <Button variant="outline-secondary" size="sm" onClick={clearAllFilters} className="small-fonts">सभी फिल्टर हटाएं</Button>
+              </div>
+
+              {/* Multi-filter category cards */}
+              <Row className="g-3 mb-3">
+                <Col xs={6} md={2}>
+                  <Card className={`high-level-summary-card text-center h-100 ${activeFilters['center_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('center_name')}>
+                    <Card.Body>
+                      <div className="card-icon">🏢</div>
+                      <Card.Title className="small-fonts">केंद्र का नाम</Card.Title>
+                      <Card.Text className="summary-value small-fonts">{uniqueCenters.length} प्रकार</Card.Text>
+                      {activeFilters['center_name'] && <Badge bg="success" pill>{activeFilters['center_name'].length} चयनित</Badge>}
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col xs={6} md={2}>
+                  <Card className={`high-level-summary-card text-center h-100 ${activeFilters['block_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('block_name')}>
+                    <Card.Body>
+                      <div className="card-icon">🏘️</div>
+                      <Card.Title className="small-fonts">ब्लॉक का नाम</Card.Title>
+                      <Card.Text className="summary-value small-fonts">{uniqueBlocks.length} प्रकार</Card.Text>
+                      {activeFilters['block_name'] && <Badge bg="success" pill>{activeFilters['block_name'].length} चयनित</Badge>}
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col xs={6} md={2}>
+                  <Card className={`high-level-summary-card text-center h-100 ${activeFilters['assembly_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('assembly_name')}>
+                    <Card.Body>
+                      <div className="card-icon">🏛️</div>
+                      <Card.Title className="small-fonts">विधानसभा का नाम</Card.Title>
+                      <Card.Text className="summary-value small-fonts">{uniqueAssemblies.length} प्रकार</Card.Text>
+                      {activeFilters['assembly_name'] && <Badge bg="success" pill>{activeFilters['assembly_name'].length} चयनित</Badge>}
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col xs={6} md={2}>
+                  <Card className={`high-level-summary-card text-center h-100 ${activeFilters['scheme_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('scheme_name')}>
+                    <Card.Body>
+                      <div className="card-icon">📋</div>
+                      <Card.Title className="small-fonts">योजना का नाम</Card.Title>
+                      <Card.Text className="summary-value small-fonts">{uniqueSchemes.length} प्रकार</Card.Text>
+                      {activeFilters['scheme_name'] && <Badge bg="success" pill>{activeFilters['scheme_name'].length} चयनित</Badge>}
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col xs={6} md={2}>
+                  <Card className={`high-level-summary-card text-center h-100 ${activeFilters['category'] ? 'active' : ''}`} onClick={() => setFilterCategory('category')}>
+                    <Card.Body>
+                      <div className="card-icon">🏷️</div>
+                      <Card.Title className="small-fonts">श्रेणी</Card.Title>
+                      <Card.Text className="summary-value small-fonts">{uniqueCategories.length} प्रकार</Card.Text>
+                      {activeFilters['category'] && <Badge bg="success" pill>{activeFilters['category'].length} चयनित</Badge>}
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+
+              {/* Filter Buttons Section */}
+              {filterCategory && (
+                <div className="filter-buttons-container mb-4 p-3 border rounded bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="mb-0 small-fonts">
+                      {filterCategory === 'center_name' ? 'केंद्र का नाम' :
+                       filterCategory === 'block_name' ? 'ब्लॉक का नाम' :
+                       filterCategory === 'assembly_name' ? 'विधानसभा का नाम' :
+                       filterCategory === 'scheme_name' ? 'योजना का नाम' :
+                       filterCategory === 'category' ? 'श्रेणी' : filterCategory} का चयन करें
+                    </h5>
+                    <Button variant="outline-secondary" size="sm" onClick={() => setFilterCategory(null)}>
+                      <FaTimes className="me-1" /> बंद करें
+                    </Button>
+                  </div>
+                  <Row className="g-1 align-items-center">
+                    {renderFilterButtons(filterCategory)}
+                  </Row>
+                </div>
+              )}
+
+              {/* Active Filters Section */}
+              {Object.keys(activeFilters).length > 0 && (
+                <div className="active-filters-container mb-4 p-2 border rounded bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="mb-0 small-fonts">सक्रिय फ़िल्टर:</h6>
+                  </div>
+                  <div className="d-flex flex-wrap gap-2">
+                    {Object.keys(activeFilters).map((categoryKey) => (
+                      <div key={categoryKey} className="filter-category">
+                        <strong>
+                          {categoryKey === 'center_name' ? 'केंद्र का नाम' :
+                           categoryKey === 'block_name' ? 'ब्लॉक का नाम' :
+                           categoryKey === 'assembly_name' ? 'विधानसभा का नाम' :
+                           categoryKey === 'scheme_name' ? 'योजना का नाम' :
+                           categoryKey === 'category' ? 'श्रेणी' : categoryKey}:
+                        </strong>
+                        <div className="d-flex flex-wrap gap-1 mt-1">
+                          {activeFilters[categoryKey].map((value) => (
+                            <Badge
+                              key={value}
+                              bg="primary"
+                              pill
+                              className="filter-badge"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                const newValues = activeFilters[categoryKey].filter(v => v !== value);
+                                if (newValues.length === 0) {
+                                  const newFilters = { ...activeFilters };
+                                  delete newFilters[categoryKey];
+                                  setActiveFilters(newFilters);
+                                } else {
+                                  setActiveFilters(prev => ({ ...prev, [categoryKey]: newValues }));
+                                }
+                              }}
+                            >
+                              {value} <FaTimes style={{ fontSize: '0.6em' }} />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Beneficiaries Table */}
             <Card className="mt-4">
               <Card.Header>
@@ -871,7 +1101,7 @@ const Registration = () => {
                       <Button
                         variant="outline-success"
                         size="sm"
-                        onClick={() => downloadExcel(beneficiariesData, `Beneficiaries_${new Date().toISOString().slice(0, 10)}`, beneficiariesColumnMapping, selectedColumns)}
+                        onClick={() => downloadExcel(filteredBeneficiariesData, `Beneficiaries_${new Date().toISOString().slice(0, 10)}`, beneficiariesColumnMapping, selectedColumns)}
                         className="me-2"
                       >
                         <FaFileExcel className="me-1" />Excel
@@ -879,7 +1109,7 @@ const Registration = () => {
                       <Button
                         variant="outline-danger"
                         size="sm"
-                        onClick={() => downloadPdf(beneficiariesData, `Beneficiaries_${new Date().toISOString().slice(0, 10)}`, beneficiariesColumnMapping, selectedColumns, "पंजीकृत लाभार्थी")}
+                        onClick={() => downloadPdf(filteredBeneficiariesData, `Beneficiaries_${new Date().toISOString().slice(0, 10)}`, beneficiariesColumnMapping, selectedColumns, "पंजीकृत लाभार्थी")}
                       >
                         <FaFilePdf className="me-1" />
                         PDF
@@ -896,8 +1126,8 @@ const Registration = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {beneficiariesData.map((item, index) => (
-                            <tr key={item.id || index}>
+                          {filteredBeneficiariesData.map((item, index) => (
+                            <tr key={item.id || index} onClick={() => setActiveFilters(prev => ({ ...prev, center_name: [item.center_name] }))} style={{ cursor: 'pointer' }}>
                               {selectedColumns.map(col => (
                                 <td key={col} data-label={beneficiariesColumnMapping[col].header}>
                                   {beneficiariesColumnMapping[col].accessor(item, index)}

@@ -715,7 +715,7 @@ const SummaryCard = ({ title, value, unit, icon, color }) => (
 );
 
 // Detail View Component for showing details when a bar is clicked
-const DetailView = ({ title, data, onBack, dataType, filterType, selectedColumns, setSelectedColumns }) => {
+const DetailView = ({ title, data, onBack, dataType, filterType, filterCriteria, selectedColumns, setSelectedColumns, activeFilters, setActiveFilters, filterCategory, setFilterCategory, uniqueCenters, uniqueSources, uniqueSchemes, uniqueComponents, uniqueInvestments, uniqueUnits, showWorkingItemsOnly, setShowWorkingItemsOnly, dataViewFilter, setDataViewFilter, dataTypeFilter, setDataTypeFilter, renderFilterButtons }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -725,27 +725,43 @@ const DetailView = ({ title, data, onBack, dataType, filterType, selectedColumns
   const effectiveSelectedColumns = selectedColumns || localSelectedColumns;
   const effectiveSetSelectedColumns = setSelectedColumns || setLocalSelectedColumns;
   
-  // Filter data based on filterType
+  // Filter data based on filters
   const filteredData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
-    // If filterType is 'sold', only show items that have been sold
-    if (filterType === 'sold') {
-      return data.filter(item => parseFloat(item.updated_quantity) > 0);
+    let filtered = data;
+    // Apply filterCriteria (the clicked item filter)
+    if (filterCriteria) {
+      Object.keys(filterCriteria).forEach(category => {
+        const values = filterCriteria[category];
+        filtered = filtered.filter(item => values.includes(item[category]));
+      });
     }
-    
-    // If filterType is 'remaining', only show items with remaining quantity
-    if (filterType === 'remaining') {
-      return data.filter(item => {
+    // Apply activeFilters
+    Object.keys(activeFilters).forEach(category => {
+      const values = activeFilters[category];
+      filtered = filtered.filter(item => values.includes(item[category]));
+    });
+    // Apply showWorkingItemsOnly
+    if (showWorkingItemsOnly) {
+      filtered = filtered.filter(item => {
         const allocated = parseFloat(item.allocated_quantity) || 0;
         const sold = parseFloat(item.updated_quantity) || 0;
         return (allocated - sold) > 0;
       });
     }
-    
-    // For 'allocated' or any other type, show all items
-    return data;
-  }, [data, filterType]);
+    // Apply dataViewFilter
+    if (dataViewFilter === 'sold') {
+      filtered = filtered.filter(item => parseFloat(item.updated_quantity) > 0);
+    } else if (dataViewFilter === 'remaining') {
+      filtered = filtered.filter(item => {
+        const allocated = parseFloat(item.allocated_quantity) || 0;
+        const sold = parseFloat(item.updated_quantity) || 0;
+        return (allocated - sold) > 0;
+      });
+    }
+    // For 'allocated', no additional filter
+    return filtered;
+  }, [data, filterCriteria, activeFilters, showWorkingItemsOnly, dataViewFilter]);
   
   // Calculate totals
   const totals = useMemo(() => {
@@ -1101,7 +1117,182 @@ const downloadPdf = () => {
             {translations.page} {currentPage} {translations.of} {totalPages}
           </span>
         </div>
-        
+
+        {/* Filter Section */}
+        <div className="filter-section mt-3 mb-3 p-3 border rounded bg-light">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="mb-0 small-fonts">{translations.filters} {Object.keys(activeFilters).length > 0 && <span className="badge bg-info ms-2 small-fonts">{translations.filtersApplied}</span>}</h5>
+            <Button variant="outline-secondary" size="sm" onClick={() => { setActiveFilters({}); setFilterCategory(null); setShowWorkingItemsOnly(false); }} className="small-fonts">{translations.clearAllFilters}</Button>
+          </div>
+
+          {/* Multi-filter category cards */}
+          <Row className="g-3 mb-3">
+            <Col xs={6} md={2}>
+              <Card className={`high-level-summary-card text-center h-100 ${activeFilters['center_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('center_name')}>
+                <Card.Body>
+                  <div className="card-icon">🏢</div>
+                  <Card.Title className="small-fonts">{translations.centerName}</Card.Title>
+                  <Card.Text className="summary-value small-fonts">{uniqueCenters.length} प्रकार</Card.Text>
+                  {activeFilters['center_name'] && <Badge bg="success" pill>{activeFilters['center_name'].length} चयनित</Badge>}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xs={6} md={2}>
+              <Card className={`high-level-summary-card text-center h-100 ${activeFilters['source_of_receipt'] ? 'active' : ''}`} onClick={() => setFilterCategory('source_of_receipt')}>
+                <Card.Body>
+                  <div className="card-icon">💰</div>
+                  <Card.Title className="small-fonts">{translations.sourceOfReceipt}</Card.Title>
+                  <Card.Text className="summary-value small-fonts">{uniqueSources.length} प्रकार</Card.Text>
+                  {activeFilters['source_of_receipt'] && <Badge bg="success" pill>{activeFilters['source_of_receipt'].length} चयनित</Badge>}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xs={6} md={2}>
+              <Card className={`high-level-summary-card text-center h-100 ${activeFilters['scheme_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('scheme_name')}>
+                <Card.Body>
+                  <div className="card-icon">📋</div>
+                  <Card.Title className="small-fonts">{translations.schemeName}</Card.Title>
+                  <Card.Text className="summary-value small-fonts">{uniqueSchemes.length} प्रकार</Card.Text>
+                  {activeFilters['scheme_name'] && <Badge bg="success" pill>{activeFilters['scheme_name'].length} चयनित</Badge>}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xs={6} md={2}>
+              <Card className={`high-level-summary-card text-center h-100 ${activeFilters['component'] ? 'active' : ''}`} onClick={() => setFilterCategory('component')}>
+                <Card.Body>
+                  <div className="card-icon">📦</div>
+                  <Card.Title className="small-fonts">{translations.component}</Card.Title>
+                  <Card.Text className="summary-value small-fonts">{uniqueComponents.length} प्रकार</Card.Text>
+                  {activeFilters['component'] && <Badge bg="success" pill>{activeFilters['component'].length} चयनित</Badge>}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xs={6} md={2}>
+              <Card className={`high-level-summary-card text-center h-100 ${activeFilters['investment_name'] ? 'active' : ''}`} onClick={() => setFilterCategory('investment_name')}>
+                <Card.Body>
+                  <div className="card-icon">💼</div>
+                  <Card.Title className="small-fonts">{translations.investmentName}</Card.Title>
+                  <Card.Text className="summary-value small-fonts">{uniqueInvestments.length} प्रकार</Card.Text>
+                  {activeFilters['investment_name'] && <Badge bg="success" pill>{activeFilters['investment_name'].length} चयनित</Badge>}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col xs={6} md={2}>
+              <Card className={`high-level-summary-card text-center h-100 ${activeFilters['unit'] ? 'active' : ''}`} onClick={() => setFilterCategory('unit')}>
+                <Card.Body>
+                  <div className="card-icon">📏</div>
+                  <Card.Title className="small-fonts">{translations.unit}</Card.Title>
+                  <Card.Text className="summary-value small-fonts">{uniqueUnits.length} प्रकार</Card.Text>
+                  {activeFilters['unit'] && <Badge bg="success" pill>{activeFilters['unit'].length} चयनित</Badge>}
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Filter Buttons Section */}
+          {filterCategory && (
+            <div className="filter-buttons-container mb-4 p-3 border rounded bg-light">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0 small-fonts">
+                  {filterCategory === 'center_name' ? translations.centerName :
+                   filterCategory === 'source_of_receipt' ? translations.sourceOfReceipt :
+                   filterCategory === 'scheme_name' ? translations.schemeName :
+                   filterCategory === 'component' ? translations.component :
+                   filterCategory === 'investment_name' ? translations.investmentName :
+                   filterCategory === 'unit' ? translations.unit : filterCategory} का चयन करें
+                </h5>
+                <Button variant="outline-secondary" size="sm" onClick={() => setFilterCategory(null)}>
+                  <FaTimes className="me-1" /> बंद करें
+                </Button>
+              </div>
+              <Row className="g-1 align-items-center">
+                {renderFilterButtons(filterCategory)}
+              </Row>
+            </div>
+          )}
+
+          {/* Active Filters Section */}
+          {Object.keys(activeFilters).length > 0 && (
+            <div className="active-filters-container mb-4 p-2 border rounded bg-light">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <h6 className="mb-0 small-fonts">{translations.activeFilters}:</h6>
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                {Object.keys(activeFilters).map((categoryKey) => (
+                  <div key={categoryKey} className="filter-category">
+                    <strong>
+                      {categoryKey === 'center_name' ? translations.centerName :
+                       categoryKey === 'source_of_receipt' ? translations.sourceOfReceipt :
+                       categoryKey === 'scheme_name' ? translations.schemeName :
+                       categoryKey === 'component' ? translations.component :
+                       categoryKey === 'investment_name' ? translations.investmentName :
+                       categoryKey === 'unit' ? translations.unit : categoryKey}:
+                    </strong>
+                    <div className="d-flex flex-wrap gap-1 mt-1">
+                      {activeFilters[categoryKey].map((value) => (
+                        <Badge
+                          key={value}
+                          bg="primary"
+                          pill
+                          className="filter-badge"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            const newValues = activeFilters[categoryKey].filter(v => v !== value);
+                            if (newValues.length === 0) {
+                              const newFilters = { ...activeFilters };
+                              delete newFilters[categoryKey];
+                              setActiveFilters(newFilters);
+                            } else {
+                              setActiveFilters(prev => ({ ...prev, [categoryKey]: newValues }));
+                            }
+                          }}
+                        >
+                          {value} <FaTimes style={{ fontSize: '0.6em' }} />
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Data View Controls */}
+        <Row>
+          <Col md={3} className="mb-3">
+            <Form.Group controlId="dataViewFilter">
+              <Form.Label className="small-fonts">{translations.dataView}:</Form.Label>
+              <Form.Select value={dataViewFilter} onChange={(e) => setDataViewFilter(e.target.value)} className="filter-dropdown small-fonts" disabled={dataViewFilter === "comparison"}>
+                <option value="allocated">{translations.allocatedData}</option>
+                <option value="sold">{translations.soldData}</option>
+                <option value="remaining">{translations.remainingData}</option>
+                <option value="comparison">{translations.comparisonData}</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={3} className="mb-3">
+            <Form.Group controlId="dataTypeFilter">
+              <Form.Label className="small-fonts">{translations.quantity}:</Form.Label>
+              <Form.Select value={dataTypeFilter} onChange={(e) => setDataTypeFilter(e.target.value)} className="filter-dropdown small-fonts" disabled={dataViewFilter === "comparison"}>
+                <option value="quantity">मात्रा</option>
+                <option value="value">मूल्य</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={3} className="mb-3">
+            <Form.Group controlId="showWorkingItemsOnly">
+              <Form.Check
+                type="checkbox"
+                label={translations.workingItems}
+                checked={showWorkingItemsOnly}
+                onChange={(e) => setShowWorkingItemsOnly(e.target.checked)}
+                className="small-fonts mt-4"
+              />
+            </Form.Group>
+          </Col>
+        </Row>
+
         {/* Column Selection for Detail View */}
         <ColumnSelection
           columns={detailViewColumns}
@@ -1288,7 +1479,8 @@ const Graph = () => {
     title: "",
     data: [],
     dataType: "",
-    filterType: ""
+    filterType: "",
+    filterCriteria: {}
   });
 
   // State for bills view (when sold filter is active)
@@ -1526,9 +1718,10 @@ const Graph = () => {
       // Set the detail view data
       setDetailViewData({
         title: ` ${name} ${translations.detailsFor}`,
-        data: clickedItem.items,
+        data: billingData,
         dataType: dataTypeFilter,
-        filterType: type || dataViewFilter // Use type if provided, otherwise use dataViewFilter
+        filterType: type || dataViewFilter,
+        filterCriteria: { [chartType || 'center_name']: [name] }
       });
 
       // Show the detail view
@@ -2532,11 +2725,14 @@ const Graph = () => {
   // If showing bills view, render it instead of graph
   if (showBillsView) {
     return (
-      <BillsView 
+      <BillsView
         title={billsViewData.title}
         onBack={() => {
           setShowBillsView(false);
           setBillsViewData({ title: "", data: [], category: "", categoryValue: "" });
+          setActiveFilters({});
+          setFilterCategory(null);
+          setShowWorkingItemsOnly(false);
         }}
         category={billsViewData.category}
         categoryValue={billsViewData.categoryValue}
@@ -2552,14 +2748,37 @@ const Graph = () => {
         <div className="main-content">
           <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
           <Container fluid className="dashboard-body">
-            <DetailView 
-              title={detailViewData.title} 
-              data={detailViewData.data} 
-              onBack={() => setShowDetailView(false)}
+            <DetailView
+              title={detailViewData.title}
+              data={detailViewData.data}
+              onBack={() => {
+                setShowDetailView(false);
+                setActiveFilters({});
+                setFilterCategory(null);
+                setShowWorkingItemsOnly(false);
+              }}
               dataType={detailViewData.dataType}
               filterType={detailViewData.filterType}
+              filterCriteria={detailViewData.filterCriteria}
               selectedColumns={selectedDetailColumns}
               setSelectedColumns={setSelectedDetailColumns}
+              activeFilters={activeFilters}
+              setActiveFilters={setActiveFilters}
+              filterCategory={filterCategory}
+              setFilterCategory={setFilterCategory}
+              uniqueCenters={uniqueCenters}
+              uniqueSources={uniqueSources}
+              uniqueSchemes={uniqueSchemes}
+              uniqueComponents={uniqueComponents}
+              uniqueInvestments={uniqueInvestments}
+              uniqueUnits={uniqueUnits}
+              showWorkingItemsOnly={showWorkingItemsOnly}
+              setShowWorkingItemsOnly={setShowWorkingItemsOnly}
+              dataViewFilter={dataViewFilter}
+              setDataViewFilter={setDataViewFilter}
+              dataTypeFilter={dataTypeFilter}
+              setDataTypeFilter={setDataTypeFilter}
+              renderFilterButtons={renderFilterButtons}
             />
           </Container>
         </div>

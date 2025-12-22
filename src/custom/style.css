@@ -114,6 +114,28 @@ body {
   line-height: 12px !important;
 
 }
- 
+ }
 
+/* Chart Tooltip Styles */
+.chart-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.chart-tooltip.tooltip-above {
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
+}
+
+.chart-tooltip.tooltip-below {
+  transform: translate(-50%, 0%);
+  margin-top: 10px;
 }
