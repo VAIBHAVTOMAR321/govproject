@@ -1204,7 +1204,7 @@ const AddEditComponent = () => {
             )}
 
             {/* Tab Content */}
-            <Card className="p-4 mb-4">
+            <Card className="p-3 mb-4">
               {/* Components Tab */}
               {activeTab === "components" && (
                 <>

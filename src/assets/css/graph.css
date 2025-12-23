@@ -31,7 +31,9 @@ body {
 
 .small-fonts {
   font-size: var(--font-size-sm) !important;
+  font-weight: 500 !important;
 }
+
 
 .dashboard-container {
   display: flex;
@@ -63,6 +65,7 @@ body {
   border-bottom: 2px solid var(--primary-color);
   display: inline-block;
   font-size: 17px !important;
+  font-weight: 600 !important;
 }
 
 /* Summary Cards */

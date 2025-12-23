@@ -144,7 +144,10 @@
   background-color: #f8f9fa;
   border-radius: 4px;
 }
-
+.total-card{
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
 /* Small font styles */
 .small-fonts {
   font-size: 0.75rem !important;
@@ -166,7 +169,10 @@
 .small-fonts .page-title {
   font-size: 1.1rem !important;
 }
-
+.section-title{
+  color: #008cff !important;
+  font-weight: 600 !important;
+}
 .small-fonts .section-title {
   font-size: 0.9rem !important;
 }

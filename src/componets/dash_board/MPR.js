@@ -1350,7 +1350,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
               <Col md={4}>
                 <Card className="summary-card">
                   <Card.Body>
-                    <Card.Title className="small-fonts">{translations.yearlyProgress}</Card.Title>
+                    <Card.Title className="total-card">{translations.yearlyProgress}</Card.Title>
                     <Card.Text className="display-6 small-fonts">₹{yearlyTotal.toFixed(2)}</Card.Text>
                   </Card.Body>
                 </Card>
@@ -1358,7 +1358,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
               <Col md={4}>
                 <Card className="summary-card">
                   <Card.Body>
-                    <Card.Title className="small-fonts">{translations.monthlyProgress}</Card.Title>
+                    <Card.Title className="total-card">{translations.monthlyProgress}</Card.Title>
                     <Card.Text className="display-6 small-fonts">₹{monthlyTotal.toFixed(2)}</Card.Text>
                   </Card.Body>
                 </Card>
@@ -1366,7 +1366,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
               <Col md={4}>
                 <Card className="summary-card">
                   <Card.Body>
-                    <Card.Title className="small-fonts">{translations.progressPercentage}</Card.Title>
+                    <Card.Title className="total-card">{translations.progressPercentage}</Card.Title>
                     <Card.Text className="display-6 small-fonts">{progressPercentage}%</Card.Text>
                   </Card.Body>
                 </Card>

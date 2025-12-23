@@ -179,7 +179,7 @@ const Billing = () => {
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
+  const [itemsPerPage] = useState(20);
 
   // Column mapping for data access
   const columnMapping = {
