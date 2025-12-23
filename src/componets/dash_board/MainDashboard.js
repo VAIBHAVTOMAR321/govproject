@@ -1348,7 +1348,7 @@ const MainDashboard = () => {
           <Button
             variant={allSelected ? "primary" : "outline-secondary"}
             size="sm"
-            className="filter-button"
+            className={`filter-button ${allSelected ? 'active' : ''}`}
             onClick={() => {
               if (allSelected) {
                 // Deselect all
@@ -1371,7 +1371,7 @@ const MainDashboard = () => {
             <Button
               variant={(activeFilters[category] || []).includes(value) ? "primary" : "outline-secondary"}
               size="sm"
-              className="filter-button"
+              className={`filter-button ${(activeFilters[category] || []).includes(value) ? 'active' : ''}`}
               onClick={() => handleFilterButtonClick(category, value)}
             >
               {value}

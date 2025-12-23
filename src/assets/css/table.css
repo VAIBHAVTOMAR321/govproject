@@ -965,6 +965,28 @@
   color: #2980b9;
 }
 
+/* Active state for filter buttons - ensures selected buttons stay highlighted */
+.filter-button.active,
+.filter-button.btn-primary {
+  background-color: #006edc !important;
+  color: white !important;
+  border-color: #006edc !important;
+  box-shadow: 0 2px 5px rgba(0, 100, 200, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Ensure outline-secondary buttons have proper styling */
+.filter-button.btn-outline-secondary {
+  background-color: #eef7ff;
+  color: #2980b9;
+  border: 1px solid #2980b9;
+}
+
+.filter-button.btn-outline-secondary:hover {
+  background-color: #d6eaff;
+  color: #2980b9;
+}
+
 .filter-buttons-container {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
