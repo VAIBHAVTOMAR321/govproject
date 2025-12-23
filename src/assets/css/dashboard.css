@@ -824,9 +824,6 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
-.bg-gradient-blues {
-    background: linear-gradient(to right, #56ccf2, #2f80ed) !important;
-}
 
 .widgets-icons-2 {
     width: 56px;

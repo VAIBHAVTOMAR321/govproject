@@ -829,7 +829,7 @@
 }
 
 .bg-gradient-blues {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(287deg, #1b84ff .54%, #1bcaff 100.84%);
 }
 
 .bg-gradient-danger {
@@ -909,17 +909,29 @@
   display: inline-block;
 }
 
-.filter-button:active {
-  background-color: #0551b5 !important
+/* Hover state */
+.filter-button:hover {
+  background-color: #3a96e5; /* Optional: Add hover effect */
 }
 
+/* Persistent active state (toggle) */
+.filter-button.active {
+  background-color: #0551b5;
+  color: #ffffff;
+}
+
+/* Active pseudo-class (while clicking) */
+.filter-button:active {
+  background-color: #0551b5;
+}
+
+/* Focus state */
 .filter-button:focus {
   outline: 2px solid #80bdff;
   outline-offset: 2px;
-  background-color: #0551b5 !important;
-  color: #ffffff !important;
+  background-color: #0551b5;
+  color: #ffffff;
 }
-
 /* Filter Buttons */
 .filter-button {
   background-color: #eef7ff;
