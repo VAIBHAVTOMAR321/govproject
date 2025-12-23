@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col, Card, Button, Pagination, Badge, Table, Form } from "react-bootstrap";
+import { Container, Spinner, Alert, Row, Col, Card, Button, Pagination, Badge, Table, Form, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaTimes, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
@@ -1225,32 +1225,42 @@ const MainDashboard = () => {
                                     title="कॉलम चुनें"
                                   />
                                   <div className="d-flex justify-content-end mb-2">
-                                    <Button
-                                      variant="outline-success"
-                                      size="sm"
-                                      onClick={() => downloadExcel(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
-                                        allocated: component.totalAllocated,
-                                        updated: component.totalUpdated,
-                                        allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
-                                        updatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
-                                      })}
-                                      className="me-2"
+                                    <OverlayTrigger
+                                      placement="top"
+                                      overlay={<Tooltip id={`tooltip-excel-${componentKey}`}>Excel डाउनलोड करें</Tooltip>}
                                     >
-                                      <FaFileExcel className="me-1" />Excel
-                                    </Button>
-                                    <Button
-                                      variant="outline-danger"
-                                      size="sm"
-                                      onClick={() => downloadPdf(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${component.name} विवरण`, {
-                                        allocated: component.totalAllocated,
-                                        updated: component.totalUpdated,
-                                        allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
-                                        updatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
-                                      })}
+                                      <Button
+                                        variant="outline-success"
+                                        size="sm"
+                                        onClick={() => downloadExcel(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, {
+                                          allocated: component.totalAllocated,
+                                          updated: component.totalUpdated,
+                                          allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                          updatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                        })}
+                                        className="me-2"
+                                      >
+                                        <FaFileExcel className="me-1" />Excel
+                                      </Button>
+                                    </OverlayTrigger>
+                                    <OverlayTrigger
+                                      placement="top"
+                                      overlay={<Tooltip id={`tooltip-pdf-${componentKey}`}>PDF डाउनलोड करें</Tooltip>}
                                     >
-                                      <FaFilePdf className="me-1" />
-                                      PDF
-                                    </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => downloadPdf(component.items, `Component_${component.name}_${new Date().toISOString().slice(0, 10)}`, componentDetailColumnMapping, componentDetailSelectedColumns, `${component.name} विवरण`, {
+                                          allocated: component.totalAllocated,
+                                          updated: component.totalUpdated,
+                                          allocatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+                                          updatedQuantity: component.items.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0)
+                                        })}
+                                      >
+                                        <FaFilePdf className="me-1" />
+                                        PDF
+                                      </Button>
+                                    </OverlayTrigger>
                                   </div>
                                 </div>
                                 <Table striped bordered hover responsive className="small-fonts">
@@ -1508,22 +1518,32 @@ const MainDashboard = () => {
                           />
 
                           <div className="d-flex justify-content-end mb-2">
-                            <Button
-                              variant="outline-success"
-                              size="sm"
-                              onClick={() => downloadExcel(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, tableTotals)}
-                              className="me-2"
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip id="tooltip-excel-main">Excel डाउनलोड करें</Tooltip>}
                             >
-                              <FaFileExcel className="me-1" />Excel
-                            </Button>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => downloadPdf(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "कुल विवरण", tableTotals)}
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => downloadExcel(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, tableTotals)}
+                                className="me-2"
+                              >
+                                <FaFileExcel className="me-1" />Excel
+                              </Button>
+                            </OverlayTrigger>
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip id="tooltip-pdf-main">PDF डाउनलोड करें</Tooltip>}
                             >
-                              <FaFilePdf className="me-1" />
-                              PDF
-                            </Button>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => downloadPdf(filteredTableData, `Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "कुल विवरण", tableTotals)}
+                              >
+                                <FaFilePdf className="me-1" />
+                                PDF
+                              </Button>
+                            </OverlayTrigger>
                           </div>
 
                           <table className="responsive-table small-fonts">
@@ -1632,22 +1652,32 @@ const MainDashboard = () => {
                 />
 
                 <div className="d-flex justify-content-end mb-2">
-                  <Button
-                    variant="outline-success"
-                    size="sm"
-                    onClick={() => downloadInvestmentSummaryExcel(investmentSummaryData, `Grouped_Summary_${new Date().toISOString().slice(0, 10)}`)}
-                    className="me-2"
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={<Tooltip id="tooltip-excel-grouped">Excel डाउनलोड करें</Tooltip>}
                   >
-                    <FaFileExcel className="me-1" />Excel
-                  </Button>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => downloadInvestmentSummaryPdf(investmentSummaryData, `Grouped_Summary_${new Date().toISOString().slice(0, 10)}`)}
+                    <Button
+                      variant="outline-success"
+                      size="sm"
+                      onClick={() => downloadInvestmentSummaryExcel(investmentSummaryData, `Grouped_Summary_${new Date().toISOString().slice(0, 10)}`)}
+                      className="me-2"
+                    >
+                      <FaFileExcel className="me-1" />Excel
+                    </Button>
+                  </OverlayTrigger>
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={<Tooltip id="tooltip-pdf-grouped">PDF डाउनलोड करें</Tooltip>}
                   >
-                    <FaFilePdf className="me-1" />
-                    PDF
-                  </Button>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => downloadInvestmentSummaryPdf(investmentSummaryData, `Grouped_Summary_${new Date().toISOString().slice(0, 10)}`)}
+                    >
+                      <FaFilePdf className="me-1" />
+                      PDF
+                    </Button>
+                  </OverlayTrigger>
                 </div>
 
                 <table className="responsive-table small-fonts">
@@ -1677,60 +1707,80 @@ const MainDashboard = () => {
                           {item.group_field !== 'investment_name' && groupedSummarySelectedColumns.includes('investment_names') && (
                             <td>
                               {item.investment_names.split(', ').map((name, i) => (
-                                <Badge
+                                <OverlayTrigger
                                   key={i}
-                                  bg="secondary"
-                                  className="me-1 mb-1"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => handleBadgeClick('investment_name', name)}
+                                  placement="top"
+                                  overlay={<Tooltip id={`tooltip-investment-${index}-${i}`}>{name}</Tooltip>}
                                 >
-                                  {name}
-                                </Badge>
+                                  <Badge
+                                    bg="secondary"
+                                    className="me-1 mb-1"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleBadgeClick('investment_name', name)}
+                                  >
+                                    {name}
+                                  </Badge>
+                                </OverlayTrigger>
                               ))}
                             </td>
                           )}
                           {item.group_field !== 'center_name' && groupedSummarySelectedColumns.includes('center_names') && (
                             <td>
                               {item.center_names.split(', ').map((name, i) => (
-                                <Badge
+                                <OverlayTrigger
                                   key={i}
-                                  bg="secondary"
-                                  className="me-1 mb-1"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => handleBadgeClick('center_name', name)}
+                                  placement="top"
+                                  overlay={<Tooltip id={`tooltip-center-${index}-${i}`}>{name}</Tooltip>}
                                 >
-                                  {name}
-                                </Badge>
+                                  <Badge
+                                    bg="secondary"
+                                    className="me-1 mb-1"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleBadgeClick('center_name', name)}
+                                  >
+                                    {name}
+                                  </Badge>
+                                </OverlayTrigger>
                               ))}
                             </td>
                           )}
                           {item.group_field !== 'component' && groupedSummarySelectedColumns.includes('components') && (
                             <td>
                               {item.components.split(', ').map((name, i) => (
-                                <Badge
+                                <OverlayTrigger
                                   key={i}
-                                  bg="secondary"
-                                  className="me-1 mb-1"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => handleBadgeClick('component', name)}
+                                  placement="top"
+                                  overlay={<Tooltip id={`tooltip-component-${index}-${i}`}>{name}</Tooltip>}
                                 >
-                                  {name}
-                                </Badge>
+                                  <Badge
+                                    bg="secondary"
+                                    className="me-1 mb-1"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleBadgeClick('component', name)}
+                                  >
+                                    {name}
+                                  </Badge>
+                                </OverlayTrigger>
                               ))}
                             </td>
                           )}
                           {item.group_field !== 'unit' && groupedSummarySelectedColumns.includes('units') && (
                             <td>
                               {item.units.split(', ').map((name, i) => (
-                                <Badge
+                                <OverlayTrigger
                                   key={i}
-                                  bg="secondary"
-                                  className="me-1 mb-1"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => handleBadgeClick('unit', name)}
+                                  placement="top"
+                                  overlay={<Tooltip id={`tooltip-unit-${index}-${i}`}>{name}</Tooltip>}
                                 >
-                                  {name}
-                                </Badge>
+                                  <Badge
+                                    bg="secondary"
+                                    className="me-1 mb-1"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleBadgeClick('unit', name)}
+                                  >
+                                    {name}
+                                  </Badge>
+                                </OverlayTrigger>
                               ))}
                             </td>
                           )}
@@ -1740,30 +1790,40 @@ const MainDashboard = () => {
                           {item.group_field !== 'source_of_receipt' && groupedSummarySelectedColumns.includes('sources') && (
                             <td>
                               {item.sources.map((name, i) => (
-                                <Badge
+                                <OverlayTrigger
                                   key={i}
-                                  bg="secondary"
-                                  className="me-1 mb-1"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => handleBadgeClick('source_of_receipt', name)}
+                                  placement="top"
+                                  overlay={<Tooltip id={`tooltip-source-${index}-${i}`}>{name}</Tooltip>}
                                 >
-                                  {name}
-                                </Badge>
+                                  <Badge
+                                    bg="secondary"
+                                    className="me-1 mb-1"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleBadgeClick('source_of_receipt', name)}
+                                  >
+                                    {name}
+                                  </Badge>
+                                </OverlayTrigger>
                               ))}
                             </td>
                           )}
                           {item.group_field !== 'scheme_name' && groupedSummarySelectedColumns.includes('schemes') && (
                             <td>
                               {item.schemes.map((name, i) => (
-                                <Badge
+                                <OverlayTrigger
                                   key={i}
-                                  bg="secondary"
-                                  className="me-1 mb-1"
-                                  style={{ cursor: 'pointer' }}
-                                  onClick={() => handleBadgeClick('scheme_name', name)}
+                                  placement="top"
+                                  overlay={<Tooltip id={`tooltip-scheme-${index}-${i}`}>{name}</Tooltip>}
                                 >
-                                  {name}
-                                </Badge>
+                                  <Badge
+                                    bg="secondary"
+                                    className="me-1 mb-1"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => handleBadgeClick('scheme_name', name)}
+                                  >
+                                    {name}
+                                  </Badge>
+                                </OverlayTrigger>
                               ))}
                             </td>
                           )}
@@ -1801,22 +1861,32 @@ const MainDashboard = () => {
                 </h2>
 
                 <div className="d-flex justify-content-end mb-2">
-                  <Button
-                    variant="outline-success"
-                    size="sm"
-                    onClick={() => downloadExcel(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, tableTotals)}
-                    className="me-2"
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={<Tooltip id="tooltip-excel-hierarchical">Excel डाउनलोड करें</Tooltip>}
                   >
-                    <FaFileExcel className="me-1" />Excel
-                  </Button>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => downloadPdf(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "विस्तृत दृश्य", tableTotals)}
+                    <Button
+                      variant="outline-success"
+                      size="sm"
+                      onClick={() => downloadExcel(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, tableTotals)}
+                      className="me-2"
+                    >
+                      <FaFileExcel className="me-1" />Excel
+                    </Button>
+                  </OverlayTrigger>
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={<Tooltip id="tooltip-pdf-hierarchical">PDF डाउनलोड करें</Tooltip>}
                   >
-                    <FaFilePdf className="me-1" />
-                    PDF
-                  </Button>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => downloadPdf(filteredTableData, `Hierarchical_Billing_Data_${new Date().toISOString().slice(0, 10)}`, mainTableColumnMapping, mainTableSelectedColumns, "विस्तृत दृश्य", tableTotals)}
+                    >
+                      <FaFilePdf className="me-1" />
+                      PDF
+                    </Button>
+                  </OverlayTrigger>
                 </div>
 
                 {renderHierarchicalView()}
