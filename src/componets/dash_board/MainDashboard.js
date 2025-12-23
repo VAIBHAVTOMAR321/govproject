@@ -1480,7 +1480,7 @@ const MainDashboard = () => {
             {/* Billing Items Table - Only show when no filters are applied */}
             {Object.keys(activeFilters).length === 0 && (
               <div className="billing-table-container">
-                <h2 className="dynamic-table-heading small-fonts">
+                <h2 className="dynamic-table-heading">
                   कुल विवरण
                   <span className="heading-totals">
                     (कुल आवंटित मात्रा: {tableTotals.allocatedQuantity.toFixed(2)}, कुल आवंटित: {formatCurrency(tableTotals.allocated)}, कुल अपडेट मात्रा: {tableTotals.updatedQuantity.toFixed(2)}, कुल अपडेट किया गया: {formatCurrency(tableTotals.updated)})

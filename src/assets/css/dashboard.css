@@ -323,10 +323,10 @@
 }
 
 .dynamic-table-heading {
-    font-size: 1.25rem;
+    font-size: 14px;
     font-weight: 600;
     color: #2c3e50;
-    margin-top: 1rem;
+
     /* Reduced margin */
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
@@ -803,7 +803,7 @@
 /* ===================Rajesh========================= */
 .card {
     border: 0 solid transparent;
-    margin-bottom: 1.5rem;
+    margin-bottom: 8px;
     box-shadow: 0 2px 6px 0 rgb(218 218 253 / 65%), 0 2px 6px 0 rgb(206 206 238 / 54%);
 }
 
