@@ -11,7 +11,12 @@
   z-index: 9999;
 }
 
-
+.success-txt {
+    --bs-bg-opacity: 1;
+    background-color: rgb(44 104 141) !important;
+    font-size: 10px;
+    padding: 6px;
+}
 
 .confirmation-dialog {
   background-color: white;

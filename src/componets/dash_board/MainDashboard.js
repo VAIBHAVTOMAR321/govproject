@@ -1402,7 +1402,7 @@ const MainDashboard = () => {
                             <p className="mb-0 text-secondary">{card.title}</p>
                             <h4 className="my-1 text-info">{card.count} प्रकार</h4>
                             {activeFilters[card.key] && (
-                              <Badge bg="success" pill>{activeFilters[card.key].length} चयनित</Badge>
+                              <Badge className="success-txt" pill>{activeFilters[card.key].length} चयनित</Badge>
                             )}
                           </div>
                           <div className="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto"><i className="bx bxs-cart">{card.icon}</i>

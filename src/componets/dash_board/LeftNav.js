@@ -43,27 +43,32 @@ const LeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet }) => {
       path: "/MainDashboard",
       active: true,
     },
+    {
+      icon: <FaUserPlus />,
+      label: "पंजीकरण",
+      path: "/Registration",
+    },
     // {
     //   icon: <FaFilter  />,
     //   label: "फिल्टर",
     //   path: "/Dashboard",
     // },
-     {
-      icon: <FaChartBar />,
-      label: "ग्राफ / पंजीकरण",
-      submenu: [
-        {
-          label: "ग्राफ",
-          path: "/Graph",
-          icon: <FaChartBar />,
-        },
-        {
-          label: "पंजीकरण",
-          path: "/Registration",
-          icon: <FaUserPlus />,
-        },
-      ],
-    },
+    //  {
+    //   icon: <FaChartBar />,
+    //   label: "ग्राफ / पंजीकरण",
+    //   submenu: [
+    //     {
+    //       label: "ग्राफ",
+    //       path: "/Graph",
+    //       icon: <FaChartBar />,
+    //     },
+    //     {
+    //       label: "पंजीकरण",
+    //       path: "/Registration",
+    //       icon: <FaUserPlus />,
+    //     },
+    //   ],
+    // },
     
     {
       icon: <FaFileInvoiceDollar />,

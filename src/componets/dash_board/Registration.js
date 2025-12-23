@@ -1191,7 +1191,7 @@ const Registration = () => {
                               <p className="mb-0 text-secondary">{fieldMappings[key].title}</p>
                               <h4 className="my-1 text-info">{filterOptions[key]?.length || 0} प्रकार</h4>
                               {activeFilters[key] && (
-                                <Badge bg="success" pill>{activeFilters[key].length} चयनित</Badge>
+                                <Badge className="success-txt" pill>{activeFilters[key].length} चयनित</Badge>
                               )}
                             </div>
                             <div className="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
