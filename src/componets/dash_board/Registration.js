@@ -15,8 +15,9 @@ import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 
-// API URL
+// API URLs
 const REGISTRATION_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/";
+const BILLING_ITEMS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 
 // Column mappings for table
 const tableColumnMapping = {
@@ -823,29 +824,20 @@ const Registration = () => {
     setApiResponse(null);
     setUploadResults(null);
 
-    // Map Excel data to API format
+    // Map Excel data to billing items API format
     const formattedData = excelData.map(item => ({
-      farmer_name: item.farmer_name || "",
-      father_name: item.father_name || "",
-      address: item.address || "",
-      block_name: item.block_name || "",
-      assembly_name: item.assembly_name || "",
-      center_name: item.center_name || "",
-      supplied_item_name: item.supplied_item_name || item.component || "",
-      unit: item.unit || "",
-      quantity: parseFloat(item.allocated_quantity) || 0,
-      rate: parseFloat(item.rate) || 0,
-      amount: parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0),
-      aadhaar_number: item.aadhaar_number || "",
-      bank_account_number: item.bank_account_number || "",
-      ifsc_code: item.ifsc_code || "",
-      mobile_number: item.mobile_number || "",
-      category: item.category || "",
-      scheme_name: item.scheme_name || ""
+      center_name: item.center_name,
+      component: item.component,
+      investment_name: item.investment_name,
+      unit: item.unit,
+      allocated_quantity: item.allocated_quantity,
+      rate: item.rate,
+      source_of_receipt: item.source_of_receipt,
+      scheme_name: item.scheme_name
     }));
 
     const requests = formattedData.map(item =>
-      axios.post(REGISTRATION_API_URL, item)
+      axios.post(BILLING_ITEMS_API_URL, item)
     );
 
     try {
@@ -858,9 +850,8 @@ const Registration = () => {
         successful,
         failed
       });
-      
-      // Refresh table data after successful upload
-      fetchRegistrations();
+
+      // Note: Not refreshing registrations as this is for billing items
     } catch (error) {
       setApiError("Excel अपलोड में त्रुटि: " + (error.response?.data?.message || error.message || translations.genericError));
     } finally {
