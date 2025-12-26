@@ -68,8 +68,18 @@ body {
   --gov-space-1200: 48px;
 }
 
+.change-password p{
+  color: #0B488F;
+  cursor: pointer;
 
+}
+.form-control-lg{
+  font-size: 10px !important;
 
+}
+.forget-btn p{
+  font-size: 12px !important;
+}
 .dashboard-title-container {
   white-space: normal;
   overflow: hidden;

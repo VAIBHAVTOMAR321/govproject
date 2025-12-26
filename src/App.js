@@ -26,6 +26,7 @@ import Billing from "./componets/dash_board/Billing";
 import AllBills from "./componets/dash_board/AllBills";
 import MPR from "./componets/dash_board/MPR";
 import AddEditComponent from "./componets/dash_board/AddEditComponent";
+import ForgotPassword from "./componets/all_login/ForgotPassword";
 
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
       <Routes>
         {/* Public Route */}
         <Route path="/" element={<Home />} />
+        <Route path="/ForgotPassword" element={<ForgotPassword />} />
         
         {/* 3. PROTECTED ROUTES */}
         {/* Wrap all routes that should only be accessible to logged-in users */}
