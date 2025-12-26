@@ -73,6 +73,10 @@ body {
   cursor: pointer;
 
 }
+.table-regi tr th{
+  background-color: #13539d;
+  color: #fff;
+}
 .form-control-lg{
   font-size: 10px !important;
 
