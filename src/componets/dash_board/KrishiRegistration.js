@@ -8,68 +8,77 @@ import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 
 // API URLs
-const BILLING_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
+const BENEFICIARIES_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/";
 const VIKAS_KHAND_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/get-vikas-khand-by-center/";
 const FORM_FILTERS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-form-filters/";
 
 // Static options for form fields
 const centerOptions = ["किनगोड़िखाल", "हल्दूखाल", "धुमाकोट", "सिसल्ड़ी", "सेंधीखाल", "जयहरीखाल", "जेठागांव", "देवियोंखाल", "किल्वोंखाल", "बीरोंखाल", "वेदीखाल", "पोखड़ा", "संगलाकोटी", "देवराजखाल", "चौखाल", "गंगाभोगपुर", "दिउली", "दुगड्डा", "बिथ्याणी", "चैलूसैंण", "सिलोगी", "कोटद्वार", "सतपुली", "पौखाल"];
-const componentOptions = ["सीमेंट", "स्टील", "बालू", "पत्थर", "ईंट"];
-const investmentOptions = ["भवन निर्माण", "सड़क निर्माण", "पुल निर्माण", "कुआँ निर्माण"];
-const unitOptions = ["बैग", "क्विंटल", "किलोग्राम", "नंबर", "लीटर"];
-const sourceOptions = ["PWD", "PMGSY", "NREGA"];
-const schemeOptions = ["MGNREGA", "PMKSY", "DDUGJY"];
-const vikasKhandOptions = ["नैनीडांडा", "बीरोंखाल", "यमकेश्वर", "दुगड्डा", "पौड़ी", "द्वारीखाल", "जयहरीखाल", "रिखणीखाल", "नगर निगम कोटद्वार"];
-const vidhanSabhaOptions = ["लैन्सडाउन", "यमकेश्वर", "चौबट्टाखाल", "कोटद्वार", "श्रीनगर"];
+const categoryOptions = ["सामान्य", "अनुसूचित जाति", "अनुसूचित जनजाति", "अन्य पिछड़ा वर्ग"];
+const unitOptions = ["नग", "किलोग्राम", "लीटर", "मीटर", "बैग"];
 
 // Available columns for the table (excluding sno which is always shown)
-const billingTableColumns = [
+const beneficiariesTableColumns = [
+  { key: 'farmer_name', label: 'किसान का नाम' },
+  { key: 'father_name', label: 'पिता का नाम' },
+  { key: 'address', label: 'पता' },
   { key: 'center_name', label: 'केंद्र का नाम' },
-  { key: 'component', label: 'घटक' },
-  { key: 'investment_name', label: 'निवेश का नाम' },
-  { key: 'sub_investment_name', label: 'उप-निवेश का नाम' },
+  { key: 'supplied_item_name', label: 'आपूर्ति की गई वस्तु का नाम' },
   { key: 'unit', label: 'इकाई' },
-  { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
+  { key: 'quantity', label: 'मात्रा' },
   { key: 'rate', label: 'दर' },
-  { key: 'source_of_receipt', label: 'प्राप्ति का स्रोत' },
-  { key: 'scheme_name', label: 'योजना का नाम' },
-  { key: 'vikas_khand_name', label: 'विकास खंड का नाम' },
-  { key: 'vidhan_sabha_name', label: 'विधानसभा का नाम' }
+  { key: 'amount', label: 'राशि' },
+  { key: 'aadhaar_number', label: 'आधार नंबर' },
+  { key: 'bank_account_number', label: 'बैंक खाता नंबर' },
+  { key: 'ifsc_code', label: 'IFSC कोड' },
+  { key: 'mobile_number', label: 'मोबाइल नंबर' },
+  { key: 'category', label: 'श्रेणी' },
+  { key: 'scheme_name', label: 'योजना का नाम' }
 ];
 
 // Column mapping for data access
-const billingTableColumnMapping = {
+const beneficiariesTableColumnMapping = {
   sno: { header: 'क्र.सं.', accessor: (item, index) => index + 1 },
+  farmer_name: { header: 'किसान का नाम', accessor: (item) => item.farmer_name },
+  father_name: { header: 'पिता का नाम', accessor: (item) => item.father_name },
+  address: { header: 'पता', accessor: (item) => item.address },
   center_name: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
-  component: { header: 'घटक', accessor: (item) => item.component },
-  investment_name: { header: 'निवेश का नाम', accessor: (item) => item.investment_name },
-  sub_investment_name: { header: 'उप-निवेश का नाम', accessor: (item) => item.sub_investment_name },
+  supplied_item_name: { header: 'आपूर्ति की गई वस्तु का नाम', accessor: (item) => item.supplied_item_name },
   unit: { header: 'इकाई', accessor: (item) => item.unit },
-  allocated_quantity: { header: 'आवंटित मात्रा', accessor: (item) => item.allocated_quantity },
+  quantity: { header: 'मात्रा', accessor: (item) => item.quantity },
   rate: { header: 'दर', accessor: (item) => item.rate },
-  source_of_receipt: { header: 'प्राप्ति का स्रोत', accessor: (item) => item.source_of_receipt },
-  scheme_name: { header: 'योजना का नाम', accessor: (item) => item.scheme_name },
-  vikas_khand_name: { header: 'विकास खंड का नाम', accessor: (item) => item.vikas_khand_name },
-  vidhan_sabha_name: { header: 'विधानसभा का नाम', accessor: (item) => item.vidhan_sabha_name }
+  amount: { header: 'राशि', accessor: (item) => item.amount },
+  aadhaar_number: { header: 'आधार नंबर', accessor: (item) => item.aadhaar_number },
+  bank_account_number: { header: 'बैंक खाता नंबर', accessor: (item) => item.bank_account_number },
+  ifsc_code: { header: 'IFSC कोड', accessor: (item) => item.ifsc_code },
+  mobile_number: { header: 'मोबाइल नंबर', accessor: (item) => item.mobile_number },
+  category: { header: 'श्रेणी', accessor: (item) => item.category },
+  scheme_name: { header: 'योजना का नाम', accessor: (item) => item.scheme_name }
 };
 
 // Hindi translations for form
 const translations = {
-  pageTitle: "बिलिंग आइटम",
+  pageTitle: "लाभार्थी पंजीकरण",
+  farmerName: "किसान का नाम",
+  fatherName: "पिता का नाम",
+  address: "पता",
   centerName: "केंद्र का नाम",
-  component: "घटक",
-  investmentName: "निवेश का नाम",
-  subInvestmentName: "उप-निवेश का नाम",
+  suppliedItemName: "आपूर्ति की गई वस्तु का नाम",
   unit: "इकाई",
-  allocatedQuantity: "आवंटित मात्रा",
+  quantity: "मात्रा",
   rate: "दर",
-  sourceOfReceipt: "प्राप्ति का स्रोत",
+  amount: "राशि",
+  aadhaarNumber: "आधार नंबर",
+  bankAccountNumber: "बैंक खाता नंबर",
+  ifscCode: "IFSC कोड",
+  mobileNumber: "मोबाइल नंबर",
+  category: "श्रेणी",
   schemeName: "योजना का नाम",
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
   submitButton: "जमा करें",
   submitting: "जमा कर रहे हैं...",
-  successMessage: "बिलिंग आइटम सफलतापूर्वक जोड़ा गया!",
+  successMessage: "लाभार्थी सफलतापूर्वक जोड़ा गया!",
   bulkUpload: "बल्क अपलोड (Excel)",
   uploadFile: "फाइल चुनें",
   uploadButton: "अपलोड करें",
@@ -83,7 +92,7 @@ const translations = {
   page: "पृष्ठ"
 };
 
-const Registration = () => {
+const KrishiRegistration = () => {
   // Reusable Column Selection Component
   const ColumnSelection = ({ columns, selectedColumns, setSelectedColumns, title }) => {
     const handleColumnToggle = (columnKey) => {
@@ -135,20 +144,27 @@ const Registration = () => {
       </div>
     );
   };
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
   // Form state for single entry
   const [formData, setFormData] = useState({
+    farmer_name: "",
+    father_name: "",
+    address: "",
     center_name: "",
-    component: "",
-    investment_name: "",
-    sub_investment_name: "",
+    supplied_item_name: "",
     unit: "",
-    allocated_quantity: "",
+    quantity: "",
     rate: "",
-    source_of_receipt: "",
+    amount: "",
+    aadhaar_number: "",
+    bank_account_number: "",
+    ifsc_code: "",
+    mobile_number: "",
+    category: "",
     scheme_name: "",
     vikas_khand_name: "",
     vidhan_sabha_name: ""
@@ -158,11 +174,11 @@ const Registration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiResponse, setApiResponse] = useState(null);
   const [apiError, setApiError] = useState(null);
-  const [billingItems, setBillingItems] = useState([]);
+  const [beneficiaries, setBeneficiaries] = useState([]);
   const [excelFile, setExcelFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const [selectedColumns, setSelectedColumns] = useState(billingTableColumns.map(col => col.key));
+  const [selectedColumns, setSelectedColumns] = useState(beneficiariesTableColumns.map(col => col.key));
   const [isLoading, setIsLoading] = useState(true);
   const [vikasKhandData, setVikasKhandData] = useState(null);
   const [isFetchingVikasKhand, setIsFetchingVikasKhand] = useState(false);
@@ -173,21 +189,17 @@ const Registration = () => {
 
   // Dynamic form options
   const [formOptions, setFormOptions] = useState({
-    component: [],
-    investment_name: [],
-    sub_investment_name: [],
-    unit: ["Number", "meter", "Square meter", "kg", "बैग"], // Default unit options from API
-    source_of_receipt: [],
+    supplied_item_name: [],
+    unit: unitOptions,
+    category: categoryOptions,
     scheme_name: []
   });
 
   // Track which fields are in "Other" mode (text input instead of dropdown)
   const [otherMode, setOtherMode] = useState({
-    component: false,
-    investment_name: false,
-    sub_investment_name: false,
+    supplied_item_name: false,
     unit: false,
-    source_of_receipt: false,
+    category: false,
     scheme_name: false
   });
 
@@ -206,16 +218,16 @@ const Registration = () => {
     return () => window.removeEventListener("resize", checkDevice);
   }, []);
 
-  // Fetch billing items data
-  const fetchBillingItems = async () => {
+  // Fetch beneficiaries data
+  const fetchBeneficiaries = async () => {
     try {
       setIsLoading(true);
       setApiError(null);
-      const response = await axios.get(BILLING_API_URL);
+      const response = await axios.get(BENEFICIARIES_API_URL);
       const data = response.data && response.data.data ? response.data.data : response.data;
-      setBillingItems(Array.isArray(data) ? data : []);
+      setBeneficiaries(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching billing items:', error);
+      console.error('Error fetching beneficiaries:', error);
       setApiError('डेटा लोड करने में त्रुटि हुई।');
     } finally {
       setIsLoading(false);
@@ -284,14 +296,13 @@ const Registration = () => {
   };
 
   // Fetch form filters
-  const fetchFormFilters = async (component = '', investmentName = '', subInvestmentName = '') => {
+  const fetchFormFilters = async (suppliedItemName = '', category = '') => {
     try {
       setIsLoadingFilters(true);
       let url = FORM_FILTERS_API_URL;
       const params = [];
-      if (component) params.push(`component=${encodeURIComponent(component)}`);
-      if (investmentName) params.push(`investment_name=${encodeURIComponent(investmentName)}`);
-      if (subInvestmentName) params.push(`sub_investment_name=${encodeURIComponent(subInvestmentName)}`);
+      if (suppliedItemName) params.push(`supplied_item_name=${encodeURIComponent(suppliedItemName)}`);
+      if (category) params.push(`category=${encodeURIComponent(category)}`);
       if (params.length > 0) url += '?' + params.join('&');
 
       console.log('Fetching filters from:', url);
@@ -301,11 +312,9 @@ const Registration = () => {
 
       setFormOptions(prev => ({
         ...prev,
-        component: data.level === 'component' ? data.data || [] : prev.component,
-        investment_name: data.level === 'investment_name' ? data.data || [] : prev.investment_name,
-        sub_investment_name: data.level === 'sub_investment_name' ? data.data || [] : prev.sub_investment_name,
+        supplied_item_name: data.supplied_item_name || prev.supplied_item_name,
         unit: data.unit || prev.unit,
-        source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
+        category: data.category || prev.category,
         scheme_name: data.scheme_name || prev.scheme_name
       }));
     } catch (error) {
@@ -317,14 +326,41 @@ const Registration = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchBillingItems();
+    fetchBeneficiaries();
     fetchFormFilters();
   }, []);
+
+  // Test function to check API requirements
+  const testAPIRequirements = async () => {
+    try {
+      const testPayload = {
+        center_name: "किनगोड़िखाल",
+        supplied_item_name: "आम का पौधा",
+        unit: "नग",
+        quantity: 1,
+        rate: 25,
+        amount: 25,
+        category: "सामान्य",
+        scheme_name: "उद्यान विकास योजना"
+      };
+      
+      console.log('Testing API with minimal payload:', testPayload);
+      const response = await axios.post(BENEFICIARIES_API_URL, testPayload);
+      console.log('API test response:', response.status, response.data);
+    } catch (error) {
+      console.error('API test failed:', error.response?.data || error.message);
+    }
+  };
+
+  // Uncomment to test API requirements (only for debugging)
+  // useEffect(() => {
+  //   testAPIRequirements();
+  // }, []);
 
   // Reset to page 1 when data changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [billingItems]);
+  }, [beneficiaries]);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
 
@@ -359,17 +395,21 @@ const Registration = () => {
   const downloadSampleTemplate = () => {
     try {
       const sampleData = [{
-        'केंद्र का नाम': 'किनगोड़िखाल',
-        'घटक': 'सीमेंट',
-        'निवेश का नाम': 'भवन निर्माण',
-        'उप-निवेश का नाम': 'नया भवन',
-        'इकाई': 'बैग',
-        'आवंटित मात्रा': 100,
-        'दर': 450.50,
-        'प्राप्ति का स्रोत': 'PWD',
-        'योजना का नाम': 'MGNREGA',
-        'विकास खंड का नाम': 'नैनीडांडा',
-        'विधानसभा का नाम': 'लैन्सडाउन'
+        'किसान का नाम': 'रामेश कुमार',
+        'पिता का नाम': 'सुरेश कुमार',
+        'पता': 'ग्राम रामपुर, पोस्ट रामपुर, जिला सीतापुर, उत्तर प्रदेश',
+        'केंद्र का नाम': 'कृषि सेवा केंद्र महौली',
+        'आपूर्ति की गई वस्तु का नाम': 'आम का पौधा',
+        'इकाई': 'नग',
+        'मात्रा': 50,
+        'दर': 25,
+        'राशि': 1250,
+        'आधार नंबर': '123456789012',
+        'बैंक खाता नंबर': '12345678901234',
+        'IFSC कोड': 'SBIN0001234',
+        'मोबाइल नंबर': '9876543210',
+        'श्रेणी': 'सामान्य',
+        'योजना का नाम': 'उद्यान विकास योजना'
       }];
 
       const wb = XLSX.utils.book_new();
@@ -377,22 +417,26 @@ const Registration = () => {
 
       // Set column widths
       const colWidths = [
-        { wch: 20 }, // केंद्र का नाम
-        { wch: 15 }, // घटक
-        { wch: 20 }, // निवेश का नाम
-        { wch: 20 }, // उप-निवेश का नाम
+        { wch: 20 }, // किसान का नाम
+        { wch: 20 }, // पिता का नाम
+        { wch: 40 }, // पता
+        { wch: 25 }, // केंद्र का नाम
+        { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
         { wch: 10 }, // इकाई
-        { wch: 15 }, // आवंटित मात्रा
+        { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
-        { wch: 15 }, // प्राप्ति का स्रोत
-        { wch: 15 }, // योजना का नाम
-        { wch: 20 }, // विकास खंड का नाम
-        { wch: 20 }  // विधानसभा का नाम
+        { wch: 10 }, // राशि
+        { wch: 15 }, // आधार नंबर
+        { wch: 20 }, // बैंक खाता नंबर
+        { wch: 15 }, // IFSC कोड
+        { wch: 15 }, // मोबाइल नंबर
+        { wch: 15 }, // श्रेणी
+        { wch: 20 }  // योजना का नाम
       ];
       ws['!cols'] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, "SampleTemplate");
-      XLSX.writeFile(wb, `Billing_Items_Template.xlsx`);
+      XLSX.writeFile(wb, `Beneficiaries_Registration_Template.xlsx`);
     } catch (e) {
       console.error("Error generating sample template:", e);
       setApiError("Sample template generation failed. Please try again.");
@@ -485,15 +529,13 @@ const Registration = () => {
 
   // Refresh function
   const handleRefresh = () => {
-    fetchBillingItems();
+    fetchBeneficiaries();
     setApiResponse(null);
     setApiError(null);
     setOtherMode({
-      component: false,
-      investment_name: false,
-      sub_investment_name: false,
+      supplied_item_name: false,
       unit: false,
-      source_of_receipt: false,
+      category: false,
       scheme_name: false
     });
   };
@@ -504,7 +546,7 @@ const Registration = () => {
   };
 
   // Generate pagination items similar to MainDashboard.js
-  const totalPages = Math.ceil(billingItems.length / itemsPerPage);
+  const totalPages = Math.ceil(beneficiaries.length / itemsPerPage);
   const paginationItems = [];
   const maxVisiblePages = 5;
   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
@@ -583,14 +625,20 @@ const Registration = () => {
 
           // Parse data using header mapping
           const payloads = dataRows.map(row => ({
+            farmer_name: row[headerMapping['किसान का नाम']] || row[headerMapping['farmer_name']] || '',
+            father_name: row[headerMapping['पिता का नाम']] || row[headerMapping['father_name']] || '',
+            address: row[headerMapping['पता']] || row[headerMapping['address']] || '',
             center_name: row[headerMapping['केंद्र का नाम']] || row[headerMapping['center_name']] || '',
-            component: row[headerMapping['घटक']] || row[headerMapping['component']] || '',
-            investment_name: row[headerMapping['निवेश का नाम']] || row[headerMapping['investment_name']] || '',
-            sub_investment_name: row[headerMapping['उप-निवेश का नाम']] || row[headerMapping['sub_investment_name']] || '',
+            supplied_item_name: row[headerMapping['आपूर्ति की गई वस्तु का नाम']] || row[headerMapping['supplied_item_name']] || '',
             unit: row[headerMapping['इकाई']] || row[headerMapping['unit']] || '',
-            allocated_quantity: parseInt(row[headerMapping['आवंटित मात्रा']] || row[headerMapping['allocated_quantity']] || 0),
+            quantity: parseInt(row[headerMapping['मात्रा']] || row[headerMapping['quantity']] || 0),
             rate: parseFloat(row[headerMapping['दर']] || row[headerMapping['rate']] || 0),
-            source_of_receipt: row[headerMapping['प्राप्ति का स्रोत']] || row[headerMapping['source_of_receipt']] || '',
+            amount: parseFloat(row[headerMapping['राशि']] || row[headerMapping['amount']] || 0),
+            aadhaar_number: row[headerMapping['आधार नंबर']] || row[headerMapping['aadhaar_number']] || '',
+            bank_account_number: row[headerMapping['बैंक खाता नंबर']] || row[headerMapping['bank_account_number']] || '',
+            ifsc_code: row[headerMapping['ifsc कोड']] || row[headerMapping['ifsc_code']] || '',
+            mobile_number: row[headerMapping['मोबाइल नंबर']] || row[headerMapping['mobile_number']] || '',
+            category: row[headerMapping['श्रेणी']] || row[headerMapping['category']] || '',
             scheme_name: row[headerMapping['योजना का नाम']] || row[headerMapping['scheme_name']] || '',
             vikas_khand_name: row[headerMapping['विकास खंड का नाम']] || row[headerMapping['vikas_khand_name']] || '',
             vidhan_sabha_name: row[headerMapping['विधानसभा का नाम']] || row[headerMapping['vidhan_sabha_name']] || ''
@@ -602,10 +650,10 @@ const Registration = () => {
           for (let i = 0; i < payloads.length; i++) {
             try {
               const payload = payloads[i];
-              const response = await axios.post(BILLING_API_URL, payload);
+              const response = await axios.post(BENEFICIARIES_API_URL, payload);
 
               if (response.status === 200 || response.status === 201) {
-                setBillingItems(prev => [payload, ...prev]);
+                setBeneficiaries(prev => [payload, ...prev]);
                 successfulUploads++;
               } else {
                 failedItems.push({ index: i + 1, reason: `Server error: ${response.status}` });
@@ -664,33 +712,28 @@ const Registration = () => {
         }));
 
         // Handle cascading dropdowns only when not in other mode
-        if (name === 'component' && value) {
+        if (name === 'supplied_item_name' && value) {
           // Reset dependent fields
-          updatedFormData.investment_name = '';
-          updatedFormData.sub_investment_name = '';
           updatedFormData.unit = '';
+          updatedFormData.category = '';
+          updatedFormData.scheme_name = '';
           setOtherMode(prev => ({
             ...prev,
-            investment_name: false,
-            sub_investment_name: false,
-            unit: false
+            unit: false,
+            category: false,
+            scheme_name: false
           }));
-          // Fetch investment options
+          // Fetch unit options
           fetchFormFilters(value);
-        } else if (name === 'investment_name' && value && formData.component) {
+        } else if (name === 'category' && value && formData.supplied_item_name) {
           // Reset dependent fields
-          updatedFormData.sub_investment_name = '';
-          updatedFormData.unit = '';
+          updatedFormData.scheme_name = '';
           setOtherMode(prev => ({
             ...prev,
-            sub_investment_name: false,
-            unit: false
+            scheme_name: false
           }));
-          // Fetch sub-investment options
-          fetchFormFilters(formData.component, value);
-        } else if (name === 'sub_investment_name' && value && formData.component && formData.investment_name) {
-          // Sub-investment changed, no need to reset unit as it's independent
-          // Could fetch sub-investment specific data if needed, but unit is independent
+          // Fetch scheme options
+          fetchFormFilters(formData.supplied_item_name, value);
         }
 
         // If center changes, fetch vikas khand data and reset related fields
@@ -705,6 +748,13 @@ const Registration = () => {
         }
       }
       // If in other mode, just update the value without triggering cascading
+    }
+
+    // Auto-calculate amount when quantity and rate change
+    if (name === 'quantity' || name === 'rate') {
+      const quantity = parseFloat(value) || 0;
+      const rate = parseFloat(name === 'quantity' ? formData.rate : value) || 0;
+      updatedFormData.amount = (quantity * rate).toString();
     }
 
     setFormData(updatedFormData);
@@ -734,20 +784,26 @@ const Registration = () => {
     try {
       // Prepare payload to match API requirements
       const payload = {
+        farmer_name: formData.farmer_name,
+        father_name: formData.father_name,
+        address: formData.address,
         center_name: formData.center_name,
-        component: formData.component,
-        investment_name: formData.investment_name,
-        sub_investment_name: formData.sub_investment_name,
+        supplied_item_name: formData.supplied_item_name,
         unit: formData.unit,
-        allocated_quantity: parseInt(formData.allocated_quantity),
+        quantity: parseInt(formData.quantity),
         rate: parseFloat(formData.rate),
-        source_of_receipt: formData.source_of_receipt,
+        amount: parseFloat(formData.amount),
+        aadhaar_number: formData.aadhaar_number,
+        bank_account_number: formData.bank_account_number,
+        ifsc_code: formData.ifsc_code,
+        mobile_number: formData.mobile_number,
+        category: formData.category,
         scheme_name: formData.scheme_name,
         vikas_khand_name: formData.vikas_khand_name,
         vidhan_sabha_name: formData.vidhan_sabha_name
       };
 
-      const response = await axios.post(BILLING_API_URL, payload);
+      const response = await axios.post(BENEFICIARIES_API_URL, payload);
       
       // Handle both possible response structures
       const responseData = response.data && response.data.data ? response.data.data : response.data;
@@ -755,14 +811,20 @@ const Registration = () => {
       
       // Reset form after successful submission
       setFormData({
+        farmer_name: "",
+        father_name: "",
+        address: "",
         center_name: "",
-        component: "",
-        investment_name: "",
-        sub_investment_name: "",
+        supplied_item_name: "",
         unit: "",
-        allocated_quantity: "",
+        quantity: "",
         rate: "",
-        source_of_receipt: "",
+        amount: "",
+        aadhaar_number: "",
+        bank_account_number: "",
+        ifsc_code: "",
+        mobile_number: "",
+        category: "",
         scheme_name: "",
         vikas_khand_name: "",
         vidhan_sabha_name: ""
@@ -771,16 +833,14 @@ const Registration = () => {
       // Clear vikas khand data and other mode
       setVikasKhandData(null);
       setOtherMode({
-        component: false,
-        investment_name: false,
-        sub_investment_name: false,
+        supplied_item_name: false,
         unit: false,
-        source_of_receipt: false,
+        category: false,
         scheme_name: false
       });
 
       // Add to table
-      setBillingItems(prev => [payload, ...prev]);
+      setBeneficiaries(prev => [payload, ...prev]);
     } catch (error) {
       // Handle different error response formats
       let errorMessage = translations.genericError;
@@ -806,14 +866,23 @@ const Registration = () => {
   // Form validation
   const validateForm = () => {
     const newErrors = {};
+    // For single form entry, require essential fields
     if (!formData.center_name.trim()) newErrors.center_name = `${translations.centerName} ${translations.required}`;
-    if (!formData.component.trim()) newErrors.component = `${translations.component} ${translations.required}`;
-    if (!formData.investment_name.trim()) newErrors.investment_name = `${translations.investmentName} ${translations.required}`;
+    if (!formData.supplied_item_name.trim()) newErrors.supplied_item_name = `${translations.suppliedItemName} ${translations.required}`;
     if (!formData.unit.trim()) newErrors.unit = `${translations.unit} ${translations.required}`;
-    if (!formData.allocated_quantity.trim()) newErrors.allocated_quantity = `${translations.allocatedQuantity} ${translations.required}`;
+    if (!formData.quantity.trim()) newErrors.quantity = `${translations.quantity} ${translations.required}`;
     if (!formData.rate.trim()) newErrors.rate = `${translations.rate} ${translations.required}`;
-    if (!formData.source_of_receipt.trim()) newErrors.source_of_receipt = `${translations.sourceOfReceipt} ${translations.required}`;
+    if (!formData.amount.trim()) newErrors.amount = `${translations.amount} ${translations.required}`;
+    if (!formData.category.trim()) newErrors.category = `${translations.category} ${translations.required}`;
     if (!formData.scheme_name.trim()) newErrors.scheme_name = `${translations.schemeName} ${translations.required}`;
+    // Optional fields for single entry (but still validate if provided)
+    if (formData.farmer_name && !formData.farmer_name.trim()) newErrors.farmer_name = `${translations.farmerName} ${translations.required}`;
+    if (formData.father_name && !formData.father_name.trim()) newErrors.father_name = `${translations.fatherName} ${translations.required}`;
+    if (formData.address && !formData.address.trim()) newErrors.address = `${translations.address} ${translations.required}`;
+    if (formData.aadhaar_number && !formData.aadhaar_number.trim()) newErrors.aadhaar_number = `${translations.aadhaarNumber} ${translations.required}`;
+    if (formData.bank_account_number && !formData.bank_account_number.trim()) newErrors.bank_account_number = `${translations.bankAccountNumber} ${translations.required}`;
+    if (formData.ifsc_code && !formData.ifsc_code.trim()) newErrors.ifsc_code = `${translations.ifscCode} ${translations.required}`;
+    if (formData.mobile_number && !formData.mobile_number.trim()) newErrors.mobile_number = `${translations.mobileNumber} ${translations.required}`;
     if (!formData.vikas_khand_name.trim()) newErrors.vikas_khand_name = `${translations.vikasKhandName} ${translations.required}`;
     if (!formData.vidhan_sabha_name.trim()) newErrors.vidhan_sabha_name = `${translations.vidhanSabhaName} ${translations.required}`;
     return newErrors;
@@ -871,8 +940,8 @@ const Registration = () => {
             <strong>Excel अपलोड निर्देश:</strong>
             <ul className="mb-0">
               <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
-              <li>अनिवार्य फ़ील्ड: केंद्र का नाम, घटक, निवेश का नाम, इकाई, आवंटित मात्रा, दर, प्राप्ति का स्रोत, योजना का नाम,उप-निवेश का नाम, विकास खंड का नाम, विधानसभा का नाम</li>
-              <li>आवंटित मात्रा और दर संख्यात्मक होने चाहिए</li>
+              <li>अनिवार्य फ़ील्ड: किसान का नाम, पिता का नाम, पता, केंद्र का नाम, आपूर्ति की गई वस्तु का नाम, इकाई, मात्रा, दर, राशि, आधार नंबर, बैंक खाता नंबर, IFSC कोड, मोबाइल नंबर, श्रेणी, योजना का नाम, विकास खंड का नाम, विधानसभा का नाम</li>
+              <li>मात्रा, दर और राशि संख्यात्मक होने चाहिए</li>
               <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
             </ul>
           </Alert>
@@ -895,31 +964,77 @@ const Registration = () => {
             <Form.Control.Feedback type="invalid">{errors.center_name}</Form.Control.Feedback>
           </Form.Group>
 
-          {/* Billing Form Section - Only show when center is selected */}
+          {/* Beneficiaries Form Section - Only show when center is selected */}
           {formData.center_name && (
             <Form onSubmit={handleSubmit} className="registration-form compact-form">
             <Row>
               <Col xs={12} sm={6} md={2}>
-                <Form.Group className="mb-2" controlId="component">
-                  <Form.Label className="small-fonts fw-bold">{translations.component}</Form.Label>
-                  {otherMode.component ? (
+                <Form.Group className="mb-2" controlId="farmer_name">
+                  <Form.Label className="small-fonts fw-bold">{translations.farmerName}</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="farmer_name"
+                    value={formData.farmer_name}
+                    onChange={handleChange}
+                    isInvalid={!!errors.farmer_name}
+                    className="compact-input"
+                    placeholder="किसान का नाम दर्ज करें"
+                  />
+                  <Form.Control.Feedback type="invalid">{errors.farmer_name}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="father_name">
+                  <Form.Label className="small-fonts fw-bold">{translations.fatherName}</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="father_name"
+                    value={formData.father_name}
+                    onChange={handleChange}
+                    isInvalid={!!errors.father_name}
+                    className="compact-input"
+                    placeholder="पिता का नाम दर्ज करें"
+                  />
+                  <Form.Control.Feedback type="invalid">{errors.father_name}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="address">
+                  <Form.Label className="small-fonts fw-bold">{translations.address}</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    isInvalid={!!errors.address}
+                    className="compact-input"
+                    placeholder="पता दर्ज करें"
+                  />
+                  <Form.Control.Feedback type="invalid">{errors.address}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="supplied_item_name">
+                  <Form.Label className="small-fonts fw-bold">{translations.suppliedItemName}</Form.Label>
+                  {otherMode.supplied_item_name ? (
                     <div className="d-flex">
                       <Form.Control
                         type="text"
-                        name="component"
-                        value={formData.component}
+                        name="supplied_item_name"
+                        value={formData.supplied_item_name}
                         onChange={handleChange}
-                        isInvalid={!!errors.component}
+                        isInvalid={!!errors.supplied_item_name}
                         className="compact-input"
-                        placeholder="घटक दर्ज करें"
+                        placeholder="आपूर्ति की गई वस्तु का नाम दर्ज करें"
                       />
                       <Button
                         variant="outline-secondary"
                         size="sm"
                         className="ms-1"
                         onClick={() => {
-                          setOtherMode(prev => ({ ...prev, component: false }));
-                          setFormData(prev => ({ ...prev, component: '' }));
+                          setOtherMode(prev => ({ ...prev, supplied_item_name: false }));
+                          setFormData(prev => ({ ...prev, supplied_item_name: '' }));
                           // Refetch options
                           fetchFormFilters();
                         }}
@@ -930,121 +1045,21 @@ const Registration = () => {
                     </div>
                   ) : (
                     <Form.Select
-                      name="component"
-                      value={formData.component}
+                      name="supplied_item_name"
+                      value={formData.supplied_item_name}
                       onChange={handleChange}
-                      isInvalid={!!errors.component}
+                      isInvalid={!!errors.supplied_item_name}
                       className="compact-input"
                       disabled={isLoadingFilters}
                     >
                       <option value="">{translations.selectOption}</option>
-                      {formOptions.component.map((comp, index) => (
-                        <option key={index} value={comp}>{comp}</option>
+                      {formOptions.supplied_item_name.map((item, index) => (
+                        <option key={index} value={item}>{item}</option>
                       ))}
                       <option value="Other">अन्य</option>
                     </Form.Select>
                   )}
-                  <Form.Control.Feedback type="invalid">{errors.component}</Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-              <Col xs={12} sm={6} md={2}>
-                <Form.Group className="mb-2" controlId="investment_name">
-                  <Form.Label className="small-fonts fw-bold">{translations.investmentName}</Form.Label>
-                  {otherMode.investment_name ? (
-                    <div className="d-flex">
-                      <Form.Control
-                        type="text"
-                        name="investment_name"
-                        value={formData.investment_name}
-                        onChange={handleChange}
-                        isInvalid={!!errors.investment_name}
-                        className="compact-input"
-                        placeholder="निवेश का नाम दर्ज करें"
-                      />
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        className="ms-1"
-                        onClick={() => {
-                          setOtherMode(prev => ({ ...prev, investment_name: false }));
-                          setFormData(prev => ({ ...prev, investment_name: '' }));
-                          // Refetch investment options based on component
-                          if (formData.component) {
-                            fetchFormFilters(formData.component);
-                          }
-                        }}
-                        title="विकल्प दिखाएं"
-                      >
-                        ↺
-                      </Button>
-                    </div>
-                  ) : (
-                    <Form.Select
-                      name="investment_name"
-                      value={formData.investment_name}
-                      onChange={handleChange}
-                      isInvalid={!!errors.investment_name}
-                      className="compact-input"
-                      disabled={!formData.component || isLoadingFilters}
-                    >
-                      <option value="">{translations.selectOption}</option>
-                      {formOptions.investment_name.map((inv, index) => (
-                        <option key={index} value={inv}>{inv}</option>
-                      ))}
-                      <option value="Other">अन्य</option>
-                    </Form.Select>
-                  )}
-                  <Form.Control.Feedback type="invalid">{errors.investment_name}</Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-              <Col xs={12} sm={6} md={2}>
-                <Form.Group className="mb-2" controlId="sub_investment_name">
-                  <Form.Label className="small-fonts fw-bold">{translations.subInvestmentName}</Form.Label>
-                  {otherMode.sub_investment_name ? (
-                    <div className="d-flex">
-                      <Form.Control
-                        type="text"
-                        name="sub_investment_name"
-                        value={formData.sub_investment_name}
-                        onChange={handleChange}
-                        isInvalid={!!errors.sub_investment_name}
-                        className="compact-input"
-                        placeholder="उप-निवेश का नाम दर्ज करें"
-                      />
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        className="ms-1"
-                        onClick={() => {
-                          setOtherMode(prev => ({ ...prev, sub_investment_name: false }));
-                          setFormData(prev => ({ ...prev, sub_investment_name: '' }));
-                          // Refetch sub-investment options based on component and investment_name
-                          if (formData.component && formData.investment_name) {
-                            fetchFormFilters(formData.component, formData.investment_name);
-                          }
-                        }}
-                        title="विकल्प दिखाएं"
-                      >
-                        ↺
-                      </Button>
-                    </div>
-                  ) : (
-                    <Form.Select
-                      name="sub_investment_name"
-                      value={formData.sub_investment_name}
-                      onChange={handleChange}
-                      isInvalid={!!errors.sub_investment_name}
-                      className="compact-input"
-                      disabled={!formData.investment_name || isLoadingFilters}
-                    >
-                      <option value="">{translations.selectOption}</option>
-                      {formOptions.sub_investment_name.map((subInv, index) => (
-                        <option key={index} value={subInv}>{subInv}</option>
-                      ))}
-                      <option value="Other">अन्य</option>
-                    </Form.Select>
-                  )}
-                  <Form.Control.Feedback type="invalid">{errors.sub_investment_name}</Form.Control.Feedback>
+                  <Form.Control.Feedback type="invalid">{errors.supplied_item_name}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col xs={12} sm={6} md={2}>
@@ -1096,12 +1111,14 @@ const Registration = () => {
                 </Form.Group>
               </Col>
               <Col xs={12} sm={6} md={2}>
-                <Form.Group className="mb-2" controlId="allocated_quantity">
-                  <Form.Label className="small-fonts fw-bold">{translations.allocatedQuantity}</Form.Label>
-                  <Form.Control type="number" name="allocated_quantity" value={formData.allocated_quantity} onChange={handleChange} isInvalid={!!errors.allocated_quantity} className="compact-input" placeholder="आवंटित मात्रा दर्ज करें" />
-                  <Form.Control.Feedback type="invalid">{errors.allocated_quantity}</Form.Control.Feedback>
+                <Form.Group className="mb-2" controlId="quantity">
+                  <Form.Label className="small-fonts fw-bold">{translations.quantity}</Form.Label>
+                  <Form.Control type="number" name="quantity" value={formData.quantity} onChange={handleChange} isInvalid={!!errors.quantity} className="compact-input" placeholder="मात्रा दर्ज करें" />
+                  <Form.Control.Feedback type="invalid">{errors.quantity}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
+            </Row>
+            <Row>
               <Col xs={12} sm={6} md={2}>
                 <Form.Group className="mb-2" controlId="rate">
                   <Form.Label className="small-fonts fw-bold">{translations.rate}</Form.Label>
@@ -1109,29 +1126,64 @@ const Registration = () => {
                   <Form.Control.Feedback type="invalid">{errors.rate}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="amount">
+                  <Form.Label className="small-fonts fw-bold">{translations.amount}</Form.Label>
+                  <Form.Control type="number" step="0.01" name="amount" value={formData.amount} onChange={handleChange} isInvalid={!!errors.amount} className="compact-input" placeholder="राशि दर्ज करें" />
+                  <Form.Control.Feedback type="invalid">{errors.amount}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="aadhaar_number">
+                  <Form.Label className="small-fonts fw-bold">{translations.aadhaarNumber}</Form.Label>
+                  <Form.Control type="text" name="aadhaar_number" value={formData.aadhaar_number} onChange={handleChange} isInvalid={!!errors.aadhaar_number} className="compact-input" placeholder="आधार नंबर दर्ज करें" />
+                  <Form.Control.Feedback type="invalid">{errors.aadhaar_number}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="bank_account_number">
+                  <Form.Label className="small-fonts fw-bold">{translations.bankAccountNumber}</Form.Label>
+                  <Form.Control type="text" name="bank_account_number" value={formData.bank_account_number} onChange={handleChange} isInvalid={!!errors.bank_account_number} className="compact-input" placeholder="बैंक खाता नंबर दर्ज करें" />
+                  <Form.Control.Feedback type="invalid">{errors.bank_account_number}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="ifsc_code">
+                  <Form.Label className="small-fonts fw-bold">{translations.ifscCode}</Form.Label>
+                  <Form.Control type="text" name="ifsc_code" value={formData.ifsc_code} onChange={handleChange} isInvalid={!!errors.ifsc_code} className="compact-input" placeholder="IFSC कोड दर्ज करें" />
+                  <Form.Control.Feedback type="invalid">{errors.ifsc_code}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col xs={12} sm={6} md={2}>
+                <Form.Group className="mb-2" controlId="mobile_number">
+                  <Form.Label className="small-fonts fw-bold">{translations.mobileNumber}</Form.Label>
+                  <Form.Control type="text" name="mobile_number" value={formData.mobile_number} onChange={handleChange} isInvalid={!!errors.mobile_number} className="compact-input" placeholder="मोबाइल नंबर दर्ज करें" />
+                  <Form.Control.Feedback type="invalid">{errors.mobile_number}</Form.Control.Feedback>
+                </Form.Group>
+              </Col>
             </Row>
             <Row>
               <Col xs={12} sm={6} md={2}>
-                <Form.Group className="mb-2" controlId="source_of_receipt">
-                  <Form.Label className="small-fonts fw-bold">{translations.sourceOfReceipt}</Form.Label>
-                  {otherMode.source_of_receipt ? (
+                <Form.Group className="mb-2" controlId="category">
+                  <Form.Label className="small-fonts fw-bold">{translations.category}</Form.Label>
+                  {otherMode.category ? (
                     <div className="d-flex">
                       <Form.Control
                         type="text"
-                        name="source_of_receipt"
-                        value={formData.source_of_receipt}
+                        name="category"
+                        value={formData.category}
                         onChange={handleChange}
-                        isInvalid={!!errors.source_of_receipt}
+                        isInvalid={!!errors.category}
                         className="compact-input"
-                        placeholder="प्राप्ति का स्रोत दर्ज करें"
+                        placeholder="श्रेणी दर्ज करें"
                       />
                       <Button
                         variant="outline-secondary"
                         size="sm"
                         className="ms-1"
                         onClick={() => {
-                          setOtherMode(prev => ({ ...prev, source_of_receipt: false }));
-                          setFormData(prev => ({ ...prev, source_of_receipt: '' }));
+                          setOtherMode(prev => ({ ...prev, category: false }));
+                          setFormData(prev => ({ ...prev, category: '' }));
                           // Refetch base options
                           fetchFormFilters();
                         }}
@@ -1142,21 +1194,21 @@ const Registration = () => {
                     </div>
                   ) : (
                     <Form.Select
-                      name="source_of_receipt"
-                      value={formData.source_of_receipt}
+                      name="category"
+                      value={formData.category}
                       onChange={handleChange}
-                      isInvalid={!!errors.source_of_receipt}
+                      isInvalid={!!errors.category}
                       className="compact-input"
                       disabled={isLoadingFilters}
                     >
                       <option value="">{translations.selectOption}</option>
-                      {formOptions.source_of_receipt.map((source, index) => (
-                        <option key={index} value={source}>{source}</option>
+                      {formOptions.category.map((cat, index) => (
+                        <option key={index} value={cat}>{cat}</option>
                       ))}
                       <option value="Other">अन्य</option>
                     </Form.Select>
                   )}
-                  <Form.Control.Feedback type="invalid">{errors.source_of_receipt}</Form.Control.Feedback>
+                  <Form.Control.Feedback type="invalid">{errors.category}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col xs={12} sm={6} md={2}>
@@ -1250,7 +1302,7 @@ const Registration = () => {
           {/* Table Section */}
           <div className="billing-table-section mt-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h3 className="small-fonts mb-0">बिलिंग आइटम डेटा</h3>
+              <h3 className="small-fonts mb-0">लाभार्थी डेटा</h3>
               <div className="d-flex align-items-center">
                 <OverlayTrigger
                   placement="top"
@@ -1266,7 +1318,7 @@ const Registration = () => {
                     <FaSync className={`me-1 ${isLoading ? 'fa-spin' : ''}`} />रीफ्रेश
                   </Button>
                 </OverlayTrigger>
-                {billingItems.length > 0 && (
+                {beneficiaries.length > 0 && (
                   <>
                     <OverlayTrigger
                       placement="top"
@@ -1275,7 +1327,7 @@ const Registration = () => {
                       <Button
                         variant="outline-success"
                         size="sm"
-                        onClick={() => downloadExcel(billingItems, `Billing_Items_${new Date().toISOString().slice(0, 10)}`, billingTableColumnMapping, selectedColumns)}
+                        onClick={() => downloadExcel(beneficiaries, `Beneficiaries_${new Date().toISOString().slice(0, 10)}`, beneficiariesTableColumnMapping, selectedColumns)}
                         className="me-2"
                       >
                         <FaFileExcel className="me-1" />Excel
@@ -1288,7 +1340,7 @@ const Registration = () => {
                       <Button
                         variant="outline-danger"
                         size="sm"
-                        onClick={() => downloadPdf(billingItems, `Billing_Items_${new Date().toISOString().slice(0, 10)}`, billingTableColumnMapping, selectedColumns, "बिलिंग आइटम डेटा")}
+                        onClick={() => downloadPdf(beneficiaries, `Beneficiaries_${new Date().toISOString().slice(0, 10)}`, beneficiariesTableColumnMapping, selectedColumns, "लाभार्थी डेटा")}
                       >
                         <FaFilePdf className="me-1" />
                         PDF
@@ -1300,10 +1352,10 @@ const Registration = () => {
             </div>
 
             {/* Table info with pagination details */}
-            {billingItems.length > 0 && (
+            {beneficiaries.length > 0 && (
               <div className="table-info mb-2 d-flex justify-content-between align-items-center">
                 <span className="small-fonts">
-                  {translations.showing} {((currentPage - 1) * itemsPerPage) + 1} {translations.to} {Math.min(currentPage * itemsPerPage, billingItems.length)} {translations.of} {billingItems.length} {translations.entries}
+                  {translations.showing} {((currentPage - 1) * itemsPerPage) + 1} {translations.to} {Math.min(currentPage * itemsPerPage, beneficiaries.length)} {translations.of} {beneficiaries.length} {translations.entries}
                 </span>
                 <div className="d-flex align-items-center">
                   <span className="small-fonts me-2">{translations.itemsPerPage}</span>
@@ -1313,9 +1365,9 @@ const Registration = () => {
             )}
 
             {/* Column Selection Section */}
-            {billingItems.length > 0 && (
+            {beneficiaries.length > 0 && (
               <ColumnSelection
-                columns={billingTableColumns}
+                columns={beneficiariesTableColumns}
                 selectedColumns={selectedColumns}
                 setSelectedColumns={setSelectedColumns}
                 title="कॉलम चुनें"
@@ -1329,9 +1381,9 @@ const Registration = () => {
                 </div>
                 <p className="mt-2 small-fonts">डेटा लोड हो रहा है...</p>
               </div>
-            ) : billingItems.length === 0 ? (
+            ) : beneficiaries.length === 0 ? (
               <Alert variant="info" className="text-center">
-                कोई बिलिंग आइटम डेटा उपलब्ध नहीं है।
+                कोई लाभार्थी डेटा उपलब्ध नहीं है।
               </Alert>
             ) : (
               <>
@@ -1339,41 +1391,49 @@ const Registration = () => {
                   <thead className="table-regi">
                     <tr>
                       <th>क्र.सं.</th>
+                      {selectedColumns.includes('farmer_name') && <th>{translations.farmerName}</th>}
+                      {selectedColumns.includes('father_name') && <th>{translations.fatherName}</th>}
+                      {selectedColumns.includes('address') && <th>{translations.address}</th>}
                       {selectedColumns.includes('center_name') && <th>{translations.centerName}</th>}
-                      {selectedColumns.includes('component') && <th>{translations.component}</th>}
-                      {selectedColumns.includes('investment_name') && <th>{translations.investmentName}</th>}
-                      {selectedColumns.includes('sub_investment_name') && <th>{translations.subInvestmentName}</th>}
+                      {selectedColumns.includes('supplied_item_name') && <th>{translations.suppliedItemName}</th>}
                       {selectedColumns.includes('unit') && <th>{translations.unit}</th>}
-                      {selectedColumns.includes('allocated_quantity') && <th>{translations.allocatedQuantity}</th>}
+                      {selectedColumns.includes('quantity') && <th>{translations.quantity}</th>}
                       {selectedColumns.includes('rate') && <th>{translations.rate}</th>}
-                      {selectedColumns.includes('source_of_receipt') && <th>{translations.sourceOfReceipt}</th>}
+                      {selectedColumns.includes('amount') && <th>{translations.amount}</th>}
+                      {selectedColumns.includes('aadhaar_number') && <th>{translations.aadhaarNumber}</th>}
+                      {selectedColumns.includes('bank_account_number') && <th>{translations.bankAccountNumber}</th>}
+                      {selectedColumns.includes('ifsc_code') && <th>{translations.ifscCode}</th>}
+                      {selectedColumns.includes('mobile_number') && <th>{translations.mobileNumber}</th>}
+                      {selectedColumns.includes('category') && <th>{translations.category}</th>}
                       {selectedColumns.includes('scheme_name') && <th>{translations.schemeName}</th>}
-                      {selectedColumns.includes('vikas_khand_name') && <th>{translations.vikasKhandName}</th>}
-                      {selectedColumns.includes('vidhan_sabha_name') && <th>{translations.vidhanSabhaName}</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {billingItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
+                    {beneficiaries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
                       <tr key={item.id || index}>
                         <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                        {selectedColumns.includes('farmer_name') && <td>{item.farmer_name}</td>}
+                        {selectedColumns.includes('father_name') && <td>{item.father_name}</td>}
+                        {selectedColumns.includes('address') && <td>{item.address}</td>}
                         {selectedColumns.includes('center_name') && <td>{item.center_name}</td>}
-                        {selectedColumns.includes('component') && <td>{item.component}</td>}
-                        {selectedColumns.includes('investment_name') && <td>{item.investment_name}</td>}
-                        {selectedColumns.includes('sub_investment_name') && <td>{item.sub_investment_name}</td>}
+                        {selectedColumns.includes('supplied_item_name') && <td>{item.supplied_item_name}</td>}
                         {selectedColumns.includes('unit') && <td>{item.unit}</td>}
-                        {selectedColumns.includes('allocated_quantity') && <td>{item.allocated_quantity}</td>}
+                        {selectedColumns.includes('quantity') && <td>{item.quantity}</td>}
                         {selectedColumns.includes('rate') && <td>{item.rate}</td>}
-                        {selectedColumns.includes('source_of_receipt') && <td>{item.source_of_receipt}</td>}
+                        {selectedColumns.includes('amount') && <td>{item.amount}</td>}
+                        {selectedColumns.includes('aadhaar_number') && <td>{item.aadhaar_number}</td>}
+                        {selectedColumns.includes('bank_account_number') && <td>{item.bank_account_number}</td>}
+                        {selectedColumns.includes('ifsc_code') && <td>{item.ifsc_code}</td>}
+                        {selectedColumns.includes('mobile_number') && <td>{item.mobile_number}</td>}
+                        {selectedColumns.includes('category') && <td>{item.category}</td>}
                         {selectedColumns.includes('scheme_name') && <td>{item.scheme_name}</td>}
-                        {selectedColumns.includes('vikas_khand_name') && <td>{item.vikas_khand_name}</td>}
-                        {selectedColumns.includes('vidhan_sabha_name') && <td>{item.vidhan_sabha_name}</td>}
                       </tr>
                     ))}
                   </tbody>
                 </Table>
 
                 {/* Pagination controls */}
-                {billingItems.length > itemsPerPage && (
+                {beneficiaries.length > itemsPerPage && (
                   <div className="mt-3">
                     <div className="small-fonts mb-3 text-center">
                       {translations.page} {currentPage} {translations.of} {totalPages}
@@ -1400,4 +1460,4 @@ const Registration = () => {
   );
 };
 
-export default Registration;
+export default KrishiRegistration;

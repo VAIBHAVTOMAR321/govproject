@@ -21,6 +21,7 @@ import Footer from "./componets/footer/Footer";
 import Dashboard from "./componets/dash_board/Dashboard";
 import Graph from "./componets/dash_board/Graph";
 import Registration from "./componets/dash_board/Registration";
+import KrishiRegistration from "./componets/dash_board/KrishiRegistration";
 import MainDashboard from "./componets/dash_board/MainDashboard";
 import Billing from "./componets/dash_board/Billing";
 import AllBills from "./componets/dash_board/AllBills";
@@ -32,7 +33,7 @@ import ForgotPassword from "./componets/all_login/ForgotPassword";
 function App() {
   const location = useLocation();
 
-  const hiddenPaths = new Set(["/Dashboard", "/Graph", "/Registration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent"]);
+  const hiddenPaths = new Set(["/Dashboard", "/Graph", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent"]);
 
   const hiddenFooter1 = new Set([""]);
 
@@ -64,6 +65,11 @@ function App() {
         <Route path="/Registration" element={
           <ProtectedRoute>
             <Registration />
+          </ProtectedRoute>
+        } />
+        <Route path="/KrishiRegistration" element={
+          <ProtectedRoute>
+            <KrishiRegistration />
           </ProtectedRoute>
         } />
         <Route path="/MainDashboard" element={
