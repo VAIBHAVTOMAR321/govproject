@@ -879,7 +879,8 @@ const KrishiRegistration = () => {
   };
 
   return (
-     <div className="dashboard-container">
+     <div className="">
+          <Container fluid>
       <Row>
         <Col lg={12} md={12} sm={12}>
           <DashBoardHeader />
@@ -891,14 +892,14 @@ const KrishiRegistration = () => {
           <LeftNav  />
         </Col>
         
-        <Col lg={10} md={12} sm={10}>
+        <Col lg={10} md={10} sm={12}>
          
-  <Container fluid className="dashboard-body-main" style={{ overflowX: 'hidden' }}>
+  <Container className="dashboard-body-main">
           <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
 
           {/* Bulk Upload Section */}
           <Row className="mb-3">
-            <Col xs={12} md={6}>
+            <Col xs={12} md={6} lg={6}>
               <Form.Group controlId="excelFile">
                 <Form.Label className="small-fonts fw-bold">{translations.bulkUpload}</Form.Label>
                 <Form.Control
@@ -1458,6 +1459,7 @@ const KrishiRegistration = () => {
      
         </Col>
       </Row>
+      </Container>
     </div>
  
   );
