@@ -2,13 +2,18 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
+import UKSasan from "../../assets/images/UkSasan.png"
 import "../../assets/css/topnavbar.css"
 
 function DashBoardHeader() {
   return (
     <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top">
       <Container fluid className=''>
-        <Navbar.Brand href="#home">Logo</Navbar.Brand>
+        <Navbar.Brand href="#home">
+          <div className='dash-img'>
+          <img src={UKSasan} className='img-fluid'></img>
+          </div>
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
