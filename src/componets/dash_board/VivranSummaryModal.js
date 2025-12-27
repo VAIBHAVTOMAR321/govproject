@@ -61,6 +61,8 @@ const ColumnSelection = ({ columns, selectedColumns, setSelectedColumns, title }
 const modalTableColumns = [
   { key: 'sno', label: 'क्र.सं.' },
   { key: 'center_name', label: 'केंद्र का नाम' },
+  { key: 'vidhan_sabha_name', label: 'विधानसभा का नाम' },
+  { key: 'vikas_khand_name', label: 'विकासखंड का नाम' },
   { key: 'component', label: 'घटक' },
   { key: 'investment_name', label: 'निवेश का नाम' },
   { key: 'unit', label: 'इकाई' },
@@ -77,6 +79,8 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
   const [activeFilters, setActiveFilters] = useState({});
   const [collapsedSections, setCollapsedSections] = useState({
     center_name: true,
+    vidhan_sabha_name: true,
+    vikas_khand_name: true,
     investment_name: true,
     component: true,
     source_of_receipt: true,
@@ -131,9 +135,30 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
   const totalRemaining = totalAllocated - totalUpdated;
   const placesCount = filteredItems.length;
 
-  // Get unique values for filters from all items
+  // Get ALL options for each card type - these will show all possible options
+  const allCenters = useMemo(() => {
+    return [...new Set((groupData?.items || []).map(item => item.center_name))].filter(Boolean).sort();
+  }, [groupData]);
+
+  const allVidhanSabha = useMemo(() => {
+    return [...new Set((groupData?.items || []).map(item => item.vidhan_sabha_name))].filter(Boolean).sort();
+  }, [groupData]);
+
+  const allVikasKhand = useMemo(() => {
+    return [...new Set((groupData?.items || []).map(item => item.vikas_khand_name))].filter(Boolean).sort();
+  }, [groupData]);
+
+  // Get unique values from filtered items (for when not the selected type)
   const uniqueCenters = useMemo(() => {
     return [...new Set((groupData?.items || []).map(item => item.center_name))].filter(Boolean).sort();
+  }, [groupData]);
+
+  const uniqueVidhanSabha = useMemo(() => {
+    return [...new Set((groupData?.items || []).map(item => item.vidhan_sabha_name))].filter(Boolean).sort();
+  }, [groupData]);
+
+  const uniqueVikasKhand = useMemo(() => {
+    return [...new Set((groupData?.items || []).map(item => item.vikas_khand_name))].filter(Boolean).sort();
   }, [groupData]);
 
   const uniqueInvestments = useMemo(() => {
@@ -152,12 +177,21 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
     return [...new Set((groupData?.items || []).map(item => item.scheme_name))].filter(Boolean).sort();
   }, [groupData]);
 
-  // Set initial filters based on groupData if from badge click
+  // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
     if (groupData && groupData.group_field) {
       setActiveFilters({
         [groupData.group_field]: [groupData.group_name]
       });
+      
+      // Expand the section for the selected group type
+      if (groupData.group_field === 'center_name') {
+        setCollapsedSections(prev => ({...prev, center_name: false}));
+      } else if (groupData.group_field === 'vidhan_sabha_name') {
+        setCollapsedSections(prev => ({...prev, vidhan_sabha_name: false}));
+      } else if (groupData.group_field === 'vikas_khand_name') {
+        setCollapsedSections(prev => ({...prev, vikas_khand_name: false}));
+      }
     }
   }, [groupData]);
 
@@ -611,6 +645,12 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
             case 'center_name':
               row['केंद्र का नाम'] = item.center_name;
               break;
+            case 'vidhan_sabha_name':
+              row['विधानसभा का नाम'] = item.vidhan_sabha_name;
+              break;
+            case 'vikas_khand_name':
+              row['विकासखंड का नाम'] = item.vikas_khand_name;
+              break;
             case 'component':
               row['घटक'] = item.component;
               break;
@@ -687,6 +727,8 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
         switch (col) {
           case 'sno': return '<th>क्र.सं.</th>';
           case 'center_name': return '<th>केंद्र का नाम</th>';
+          case 'vidhan_sabha_name': return '<th>विधानसभा का नाम</th>';
+          case 'vikas_khand_name': return '<th>विकासखंड का नाम</th>';
           case 'component': return '<th>घटक</th>';
           case 'investment_name': return '<th>निवेश का नाम</th>';
           case 'unit': return '<th>इकाई</th>';
@@ -706,6 +748,8 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
           switch (col) {
             case 'sno': return `<td>${index + 1}</td>`;
             case 'center_name': return `<td>${item.center_name}</td>`;
+            case 'vidhan_sabha_name': return `<td>${item.vidhan_sabha_name}</td>`;
+            case 'vikas_khand_name': return `<td>${item.vikas_khand_name}</td>`;
             case 'component': return `<td>${item.component}</td>`;
             case 'investment_name': return `<td>${item.investment_name}</td>`;
             case 'unit': return `<td>${item.unit}</td>`;
@@ -725,7 +769,7 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
       // Totals row
       const totalsCells = selectedColumns.map(col => {
         if (col === 'sno') return '<td><strong>कुल</strong></td>';
-        else if (col === 'center_name' || col === 'component' || col === 'investment_name' ||
+        else if (col === 'center_name' || col === 'vidhan_sabha_name' || col === 'vikas_khand_name' || col === 'component' || col === 'investment_name' ||
                  col === 'unit' || col === 'source_of_receipt' || col === 'scheme_name') return '<td></td>';
         else if (col === 'rate') return '<td>-</td>';
         else if (col === 'allocated_quantity') return `<td><strong>${filteredItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2)}</strong></td>`;
@@ -840,19 +884,77 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                     style={{ cursor: 'pointer' }}
                     className="d-flex justify-content-between align-items-center"
                   >
-                    <span>केंद्र का नाम ({uniqueCenters.length})</span>
+                    <span>केंद्र का नाम ({groupData?.group_field === 'center_name' ? allCenters.length : uniqueCenters.length})</span>
                     {collapsedSections.center_name ? <FaChevronDown /> : <FaChevronUp />}
                   </Card.Header>
                   <Collapse in={!collapsedSections.center_name}>
                     <Card.Body>
                       <Row className="g-1 align-items-center">
-                        {uniqueCenters.map((value) => (
+                        {(groupData?.group_field === 'center_name' ? allCenters : uniqueCenters).map((value) => (
                           <Col key={value} xs="auto" className="mb-2">
                             <Button
                               variant={(activeFilters.center_name || []).includes(value) ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
                               onClick={() => handleFilterChange('center_name', value)}
+                            >
+                              {value}
+                            </Button>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse('vidhan_sabha_name')}
+                    style={{ cursor: 'pointer' }}
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <span>विधानसभा का नाम ({groupData?.group_field === 'vidhan_sabha_name' ? allVidhanSabha.length : uniqueVidhanSabha.length})</span>
+                    {collapsedSections.vidhan_sabha_name ? <FaChevronDown /> : <FaChevronUp />}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.vidhan_sabha_name}>
+                    <Card.Body>
+                      <Row className="g-1 align-items-center">
+                        {(groupData?.group_field === 'vidhan_sabha_name' ? allVidhanSabha : uniqueVidhanSabha).map((value) => (
+                          <Col key={value} xs="auto" className="mb-2">
+                            <Button
+                              variant={(activeFilters.vidhan_sabha_name || []).includes(value) ? "primary" : "outline-secondary"}
+                              size="sm"
+                              className="filter-button"
+                              onClick={() => handleFilterChange('vidhan_sabha_name', value)}
+                            >
+                              {value}
+                            </Button>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse('vikas_khand_name')}
+                    style={{ cursor: 'pointer' }}
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <span>विकासखंड का नाम ({groupData?.group_field === 'vikas_khand_name' ? allVikasKhand.length : uniqueVikasKhand.length})</span>
+                    {collapsedSections.vikas_khand_name ? <FaChevronDown /> : <FaChevronUp />}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.vikas_khand_name}>
+                    <Card.Body>
+                      <Row className="g-1 align-items-center">
+                        {(groupData?.group_field === 'vikas_khand_name' ? allVikasKhand : uniqueVikasKhand).map((value) => (
+                          <Col key={value} xs="auto" className="mb-2">
+                            <Button
+                              variant={(activeFilters.vikas_khand_name || []).includes(value) ? "primary" : "outline-secondary"}
+                              size="sm"
+                              className="filter-button"
+                              onClick={() => handleFilterChange('vikas_khand_name', value)}
                             >
                               {value}
                             </Button>
@@ -1022,6 +1124,8 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                   <tr>
                     {selectedColumns.includes('sno') && <th>क्र.सं.</th>}
                     {selectedColumns.includes('center_name') && <th>केंद्र का नाम</th>}
+                    {selectedColumns.includes('vidhan_sabha_name') && <th>विधानसभा का नाम</th>}
+                    {selectedColumns.includes('vikas_khand_name') && <th>विकासखंड का नाम</th>}
                     {selectedColumns.includes('component') && <th>घटक</th>}
                     {selectedColumns.includes('investment_name') && <th>निवेश का नाम</th>}
                     {selectedColumns.includes('unit') && <th>इकाई</th>}
@@ -1042,6 +1146,8 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                       <tr key={index}>
                         {selectedColumns.includes('sno') && <td data-label="क्र.सं.">{index + 1}</td>}
                         {selectedColumns.includes('center_name') && <td data-label="केंद्र का नाम">{item.center_name}</td>}
+                        {selectedColumns.includes('vidhan_sabha_name') && <td data-label="विधानसभा का नाम">{item.vidhan_sabha_name}</td>}
+                        {selectedColumns.includes('vikas_khand_name') && <td data-label="विकासखंड का नाम">{item.vikas_khand_name}</td>}
                         {selectedColumns.includes('component') && <td data-label="घटक">{item.component}</td>}
                         {selectedColumns.includes('investment_name') && <td data-label="निवेश का नाम">{item.investment_name}</td>}
                         {selectedColumns.includes('unit') && <td data-label="इकाई">{item.unit}</td>}
@@ -1060,6 +1166,8 @@ const VivranSummaryModal = ({ show, onHide, groupData, selectedColumns, setSelec
                   <tr className="font-weight-bold">
                     {selectedColumns.includes('sno') && <td>कुल</td>}
                     {selectedColumns.includes('center_name') && <td></td>}
+                    {selectedColumns.includes('vidhan_sabha_name') && <td></td>}
+                    {selectedColumns.includes('vikas_khand_name') && <td></td>}
                     {selectedColumns.includes('component') && <td></td>}
                     {selectedColumns.includes('investment_name') && <td></td>}
                     {selectedColumns.includes('unit') && <td></td>}
