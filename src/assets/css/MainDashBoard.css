@@ -282,3 +282,63 @@
 .gov-card-body:hover .gov-icon i {
   animation: pulse 1s infinite;
 }
+
+/* Additional styles for new components */
+.clickable-card {
+  cursor: pointer;
+}
+
+.clickable-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.badge-large {
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  border-radius: 20px;
+}
+
+.graph-placeholder {
+  text-align: center;
+}
+
+.graph-skeleton {
+  margin-top: 20px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Responsive adjustments for new layout */
+@media (max-width: 768px) {
+  .badges-container {
+    justify-content: center;
+  }
+  
+  .badge-large {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .gov-card-body {
+    margin-bottom: 15px;
+  }
+  
+  .badge-large {
+    font-size: 0.75rem;
+    padding: 5px 8px;
+  }
+}
