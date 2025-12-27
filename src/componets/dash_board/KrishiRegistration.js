@@ -206,17 +206,7 @@ const KrishiRegistration = () => {
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
 
   // Check device width
-  useEffect(() => {
-    const checkDevice = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
-      setSidebarOpen(width >= 1024);
-    };
-    checkDevice();
-    window.addEventListener("resize", checkDevice);
-    return () => window.removeEventListener("resize", checkDevice);
-  }, []);
+
 
   // Fetch beneficiaries data
   const fetchBeneficiaries = async () => {
@@ -889,11 +879,21 @@ const KrishiRegistration = () => {
   };
 
   return (
-    <div className="dashboard-container">
-      <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
-      <div className="main-content">
-        <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <Container fluid className="dashboard-body" style={{ overflowX: 'hidden' }}>
+     <div className="dashboard-container">
+      <Row>
+        <Col lg={12} md={12} sm={12}>
+          <DashBoardHeader />
+        </Col>
+      </Row>
+      
+      <Row className="left-top">
+        <Col lg={2} md={2} sm={12}>
+          <LeftNav  />
+        </Col>
+        
+        <Col lg={10} md={12} sm={10}>
+         
+  <Container fluid className="dashboard-body-main" style={{ overflowX: 'hidden' }}>
           <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
 
           {/* Bulk Upload Section */}
@@ -1455,8 +1455,11 @@ const KrishiRegistration = () => {
             )}
           </div>
         </Container>
-      </div>
+     
+        </Col>
+      </Row>
     </div>
+ 
   );
 };
 
