@@ -107,6 +107,173 @@ const modalTableColumns = [
   { key: "scheme_name", label: "योजना" },
 ];
 
+// Hierarchical Filter Component
+const HierarchicalFilter = ({
+  title,
+  items,
+  activeFilters,
+  onFilterChange,
+  hierarchyData,
+  hierarchyType,
+  collapsed,
+  onToggleCollapse,
+}) => {
+  const [expandedItems, setExpandedItems] = useState(new Set());
+
+  const toggleItemExpansion = (item) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(item)) {
+        newSet.delete(item);
+      } else {
+        newSet.add(item);
+      }
+      return newSet;
+    });
+  };
+
+  const getHierarchyDisplay = (item, type) => {
+    switch (type) {
+      case 'center_name':
+        const vidhanSabhas = hierarchyData.centerToVidhanSabha ? hierarchyData.centerToVidhanSabha[item] || [] : [];
+        const vikasKhands = hierarchyData.centerToVikasKhand[item] || [];
+        return {
+          primary: item,
+          secondary: vidhanSabhas.length > 0 ? vidhanSabhas : vikasKhands,
+          secondaryLabel: vidhanSabhas.length > 0 ? 'विधानसभा' : 'विकासखंड'
+        };
+      case 'vidhan_sabha_name':
+        return {
+          primary: item,
+          secondary: hierarchyData.vidhanSabhaToVikasKhand[item] || [],
+          secondaryLabel: 'विकासखंड'
+        };
+      case 'vikas_khand_name':
+        const centers = hierarchyData.vikasKhandToCenters[item] || [];
+        const vidhanSabhaForVikas = hierarchyData.vikasKhandToVidhanSabha ? hierarchyData.vikasKhandToVidhanSabha[item] || [] : [];
+        return {
+          primary: item,
+          secondary: centers.length > 0 ? centers : vidhanSabhaForVikas,
+          secondaryLabel: centers.length > 0 ? 'केंद्र' : 'विधानसभा'
+        };
+      default:
+        return { primary: item, secondary: [], secondaryLabel: '' };
+    }
+  };
+
+  // For kendra (center_name), use the original flat button layout
+  if (hierarchyType === 'center_name') {
+    return (
+      <Card className="mb-2">
+        <Card.Header
+          onClick={onToggleCollapse}
+          style={{ cursor: "pointer" }}
+          className="d-flex justify-content-between align-items-center"
+        >
+          <span>
+            {title} ({items.length})
+          </span>
+          {collapsed ? <FaChevronDown /> : <FaChevronUp />}
+        </Card.Header>
+        <Collapse in={!collapsed}>
+          <Card.Body>
+            <Row className="g-1 align-items-center">
+              {items.map((value) => (
+                <Col key={value} xs="auto" className="mb-2">
+                  <Button
+                    variant={
+                      (activeFilters.center_name || []).includes(value)
+                        ? "primary"
+                        : "outline-secondary"
+                    }
+                    size="sm"
+                    className="filter-button"
+                    onClick={() => onFilterChange("center_name", value)}
+                  >
+                    {value}
+                  </Button>
+                </Col>
+              ))}
+            </Row>
+          </Card.Body>
+        </Collapse>
+      </Card>
+    );
+  }
+
+  // For other types, use hierarchical display
+  return (
+    <Card className="mb-2">
+      <Card.Header
+        onClick={onToggleCollapse}
+        style={{ cursor: "pointer" }}
+        className="d-flex justify-content-between align-items-center"
+      >
+        <span>{title} ({items.length})</span>
+        {collapsed ? <FaChevronDown /> : <FaChevronUp />}
+      </Card.Header>
+      <Collapse in={!collapsed}>
+        <Card.Body>
+          <Row className="g-2">
+            {items.map((item) => {
+              const hierarchy = getHierarchyDisplay(item, hierarchyType);
+              const isSelected = (activeFilters[hierarchyType] || []).includes(item);
+              const isExpanded = expandedItems.has(item);
+
+              return (
+                <Col key={item} xs={12} className="mb-2">
+                  <div className="border rounded p-2">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <Button
+                        variant={isSelected ? "primary" : "outline-secondary"}
+                        size="sm"
+                        className="filter-button me-2"
+                        onClick={() => onFilterChange(hierarchyType, item)}
+                      >
+                        {hierarchy.primary}
+                      </Button>
+                      {hierarchy.secondary.length > 0 && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => toggleItemExpansion(item)}
+                          className="p-0 text-decoration-none"
+                        >
+                          {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                          <small className="ms-1">
+                            {hierarchy.secondaryLabel} ({hierarchy.secondary.length})
+                          </small>
+                        </Button>
+                      )}
+                    </div>
+                    {isExpanded && hierarchy.secondary.length > 0 && (
+                      <div className="ms-3 mt-2">
+                        <small className="text-muted fw-bold">{hierarchy.secondaryLabel}:</small>
+                        <div className="d-flex flex-wrap gap-1 mt-1">
+                          {hierarchy.secondary.map((subItem) => (
+                            <Badge
+                              key={subItem}
+                              bg="light"
+                              text="dark"
+                              className="small"
+                            >
+                              {subItem}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Col>
+              );
+            })}
+          </Row>
+        </Card.Body>
+      </Collapse>
+    </Card>
+  );
+};
+
 const VivranSummaryModal = ({
   show,
   onHide,
@@ -224,61 +391,146 @@ const VivranSummaryModal = ({
   // Get unique values from filtered items (for when not the selected type)
   const uniqueCenters = useMemo(() => {
     return [
-      ...new Set((groupData?.items || []).map((item) => item.center_name)),
+      ...new Set(filteredItems.map((item) => item.center_name)),
     ]
       .filter(Boolean)
       .sort();
-  }, [groupData]);
+  }, [filteredItems]);
 
   const uniqueVidhanSabha = useMemo(() => {
     return [
       ...new Set(
-        (groupData?.items || []).map((item) => item.vidhan_sabha_name)
+        filteredItems.map((item) => item.vidhan_sabha_name)
       ),
     ]
       .filter(Boolean)
       .sort();
-  }, [groupData]);
+  }, [filteredItems]);
 
   const uniqueVikasKhand = useMemo(() => {
     return [
-      ...new Set((groupData?.items || []).map((item) => item.vikas_khand_name)),
+      ...new Set(filteredItems.map((item) => item.vikas_khand_name)),
     ]
       .filter(Boolean)
       .sort();
+  }, [filteredItems]);
+
+  const centerToVidhanSabha = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.center_name && item.vidhan_sabha_name) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.vidhan_sabha_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const centerToVikasKhand = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.center_name && item.vikas_khand_name) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.vikas_khand_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const vidhanSabhaToVikasKhand = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.vidhan_sabha_name && item.vikas_khand_name) {
+        if (!mapping[item.vidhan_sabha_name]) {
+          mapping[item.vidhan_sabha_name] = new Set();
+        }
+        mapping[item.vidhan_sabha_name].add(item.vikas_khand_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const vikasKhandToCenters = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.vikas_khand_name && item.center_name) {
+        if (!mapping[item.vikas_khand_name]) {
+          mapping[item.vikas_khand_name] = new Set();
+        }
+        mapping[item.vikas_khand_name].add(item.center_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const vikasKhandToVidhanSabha = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.vikas_khand_name && item.vidhan_sabha_name) {
+        if (!mapping[item.vikas_khand_name]) {
+          mapping[item.vikas_khand_name] = new Set();
+        }
+        mapping[item.vikas_khand_name].add(item.vidhan_sabha_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
   }, [groupData]);
 
   const uniqueInvestments = useMemo(() => {
     return [
-      ...new Set((groupData?.items || []).map((item) => item.investment_name)),
+      ...new Set(filteredItems.map((item) => item.investment_name)),
     ]
       .filter(Boolean)
       .sort();
-  }, [groupData]);
+  }, [filteredItems]);
 
   const uniqueComponents = useMemo(() => {
-    return [...new Set((groupData?.items || []).map((item) => item.component))]
+    return [...new Set(filteredItems.map((item) => item.component))]
       .filter(Boolean)
       .sort();
-  }, [groupData]);
+  }, [filteredItems]);
 
   const uniqueSources = useMemo(() => {
     return [
       ...new Set(
-        (groupData?.items || []).map((item) => item.source_of_receipt)
+        filteredItems.map((item) => item.source_of_receipt)
       ),
     ]
       .filter(Boolean)
       .sort();
-  }, [groupData]);
+  }, [filteredItems]);
 
   const uniqueSchemes = useMemo(() => {
     return [
-      ...new Set((groupData?.items || []).map((item) => item.scheme_name)),
+      ...new Set(filteredItems.map((item) => item.scheme_name)),
     ]
       .filter(Boolean)
       .sort();
-  }, [groupData]);
+  }, [filteredItems]);
 
   // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
@@ -334,6 +586,17 @@ const VivranSummaryModal = ({
       { name: "शेष", value: totalRemaining, color: "#27AE60" },
     ];
   }, [totalAllocated, totalUpdated, totalRemaining]);
+
+  // Grouped data for multiple tables
+  const groupedData = useMemo(() => {
+    if (!groupData || !groupData.group_field || !activeFilters[groupData.group_field]) return {};
+    const selectedValues = activeFilters[groupData.group_field];
+    const groups = {};
+    selectedValues.forEach(value => {
+      groups[value] = filteredItems.filter(item => item[groupData.group_field] === value);
+    });
+    return groups;
+  }, [filteredItems, groupData, activeFilters]);
 
   // Handle pie chart click
   const handlePieClick = (item) => {
@@ -913,9 +1176,9 @@ const VivranSummaryModal = ({
     );
   };
 
-  const downloadExcel = () => {
+  const downloadExcel = (data, key) => {
     try {
-      const excelData = filteredItems.map((item, index) => {
+      const excelData = data.map((item, index) => {
         const row = {};
         selectedColumns.forEach((col) => {
           switch (col) {
@@ -999,23 +1262,35 @@ const VivranSummaryModal = ({
         } else if (col === "rate") {
           totalsRow["दर"] = "-";
         } else if (col === "allocated_quantity") {
-          totalsRow["आवंटित मात्रा"] = filteredItems
+          totalsRow["आवंटित मात्रा"] = data
             .reduce(
               (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
               0
             )
             .toFixed(2);
         } else if (col === "allocated_amount") {
-          totalsRow["आवंटित राशि"] = formatCurrency(totalAllocated);
+          totalsRow["आवंटित राशि"] = formatCurrency(
+            data.reduce(
+              (sum, item) =>
+                sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+              0
+            )
+          );
         } else if (col === "updated_quantity") {
-          totalsRow["अपडेट की गई मात्रा"] = filteredItems
+          totalsRow["अपडेट की गई मात्रा"] = data
             .reduce(
               (sum, item) => sum + parseFloat(item.updated_quantity || 0),
               0
             )
             .toFixed(2);
         } else if (col === "updated_amount") {
-          totalsRow["अपडेट की गई राशि"] = formatCurrency(totalUpdated);
+          totalsRow["अपडेट की गई राशि"] = formatCurrency(
+            data.reduce(
+              (sum, item) =>
+                sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+              0
+            )
+          );
         }
       });
       excelData.push(totalsRow);
@@ -1023,13 +1298,13 @@ const VivranSummaryModal = ({
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
       XLSX.utils.book_append_sheet(wb, ws, "विवरण");
-      XLSX.writeFile(wb, `${groupData.group_name}_विवरण.xlsx`);
+      XLSX.writeFile(wb, `${key}_विवरण.xlsx`);
     } catch (e) {
       // Error generating Excel file
     }
   };
 
-  const downloadPdf = () => {
+  const downloadPdf = (data, key) => {
     try {
       const headers = selectedColumns
         .map((col) => {
@@ -1068,7 +1343,7 @@ const VivranSummaryModal = ({
         })
         .join("");
 
-      const rows = filteredItems
+      const rows = data
         .map((item, index) => {
           const cells = selectedColumns
             .map((col) => {
@@ -1131,7 +1406,7 @@ const VivranSummaryModal = ({
             return "<td></td>";
           else if (col === "rate") return "<td>-</td>";
           else if (col === "allocated_quantity")
-            return `<td><strong>${filteredItems
+            return `<td><strong>${data
               .reduce(
                 (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
                 0
@@ -1139,17 +1414,27 @@ const VivranSummaryModal = ({
               .toFixed(2)}</strong></td>`;
           else if (col === "allocated_amount")
             return `<td><strong>${formatCurrency(
-              totalAllocated
+              data.reduce(
+                (sum, item) =>
+                  sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                0
+              )
             )}</strong></td>`;
           else if (col === "updated_quantity")
-            return `<td><strong>${filteredItems
+            return `<td><strong>${data
               .reduce(
                 (sum, item) => sum + parseFloat(item.updated_quantity || 0),
                 0
               )
               .toFixed(2)}</strong></td>`;
           else if (col === "updated_amount")
-            return `<td><strong>${formatCurrency(totalUpdated)}</strong></td>`;
+            return `<td><strong>${formatCurrency(
+              data.reduce(
+                (sum, item) =>
+                  sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                0
+              )
+            )}</strong></td>`;
           return "<td></td>";
         })
         .join("");
@@ -1158,7 +1443,7 @@ const VivranSummaryModal = ({
       const tableHtml = `
         <html>
           <head>
-            <title>${groupData.group_name} विवरण</title>
+            <title>${key} विवरण</title>
             <meta charset="UTF-8">
             <style>
               table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
@@ -1167,7 +1452,7 @@ const VivranSummaryModal = ({
             </style>
           </head>
           <body>
-            <h2>${groupData.group_name} विवरण</h2>
+            <h2>${key} विवरण</h2>
             <table>
               <tr>${headers}</tr>
               ${rows}
@@ -1266,155 +1551,62 @@ const VivranSummaryModal = ({
                     </Card.Body>
                   </Collapse>
                 </Card>
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("center_name")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
-                  >
-                    <span>
-                      केंद्र का नाम (
-                      {groupData?.group_field === "center_name"
-                        ? (groupData.allOptions || allCenters).length
-                        : uniqueCenters.length}
-                      )
-                    </span>
-                    {collapsedSections.center_name ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.center_name}>
-                    <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {(groupData?.group_field === "center_name"
-                          ? groupData.allOptions || allCenters
-                          : uniqueCenters
-                        ).map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.center_name || []).includes(
-                                  value
-                                )
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("center_name", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Card.Body>
-                  </Collapse>
-                </Card>
+                <HierarchicalFilter
+                  title="केंद्र का नाम"
+                  items={groupData?.group_field === "center_name"
+                    ? groupData.allOptions || allCenters
+                    : uniqueCenters}
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  hierarchyData={{
+                    centerToVidhanSabha,
+                    centerToVikasKhand,
+                    vidhanSabhaToVikasKhand,
+                    vikasKhandToCenters,
+                    vikasKhandToVidhanSabha
+                  }}
+                  hierarchyType="center_name"
+                  collapsed={collapsedSections.center_name}
+                  onToggleCollapse={() => toggleCollapse("center_name")}
+                />
 
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("vidhan_sabha_name")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
-                  >
-                    <span>
-                      विधानसभा का नाम (
-                      {groupData?.group_field === "vidhan_sabha_name"
-                        ? (groupData.allOptions || allVidhanSabha).length
-                        : uniqueVidhanSabha.length}
-                      )
-                    </span>
-                    {collapsedSections.vidhan_sabha_name ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.vidhan_sabha_name}>
-                    <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {(groupData?.group_field === "vidhan_sabha_name"
-                          ? groupData.allOptions || allVidhanSabha
-                          : uniqueVidhanSabha
-                        ).map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (
-                                  activeFilters.vidhan_sabha_name || []
-                                ).includes(value)
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("vidhan_sabha_name", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Card.Body>
-                  </Collapse>
-                </Card>
+                <HierarchicalFilter
+                  title="विधानसभा का नाम"
+                  items={groupData?.group_field === "vidhan_sabha_name"
+                    ? groupData.allOptions || allVidhanSabha
+                    : uniqueVidhanSabha}
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  hierarchyData={{
+                    centerToVidhanSabha,
+                    centerToVikasKhand,
+                    vidhanSabhaToVikasKhand,
+                    vikasKhandToCenters,
+                    vikasKhandToVidhanSabha
+                  }}
+                  hierarchyType="vidhan_sabha_name"
+                  collapsed={collapsedSections.vidhan_sabha_name}
+                  onToggleCollapse={() => toggleCollapse("vidhan_sabha_name")}
+                />
 
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("vikas_khand_name")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
-                  >
-                    <span>
-                      विकासखंड का नाम (
-                      {groupData?.group_field === "vikas_khand_name"
-                        ? (groupData.allOptions || allVikasKhand).length
-                        : uniqueVikasKhand.length}
-                      )
-                    </span>
-                    {collapsedSections.vikas_khand_name ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.vikas_khand_name}>
-                    <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {(groupData?.group_field === "vikas_khand_name"
-                          ? groupData.allOptions || allVikasKhand
-                          : uniqueVikasKhand
-                        ).map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.vikas_khand_name || []).includes(
-                                  value
-                                )
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("vikas_khand_name", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Card.Body>
-                  </Collapse>
-                </Card>
+                <HierarchicalFilter
+                  title="विकासखंड का नाम"
+                  items={groupData?.group_field === "vikas_khand_name"
+                    ? groupData.allOptions || allVikasKhand
+                    : uniqueVikasKhand}
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  hierarchyData={{
+                    centerToVidhanSabha,
+                    centerToVikasKhand,
+                    vidhanSabhaToVikasKhand,
+                    vikasKhandToCenters,
+                    vikasKhandToVidhanSabha
+                  }}
+                  hierarchyType="vikas_khand_name"
+                  collapsed={collapsedSections.vikas_khand_name}
+                  onToggleCollapse={() => toggleCollapse("vikas_khand_name")}
+                />
 
                 <Card className="mb-2">
                   <Card.Header
@@ -1603,19 +1795,214 @@ const VivranSummaryModal = ({
         </Card>
 
         {/* Table Section */}
+        {Object.entries(groupedData).map(([key, items]) => (
+          <Card className="mb-3" key={key}>
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <h6 className="mb-0">विवरण तालिका - {key}</h6>
+              <div>
+                <Button
+                  variant="outline-success"
+                  size="sm"
+                  onClick={() => downloadExcel(items, key)}
+                  className="me-2"
+                >
+                  <FaFileExcel /> Excel
+                </Button>
+                <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(items, key)}>
+                  <FaFilePdf /> PDF
+                </Button>
+              </div>
+            </Card.Header>
+            <Card.Body className="p-0">
+              {/* Column Selection Section */}
+              <ColumnSelection
+                columns={modalTableColumns}
+                selectedColumns={selectedColumns}
+                setSelectedColumns={setSelectedColumns}
+                title="कॉलम चुनें"
+              />
+              <div
+                className="table-responsive"
+                style={{ maxHeight: "200px", overflowY: "auto" }}
+              >
+                <table className="responsive-table small-fonts">
+                  <thead className="table-light">
+                    <tr>
+                      {selectedColumns.includes("sno") && <th>क्र.सं.</th>}
+                      {selectedColumns.includes("center_name") && (
+                        <th>केंद्र का नाम</th>
+                      )}
+                      {selectedColumns.includes("vidhan_sabha_name") && (
+                        <th>विधानसभा का नाम</th>
+                      )}
+                      {selectedColumns.includes("vikas_khand_name") && (
+                        <th>विकासखंड का नाम</th>
+                      )}
+                      {selectedColumns.includes("component") && <th>घटक</th>}
+                      {selectedColumns.includes("investment_name") && (
+                        <th>निवेश का नाम</th>
+                      )}
+                      {selectedColumns.includes("unit") && <th>इकाई</th>}
+                      {selectedColumns.includes("allocated_quantity") && (
+                        <th>आवंटित मात्रा</th>
+                      )}
+                      {selectedColumns.includes("rate") && <th>दर</th>}
+                      {selectedColumns.includes("allocated_amount") && (
+                        <th>आवंटित राशि</th>
+                      )}
+                      {selectedColumns.includes("updated_quantity") && (
+                        <th>अपडेट की गई मात्रा</th>
+                      )}
+                      {selectedColumns.includes("updated_amount") && (
+                        <th>अपडेट की गई राशि</th>
+                      )}
+                      {selectedColumns.includes("source_of_receipt") && (
+                        <th>स्रोत</th>
+                      )}
+                      {selectedColumns.includes("scheme_name") && <th>योजना</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => {
+                      const allocatedAmount = (
+                        parseFloat(item.allocated_quantity) *
+                        parseFloat(item.rate)
+                      ).toFixed(2);
+                      const updatedAmount = (
+                        parseFloat(item.updated_quantity) * parseFloat(item.rate)
+                      ).toFixed(2);
+                      return (
+                        <tr key={index}>
+                          {selectedColumns.includes("sno") && (
+                            <td data-label="क्र.सं.">{index + 1}</td>
+                          )}
+                          {selectedColumns.includes("center_name") && (
+                            <td data-label="केंद्र का नाम">{item.center_name}</td>
+                          )}
+                          {selectedColumns.includes("vidhan_sabha_name") && (
+                            <td data-label="विधानसभा का नाम">
+                              {item.vidhan_sabha_name}
+                            </td>
+                          )}
+                          {selectedColumns.includes("vikas_khand_name") && (
+                            <td data-label="विकासखंड का नाम">
+                              {item.vikas_khand_name}
+                            </td>
+                          )}
+                          {selectedColumns.includes("component") && (
+                            <td data-label="घटक">{item.component}</td>
+                          )}
+                          {selectedColumns.includes("investment_name") && (
+                            <td data-label="निवेश का नाम">
+                              {item.investment_name}
+                            </td>
+                          )}
+                          {selectedColumns.includes("unit") && (
+                            <td data-label="इकाई">{item.unit}</td>
+                          )}
+                          {selectedColumns.includes("allocated_quantity") && (
+                            <td data-label="आवंटित मात्रा">
+                              {item.allocated_quantity}
+                            </td>
+                          )}
+                          {selectedColumns.includes("rate") && (
+                            <td data-label="दर">{item.rate}</td>
+                          )}
+                          {selectedColumns.includes("allocated_amount") && (
+                            <td data-label="आवंटित राशि">{allocatedAmount}</td>
+                          )}
+                          {selectedColumns.includes("updated_quantity") && (
+                            <td data-label="अपडेट की गई मात्रा">
+                              {item.updated_quantity}
+                            </td>
+                          )}
+                          {selectedColumns.includes("updated_amount") && (
+                            <td data-label="अपडेट की गई राशि">{updatedAmount}</td>
+                          )}
+                          {selectedColumns.includes("source_of_receipt") && (
+                            <td data-label="स्रोत">{item.source_of_receipt}</td>
+                          )}
+                          {selectedColumns.includes("scheme_name") && (
+                            <td data-label="योजना">{item.scheme_name}</td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-weight-bold">
+                      {selectedColumns.includes("sno") && <td>कुल</td>}
+                      {selectedColumns.includes("center_name") && <td></td>}
+                      {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
+                      {selectedColumns.includes("vikas_khand_name") && <td></td>}
+                      {selectedColumns.includes("component") && <td></td>}
+                      {selectedColumns.includes("investment_name") && <td></td>}
+                      {selectedColumns.includes("unit") && <td></td>}
+                      {selectedColumns.includes("allocated_quantity") && (
+                        <td>
+                          {items
+                            .reduce(
+                              (sum, item) =>
+                                sum + parseFloat(item.allocated_quantity || 0),
+                              0
+                            )
+                            .toFixed(2)}
+                        </td>
+                      )}
+                      {selectedColumns.includes("rate") && <td></td>}
+                      {selectedColumns.includes("allocated_amount") && (
+                        <td>{formatCurrency(
+                          items.reduce(
+                            (sum, item) =>
+                              sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                            0
+                          )
+                        )}</td>
+                      )}
+                      {selectedColumns.includes("updated_quantity") && (
+                        <td>
+                          {items
+                            .reduce(
+                              (sum, item) =>
+                                sum + parseFloat(item.updated_quantity || 0),
+                              0
+                            )
+                            .toFixed(2)}
+                        </td>
+                      )}
+                      {selectedColumns.includes("updated_amount") && (
+                        <td>{formatCurrency(
+                          items.reduce(
+                            (sum, item) =>
+                              sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                            0
+                          )
+                        )}</td>
+                      )}
+                      {selectedColumns.includes("source_of_receipt") && <td></td>}
+                      {selectedColumns.includes("scheme_name") && <td></td>}
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </Card.Body>
+          </Card>
+        ))}
+
+        {/* Combined Table Section */}
         <Card className="mb-3">
           <Card.Header className="d-flex justify-content-between align-items-center">
-            <h6 className="mb-0">विवरण तालिका</h6>
+            <h6 className="mb-0">संपूर्ण विवरण तालिका</h6>
             <div>
               <Button
                 variant="outline-success"
                 size="sm"
-                onClick={downloadExcel}
+                onClick={() => downloadExcel(filteredItems, 'Combined')}
                 className="me-2"
               >
                 <FaFileExcel /> Excel
               </Button>
-              <Button variant="outline-danger" size="sm" onClick={downloadPdf}>
+              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(filteredItems, 'Combined')}>
                 <FaFilePdf /> PDF
               </Button>
             </div>

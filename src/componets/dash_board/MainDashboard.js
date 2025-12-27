@@ -357,7 +357,7 @@ const MainDashboard = () => {
     const groupData = {
       group_name: groupName,
       group_field: groupField,
-      items: filteredItems,
+      items: billingData,  // Pass all billing data to allow filtering across all
       allOptions: allOptions
     };
 
