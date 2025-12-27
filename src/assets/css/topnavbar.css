@@ -9,3 +9,6 @@ a.nav-link{
 .navbar-collapse {
      flex-grow: 0; 
 }
+.dash-img img{
+    max-width: 56px;
+}
