@@ -332,7 +332,8 @@ const HierarchicalFilter = ({
                               variant={isSelected ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
-                              onClick={() => onFilterChange(hierarchyType, vidhanSabha)}
+                              // FIX: Pass the first kendra associated with this vidhanSabha
+                              onClick={() => onFilterChange(hierarchyType, vidhanSabha, kendrasForThisVidhanSabha[0])}
                             >
                               {vidhanSabha}
                             </Button>
@@ -347,13 +348,31 @@ const HierarchicalFilter = ({
           ) : hierarchyType === 'vikas_khand_name' ? (
             // For vikas_khand_name, show vikas_khonds with their kendras
             (() => {
-              // Get selected kendras
+              // Get selected kendras based on center_name OR vidhan_sabha_name filters
               const selectedKendras = Object.entries(hierarchyData.centerToVidhanSabha || {})
                 .filter(([kendra]) => {
                   // If centers are selected, only show kendras that are selected
                   if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                    return activeFilters.center_name.includes(kendra);
+                    if (!activeFilters.center_name.includes(kendra)) {
+                      return false;
+                    }
                   }
+                  
+                  // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
+                  if (activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0) {
+                    const kendraVidhanSabhas = hierarchyData.centerToVidhanSabha[kendra] || [];
+                    return kendraVidhanSabhas.some(vidhanSabha => {
+                      // Check if this vidhanSabha is selected for this kendra or any other kendra
+                      return Object.entries(activeFilters.vidhan_sabha_name).some(([filterKendra, filterValues]) => {
+                        if (filterKendra === kendra) {
+                          return filterValues.includes(vidhanSabha);
+                        }
+                        // Also check if this vidhanSabha is selected for any kendra that belongs to it
+                        return filterValues.includes(vidhanSabha);
+                      });
+                    });
+                  }
+                  
                   return true;
                 })
                 .map(([kendra]) => kendra);
@@ -409,7 +428,8 @@ const HierarchicalFilter = ({
                               variant={isSelected ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
-                              onClick={() => onFilterChange(hierarchyType, vikasKhand)}
+                              // FIX: Pass the first kendra associated with this vikasKhand
+                              onClick={() => onFilterChange(hierarchyType, vikasKhand, kendrasForThisVikasKhand[0])}
                             >
                               {vikasKhand}
                             </Button>
@@ -579,6 +599,24 @@ const VivranSummaryModal = ({
       }
     });
     
+    // Additional center_name filtering check for proper hierarchy display
+    // This ensures that when vidhan_sabha filters are active, the center_name filter works correctly
+    if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+      // Double-check that all selected centers belong to the filtered data
+      const centerSet = new Set(filtered.map(item => item.center_name));
+      const validCenters = activeFilters.center_name.filter(center => centerSet.has(center));
+      if (validCenters.length !== activeFilters.center_name.length) {
+        // If some selected centers don't exist in filtered data, update the filter
+        // This happens when vidhan_sabha filters exclude some centers
+        const newFilters = { ...activeFilters };
+        newFilters.center_name = validCenters;
+        if (validCenters.length === 0) {
+          delete newFilters.center_name;
+        }
+        setActiveFilters(newFilters);
+      }
+    }
+    
     if (showOnlySold) {
       filtered = filtered.filter(
         (item) => parseFloat(item.updated_quantity) > 0
@@ -654,12 +692,55 @@ const VivranSummaryModal = ({
 
   // Get unique values from filtered items (for when not the selected type)
   const uniqueCenters = useMemo(() => {
-    return [
-      ...new Set(filteredItems.map((item) => item.center_name)),
-    ]
-      .filter(Boolean)
-      .sort();
-  }, [filteredItems]);
+    let centers = [];
+    
+    // Check if vidhan_sabha filters are active
+    const hasVidhanSabhaFilters = activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0;
+    
+    // Check if vikas_khand filters are active  
+    const hasVikasKhandFilters = activeFilters.vikas_khand_name && Object.keys(activeFilters.vikas_khand_name).length > 0;
+    
+    if (hasVidhanSabhaFilters || hasVikasKhandFilters) {
+      const selectedVidhanSabhas = new Set();
+      const selectedVikasKhands = new Set();
+      
+      // Collect selected vidhan_sabhas if filter is active
+      if (hasVidhanSabhaFilters) {
+        Object.values(activeFilters.vidhan_sabha_name).forEach(kendraFilters => {
+          if (Array.isArray(kendraFilters)) {
+            kendraFilters.forEach(vidhanSabha => selectedVidhanSabhas.add(vidhanSabha));
+          }
+        });
+      }
+      
+      // Collect selected vikas_khands if filter is active
+      if (hasVikasKhandFilters) {
+        Object.values(activeFilters.vikas_khand_name).forEach(kendraFilters => {
+          if (Array.isArray(kendraFilters)) {
+            kendraFilters.forEach(vikasKhand => selectedVikasKhands.add(vikasKhand));
+          }
+        });
+      }
+      
+      // Get centers that belong to selected vidhan_sabhas OR vikas_khands
+      centers = [...new Set(
+        (groupData?.items || [])
+          .filter(item => {
+            // Check if vidhan_sabha matches selected ones
+            const matchesVidhanSabha = !hasVidhanSabhaFilters || selectedVidhanSabhas.has(item.vidhan_sabha_name);
+            // Check if vikas_khand matches selected ones
+            const matchesVikasKhand = !hasVikasKhandFilters || selectedVikasKhands.has(item.vikas_khand_name);
+            return matchesVidhanSabha && matchesVikasKhand;
+          })
+          .map(item => item.center_name)
+      )];
+    } else {
+      // Otherwise, get centers from filtered items
+      centers = [...new Set(filteredItems.map((item) => item.center_name))];
+    }
+    
+    return centers.filter(Boolean).sort();
+  }, [filteredItems, activeFilters.vidhan_sabha_name, activeFilters.vikas_khand_name, groupData]);
 
   const uniqueVidhanSabha = useMemo(() => {
     return [
@@ -1023,9 +1104,31 @@ const VivranSummaryModal = ({
   // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
     if (groupData && groupData.group_field) {
-      setActiveFilters({
-        [groupData.group_field]: [groupData.group_name],
-      });
+      let newActiveFilters = {};
+      
+      if (groupData.group_field === "center_name") {
+        // For center_name, use simple array format
+        newActiveFilters = {
+          center_name: [groupData.group_name],
+        };
+      } else {
+        // For other types, use kendra-based format
+        // Find the kendra(s) associated with the selected item
+        const associatedKendras = [...new Set(
+          (groupData.items || [])
+            .filter(item => item[groupData.group_field] === groupData.group_name)
+            .map(item => item.center_name)
+        )].filter(Boolean);
+        
+        if (associatedKendras.length > 0) {
+          newActiveFilters[groupData.group_field] = {};
+          associatedKendras.forEach(kendra => {
+            newActiveFilters[groupData.group_field][kendra] = [groupData.group_name];
+          });
+        }
+      }
+      
+      setActiveFilters(newActiveFilters);
 
       // Expand the section for the selected group type
       if (groupData.group_field === "center_name") {
@@ -2102,301 +2205,325 @@ const VivranSummaryModal = ({
                     </Card.Body>
                   </Collapse>
                 </Card>
-                <HierarchicalFilter 
-                  title="केंद्र का नाम"
-                  items={groupData?.group_field === "center_name"
-                    ? groupData.allOptions || allCenters
-                    : uniqueCenters}
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  hierarchyData={{
-                    centerToVidhanSabha,
-                    centerToVikasKhand,
-                    vidhanSabhaToVikasKhand,
-                    vikasKhandToCenters,
-                    vikasKhandToVidhanSabha,
-                    vidhanSabhaToCenters,
-                    schemeToCenters,
-                    investmentToCenters,
-                    componentToCenters,
-                    sourceToCenters
-                  }}
-                  hierarchyType="center_name"
-                  collapsed={collapsedSections.center_name}
-                  onToggleCollapse={() => toggleCollapse("center_name")}
-                />
- 
-                <HierarchicalFilter
-                  title="विधानसभा का नाम" className="accordin-header"
-                  items={groupData?.group_field === "vidhan_sabha_name"
-                    ? groupData.allOptions || allVidhanSabha
-                    : uniqueVidhanSabha}
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  hierarchyData={{
-                    centerToVidhanSabha,
-                    centerToVikasKhand,
-                    vidhanSabhaToVikasKhand,
-                    vikasKhandToCenters,
-                    vikasKhandToVidhanSabha,
-                    vidhanSabhaToCenters,
-                    schemeToCenters,
-                    investmentToCenters,
-                    componentToCenters,
-                    sourceToCenters
-                  }}
-                  hierarchyType="vidhan_sabha_name"
-                  collapsed={collapsedSections.vidhan_sabha_name}
-                  onToggleCollapse={() => toggleCollapse("vidhan_sabha_name")}
-                />
-
-                <HierarchicalFilter
-                  title="विकासखंड का नाम"
-                  items={groupData?.group_field === "vikas_khand_name"
-                    ? groupData.allOptions || allVikasKhand
-                    : uniqueVikasKhand}
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  hierarchyData={{
-                    centerToVidhanSabha,
-                    centerToVikasKhand,
-                    vidhanSabhaToVikasKhand,
-                    vikasKhandToCenters,
-                    vikasKhandToVidhanSabha,
-                    vidhanSabhaToCenters,
-                    schemeToCenters,
-                    investmentToCenters,
-                    componentToCenters,
-                    sourceToCenters
-                  }}
-                  hierarchyType="vikas_khand_name"
-                  collapsed={collapsedSections.vikas_khand_name}
-                  onToggleCollapse={() => toggleCollapse("vikas_khand_name")}
-                />
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("scheme_name")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>योजना ({uniqueSchemes.length})</span>
-                    {collapsedSections.scheme_name ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.scheme_name}>
-                    <Card.Body>
-                      {Object.entries(kendraToSchemes)
-                        .filter(([kendra]) => {
-                          // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                            return activeFilters.center_name.includes(kendra);
-                          }
-                          return true;
-                        })
-                        .map(([kendra, schemes]) => (
-                        schemes.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {schemes.map((scheme) => (
-                                <Col key={scheme} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.scheme_name && 
-                                       activeFilters.scheme_name[kendra] &&
-                                       activeFilters.scheme_name[kendra].includes(scheme))
-                                        ? "primary"
-                                        : "outline-secondary"
+                
+                {/* Dynamic filter ordering - selected card filter first */}
+                {(() => {
+                  // Define all filter configurations
+                  const filterConfigs = [
+                    {
+                      type: "center_name",
+                      title: "केंद्र का नाम",
+                      items: groupData?.group_field === "center_name" ? groupData.allOptions || allCenters : uniqueCenters,
+                      collapsed: collapsedSections.center_name,
+                      onToggle: () => toggleCollapse("center_name")
+                    },
+                    {
+                      type: "vidhan_sabha_name",
+                      title: "विधानसभा का नाम",
+                      items: groupData?.group_field === "vidhan_sabha_name" ? groupData.allOptions || allVidhanSabha : uniqueVidhanSabha,
+                      collapsed: collapsedSections.vidhan_sabha_name,
+                      onToggle: () => toggleCollapse("vidhan_sabha_name")
+                    },
+                    {
+                      type: "vikas_khand_name",
+                      title: "विकासखंड का नाम",
+                      items: groupData?.group_field === "vikas_khand_name" ? groupData.allOptions || allVikasKhand : uniqueVikasKhand,
+                      collapsed: collapsedSections.vikas_khand_name,
+                      onToggle: () => toggleCollapse("vikas_khand_name")
+                    },
+                    {
+                      type: "scheme_name",
+                      title: `योजना (${uniqueSchemes.length})`,
+                      items: uniqueSchemes,
+                      collapsed: collapsedSections.scheme_name,
+                      onToggle: () => toggleCollapse("scheme_name"),
+                      customRender: (items) => (
+                        <Card.Body>
+                          {Object.entries(kendraToSchemes)
+                            .filter(([kendra]) => {
+                              // Check if centers are selected
+                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                                if (!activeFilters.center_name.includes(kendra)) {
+                                  return false;
+                                }
+                              }
+                              
+                              // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
+                              if (activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0) {
+                                const kendraVidhanSabhas = centerToVidhanSabha[kendra] || [];
+                                return kendraVidhanSabhas.some(vidhanSabha => {
+                                  // Check if this vidhanSabha is selected for this kendra or any other kendra
+                                  return Object.entries(activeFilters.vidhan_sabha_name).some(([filterKendra, filterValues]) => {
+                                    if (filterKendra === kendra) {
+                                      return filterValues.includes(vidhanSabha);
                                     }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("scheme_name", scheme, kendra)
+                                    // Also check if this vidhanSabha is selected for any kendra that belongs to it
+                                    return filterValues.includes(vidhanSabha);
+                                  });
+                                });
+                              }
+                              
+                              return true;
+                            })
+                            .map(([kendra, schemes]) => (
+                            schemes.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {schemes.map((scheme) => (
+                                    <Col key={scheme} xs="auto" className="mb-2">
+                                      <Button
+                                        variant={
+                                          (activeFilters.scheme_name && 
+                                           activeFilters.scheme_name[kendra] &&
+                                           activeFilters.scheme_name[kendra].includes(scheme))
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange("scheme_name", scheme, kendra)
+                                        }
+                                      >
+                                        {scheme}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                          ))}
+                        </Card.Body>
+                      )
+                    },
+                    {
+                      type: "source_of_receipt",
+                      title: `स्रोत (${uniqueSources.length})`,
+                      items: uniqueSources,
+                      collapsed: collapsedSections.source_of_receipt,
+                      onToggle: () => toggleCollapse("source_of_receipt"),
+                      customRender: (items) => (
+                        <Card.Body>
+                          {Object.entries(kendraToSources)
+                            .filter(([kendra]) => {
+                              // Check if centers are selected
+                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                                if (!activeFilters.center_name.includes(kendra)) {
+                                  return false;
+                                }
+                              }
+                              
+                              // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
+                              if (activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0) {
+                                const kendraVidhanSabhas = centerToVidhanSabha[kendra] || [];
+                                return kendraVidhanSabhas.some(vidhanSabha => {
+                                  // Check if this vidhanSabha is selected for this kendra or any other kendra
+                                  return Object.entries(activeFilters.vidhan_sabha_name).some(([filterKendra, filterValues]) => {
+                                    if (filterKendra === kendra) {
+                                      return filterValues.includes(vidhanSabha);
                                     }
-                                  >
-                                    {scheme}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("source_of_receipt")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>स्रोत ({uniqueSources.length})</span>
-                    {collapsedSections.source_of_receipt ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.source_of_receipt}>
-                    <Card.Body>
-                      {Object.entries(kendraToSources)
-                        .filter(([kendra]) => {
-                          // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                            return activeFilters.center_name.includes(kendra);
-                          }
-                          return true;
-                        })
-                        .map(([kendra, sources]) => (
-                        sources.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {sources.map((source) => (
-                                <Col key={source} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.source_of_receipt && 
-                                       activeFilters.source_of_receipt[kendra] &&
-                                       activeFilters.source_of_receipt[kendra].includes(source))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("source_of_receipt", source, kendra)
-                                    }
-                                  >
-                                    {source}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("component")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>घटक ({uniqueComponents.length})</span>
-                    {collapsedSections.component ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.component}>
-                    <Card.Body>
-                      {Object.entries(kendraToComponents)
-                        .filter(([kendra]) => {
-                          // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                            return activeFilters.center_name.includes(kendra);
-                          }
-                          return true;
-                        })
-                        .map(([kendra, components]) => (
-                        components.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {components.map((component) => (
-                                <Col key={component} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.component && 
-                                       activeFilters.component[kendra] &&
-                                       activeFilters.component[kendra].includes(component))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("component", component, kendra)
-                                    }
-                                  >
-                                    {component}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("investment_name")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
-                    {collapsedSections.investment_name ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.investment_name}>
-                    <Card.Body>
-                      {Object.entries(kendraToInvestments)
-                        .filter(([kendra]) => {
-                          // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                            return activeFilters.center_name.includes(kendra);
-                          }
-                          return true;
-                        })
-                        .map(([kendra, investments]) => (
-                        investments.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {investments.map((investment) => (
-                                <Col key={investment} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.investment_name && 
-                                       activeFilters.investment_name[kendra] &&
-                                       activeFilters.investment_name[kendra].includes(investment))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("investment_name", investment, kendra)
-                                    }
-                                  >
-                                    {investment}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
-                    </Card.Body>
-                  </Collapse>
-                </Card>
+                                    // Also check if this vidhanSabha is selected for any kendra that belongs to it
+                                    return filterValues.includes(vidhanSabha);
+                                  });
+                                });
+                              }
+                              
+                              return true;
+                            })
+                            .map(([kendra, sources]) => (
+                            sources.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {sources.map((source) => (
+                                    <Col key={source} xs="auto" className="mb-2">
+                                      <Button
+                                        variant={
+                                          (activeFilters.source_of_receipt && 
+                                           activeFilters.source_of_receipt[kendra] &&
+                                           activeFilters.source_of_receipt[kendra].includes(source))
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange("source_of_receipt", source, kendra)
+                                        }
+                                      >
+                                        {source}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                          ))}
+                        </Card.Body>
+                      )
+                    },
+                    {
+                      type: "component",
+                      title: `घटक (${uniqueComponents.length})`,
+                      items: uniqueComponents,
+                      collapsed: collapsedSections.component,
+                      onToggle: () => toggleCollapse("component"),
+                      customRender: (items) => (
+                        <Card.Body>
+                          {Object.entries(kendraToComponents)
+                            .filter(([kendra]) => {
+                              // If centers are selected, only show kendras that are selected
+                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                                return activeFilters.center_name.includes(kendra);
+                              }
+                              return true;
+                            })
+                            .map(([kendra, components]) => (
+                            components.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {components.map((component) => (
+                                    <Col key={component} xs="auto" className="mb-2">
+                                      <Button
+                                        variant={
+                                          (activeFilters.component && 
+                                           activeFilters.component[kendra] &&
+                                           activeFilters.component[kendra].includes(component))
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange("component", component, kendra)
+                                        }
+                                      >
+                                        {component}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                          ))}
+                        </Card.Body>
+                      )
+                    },
+                    {
+                      type: "investment_name",
+                      title: `निवेश का नाम (${uniqueInvestments.length})`,
+                      items: uniqueInvestments,
+                      collapsed: collapsedSections.investment_name,
+                      onToggle: () => toggleCollapse("investment_name"),
+                      customRender: (items) => (
+                        <Card.Body>
+                          {Object.entries(kendraToInvestments)
+                            .filter(([kendra]) => {
+                              // If centers are selected, only show kendras that are selected
+                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                                return activeFilters.center_name.includes(kendra);
+                              }
+                              return true;
+                            })
+                            .map(([kendra, investments]) => (
+                            investments.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {investments.map((investment) => (
+                                    <Col key={investment} xs="auto" className="mb-2">
+                                      <Button
+                                        variant={
+                                          (activeFilters.investment_name && 
+                                           activeFilters.investment_name[kendra] &&
+                                           activeFilters.investment_name[kendra].includes(investment))
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange("investment_name", investment, kendra)
+                                        }
+                                      >
+                                        {investment}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                          ))}
+                        </Card.Body>
+                      )
+                    }
+                  ];
+                  
+                  // Sort filters to put selected card first
+                  const sortedFilters = filterConfigs.sort((a, b) => {
+                    // If current filter matches the selected group field, put it first
+                    if (groupData?.group_field === a.type && groupData?.group_field !== b.type) {
+                      return -1;
+                    }
+                    if (groupData?.group_field === b.type && groupData?.group_field !== a.type) {
+                      return 1;
+                    }
+                    // Otherwise maintain original order
+                    return 0;
+                  });
+                  
+                  // Render sorted filters
+                  return sortedFilters.map((config) => {
+                    
+                    if (config.type === "scheme_name" || config.type === "source_of_receipt" || 
+                        config.type === "component" || config.type === "investment_name") {
+                      // Custom render for complex filters
+                      return (
+                        <Card key={config.type} className="mb-2">
+                          <Card.Header
+                            onClick={config.onToggle}
+                            style={{ cursor: "pointer" }}
+                            className="d-flex justify-content-between align-items-center accordin-header"
+                          >
+                            <span>{config.title}</span>
+                            {config.collapsed ? <FaChevronDown /> : <FaChevronUp />}
+                          </Card.Header>
+                          <Collapse in={!config.collapsed}>
+                            {config.customRender(config.items)}
+                          </Collapse>
+                        </Card>
+                      );
+                    } else {
+                      // Standard HierarchicalFilter for main categories
+                      return (
+                        <HierarchicalFilter 
+                          key={config.type}
+                          title={config.title}
+                          items={config.items}
+                          activeFilters={activeFilters}
+                          onFilterChange={handleFilterChange}
+                          hierarchyData={{
+                            centerToVidhanSabha,
+                            centerToVikasKhand,
+                            vidhanSabhaToVikasKhand,
+                            vikasKhandToCenters,
+                            vikasKhandToVidhanSabha,
+                            vidhanSabhaToCenters,
+                            schemeToCenters,
+                            investmentToCenters,
+                            componentToCenters,
+                            sourceToCenters
+                          }}
+                          hierarchyType={config.type}
+                          collapsed={config.collapsed}
+                          onToggleCollapse={config.onToggle}
+                        />
+                      );
+                    }
+                  });
+                })()}
               </Col>
               <Col md={6}>
              <Tabs
