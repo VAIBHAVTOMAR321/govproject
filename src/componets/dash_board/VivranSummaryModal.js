@@ -360,12 +360,53 @@ const VivranSummaryModal = ({
   const filteredItems = useMemo(() => {
     if (!groupData || !groupData.items) return [];
     let filtered = groupData.items;
+    
+    // Apply center_name filter first
+    if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+      filtered = filtered.filter((item) => 
+        activeFilters.center_name.includes(item.center_name)
+      );
+    }
+    
+    // Apply other filters with kendra context
     Object.keys(activeFilters).forEach((category) => {
-      const values = activeFilters[category];
-      if (values && values.length > 0) {
-        filtered = filtered.filter((item) => values.includes(item[category]));
+      if (category !== 'center_name' && activeFilters[category]) {
+        const categoryFilters = activeFilters[category];
+        
+        // Handle kendra-based filters (object with kendra keys)
+        if (typeof categoryFilters === 'object' && !Array.isArray(categoryFilters)) {
+          filtered = filtered.filter((item) => {
+            // If no center filter is active, apply kendra-specific filters
+            if (!activeFilters.center_name || activeFilters.center_name.length === 0) {
+              const kendraFilters = categoryFilters[item.center_name] || [];
+              if (kendraFilters.length === 0) {
+                return true; // Include items if no specific filters for this kendra
+              }
+              return kendraFilters.includes(item[category]);
+            }
+            
+            // If center filter is active, only apply filters to selected centers
+            if (activeFilters.center_name.includes(item.center_name)) {
+              const kendraFilters = categoryFilters[item.center_name] || [];
+              if (kendraFilters.length === 0) {
+                return true; // Include items if no specific filters for this selected kendra
+              }
+              return kendraFilters.includes(item[category]);
+            }
+            
+            // Include items from non-selected centers
+            return true;
+          });
+        }
+        // Handle legacy array-based filters
+        else if (Array.isArray(categoryFilters) && categoryFilters.length > 0) {
+          filtered = filtered.filter((item) => 
+            categoryFilters.includes(item[category])
+          );
+        }
       }
     });
+    
     if (showOnlySold) {
       filtered = filtered.filter(
         (item) => parseFloat(item.updated_quantity) > 0
@@ -389,7 +430,7 @@ const VivranSummaryModal = ({
     activeFilters,
     showOnlySold,
     showOnlyAllocated,
-    showOnlyRemaining,
+    showOnlyRemaining
   ]);
 
   // Calculate summary info from filtered items
@@ -636,17 +677,17 @@ const VivranSummaryModal = ({
     return mapping;
   }, [groupData]);
 
-  const uniqueInvestments = useMemo(() => {
+  const allInvestments = useMemo(() => {
     return [
-      ...new Set(filteredItems.map((item) => item.investment_name)),
+      ...new Set((groupData?.items || []).map((item) => item.investment_name)),
     ]
       .filter(Boolean)
       .sort();
-  }, [filteredItems]);
+  }, [groupData]);
 
   const kendraToInvestments = useMemo(() => {
     const mapping = {};
-    filteredItems.forEach((item) => {
+    (groupData?.items || []).forEach((item) => {
       if (item.center_name && item.investment_name) {
         if (!mapping[item.center_name]) {
           mapping[item.center_name] = new Set();
@@ -659,17 +700,33 @@ const VivranSummaryModal = ({
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
-  }, [filteredItems]);
+  }, [groupData]);
 
-  const uniqueComponents = useMemo(() => {
-    return [...new Set(filteredItems.map((item) => item.component))]
+  const uniqueInvestments = useMemo(() => {
+    const allInvestments = new Set();
+    // If centers are selected, only include investments from selected centers
+    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
+      ? activeFilters.center_name 
+      : allCenters;
+    
+    centersToShow.forEach(kendra => {
+      const investments = kendraToInvestments[kendra] || [];
+      investments.forEach(inv => allInvestments.add(inv));
+    });
+    return Array.from(allInvestments).filter(Boolean).sort();
+  }, [kendraToInvestments, allCenters, activeFilters.center_name]);
+
+  const allComponents = useMemo(() => {
+    return [
+      ...new Set((groupData?.items || []).map((item) => item.component)),
+    ]
       .filter(Boolean)
       .sort();
-  }, [filteredItems]);
+  }, [groupData]);
 
   const kendraToComponents = useMemo(() => {
     const mapping = {};
-    filteredItems.forEach((item) => {
+    (groupData?.items || []).forEach((item) => {
       if (item.center_name && item.component) {
         if (!mapping[item.center_name]) {
           mapping[item.center_name] = new Set();
@@ -682,21 +739,35 @@ const VivranSummaryModal = ({
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
-  }, [filteredItems]);
+  }, [groupData]);
 
-  const uniqueSources = useMemo(() => {
+  const uniqueComponents = useMemo(() => {
+    const allComponents = new Set();
+    // If centers are selected, only include components from selected centers
+    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
+      ? activeFilters.center_name 
+      : allCenters;
+    
+    centersToShow.forEach(kendra => {
+      const components = kendraToComponents[kendra] || [];
+      components.forEach(comp => allComponents.add(comp));
+    });
+    return Array.from(allComponents).filter(Boolean).sort();
+  }, [kendraToComponents, allCenters, activeFilters.center_name]);
+
+  const allSources = useMemo(() => {
     return [
       ...new Set(
-        filteredItems.map((item) => item.source_of_receipt)
+        (groupData?.items || []).map((item) => item.source_of_receipt)
       ),
     ]
       .filter(Boolean)
       .sort();
-  }, [filteredItems]);
+  }, [groupData]);
 
   const kendraToSources = useMemo(() => {
     const mapping = {};
-    filteredItems.forEach((item) => {
+    (groupData?.items || []).forEach((item) => {
       if (item.center_name && item.source_of_receipt) {
         if (!mapping[item.center_name]) {
           mapping[item.center_name] = new Set();
@@ -709,19 +780,33 @@ const VivranSummaryModal = ({
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
-  }, [filteredItems]);
+  }, [groupData]);
 
-  const uniqueSchemes = useMemo(() => {
+  const uniqueSources = useMemo(() => {
+    const allSources = new Set();
+    // If centers are selected, only include sources from selected centers
+    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
+      ? activeFilters.center_name 
+      : allCenters;
+    
+    centersToShow.forEach(kendra => {
+      const sources = kendraToSources[kendra] || [];
+      sources.forEach(source => allSources.add(source));
+    });
+    return Array.from(allSources).filter(Boolean).sort();
+  }, [kendraToSources, allCenters, activeFilters.center_name]);
+
+  const allSchemes = useMemo(() => {
     return [
-      ...new Set(filteredItems.map((item) => item.scheme_name)),
+      ...new Set((groupData?.items || []).map((item) => item.scheme_name)),
     ]
       .filter(Boolean)
       .sort();
-  }, [filteredItems]);
+  }, [groupData]);
 
   const kendraToSchemes = useMemo(() => {
     const mapping = {};
-    filteredItems.forEach((item) => {
+    (groupData?.items || []).forEach((item) => {
       if (item.center_name && item.scheme_name) {
         if (!mapping[item.center_name]) {
           mapping[item.center_name] = new Set();
@@ -734,7 +819,21 @@ const VivranSummaryModal = ({
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
-  }, [filteredItems]);
+  }, [groupData]);
+
+  const uniqueSchemes = useMemo(() => {
+    const allSchemes = new Set();
+    // If centers are selected, only include schemes from selected centers
+    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
+      ? activeFilters.center_name 
+      : allCenters;
+    
+    centersToShow.forEach(kendra => {
+      const schemes = kendraToSchemes[kendra] || [];
+      schemes.forEach(scheme => allSchemes.add(scheme));
+    });
+    return Array.from(allSchemes).filter(Boolean).sort();
+  }, [kendraToSchemes, allCenters, activeFilters.center_name]);
 
   // Generate colors for each center
   const centerColors = useMemo(() => {
@@ -762,6 +861,14 @@ const VivranSummaryModal = ({
         setCollapsedSections((prev) => ({ ...prev, vidhan_sabha_name: false }));
       } else if (groupData.group_field === "vikas_khand_name") {
         setCollapsedSections((prev) => ({ ...prev, vikas_khand_name: false }));
+      } else if (groupData.group_field === "investment_name") {
+        setCollapsedSections((prev) => ({ ...prev, investment_name: false }));
+      } else if (groupData.group_field === "component") {
+        setCollapsedSections((prev) => ({ ...prev, component: false }));
+      } else if (groupData.group_field === "source_of_receipt") {
+        setCollapsedSections((prev) => ({ ...prev, source_of_receipt: false }));
+      } else if (groupData.group_field === "scheme_name") {
+        setCollapsedSections((prev) => ({ ...prev, scheme_name: false }));
       }
     }
   }, [groupData]);
@@ -832,21 +939,53 @@ const VivranSummaryModal = ({
   };
 
   // Handle filter changes
-  const handleFilterChange = (category, value) => {
-    setActiveFilters((prev) => {
-      const currentValues = prev[category] || [];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter((v) => v !== value)
-        : [...currentValues, value];
+  const handleFilterChange = (category, value, kendra = null) => {
+    console.log('Filter change:', { category, value, kendra, currentFilters: activeFilters });
+    
+    if (category === 'center_name') {
+      // Handle center_name filter normally
+      setActiveFilters((prev) => {
+        const currentValues = prev[category] || [];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter((v) => v !== value)
+          : [...currentValues, value];
 
-      if (newValues.length === 0) {
+        if (newValues.length === 0) {
+          const newFilters = { ...prev };
+          delete newFilters[category];
+          return newFilters;
+        }
+
+        return { ...prev, [category]: newValues };
+      });
+    } else {
+      // Handle other filters with kendra context
+      setActiveFilters((prev) => {
+        const currentFilters = prev[category] || {};
+        const currentValues = currentFilters[kendra] || [];
+        
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter((v) => v !== value)
+          : [...currentValues, value];
+
+        const newCategoryFilters = { ...currentFilters };
+        if (newValues.length === 0) {
+          delete newCategoryFilters[kendra];
+        } else {
+          newCategoryFilters[kendra] = newValues;
+        }
+
         const newFilters = { ...prev };
-        delete newFilters[category];
-        return newFilters;
-      }
+        if (Object.keys(newCategoryFilters).length === 0) {
+          delete newFilters[category];
+        } else {
+          newFilters[category] = newCategoryFilters;
+        }
 
-      return { ...prev, [category]: newValues };
-    });
+        console.log('New filters:', newFilters);
+        return newFilters;
+      });
+    }
   };
 
   // Handle bar click in graph
@@ -1844,89 +1983,55 @@ const VivranSummaryModal = ({
 
                 <Card className="mb-2">
                   <Card.Header
-                    onClick={() => toggleCollapse("investment_name")}
+                    onClick={() => toggleCollapse("scheme_name")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
-                    {collapsedSections.investment_name ? (
+                    <span>योजना ({uniqueSchemes.length})</span>
+                    {collapsedSections.scheme_name ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.investment_name}>
+                  <Collapse in={!collapsedSections.scheme_name}>
                     <Card.Body>
-                      {(activeFilters.center_name || []).map((kendra) => (
-                        <div key={kendra} className="mb-3">
-                          <h6 className="small-fonts">{kendra}</h6>
-                          <Row className="g-1 align-items-center">
-                            {(kendraToInvestments[kendra] || []).map((investment) => (
-                              <Col key={investment} xs="auto" className="mb-2">
-                                <Button
-                                  variant={
-                                    (activeFilters.investment_name || []).includes(
-                                      investment
-                                    )
-                                      ? "primary"
-                                      : "outline-secondary"
-                                  }
-                                  size="sm"
-                                  className="filter-button"
-                                  onClick={() =>
-                                    handleFilterChange("investment_name", investment)
-                                  }
-                                >
-                                  {investment}
-                                </Button>
-                              </Col>
-                            ))}
-                          </Row>
-                        </div>
-                      ))}
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("component")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>घटक ({uniqueComponents.length})</span>
-                    {collapsedSections.component ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.component}>
-                    <Card.Body>
-                      {(activeFilters.center_name || []).map((kendra) => (
-                        <div key={kendra} className="mb-3">
-                          <h6 className="small-fonts">{kendra}</h6>
-                          <Row className="g-1 align-items-center">
-                            {(kendraToComponents[kendra] || []).map((component) => (
-                              <Col key={component} xs="auto" className="mb-2">
-                                <Button
-                                  variant={
-                                    (activeFilters.component || []).includes(component)
-                                      ? "primary"
-                                      : "outline-secondary"
-                                  }
-                                  size="sm"
-                                  className="filter-button"
-                                  onClick={() =>
-                                    handleFilterChange("component", component)
-                                  }
-                                >
-                                  {component}
-                                </Button>
-                              </Col>
-                            ))}
-                          </Row>
-                        </div>
+                      {Object.entries(kendraToSchemes)
+                        .filter(([kendra]) => {
+                          // If centers are selected, only show kendras that are selected
+                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          return true;
+                        })
+                        .map(([kendra, schemes]) => (
+                        schemes.length > 0 && (
+                          <div key={kendra} className="mb-3">
+                            <h6 className="small-fonts">{kendra}</h6>
+                            <Row className="g-1 align-items-center">
+                              {schemes.map((scheme) => (
+                                <Col key={scheme} xs="auto" className="mb-2">
+                                  <Button
+                                    variant={
+                                      (activeFilters.scheme_name && 
+                                       activeFilters.scheme_name[kendra] &&
+                                       activeFilters.scheme_name[kendra].includes(scheme))
+                                        ? "primary"
+                                        : "outline-secondary"
+                                    }
+                                    size="sm"
+                                    className="filter-button"
+                                    onClick={() =>
+                                      handleFilterChange("scheme_name", scheme, kendra)
+                                    }
+                                  >
+                                    {scheme}
+                                  </Button>
+                                </Col>
+                              ))}
+                            </Row>
+                          </div>
+                        )
                       ))}
                     </Card.Body>
                   </Collapse>
@@ -1947,32 +2052,42 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.source_of_receipt}>
                     <Card.Body>
-                      {(activeFilters.center_name || []).map((kendra) => (
-                        <div key={kendra} className="mb-3">
-                          <h6 className="small-fonts">{kendra}</h6>
-                          <Row className="g-1 align-items-center">
-                            {(kendraToSources[kendra] || []).map((source) => (
-                              <Col key={source} xs="auto" className="mb-2">
-                                <Button
-                                  variant={
-                                    (
-                                      activeFilters.source_of_receipt || []
-                                    ).includes(source)
-                                      ? "primary"
-                                      : "outline-secondary"
-                                  }
-                                  size="sm"
-                                  className="filter-button"
-                                  onClick={() =>
-                                    handleFilterChange("source_of_receipt", source)
-                                  }
-                                >
-                                  {source}
-                                </Button>
-                              </Col>
-                            ))}
-                          </Row>
-                        </div>
+                      {Object.entries(kendraToSources)
+                        .filter(([kendra]) => {
+                          // If centers are selected, only show kendras that are selected
+                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          return true;
+                        })
+                        .map(([kendra, sources]) => (
+                        sources.length > 0 && (
+                          <div key={kendra} className="mb-3">
+                            <h6 className="small-fonts">{kendra}</h6>
+                            <Row className="g-1 align-items-center">
+                              {sources.map((source) => (
+                                <Col key={source} xs="auto" className="mb-2">
+                                  <Button
+                                    variant={
+                                      (activeFilters.source_of_receipt && 
+                                       activeFilters.source_of_receipt[kendra] &&
+                                       activeFilters.source_of_receipt[kendra].includes(source))
+                                        ? "primary"
+                                        : "outline-secondary"
+                                    }
+                                    size="sm"
+                                    className="filter-button"
+                                    onClick={() =>
+                                      handleFilterChange("source_of_receipt", source, kendra)
+                                    }
+                                  >
+                                    {source}
+                                  </Button>
+                                </Col>
+                              ))}
+                            </Row>
+                          </div>
+                        )
                       ))}
                     </Card.Body>
                   </Collapse>
@@ -1980,45 +2095,111 @@ const VivranSummaryModal = ({
 
                 <Card className="mb-2">
                   <Card.Header
-                    onClick={() => toggleCollapse("scheme_name")}
+                    onClick={() => toggleCollapse("component")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>योजना ({uniqueSchemes.length})</span>
-                    {collapsedSections.scheme_name ? (
+                    <span>घटक ({uniqueComponents.length})</span>
+                    {collapsedSections.component ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.scheme_name}>
+                  <Collapse in={!collapsedSections.component}>
                     <Card.Body>
-                      {(activeFilters.center_name || []).map((kendra) => (
-                        <div key={kendra} className="mb-3">
-                          <h6 className="small-fonts">{kendra}</h6>
-                          <Row className="g-1 align-items-center">
-                            {(kendraToSchemes[kendra] || []).map((scheme) => (
-                              <Col key={scheme} xs="auto" className="mb-2">
-                                <Button
-                                  variant={
-                                    (activeFilters.scheme_name || []).includes(
-                                      scheme
-                                    )
-                                      ? "primary"
-                                      : "outline-secondary"
-                                  }
-                                  size="sm"
-                                  className="filter-button"
-                                  onClick={() =>
-                                    handleFilterChange("scheme_name", scheme)
-                                  }
-                                >
-                                  {scheme}
-                                </Button>
-                              </Col>
-                            ))}
-                          </Row>
-                        </div>
+                      {Object.entries(kendraToComponents)
+                        .filter(([kendra]) => {
+                          // If centers are selected, only show kendras that are selected
+                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          return true;
+                        })
+                        .map(([kendra, components]) => (
+                        components.length > 0 && (
+                          <div key={kendra} className="mb-3">
+                            <h6 className="small-fonts">{kendra}</h6>
+                            <Row className="g-1 align-items-center">
+                              {components.map((component) => (
+                                <Col key={component} xs="auto" className="mb-2">
+                                  <Button
+                                    variant={
+                                      (activeFilters.component && 
+                                       activeFilters.component[kendra] &&
+                                       activeFilters.component[kendra].includes(component))
+                                        ? "primary"
+                                        : "outline-secondary"
+                                    }
+                                    size="sm"
+                                    className="filter-button"
+                                    onClick={() =>
+                                      handleFilterChange("component", component, kendra)
+                                    }
+                                  >
+                                    {component}
+                                  </Button>
+                                </Col>
+                              ))}
+                            </Row>
+                          </div>
+                        )
+                      ))}
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse("investment_name")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
+                    {collapsedSections.investment_name ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.investment_name}>
+                    <Card.Body>
+                      {Object.entries(kendraToInvestments)
+                        .filter(([kendra]) => {
+                          // If centers are selected, only show kendras that are selected
+                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          return true;
+                        })
+                        .map(([kendra, investments]) => (
+                        investments.length > 0 && (
+                          <div key={kendra} className="mb-3">
+                            <h6 className="small-fonts">{kendra}</h6>
+                            <Row className="g-1 align-items-center">
+                              {investments.map((investment) => (
+                                <Col key={investment} xs="auto" className="mb-2">
+                                  <Button
+                                    variant={
+                                      (activeFilters.investment_name && 
+                                       activeFilters.investment_name[kendra] &&
+                                       activeFilters.investment_name[kendra].includes(investment))
+                                        ? "primary"
+                                        : "outline-secondary"
+                                    }
+                                    size="sm"
+                                    className="filter-button"
+                                    onClick={() =>
+                                      handleFilterChange("investment_name", investment, kendra)
+                                    }
+                                  >
+                                    {investment}
+                                  </Button>
+                                </Col>
+                              ))}
+                            </Row>
+                          </div>
+                        )
                       ))}
                     </Card.Body>
                   </Collapse>
