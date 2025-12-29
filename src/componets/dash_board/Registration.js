@@ -1336,7 +1336,7 @@ const Registration = () => {
               ) : (
                 <>
                   <Table striped bordered hover className="registration-form">
-                    <thead className="table-regi">
+                    <thead className="table-light">
                       <tr>
                         <th>क्र.सं.</th>
                         {selectedColumns.includes('center_name') && <th>{translations.centerName}</th>}
@@ -1352,7 +1352,7 @@ const Registration = () => {
                         {selectedColumns.includes('vidhan_sabha_name') && <th>{translations.vidhanSabhaName}</th>}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="tbl-body">
                       {billingItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
                         <tr key={item.id || index}>
                           <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>

@@ -16,6 +16,14 @@
 }
 .table-light tr th{
     background-color: #194e8b;
+    color: #fff;
+    font-size: 12px;
+}
+.table-light .td{
+font-size: 8px !important;
+}
+.tbl-body td{
+  font-size: 10px;
 }
 .teanle-heading{
     display: flex;
