@@ -1389,7 +1389,7 @@ const KrishiRegistration = () => {
             ) : (
               <>
                 <Table striped bordered hover className="registration-form">
-                  <thead className="table-regi">
+                  <thead className="table-light">
                     <tr>
                       <th>क्र.सं.</th>
                       {selectedColumns.includes('farmer_name') && <th>{translations.farmerName}</th>}
@@ -1409,7 +1409,7 @@ const KrishiRegistration = () => {
                       {selectedColumns.includes('scheme_name') && <th>{translations.schemeName}</th>}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="tbl-body">
                     {beneficiaries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
                       <tr key={item.id || index}>
                         <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
