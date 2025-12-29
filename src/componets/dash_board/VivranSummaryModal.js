@@ -26,6 +26,30 @@ import * as XLSX from "xlsx";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 
+// Function to generate distinct colors for centers
+const generateCenterColors = (count) => {
+  const colors = [];
+  const hueStep = 360 / count;
+  
+  for (let i = 0; i < count; i++) {
+    // Use HSL color space for better distribution
+    const hue = i * hueStep;
+    // Use high saturation and lightness to ensure visibility
+    const saturation = 70;
+    const lightness = 85;
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+  }
+  
+  return colors;
+};
+
+// Function to get contrasting text color
+const getContrastColor = (bgColor) => {
+  // This is a simplified version - for production use, you might want a more robust solution
+  // For light backgrounds, return dark text
+  return "#333";
+};
+
 // Reusable Column Selection Component
 const ColumnSelection = ({
   columns,
@@ -534,6 +558,18 @@ const VivranSummaryModal = ({
       .filter(Boolean)
       .sort();
   }, [filteredItems]);
+
+  // Generate colors for each center
+  const centerColors = useMemo(() => {
+    const centerCount = allCenters.length;
+    return generateCenterColors(centerCount);
+  }, [allCenters]);
+
+  // Get color for a specific center
+  const getCenterColor = (centerName) => {
+    const index = allCenters.indexOf(centerName);
+    return index !== -1 ? centerColors[index] : '#f8f9fa';
+  };
 
   // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
@@ -1615,26 +1651,26 @@ const VivranSummaryModal = ({
                 />
 
                 <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("scheme_name")}
+                  <Card.Header 
+                    onClick={() => toggleCollapse("investment_name")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>योजना ({uniqueSchemes.length})</span>
-                    {collapsedSections.scheme_name ? (
+                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
+                    {collapsedSections.investment_name ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.scheme_name}>
+                  <Collapse in={!collapsedSections.investment_name}>
                     <Card.Body>
                       <Row className="g-1 align-items-center">
-                        {uniqueSchemes.map((value) => (
+                        {uniqueInvestments.map((value) => (
                           <Col key={value} xs="auto" className="mb-2">
                             <Button
                               variant={
-                                (activeFilters.scheme_name || []).includes(
+                                (activeFilters.investment_name || []).includes(
                                   value
                                 )
                                   ? "primary"
@@ -1643,7 +1679,46 @@ const VivranSummaryModal = ({
                               size="sm"
                               className="filter-button"
                               onClick={() =>
-                                handleFilterChange("scheme_name", value)
+                                handleFilterChange("investment_name", value)
+                              }
+                            >
+                              {value}
+                            </Button>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse("component")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>घटक ({uniqueComponents.length})</span>
+                    {collapsedSections.component ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.component}>
+                    <Card.Body>
+                      <Row className="g-1 align-items-center">
+                        {uniqueComponents.map((value) => (
+                          <Col key={value} xs="auto" className="mb-2">
+                            <Button
+                              variant={
+                                (activeFilters.component || []).includes(value)
+                                  ? "primary"
+                                  : "outline-secondary"
+                              }
+                              size="sm"
+                              className="filter-button"
+                              onClick={() =>
+                                handleFilterChange("component", value)
                               }
                             >
                               {value}
@@ -1698,64 +1773,25 @@ const VivranSummaryModal = ({
 
                 <Card className="mb-2">
                   <Card.Header
-                    onClick={() => toggleCollapse("component")}
+                    onClick={() => toggleCollapse("scheme_name")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>घटक ({uniqueComponents.length})</span>
-                    {collapsedSections.component ? (
+                    <span>योजना ({uniqueSchemes.length})</span>
+                    {collapsedSections.scheme_name ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.component}>
+                  <Collapse in={!collapsedSections.scheme_name}>
                     <Card.Body>
                       <Row className="g-1 align-items-center">
-                        {uniqueComponents.map((value) => (
+                        {uniqueSchemes.map((value) => (
                           <Col key={value} xs="auto" className="mb-2">
                             <Button
                               variant={
-                                (activeFilters.component || []).includes(value)
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("component", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("investment_name")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
-                    {collapsedSections.investment_name ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.investment_name}>
-                    <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {uniqueInvestments.map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.investment_name || []).includes(
+                                (activeFilters.scheme_name || []).includes(
                                   value
                                 )
                                   ? "primary"
@@ -1764,7 +1800,7 @@ const VivranSummaryModal = ({
                               size="sm"
                               className="filter-button"
                               onClick={() =>
-                                handleFilterChange("investment_name", value)
+                                handleFilterChange("scheme_name", value)
                               }
                             >
                               {value}
@@ -1806,200 +1842,274 @@ const VivranSummaryModal = ({
           </Card.Body>
         </Card>
 
-        {/* Table Section */}
-        {Object.entries(groupedData).map(([key, items]) => (
-          <Card className="mb-3" key={key}>
-            <Card.Header className=" teanle-heading">
-              <h6 className="mb-0">विवरण तालिका - {key}</h6>
-              <div>
-                <Button
-                  variant="outline-success"
-                  size="sm"
-                  onClick={() => downloadExcel(items, key)}
-                  className="me-2 fillter-exel-btn"
-                >
-                 <i className="delete-icon"><FaFileExcel /></i>  Excel
-                </Button>
-                <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(items, key)} className="fillter-pdf-btn">
-                      <i className="delete-icon"><FaFilePdf /></i>  PDF
-                </Button>
-              </div>
-            </Card.Header>
-            <Card.Body className="p-0">
-              {/* Column Selection Section */}
-              <ColumnSelection
-                columns={modalTableColumns}
-                selectedColumns={selectedColumns}
-                setSelectedColumns={setSelectedColumns}
-                title="कॉलम चुनें"
-              />
-              <div
-                className="table-responsive"
-                style={{ maxHeight: "200px", overflowY: "auto" }}
+        {/* Table Section with Different Background Colors for Each Center */}
+        {Object.entries(groupedData).map(([key, items]) => {
+          // Get the center name for this table
+          const centerName = items.length > 0 ? items[0].center_name : '';
+          // Get the background color for this center
+          const bgColor = getCenterColor(centerName);
+          // Get contrasting text color
+          const textColor = getContrastColor(bgColor);
+          
+          return (
+            <Card 
+              className="mb-3" 
+              key={key} 
+              style={{ 
+                backgroundColor: bgColor,
+                border: '1px solid rgba(0,0,0,0.125)'
+              }}
+            >
+              <Card.Header 
+                className="teanle-heading"
+                style={{ 
+                  backgroundColor: bgColor,
+                  color: textColor,
+                  borderBottom: '1px solid rgba(0,0,0,0.125)'
+                }}
               >
-                <table className="responsive-table small-fonts">
-                  <thead className="table-light">
-                    <tr>
-                      {selectedColumns.includes("sno") && <th>क्र.सं.</th>}
-                      {selectedColumns.includes("center_name") && (
-                        <th>केंद्र का नाम</th>
-                      )}
-                      {selectedColumns.includes("vidhan_sabha_name") && (
-                        <th>विधानसभा का नाम</th>
-                      )}
-                      {selectedColumns.includes("vikas_khand_name") && (
-                        <th>विकासखंड का नाम</th>
-                      )}
-                      {selectedColumns.includes("component") && <th>घटक</th>}
-                      {selectedColumns.includes("investment_name") && (
-                        <th>निवेश का नाम</th>
-                      )}
-                      {selectedColumns.includes("unit") && <th>इकाई</th>}
-                      {selectedColumns.includes("allocated_quantity") && (
-                        <th>आवंटित मात्रा</th>
-                      )}
-                      {selectedColumns.includes("rate") && <th>दर</th>}
-                      {selectedColumns.includes("allocated_amount") && (
-                        <th>आवंटित राशि</th>
-                      )}
-                      {selectedColumns.includes("updated_quantity") && (
-                        <th>अपडेट की गई मात्रा</th>
-                      )}
-                      {selectedColumns.includes("updated_amount") && (
-                        <th>अपडेट की गई राशि</th>
-                      )}
-                      {selectedColumns.includes("source_of_receipt") && (
-                        <th>स्रोत</th>
-                      )}
-                      {selectedColumns.includes("scheme_name") && <th>योजना</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => {
-                      const allocatedAmount = (
-                        parseFloat(item.allocated_quantity) *
-                        parseFloat(item.rate)
-                      ).toFixed(2);
-                      const updatedAmount = (
-                        parseFloat(item.updated_quantity) * parseFloat(item.rate)
-                      ).toFixed(2);
-                      return (
-                        <tr key={index}>
-                          {selectedColumns.includes("sno") && (
-                            <td data-label="क्र.सं.">{index + 1}</td>
-                          )}
-                          {selectedColumns.includes("center_name") && (
-                            <td data-label="केंद्र का नाम">{item.center_name}</td>
-                          )}
-                          {selectedColumns.includes("vidhan_sabha_name") && (
-                            <td data-label="विधानसभा का नाम">
-                              {item.vidhan_sabha_name}
-                            </td>
-                          )}
-                          {selectedColumns.includes("vikas_khand_name") && (
-                            <td data-label="विकासखंड का नाम">
-                              {item.vikas_khand_name}
-                            </td>
-                          )}
-                          {selectedColumns.includes("component") && (
-                            <td data-label="घटक">{item.component}</td>
-                          )}
-                          {selectedColumns.includes("investment_name") && (
-                            <td data-label="निवेश का नाम">
-                              {item.investment_name}
-                            </td>
-                          )}
-                          {selectedColumns.includes("unit") && (
-                            <td data-label="इकाई">{item.unit}</td>
-                          )}
-                          {selectedColumns.includes("allocated_quantity") && (
-                            <td data-label="आवंटित मात्रा">
-                              {item.allocated_quantity}
-                            </td>
-                          )}
-                          {selectedColumns.includes("rate") && (
-                            <td data-label="दर">{item.rate}</td>
-                          )}
-                          {selectedColumns.includes("allocated_amount") && (
-                            <td data-label="आवंटित राशि">{allocatedAmount}</td>
-                          )}
-                          {selectedColumns.includes("updated_quantity") && (
-                            <td data-label="अपडेट की गई मात्रा">
-                              {item.updated_quantity}
-                            </td>
-                          )}
-                          {selectedColumns.includes("updated_amount") && (
-                            <td data-label="अपडेट की गई राशि">{updatedAmount}</td>
-                          )}
-                          {selectedColumns.includes("source_of_receipt") && (
-                            <td data-label="स्रोत">{item.source_of_receipt}</td>
-                          )}
-                          {selectedColumns.includes("scheme_name") && (
-                            <td data-label="योजना">{item.scheme_name}</td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="font-weight-bold">
-                      {selectedColumns.includes("sno") && <td>कुल</td>}
-                      {selectedColumns.includes("center_name") && <td></td>}
-                      {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
-                      {selectedColumns.includes("vikas_khand_name") && <td></td>}
-                      {selectedColumns.includes("component") && <td></td>}
-                      {selectedColumns.includes("investment_name") && <td></td>}
-                      {selectedColumns.includes("unit") && <td></td>}
-                      {selectedColumns.includes("allocated_quantity") && (
-                        <td>
-                          {items
-                            .reduce(
+                <h6 className="mb-0">विवरण तालिका - {key}</h6>
+                <div>
+                  <Button
+                    variant="outline-success"
+                    size="sm"
+                    onClick={() => downloadExcel(items, key)}
+                    className="me-2 fillter-exel-btn"
+                  >
+                   <i className="delete-icon"><FaFileExcel /></i>  Excel
+                  </Button>
+                  <Button 
+                    variant="outline-danger" 
+                    size="sm" 
+                    onClick={() => downloadPdf(items, key)} 
+                    className="fillter-pdf-btn"
+                  >
+                        <i className="delete-icon"><FaFilePdf /></i>  PDF
+                  </Button>
+                </div>
+              </Card.Header>
+              <Card.Body className="p-0" style={{ backgroundColor: bgColor }}>
+                {/* Column Selection Section */}
+                <div 
+                  className="column-selection mb-3 p-3 border rounded"
+                  style={{ 
+                    backgroundColor: 'rgba(255,255,255,0.7)',
+                    color: '#333'
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="small-fonts mb-0">कॉलम चुनें</h6>
+                    <div>
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        onClick={() => setSelectedColumns(modalTableColumns.map(col => col.key))}
+                        className="me-2 fillter-add-btn"
+                      >
+                        <i className="delete-icon"><MdOutlineCheck /> </i> सभी चुनें
+                      </Button>
+                      <Button
+                        variant="outline-secondary" 
+                        className="fillter-remove-btn"
+                        size="sm"
+                        onClick={() => setSelectedColumns([])}
+                      >
+                      <i className="delete-icon"> <RiDeleteBin6Line /></i>  सभी हटाएं
+                      </Button>
+                    </div>
+                  </div>
+                  <Row>
+                    <Col>
+                      <div className="d-flex flex-wrap">
+                        {modalTableColumns.map((col) => (
+                          <Form.Check
+                            key={col.key}
+                            type="checkbox"
+                            id={`col-${col.key}`}
+                            checked={selectedColumns.includes(col.key)}
+                            onChange={() => {
+                              if (selectedColumns.includes(col.key)) {
+                                setSelectedColumns(selectedColumns.filter((c) => c !== col.key));
+                              } else {
+                                setSelectedColumns([...selectedColumns, col.key]);
+                              }
+                            }}
+                            className="me-3 mb-2"
+                            label={<span className="small-fonts">{col.label}</span>}
+                          />
+                        ))}
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+                <div
+                  className="table-responsive"
+                  style={{ maxHeight: "200px", overflowY: "auto" }}
+                >
+                  <table className="responsive-table small-fonts" style={{ color: textColor }}>
+                    <thead className="table-light" style={{ backgroundColor: 'rgba(255,255,255,0.7)' }}>
+                      <tr>
+                        {selectedColumns.includes("sno") && <th>क्र.सं.</th>}
+                        {selectedColumns.includes("center_name") && (
+                          <th>केंद्र का नाम</th>
+                        )}
+                        {selectedColumns.includes("vidhan_sabha_name") && (
+                          <th>विधानसभा का नाम</th>
+                        )}
+                        {selectedColumns.includes("vikas_khand_name") && (
+                          <th>विकासखंड का नाम</th>
+                        )}
+                        {selectedColumns.includes("component") && <th>घटक</th>}
+                        {selectedColumns.includes("investment_name") && (
+                          <th>निवेश का नाम</th>
+                        )}
+                        {selectedColumns.includes("unit") && <th>इकाई</th>}
+                        {selectedColumns.includes("allocated_quantity") && (
+                          <th>आवंटित मात्रा</th>
+                        )}
+                        {selectedColumns.includes("rate") && <th>दर</th>}
+                        {selectedColumns.includes("allocated_amount") && (
+                          <th>आवंटित राशि</th>
+                        )}
+                        {selectedColumns.includes("updated_quantity") && (
+                          <th>अपडेट की गई मात्रा</th>
+                        )}
+                        {selectedColumns.includes("updated_amount") && (
+                          <th>अपडेट की गई राशि</th>
+                        )}
+                        {selectedColumns.includes("source_of_receipt") && (
+                          <th>स्रोत</th>
+                        )}
+                        {selectedColumns.includes("scheme_name") && <th>योजना</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => {
+                        const allocatedAmount = (
+                          parseFloat(item.allocated_quantity) *
+                          parseFloat(item.rate)
+                        ).toFixed(2);
+                        const updatedAmount = (
+                          parseFloat(item.updated_quantity) * parseFloat(item.rate)
+                        ).toFixed(2);
+                        return (
+                          <tr key={index} style={{ backgroundColor: index % 2 === 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)' }}>
+                            {selectedColumns.includes("sno") && (
+                              <td data-label="क्र.सं.">{index + 1}</td>
+                            )}
+                            {selectedColumns.includes("center_name") && (
+                              <td data-label="केंद्र का नाम">{item.center_name}</td>
+                            )}
+                            {selectedColumns.includes("vidhan_sabha_name") && (
+                              <td data-label="विधानसभा का नाम">
+                                {item.vidhan_sabha_name}
+                              </td>
+                            )}
+                            {selectedColumns.includes("vikas_khand_name") && (
+                              <td data-label="विकासखंड का नाम">
+                                {item.vikas_khand_name}
+                              </td>
+                            )}
+                            {selectedColumns.includes("component") && (
+                              <td data-label="घटक">{item.component}</td>
+                            )}
+                            {selectedColumns.includes("investment_name") && (
+                              <td data-label="निवेश का नाम">
+                                {item.investment_name}
+                              </td>
+                            )}
+                            {selectedColumns.includes("unit") && (
+                              <td data-label="इकाई">{item.unit}</td>
+                            )}
+                            {selectedColumns.includes("allocated_quantity") && (
+                              <td data-label="आवंटित मात्रा">
+                                {item.allocated_quantity}
+                              </td>
+                            )}
+                            {selectedColumns.includes("rate") && (
+                              <td data-label="दर">{item.rate}</td>
+                            )}
+                            {selectedColumns.includes("allocated_amount") && (
+                              <td data-label="आवंटित राशि">{allocatedAmount}</td>
+                            )}
+                            {selectedColumns.includes("updated_quantity") && (
+                              <td data-label="अपडेट की गई मात्रा">
+                                {item.updated_quantity}
+                              </td>
+                            )}
+                            {selectedColumns.includes("updated_amount") && (
+                              <td data-label="अपडेट की गई राशि">{updatedAmount}</td>
+                            )}
+                            {selectedColumns.includes("source_of_receipt") && (
+                              <td data-label="स्रोत">{item.source_of_receipt}</td>
+                            )}
+                            {selectedColumns.includes("scheme_name") && (
+                              <td data-label="योजना">{item.scheme_name}</td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="font-weight-bold" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                        {selectedColumns.includes("sno") && <td>कुल</td>}
+                        {selectedColumns.includes("center_name") && <td></td>}
+                        {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
+                        {selectedColumns.includes("vikas_khand_name") && <td></td>}
+                        {selectedColumns.includes("component") && <td></td>}
+                        {selectedColumns.includes("investment_name") && <td></td>}
+                        {selectedColumns.includes("unit") && <td></td>}
+                        {selectedColumns.includes("allocated_quantity") && (
+                          <td>
+                            {items
+                              .reduce(
+                                (sum, item) =>
+                                  sum + parseFloat(item.allocated_quantity || 0),
+                                0
+                              )
+                              .toFixed(2)}
+                          </td>
+                        )}
+                        {selectedColumns.includes("rate") && <td></td>}
+                        {selectedColumns.includes("allocated_amount") && (
+                          <td>{formatCurrency(
+                            items.reduce(
                               (sum, item) =>
-                                sum + parseFloat(item.allocated_quantity || 0),
+                                sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
                               0
                             )
-                            .toFixed(2)}
-                        </td>
-                      )}
-                      {selectedColumns.includes("rate") && <td></td>}
-                      {selectedColumns.includes("allocated_amount") && (
-                        <td>{formatCurrency(
-                          items.reduce(
-                            (sum, item) =>
-                              sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
-                            0
-                          )
-                        )}</td>
-                      )}
-                      {selectedColumns.includes("updated_quantity") && (
-                        <td>
-                          {items
-                            .reduce(
+                          )}</td>
+                        )}
+                        {selectedColumns.includes("updated_quantity") && (
+                          <td>
+                            {items
+                              .reduce(
+                                (sum, item) =>
+                                  sum + parseFloat(item.updated_quantity || 0),
+                                0
+                              )
+                              .toFixed(2)}
+                          </td>
+                        )}
+                        {selectedColumns.includes("updated_amount") && (
+                          <td>{formatCurrency(
+                            items.reduce(
                               (sum, item) =>
-                                sum + parseFloat(item.updated_quantity || 0),
+                                sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
                               0
                             )
-                            .toFixed(2)}
-                        </td>
-                      )}
-                      {selectedColumns.includes("updated_amount") && (
-                        <td>{formatCurrency(
-                          items.reduce(
-                            (sum, item) =>
-                              sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
-                            0
-                          )
-                        )}</td>
-                      )}
-                      {selectedColumns.includes("source_of_receipt") && <td></td>}
-                      {selectedColumns.includes("scheme_name") && <td></td>}
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </Card.Body>
-          </Card>
-        ))}
+                          )}</td>
+                        )}
+                        {selectedColumns.includes("source_of_receipt") && <td></td>}
+                        {selectedColumns.includes("scheme_name") && <td></td>}
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </Card.Body>
+            </Card>
+          );
+        })}
 
         {/* Combined Table Section */}
         <Card className="mb-3">
