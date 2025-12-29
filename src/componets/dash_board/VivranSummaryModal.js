@@ -30,7 +30,7 @@ import "../../assets/css/table.css";
 const generateCenterColors = (count) => {
   const colors = [];
   const hueStep = 360 / count;
-  
+
   for (let i = 0; i < count; i++) {
     // Use HSL color space for better distribution
     const hue = i * hueStep;
@@ -39,7 +39,7 @@ const generateCenterColors = (count) => {
     const lightness = 85;
     colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
   }
-  
+
   return colors;
 };
 
@@ -84,14 +84,22 @@ const ColumnSelection = ({
             onClick={handleSelectAll}
             className="me-2 fillter-add-btn"
           >
-            <i className="delete-icon"><MdOutlineCheck /> </i> सभी चुनें
+            <i className="delete-icon">
+              <MdOutlineCheck />{" "}
+            </i>{" "}
+            सभी चुनें
           </Button>
           <Button
-            variant="outline-secondary" className="fillter-remove-btn"
+            variant="outline-secondary"
+            className="fillter-remove-btn"
             size="sm"
             onClick={handleDeselectAll}
           >
-          <i className="delete-icon"> <RiDeleteBin6Line /></i>  सभी हटाएं
+            <i className="delete-icon">
+              {" "}
+              <RiDeleteBin6Line />
+            </i>{" "}
+            सभी हटाएं
           </Button>
         </div>
       </div>
@@ -148,7 +156,7 @@ const HierarchicalFilter = ({
   const [expandedItems, setExpandedItems] = useState(new Set());
 
   const toggleItemExpansion = (item) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(item)) {
         newSet.delete(item);
@@ -161,59 +169,63 @@ const HierarchicalFilter = ({
 
   const getHierarchyDisplay = (item, type) => {
     switch (type) {
-      case 'center_name':
-        const vidhanSabhas = hierarchyData.centerToVidhanSabha ? hierarchyData.centerToVidhanSabha[item] || [] : [];
+      case "center_name":
+        const vidhanSabhas = hierarchyData.centerToVidhanSabha
+          ? hierarchyData.centerToVidhanSabha[item] || []
+          : [];
         const vikasKhands = hierarchyData.centerToVikasKhand[item] || [];
         return {
           primary: item,
           secondary: vidhanSabhas.length > 0 ? vidhanSabhas : vikasKhands,
-          secondaryLabel: vidhanSabhas.length > 0 ? 'विधानसभा' : 'विकासखंड'
+          secondaryLabel: vidhanSabhas.length > 0 ? "विधानसभा" : "विकासखंड",
         };
-      case 'vidhan_sabha_name':
+      case "vidhan_sabha_name":
         return {
           primary: item,
           secondary: hierarchyData.vidhanSabhaToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'vikas_khand_name':
+      case "vikas_khand_name":
         const centers = hierarchyData.vikasKhandToCenters[item] || [];
-        const vidhanSabhaForVikas = hierarchyData.vikasKhandToVidhanSabha ? hierarchyData.vikasKhandToVidhanSabha[item] || [] : [];
+        const vidhanSabhaForVikas = hierarchyData.vikasKhandToVidhanSabha
+          ? hierarchyData.vikasKhandToVidhanSabha[item] || []
+          : [];
         return {
           primary: item,
           secondary: centers.length > 0 ? centers : vidhanSabhaForVikas,
-          secondaryLabel: centers.length > 0 ? 'केंद्र' : 'विधानसभा'
+          secondaryLabel: centers.length > 0 ? "केंद्र" : "विधानसभा",
         };
-      case 'scheme_name':
+      case "scheme_name":
         return {
           primary: item,
           secondary: hierarchyData.schemeToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'investment_name':
+      case "investment_name":
         return {
           primary: item,
           secondary: hierarchyData.investmentToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'component':
+      case "component":
         return {
           primary: item,
           secondary: hierarchyData.componentToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'source_of_receipt':
+      case "source_of_receipt":
         return {
           primary: item,
           secondary: hierarchyData.sourceToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
       default:
-        return { primary: item, secondary: [], secondaryLabel: '' };
+        return { primary: item, secondary: [], secondaryLabel: "" };
     }
   };
 
   // For kendra (center_name), use the original flat button layout
-  if (hierarchyType === 'center_name') {
+  if (hierarchyType === "center_name") {
     return (
       <Card className="mb-2">
         <Card.Header
@@ -235,7 +247,7 @@ const HierarchicalFilter = ({
                     variant={
                       (activeFilters.center_name || []).includes(value)
                         ? "primary"
-                        : "outline-secondary" 
+                        : "outline-secondary"
                     }
                     size="sm"
                     className="filter-button"
@@ -260,7 +272,9 @@ const HierarchicalFilter = ({
         style={{ cursor: "pointer" }}
         className="d-flex justify-content-between align-items-center"
       >
-        <span>{title} ({items.length})</span>
+        <span>
+          {title} ({items.length})
+        </span>
         {collapsed ? <FaChevronDown /> : <FaChevronUp />}
       </Card.Header>
       <Collapse in={!collapsed}>
@@ -268,7 +282,9 @@ const HierarchicalFilter = ({
           <Row className="g-2">
             {items.map((item) => {
               const hierarchy = getHierarchyDisplay(item, hierarchyType);
-              const isSelected = (activeFilters[hierarchyType] || []).includes(item);
+              const isSelected = (activeFilters[hierarchyType] || []).includes(
+                item
+              );
               const isExpanded = expandedItems.has(item);
 
               return (
@@ -290,16 +306,23 @@ const HierarchicalFilter = ({
                           onClick={() => toggleItemExpansion(item)}
                           className="p-0 text-decoration-none"
                         >
-                          {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                          {isExpanded ? (
+                            <FaChevronUp size={12} />
+                          ) : (
+                            <FaChevronDown size={12} />
+                          )}
                           <small className="ms-1">
-                            {hierarchy.secondaryLabel} ({hierarchy.secondary.length})
+                            {hierarchy.secondaryLabel} (
+                            {hierarchy.secondary.length})
                           </small>
                         </Button>
                       )}
                     </div>
                     {isExpanded && hierarchy.secondary.length > 0 && (
                       <div className="ms-3 mt-2">
-                        <small className="text-muted fw-bold">{hierarchy.secondaryLabel}:</small>
+                        <small className="text-muted fw-bold">
+                          {hierarchy.secondaryLabel}:
+                        </small>
                         <div className="d-flex flex-wrap gap-1 mt-1">
                           {hierarchy.secondary.map((subItem) => (
                             <Badge
@@ -360,31 +383,37 @@ const VivranSummaryModal = ({
   const filteredItems = useMemo(() => {
     if (!groupData || !groupData.items) return [];
     let filtered = groupData.items;
-    
+
     // Apply center_name filter first
     if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-      filtered = filtered.filter((item) => 
+      filtered = filtered.filter((item) =>
         activeFilters.center_name.includes(item.center_name)
       );
     }
-    
+
     // Apply other filters with kendra context
     Object.keys(activeFilters).forEach((category) => {
-      if (category !== 'center_name' && activeFilters[category]) {
+      if (category !== "center_name" && activeFilters[category]) {
         const categoryFilters = activeFilters[category];
-        
+
         // Handle kendra-based filters (object with kendra keys)
-        if (typeof categoryFilters === 'object' && !Array.isArray(categoryFilters)) {
+        if (
+          typeof categoryFilters === "object" &&
+          !Array.isArray(categoryFilters)
+        ) {
           filtered = filtered.filter((item) => {
             // If no center filter is active, apply kendra-specific filters
-            if (!activeFilters.center_name || activeFilters.center_name.length === 0) {
+            if (
+              !activeFilters.center_name ||
+              activeFilters.center_name.length === 0
+            ) {
               const kendraFilters = categoryFilters[item.center_name] || [];
               if (kendraFilters.length === 0) {
                 return true; // Include items if no specific filters for this kendra
               }
               return kendraFilters.includes(item[category]);
             }
-            
+
             // If center filter is active, only apply filters to selected centers
             if (activeFilters.center_name.includes(item.center_name)) {
               const kendraFilters = categoryFilters[item.center_name] || [];
@@ -393,20 +422,20 @@ const VivranSummaryModal = ({
               }
               return kendraFilters.includes(item[category]);
             }
-            
+
             // Include items from non-selected centers
             return true;
           });
         }
         // Handle legacy array-based filters
         else if (Array.isArray(categoryFilters) && categoryFilters.length > 0) {
-          filtered = filtered.filter((item) => 
+          filtered = filtered.filter((item) =>
             categoryFilters.includes(item[category])
           );
         }
       }
     });
-    
+
     if (showOnlySold) {
       filtered = filtered.filter(
         (item) => parseFloat(item.updated_quantity) > 0
@@ -430,7 +459,7 @@ const VivranSummaryModal = ({
     activeFilters,
     showOnlySold,
     showOnlyAllocated,
-    showOnlyRemaining
+    showOnlyRemaining,
   ]);
 
   // Calculate summary info from filtered items
@@ -482,27 +511,19 @@ const VivranSummaryModal = ({
 
   // Get unique values from filtered items (for when not the selected type)
   const uniqueCenters = useMemo(() => {
-    return [
-      ...new Set(filteredItems.map((item) => item.center_name)),
-    ]
+    return [...new Set(filteredItems.map((item) => item.center_name))]
       .filter(Boolean)
       .sort();
   }, [filteredItems]);
 
   const uniqueVidhanSabha = useMemo(() => {
-    return [
-      ...new Set(
-        filteredItems.map((item) => item.vidhan_sabha_name)
-      ),
-    ]
+    return [...new Set(filteredItems.map((item) => item.vidhan_sabha_name))]
       .filter(Boolean)
       .sort();
   }, [filteredItems]);
 
   const uniqueVikasKhand = useMemo(() => {
-    return [
-      ...new Set(filteredItems.map((item) => item.vikas_khand_name)),
-    ]
+    return [...new Set(filteredItems.map((item) => item.vikas_khand_name))]
       .filter(Boolean)
       .sort();
   }, [filteredItems]);
@@ -518,7 +539,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -535,7 +556,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -552,7 +573,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -569,7 +590,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -586,7 +607,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -603,7 +624,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -620,7 +641,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -637,7 +658,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -654,7 +675,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -671,7 +692,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -696,7 +717,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -705,21 +726,20 @@ const VivranSummaryModal = ({
   const uniqueInvestments = useMemo(() => {
     const allInvestments = new Set();
     // If centers are selected, only include investments from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const investments = kendraToInvestments[kendra] || [];
-      investments.forEach(inv => allInvestments.add(inv));
+      investments.forEach((inv) => allInvestments.add(inv));
     });
     return Array.from(allInvestments).filter(Boolean).sort();
   }, [kendraToInvestments, allCenters, activeFilters.center_name]);
 
   const allComponents = useMemo(() => {
-    return [
-      ...new Set((groupData?.items || []).map((item) => item.component)),
-    ]
+    return [...new Set((groupData?.items || []).map((item) => item.component))]
       .filter(Boolean)
       .sort();
   }, [groupData]);
@@ -735,7 +755,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -744,13 +764,14 @@ const VivranSummaryModal = ({
   const uniqueComponents = useMemo(() => {
     const allComponents = new Set();
     // If centers are selected, only include components from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const components = kendraToComponents[kendra] || [];
-      components.forEach(comp => allComponents.add(comp));
+      components.forEach((comp) => allComponents.add(comp));
     });
     return Array.from(allComponents).filter(Boolean).sort();
   }, [kendraToComponents, allCenters, activeFilters.center_name]);
@@ -776,7 +797,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -785,13 +806,14 @@ const VivranSummaryModal = ({
   const uniqueSources = useMemo(() => {
     const allSources = new Set();
     // If centers are selected, only include sources from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const sources = kendraToSources[kendra] || [];
-      sources.forEach(source => allSources.add(source));
+      sources.forEach((source) => allSources.add(source));
     });
     return Array.from(allSources).filter(Boolean).sort();
   }, [kendraToSources, allCenters, activeFilters.center_name]);
@@ -815,7 +837,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -824,13 +846,14 @@ const VivranSummaryModal = ({
   const uniqueSchemes = useMemo(() => {
     const allSchemes = new Set();
     // If centers are selected, only include schemes from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const schemes = kendraToSchemes[kendra] || [];
-      schemes.forEach(scheme => allSchemes.add(scheme));
+      schemes.forEach((scheme) => allSchemes.add(scheme));
     });
     return Array.from(allSchemes).filter(Boolean).sort();
   }, [kendraToSchemes, allCenters, activeFilters.center_name]);
@@ -844,15 +867,22 @@ const VivranSummaryModal = ({
   // Get color for a specific center
   const getCenterColor = (centerName) => {
     const index = allCenters.indexOf(centerName);
-    return index !== -1 ? centerColors[index] : '#f8f9fa';
+    return index !== -1 ? centerColors[index] : "#f8f9fa";
   };
 
   // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
     if (groupData && groupData.group_field) {
-      setActiveFilters({
+      const initialFilters = {
         [groupData.group_field]: [groupData.group_name],
-      });
+      };
+
+      // If selectedCenters are provided, set center_name filters
+      if (groupData.selectedCenters && groupData.selectedCenters.length > 0) {
+        initialFilters.center_name = groupData.selectedCenters;
+      }
+
+      setActiveFilters(initialFilters);
 
       // Expand the section for the selected group type
       if (groupData.group_field === "center_name") {
@@ -869,6 +899,11 @@ const VivranSummaryModal = ({
         setCollapsedSections((prev) => ({ ...prev, source_of_receipt: false }));
       } else if (groupData.group_field === "scheme_name") {
         setCollapsedSections((prev) => ({ ...prev, scheme_name: false }));
+      }
+
+      // Also expand center_name if selectedCenters are provided
+      if (groupData.selectedCenters && groupData.selectedCenters.length > 0) {
+        setCollapsedSections((prev) => ({ ...prev, center_name: false }));
       }
     }
   }, [groupData]);
@@ -912,11 +947,18 @@ const VivranSummaryModal = ({
 
   // Grouped data for multiple tables
   const groupedData = useMemo(() => {
-    if (!groupData || !groupData.group_field || !activeFilters[groupData.group_field]) return {};
+    if (
+      !groupData ||
+      !groupData.group_field ||
+      !activeFilters[groupData.group_field]
+    )
+      return {};
     const selectedValues = activeFilters[groupData.group_field];
     const groups = {};
-    selectedValues.forEach(value => {
-      groups[value] = filteredItems.filter(item => item[groupData.group_field] === value);
+    selectedValues.forEach((value) => {
+      groups[value] = filteredItems.filter(
+        (item) => item[groupData.group_field] === value
+      );
     });
     return groups;
   }, [filteredItems, groupData, activeFilters]);
@@ -940,9 +982,14 @@ const VivranSummaryModal = ({
 
   // Handle filter changes
   const handleFilterChange = (category, value, kendra = null) => {
-    console.log('Filter change:', { category, value, kendra, currentFilters: activeFilters });
-    
-    if (category === 'center_name') {
+    console.log("Filter change:", {
+      category,
+      value,
+      kendra,
+      currentFilters: activeFilters,
+    });
+
+    if (category === "center_name") {
       // Handle center_name filter normally
       setActiveFilters((prev) => {
         const currentValues = prev[category] || [];
@@ -963,7 +1010,7 @@ const VivranSummaryModal = ({
       setActiveFilters((prev) => {
         const currentFilters = prev[category] || {};
         const currentValues = currentFilters[kendra] || [];
-        
+
         const newValues = currentValues.includes(value)
           ? currentValues.filter((v) => v !== value)
           : [...currentValues, value];
@@ -982,7 +1029,7 @@ const VivranSummaryModal = ({
           newFilters[category] = newCategoryFilters;
         }
 
-        console.log('New filters:', newFilters);
+        console.log("New filters:", newFilters);
         return newFilters;
       });
     }
@@ -1627,7 +1674,8 @@ const VivranSummaryModal = ({
           totalsRow["आवंटित राशि"] = formatCurrency(
             data.reduce(
               (sum, item) =>
-                sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                sum +
+                parseFloat(item.allocated_quantity) * parseFloat(item.rate),
               0
             )
           );
@@ -1771,7 +1819,8 @@ const VivranSummaryModal = ({
             return `<td><strong>${formatCurrency(
               data.reduce(
                 (sum, item) =>
-                  sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                  sum +
+                  parseFloat(item.allocated_quantity) * parseFloat(item.rate),
                 0
               )
             )}</strong></td>`;
@@ -1786,7 +1835,8 @@ const VivranSummaryModal = ({
             return `<td><strong>${formatCurrency(
               data.reduce(
                 (sum, item) =>
-                  sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                  sum +
+                  parseFloat(item.updated_quantity) * parseFloat(item.rate),
                 0
               )
             )}</strong></td>`;
@@ -1851,10 +1901,13 @@ const VivranSummaryModal = ({
               <h6 className="mb-0">फिल्टर और ग्राफ</h6>
               <Button
                 variant="outline-secondary fillter-remove-btn"
-                size="sm" 
+                size="sm"
                 onClick={clearAllFilters}
               >
-            <i className="delete-icon"><RiDeleteBin6Line/></i>    सभी फिल्टर हटाएं
+                <i className="delete-icon">
+                  <RiDeleteBin6Line />
+                </i>{" "}
+                सभी फिल्टर हटाएं
               </Button>
             </div>
           </Card.Header>
@@ -1863,7 +1916,7 @@ const VivranSummaryModal = ({
               <Col md={6}>
                 {/* Financial Summary Section */}
                 <Card className="mb-2">
-                  <Card.Header 
+                  <Card.Header
                     onClick={() => toggleCollapse("financial_summary")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
@@ -1877,43 +1930,44 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.financial_summary}>
                     <Card.Body>
-                     <Row className="text-center g-2">
-  <Col md={4}>
-    <div className="p-2 border rounded amount-box">
-      <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
-      <p className="mb-0 fw-bold small">
-        {formatCurrency(totalAllocated)}
-      </p>
-    </div>
-  </Col>
+                      <Row className="text-center g-2">
+                        <Col md={4}>
+                          <div className="p-2 border rounded amount-box">
+                            <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
+                            <p className="mb-0 fw-bold small">
+                              {formatCurrency(totalAllocated)}
+                            </p>
+                          </div>
+                        </Col>
 
-  <Col md={4}>
-    <div className="p-2 border rounded amount-box">
-      <h6 className="mb-1 small-fonts">शेष राशि</h6>
-      <p className="mb-0 text-success fw-bold small">
-        {formatCurrency(totalRemaining)}
-      </p>
-    </div>
-  </Col>
+                        <Col md={4}>
+                          <div className="p-2 border rounded amount-box">
+                            <h6 className="mb-1 small-fonts">शेष राशि</h6>
+                            <p className="mb-0 text-success fw-bold small">
+                              {formatCurrency(totalRemaining)}
+                            </p>
+                          </div>
+                        </Col>
 
-  <Col md={4}>
-    <div className="p-2 border rounded amount-box">
-      <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
-      <p className="mb-0 text-warning fw-bold small">
-        {formatCurrency(totalUpdated)}
-      </p>
-    </div>
-  </Col>
-</Row>
-
+                        <Col md={4}>
+                          <div className="p-2 border rounded amount-box">
+                            <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
+                            <p className="mb-0 text-warning fw-bold small">
+                              {formatCurrency(totalUpdated)}
+                            </p>
+                          </div>
+                        </Col>
+                      </Row>
                     </Card.Body>
                   </Collapse>
                 </Card>
-                <HierarchicalFilter 
+                <HierarchicalFilter
                   title="केंद्र का नाम"
-                  items={groupData?.group_field === "center_name"
-                    ? groupData.allOptions || allCenters
-                    : uniqueCenters}
+                  items={
+                    groupData?.group_field === "center_name"
+                      ? groupData.allOptions || allCenters
+                      : uniqueCenters
+                  }
                   activeFilters={activeFilters}
                   onFilterChange={handleFilterChange}
                   hierarchyData={{
@@ -1926,18 +1980,21 @@ const VivranSummaryModal = ({
                     schemeToCenters,
                     investmentToCenters,
                     componentToCenters,
-                    sourceToCenters
+                    sourceToCenters,
                   }}
                   hierarchyType="center_name"
                   collapsed={collapsedSections.center_name}
                   onToggleCollapse={() => toggleCollapse("center_name")}
                 />
- 
+
                 <HierarchicalFilter
-                  title="विधानसभा का नाम" className="accordin-header"
-                  items={groupData?.group_field === "vidhan_sabha_name"
-                    ? groupData.allOptions || allVidhanSabha
-                    : uniqueVidhanSabha}
+                  title="विधानसभा का नाम"
+                  className="accordin-header"
+                  items={
+                    groupData?.group_field === "vidhan_sabha_name"
+                      ? groupData.allOptions || allVidhanSabha
+                      : uniqueVidhanSabha
+                  }
                   activeFilters={activeFilters}
                   onFilterChange={handleFilterChange}
                   hierarchyData={{
@@ -1950,7 +2007,7 @@ const VivranSummaryModal = ({
                     schemeToCenters,
                     investmentToCenters,
                     componentToCenters,
-                    sourceToCenters
+                    sourceToCenters,
                   }}
                   hierarchyType="vidhan_sabha_name"
                   collapsed={collapsedSections.vidhan_sabha_name}
@@ -1959,9 +2016,11 @@ const VivranSummaryModal = ({
 
                 <HierarchicalFilter
                   title="विकासखंड का नाम"
-                  items={groupData?.group_field === "vikas_khand_name"
-                    ? groupData.allOptions || allVikasKhand
-                    : uniqueVikasKhand}
+                  items={
+                    groupData?.group_field === "vikas_khand_name"
+                      ? groupData.allOptions || allVikasKhand
+                      : uniqueVikasKhand
+                  }
                   activeFilters={activeFilters}
                   onFilterChange={handleFilterChange}
                   hierarchyData={{
@@ -1974,7 +2033,7 @@ const VivranSummaryModal = ({
                     schemeToCenters,
                     investmentToCenters,
                     componentToCenters,
-                    sourceToCenters
+                    sourceToCenters,
                   }}
                   hierarchyType="vikas_khand_name"
                   collapsed={collapsedSections.vikas_khand_name}
@@ -1999,40 +2058,54 @@ const VivranSummaryModal = ({
                       {Object.entries(kendraToSchemes)
                         .filter(([kendra]) => {
                           // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
                             return activeFilters.center_name.includes(kendra);
                           }
                           return true;
                         })
-                        .map(([kendra, schemes]) => (
-                        schemes.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {schemes.map((scheme) => (
-                                <Col key={scheme} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.scheme_name && 
-                                       activeFilters.scheme_name[kendra] &&
-                                       activeFilters.scheme_name[kendra].includes(scheme))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("scheme_name", scheme, kendra)
-                                    }
-                                  >
-                                    {scheme}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
+                        .map(
+                          ([kendra, schemes]) =>
+                            schemes.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {schemes.map((scheme) => (
+                                    <Col
+                                      key={scheme}
+                                      xs="auto"
+                                      className="mb-2"
+                                    >
+                                      <Button
+                                        variant={
+                                          activeFilters.scheme_name &&
+                                          activeFilters.scheme_name[kendra] &&
+                                          activeFilters.scheme_name[
+                                            kendra
+                                          ].includes(scheme)
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange(
+                                            "scheme_name",
+                                            scheme,
+                                            kendra
+                                          )
+                                        }
+                                      >
+                                        {scheme}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                        )}
                     </Card.Body>
                   </Collapse>
                 </Card>
@@ -2055,40 +2128,56 @@ const VivranSummaryModal = ({
                       {Object.entries(kendraToSources)
                         .filter(([kendra]) => {
                           // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
                             return activeFilters.center_name.includes(kendra);
                           }
                           return true;
                         })
-                        .map(([kendra, sources]) => (
-                        sources.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {sources.map((source) => (
-                                <Col key={source} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.source_of_receipt && 
-                                       activeFilters.source_of_receipt[kendra] &&
-                                       activeFilters.source_of_receipt[kendra].includes(source))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("source_of_receipt", source, kendra)
-                                    }
-                                  >
-                                    {source}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
+                        .map(
+                          ([kendra, sources]) =>
+                            sources.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {sources.map((source) => (
+                                    <Col
+                                      key={source}
+                                      xs="auto"
+                                      className="mb-2"
+                                    >
+                                      <Button
+                                        variant={
+                                          activeFilters.source_of_receipt &&
+                                          activeFilters.source_of_receipt[
+                                            kendra
+                                          ] &&
+                                          activeFilters.source_of_receipt[
+                                            kendra
+                                          ].includes(source)
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange(
+                                            "source_of_receipt",
+                                            source,
+                                            kendra
+                                          )
+                                        }
+                                      >
+                                        {source}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                        )}
                     </Card.Body>
                   </Collapse>
                 </Card>
@@ -2111,40 +2200,54 @@ const VivranSummaryModal = ({
                       {Object.entries(kendraToComponents)
                         .filter(([kendra]) => {
                           // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
                             return activeFilters.center_name.includes(kendra);
                           }
                           return true;
                         })
-                        .map(([kendra, components]) => (
-                        components.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {components.map((component) => (
-                                <Col key={component} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.component && 
-                                       activeFilters.component[kendra] &&
-                                       activeFilters.component[kendra].includes(component))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("component", component, kendra)
-                                    }
-                                  >
-                                    {component}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
+                        .map(
+                          ([kendra, components]) =>
+                            components.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {components.map((component) => (
+                                    <Col
+                                      key={component}
+                                      xs="auto"
+                                      className="mb-2"
+                                    >
+                                      <Button
+                                        variant={
+                                          activeFilters.component &&
+                                          activeFilters.component[kendra] &&
+                                          activeFilters.component[
+                                            kendra
+                                          ].includes(component)
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange(
+                                            "component",
+                                            component,
+                                            kendra
+                                          )
+                                        }
+                                      >
+                                        {component}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                        )}
                     </Card.Body>
                   </Collapse>
                 </Card>
@@ -2167,69 +2270,84 @@ const VivranSummaryModal = ({
                       {Object.entries(kendraToInvestments)
                         .filter(([kendra]) => {
                           // If centers are selected, only show kendras that are selected
-                          if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
                             return activeFilters.center_name.includes(kendra);
                           }
                           return true;
                         })
-                        .map(([kendra, investments]) => (
-                        investments.length > 0 && (
-                          <div key={kendra} className="mb-3">
-                            <h6 className="small-fonts">{kendra}</h6>
-                            <Row className="g-1 align-items-center">
-                              {investments.map((investment) => (
-                                <Col key={investment} xs="auto" className="mb-2">
-                                  <Button
-                                    variant={
-                                      (activeFilters.investment_name && 
-                                       activeFilters.investment_name[kendra] &&
-                                       activeFilters.investment_name[kendra].includes(investment))
-                                        ? "primary"
-                                        : "outline-secondary"
-                                    }
-                                    size="sm"
-                                    className="filter-button"
-                                    onClick={() =>
-                                      handleFilterChange("investment_name", investment, kendra)
-                                    }
-                                  >
-                                    {investment}
-                                  </Button>
-                                </Col>
-                              ))}
-                            </Row>
-                          </div>
-                        )
-                      ))}
+                        .map(
+                          ([kendra, investments]) =>
+                            investments.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {investments.map((investment) => (
+                                    <Col
+                                      key={investment}
+                                      xs="auto"
+                                      className="mb-2"
+                                    >
+                                      <Button
+                                        variant={
+                                          activeFilters.investment_name &&
+                                          activeFilters.investment_name[
+                                            kendra
+                                          ] &&
+                                          activeFilters.investment_name[
+                                            kendra
+                                          ].includes(investment)
+                                            ? "primary"
+                                            : "outline-secondary"
+                                        }
+                                        size="sm"
+                                        className="filter-button"
+                                        onClick={() =>
+                                          handleFilterChange(
+                                            "investment_name",
+                                            investment,
+                                            kendra
+                                          )
+                                        }
+                                      >
+                                        {investment}
+                                      </Button>
+                                    </Col>
+                                  ))}
+                                </Row>
+                              </div>
+                            )
+                        )}
                     </Card.Body>
                   </Collapse>
                 </Card>
               </Col>
               <Col md={6}>
-             <Tabs
-  defaultActiveKey="bar"
-  id="graph-tabs"
-  className="mb-3 custom-tabs"
->
-  <Tab eventKey="bar" title="बार ग्राफ">
-    <div style={{ overflowX: "auto" }}>
-      <ComparisonBarChart
-        data={chartData}
-        title="आवंटित बनाम बेचा गया"
-        onBarClick={handleBarClick}
-      />
-    </div>
-  </Tab>
+                <Tabs
+                  defaultActiveKey="bar"
+                  id="graph-tabs"
+                  className="mb-3 custom-tabs"
+                >
+                  <Tab eventKey="bar" title="बार ग्राफ">
+                    <div style={{ overflowX: "auto" }}>
+                      <ComparisonBarChart
+                        data={chartData}
+                        title="आवंटित बनाम बेचा गया"
+                        onBarClick={handleBarClick}
+                      />
+                    </div>
+                  </Tab>
 
-  <Tab eventKey="pie" title="पाई चार्ट">
-    <PieChart
-      data={pieChartData}
-      title="विवरण पाई चार्ट"
-      onPieClick={handlePieClick}
-    />
-  </Tab>
-</Tabs>
-
+                  <Tab eventKey="pie" title="पाई चार्ट">
+                    <PieChart
+                      data={pieChartData}
+                      title="विवरण पाई चार्ट"
+                      onPieClick={handlePieClick}
+                    />
+                  </Tab>
+                </Tabs>
               </Col>
             </Row>
           </Card.Body>
@@ -2238,27 +2356,27 @@ const VivranSummaryModal = ({
         {/* Table Section with Different Background Colors for Each Center */}
         {Object.entries(groupedData).map(([key, items]) => {
           // Get the center name for this table
-          const centerName = items.length > 0 ? items[0].center_name : '';
+          const centerName = items.length > 0 ? items[0].center_name : "";
           // Get the background color for this center
           const bgColor = getCenterColor(centerName);
           // Get contrasting text color
           const textColor = getContrastColor(bgColor);
-          
+
           return (
-            <Card 
-              className="mb-3" 
-              key={key} 
-              style={{ 
+            <Card
+              className="mb-3"
+              key={key}
+              style={{
                 backgroundColor: bgColor,
-                border: '1px solid rgba(0,0,0,0.125)'
+                border: "1px solid rgba(0,0,0,0.125)",
               }}
             >
-              <Card.Header 
+              <Card.Header
                 className="teanle-heading"
-                style={{ 
+                style={{
                   backgroundColor: bgColor,
                   color: textColor,
-                  borderBottom: '1px solid rgba(0,0,0,0.125)'
+                  borderBottom: "1px solid rgba(0,0,0,0.125)",
                 }}
               >
                 <h6 className="mb-0">विवरण तालिका - {key}</h6>
@@ -2269,25 +2387,31 @@ const VivranSummaryModal = ({
                     onClick={() => downloadExcel(items, key)}
                     className="me-2 fillter-exel-btn"
                   >
-                   <i className="delete-icon"><FaFileExcel /></i>  Excel
+                    <i className="delete-icon">
+                      <FaFileExcel />
+                    </i>{" "}
+                    Excel
                   </Button>
-                  <Button 
-                    variant="outline-danger" 
-                    size="sm" 
-                    onClick={() => downloadPdf(items, key)} 
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => downloadPdf(items, key)}
                     className="fillter-pdf-btn"
                   >
-                        <i className="delete-icon"><FaFilePdf /></i>  PDF
+                    <i className="delete-icon">
+                      <FaFilePdf />
+                    </i>{" "}
+                    PDF
                   </Button>
                 </div>
               </Card.Header>
               <Card.Body className="p-0" style={{ backgroundColor: bgColor }}>
                 {/* Column Selection Section */}
-                <div 
+                <div
                   className="column-selection mb-3 p-3 border rounded"
-                  style={{ 
-                    backgroundColor: 'rgba(255,255,255,0.7)',
-                    color: '#333'
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.7)",
+                    color: "#333",
                   }}
                 >
                   <div className="d-flex justify-content-between align-items-center mb-2">
@@ -2296,18 +2420,29 @@ const VivranSummaryModal = ({
                       <Button
                         variant="outline-secondary"
                         size="sm"
-                        onClick={() => setSelectedColumns(modalTableColumns.map(col => col.key))}
+                        onClick={() =>
+                          setSelectedColumns(
+                            modalTableColumns.map((col) => col.key)
+                          )
+                        }
                         className="me-2 fillter-add-btn"
                       >
-                        <i className="delete-icon"><MdOutlineCheck /> </i> सभी चुनें
+                        <i className="delete-icon">
+                          <MdOutlineCheck />{" "}
+                        </i>{" "}
+                        सभी चुनें
                       </Button>
                       <Button
-                        variant="outline-secondary" 
+                        variant="outline-secondary"
                         className="fillter-remove-btn"
                         size="sm"
                         onClick={() => setSelectedColumns([])}
                       >
-                      <i className="delete-icon"> <RiDeleteBin6Line /></i>  सभी हटाएं
+                        <i className="delete-icon">
+                          {" "}
+                          <RiDeleteBin6Line />
+                        </i>{" "}
+                        सभी हटाएं
                       </Button>
                     </div>
                   </div>
@@ -2322,13 +2457,20 @@ const VivranSummaryModal = ({
                             checked={selectedColumns.includes(col.key)}
                             onChange={() => {
                               if (selectedColumns.includes(col.key)) {
-                                setSelectedColumns(selectedColumns.filter((c) => c !== col.key));
+                                setSelectedColumns(
+                                  selectedColumns.filter((c) => c !== col.key)
+                                );
                               } else {
-                                setSelectedColumns([...selectedColumns, col.key]);
+                                setSelectedColumns([
+                                  ...selectedColumns,
+                                  col.key,
+                                ]);
                               }
                             }}
                             className="me-3 mb-2"
-                            label={<span className="small-fonts">{col.label}</span>}
+                            label={
+                              <span className="small-fonts">{col.label}</span>
+                            }
                           />
                         ))}
                       </div>
@@ -2339,8 +2481,14 @@ const VivranSummaryModal = ({
                   className="table-responsive"
                   style={{ maxHeight: "200px", overflowY: "auto" }}
                 >
-                  <table className="responsive-table small-fonts" style={{ color: textColor }}>
-                    <thead className="table-light" style={{ backgroundColor: 'rgba(255,255,255,0.7)' }}>
+                  <table
+                    className="responsive-table small-fonts"
+                    style={{ color: textColor }}
+                  >
+                    <thead
+                      className="table-light"
+                      style={{ backgroundColor: "rgba(255,255,255,0.7)" }}
+                    >
                       <tr>
                         {selectedColumns.includes("sno") && <th>क्र.सं.</th>}
                         {selectedColumns.includes("center_name") && (
@@ -2373,7 +2521,9 @@ const VivranSummaryModal = ({
                         {selectedColumns.includes("source_of_receipt") && (
                           <th>स्रोत</th>
                         )}
-                        {selectedColumns.includes("scheme_name") && <th>योजना</th>}
+                        {selectedColumns.includes("scheme_name") && (
+                          <th>योजना</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -2383,15 +2533,26 @@ const VivranSummaryModal = ({
                           parseFloat(item.rate)
                         ).toFixed(2);
                         const updatedAmount = (
-                          parseFloat(item.updated_quantity) * parseFloat(item.rate)
+                          parseFloat(item.updated_quantity) *
+                          parseFloat(item.rate)
                         ).toFixed(2);
                         return (
-                          <tr key={index} style={{ backgroundColor: index % 2 === 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)' }}>
+                          <tr
+                            key={index}
+                            style={{
+                              backgroundColor:
+                                index % 2 === 0
+                                  ? "rgba(255,255,255,0.5)"
+                                  : "rgba(255,255,255,0.3)",
+                            }}
+                          >
                             {selectedColumns.includes("sno") && (
                               <td data-label="क्र.सं.">{index + 1}</td>
                             )}
                             {selectedColumns.includes("center_name") && (
-                              <td data-label="केंद्र का नाम">{item.center_name}</td>
+                              <td data-label="केंद्र का नाम">
+                                {item.center_name}
+                              </td>
                             )}
                             {selectedColumns.includes("vidhan_sabha_name") && (
                               <td data-label="विधानसभा का नाम">
@@ -2423,7 +2584,9 @@ const VivranSummaryModal = ({
                               <td data-label="दर">{item.rate}</td>
                             )}
                             {selectedColumns.includes("allocated_amount") && (
-                              <td data-label="आवंटित राशि">{allocatedAmount}</td>
+                              <td data-label="आवंटित राशि">
+                                {allocatedAmount}
+                              </td>
                             )}
                             {selectedColumns.includes("updated_quantity") && (
                               <td data-label="अपडेट की गई मात्रा">
@@ -2431,10 +2594,14 @@ const VivranSummaryModal = ({
                               </td>
                             )}
                             {selectedColumns.includes("updated_amount") && (
-                              <td data-label="अपडेट की गई राशि">{updatedAmount}</td>
+                              <td data-label="अपडेट की गई राशि">
+                                {updatedAmount}
+                              </td>
                             )}
                             {selectedColumns.includes("source_of_receipt") && (
-                              <td data-label="स्रोत">{item.source_of_receipt}</td>
+                              <td data-label="स्रोत">
+                                {item.source_of_receipt}
+                              </td>
                             )}
                             {selectedColumns.includes("scheme_name") && (
                               <td data-label="योजना">{item.scheme_name}</td>
@@ -2444,20 +2611,30 @@ const VivranSummaryModal = ({
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="font-weight-bold" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                      <tr
+                        className="font-weight-bold"
+                        style={{ backgroundColor: "rgba(0,0,0,0.1)" }}
+                      >
                         {selectedColumns.includes("sno") && <td>कुल</td>}
                         {selectedColumns.includes("center_name") && <td></td>}
-                        {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
-                        {selectedColumns.includes("vikas_khand_name") && <td></td>}
+                        {selectedColumns.includes("vidhan_sabha_name") && (
+                          <td></td>
+                        )}
+                        {selectedColumns.includes("vikas_khand_name") && (
+                          <td></td>
+                        )}
                         {selectedColumns.includes("component") && <td></td>}
-                        {selectedColumns.includes("investment_name") && <td></td>}
+                        {selectedColumns.includes("investment_name") && (
+                          <td></td>
+                        )}
                         {selectedColumns.includes("unit") && <td></td>}
                         {selectedColumns.includes("allocated_quantity") && (
                           <td>
                             {items
                               .reduce(
                                 (sum, item) =>
-                                  sum + parseFloat(item.allocated_quantity || 0),
+                                  sum +
+                                  parseFloat(item.allocated_quantity || 0),
                                 0
                               )
                               .toFixed(2)}
@@ -2465,13 +2642,17 @@ const VivranSummaryModal = ({
                         )}
                         {selectedColumns.includes("rate") && <td></td>}
                         {selectedColumns.includes("allocated_amount") && (
-                          <td>{formatCurrency(
-                            items.reduce(
-                              (sum, item) =>
-                                sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
-                              0
-                            )
-                          )}</td>
+                          <td>
+                            {formatCurrency(
+                              items.reduce(
+                                (sum, item) =>
+                                  sum +
+                                  parseFloat(item.allocated_quantity) *
+                                    parseFloat(item.rate),
+                                0
+                              )
+                            )}
+                          </td>
                         )}
                         {selectedColumns.includes("updated_quantity") && (
                           <td>
@@ -2485,15 +2666,21 @@ const VivranSummaryModal = ({
                           </td>
                         )}
                         {selectedColumns.includes("updated_amount") && (
-                          <td>{formatCurrency(
-                            items.reduce(
-                              (sum, item) =>
-                                sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
-                              0
-                            )
-                          )}</td>
+                          <td>
+                            {formatCurrency(
+                              items.reduce(
+                                (sum, item) =>
+                                  sum +
+                                  parseFloat(item.updated_quantity) *
+                                    parseFloat(item.rate),
+                                0
+                              )
+                            )}
+                          </td>
                         )}
-                        {selectedColumns.includes("source_of_receipt") && <td></td>}
+                        {selectedColumns.includes("source_of_receipt") && (
+                          <td></td>
+                        )}
                         {selectedColumns.includes("scheme_name") && <td></td>}
                       </tr>
                     </tfoot>
@@ -2512,13 +2699,26 @@ const VivranSummaryModal = ({
               <Button
                 variant="outline-success"
                 size="sm"
-                onClick={() => downloadExcel(filteredItems, 'Combined')}
+                onClick={() => downloadExcel(filteredItems, "Combined")}
                 className="me-2 fillter-exel-btn"
               >
-                <i className="delete-icon"> <FaFileExcel /></i>  Excel
+                <i className="delete-icon">
+                  {" "}
+                  <FaFileExcel />
+                </i>{" "}
+                Excel
               </Button>
-              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(filteredItems, 'Combined')} className="fillter-pdf-btn">
-              <i className="delete-icon"> <FaFilePdf /></i>  PDF
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => downloadPdf(filteredItems, "Combined")}
+                className="fillter-pdf-btn"
+              >
+                <i className="delete-icon">
+                  {" "}
+                  <FaFilePdf />
+                </i>{" "}
+                PDF
               </Button>
             </div>
           </Card.Header>
@@ -2694,30 +2894,29 @@ const VivranSummaryModal = ({
             className="text-center position-relative"
             style={{ overflow: "visible" }}
           >
-           <Tabs
-  defaultActiveKey="bar"
-  id="graph-tabs-bottom"
-  className="mb-3 custom-tabs"
->
-  <Tab eventKey="bar" title="बार ग्राफ">
-    <div style={{ overflowX: "auto" }}>
-      <ComparisonBarChart
-        data={chartData}
-        title="आवंटित बनाम बेचा गया"
-        onBarClick={handleBarClick}
-      />
-    </div>
-  </Tab>
+            <Tabs
+              defaultActiveKey="bar"
+              id="graph-tabs-bottom"
+              className="mb-3 custom-tabs"
+            >
+              <Tab eventKey="bar" title="बार ग्राफ">
+                <div style={{ overflowX: "auto" }}>
+                  <ComparisonBarChart
+                    data={chartData}
+                    title="आवंटित बनाम बेचा गया"
+                    onBarClick={handleBarClick}
+                  />
+                </div>
+              </Tab>
 
-  <Tab eventKey="pie" title="पाई चार्ट">
-    <PieChart
-      data={pieChartData}
-      title="विवरण पाई चार्ट"
-      onPieClick={handlePieClick}
-    />
-  </Tab>
-</Tabs>
-
+              <Tab eventKey="pie" title="पाई चार्ट">
+                <PieChart
+                  data={pieChartData}
+                  title="विवरण पाई चार्ट"
+                  onPieClick={handlePieClick}
+                />
+              </Tab>
+            </Tabs>
           </Card.Body>
         </Card>
       </Modal.Body>
