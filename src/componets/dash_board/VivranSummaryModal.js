@@ -172,8 +172,8 @@ const HierarchicalFilter = ({
       case 'vidhan_sabha_name':
         return {
           primary: item,
-          secondary: hierarchyData.vidhanSabhaToVikasKhand[item] || [],
-          secondaryLabel: 'विकासखंड'
+          secondary: hierarchyData.vidhanSabhaToCenters[item] || [],
+          secondaryLabel: 'केंद्र'
         };
       case 'vikas_khand_name':
         const centers = hierarchyData.vikasKhandToCenters[item] || [];
@@ -182,6 +182,30 @@ const HierarchicalFilter = ({
           primary: item,
           secondary: centers.length > 0 ? centers : vidhanSabhaForVikas,
           secondaryLabel: centers.length > 0 ? 'केंद्र' : 'विधानसभा'
+        };
+      case 'scheme_name':
+        return {
+          primary: item,
+          secondary: hierarchyData.schemeToCenters[item] || [],
+          secondaryLabel: 'केंद्र'
+        };
+      case 'investment_name':
+        return {
+          primary: item,
+          secondary: hierarchyData.investmentToCenters[item] || [],
+          secondaryLabel: 'केंद्र'
+        };
+      case 'component':
+        return {
+          primary: item,
+          secondary: hierarchyData.componentToCenters[item] || [],
+          secondaryLabel: 'केंद्र'
+        };
+      case 'source_of_receipt':
+        return {
+          primary: item,
+          secondary: hierarchyData.sourceToCenters[item] || [],
+          secondaryLabel: 'केंद्र'
         };
       default:
         return { primary: item, secondary: [], secondaryLabel: '' };
@@ -527,6 +551,91 @@ const VivranSummaryModal = ({
     return mapping;
   }, [groupData]);
 
+  const vidhanSabhaToCenters = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.vidhan_sabha_name && item.center_name) {
+        if (!mapping[item.vidhan_sabha_name]) {
+          mapping[item.vidhan_sabha_name] = new Set();
+        }
+        mapping[item.vidhan_sabha_name].add(item.center_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const schemeToCenters = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.scheme_name && item.center_name) {
+        if (!mapping[item.scheme_name]) {
+          mapping[item.scheme_name] = new Set();
+        }
+        mapping[item.scheme_name].add(item.center_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const investmentToCenters = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.investment_name && item.center_name) {
+        if (!mapping[item.investment_name]) {
+          mapping[item.investment_name] = new Set();
+        }
+        mapping[item.investment_name].add(item.center_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const componentToCenters = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.component && item.center_name) {
+        if (!mapping[item.component]) {
+          mapping[item.component] = new Set();
+        }
+        mapping[item.component].add(item.center_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const sourceToCenters = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.source_of_receipt && item.center_name) {
+        if (!mapping[item.source_of_receipt]) {
+          mapping[item.source_of_receipt] = new Set();
+        }
+        mapping[item.source_of_receipt].add(item.center_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
   const uniqueInvestments = useMemo(() => {
     return [
       ...new Set(filteredItems.map((item) => item.investment_name)),
@@ -535,10 +644,44 @@ const VivranSummaryModal = ({
       .sort();
   }, [filteredItems]);
 
+  const kendraToInvestments = useMemo(() => {
+    const mapping = {};
+    filteredItems.forEach((item) => {
+      if (item.center_name && item.investment_name) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.investment_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [filteredItems]);
+
   const uniqueComponents = useMemo(() => {
     return [...new Set(filteredItems.map((item) => item.component))]
       .filter(Boolean)
       .sort();
+  }, [filteredItems]);
+
+  const kendraToComponents = useMemo(() => {
+    const mapping = {};
+    filteredItems.forEach((item) => {
+      if (item.center_name && item.component) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.component);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
   }, [filteredItems]);
 
   const uniqueSources = useMemo(() => {
@@ -551,12 +694,46 @@ const VivranSummaryModal = ({
       .sort();
   }, [filteredItems]);
 
+  const kendraToSources = useMemo(() => {
+    const mapping = {};
+    filteredItems.forEach((item) => {
+      if (item.center_name && item.source_of_receipt) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.source_of_receipt);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [filteredItems]);
+
   const uniqueSchemes = useMemo(() => {
     return [
       ...new Set(filteredItems.map((item) => item.scheme_name)),
     ]
       .filter(Boolean)
       .sort();
+  }, [filteredItems]);
+
+  const kendraToSchemes = useMemo(() => {
+    const mapping = {};
+    filteredItems.forEach((item) => {
+      if (item.center_name && item.scheme_name) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.scheme_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach(key => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
   }, [filteredItems]);
 
   // Generate colors for each center
@@ -1605,7 +1782,12 @@ const VivranSummaryModal = ({
                     centerToVikasKhand,
                     vidhanSabhaToVikasKhand,
                     vikasKhandToCenters,
-                    vikasKhandToVidhanSabha
+                    vikasKhandToVidhanSabha,
+                    vidhanSabhaToCenters,
+                    schemeToCenters,
+                    investmentToCenters,
+                    componentToCenters,
+                    sourceToCenters
                   }}
                   hierarchyType="center_name"
                   collapsed={collapsedSections.center_name}
@@ -1624,7 +1806,12 @@ const VivranSummaryModal = ({
                     centerToVikasKhand,
                     vidhanSabhaToVikasKhand,
                     vikasKhandToCenters,
-                    vikasKhandToVidhanSabha
+                    vikasKhandToVidhanSabha,
+                    vidhanSabhaToCenters,
+                    schemeToCenters,
+                    investmentToCenters,
+                    componentToCenters,
+                    sourceToCenters
                   }}
                   hierarchyType="vidhan_sabha_name"
                   collapsed={collapsedSections.vidhan_sabha_name}
@@ -1643,7 +1830,12 @@ const VivranSummaryModal = ({
                     centerToVikasKhand,
                     vidhanSabhaToVikasKhand,
                     vikasKhandToCenters,
-                    vikasKhandToVidhanSabha
+                    vikasKhandToVidhanSabha,
+                    vidhanSabhaToCenters,
+                    schemeToCenters,
+                    investmentToCenters,
+                    componentToCenters,
+                    sourceToCenters
                   }}
                   hierarchyType="vikas_khand_name"
                   collapsed={collapsedSections.vikas_khand_name}
@@ -1651,7 +1843,7 @@ const VivranSummaryModal = ({
                 />
 
                 <Card className="mb-2">
-                  <Card.Header 
+                  <Card.Header
                     onClick={() => toggleCollapse("investment_name")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
@@ -1665,28 +1857,33 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.investment_name}>
                     <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {uniqueInvestments.map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.investment_name || []).includes(
-                                  value
-                                )
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("investment_name", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
+                      {(activeFilters.center_name || []).map((kendra) => (
+                        <div key={kendra} className="mb-3">
+                          <h6 className="small-fonts">{kendra}</h6>
+                          <Row className="g-1 align-items-center">
+                            {(kendraToInvestments[kendra] || []).map((investment) => (
+                              <Col key={investment} xs="auto" className="mb-2">
+                                <Button
+                                  variant={
+                                    (activeFilters.investment_name || []).includes(
+                                      investment
+                                    )
+                                      ? "primary"
+                                      : "outline-secondary"
+                                  }
+                                  size="sm"
+                                  className="filter-button"
+                                  onClick={() =>
+                                    handleFilterChange("investment_name", investment)
+                                  }
+                                >
+                                  {investment}
+                                </Button>
+                              </Col>
+                            ))}
+                          </Row>
+                        </div>
+                      ))}
                     </Card.Body>
                   </Collapse>
                 </Card>
@@ -1706,26 +1903,31 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.component}>
                     <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {uniqueComponents.map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.component || []).includes(value)
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("component", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
+                      {(activeFilters.center_name || []).map((kendra) => (
+                        <div key={kendra} className="mb-3">
+                          <h6 className="small-fonts">{kendra}</h6>
+                          <Row className="g-1 align-items-center">
+                            {(kendraToComponents[kendra] || []).map((component) => (
+                              <Col key={component} xs="auto" className="mb-2">
+                                <Button
+                                  variant={
+                                    (activeFilters.component || []).includes(component)
+                                      ? "primary"
+                                      : "outline-secondary"
+                                  }
+                                  size="sm"
+                                  className="filter-button"
+                                  onClick={() =>
+                                    handleFilterChange("component", component)
+                                  }
+                                >
+                                  {component}
+                                </Button>
+                              </Col>
+                            ))}
+                          </Row>
+                        </div>
+                      ))}
                     </Card.Body>
                   </Collapse>
                 </Card>
@@ -1745,28 +1947,33 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.source_of_receipt}>
                     <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {uniqueSources.map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (
-                                  activeFilters.source_of_receipt || []
-                                ).includes(value)
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("source_of_receipt", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
+                      {(activeFilters.center_name || []).map((kendra) => (
+                        <div key={kendra} className="mb-3">
+                          <h6 className="small-fonts">{kendra}</h6>
+                          <Row className="g-1 align-items-center">
+                            {(kendraToSources[kendra] || []).map((source) => (
+                              <Col key={source} xs="auto" className="mb-2">
+                                <Button
+                                  variant={
+                                    (
+                                      activeFilters.source_of_receipt || []
+                                    ).includes(source)
+                                      ? "primary"
+                                      : "outline-secondary"
+                                  }
+                                  size="sm"
+                                  className="filter-button"
+                                  onClick={() =>
+                                    handleFilterChange("source_of_receipt", source)
+                                  }
+                                >
+                                  {source}
+                                </Button>
+                              </Col>
+                            ))}
+                          </Row>
+                        </div>
+                      ))}
                     </Card.Body>
                   </Collapse>
                 </Card>
@@ -1786,28 +1993,33 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.scheme_name}>
                     <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {uniqueSchemes.map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.scheme_name || []).includes(
-                                  value
-                                )
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("scheme_name", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
+                      {(activeFilters.center_name || []).map((kendra) => (
+                        <div key={kendra} className="mb-3">
+                          <h6 className="small-fonts">{kendra}</h6>
+                          <Row className="g-1 align-items-center">
+                            {(kendraToSchemes[kendra] || []).map((scheme) => (
+                              <Col key={scheme} xs="auto" className="mb-2">
+                                <Button
+                                  variant={
+                                    (activeFilters.scheme_name || []).includes(
+                                      scheme
+                                    )
+                                      ? "primary"
+                                      : "outline-secondary"
+                                  }
+                                  size="sm"
+                                  className="filter-button"
+                                  onClick={() =>
+                                    handleFilterChange("scheme_name", scheme)
+                                  }
+                                >
+                                  {scheme}
+                                </Button>
+                              </Col>
+                            ))}
+                          </Row>
+                        </div>
+                      ))}
                     </Card.Body>
                   </Collapse>
                 </Card>
