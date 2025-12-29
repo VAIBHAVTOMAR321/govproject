@@ -126,6 +126,25 @@ const BarChart = ({ data }) => {
   );
 };
 
+// Draggable Item Component
+const DraggableItem = ({ item, index, onDragStart, onDragEnd, onDragOver, onDrop, isSelected, onClick }) => {
+  return (
+    <div
+      className={`draggable-item ${isSelected ? 'selected' : ''}`}
+      draggable
+      onDragStart={(e) => onDragStart(e, item)}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={(e) => onDrop(e, item)}
+      onClick={() => onClick && onClick(item)}
+    >
+      <Badge bg={isSelected ? "success" : "primary"} className="m-1 badge-large clickable-badge">
+        {item}
+      </Badge>
+    </div>
+  );
+};
+
 const MainDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -141,7 +160,8 @@ const MainDashboard = () => {
   
   // Filtered data state
   const [selectedFilter, setSelectedFilter] = useState(null);
-  const [filteredData, setFilteredData] = useState([]);
+  const [allCenters, setAllCenters] = useState([]);
+  const [selectedCenters, setSelectedCenters] = useState([]);
   const [graphData, setGraphData] = useState([]);
   const [modalData, setModalData] = useState(null);
   const [modalTitle, setModalTitle] = useState('');
@@ -157,6 +177,10 @@ const MainDashboard = () => {
     'allocated_quantity', 'rate', 'allocated_amount', 'updated_quantity',
     'updated_amount', 'source_of_receipt', 'scheme_name'
   ]);
+  
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [draggedFrom, setDraggedFrom] = useState(null);
   
   // Counts for each category
   const [counts, setCounts] = useState({
@@ -210,7 +234,8 @@ const MainDashboard = () => {
   const handleCardClick = async (filterType) => {
     if (selectedFilter === filterType) {
       setSelectedFilter(null);
-      setFilteredData([]);
+      setAllCenters([]);
+      setSelectedCenters([]);
       return;
     }
 
@@ -237,13 +262,13 @@ const MainDashboard = () => {
 
   // Filter data based on selected type
   const filterData = (filterType, data) => {
-    let filtered = [];
+    let all = [];
     let graphDataArray = [];
     
     switch (filterType) {
       case 'kendra':
         // Get unique center names
-        filtered = Array.from(new Set(data.map(item => item.center_name).filter(name => name && name.trim())));
+        all = Array.from(new Set(data.map(item => item.center_name).filter(name => name && name.trim())));
         
         // Calculate total allocated quantity for each center
         const centerTotals = {};
@@ -262,7 +287,7 @@ const MainDashboard = () => {
         
       case 'vidhanSabha':
         // Get unique vidhan sabha names
-        filtered = Array.from(new Set(data.map(item => item.vidhan_sabha_name).filter(name => name && name.trim())));
+        all = Array.from(new Set(data.map(item => item.vidhan_sabha_name).filter(name => name && name.trim())));
         
         // Calculate total allocated quantity for each vidhan sabha
         const vidhanSabhaTotals = {};
@@ -281,7 +306,7 @@ const MainDashboard = () => {
         
       case 'vikasKhand':
         // Get unique vikas khand names
-        filtered = Array.from(new Set(data.map(item => item.vikas_khand_name).filter(name => name && name.trim())));
+        all = Array.from(new Set(data.map(item => item.vikas_khand_name).filter(name => name && name.trim())));
         
         // Calculate total allocated quantity for each vikas khand
         const vikasKhandTotals = {};
@@ -299,11 +324,12 @@ const MainDashboard = () => {
         break;
         
       default:
-        filtered = [];
+        all = [];
         graphDataArray = [];
     }
     
-    setFilteredData(filtered);
+    setAllCenters(all);
+    setSelectedCenters([]);
     setGraphData(graphDataArray);
   };
 
@@ -409,6 +435,108 @@ const MainDashboard = () => {
     setVivranGroupData(groupData);
   };
 
+  // Handle view selected centers button click
+  const handleViewSelectedCenters = () => {
+    if (!selectedFilter || selectedCenters.length === 0) return;
+
+    let groupField = '';
+    let allOptions = [];
+
+    switch (selectedFilter) {
+      case 'kendra':
+        groupField = 'center_name';
+        allOptions = [...new Set(billingData.map(item => item.center_name))].filter(Boolean).sort();
+        break;
+
+      case 'vidhanSabha':
+        groupField = 'vidhan_sabha_name';
+        allOptions = [...new Set(billingData.map(item => item.vidhan_sabha_name))].filter(Boolean).sort();
+        break;
+
+      case 'vikasKhand':
+        groupField = 'vikas_khand_name';
+        allOptions = [...new Set(billingData.map(item => item.vikas_khand_name))].filter(Boolean).sort();
+        break;
+
+      default:
+        groupField = '';
+    }
+
+    // Create group data for VivranSummaryModal with all selected centers
+    const groupData = {
+      group_name: `Selected ${selectedFilter === 'kendra' ? 'Kendra' : selectedFilter === 'vidhanSabha' ? 'Vidhan Sabha' : 'Vikas Khand'} (${selectedCenters.length})`,
+      group_field: groupField,
+      items: billingData,  // Pass all billing data to allow filtering across all
+      allOptions: allOptions,
+      selectedCenters: selectedCenters  // Pass the selected centers
+    };
+
+    setVivranGroupData(groupData);
+    setShowVivranModal(true);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, item) => {
+    setDraggedItem(item);
+    setDraggedFrom(selectedCenters.includes(item) ? 'selected' : 'all');
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDraggedFrom(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetItem) => {
+    e.preventDefault();
+    
+    if (!draggedItem) return;
+    
+    // Determine if we're dropping on the left or right side
+    const dropTarget = e.currentTarget.closest('.all-centers') ? 'all' : 'selected';
+    
+    if (draggedFrom === dropTarget) return; // No need to move if dropping in the same list
+    
+    if (dropTarget === 'selected') {
+      // Move to selected list
+      if (!selectedCenters.includes(draggedItem)) {
+        setSelectedCenters([...selectedCenters, draggedItem]);
+        setAllCenters(allCenters.filter(item => item !== draggedItem));
+      }
+    } else {
+      // Move back to all list
+      if (!allCenters.includes(draggedItem)) {
+        setAllCenters([...allCenters, draggedItem]);
+        setSelectedCenters(selectedCenters.filter(item => item !== draggedItem));
+      }
+    }
+  };
+
+  const handleDropOnZone = (e, zone) => {
+    e.preventDefault();
+    
+    if (!draggedItem) return;
+    
+    if (zone === 'selected' && draggedFrom !== 'selected') {
+      // Move to selected list
+      if (!selectedCenters.includes(draggedItem)) {
+        setSelectedCenters([...selectedCenters, draggedItem]);
+        setAllCenters(allCenters.filter(item => item !== draggedItem));
+      }
+    } else if (zone === 'all' && draggedFrom !== 'all') {
+      // Move back to all list
+      if (!allCenters.includes(draggedItem)) {
+        setAllCenters([...allCenters, draggedItem]);
+        setSelectedCenters(selectedCenters.filter(item => item !== draggedItem));
+      }
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     fetchBillingData();
@@ -417,199 +545,295 @@ const MainDashboard = () => {
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
 
   return (
-    <div >
-    <Container fluid className="p-4">
-      <Row>
-        <Col lg={12} md={12} sm={12}>
-          <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        </Col>
-      </Row>
-      
-      <Row className="left-top">
-        <Col lg={2} md={2} sm={12}>
-          <LeftNav />
-        </Col>
+    <div>
+      <Container fluid className="p-4">
+        <Row>
+          <Col lg={12} md={12} sm={12}>
+            <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+          </Col>
+        </Row>
         
-        <Col lg={10} md={12} sm={10}>
-          <Container fluid className="dashboard-body-main">
-            
-            {/* TABS SECTION */}
-            <Tabs
-              id="dashboard-tabs"
-              activeKey={activeTab}
-              onSelect={(k) => setActiveTab(k)}
-              className="mb-4 custom-tabs"
-            >
-              {/* FIRST TAB: RECORDS */}
-              <Tab eventKey="records" title="Records">
-                <Row>
-                  {/* Kendra Card */}
-                  <Col lg={4} md={6} sm={12} className="mb-3">
-                    <Card 
-                      className="gov-card-body card-gradient-1 clickable-card"
-                      onClick={() => handleCardClick('kendra')}
-                    >
-                      <Card.Body className="gov-card-inner">
-                        <div className="gov-icon">
-                          <i className="bi bi-building"></i>
-                          <p>केंद्र (Kendra)</p>
-                        </div>
-                        <div className="gov-text">
-                          <h2>{counts.kendra}</h2>
-                          <span className="card-trend">
-                            {selectedFilter === 'kendra' ? 'Showing Details' : 'Click to View'}
-                          </span>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-
-                  {/* Vidhan Sabha Card */}
-                  <Col lg={4} md={6} sm={12} className="mb-3">
-                    <Card 
-                      className="gov-card-body card-gradient-2 clickable-card"
-                      onClick={() => handleCardClick('vidhanSabha')}
-                    >
-                      <Card.Body className="gov-card-inner">
-                        <div className="gov-icon">
-                          <i className="bi bi-people"></i>
-                          <p>विधानसभा (Vidhan Sabha)</p>
-                        </div>
-                        <div className="gov-text">
-                          <h2>{counts.vidhanSabha}</h2>
-                          <span className="card-trend">
-                            {selectedFilter === 'vidhanSabha' ? 'Showing Details' : 'Click to View'}
-                          </span>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-
-                  {/* Vikas Khand Card */}
-                  <Col lg={4} md={6} sm={12} className="mb-3">
-                    <Card 
-                      className="gov-card-body card-gradient-3 clickable-card"
-                      onClick={() => handleCardClick('vikasKhand')}
-                    >
-                      <Card.Body className="gov-card-inner">
-                        <div className="gov-icon">
-                          <i className="bi bi-globe"></i>
-                          <p>विकासखंड (Vikas Khand)</p>
-                        </div>
-                        <div className="gov-text">
-                          <h2>{counts.vikasKhand}</h2>
-                          <span className="card-trend">
-                            {selectedFilter === 'vikasKhand' ? 'Showing Details' : 'Click to View'}
-                          </span>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                </Row>
-
-                {/* Detailed View Section */}
-                {selectedFilter && (
-                  <Row className="mt-4">
-                    <Col lg={8} md={8} sm={12}>
-                      <Card>
-                        <Card.Header>
-                          <h5>
-                            {selectedFilter === 'kendra' && 'केंद्र (Kendra) Details'}
-                            {selectedFilter === 'vidhanSabha' && 'विधानसभा (Vidhan Sabha) Details'}
-                            {selectedFilter === 'vikasKhand' && 'विकासखंड (Vikas Khand) Details'}
-                          </h5>
-                        </Card.Header>
-                        <Card.Body>
-                          {loading && selectedFilter ? (
-                            <div className="text-center">
-                              <Spinner animation="border" />
-                              <p className="mt-2">Loading {selectedFilter} data...</p>
-                            </div>
-                          ) : error ? (
-                            <div className="alert alert-danger">{error}</div>
-                          ) : filteredData.length > 0 ? (
-                            <div className="badges-container">
-                              {filteredData.map((item, index) => (
-                                <Badge
-                                  key={index}
-                                  bg="primary"
-                                  className="m-1 badge-large clickable-badge"
-                                  onClick={() => handleBadgeClick(item)}
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  {item}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-muted">No data available for this category.</p>
-                          )}
+        <Row className="left-top">
+          <Col lg={2} md={2} sm={12}>
+            <LeftNav />
+          </Col>
+          
+          <Col lg={10} md={12} sm={10}>
+            <Container fluid className="dashboard-body-main">
+              
+              {/* TABS SECTION */}
+              <Tabs
+                id="dashboard-tabs"
+                activeKey={activeTab}
+                onSelect={(k) => setActiveTab(k)}
+                className="mb-4 custom-tabs"
+              >
+                {/* FIRST TAB: RECORDS */}
+                <Tab eventKey="records" title="Records">
+                  <Row>
+                    {/* Kendra Card */}
+                    <Col lg={4} md={6} sm={12} className="mb-3">
+                      <Card 
+                        className="gov-card-body card-gradient-1 clickable-card"
+                        onClick={() => handleCardClick('kendra')}
+                      >
+                        <Card.Body className="gov-card-inner">
+                          <div className="gov-icon">
+                            <i className="bi bi-building"></i>
+                            <p>केंद्र (Kendra)</p>
+                          </div>
+                          <div className="gov-text">
+                            <h2>{counts.kendra}</h2>
+                            <span className="card-trend">
+                              {selectedFilter === 'kendra' ? 'Showing Details' : 'Click to View'}
+                            </span>
+                          </div>
                         </Card.Body>
                       </Card>
                     </Col>
-                    
-                    <Col lg={4} md={4} sm={12}>
-                      <Card>
-                        <Card.Header>
-                          <h6>Line Graph</h6>
-                        </Card.Header>
-                        <Card.Body>
-                          {/* Dynamic bar graph based on selected data */}
-                          <div className="graph-placeholder">
-                            <p className="text-muted text-center">
-                              {selectedFilter === 'kendra' && 'केंद्र मात्रा (Kendra Matra)'}
-                              {selectedFilter === 'vidhanSabha' && 'विधानसभा मात्रा (Vidhan Sabha Matra)'}
-                              {selectedFilter === 'vikasKhand' && 'विकासखंड मात्रा (Vikas Khand Matra)'}
-                            </p>
-                            <div className="graph-skeleton">
-                              {graphData.length > 0 ? (
-                                <BarChart data={graphData} />
-                              ) : (
-                                <div className="text-center text-muted">No data available</div>
-                              )}
-                            </div>
+
+                    {/* Vidhan Sabha Card */}
+                    <Col lg={4} md={6} sm={12} className="mb-3">
+                      <Card 
+                        className="gov-card-body card-gradient-2 clickable-card"
+                        onClick={() => handleCardClick('vidhanSabha')}
+                      >
+                        <Card.Body className="gov-card-inner">
+                          <div className="gov-icon">
+                            <i className="bi bi-people"></i>
+                            <p>विधानसभा (Vidhan Sabha)</p>
+                          </div>
+                          <div className="gov-text">
+                            <h2>{counts.vidhanSabha}</h2>
+                            <span className="card-trend">
+                              {selectedFilter === 'vidhanSabha' ? 'Showing Details' : 'Click to View'}
+                            </span>
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+
+                    {/* Vikas Khand Card */}
+                    <Col lg={4} md={6} sm={12} className="mb-3">
+                      <Card 
+                        className="gov-card-body card-gradient-3 clickable-card"
+                        onClick={() => handleCardClick('vikasKhand')}
+                      >
+                        <Card.Body className="gov-card-inner">
+                          <div className="gov-icon">
+                            <i className="bi bi-globe"></i>
+                            <p>विकासखंड (Vikas Khand)</p>
+                          </div>
+                          <div className="gov-text">
+                            <h2>{counts.vikasKhand}</h2>
+                            <span className="card-trend">
+                              {selectedFilter === 'vikasKhand' ? 'Showing Details' : 'Click to View'}
+                            </span>
                           </div>
                         </Card.Body>
                       </Card>
                     </Col>
                   </Row>
-                )}
-              </Tab>
 
-              {/* SECOND TAB: ANALYTICS */}
-              <Tab eventKey="analytics" title="Analytics">
-                <Row>
-                  <Col lg={3} md={6} sm={12} className="mb-3">
-                    <div className="gov-card-body card-gradient-5">
-                      <div className="gov-card-inner">
-                        <div className="gov-icon">
-                          <i className="bi bi-currency-rupee"></i>
-                          <p>Total Revenue</p>
-                        </div>
-                        <div className="gov-text">
-                          <h2>₹1.2L</h2>
+                  {/* Detailed View Section with Drag and Drop */}
+                  {selectedFilter && (
+                    <Row className="mt-4">
+                      <Col lg={8} md={8} sm={12}>
+                        <Card>
+                          <Card.Header className="d-flex justify-content-between align-items-center">
+                            <h5>
+                              {selectedFilter === 'kendra' && 'केंद्र (Kendra) Details'}
+                              {selectedFilter === 'vidhanSabha' && 'विधानसभा (Vidhan Sabha) Details'}
+                              {selectedFilter === 'vikasKhand' && 'विकासखंड (Vikas Khand) Details'}
+                            </h5>
+                            {selectedCenters.length > 0 && (
+                              <Button 
+                                variant="primary" 
+                                size="sm"
+                                onClick={handleViewSelectedCenters}
+                              >
+                                चयनित केंद्र ({selectedCenters.length})
+                              </Button>
+                            )}
+                          </Card.Header>
+                          <Card.Body>
+                            {loading && selectedFilter ? (
+                              <div className="text-center">
+                                <Spinner animation="border" />
+                                <p className="mt-2">Loading {selectedFilter} data...</p>
+                              </div>
+                            ) : error ? (
+                              <div className="alert alert-danger">{error}</div>
+                            ) : (
+                              <Row>
+                                <Col lg={8} md={8} sm={12}>
+                                  <div className="drag-drop-container">
+                                    <h6>All Centers</h6>
+                                    <div 
+                                      className="all-centers drop-zone"
+                                      onDragOver={handleDragOver}
+                                      onDrop={(e) => handleDropOnZone(e, 'all')}
+                                    >
+                                      {allCenters.map((item, index) => (
+                                        <DraggableItem
+                                          key={index}
+                                          item={item}
+                                          index={index}
+                                          onDragStart={handleDragStart}
+                                          onDragEnd={handleDragEnd}
+                                          onDragOver={handleDragOver}
+                                          onDrop={handleDrop}
+                                          isSelected={false}
+                                          onClick={handleBadgeClick}
+                                        />
+                                      ))}
+                                      {allCenters.length === 0 && (
+                                        <p className="text-muted">All centers have been selected</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </Col>
+                                <Col lg={4} md={4} sm={12}>
+                                  <div className="drag-drop-container">
+                                    <h6>Selected Centers</h6>
+                                    <div 
+                                      className="selected-centers drop-zone"
+                                      onDragOver={handleDragOver}
+                                      onDrop={(e) => handleDropOnZone(e, 'selected')}
+                                    >
+                                      {selectedCenters.map((item, index) => (
+                                        <DraggableItem
+                                          key={index}
+                                          item={item}
+                                          index={index}
+                                          onDragStart={handleDragStart}
+                                          onDragEnd={handleDragEnd}
+                                          onDragOver={handleDragOver}
+                                          onDrop={handleDrop}
+                                          isSelected={true}
+                                          onClick={handleBadgeClick}
+                                        />
+                                      ))}
+                                      {selectedCenters.length === 0 && (
+                                        <p className="text-muted">Drag centers here to select</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </Col>
+                              </Row>
+                            )}
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                      
+                      <Col lg={4} md={4} sm={12}>
+                        <Card>
+                          <Card.Header>
+                            <h6>Line Graph</h6>
+                          </Card.Header>
+                          <Card.Body>
+                            {/* Dynamic bar graph based on selected data */}
+                            <div className="graph-placeholder">
+                              <p className="text-muted text-center">
+                                {selectedFilter === 'kendra' && 'केंद्र मात्रा (Kendra Matra)'}
+                                {selectedFilter === 'vidhanSabha' && 'विधानसभा मात्रा (Vidhan Sabha Matra)'}
+                                {selectedFilter === 'vikasKhand' && 'विकासखंड मात्रा (Vikas Khand Matra)'}
+                              </p>
+                              <div className="graph-skeleton">
+                                {graphData.length > 0 ? (
+                                  <BarChart data={graphData} />
+                                ) : (
+                                  <div className="text-center text-muted">No data available</div>
+                                )}
+                              </div>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    </Row>
+                  )}
+                </Tab>
+
+                {/* SECOND TAB: ANALYTICS */}
+                <Tab eventKey="analytics" title="Analytics">
+                  <Row>
+                    <Col lg={3} md={6} sm={12} className="mb-3">
+                      <div className="gov-card-body card-gradient-5">
+                        <div className="gov-card-inner">
+                          <div className="gov-icon">
+                            <i className="bi bi-currency-rupee"></i>
+                            <p>Total Revenue</p>
+                          </div>
+                          <div className="gov-text">
+                            <h2>₹1.2L</h2>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Col>
-                </Row>
-              </Tab>
-            </Tabs>
-          </Container>
-        </Col>
-      </Row>
+                    </Col>
+                  </Row>
+                </Tab>
+              </Tabs>
+            </Container>
+          </Col>
+        </Row>
 
-      {/* Vivran Summary Modal */}
-      <VivranSummaryModal
-        show={showVivranModal}
-        onHide={() => setShowVivranModal(false)}
-        groupData={vivranGroupData}
-        selectedColumns={selectedColumns}
-        setSelectedColumns={setSelectedColumns}
-      />
-    </Container>
+        {/* Vivran Summary Modal */}
+        <VivranSummaryModal
+          show={showVivranModal}
+          onHide={() => setShowVivranModal(false)}
+          groupData={vivranGroupData}
+          selectedColumns={selectedColumns}
+          setSelectedColumns={setSelectedColumns}
+        />
+      </Container>
+      
+      {/* Add custom styles for drag and drop */}
+      <style jsx>{`
+        .drag-drop-container {
+          min-height: 200px;
+          border: 1px solid #dee2e6;
+          border-radius: 0.25rem;
+          padding: 10px;
+        }
+        
+        .drop-zone {
+          min-height: 180px;
+          background-color: #f8f9fa;
+          border-radius: 0.25rem;
+          padding: 10px;
+        }
+        
+        .draggable-item {
+          display: inline-block;
+          margin: 5px;
+          cursor: grab;
+        }
+        
+        .draggable-item:active {
+          cursor: grabbing;
+        }
+        
+        .draggable-item.selected {
+          opacity: 0.7;
+        }
+        
+        .badge-large {
+          font-size: 14px;
+          padding: 8px 12px;
+        }
+        
+        .clickable-badge {
+          transition: all 0.2s ease;
+        }
+        
+        .clickable-badge:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+      `}</style>
     </div>
   );
 };
+
 
 export default MainDashboard;
