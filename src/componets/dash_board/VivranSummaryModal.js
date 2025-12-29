@@ -1615,26 +1615,26 @@ const VivranSummaryModal = ({
                 />
 
                 <Card className="mb-2">
-                  <Card.Header 
-                    onClick={() => toggleCollapse("investment_name")}
+                  <Card.Header
+                    onClick={() => toggleCollapse("scheme_name")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
-                    {collapsedSections.investment_name ? (
+                    <span>योजना ({uniqueSchemes.length})</span>
+                    {collapsedSections.scheme_name ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.investment_name}>
+                  <Collapse in={!collapsedSections.scheme_name}>
                     <Card.Body>
                       <Row className="g-1 align-items-center">
-                        {uniqueInvestments.map((value) => (
+                        {uniqueSchemes.map((value) => (
                           <Col key={value} xs="auto" className="mb-2">
                             <Button
                               variant={
-                                (activeFilters.investment_name || []).includes(
+                                (activeFilters.scheme_name || []).includes(
                                   value
                                 )
                                   ? "primary"
@@ -1643,46 +1643,7 @@ const VivranSummaryModal = ({
                               size="sm"
                               className="filter-button"
                               onClick={() =>
-                                handleFilterChange("investment_name", value)
-                              }
-                            >
-                              {value}
-                            </Button>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-
-                <Card className="mb-2">
-                  <Card.Header
-                    onClick={() => toggleCollapse("component")}
-                    style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center accordin-header"
-                  >
-                    <span>घटक ({uniqueComponents.length})</span>
-                    {collapsedSections.component ? (
-                      <FaChevronDown />
-                    ) : (
-                      <FaChevronUp />
-                    )}
-                  </Card.Header>
-                  <Collapse in={!collapsedSections.component}>
-                    <Card.Body>
-                      <Row className="g-1 align-items-center">
-                        {uniqueComponents.map((value) => (
-                          <Col key={value} xs="auto" className="mb-2">
-                            <Button
-                              variant={
-                                (activeFilters.component || []).includes(value)
-                                  ? "primary"
-                                  : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                handleFilterChange("component", value)
+                                handleFilterChange("scheme_name", value)
                               }
                             >
                               {value}
@@ -1737,25 +1698,64 @@ const VivranSummaryModal = ({
 
                 <Card className="mb-2">
                   <Card.Header
-                    onClick={() => toggleCollapse("scheme_name")}
+                    onClick={() => toggleCollapse("component")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>योजना ({uniqueSchemes.length})</span>
-                    {collapsedSections.scheme_name ? (
+                    <span>घटक ({uniqueComponents.length})</span>
+                    {collapsedSections.component ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.scheme_name}>
+                  <Collapse in={!collapsedSections.component}>
                     <Card.Body>
                       <Row className="g-1 align-items-center">
-                        {uniqueSchemes.map((value) => (
+                        {uniqueComponents.map((value) => (
                           <Col key={value} xs="auto" className="mb-2">
                             <Button
                               variant={
-                                (activeFilters.scheme_name || []).includes(
+                                (activeFilters.component || []).includes(value)
+                                  ? "primary"
+                                  : "outline-secondary"
+                              }
+                              size="sm"
+                              className="filter-button"
+                              onClick={() =>
+                                handleFilterChange("component", value)
+                              }
+                            >
+                              {value}
+                            </Button>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse("investment_name")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
+                    {collapsedSections.investment_name ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.investment_name}>
+                    <Card.Body>
+                      <Row className="g-1 align-items-center">
+                        {uniqueInvestments.map((value) => (
+                          <Col key={value} xs="auto" className="mb-2">
+                            <Button
+                              variant={
+                                (activeFilters.investment_name || []).includes(
                                   value
                                 )
                                   ? "primary"
@@ -1764,7 +1764,7 @@ const VivranSummaryModal = ({
                               size="sm"
                               className="filter-button"
                               onClick={() =>
-                                handleFilterChange("scheme_name", value)
+                                handleFilterChange("investment_name", value)
                               }
                             >
                               {value}
