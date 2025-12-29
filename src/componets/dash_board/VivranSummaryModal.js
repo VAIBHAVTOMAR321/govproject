@@ -12,6 +12,9 @@ import {
   Tab,
   Tabs,
 } from "react-bootstrap";
+import { MdOutlineCheck } from "react-icons/md";
+import { RiDeleteBin6Line } from "react-icons/ri";
+
 import {
   FaTimes,
   FaFileExcel,
@@ -55,16 +58,16 @@ const ColumnSelection = ({
             variant="outline-secondary"
             size="sm"
             onClick={handleSelectAll}
-            className="me-2"
+            className="me-2 fillter-add-btn"
           >
-            सभी चुनें
+            <i className="delete-icon"><MdOutlineCheck /> </i> सभी चुनें
           </Button>
           <Button
-            variant="outline-secondary"
+            variant="outline-secondary" className="fillter-remove-btn"
             size="sm"
             onClick={handleDeselectAll}
           >
-            सभी हटाएं
+          <i className="delete-icon"> <RiDeleteBin6Line /></i>  सभी हटाएं
           </Button>
         </div>
       </div>
@@ -184,7 +187,7 @@ const HierarchicalFilter = ({
                     variant={
                       (activeFilters.center_name || []).includes(value)
                         ? "primary"
-                        : "outline-secondary"
+                        : "outline-secondary" 
                     }
                     size="sm"
                     className="filter-button"
@@ -1485,21 +1488,21 @@ const VivranSummaryModal = ({
       centered
       className="vivran-summary-modal"
     >
-      <Modal.Header closeButton onClick={onHide}>
+      <Modal.Header closeButton onClick={onHide} className="modal-title">
         <Modal.Title>{groupData.group_name} - विवरण</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {/* Collapsible Filters and Charts Section */}
         <Card className="mb-3">
           <Card.Header>
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex justify-content-between align-items-center fillter-heading">
               <h6 className="mb-0">फिल्टर और ग्राफ</h6>
               <Button
-                variant="outline-secondary"
-                size="sm"
+                variant="outline-secondary fillter-remove-btn"
+                size="sm" 
                 onClick={clearAllFilters}
               >
-                सभी फिल्टर हटाएं
+            <i className="delete-icon"><RiDeleteBin6Line/></i>    सभी फिल्टर हटाएं
               </Button>
             </div>
           </Card.Header>
@@ -1508,10 +1511,10 @@ const VivranSummaryModal = ({
               <Col md={6}>
                 {/* Financial Summary Section */}
                 <Card className="mb-2">
-                  <Card.Header
+                  <Card.Header 
                     onClick={() => toggleCollapse("financial_summary")}
                     style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
+                    className="d-flex justify-content-between align-items-center accordin-header"
                   >
                     <span>वित्तीय सारांश</span>
                     {collapsedSections.financial_summary ? (
@@ -1522,36 +1525,39 @@ const VivranSummaryModal = ({
                   </Card.Header>
                   <Collapse in={!collapsedSections.financial_summary}>
                     <Card.Body>
-                      <Row className="text-center g-2">
-                        <Col md={4}>
-                          <div className="p-2 border rounded">
-                            <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
-                            <p className="mb-0 fw-bold small">
-                              {formatCurrency(totalAllocated)}
-                            </p>
-                          </div>
-                        </Col>
-                        <Col md={4}>
-                          <div className="p-2 border rounded">
-                            <h6 className="mb-1 small-fonts">शेष राशि</h6>
-                            <p className="mb-0 text-success fw-bold small">
-                              {formatCurrency(totalRemaining)}
-                            </p>
-                          </div>
-                        </Col>
-                        <Col md={4}>
-                          <div className="p-2 border rounded">
-                            <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
-                            <p className="mb-0 text-warning fw-bold small">
-                              {formatCurrency(totalUpdated)}
-                            </p>
-                          </div>
-                        </Col>
-                      </Row>
+                     <Row className="text-center g-2">
+  <Col md={4}>
+    <div className="p-2 border rounded amount-box">
+      <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
+      <p className="mb-0 fw-bold small">
+        {formatCurrency(totalAllocated)}
+      </p>
+    </div>
+  </Col>
+
+  <Col md={4}>
+    <div className="p-2 border rounded amount-box">
+      <h6 className="mb-1 small-fonts">शेष राशि</h6>
+      <p className="mb-0 text-success fw-bold small">
+        {formatCurrency(totalRemaining)}
+      </p>
+    </div>
+  </Col>
+
+  <Col md={4}>
+    <div className="p-2 border rounded amount-box">
+      <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
+      <p className="mb-0 text-warning fw-bold small">
+        {formatCurrency(totalUpdated)}
+      </p>
+    </div>
+  </Col>
+</Row>
+
                     </Card.Body>
                   </Collapse>
                 </Card>
-                <HierarchicalFilter
+                <HierarchicalFilter 
                   title="केंद्र का नाम"
                   items={groupData?.group_field === "center_name"
                     ? groupData.allOptions || allCenters
@@ -1569,9 +1575,9 @@ const VivranSummaryModal = ({
                   collapsed={collapsedSections.center_name}
                   onToggleCollapse={() => toggleCollapse("center_name")}
                 />
-
+ 
                 <HierarchicalFilter
-                  title="विधानसभा का नाम"
+                  title="विधानसभा का नाम" className="accordin-header"
                   items={groupData?.group_field === "vidhan_sabha_name"
                     ? groupData.allOptions || allVidhanSabha
                     : uniqueVidhanSabha}
@@ -1609,10 +1615,10 @@ const VivranSummaryModal = ({
                 />
 
                 <Card className="mb-2">
-                  <Card.Header
+                  <Card.Header 
                     onClick={() => toggleCollapse("investment_name")}
                     style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
+                    className="d-flex justify-content-between align-items-center accordin-header"
                   >
                     <span>निवेश का नाम ({uniqueInvestments.length})</span>
                     {collapsedSections.investment_name ? (
@@ -1653,7 +1659,7 @@ const VivranSummaryModal = ({
                   <Card.Header
                     onClick={() => toggleCollapse("component")}
                     style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
+                    className="d-flex justify-content-between align-items-center accordin-header"
                   >
                     <span>घटक ({uniqueComponents.length})</span>
                     {collapsedSections.component ? (
@@ -1692,7 +1698,7 @@ const VivranSummaryModal = ({
                   <Card.Header
                     onClick={() => toggleCollapse("source_of_receipt")}
                     style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
+                    className="d-flex justify-content-between align-items-center accordin-header"
                   >
                     <span>स्रोत ({uniqueSources.length})</span>
                     {collapsedSections.source_of_receipt ? (
@@ -1733,7 +1739,7 @@ const VivranSummaryModal = ({
                   <Card.Header
                     onClick={() => toggleCollapse("scheme_name")}
                     style={{ cursor: "pointer" }}
-                    className="d-flex justify-content-between align-items-center"
+                    className="d-flex justify-content-between align-items-center accordin-header"
                   >
                     <span>योजना ({uniqueSchemes.length})</span>
                     {collapsedSections.scheme_name ? (
@@ -1771,24 +1777,30 @@ const VivranSummaryModal = ({
                 </Card>
               </Col>
               <Col md={6}>
-                <Tabs defaultActiveKey="bar" id="graph-tabs" className="mb-3">
-                  <Tab eventKey="bar" title="बार ग्राफ">
-                    <div style={{ overflowX: "auto" }}>
-                      <ComparisonBarChart
-                        data={chartData}
-                        title="आवंटित बनाम बेचा गया"
-                        onBarClick={handleBarClick}
-                      />
-                    </div>
-                  </Tab>
-                  <Tab eventKey="pie" title="पाई चार्ट">
-                    <PieChart
-                      data={pieChartData}
-                      title="विवरण पाई चार्ट"
-                      onPieClick={handlePieClick}
-                    />
-                  </Tab>
-                </Tabs>
+             <Tabs
+  defaultActiveKey="bar"
+  id="graph-tabs"
+  className="mb-3 custom-tabs"
+>
+  <Tab eventKey="bar" title="बार ग्राफ">
+    <div style={{ overflowX: "auto" }}>
+      <ComparisonBarChart
+        data={chartData}
+        title="आवंटित बनाम बेचा गया"
+        onBarClick={handleBarClick}
+      />
+    </div>
+  </Tab>
+
+  <Tab eventKey="pie" title="पाई चार्ट">
+    <PieChart
+      data={pieChartData}
+      title="विवरण पाई चार्ट"
+      onPieClick={handlePieClick}
+    />
+  </Tab>
+</Tabs>
+
               </Col>
             </Row>
           </Card.Body>
@@ -1797,19 +1809,19 @@ const VivranSummaryModal = ({
         {/* Table Section */}
         {Object.entries(groupedData).map(([key, items]) => (
           <Card className="mb-3" key={key}>
-            <Card.Header className="d-flex justify-content-between align-items-center">
+            <Card.Header className=" teanle-heading">
               <h6 className="mb-0">विवरण तालिका - {key}</h6>
               <div>
                 <Button
                   variant="outline-success"
                   size="sm"
                   onClick={() => downloadExcel(items, key)}
-                  className="me-2"
+                  className="me-2 fillter-exel-btn"
                 >
-                  <FaFileExcel /> Excel
+                 <i className="delete-icon"><FaFileExcel /></i>  Excel
                 </Button>
-                <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(items, key)}>
-                  <FaFilePdf /> PDF
+                <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(items, key)} className="fillter-pdf-btn">
+                      <i className="delete-icon"><FaFilePdf /></i>  PDF
                 </Button>
               </div>
             </Card.Header>
@@ -1991,19 +2003,19 @@ const VivranSummaryModal = ({
 
         {/* Combined Table Section */}
         <Card className="mb-3">
-          <Card.Header className="d-flex justify-content-between align-items-center">
+          <Card.Header className=" teanle-heading">
             <h6 className="mb-0">संपूर्ण विवरण तालिका</h6>
             <div>
               <Button
                 variant="outline-success"
                 size="sm"
                 onClick={() => downloadExcel(filteredItems, 'Combined')}
-                className="me-2"
+                className="me-2 fillter-exel-btn"
               >
-                <FaFileExcel /> Excel
+                <i className="delete-icon"> <FaFileExcel /></i>  Excel
               </Button>
-              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(filteredItems, 'Combined')}>
-                <FaFilePdf /> PDF
+              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(filteredItems, 'Combined')} className="fillter-pdf-btn">
+              <i className="delete-icon"> <FaFilePdf /></i>  PDF
               </Button>
             </div>
           </Card.Header>
@@ -2172,35 +2184,37 @@ const VivranSummaryModal = ({
 
         {/* Graph Section */}
         <Card>
-          <Card.Header>
+          <Card.Header className="fillter-heading">
             <h6 className="mb-0">विवरण ग्राफ</h6>
           </Card.Header>
           <Card.Body
             className="text-center position-relative"
             style={{ overflow: "visible" }}
           >
-            <Tabs
-              defaultActiveKey="bar"
-              id="graph-tabs-bottom"
-              className="mb-3"
-            >
-              <Tab eventKey="bar" title="बार ग्राफ">
-                <div style={{ overflowX: "auto" }}>
-                  <ComparisonBarChart
-                    data={chartData}
-                    title="आवंटित बनाम बेचा गया"
-                    onBarClick={handleBarClick}
-                  />
-                </div>
-              </Tab>
-              <Tab eventKey="pie" title="पाई चार्ट">
-                <PieChart
-                  data={pieChartData}
-                  title="विवरण पाई चार्ट"
-                  onPieClick={handlePieClick}
-                />
-              </Tab>
-            </Tabs>
+           <Tabs
+  defaultActiveKey="bar"
+  id="graph-tabs-bottom"
+  className="mb-3 custom-tabs"
+>
+  <Tab eventKey="bar" title="बार ग्राफ">
+    <div style={{ overflowX: "auto" }}>
+      <ComparisonBarChart
+        data={chartData}
+        title="आवंटित बनाम बेचा गया"
+        onBarClick={handleBarClick}
+      />
+    </div>
+  </Tab>
+
+  <Tab eventKey="pie" title="पाई चार्ट">
+    <PieChart
+      data={pieChartData}
+      title="विवरण पाई चार्ट"
+      onPieClick={handlePieClick}
+    />
+  </Tab>
+</Tabs>
+
           </Card.Body>
         </Card>
       </Modal.Body>

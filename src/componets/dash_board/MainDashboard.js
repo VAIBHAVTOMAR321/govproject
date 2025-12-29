@@ -417,7 +417,8 @@ const MainDashboard = () => {
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
 
   return (
-    <div>
+    <div >
+    <Container fluid className="p-4">
       <Row>
         <Col lg={12} md={12} sm={12}>
           <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
@@ -606,6 +607,7 @@ const MainDashboard = () => {
         selectedColumns={selectedColumns}
         setSelectedColumns={setSelectedColumns}
       />
+    </Container>
     </div>
   );
 };
