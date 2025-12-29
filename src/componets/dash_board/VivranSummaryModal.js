@@ -170,18 +170,20 @@ const HierarchicalFilter = ({
           secondaryLabel: vidhanSabhas.length > 0 ? 'विधानसभा' : 'विकासखंड'
         };
       case 'vidhan_sabha_name':
+        const centersForVidhan = hierarchyData.vidhanSabhaToCenters[item] || [];
+        const vikasKhandsForVidhan = hierarchyData.vidhanSabhaToVikasKhand ? hierarchyData.vidhanSabhaToVikasKhand[item] || [] : [];
         return {
           primary: item,
-          secondary: hierarchyData.vidhanSabhaToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondary: centersForVidhan.length > 0 ? centersForVidhan : vikasKhandsForVidhan,
+          secondaryLabel: centersForVidhan.length > 0 ? 'केंद्र' : 'विकासखंड'
         };
       case 'vikas_khand_name':
-        const centers = hierarchyData.vikasKhandToCenters[item] || [];
-        const vidhanSabhaForVikas = hierarchyData.vikasKhandToVidhanSabha ? hierarchyData.vikasKhandToVidhanSabha[item] || [] : [];
+        const centersForVikas = hierarchyData.vikasKhandToCenters[item] || [];
+        const vidhanSabhasForVikas = hierarchyData.vikasKhandToVidhanSabha ? hierarchyData.vikasKhandToVidhanSabha[item] || [] : [];
         return {
           primary: item,
-          secondary: centers.length > 0 ? centers : vidhanSabhaForVikas,
-          secondaryLabel: centers.length > 0 ? 'केंद्र' : 'विधानसभा'
+          secondary: centersForVikas.length > 0 ? centersForVikas : vidhanSabhasForVikas,
+          secondaryLabel: centersForVikas.length > 0 ? 'केंद्र' : 'विधानसभा'
         };
       case 'scheme_name':
         return {
@@ -265,60 +267,230 @@ const HierarchicalFilter = ({
       </Card.Header>
       <Collapse in={!collapsed}>
         <Card.Body>
-          <Row className="g-2">
-            {items.map((item) => {
-              const hierarchy = getHierarchyDisplay(item, hierarchyType);
-              const isSelected = (activeFilters[hierarchyType] || []).includes(item);
-              const isExpanded = expandedItems.has(item);
+          {/* For vidhan_sabha_name, show vidhan_sabhas with their kendras */}
+          {hierarchyType === 'vidhan_sabha_name' ? (
+            (() => {
+              // Get selected kendras
+              const selectedKendras = Object.entries(hierarchyData.centerToVidhanSabha || {})
+                .filter(([kendra]) => {
+                  // If centers are selected, only show kendras that are selected
+                  if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                    return activeFilters.center_name.includes(kendra);
+                  }
+                  return true;
+                })
+                .map(([kendra]) => kendra);
+
+              if (selectedKendras.length === 0) return null;
+
+              // Create mapping of vidhan_sabha to kendras
+              const vidhanSabhaToKendras = {};
+              selectedKendras.forEach(kendra => {
+                const kendrasVidhanSabhas = hierarchyData.centerToVidhanSabha[kendra] || [];
+                kendrasVidhanSabhas.forEach(vidhanSabha => {
+                  if (!vidhanSabhaToKendras[vidhanSabha]) {
+                    vidhanSabhaToKendras[vidhanSabha] = [];
+                  }
+                  vidhanSabhaToKendras[vidhanSabha].push(kendra);
+                });
+              });
+
+              // Get unique vidhan_sabhas sorted by name
+              const uniqueVidhanSabhas = Object.keys(vidhanSabhaToKendras).sort();
+
+              if (uniqueVidhanSabhas.length === 0) return null;
 
               return (
-                <Col key={item} xs={12} className="mb-2">
-                  <div className="border rounded p-2">
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <Button
-                        variant={isSelected ? "primary" : "outline-secondary"}
-                        size="sm"
-                        className="filter-button me-2"
-                        onClick={() => onFilterChange(hierarchyType, item)}
-                      >
-                        {hierarchy.primary}
-                      </Button>
-                      {hierarchy.secondary.length > 0 && (
+                <div className="mb-3">
+                  {uniqueVidhanSabhas.map((vidhanSabha) => {
+                    const isSelected = (() => {
+                      const filterValue = activeFilters[hierarchyType];
+                      if (!filterValue) return false;
+                      
+                      // Handle kendra-based filters (object with kendra keys)
+                      if (typeof filterValue === 'object' && !Array.isArray(filterValue)) {
+                        // Check if any kendra has this item selected
+                        return Object.values(filterValue).some(kendraFilters =>
+                          Array.isArray(kendraFilters) && kendraFilters.includes(vidhanSabha)
+                        );
+                      }
+                      
+                      // Handle legacy array-based filters
+                      return Array.isArray(filterValue) && filterValue.includes(vidhanSabha);
+                    })();
+
+                    const kendrasForThisVidhanSabha = vidhanSabhaToKendras[vidhanSabha];
+
+                    return (
+                      <div key={vidhanSabha} className="mb-3">
+                        <h6 className="small-fonts">
+                          {kendrasForThisVidhanSabha.join(', ')}
+                        </h6>
+                        <Row className="g-1 align-items-center">
+                          <Col xs="auto" className="mb-2">
+                            <Button
+                              variant={isSelected ? "primary" : "outline-secondary"}
+                              size="sm"
+                              className="filter-button"
+                              onClick={() => onFilterChange(hierarchyType, vidhanSabha)}
+                            >
+                              {vidhanSabha}
+                            </Button>
+                          </Col>
+                        </Row>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          ) : hierarchyType === 'vikas_khand_name' ? (
+            // For vikas_khand_name, show vikas_khonds with their kendras
+            (() => {
+              // Get selected kendras
+              const selectedKendras = Object.entries(hierarchyData.centerToVidhanSabha || {})
+                .filter(([kendra]) => {
+                  // If centers are selected, only show kendras that are selected
+                  if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                    return activeFilters.center_name.includes(kendra);
+                  }
+                  return true;
+                })
+                .map(([kendra]) => kendra);
+
+              if (selectedKendras.length === 0) return null;
+
+              // Create mapping of vikas_khand to kendras
+              const vikasKhandToKendras = {};
+              selectedKendras.forEach(kendra => {
+                const kendrasVikasKhands = hierarchyData.centerToVikasKhand[kendra] || [];
+                kendrasVikasKhands.forEach(vikasKhand => {
+                  if (!vikasKhandToKendras[vikasKhand]) {
+                    vikasKhandToKendras[vikasKhand] = [];
+                  }
+                  vikasKhandToKendras[vikasKhand].push(kendra);
+                });
+              });
+
+              // Get unique vikas_khonds sorted by name
+              const uniqueVikasKhands = Object.keys(vikasKhandToKendras).sort();
+
+              if (uniqueVikasKhands.length === 0) return null;
+
+              return (
+                <div className="mb-3">
+                  {uniqueVikasKhands.map((vikasKhand) => {
+                    const isSelected = (() => {
+                      const filterValue = activeFilters[hierarchyType];
+                      if (!filterValue) return false;
+                      
+                      // Handle kendra-based filters (object with kendra keys)
+                      if (typeof filterValue === 'object' && !Array.isArray(filterValue)) {
+                        // Check if any kendra has this item selected
+                        return Object.values(filterValue).some(kendraFilters =>
+                          Array.isArray(kendraFilters) && kendraFilters.includes(vikasKhand)
+                        );
+                      }
+                      
+                      // Handle legacy array-based filters
+                      return Array.isArray(filterValue) && filterValue.includes(vikasKhand);
+                    })();
+
+                    const kendrasForThisVikasKhand = vikasKhandToKendras[vikasKhand];
+
+                    return (
+                      <div key={vikasKhand} className="mb-3">
+                        <h6 className="small-fonts">
+                          {kendrasForThisVikasKhand.join(', ')}
+                        </h6>
+                        <Row className="g-1 align-items-center">
+                          <Col xs="auto" className="mb-2">
+                            <Button
+                              variant={isSelected ? "primary" : "outline-secondary"}
+                              size="sm"
+                              className="filter-button"
+                              onClick={() => onFilterChange(hierarchyType, vikasKhand)}
+                            >
+                              {vikasKhand}
+                            </Button>
+                          </Col>
+                        </Row>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          ) : (
+            <Row className="g-2">
+              {items.map((item) => {
+                const hierarchy = getHierarchyDisplay(item, hierarchyType);
+                const isSelected = (() => {
+                  const filterValue = activeFilters[hierarchyType];
+                  if (!filterValue) return false;
+                  
+                  // Handle kendra-based filters (object with kendra keys)
+                  if (typeof filterValue === 'object' && !Array.isArray(filterValue)) {
+                    // Check if any kendra has this item selected
+                    return Object.values(filterValue).some(kendraFilters =>
+                      Array.isArray(kendraFilters) && kendraFilters.includes(item)
+                    );
+                  }
+                  
+                  // Handle legacy array-based filters
+                  return Array.isArray(filterValue) && filterValue.includes(item);
+                })();
+                const isExpanded = expandedItems.has(item);
+
+                return (
+                  <Col key={item} xs={12} className="mb-2">
+                    <div className="border rounded p-2">
+                      <div className="d-flex justify-content-between align-items-center mb-1">
                         <Button
-                          variant="link"
+                          variant={isSelected ? "primary" : "outline-secondary"}
                           size="sm"
-                          onClick={() => toggleItemExpansion(item)}
-                          className="p-0 text-decoration-none"
+                          className="filter-button me-2"
+                          onClick={() => onFilterChange(hierarchyType, item)}
                         >
-                          {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
-                          <small className="ms-1">
-                            {hierarchy.secondaryLabel} ({hierarchy.secondary.length})
-                          </small>
+                          {hierarchy.primary}
                         </Button>
+                        {hierarchy.secondary.length > 0 && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => toggleItemExpansion(item)}
+                            className="p-0 text-decoration-none"
+                          >
+                            {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                            <small className="ms-1">
+                              {hierarchy.secondaryLabel} ({hierarchy.secondary.length})
+                            </small>
+                          </Button>
+                        )}
+                      </div>
+                      {isExpanded && hierarchy.secondary.length > 0 && (
+                        <div className="ms-3 mt-2">
+                          <small className="text-muted fw-bold">{hierarchy.secondaryLabel}:</small>
+                          <div className="d-flex flex-wrap gap-1 mt-1">
+                            {hierarchy.secondary.map((subItem) => (
+                              <Badge
+                                key={subItem}
+                                bg="light"
+                                text="dark"
+                                className="small"
+                              >
+                                {subItem}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                    {isExpanded && hierarchy.secondary.length > 0 && (
-                      <div className="ms-3 mt-2">
-                        <small className="text-muted fw-bold">{hierarchy.secondaryLabel}:</small>
-                        <div className="d-flex flex-wrap gap-1 mt-1">
-                          {hierarchy.secondary.map((subItem) => (
-                            <Badge
-                              key={subItem}
-                              bg="light"
-                              text="dark"
-                              className="small"
-                            >
-                              {subItem}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Col>
-              );
-            })}
-          </Row>
+                  </Col>
+                );
+              })}
+            </Row>
+          )}
         </Card.Body>
       </Collapse>
     </Card>
@@ -574,6 +746,7 @@ const VivranSummaryModal = ({
     });
     return mapping;
   }, [groupData]);
+
 
   const vikasKhandToVidhanSabha = useMemo(() => {
     const mapping = {};
@@ -915,9 +1088,29 @@ const VivranSummaryModal = ({
     if (!groupData || !groupData.group_field || !activeFilters[groupData.group_field]) return {};
     const selectedValues = activeFilters[groupData.group_field];
     const groups = {};
-    selectedValues.forEach(value => {
-      groups[value] = filteredItems.filter(item => item[groupData.group_field] === value);
-    });
+    
+    // Handle kendra-based filters (object with kendra keys)
+    if (typeof selectedValues === 'object' && !Array.isArray(selectedValues)) {
+      // For kendra-based filters, we need to get the values from all kendras
+      const allValues = [];
+      Object.values(selectedValues).forEach(kendraFilters => {
+        if (Array.isArray(kendraFilters)) {
+          allValues.push(...kendraFilters);
+        }
+      });
+      // Remove duplicates
+      const uniqueValues = [...new Set(allValues)];
+      uniqueValues.forEach(value => {
+        groups[value] = filteredItems.filter(item => item[groupData.group_field] === value);
+      });
+    }
+    // Handle legacy array-based filters
+    else if (Array.isArray(selectedValues)) {
+      selectedValues.forEach(value => {
+        groups[value] = filteredItems.filter(item => item[groupData.group_field] === value);
+      });
+    }
+    
     return groups;
   }, [filteredItems, groupData, activeFilters]);
 
