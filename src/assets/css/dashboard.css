@@ -637,6 +637,43 @@ font-size: 14px;
   line-height: 1.4;
 }
 
+/* Clickable badge styles */
+.table-details-modal .clickable-badge {
+  transition: all 0.2s ease;
+}
+
+.table-details-modal .clickable-badge:hover {
+  background-color: #e9ecef !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Places grid styles */
+.table-details-modal .places-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.table-details-modal .places-grid .badge {
+  flex: 0 0 auto;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+/* Clickable detail item styles */
+.table-details-modal .clickable-detail-item {
+  transition: all 0.2s ease;
+}
+
+.table-details-modal .clickable-detail-item:hover {
+  background-color: #f8f9fa !important;
+  border-color: #007bff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+}
+
 /* Collapsible scheme styles */
 .table-details-modal .scheme-header {
   display: flex;
@@ -707,4 +744,11 @@ font-size: 14px;
   border-color: #dee2e6;
   color: #6c757d;
   cursor: not-allowed;
+}
+
+/* Selected detail item highlighting */
+.selected-detail {
+  background-color: #d1ecf1 !important;
+  border-color: #17a2b8 !important;
+  box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.25);
 }
