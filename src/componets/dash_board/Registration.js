@@ -2464,11 +2464,11 @@ const Registration = () => {
                                     variant="outline-primary"
                                     size="sm"
                                     onClick={() => handleEdit(item)}
-                                    className="me-1"
+                                    className="me-1 gov-edit-btn"
                                   >
                                     संपादित करें
                                   </Button>
-                                  <Button
+                                  <Button className="gov-delete-btn"
                                     variant="outline-danger"
                                     size="sm"
                                     onClick={() => handleDelete(item)}

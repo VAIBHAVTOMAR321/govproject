@@ -12,7 +12,12 @@
   /* smooth UI */
   transition: all 0.3s ease;
 }
-
+.gov-edit-btn{
+  font-size: 10px;
+}
+.gov-delete-btn{
+   font-size: 10px;
+}
 .dashboard-body-main h1,
 .dashboard-body-main h2,
 .dashboard-body-main h3 {
