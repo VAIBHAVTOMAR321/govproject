@@ -22,6 +22,7 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
+import TableDetailsModal from "./TableDetailsModal";
 import * as XLSX from "xlsx";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
@@ -523,6 +524,9 @@ const VivranSummaryModal = ({
   setSelectedColumns,
 }) => {
   const [activeFilters, setActiveFilters] = useState({});
+  const [showTableDetailsModal, setShowTableDetailsModal] = useState(false);
+  const [tableDetailsData, setTableDetailsData] = useState([]);
+  const [tableDetailsCenterName, setTableDetailsCenterName] = useState('');
   const [collapsedSections, setCollapsedSections] = useState({
     center_name: true,
     vidhan_sabha_name: true,
@@ -1230,6 +1234,16 @@ const VivranSummaryModal = ({
     } else if (item.name === "शेष") {
       setShowOnlyRemaining(true);
     }
+  };
+
+  // Handle table row click to show TableDetailsModal
+  const handleTableRowClick = (centerName) => {
+    // Filter data for the specific center from the current filtered items
+    const centerData = filteredItems.filter(item => item.center_name === centerName);
+    
+    setTableDetailsData(centerData);
+    setTableDetailsCenterName(centerName);
+    setShowTableDetailsModal(true);
   };
 
   // Handle filter changes
@@ -2798,7 +2812,7 @@ const VivranSummaryModal = ({
                           parseFloat(item.updated_quantity) * parseFloat(item.rate)
                         ).toFixed(2);
                         return (
-                          <tr key={index} style={{ backgroundColor: index % 2 === 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)' }}>
+                          <tr key={index} style={{ backgroundColor: index % 2 === 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)', cursor: 'pointer' }} onClick={() => handleTableRowClick(item.center_name)}>
                             {selectedColumns.includes("center_name") && (
                               <td data-label="केंद्र का नाम">{item.center_name}</td>
                             )}
@@ -2983,7 +2997,7 @@ const VivranSummaryModal = ({
                       parseFloat(item.updated_quantity) * parseFloat(item.rate)
                     ).toFixed(2);
                     return (
-                      <tr key={index}>
+                      <tr key={index} style={{ cursor: 'pointer' }} onClick={() => handleTableRowClick(item.center_name)}>
                         {selectedColumns.includes("center_name") && (
                           <td data-label="केंद्र का नाम">{item.center_name}</td>
                         )}
@@ -3115,6 +3129,14 @@ const VivranSummaryModal = ({
           </Card.Body>
         </Card>
       </Modal.Body>
+      
+      {/* Table Details Modal */}
+      <TableDetailsModal
+        show={showTableDetailsModal}
+        onHide={() => setShowTableDetailsModal(false)}
+        tableData={tableDetailsData}
+        centerName={tableDetailsCenterName}
+      />
     </Modal>
   );
 };
