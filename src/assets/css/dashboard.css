@@ -624,6 +624,19 @@ font-size: 14px;
   padding: 10px;
 }
 
+/* Enhanced tooltip styles for better readability */
+.table-details-modal [data-bs-toggle="tooltip"] {
+  cursor: help;
+}
+
+.table-details-modal .tooltip-inner {
+  max-width: 300px;
+  text-align: left;
+  white-space: pre-line;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* Collapsible scheme styles */
 .table-details-modal .scheme-header {
   display: flex;

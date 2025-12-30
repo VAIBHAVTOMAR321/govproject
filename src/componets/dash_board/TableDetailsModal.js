@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Container } from "react-bootstrap";
 import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
@@ -32,6 +32,117 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     filter: true,
     sources: true
   });
+
+  // Initialize tooltips when modal opens
+  useEffect(() => {
+    if (show) {
+      // Simple tooltip initialization using native HTML title attribute
+      const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltipElements.forEach(element => {
+        // The title attribute is already set, so tooltips should work with native browser tooltips
+        // For better styling, we can enhance them with CSS
+      });
+    }
+  }, [show]);
+
+  // Function to get detailed tooltip data for a specific item
+  const getTooltipData = (itemType, itemValue, filteredData) => {
+    const relevantData = filteredData.filter(item => {
+      switch(itemType) {
+        case 'scheme': return item.scheme_name === itemValue;
+        case 'investment': return item.investment_name === itemValue;
+        case 'component': return item.component === itemValue;
+        case 'source': return item.source_of_receipt === itemValue;
+        case 'vidhanSabha': return item.vidhan_sabha_name === itemValue;
+        case 'vikasKhand': return item.vikas_khand_name === itemValue;
+        default: return false;
+      }
+    });
+
+    if (relevantData.length === 0) return null;
+
+    // Calculate totals for the item
+    const totalAllocated = relevantData.reduce((sum, item) =>
+      sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+    const totalUpdated = relevantData.reduce((sum, item) =>
+      sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+    const totalRemaining = totalAllocated - totalUpdated;
+
+    // Get unique locations
+    const uniqueVidhanSabhas = [...new Set(relevantData.map(item => item.vidhan_sabha_name))].filter(Boolean);
+    const uniqueVikasKhands = [...new Set(relevantData.map(item => item.vikas_khand_name))].filter(Boolean);
+
+    return {
+      count: relevantData.length,
+      totalAllocated,
+      totalUpdated,
+      totalRemaining,
+      uniqueVidhanSabhas,
+      uniqueVikasKhands,
+      allocatedQuantity: relevantData.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0),
+      updatedQuantity: relevantData.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0),
+      rate: relevantData[0]?.rate || 0
+    };
+  };
+
+  // Format currency for tooltips
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // Format quantity with units
+  const formatQuantity = (quantity) => {
+    return parseFloat(quantity || 0).toFixed(2);
+  };
+
+  // Generate tooltip content
+  const getTooltipContent = (itemType, itemValue, tooltipData, allData) => {
+    if (!tooltipData) return '';
+
+    const locations = tooltipData.uniqueVidhanSabhas.length > 0
+      ? tooltipData.uniqueVidhanSabhas.join(', ')
+      : 'N/A';
+
+    const vikasKhands = tooltipData.uniqueVikasKhands.length > 0
+      ? tooltipData.uniqueVikasKhands.join(', ')
+      : 'N/A';
+
+    // Get related items based on type
+    let relatedInfo = '';
+    if (itemType === 'scheme') {
+      const relatedComponents = [...new Set(allData.filter(item => item.scheme_name === itemValue).map(item => item.component))].filter(Boolean);
+      const relatedSources = [...new Set(allData.filter(item => item.scheme_name === itemValue).map(item => item.source_of_receipt))].filter(Boolean);
+      relatedInfo = `घटक: ${relatedComponents.join(', ')}\nस्रोत: ${relatedSources.join(', ')}`;
+    } else if (itemType === 'component') {
+      const relatedSchemes = [...new Set(allData.filter(item => item.component === itemValue).map(item => item.scheme_name))].filter(Boolean);
+      const relatedSources = [...new Set(allData.filter(item => item.component === itemValue).map(item => item.source_of_receipt))].filter(Boolean);
+      relatedInfo = `योजनाएं: ${relatedSchemes.join(', ')}\nस्रोत: ${relatedSources.join(', ')}`;
+    } else if (itemType === 'source') {
+      const relatedSchemes = [...new Set(allData.filter(item => item.source_of_receipt === itemValue).map(item => item.scheme_name))].filter(Boolean);
+      const relatedComponents = [...new Set(allData.filter(item => item.source_of_receipt === itemValue).map(item => item.component))].filter(Boolean);
+      relatedInfo = `योजनाएं: ${relatedSchemes.join(', ')}\nघटक: ${relatedComponents.join(', ')}`;
+    } else if (itemType === 'investment') {
+      const relatedSchemes = [...new Set(allData.filter(item => item.investment_name === itemValue).map(item => item.scheme_name))].filter(Boolean);
+      const relatedComponents = [...new Set(allData.filter(item => item.investment_name === itemValue).map(item => item.component))].filter(Boolean);
+      relatedInfo = `योजनाएं: ${relatedSchemes.join(', ')}\nघटक: ${relatedComponents.join(', ')}`;
+    }
+
+    return `${itemValue} (${itemType.toUpperCase()})
+रिकॉर्ड: ${tooltipData.count}
+आवंटित मात्रा: ${formatQuantity(tooltipData.allocatedQuantity)}
+बेची गई मात्रा: ${formatQuantity(tooltipData.updatedQuantity)}
+दर: ${formatCurrency(tooltipData.rate)}
+आवंटित: ${formatCurrency(tooltipData.totalAllocated)}
+बेचा गया: ${formatCurrency(tooltipData.totalUpdated)}
+शेष: ${formatCurrency(tooltipData.totalRemaining)}
+${relatedInfo}
+विधानसभा: ${locations}
+विकासखंड: ${vikasKhands}`;
+  };
 
   // Multi-select state for filtering
   const [selectedSchemes, setSelectedSchemes] = useState(new Set());
@@ -139,14 +250,6 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     };
   }, [tableData]);
 
-  // Format currency function
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
 
   // Toggle collapse section
   const toggleCollapse = (section) => {
@@ -463,11 +566,24 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                           <span className="badge bg-light text-dark">{data.vikasKhands.length}</span>
                         </div>
                         <div className="compact-badges">
-                          {data.vikasKhands.map((vikasKhand, index) => (
-                            <Badge key={index} bg="light" text="dark" className="me-1 small">
-                              {vikasKhand}
-                            </Badge>
-                          ))}
+                          {data.vikasKhands.map((vikasKhand, index) => {
+                            const tooltipData = getTooltipData('vikasKhand', vikasKhand, tableData);
+                            const tooltipContent = getTooltipContent('vikasKhand', vikasKhand, tooltipData, tableData);
+                            
+                            return (
+                              <Badge
+                                key={index}
+                                bg="light"
+                                text="dark"
+                                className="me-1 small"
+                                title={tooltipContent}
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                              >
+                                {vikasKhand}
+                              </Badge>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
@@ -502,11 +618,24 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                                   </span>
                                 </div>
                                 <div className={`investment-badges ${isCollapsed ? 'show' : 'hide'}`}>
-                                  {schemeInvestments.map((investment, invIndex) => (
-                                    <Badge key={invIndex} bg="light" text="dark" className="me-1 small">
-                                      {investment}
-                                    </Badge>
-                                  ))}
+                                  {schemeInvestments.map((investment, invIndex) => {
+                                    const tooltipData = getTooltipData('investment', investment, tableData);
+                                    const tooltipContent = getTooltipContent('investment', investment, tooltipData, tableData);
+                                    
+                                    return (
+                                      <Badge
+                                        key={invIndex}
+                                        bg="light"
+                                        text="dark"
+                                        className="me-1 small"
+                                        title={tooltipContent}
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                      >
+                                        {investment}
+                                      </Badge>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             );
@@ -553,20 +682,27 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                     <div className="mb-4">
                       <h6 className="fw-bold mb-2 text-info">सभी योजनाएं ({uniqueSchemes.length})</h6>
                       <div className="d-flex flex-wrap gap-2">
-                        {uniqueSchemes.map((scheme, index) => (
-                          <Badge
-                            key={index}
-                            bg={selectedSchemes.has(scheme) ? "info" : "light"}
-                            text={selectedSchemes.has(scheme) ? "dark" : "dark"}
-                            className="p-2 selectable-badge"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => toggleScheme(scheme)}
-                            title={selectedSchemes.has(scheme) ? "हटाएं" : "चुनें"}
-                          >
-                            {scheme}
-                            {selectedSchemes.has(scheme) && <span className="ms-1">✓</span>}
-                          </Badge>
-                        ))}
+                        {uniqueSchemes.map((scheme, index) => {
+                          const tooltipData = getTooltipData('scheme', scheme, tableData);
+                          const tooltipContent = getTooltipContent('scheme', scheme, tooltipData, tableData);
+                          
+                          return (
+                            <Badge
+                              key={index}
+                              bg={selectedSchemes.has(scheme) ? "info" : "light"}
+                              text={selectedSchemes.has(scheme) ? "dark" : "dark"}
+                              className="p-2 selectable-badge"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => toggleScheme(scheme)}
+                              title={selectedSchemes.has(scheme) ? "हटाएं" : "चुनें"}
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                            >
+                              {scheme}
+                              {selectedSchemes.has(scheme) && <span className="ms-1">✓</span>}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
                     
@@ -574,20 +710,27 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                     <div>
                       <h6 className="fw-bold mb-2 text-secondary">घटक ({uniqueComponents.length})</h6>
                       <div className="d-flex flex-wrap gap-2">
-                        {uniqueComponents.map((component, index) => (
-                          <Badge
-                            key={index}
-                            bg={selectedComponents.has(component) ? "secondary" : "light"}
-                            text={selectedComponents.has(component) ? "light" : "dark"}
-                            className="p-2 selectable-badge"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => toggleComponent(component)}
-                            title={selectedComponents.has(component) ? "हटाएं" : "चुनें"}
-                          >
-                            {component}
-                            {selectedComponents.has(component) && <span className="ms-1">✓</span>}
-                          </Badge>
-                        ))}
+                        {uniqueComponents.map((component, index) => {
+                          const tooltipData = getTooltipData('component', component, tableData);
+                          const tooltipContent = getTooltipContent('component', component, tooltipData, tableData);
+                          
+                          return (
+                            <Badge
+                              key={index}
+                              bg={selectedComponents.has(component) ? "secondary" : "light"}
+                              text={selectedComponents.has(component) ? "light" : "dark"}
+                              className="p-2 selectable-badge"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => toggleComponent(component)}
+                              title={selectedComponents.has(component) ? "हटाएं" : "चुनें"}
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                            >
+                              {component}
+                              {selectedComponents.has(component) && <span className="ms-1">✓</span>}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -635,11 +778,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-info">योजनाएं ({filteredUniqueSchemes.length})</h6>
                           </div>
                           <div className="category-content">
-                            {filteredUniqueSchemes.map((scheme, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-info text-white">{scheme}</span>
-                              </div>
-                            ))}
+                            {filteredUniqueSchemes.map((scheme, index) => {
+                              const tooltipData = getTooltipData('scheme', scheme, filteredData);
+                              const tooltipContent = getTooltipContent('scheme', scheme, tooltipData, filteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-info text-white"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {scheme}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -652,11 +807,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-warning">निवेश ({filteredUniqueInvestments.length})</h6>
                           </div>
                           <div className="category-content">
-                            {filteredUniqueInvestments.map((investment, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-warning text-dark">{investment}</span>
-                              </div>
-                            ))}
+                            {filteredUniqueInvestments.map((investment, index) => {
+                              const tooltipData = getTooltipData('investment', investment, filteredData);
+                              const tooltipContent = getTooltipContent('investment', investment, tooltipData, filteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-warning text-dark"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {investment}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -669,11 +836,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-secondary">घटक ({filteredUniqueComponents.length})</h6>
                           </div>
                           <div className="category-content">
-                            {filteredUniqueComponents.map((component, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-secondary text-light">{component}</span>
-                              </div>
-                            ))}
+                            {filteredUniqueComponents.map((component, index) => {
+                              const tooltipData = getTooltipData('component', component, filteredData);
+                              const tooltipContent = getTooltipContent('component', component, tooltipData, filteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-secondary text-light"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {component}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -686,11 +865,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-dark">स्रोत ({filteredUniqueSources.length})</h6>
                           </div>
                           <div className="category-content">
-                            {filteredUniqueSources.map((source, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-dark text-light">{source}</span>
-                              </div>
-                            ))}
+                            {filteredUniqueSources.map((source, index) => {
+                              const tooltipData = getTooltipData('source', source, filteredData);
+                              const tooltipContent = getTooltipContent('source', source, tooltipData, filteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-dark text-light"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {source}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -743,20 +934,27 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                     <div>
                       <h6 className="fw-bold mb-2 text-dark">सभी स्रोत ({uniqueSources.length})</h6>
                       <div className="d-flex flex-wrap gap-2">
-                        {uniqueSources.map((source, index) => (
-                          <Badge
-                            key={index}
-                            bg={selectedSources.has(source) ? "dark" : "light"}
-                            text={selectedSources.has(source) ? "light" : "dark"}
-                            className="p-2 selectable-badge"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => toggleSource(source)}
-                            title={selectedSources.has(source) ? "हटाएं" : "चुनें"}
-                          >
-                            {source}
-                            {selectedSources.has(source) && <span className="ms-1">✓</span>}
-                          </Badge>
-                        ))}
+                        {uniqueSources.map((source, index) => {
+                          const tooltipData = getTooltipData('source', source, tableData);
+                          const tooltipContent = getTooltipContent('source', source, tooltipData, tableData);
+                          
+                          return (
+                            <Badge
+                              key={index}
+                              bg={selectedSources.has(source) ? "dark" : "light"}
+                              text={selectedSources.has(source) ? "light" : "dark"}
+                              className="p-2 selectable-badge"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => toggleSource(source)}
+                              title={selectedSources.has(source) ? "हटाएं" : "चुनें"}
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                            >
+                              {source}
+                              {selectedSources.has(source) && <span className="ms-1">✓</span>}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -804,11 +1002,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-info">योजनाएं ({sourceFilteredUniqueSchemes.length})</h6>
                           </div>
                           <div className="category-content">
-                            {sourceFilteredUniqueSchemes.map((scheme, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-info text-white">{scheme}</span>
-                              </div>
-                            ))}
+                            {sourceFilteredUniqueSchemes.map((scheme, index) => {
+                              const tooltipData = getTooltipData('scheme', scheme, sourceFilteredData);
+                              const tooltipContent = getTooltipContent('scheme', scheme, tooltipData, sourceFilteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-info text-white"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {scheme}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -821,11 +1031,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-warning">निवेश ({sourceFilteredUniqueInvestments.length})</h6>
                           </div>
                           <div className="category-content">
-                            {sourceFilteredUniqueInvestments.map((investment, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-warning text-dark">{investment}</span>
-                              </div>
-                            ))}
+                            {sourceFilteredUniqueInvestments.map((investment, index) => {
+                              const tooltipData = getTooltipData('investment', investment, sourceFilteredData);
+                              const tooltipContent = getTooltipContent('investment', investment, tooltipData, sourceFilteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-warning text-dark"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {investment}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -838,11 +1060,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                             <h6 className="fw-bold mb-2 text-secondary">घटक ({sourceFilteredUniqueComponents.length})</h6>
                           </div>
                           <div className="category-content">
-                            {sourceFilteredUniqueComponents.map((component, index) => (
-                              <div key={index} className="category-item">
-                                <span className="category-badge bg-secondary text-light">{component}</span>
-                              </div>
-                            ))}
+                            {sourceFilteredUniqueComponents.map((component, index) => {
+                              const tooltipData = getTooltipData('component', component, sourceFilteredData);
+                              const tooltipContent = getTooltipContent('component', component, tooltipData, sourceFilteredData);
+                              
+                              return (
+                                <div key={index} className="category-item">
+                                  <span
+                                    className="category-badge bg-secondary text-light"
+                                    title={tooltipContent}
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                  >
+                                    {component}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
