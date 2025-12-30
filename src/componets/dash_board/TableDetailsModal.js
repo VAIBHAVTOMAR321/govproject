@@ -30,8 +30,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     schemes: true,
     investments: true,
     filter: true,
-    sources: true
+    sources: true,
+    places: true,
+    allocation: true,
+    sales: true,
+    remaining: true
   });
+
+  // State for detailed breakdowns within each section
+  const [allocationDetails, setAllocationDetails] = useState([]);
+  const [salesDetails, setSalesDetails] = useState([]);
+  const [remainingDetails, setRemainingDetails] = useState([]);
 
   // Initialize tooltips when modal opens
   useEffect(() => {
@@ -236,19 +245,20 @@ ${relatedInfo}
 
   // Calculate totals
   const totals = useMemo(() => {
-    const totalAllocated = tableData.reduce((sum, item) => 
+    const totalAllocated = tableData.reduce((sum, item) =>
       sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-    const totalUpdated = tableData.reduce((sum, item) => 
+    const totalUpdated = tableData.reduce((sum, item) =>
       sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
     const totalRemaining = totalAllocated - totalUpdated;
-    
+
     return {
       totalAllocated,
       totalUpdated,
       totalRemaining,
-      placesCount: tableData.length
+      placesCount: uniqueVikasKhands.length, // Use unique places count instead of total records
+      recordsCount: tableData.length // Keep total records for reference
     };
-  }, [tableData]);
+  }, [tableData, uniqueVikasKhands]);
 
 
   // Toggle collapse section
@@ -321,6 +331,134 @@ ${relatedInfo}
   // Clear source selections
   const clearSourceSelections = () => {
     setSelectedSources(new Set());
+  };
+
+  // Handle scheme/component detail clicks
+  const showAllocationDetails = (item, itemType) => {
+    setAllocationDetails(prev => {
+      const exists = prev.find(d => d.selectedItem === item && d.itemType === itemType);
+      if (exists) {
+        return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
+      } else {
+        return [...prev, { selectedItem: item, itemType }];
+      }
+    });
+  };
+
+  const showSalesDetails = (item, itemType) => {
+    setSalesDetails(prev => {
+      const exists = prev.find(d => d.selectedItem === item && d.itemType === itemType);
+      if (exists) {
+        return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
+      } else {
+        return [...prev, { selectedItem: item, itemType }];
+      }
+    });
+  };
+
+  const showRemainingDetails = (item, itemType) => {
+    setRemainingDetails(prev => {
+      const exists = prev.find(d => d.selectedItem === item && d.itemType === itemType);
+      if (exists) {
+        return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
+      } else {
+        return [...prev, { selectedItem: item, itemType }];
+      }
+    });
+  };
+
+  const closeAllocationDetails = (item, itemType) => {
+    setAllocationDetails(prev => prev.filter(d => !(d.selectedItem === item && d.itemType === itemType)));
+  };
+
+  const closeSalesDetails = (item, itemType) => {
+    setSalesDetails(prev => prev.filter(d => !(d.selectedItem === item && d.itemType === itemType)));
+  };
+
+  const closeRemainingDetails = (item, itemType) => {
+    setRemainingDetails(prev => prev.filter(d => !(d.selectedItem === item && d.itemType === itemType)));
+  };
+
+  // Render detailed breakdown for a specific section
+  const renderSectionBreakdown = (details, sectionType, closeFunction) => {
+    if (!details.selectedItem) return null;
+
+    const itemName = details.selectedItem;
+    const filterKey = details.itemType === 'scheme' ? 'scheme_name' : 'component';
+    const itemData = tableData.filter(item => item[filterKey] === itemName);
+
+    const breakdown = itemData.reduce((acc, item) => {
+      const vidhanSabha = item.vidhan_sabha_name;
+      const vikasKhand = item.vikas_khand_name;
+      const source = item.source_of_receipt;
+
+      if (!acc[vidhanSabha]) {
+        acc[vidhanSabha] = {};
+      }
+      if (!acc[vidhanSabha][vikasKhand]) {
+        acc[vidhanSabha][vikasKhand] = {};
+      }
+      if (!acc[vidhanSabha][vikasKhand][source]) {
+        acc[vidhanSabha][vikasKhand][source] = [];
+      }
+      acc[vidhanSabha][vikasKhand][source].push(item);
+      return acc;
+    }, {});
+
+    const getTitle = () => {
+      const typeLabel = details.itemType === 'scheme' ? 'योजना' : 'घटक';
+      switch(sectionType) {
+        case 'allocation': return `${typeLabel} आवंटन विवरण: ${itemName}`;
+        case 'sales': return `${typeLabel} बिक्री विवरण: ${itemName}`;
+        case 'remaining': return `${typeLabel} शेष राशि विवरण: ${itemName}`;
+        default: return `${itemName} विवरण`;
+      }
+    };
+
+    return (
+      <div className="mt-3 p-3 border rounded bg-light">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h6 className="mb-0 text-primary">{getTitle()}</h6>
+          <Button variant="outline-secondary" size="sm" onClick={closeFunction}>
+            <FaTimes />
+          </Button>
+        </div>
+        <div className="breakdown-content">
+          {Object.entries(breakdown).map(([vidhanSabha, vikasKhands]) => (
+            <div key={vidhanSabha} className="mb-4">
+              <h6 className="text-success fw-bold mb-3">{vidhanSabha}</h6>
+              {Object.entries(vikasKhands).map(([vikasKhand, sources]) => (
+                <div key={vikasKhand} className="mb-3 ms-3">
+                  <div className="fw-bold text-info mb-2">{vikasKhand}</div>
+                  {Object.entries(sources).map(([source, records]) => (
+                    <div key={source} className="mb-2 ms-3 p-2 border rounded bg-white">
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <span className="fw-bold text-dark">{source}</span>
+                        <small className="text-muted">{records.length} रिकॉर्ड</small>
+                      </div>
+                      {records.map((record, index) => {
+                        const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
+                        const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
+                        const remaining = allocated - sold;
+
+                        return (
+                          <div key={index} className="small text-muted mb-1">
+                            मात्रा: {record.allocated_quantity} | दर: ₹{record.rate} |
+                            {sectionType === 'allocation' && ` आवंटित: ₹${allocated.toFixed(2)}`}
+                            {sectionType === 'sales' && ` बेचा गया: ₹${sold.toFixed(2)}`}
+                            {sectionType === 'remaining' && ` शेष: ₹${remaining.toFixed(2)}`}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   // Get filtered data based on selections for scheme/component filter
@@ -473,7 +611,7 @@ ${relatedInfo}
               <Col md={2}>
                 <div
                   className="text-center p-3 border rounded clickable-card"
-                  onClick={() => toggleCollapse('schemes')}
+                  onClick={() => toggleCollapse('filter')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: योजनाएं और निवेश देखें"
                 >
@@ -485,7 +623,7 @@ ${relatedInfo}
               <Col md={2}>
                 <div
                   className="text-center p-3 border rounded clickable-card"
-                  onClick={() => toggleCollapse('schemes')}
+                  onClick={() => toggleCollapse('filter')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: निवेश और योजनाएं देखें"
                 >
@@ -497,7 +635,7 @@ ${relatedInfo}
               <Col md={2}>
                 <div
                   className="text-center p-3 border rounded clickable-card"
-                  onClick={() => toggleCollapse('schemes')}
+                  onClick={() => toggleCollapse('filter')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: घटक और योजनाएं देखें"
                 >
@@ -509,7 +647,7 @@ ${relatedInfo}
               <Col md={2}>
                 <div
                   className="text-center p-3 border rounded clickable-card"
-                  onClick={() => toggleCollapse('schemes')}
+                  onClick={() => toggleCollapse('sources')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: स्रोत और योजनाएं देखें"
                 >
@@ -532,14 +670,304 @@ ${relatedInfo}
               </Col>
               <Col md={4} className="text-end">
                 <div className="d-flex flex-column align-items-end">
-                  <span className="badge bg-light text-dark mb-1">कुल स्थान: {totals.placesCount}</span>
-                  <span className="badge bg-light text-dark mb-1">कुल आवंटित: {formatCurrency(totals.totalAllocated)}</span>
-                  <span className="badge bg-light text-dark mb-1">कुल बेचा गया: {formatCurrency(totals.totalUpdated)}</span>
-                  <span className="badge bg-light text-dark">शेष राशि: {formatCurrency(totals.totalRemaining)}</span>
+                  <span
+                    className="badge bg-light text-dark mb-1 clickable-badge"
+                    title={`कुल स्थान: ${totals.placesCount} - इस केंद्र में शामिल अद्वितीय विकासखंड | कुल रिकॉर्ड: ${totals.recordsCount} | क्लिक करें विवरण देखने के लिए`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="left"
+                    onClick={() => toggleCollapse('places')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    कुल स्थान: {totals.placesCount}
+                  </span>
+                  <span
+                    className="badge bg-light text-dark mb-1 clickable-badge"
+                    title={`कुल आवंटित राशि: ${formatCurrency(totals.totalAllocated)} - सभी मदों के लिए आवंटित धनराशि | क्लिक करें विवरण देखने के लिए`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="left"
+                    onClick={() => toggleCollapse('allocation')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    कुल आवंटित: {formatCurrency(totals.totalAllocated)}
+                  </span>
+                  <span
+                    className="badge bg-light text-dark mb-1 clickable-badge"
+                    title={`कुल बेची गई राशि: ${formatCurrency(totals.totalUpdated)} - अब तक बेची गई धनराशि | क्लिक करें विवरण देखने के लिए`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="left"
+                    onClick={() => toggleCollapse('sales')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    कुल बेचा गया: {formatCurrency(totals.totalUpdated)}
+                  </span>
+                  <span
+                    className="badge bg-light text-dark clickable-badge"
+                    title={`शेष राशि: ${formatCurrency(totals.totalRemaining)} - अभी भी बेचने के लिए शेष धनराशि | क्लिक करें विवरण देखने के लिए`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="left"
+                    onClick={() => toggleCollapse('remaining')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    शेष राशि: {formatCurrency(totals.totalRemaining)}
+                  </span>
                 </div>
               </Col>
             </Row>
           </Card.Header>
+        </Card>
+
+        {/* Places Breakdown Section */}
+        <Card className="mb-3">
+          <Card.Header
+            onClick={() => toggleCollapse('places')}
+            style={{ cursor: "pointer" }}
+            className="d-flex justify-content-between align-items-center accordin-header"
+          >
+            <span><FaBuilding className="me-2" /> स्थान विवरण</span>
+            {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
+          </Card.Header>
+          <Collapse in={!collapsedSections.places}>
+            <Card.Body>
+              <div className="text-center mb-4">
+                <h6 className="text-primary fw-bold">कुल स्थान: {uniqueVikasKhands.length}</h6>
+              </div>
+              <div className="places-grid">
+                {uniqueVikasKhands.map((vikasKhand, index) => (
+                  <Badge
+                    key={index}
+                    bg="primary"
+                    className="me-2 mb-2 p-2"
+                    style={{ fontSize: '14px' }}
+                  >
+                    {vikasKhand}
+                  </Badge>
+                ))}
+              </div>
+            </Card.Body>
+          </Collapse>
+        </Card>
+
+        {/* Allocation Breakdown Section */}
+        <Card className="mb-3">
+          <Card.Header
+            onClick={() => toggleCollapse('allocation')}
+            style={{ cursor: "pointer" }}
+            className="d-flex justify-content-between align-items-center accordin-header"
+          >
+            <span><FaPiggyBank className="me-2" /> आवंटन विवरण</span>
+            {collapsedSections.allocation ? <FaChevronDown /> : <FaChevronUp />}
+          </Card.Header>
+          <Collapse in={!collapsedSections.allocation}>
+            <Card.Body>
+              <Row>
+                <Col md={6}>
+                  <h6 className="text-info fw-bold mb-3">योजना अनुसार आवंटन</h6>
+                  {uniqueSchemes.map((scheme, index) => {
+                    const schemeData = tableData.filter(item => item.scheme_name === scheme);
+                    const totalAllocated = schemeData.reduce((sum, item) =>
+                      sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                    const isSelected = allocationDetails.some(d => d.selectedItem === scheme && d.itemType === 'scheme');
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        onClick={() => showAllocationDetails(scheme, 'scheme')}
+                        style={{ cursor: 'pointer' }}
+                        title="क्लिक करें विस्तृत आवंटन विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{scheme}</span>
+                          <span className="badge bg-info">{formatCurrency(totalAllocated)}</span>
+                        </div>
+                        <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
+                      </div>
+                    );
+                  })}
+                </Col>
+                <Col md={6}>
+                  <h6 className="text-warning fw-bold mb-3">घटक अनुसार आवंटन</h6>
+                  {uniqueComponents.map((component, index) => {
+                    const componentData = tableData.filter(item => item.component === component);
+                    const totalAllocated = componentData.reduce((sum, item) =>
+                      sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                    const isSelected = allocationDetails.some(d => d.selectedItem === component && d.itemType === 'component');
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        onClick={() => showAllocationDetails(component, 'component')}
+                        style={{ cursor: 'pointer' }}
+                        title="क्लिक करें विस्तृत आवंटन विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{component}</span>
+                          <span className="badge bg-warning">{formatCurrency(totalAllocated)}</span>
+                        </div>
+                        <small className="text-muted">{componentData.length} रिकॉर्ड</small>
+                      </div>
+                    );
+                  })}
+                </Col>
+              </Row>
+              {allocationDetails.map(detail => renderSectionBreakdown(detail, 'allocation', () => closeAllocationDetails(detail.selectedItem, detail.itemType)))}
+            </Card.Body>
+          </Collapse>
+        </Card>
+
+        {/* Sales Breakdown Section */}
+        <Card className="mb-3">
+          <Card.Header
+            onClick={() => toggleCollapse('sales')}
+            style={{ cursor: "pointer" }}
+            className="d-flex justify-content-between align-items-center accordin-header"
+          >
+            <span><FaChartBar className="me-2" /> बिक्री विवरण</span>
+            {collapsedSections.sales ? <FaChevronDown /> : <FaChevronUp />}
+          </Card.Header>
+          <Collapse in={!collapsedSections.sales}>
+            <Card.Body>
+              <div className="text-center mb-4">
+                <div className="alert alert-warning">
+                  <h6>कुल बेची गई राशि: {formatCurrency(totals.totalUpdated)}</h6>
+                  <p className="mb-0">वर्तमान में कोई बिक्री रिकॉर्ड नहीं है</p>
+                </div>
+              </div>
+              <Row>
+                <Col md={6}>
+                  <h6 className="text-secondary fw-bold mb-3">योजना अनुसार बिक्री</h6>
+                  {uniqueSchemes.map((scheme, index) => {
+                    const schemeData = tableData.filter(item => item.scheme_name === scheme);
+                    const totalSold = schemeData.reduce((sum, item) =>
+                      sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                    const isSelected = salesDetails.some(d => d.selectedItem === scheme && d.itemType === 'scheme');
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        onClick={() => showSalesDetails(scheme, 'scheme')}
+                        style={{ cursor: 'pointer' }}
+                        title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{scheme}</span>
+                          <span className="badge bg-secondary">{formatCurrency(totalSold)}</span>
+                        </div>
+                        <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
+                      </div>
+                    );
+                  })}
+                </Col>
+                <Col md={6}>
+                  <h6 className="text-dark fw-bold mb-3">घटक अनुसार बिक्री</h6>
+                  {uniqueComponents.map((component, index) => {
+                    const componentData = tableData.filter(item => item.component === component);
+                    const totalSold = componentData.reduce((sum, item) =>
+                      sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                    const isSelected = salesDetails.some(d => d.selectedItem === component && d.itemType === 'component');
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        onClick={() => showSalesDetails(component, 'component')}
+                        style={{ cursor: 'pointer' }}
+                        title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{component}</span>
+                          <span className="badge bg-dark">{formatCurrency(totalSold)}</span>
+                        </div>
+                        <small className="text-muted">{componentData.length} रिकॉर्ड</small>
+                      </div>
+                    );
+                  })}
+                </Col>
+              </Row>
+              {salesDetails.map(detail => renderSectionBreakdown(detail, 'sales', () => closeSalesDetails(detail.selectedItem, detail.itemType)))}
+            </Card.Body>
+          </Collapse>
+        </Card>
+
+        {/* Remaining Amount Breakdown Section */}
+        <Card className="mb-3">
+          <Card.Header
+            onClick={() => toggleCollapse('remaining')}
+            style={{ cursor: "pointer" }}
+            className="d-flex justify-content-between align-items-center accordin-header"
+          >
+            <span><FaLayerGroup className="me-2" /> शेष राशि विवरण</span>
+            {collapsedSections.remaining ? <FaChevronDown /> : <FaChevronUp />}
+          </Card.Header>
+          <Collapse in={!collapsedSections.remaining}>
+            <Card.Body>
+              <div className="text-center mb-4">
+                <div className="alert alert-success">
+                  <h6>कुल शेष राशि: {formatCurrency(totals.totalRemaining)}</h6>
+                  <p className="mb-0">बेचने के लिए उपलब्ध राशि</p>
+                </div>
+              </div>
+              <Row>
+                <Col md={6}>
+                  <h6 className="text-primary fw-bold mb-3">योजना अनुसार शेष</h6>
+                  {uniqueSchemes.map((scheme, index) => {
+                    const schemeData = tableData.filter(item => item.scheme_name === scheme);
+                    const totalAllocated = schemeData.reduce((sum, item) =>
+                      sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                    const totalSold = schemeData.reduce((sum, item) =>
+                      sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                    const remaining = totalAllocated - totalSold;
+                    const isSelected = remainingDetails.some(d => d.selectedItem === scheme && d.itemType === 'scheme');
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        onClick={() => showRemainingDetails(scheme, 'scheme')}
+                        style={{ cursor: 'pointer' }}
+                        title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{scheme}</span>
+                          <span className="badge bg-primary">{formatCurrency(remaining)}</span>
+                        </div>
+                        <small className="text-muted">
+                          आवंटित: {formatCurrency(totalAllocated)} | बेचा: {formatCurrency(totalSold)}
+                        </small>
+                      </div>
+                    );
+                  })}
+                </Col>
+                <Col md={6}>
+                  <h6 className="text-info fw-bold mb-3">घटक अनुसार शेष</h6>
+                  {uniqueComponents.map((component, index) => {
+                    const componentData = tableData.filter(item => item.component === component);
+                    const totalAllocated = componentData.reduce((sum, item) =>
+                      sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                    const totalSold = componentData.reduce((sum, item) =>
+                      sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                    const remaining = totalAllocated - totalSold;
+                    const isSelected = remainingDetails.some(d => d.selectedItem === component && d.itemType === 'component');
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        onClick={() => showRemainingDetails(component, 'component')}
+                        style={{ cursor: 'pointer' }}
+                        title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{component}</span>
+                          <span className="badge bg-info">{formatCurrency(remaining)}</span>
+                        </div>
+                        <small className="text-muted">
+                          आवंटित: {formatCurrency(totalAllocated)} | बेचा: {formatCurrency(totalSold)}
+                        </small>
+                      </div>
+                    );
+                  })}
+                </Col>
+              </Row>
+              {remainingDetails.map(detail => renderSectionBreakdown(detail, 'remaining', () => closeRemainingDetails(detail.selectedItem, detail.itemType)))}
+            </Card.Body>
+          </Collapse>
         </Card>
 
 
