@@ -118,13 +118,11 @@ const ColumnSelection = ({
 
 // Available columns for the modal table
 const modalTableColumns = [
-  { key: "sno", label: "क्र.सं." },
   { key: "center_name", label: "केंद्र का नाम" },
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
   { key: "vikas_khand_name", label: "विकासखंड का नाम" },
   { key: "component", label: "घटक" },
   { key: "investment_name", label: "निवेश का नाम" },
-  { key: "unit", label: "इकाई" },
   { key: "allocated_quantity", label: "आवंटित मात्रा" },
   { key: "rate", label: "दर" },
   { key: "allocated_amount", label: "आवंटित राशि" },
@@ -1833,9 +1831,6 @@ const VivranSummaryModal = ({
         const row = {};
         selectedColumns.forEach((col) => {
           switch (col) {
-            case "sno":
-              row["क्र.सं."] = index + 1;
-              break;
             case "center_name":
               row["केंद्र का नाम"] = item.center_name;
               break;
@@ -1850,9 +1845,6 @@ const VivranSummaryModal = ({
               break;
             case "investment_name":
               row["निवेश का नाम"] = item.investment_name;
-              break;
-            case "unit":
-              row["इकाई"] = item.unit;
               break;
             case "allocated_quantity":
               row["आवंटित मात्रा"] = item.allocated_quantity;
@@ -1887,13 +1879,10 @@ const VivranSummaryModal = ({
       // Add totals row
       const totalsRow = {};
       selectedColumns.forEach((col) => {
-        if (col === "sno") {
-          totalsRow["क्र.सं."] = "कुल";
-        } else if (
+        if (
           col === "center_name" ||
           col === "component" ||
           col === "investment_name" ||
-          col === "unit" ||
           col === "source_of_receipt" ||
           col === "scheme_name"
         ) {
@@ -1960,8 +1949,6 @@ const VivranSummaryModal = ({
       const headers = selectedColumns
         .map((col) => {
           switch (col) {
-            case "sno":
-              return "<th>क्र.सं.</th>";
             case "center_name":
               return "<th>केंद्र का नाम</th>";
             case "vidhan_sabha_name":
@@ -1972,8 +1959,6 @@ const VivranSummaryModal = ({
               return "<th>घटक</th>";
             case "investment_name":
               return "<th>निवेश का नाम</th>";
-            case "unit":
-              return "<th>इकाई</th>";
             case "allocated_quantity":
               return "<th>आवंटित मात्रा</th>";
             case "rate":
@@ -1999,8 +1984,6 @@ const VivranSummaryModal = ({
           const cells = selectedColumns
             .map((col) => {
               switch (col) {
-                case "sno":
-                  return `<td>${index + 1}</td>`;
                 case "center_name":
                   return `<td>${item.center_name}</td>`;
                 case "vidhan_sabha_name":
@@ -2011,8 +1994,6 @@ const VivranSummaryModal = ({
                   return `<td>${item.component}</td>`;
                 case "investment_name":
                   return `<td>${item.investment_name}</td>`;
-                case "unit":
-                  return `<td>${item.unit}</td>`;
                 case "allocated_quantity":
                   return `<td>${item.allocated_quantity}</td>`;
                 case "rate":
@@ -2043,14 +2024,12 @@ const VivranSummaryModal = ({
       // Totals row
       const totalsCells = selectedColumns
         .map((col) => {
-          if (col === "sno") return "<td><strong>कुल</strong></td>";
-          else if (
+          if (
             col === "center_name" ||
             col === "vidhan_sabha_name" ||
             col === "vikas_khand_name" ||
             col === "component" ||
             col === "investment_name" ||
-            col === "unit" ||
             col === "source_of_receipt" ||
             col === "scheme_name"
           )
@@ -2775,9 +2754,8 @@ const VivranSummaryModal = ({
                   style={{ maxHeight: "200px", overflowY: "auto" }}
                 >
                   <table className="responsive-table small-fonts" style={{ color: textColor }}>
-                    <thead className="table-light" style={{ backgroundColor: 'rgba(255,255,255,0.7)' }}>
+                    <thead className="table-light" style={{ backgroundColor: 'rgba(255,255,255,0.7)', position: 'sticky', top: 0, zIndex: 1 }}>
                       <tr>
-                        {selectedColumns.includes("sno") && <th>क्र.सं.</th>}
                         {selectedColumns.includes("center_name") && (
                           <th>केंद्र का नाम</th>
                         )}
@@ -2791,7 +2769,6 @@ const VivranSummaryModal = ({
                         {selectedColumns.includes("investment_name") && (
                           <th>निवेश का नाम</th>
                         )}
-                        {selectedColumns.includes("unit") && <th>इकाई</th>}
                         {selectedColumns.includes("allocated_quantity") && (
                           <th>आवंटित मात्रा</th>
                         )}
@@ -2822,9 +2799,6 @@ const VivranSummaryModal = ({
                         ).toFixed(2);
                         return (
                           <tr key={index} style={{ backgroundColor: index % 2 === 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)' }}>
-                            {selectedColumns.includes("sno") && (
-                              <td data-label="क्र.सं.">{index + 1}</td>
-                            )}
                             {selectedColumns.includes("center_name") && (
                               <td data-label="केंद्र का नाम">{item.center_name}</td>
                             )}
@@ -2845,9 +2819,6 @@ const VivranSummaryModal = ({
                               <td data-label="निवेश का नाम">
                                 {item.investment_name}
                               </td>
-                            )}
-                            {selectedColumns.includes("unit") && (
-                              <td data-label="इकाई">{item.unit}</td>
                             )}
                             {selectedColumns.includes("allocated_quantity") && (
                               <td data-label="आवंटित मात्रा">
@@ -2880,13 +2851,11 @@ const VivranSummaryModal = ({
                     </tbody>
                     <tfoot>
                       <tr className="font-weight-bold" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
-                        {selectedColumns.includes("sno") && <td>कुल</td>}
-                        {selectedColumns.includes("center_name") && <td></td>}
+                        {selectedColumns.includes("center_name") && <td>कुल</td>}
                         {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
                         {selectedColumns.includes("vikas_khand_name") && <td></td>}
                         {selectedColumns.includes("component") && <td></td>}
                         {selectedColumns.includes("investment_name") && <td></td>}
-                        {selectedColumns.includes("unit") && <td></td>}
                         {selectedColumns.includes("allocated_quantity") && (
                           <td>
                             {items
@@ -2970,9 +2939,8 @@ const VivranSummaryModal = ({
               style={{ maxHeight: "200px", overflowY: "auto" }}
             >
               <table className="responsive-table small-fonts">
-                <thead className="table-light">
+                <thead className="table-light" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    {selectedColumns.includes("sno") && <th>क्र.सं.</th>}
                     {selectedColumns.includes("center_name") && (
                       <th>केंद्र का नाम</th>
                     )}
@@ -2986,7 +2954,6 @@ const VivranSummaryModal = ({
                     {selectedColumns.includes("investment_name") && (
                       <th>निवेश का नाम</th>
                     )}
-                    {selectedColumns.includes("unit") && <th>इकाई</th>}
                     {selectedColumns.includes("allocated_quantity") && (
                       <th>आवंटित मात्रा</th>
                     )}
@@ -3017,9 +2984,6 @@ const VivranSummaryModal = ({
                     ).toFixed(2);
                     return (
                       <tr key={index}>
-                        {selectedColumns.includes("sno") && (
-                          <td data-label="क्र.सं.">{index + 1}</td>
-                        )}
                         {selectedColumns.includes("center_name") && (
                           <td data-label="केंद्र का नाम">{item.center_name}</td>
                         )}
@@ -3040,9 +3004,6 @@ const VivranSummaryModal = ({
                           <td data-label="निवेश का नाम">
                             {item.investment_name}
                           </td>
-                        )}
-                        {selectedColumns.includes("unit") && (
-                          <td data-label="इकाई">{item.unit}</td>
                         )}
                         {selectedColumns.includes("allocated_quantity") && (
                           <td data-label="आवंटित मात्रा">
@@ -3075,13 +3036,11 @@ const VivranSummaryModal = ({
                 </tbody>
                 <tfoot>
                   <tr className="font-weight-bold">
-                    {selectedColumns.includes("sno") && <td>कुल</td>}
-                    {selectedColumns.includes("center_name") && <td></td>}
+                    {selectedColumns.includes("center_name") && <td>कुल</td>}
                     {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
                     {selectedColumns.includes("vikas_khand_name") && <td></td>}
                     {selectedColumns.includes("component") && <td></td>}
                     {selectedColumns.includes("investment_name") && <td></td>}
-                    {selectedColumns.includes("unit") && <td></td>}
                     {selectedColumns.includes("allocated_quantity") && (
                       <td>
                         {filteredItems
