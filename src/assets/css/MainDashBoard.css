@@ -391,15 +391,57 @@
   margin-bottom: 0;
 }
 
+/* Multiselect Styles */
+.multiselect-container {
+  padding: 20px;
+}
+
+.multiselect-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  background-color: #f8f9fa;
+}
+
+.multiselect-item {
+  padding: 8px 12px;
+  margin-bottom: 5px;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.multiselect-item:hover {
+  background-color: #e9ecef;
+}
+
+.multiselect-item.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
 /* Responsive adjustments for new layout */
 @media (max-width: 768px) {
   .badges-container {
     justify-content: center;
   }
-  
+
   .badge-large {
     font-size: 0.8rem;
     padding: 6px 10px;
+  }
+
+  .multiselect-container {
+    padding: 10px;
+  }
+
+  .multiselect-list {
+    max-height: 200px;
   }
 }
 
@@ -407,7 +449,7 @@
   .gov-card-body {
     margin-bottom: 15px;
   }
-  
+
   .badge-large {
     font-size: 0.75rem;
     padding: 5px 8px;

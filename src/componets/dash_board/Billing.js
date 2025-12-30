@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col, Form, Button, FormGroup, FormLabel, Pagination } from "react-bootstrap";
-import Select from 'react-select';
-import * as XLSX from 'xlsx';
-import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
+import {
+  Container,
+  Spinner,
+  Alert,
+  Row,
+  Col,
+  Form,
+  Button,
+  FormGroup,
+  FormLabel,
+  Pagination,
+} from "react-bootstrap";
+import Select from "react-select";
+import * as XLSX from "xlsx";
+import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
@@ -10,54 +21,56 @@ import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
 
 // API URLs - separate for fetching and updating
-const GET_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
-const UPDATE_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/update-billing-item/";
+const GET_API_URL =
+  "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
+const UPDATE_API_URL =
+  "https://mahadevaaya.com/govbillingsystem/backend/api/update-billing-item/";
 
 // Custom styles for react-select components to match dashboard styling
 const customSelectStyles = {
   control: (baseStyles, state) => ({
     ...baseStyles,
-    borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
-    boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
-    '&:hover': {
-      borderColor: '#3b82f6',
+    borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
+    boxShadow: state.isFocused ? "0 0 0 1px #3b82f6" : "none",
+    "&:hover": {
+      borderColor: "#3b82f6",
     },
-    minHeight: '32px', // Smaller height for compact layout
-    fontSize: '14px', // Match small-fonts
+    minHeight: "32px", // Smaller height for compact layout
+    fontSize: "14px", // Match small-fonts
   }),
   menu: (baseStyles) => ({
     ...baseStyles,
     zIndex: 9999, // Ensure it's above all other elements
-    position: 'absolute', // Explicitly set position
-    fontSize: '14px',
+    position: "absolute", // Explicitly set position
+    fontSize: "14px",
   }),
   menuList: (baseStyles) => ({
     ...baseStyles,
-    maxHeight: '200px', // Show approximately 4-5 items before scrolling
-    overflowY: 'auto',
-    fontSize: '14px',
+    maxHeight: "200px", // Show approximately 4-5 items before scrolling
+    overflowY: "auto",
+    fontSize: "14px",
   }),
   multiValue: (baseStyles) => ({
     ...baseStyles,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
   }),
   multiValueLabel: (baseStyles) => ({
     ...baseStyles,
-    color: '#1f2937',
-    fontSize: '12px',
+    color: "#1f2937",
+    fontSize: "12px",
   }),
   multiValueRemove: (baseStyles) => ({
     ...baseStyles,
-    color: '#6b7280',
-    '&:hover': {
-      backgroundColor: '#d1d5db',
-      color: '#1f2937',
+    color: "#6b7280",
+    "&:hover": {
+      backgroundColor: "#d1d5db",
+      color: "#1f2937",
     },
   }),
   placeholder: (baseStyles) => ({
     ...baseStyles,
-    color: '#6b7280',
-    fontSize: '14px',
+    color: "#6b7280",
+    fontSize: "14px",
   }),
 };
 
@@ -79,6 +92,7 @@ const translations = {
   loading: "लोड हो रहा है...",
   noItemsFound: "कोई बिलिंग आइटम नहीं मिला।",
   noMatchingItems: "चयनित फिल्टर से मेल खाने वाली कोई आइटम नहीं मिली।",
+  noDataAvailable: "कोई बिलिंग आइटम डेटा उपलब्ध नहीं है।",
   showing: "दिखा रहे हैं",
   to: "से",
   of: "का",
@@ -121,47 +135,49 @@ const translations = {
   totalBill: "कुल बिल", // New translation for total bill column
   billingDate: "बिलिंग तारीख", // New translation for billing date column
   selectColumns: "कॉलम चुनें",
-  for: "के लिए"
+  for: "के लिए",
 };
 
 // Available columns for download
 const availableColumns = [
-  { key: 'sno', label: 'क्र.सं.' },
-  { key: 'center_name', label: translations.centerName },
-  { key: 'source_of_receipt', label: translations.sourceOfReceipt },
-  { key: 'component', label: translations.component },
-  { key: 'investment_name', label: translations.investmentName },
-  { key: 'scheme_name', label: translations.schemeName },
-  { key: 'unit', label: translations.unit },
-  { key: 'allocated_quantity', label: translations.allocatedQuantity },
-  { key: 'updated_quantity', label: translations.updatedQuantity },
-  { key: 'quantity_left', label: translations.quantityLeft },
-  { key: 'alloted_rashi', label: translations.allotedRashi },
-  { key: 'sold_rashi', label: translations.soldRashi },
-  { key: 'cut_quantity', label: translations.cutQuantity },
-  { key: 'rate', label: translations.rate },
-  { key: 'total_bill', label: translations.totalBill },
-  { key: 'billing_date', label: translations.billingDate }
+  { key: "sno", label: "क्र.सं." },
+  { key: "center_name", label: translations.centerName },
+  { key: "source_of_receipt", label: translations.sourceOfReceipt },
+  { key: "component", label: translations.component },
+  { key: "investment_name", label: translations.investmentName },
+  { key: "scheme_name", label: translations.schemeName },
+  { key: "unit", label: translations.unit },
+  { key: "allocated_quantity", label: translations.allocatedQuantity },
+  { key: "updated_quantity", label: translations.updatedQuantity },
+  { key: "quantity_left", label: translations.quantityLeft },
+  { key: "alloted_rashi", label: translations.allotedRashi },
+  { key: "sold_rashi", label: translations.soldRashi },
+  { key: "cut_quantity", label: translations.cutQuantity },
+  { key: "rate", label: translations.rate },
+  { key: "total_bill", label: translations.totalBill },
+  { key: "billing_date", label: translations.billingDate },
 ];
 
 const Billing = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  
+
   // State for API data, loading, and errors
   const [billingData, setBillingData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);  
-  
+  const [error, setError] = useState(null);
+
   // State for user ID mapping from source of receipt
-  const [sourceUserMap, setSourceUserMap] = useState({});  
-  
+  const [sourceUserMap, setSourceUserMap] = useState({});
+
   // State for tracking which items have been modified
   const [modifiedItems, setModifiedItems] = useState({});
 
   // State for selected columns for download
-  const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
+  const [selectedColumns, setSelectedColumns] = useState(
+    availableColumns.map((col) => col.key)
+  );
 
   // State for form submission
   const [submitting, setSubmitting] = useState(false);
@@ -174,7 +190,7 @@ const Billing = () => {
     source_of_receipt: [], // Multi-select
     component: [], // Multi-select
     investment_name: [], // Multi-select
-    scheme_name: [] // Multi-select
+    scheme_name: [], // Multi-select
   });
 
   // State for pagination
@@ -183,22 +199,71 @@ const Billing = () => {
 
   // Column mapping for data access
   const columnMapping = {
-    sno: { header: 'क्र.सं.', accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
-    center_name: { header: translations.centerName, accessor: (item) => item.center_name },
-    source_of_receipt: { header: translations.sourceOfReceipt, accessor: (item) => item.source_of_receipt },
-    component: { header: translations.component, accessor: (item) => item.component },
-    investment_name: { header: translations.investmentName, accessor: (item) => item.investment_name },
-    scheme_name: { header: translations.schemeName, accessor: (item) => item.scheme_name },
+    sno: {
+      header: "क्र.सं.",
+      accessor: (item, index, currentPage, itemsPerPage) =>
+        (currentPage - 1) * itemsPerPage + index + 1,
+    },
+    center_name: {
+      header: translations.centerName,
+      accessor: (item) => item.center_name,
+    },
+    source_of_receipt: {
+      header: translations.sourceOfReceipt,
+      accessor: (item) => item.source_of_receipt,
+    },
+    component: {
+      header: translations.component,
+      accessor: (item) => item.component,
+    },
+    investment_name: {
+      header: translations.investmentName,
+      accessor: (item) => item.investment_name,
+    },
+    scheme_name: {
+      header: translations.schemeName,
+      accessor: (item) => item.scheme_name,
+    },
     unit: { header: translations.unit, accessor: (item) => item.unit },
-    allocated_quantity: { header: translations.allocatedQuantity, accessor: (item) => item.allocated_quantity },
-    updated_quantity: { header: translations.updatedQuantity, accessor: (item) => item.updated_quantity },
-    quantity_left: { header: translations.quantityLeft, accessor: (item) => calculateQuantityLeft(item.allocated_quantity, item.updated_quantity, item.cut_quantity) },
-    alloted_rashi: { header: translations.allotedRashi, accessor: (item) => calculateAllocatedAmount(item.allocated_quantity, item.rate) },
-    sold_rashi: { header: translations.soldRashi, accessor: (item) => calculateAmount(item.updated_quantity, item.rate) },
-    cut_quantity: { header: translations.cutQuantity, accessor: (item) => item.cut_quantity },
+    allocated_quantity: {
+      header: translations.allocatedQuantity,
+      accessor: (item) => item.allocated_quantity,
+    },
+    updated_quantity: {
+      header: translations.updatedQuantity,
+      accessor: (item) => item.updated_quantity,
+    },
+    quantity_left: {
+      header: translations.quantityLeft,
+      accessor: (item) =>
+        calculateQuantityLeft(
+          item.allocated_quantity,
+          item.updated_quantity,
+          item.cut_quantity
+        ),
+    },
+    alloted_rashi: {
+      header: translations.allotedRashi,
+      accessor: (item) =>
+        calculateAllocatedAmount(item.allocated_quantity, item.rate),
+    },
+    sold_rashi: {
+      header: translations.soldRashi,
+      accessor: (item) => calculateAmount(item.updated_quantity, item.rate),
+    },
+    cut_quantity: {
+      header: translations.cutQuantity,
+      accessor: (item) => item.cut_quantity,
+    },
     rate: { header: translations.rate, accessor: (item) => item.rate },
-    total_bill: { header: translations.totalBill, accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate) },
-    billing_date: { header: translations.billingDate, accessor: (item) => item.billing_date }
+    total_bill: {
+      header: translations.totalBill,
+      accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate),
+    },
+    billing_date: {
+      header: translations.billingDate,
+      accessor: (item) => item.billing_date,
+    },
   };
 
   // useEffect for fetching data from the API
@@ -215,7 +280,7 @@ const Billing = () => {
 
         // Create a mapping of source_of_receipt to user_id
         const sourceMapping = {};
-        data.forEach(item => {
+        data.forEach((item) => {
           if (item.source_of_receipt && item.user_id) {
             sourceMapping[item.source_of_receipt] = item.user_id;
           }
@@ -225,11 +290,11 @@ const Billing = () => {
         // Initialize cut_quantity and billing_date for each item
         // Set billing_date as empty string to prevent default selection
         // Users should manually select billing date when needed
-        const initializedData = data.map(item => {
+        const initializedData = data.map((item) => {
           return {
             ...item,
-            cut_quantity: '',
-            billing_date: '' // Always start with empty billing date
+            cut_quantity: "",
+            billing_date: "", // Always start with empty billing date
           };
         });
         setBillingData(initializedData);
@@ -268,38 +333,86 @@ const Billing = () => {
         source_of_receipt: [],
         component: [],
         investment_name: [],
-        scheme_name: []
+        scheme_name: [],
       };
     }
 
     return {
-      center_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.center_name))].map(name => ({ value: name, label: name }))],
-      source_of_receipt: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))],
-      component: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.component))].map(name => ({ value: name, label: name }))],
-      investment_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.investment_name))].map(name => ({ value: name, label: name }))],
-      scheme_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(billingData.map(item => item.scheme_name))].map(name => ({ value: name, label: name }))]
+      center_name: [
+        { value: "select_all", label: "सभी चुनें" },
+        ...[...new Set(billingData.map((item) => item.center_name))].map(
+          (name) => ({ value: name, label: name })
+        ),
+      ],
+      source_of_receipt: [
+        { value: "select_all", label: "सभी चुनें" },
+        ...[...new Set(billingData.map((item) => item.source_of_receipt))].map(
+          (name) => ({ value: name, label: name })
+        ),
+      ],
+      component: [
+        { value: "select_all", label: "सभी चुनें" },
+        ...[...new Set(billingData.map((item) => item.component))].map(
+          (name) => ({ value: name, label: name })
+        ),
+      ],
+      investment_name: [
+        { value: "select_all", label: "सभी चुनें" },
+        ...[...new Set(billingData.map((item) => item.investment_name))].map(
+          (name) => ({ value: name, label: name })
+        ),
+      ],
+      scheme_name: [
+        { value: "select_all", label: "सभी चुनें" },
+        ...[...new Set(billingData.map((item) => item.scheme_name))].map(
+          (name) => ({ value: name, label: name })
+        ),
+      ],
     };
   }, [billingData]);
 
   // Filter data based on selected filters
   const filteredData = useMemo(() => {
-    return billingData.filter(item => {
-      const matchesCenter = filters.center_name.length === 0 || filters.center_name.some(c => c.value === item.center_name);
-      const matchesSource = filters.source_of_receipt.length === 0 || filters.source_of_receipt.some(s => s.value === item.source_of_receipt);
-      const matchesScheme = filters.scheme_name.length === 0 || filters.scheme_name.some(scheme => scheme.value === item.scheme_name);
-      const matchesComponent = filters.component.length === 0 || filters.component.some(comp => comp.value === item.component);
-      const matchesInvestment = filters.investment_name.length === 0 || filters.investment_name.some(inv => inv.value === item.investment_name);
-      return matchesCenter && matchesSource && matchesScheme && matchesComponent && matchesInvestment;
+    return billingData.filter((item) => {
+      const matchesCenter =
+        filters.center_name.length === 0 ||
+        filters.center_name.some((c) => c.value === item.center_name);
+      const matchesSource =
+        filters.source_of_receipt.length === 0 ||
+        filters.source_of_receipt.some(
+          (s) => s.value === item.source_of_receipt
+        );
+      const matchesScheme =
+        filters.scheme_name.length === 0 ||
+        filters.scheme_name.some((scheme) => scheme.value === item.scheme_name);
+      const matchesComponent =
+        filters.component.length === 0 ||
+        filters.component.some((comp) => comp.value === item.component);
+      const matchesInvestment =
+        filters.investment_name.length === 0 ||
+        filters.investment_name.some(
+          (inv) => inv.value === item.investment_name
+        );
+      return (
+        matchesCenter &&
+        matchesSource &&
+        matchesScheme &&
+        matchesComponent &&
+        matchesInvestment
+      );
     });
   }, [billingData, filters]);
 
   // Calculate paginated data based on filtered data
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const paginatedBillingData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+  const paginatedBillingData = filteredData.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), []);
 
   // Convert table data to Excel format and download
   const downloadExcel = (data, filename) => {
@@ -307,8 +420,13 @@ const Billing = () => {
       // Prepare data for Excel export based on selected columns
       const excelData = data.map((item, index) => {
         const row = {};
-        selectedColumns.forEach(col => {
-          row[columnMapping[col].header] = columnMapping[col].accessor(item, index, currentPage, itemsPerPage);
+        selectedColumns.forEach((col) => {
+          row[columnMapping[col].header] = columnMapping[col].accessor(
+            item,
+            index,
+            currentPage,
+            itemsPerPage
+          );
         });
         return row;
       });
@@ -326,11 +444,25 @@ const Billing = () => {
   const downloadPdf = (data, filename) => {
     try {
       // Create headers and rows based on selected columns
-      const headers = selectedColumns.map(col => `<th>${columnMapping[col].header}</th>`).join('');
-      const rows = data.map((item, index) => {
-        const cells = selectedColumns.map(col => `<td>${columnMapping[col].accessor(item, index, currentPage, itemsPerPage)}</td>`).join('');
-        return `<tr>${cells}</tr>`;
-      }).join('');
+      const headers = selectedColumns
+        .map((col) => `<th>${columnMapping[col].header}</th>`)
+        .join("");
+      const rows = data
+        .map((item, index) => {
+          const cells = selectedColumns
+            .map(
+              (col) =>
+                `<td>${columnMapping[col].accessor(
+                  item,
+                  index,
+                  currentPage,
+                  itemsPerPage
+                )}</td>`
+            )
+            .join("");
+          return `<tr>${cells}</tr>`;
+        })
+        .join("");
 
       const tableHtml = `
         <html>
@@ -351,7 +483,7 @@ const Billing = () => {
         </html>
       `;
 
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       printWindow.document.write(tableHtml);
       printWindow.document.close();
       setTimeout(() => {
@@ -362,31 +494,33 @@ const Billing = () => {
       console.error("Error generating PDF:", e);
     }
   };
-  
+
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
-    if (value && value.some(v => v.value === 'select_all')) {
+    if (value && value.some((v) => v.value === "select_all")) {
       // Select all options except 'select_all'
-      const allOptions = filterOptions[filterName].filter(opt => opt.value !== 'select_all');
-      setFilters(prev => ({
+      const allOptions = filterOptions[filterName].filter(
+        (opt) => opt.value !== "select_all"
+      );
+      setFilters((prev) => ({
         ...prev,
-        [filterName]: allOptions
+        [filterName]: allOptions,
       }));
     } else {
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
-        [filterName]: value
+        [filterName]: value,
       }));
     }
   };
-  
+
   // Handle cut quantity change
   const handleCutQuantityChange = (id, value) => {
     // Ensure value is a non-negative number
     const numValue = Math.max(0, parseFloat(value) || 0);
 
     // Get the item to check allocated quantity
-    const item = billingData.find(item => item.id === id);
+    const item = billingData.find((item) => item.id === id);
     const allocatedNum = parseFloat(item.allocated_quantity) || 0;
     const updatedNum = parseFloat(item.updated_quantity) || 0;
 
@@ -395,18 +529,20 @@ const Billing = () => {
 
     // Validate that the cut quantity doesn't exceed the available quantity
     if (numValue > maxCut) {
-      setSubmitError(`${translations.cannotCutMore} (${maxCut}) ${translations.for} ${item.bill_id}`);
+      setSubmitError(
+        `${translations.cannotCutMore} (${maxCut}) ${translations.for} ${item.bill_id}`
+      );
       return;
     }
 
-    setBillingData(prevData =>
-      prevData.map(item =>
+    setBillingData((prevData) =>
+      prevData.map((item) =>
         item.id === id ? { ...item, cut_quantity: numValue } : item
       )
     );
 
     // Track that this item has been modified
-    setModifiedItems(prev => ({ ...prev, [id]: true }));
+    setModifiedItems((prev) => ({ ...prev, [id]: true }));
   };
 
   // Handle billing date change
@@ -421,21 +557,21 @@ const Billing = () => {
         // Try to parse and format the date
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
-          formattedDate = date.toISOString().split('T')[0];
+          formattedDate = date.toISOString().split("T")[0];
         }
       }
     }
 
-    setBillingData(prevData =>
-      prevData.map(item =>
+    setBillingData((prevData) =>
+      prevData.map((item) =>
         item.id === id ? { ...item, billing_date: formattedDate } : item
       )
     );
 
     // Track that this item has been modified
-    setModifiedItems(prev => ({ ...prev, [id]: true }));
+    setModifiedItems((prev) => ({ ...prev, [id]: true }));
   };
-  
+
   // Calculate quantity left
   const calculateQuantityLeft = (allocated, updated, cut) => {
     const allocatedNum = parseFloat(allocated) || 0;
@@ -443,21 +579,21 @@ const Billing = () => {
     const cutNum = parseFloat(cut) || 0;
     return (allocatedNum - updatedNum - cutNum).toFixed(2);
   };
-  
+
   // Calculate amount
   const calculateAmount = (quantity, rate) => {
     const qty = parseFloat(quantity) || 0;
     const r = parseFloat(rate) || 0;
     return (qty * r).toFixed(2);
   };
-  
+
   // Calculate allocated amount (allocated quantity * rate)
   const calculateAllocatedAmount = (allocatedQuantity, rate) => {
     const qty = parseFloat(allocatedQuantity) || 0;
     const r = parseFloat(rate) || 0;
     return (qty * r).toFixed(2);
   };
-  
+
   // Calculate total bill (cut quantity * rate)
   const calculateTotalBill = (cutQuantity, rate) => {
     const qty = parseFloat(cutQuantity) || 0;
@@ -468,91 +604,104 @@ const Billing = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Get only the items that have been modified
-    const updatedItems = billingData.filter(item => modifiedItems[item.id] && item.cut_quantity > 0);
-    
+    const updatedItems = billingData.filter(
+      (item) => modifiedItems[item.id] && item.cut_quantity > 0
+    );
+
     if (updatedItems.length === 0) {
       setSubmitError(translations.noItemsUpdated);
       return;
     }
-    
+
     try {
       setSubmitting(true);
       setSubmitError(null);
       setSubmitSuccess(false);
-      
+
       // Check if all items have billing dates selected
-      const itemsWithoutDate = updatedItems.filter(item => !item.billing_date);
+      const itemsWithoutDate = updatedItems.filter(
+        (item) => !item.billing_date
+      );
       if (itemsWithoutDate.length > 0) {
-        setSubmitError(`Please select billing date for all items. Missing dates for ${itemsWithoutDate.length} item(s).`);
+        setSubmitError(
+          `Please select billing date for all items. Missing dates for ${itemsWithoutDate.length} item(s).`
+        );
         return;
       }
-      
+
       // Validate date format (YYYY-MM-DD)
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      const itemsWithInvalidDate = updatedItems.filter(item => !dateRegex.test(item.billing_date));
+      const itemsWithInvalidDate = updatedItems.filter(
+        (item) => !dateRegex.test(item.billing_date)
+      );
       if (itemsWithInvalidDate.length > 0) {
-        setSubmitError(`Invalid date format found. All dates must be in YYYY-MM-DD format. Please check ${itemsWithInvalidDate.length} item(s).`);
+        setSubmitError(
+          `Invalid date format found. All dates must be in YYYY-MM-DD format. Please check ${itemsWithInvalidDate.length} item(s).`
+        );
         return;
       }
-      
+
       // Group items by user_id and billing_date
       const itemsByUserAndDate = {};
-      updatedItems.forEach(item => {
+      updatedItems.forEach((item) => {
         const source = item.source_of_receipt;
         const userId = sourceUserMap[source];
         const billingDate = item.billing_date;
-        
+
         if (!userId) {
           console.warn(`No user_id found for source: ${source}`);
           return;
         }
-        
+
         // Create composite key for user_id + billing_date
         const compositeKey = `${userId}_${billingDate}`;
-        
+
         if (!itemsByUserAndDate[compositeKey]) {
           itemsByUserAndDate[compositeKey] = {
             user_id: userId,
             billing_date: billingDate,
-            items: []
+            items: [],
           };
         }
         itemsByUserAndDate[compositeKey].items.push(item);
       });
-      
+
       // Create separate payloads for each user and billing date combination
-      const payloads = Object.keys(itemsByUserAndDate).map(compositeKey => {
+      const payloads = Object.keys(itemsByUserAndDate).map((compositeKey) => {
         const group = itemsByUserAndDate[compositeKey];
-        const multiple_bills = group.items.map(item => {
+        const multiple_bills = group.items.map((item) => {
           const existingUpdated = parseFloat(item.updated_quantity) || 0;
           const newCut = parseFloat(item.cut_quantity) || 0;
           const totalUpdated = (existingUpdated + newCut).toString();
           return [item.bill_id, totalUpdated];
         });
-        
+
         return {
           user_id: group.user_id,
           billing_date: group.billing_date,
-          multiple_bills: multiple_bills
+          multiple_bills: multiple_bills,
         };
       });
-      
+
       // Log the payloads for debugging
-      console.log("Submitting payloads:", JSON.stringify({ data: payloads }, null, 2));
-      
+      console.log(
+        "Submitting payloads:",
+        JSON.stringify({ data: payloads }, null, 2)
+      );
+
       // Send POST request with the array of billing data
       const response = await fetch(UPDATE_API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           // Add authentication headers if needed
           // 'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ data: payloads }),
       });
-      
+
       // Try to get response text for debugging
       let responseText;
       try {
@@ -561,7 +710,7 @@ const Billing = () => {
       } catch (e) {
         console.error("Error reading response text:", e);
       }
-      
+
       // Try to parse as JSON if possible
       let responseData;
       try {
@@ -572,50 +721,51 @@ const Billing = () => {
       } catch (e) {
         console.error("Error parsing response as JSON:", e);
       }
-      
+
       if (!response.ok) {
         // Log more details about the failed request
         console.error("Request failed with status:", response.status);
         console.error("Status text:", response.statusText);
         console.error("Response body:", responseText);
-        
+
         // Create a more detailed error message
-        const errorMessage = responseData?.message || responseData?.error || 
-                           `HTTP error! status: ${response.status}`;
+        const errorMessage =
+          responseData?.message ||
+          responseData?.error ||
+          `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }
-      
+
       setSubmitSuccess(true);
       // Clear modified items after successful submission
       setModifiedItems({});
-      
+
       // Refresh data from the GET API
       const refreshResponse = await fetch(GET_API_URL);
       if (refreshResponse.ok) {
         const data = await refreshResponse.json();
-        
+
         // Update the source user mapping with new data
         const sourceMapping = {};
-        data.forEach(item => {
+        data.forEach((item) => {
           if (item.source_of_receipt && item.user_id) {
             sourceMapping[item.source_of_receipt] = item.user_id;
           }
         });
         setSourceUserMap(sourceMapping);
-        
+
         // Initialize cut_quantity and billing_date for each item
         // Set billing_date as empty string to prevent default selection
         // Users should manually select billing date when needed
-        const initializedData = data.map(item => {
+        const initializedData = data.map((item) => {
           return {
             ...item,
-            cut_quantity: '',
-            billing_date: '' // Always start with empty billing date
+            cut_quantity: "",
+            billing_date: "", // Always start with empty billing date
           };
         });
         setBillingData(initializedData);
       }
-      
     } catch (e) {
       console.error("Submit error:", e);
       setSubmitError(e.message);
@@ -631,10 +781,10 @@ const Billing = () => {
       source_of_receipt: [],
       component: [],
       investment_name: [],
-      scheme_name: []
+      scheme_name: [],
     });
   };
-  
+
   // Function to handle page change
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -645,24 +795,30 @@ const Billing = () => {
   const maxVisiblePages = 5;
   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
   let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-  
+
   if (endPage - startPage < maxVisiblePages - 1) {
     startPage = Math.max(1, endPage - maxVisiblePages + 1);
   }
-  
+
   // Add first page and ellipsis if needed
   if (startPage > 1) {
-    paginationItems.push(<Pagination.Item key={1} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
+    paginationItems.push(
+      <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
+        1
+      </Pagination.Item>
+    );
     if (startPage > 2) {
-      paginationItems.push(<Pagination.Ellipsis key="start-ellipsis" disabled />);
+      paginationItems.push(
+        <Pagination.Ellipsis key="start-ellipsis" disabled />
+      );
     }
   }
-  
+
   // Add page numbers
   for (let number = startPage; number <= endPage; number++) {
     paginationItems.push(
-      <Pagination.Item 
-        key={number} 
+      <Pagination.Item
+        key={number}
         active={number === currentPage}
         onClick={() => handlePageChange(number)}
       >
@@ -670,87 +826,139 @@ const Billing = () => {
       </Pagination.Item>
     );
   }
-  
+
   // Add ellipsis and last page if needed
   if (endPage < totalPages) {
     if (endPage < totalPages - 1) {
       paginationItems.push(<Pagination.Ellipsis key="end-ellipsis" disabled />);
     }
-    paginationItems.push(<Pagination.Item key={totalPages} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
+    paginationItems.push(
+      <Pagination.Item
+        key={totalPages}
+        onClick={() => handlePageChange(totalPages)}
+      >
+        {totalPages}
+      </Pagination.Item>
+    );
   }
 
   // Render loading state
   if (loading) {
     return (
-        <div className="dashboard-container">
-            <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
-            <div className="main-content d-flex justify-content-center align-items-center">
-                <Spinner animation="border" />
-            </div>
+      <div className="dashboard-container">
+        <LeftNav
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
+        <div className="main-content d-flex justify-content-center align-items-center">
+          <Spinner animation="border" />
         </div>
+      </div>
     );
   }
 
   // Render error state
   if (error) {
     return (
-        <div className="dashboard-container">
-            <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
-            <div className="main-content">
-                <Container fluid className="dashboard-body">
-                    <Alert variant="danger">{translations.error}: {error}</Alert>
-                </Container>
-            </div>
+      <div className="dashboard-container">
+        <LeftNav
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
+        <div className="main-content">
+          <Container fluid className="dashboard-body">
+            <Alert variant="danger">
+              {translations.error}: {error}
+            </Alert>
+          </Container>
         </div>
+      </div>
     );
   }
 
   // Get the current user_id based on selected source
-  const currentUserId = filters.source_of_receipt.length > 0
-    ? sourceUserMap[filters.source_of_receipt[0].value] || "Not available"
-    : "Select a source to see user ID";
+  const currentUserId =
+    filters.source_of_receipt.length > 0
+      ? sourceUserMap[filters.source_of_receipt[0].value] || "Not available"
+      : "Select a source to see user ID";
 
   return (
     <>
       <div className="dashboard-container">
-        <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
+        <LeftNav
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
         <div className="main-content">
-          <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+          <DashBoardHeader
+            sidebarOpen={sidebarOpen}
+            toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          />
           <Container fluid className="dashboard-body">
             <h1 className="page-title small-fonts">{translations.billing}</h1>
-            
+
             {submitSuccess && (
-              <Alert variant="success" dismissible onClose={() => setSubmitSuccess(false)}>
+              <Alert
+                variant="success"
+                dismissible
+                onClose={() => setSubmitSuccess(false)}
+              >
                 {translations.billingDataUpdated}
               </Alert>
             )}
-            
+
             {submitError && (
-              <Alert variant="danger" dismissible onClose={() => setSubmitError(null)}>
+              <Alert
+                variant="danger"
+                dismissible
+                onClose={() => setSubmitError(null)}
+              >
                 {translations.error}: {submitError}
               </Alert>
             )}
-            
+
             {/* Filters Section */}
             <div className="filter-section mb-4 p-3 border rounded bg-light">
               <Row className="mb-3">
-                <Col md={12} className="d-flex justify-content-between align-items-center">
+                <Col
+                  md={12}
+                  className="d-flex justify-content-between align-items-center"
+                >
                   <h5 className="mb-0 small-fonts">{translations.filters}</h5>
-                  {(filters.center_name.length > 0 || filters.source_of_receipt.length > 0 || filters.component.length > 0 || filters.investment_name.length > 0 || filters.scheme_name.length > 0) && (
-                    <Button variant="outline-secondary" size="sm" onClick={clearFilters} className="small-fonts">
+                  {(filters.center_name.length > 0 ||
+                    filters.source_of_receipt.length > 0 ||
+                    filters.component.length > 0 ||
+                    filters.investment_name.length > 0 ||
+                    filters.scheme_name.length > 0) && (
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="small-fonts"
+                    >
                       {translations.clearAllFilters}
                     </Button>
                   )}
                 </Col>
               </Row>
-              
+
               <Row>
                 <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">{translations.centerName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">
+                      {translations.centerName}
+                    </FormLabel>
                     <Select
                       value={filters.center_name}
-                      onChange={(value) => handleFilterChange('center_name', value)}
+                      onChange={(value) =>
+                        handleFilterChange("center_name", value)
+                      }
                       options={filterOptions.center_name}
                       isMulti={true}
                       isClearable={true}
@@ -765,10 +973,14 @@ const Billing = () => {
 
                 <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">{translations.sourceOfReceipt}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">
+                      {translations.sourceOfReceipt}
+                    </FormLabel>
                     <Select
                       value={filters.source_of_receipt}
-                      onChange={(value) => handleFilterChange('source_of_receipt', value)}
+                      onChange={(value) =>
+                        handleFilterChange("source_of_receipt", value)
+                      }
                       options={filterOptions.source_of_receipt}
                       isMulti={true}
                       isClearable={true}
@@ -783,10 +995,14 @@ const Billing = () => {
 
                 <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">{translations.schemeName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">
+                      {translations.schemeName}
+                    </FormLabel>
                     <Select
                       value={filters.scheme_name}
-                      onChange={(value) => handleFilterChange('scheme_name', value)}
+                      onChange={(value) =>
+                        handleFilterChange("scheme_name", value)
+                      }
                       options={filterOptions.scheme_name}
                       isClearable={true}
                       isMulti={true}
@@ -801,10 +1017,14 @@ const Billing = () => {
 
                 <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">{translations.component}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">
+                      {translations.component}
+                    </FormLabel>
                     <Select
                       value={filters.component}
-                      onChange={(value) => handleFilterChange('component', value)}
+                      onChange={(value) =>
+                        handleFilterChange("component", value)
+                      }
                       options={filterOptions.component}
                       isClearable={true}
                       isMulti={true}
@@ -821,10 +1041,14 @@ const Billing = () => {
               <Row>
                 <Col xs={12} sm={6} md={3} className="mb-2">
                   <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">{translations.investmentName}</FormLabel>
+                    <FormLabel className="small-fonts fw-bold">
+                      {translations.investmentName}
+                    </FormLabel>
                     <Select
                       value={filters.investment_name}
-                      onChange={(value) => handleFilterChange('investment_name', value)}
+                      onChange={(value) =>
+                        handleFilterChange("investment_name", value)
+                      }
                       options={filterOptions.investment_name}
                       isClearable={true}
                       isMulti={true}
@@ -839,184 +1063,316 @@ const Billing = () => {
               </Row>
             </div>
             <div>
-            <Form onSubmit={handleSubmit}>
-              <div className="billing-table-container">
-                <Row className="mt-3">
-                  <div className="col-md-12">
-                    <div className="table-wrapper">
-                      {filteredData.length > 0 ? (
-                        <>
-                          <div className="d-flex justify-content-end mb-2">
-                            <Button 
-                              variant="outline-success" 
-                              size="sm" 
-                              onClick={() => downloadExcel(filteredData, `BillingItems_${new Date().toISOString().split('T')[0]}`)}
-                              className="me-2"
-                            >
-                              <FaFileExcel className="me-1" />Excel
-                            </Button>
-                            <Button 
-                              variant="outline-danger" 
-                              size="sm" 
-                              onClick={() => downloadPdf(filteredData, `BillingItems_${new Date().toISOString().split('T')[0]}`)}
-                            >
-                              <FaFilePdf className="me-1" />PDF
-                            </Button>
-                          </div>
-                          <div className="table-info mb-2 d-flex justify-content-between align-items-center">
-                            <span className="small-fonts">
-                              {translations.showing} {indexOfFirstItem + 1} {translations.to} {Math.min(indexOfLastItem, filteredData.length)} {translations.of} {filteredData.length} {translations.entries}
-                            </span>
-                            <div className="d-flex align-items-center">
-                              <span className="small-fonts me-2">{translations.itemsPerPage}</span>
-                              <span className="badge bg-primary">{itemsPerPage}</span>
+              <Form onSubmit={handleSubmit}>
+                <div className="billing-table-container">
+                  <Row className="mt-3">
+                    <div className="col-md-12">
+                      <div className="table-wrapper">
+                        {filteredData.length > 0 ? (
+                          <>
+                            <div className="d-flex justify-content-end mb-2">
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() =>
+                                  downloadExcel(
+                                    filteredData,
+                                    `BillingItems_${
+                                      new Date().toISOString().split("T")[0]
+                                    }`
+                                  )
+                                }
+                                className="me-2"
+                              >
+                                <FaFileExcel className="me-1" />
+                                Excel
+                              </Button>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() =>
+                                  downloadPdf(
+                                    filteredData,
+                                    `BillingItems_${
+                                      new Date().toISOString().split("T")[0]
+                                    }`
+                                  )
+                                }
+                              >
+                                <FaFilePdf className="me-1" />
+                                PDF
+                              </Button>
                             </div>
-                          </div>
-                          
-                          {/* Column Selection Section */}
-                          <div className="column-selection mb-3 p-3 border rounded bg-light">
-                            <h6 className="small-fonts mb-3">{translations.selectColumns}</h6>
-                            <Row>
-                              <Col>
-                                <div className="d-flex flex-wrap">
-                                  {availableColumns.map(col => (
-                                    <div key={col.key} className="form-check me-3 mb-2">
-                                      <input
-                                        type="checkbox"
-                                        id={`col-${col.key}`}
-                                        checked={selectedColumns.includes(col.key)}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            setSelectedColumns([...selectedColumns, col.key]);
-                                          } else {
-                                            setSelectedColumns(selectedColumns.filter(c => c !== col.key));
-                                          }
-                                        }}
-                                        className="form-check-input"
-                                      />
-                                      <label className="form-check-label small-fonts ms-1" htmlFor={`col-${col.key}`}>
-                                        {col.label}
-                                      </label>
-                                    </div>
-                                  ))}
-                                </div>
-                              </Col>
-                            </Row>
-                          </div>
-                          
-                          <table className="responsive-table small-fonts">
-                            <thead>
-                              <tr>
-                                <th>{translations.sno}</th>
-                                <th>{translations.centerName}</th>
-                                <th>{translations.sourceOfReceipt}</th>
-                                <th>{translations.component}</th>
-                                <th>{translations.investmentName}</th>
-                                <th>{translations.schemeName}</th>
-                                <th>{translations.unit}</th>
-                                <th>{translations.allocatedQuantity}</th>
-                                <th>{translations.updatedQuantity}</th>
-                                <th>{translations.quantityLeft}</th>
-                                <th>{translations.allotedRashi}</th>
-                                <th>{translations.soldRashi}</th>
-                                <th>{translations.cutQuantity}</th>
-                                <th>{translations.rate}</th>
-                                <th>{translations.totalBill}</th>
-                                <th>{translations.billingDate}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedBillingData.map((item, index) => {
-                                const allocatedAmount = calculateAllocatedAmount(item.allocated_quantity, item.rate);
-                                const soldAmount = calculateAmount(item.updated_quantity, item.rate);
-                                const quantityLeft = calculateQuantityLeft(item.allocated_quantity, item.updated_quantity, item.cut_quantity);
-                                const maxCut = (parseFloat(item.allocated_quantity) || 0) - (parseFloat(item.updated_quantity) || 0);
-                                const totalBill = calculateTotalBill(item.cut_quantity, item.rate);
-                                
-                                return (
-                                  <tr key={item.id}>
-                                    <td data-label={translations.sno}>{indexOfFirstItem + index + 1}</td>
-                                    <td data-label={translations.centerName}>{item.center_name}</td>
-                                    <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>
-                                    <td data-label={translations.component}>{item.component}</td>
-                                    <td data-label={translations.investmentName}>{item.investment_name}</td>
-                                    <td data-label={translations.schemeName}>{item.scheme_name}</td>
-                                    <td data-label={translations.unit}>{item.unit}</td>
-                                    <td data-label={translations.allocatedQuantity}>{item.allocated_quantity}</td>
-                                    <td data-label={translations.updatedQuantity}>{item.updated_quantity}</td>
-                                    <td data-label={translations.quantityLeft}>{quantityLeft}</td>
-                                    <td data-label={translations.allotedRashi}>{allocatedAmount}</td>
-                                    <td data-label={translations.soldRashi}>{soldAmount}</td>
-                                    <td data-label={translations.cutQuantity}>
-                                      <Form.Control
-                                        type="number"
-                                        min="0"
-                                        max={maxCut}
-                                        step="0.01"
-                                        value={item.cut_quantity || ''}
-                                        onChange={(e) => handleCutQuantityChange(item.id, e.target.value)}
-                                        className={`small-fonts ${modifiedItems[item.id] ? 'border-warning' : ''}`}
-                                      />
-                                    </td>
-                                    <td data-label={translations.rate}>{item.rate}</td>
-                                    <td data-label={translations.totalBill}>
-                                      <Form.Control
-                                        type="text"
-                                        value={totalBill}
-                                        disabled
-                                        className="bg-light small-fonts"
-                                      />
-                                    </td>
-                                    <td data-label={translations.billingDate}>
-                                      <Form.Control
-                                        type="date"
-                                        value={item.billing_date || ''}
-                                        onChange={(e) => handleBillingDateChange(item.id, e.target.value)}
-                                        className={`small-fonts ${modifiedItems[item.id] ? 'border-warning' : ''}`}
-                                      />
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                          
-                          {totalPages > 1 && (
-                            <div className="mt-2">
-                              <div className="small-fonts mb-3 text-center">
-                                {translations.page} {currentPage} {translations.of} {totalPages}
+                            <div className="table-info mb-2 d-flex justify-content-between align-items-center">
+                              <span className="small-fonts">
+                                {translations.showing} {indexOfFirstItem + 1}{" "}
+                                {translations.to}{" "}
+                                {Math.min(indexOfLastItem, filteredData.length)}{" "}
+                                {translations.of} {filteredData.length}{" "}
+                                {translations.entries}
+                              </span>
+                              <div className="d-flex align-items-center">
+                                <span className="small-fonts me-2">
+                                  {translations.itemsPerPage}
+                                </span>
+                                <span className="badge bg-primary">
+                                  {itemsPerPage}
+                                </span>
                               </div>
-                              <Pagination className="d-flex justify-content-center">
-                                <Pagination.Prev 
-                                  disabled={currentPage === 1} 
-                                  onClick={() => handlePageChange(currentPage - 1)}
-                                />
-                                {paginationItems}
-                                <Pagination.Next 
-                                  disabled={currentPage === totalPages} 
-                                  onClick={() => handlePageChange(currentPage + 1)}
-                                />
-                              </Pagination>
                             </div>
-                          )}
-                        </>
-                      ) : (
-                        <Alert variant="info">
-                          {translations.noMatchingItems}
-                        </Alert>
-                      )}
+
+                            {/* Column Selection Section */}
+                            <div className="column-selection mb-3 p-3 border rounded bg-light">
+                              <h6 className="small-fonts mb-3">
+                                {translations.selectColumns}
+                              </h6>
+                              <Row>
+                                <Col>
+                                  <div className="d-flex flex-wrap">
+                                    {availableColumns.map((col) => (
+                                      <div
+                                        key={col.key}
+                                        className="form-check me-3 mb-2"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          id={`col-${col.key}`}
+                                          checked={selectedColumns.includes(
+                                            col.key
+                                          )}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedColumns([
+                                                ...selectedColumns,
+                                                col.key,
+                                              ]);
+                                            } else {
+                                              setSelectedColumns(
+                                                selectedColumns.filter(
+                                                  (c) => c !== col.key
+                                                )
+                                              );
+                                            }
+                                          }}
+                                          className="form-check-input"
+                                        />
+                                        <label
+                                          className="form-check-label small-fonts ms-1"
+                                          htmlFor={`col-${col.key}`}
+                                        >
+                                          {col.label}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </Col>
+                              </Row>
+                            </div>
+
+                            <table className="responsive-table small-fonts">
+                              <thead>
+                                <tr>
+                                  <th>{translations.sno}</th>
+                                  <th>{translations.centerName}</th>
+                                  <th>{translations.sourceOfReceipt}</th>
+                                  <th>{translations.component}</th>
+                                  <th>{translations.investmentName}</th>
+                                  <th>{translations.schemeName}</th>
+                                  <th>{translations.unit}</th>
+                                  <th>{translations.allocatedQuantity}</th>
+                                  <th>{translations.updatedQuantity}</th>
+                                  <th>{translations.quantityLeft}</th>
+                                  <th>{translations.allotedRashi}</th>
+                                  <th>{translations.soldRashi}</th>
+                                  <th>{translations.cutQuantity}</th>
+                                  <th>{translations.rate}</th>
+                                  <th>{translations.totalBill}</th>
+                                  <th>{translations.billingDate}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paginatedBillingData.map((item, index) => {
+                                  const allocatedAmount =
+                                    calculateAllocatedAmount(
+                                      item.allocated_quantity,
+                                      item.rate
+                                    );
+                                  const soldAmount = calculateAmount(
+                                    item.updated_quantity,
+                                    item.rate
+                                  );
+                                  const quantityLeft = calculateQuantityLeft(
+                                    item.allocated_quantity,
+                                    item.updated_quantity,
+                                    item.cut_quantity
+                                  );
+                                  const maxCut =
+                                    (parseFloat(item.allocated_quantity) || 0) -
+                                    (parseFloat(item.updated_quantity) || 0);
+                                  const totalBill = calculateTotalBill(
+                                    item.cut_quantity,
+                                    item.rate
+                                  );
+
+                                  return (
+                                    <tr key={item.id}>
+                                      <td data-label={translations.sno}>
+                                        {indexOfFirstItem + index + 1}
+                                      </td>
+                                      <td data-label={translations.centerName}>
+                                        {item.center_name}
+                                      </td>
+                                      <td
+                                        data-label={
+                                          translations.sourceOfReceipt
+                                        }
+                                      >
+                                        {item.source_of_receipt}
+                                      </td>
+                                      <td data-label={translations.component}>
+                                        {item.component}
+                                      </td>
+                                      <td
+                                        data-label={translations.investmentName}
+                                      >
+                                        {item.investment_name}
+                                      </td>
+                                      <td data-label={translations.schemeName}>
+                                        {item.scheme_name}
+                                      </td>
+                                      <td data-label={translations.unit}>
+                                        {item.unit}
+                                      </td>
+                                      <td
+                                        data-label={
+                                          translations.allocatedQuantity
+                                        }
+                                      >
+                                        {item.allocated_quantity}
+                                      </td>
+                                      <td
+                                        data-label={
+                                          translations.updatedQuantity
+                                        }
+                                      >
+                                        {item.updated_quantity}
+                                      </td>
+                                      <td
+                                        data-label={translations.quantityLeft}
+                                      >
+                                        {quantityLeft}
+                                      </td>
+                                      <td
+                                        data-label={translations.allotedRashi}
+                                      >
+                                        {allocatedAmount}
+                                      </td>
+                                      <td data-label={translations.soldRashi}>
+                                        {soldAmount}
+                                      </td>
+                                      <td data-label={translations.cutQuantity}>
+                                        <Form.Control
+                                          type="number"
+                                          min="0"
+                                          max={maxCut}
+                                          step="0.01"
+                                          value={item.cut_quantity || ""}
+                                          onChange={(e) =>
+                                            handleCutQuantityChange(
+                                              item.id,
+                                              e.target.value
+                                            )
+                                          }
+                                          className={`small-fonts ${
+                                            modifiedItems[item.id]
+                                              ? "border-warning"
+                                              : ""
+                                          }`}
+                                        />
+                                      </td>
+                                      <td data-label={translations.rate}>
+                                        {item.rate}
+                                      </td>
+                                      <td data-label={translations.totalBill}>
+                                        <Form.Control
+                                          type="text"
+                                          value={totalBill}
+                                          disabled
+                                          className="bg-light small-fonts"
+                                        />
+                                      </td>
+                                      <td data-label={translations.billingDate}>
+                                        <Form.Control
+                                          type="date"
+                                          value={item.billing_date || ""}
+                                          onChange={(e) =>
+                                            handleBillingDateChange(
+                                              item.id,
+                                              e.target.value
+                                            )
+                                          }
+                                          className={`small-fonts ${
+                                            modifiedItems[item.id]
+                                              ? "border-warning"
+                                              : ""
+                                          }`}
+                                        />
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+
+                            {totalPages > 1 && (
+                              <div className="mt-2">
+                                <div className="small-fonts mb-3 text-center">
+                                  {translations.page} {currentPage}{" "}
+                                  {translations.of} {totalPages}
+                                </div>
+                                <Pagination className="d-flex justify-content-center">
+                                  <Pagination.Prev
+                                    disabled={currentPage === 1}
+                                    onClick={() =>
+                                      handlePageChange(currentPage - 1)
+                                    }
+                                  />
+                                  {paginationItems}
+                                  <Pagination.Next
+                                    disabled={currentPage === totalPages}
+                                    onClick={() =>
+                                      handlePageChange(currentPage + 1)
+                                    }
+                                  />
+                                </Pagination>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <Alert variant="info">
+                            {translations.noMatchingItems}
+                          </Alert>
+                        )}
+                      </div>
                     </div>
+                  </Row>
+
+                  <div className="d-flex justify-content-end mt-3">
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      disabled={
+                        submitting || Object.keys(modifiedItems).length === 0
+                      }
+                    >
+                      {submitting ? (
+                        <Spinner as="span" animation="border" size="sm" />
+                      ) : null}
+                      {translations.submitUpdates}
+                    </Button>
                   </div>
-                </Row>
-                
-                <div className="d-flex justify-content-end mt-3">
-                  <Button variant="primary" type="submit" disabled={submitting || Object.keys(modifiedItems).length === 0}>
-                    {submitting ? <Spinner as="span" animation="border" size="sm" /> : null}
-                    {translations.submitUpdates}
-                  </Button>
                 </div>
-              </div>
-            </Form>
+              </Form>
             </div>
           </Container>
         </div>
