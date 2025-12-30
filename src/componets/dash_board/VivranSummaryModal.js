@@ -2263,6 +2263,34 @@ const VivranSummaryModal = ({
                                 });
                               }
                               
+                              // If scheme_name filters are active, only show kendras that have selected schemes
+                              if (activeFilters.scheme_name && Object.keys(activeFilters.scheme_name).length > 0) {
+                                const kendraSchemes = kendraToSchemes[kendra] || [];
+                                if (!kendraSchemes.some(scheme => Object.values(activeFilters.scheme_name).flat().includes(scheme))) {
+                                  return false;
+                                }
+                              }
+                              // If component filters are active, only show kendras that have selected components
+                              if (activeFilters.component && Object.keys(activeFilters.component).length > 0) {
+                                const kendraComponents = kendraToComponents[kendra] || [];
+                                if (!kendraComponents.some(component => Object.values(activeFilters.component).flat().includes(component))) {
+                                  return false;
+                                }
+                              }
+                              // If investment_name filters are active, only show kendras that have selected investments
+                              if (activeFilters.investment_name && Object.keys(activeFilters.investment_name).length > 0) {
+                                const kendraInvestments = kendraToInvestments[kendra] || [];
+                                if (!kendraInvestments.some(investment => Object.values(activeFilters.investment_name).flat().includes(investment))) {
+                                  return false;
+                                }
+                              }
+                              // If source_of_receipt filters are active, only show kendras that have selected sources
+                              if (activeFilters.source_of_receipt && Object.keys(activeFilters.source_of_receipt).length > 0) {
+                                const kendraSources = kendraToSources[kendra] || [];
+                                if (!kendraSources.some(source => Object.values(activeFilters.source_of_receipt).flat().includes(source))) {
+                                  return false;
+                                }
+                              }
                               return true;
                             })
                             .map(([kendra, schemes]) => (
@@ -2329,6 +2357,20 @@ const VivranSummaryModal = ({
                                 });
                               }
                               
+                              // If component filters are active, only show kendras that have selected components
+                              if (activeFilters.component && Object.keys(activeFilters.component).length > 0) {
+                                const kendraComponents = kendraToComponents[kendra] || [];
+                                if (!kendraComponents.some(component => Object.values(activeFilters.component).flat().includes(component))) {
+                                  return false;
+                                }
+                              }
+                              // If investment_name filters are active, only show kendras that have selected investments
+                              if (activeFilters.investment_name && Object.keys(activeFilters.investment_name).length > 0) {
+                                const kendraInvestments = kendraToInvestments[kendra] || [];
+                                if (!kendraInvestments.some(investment => Object.values(activeFilters.investment_name).flat().includes(investment))) {
+                                  return false;
+                                }
+                              }
                               return true;
                             })
                             .map(([kendra, sources]) => (
@@ -2336,11 +2378,26 @@ const VivranSummaryModal = ({
                               <div key={kendra} className="mb-3">
                                 <h6 className="small-fonts">{kendra}</h6>
                                 <Row className="g-1 align-items-center">
-                                  {sources.map((source) => (
+                                  {sources.filter(source => {
+                                    let valid = true;
+                                    if (activeFilters.scheme_name && activeFilters.scheme_name[kendra]) {
+                                      const selectedSchemes = activeFilters.scheme_name[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && selectedSchemes.includes(item.scheme_name));
+                                    }
+                                    if (activeFilters.component && activeFilters.component[kendra]) {
+                                      const selectedComponents = activeFilters.component[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && selectedComponents.includes(item.component));
+                                    }
+                                    if (activeFilters.investment_name && activeFilters.investment_name[kendra]) {
+                                      const selectedInvestments = activeFilters.investment_name[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && selectedInvestments.includes(item.investment_name));
+                                    }
+                                    return valid;
+                                  }).map((source) => (
                                     <Col key={source} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.source_of_receipt && 
+                                          (activeFilters.source_of_receipt &&
                                            activeFilters.source_of_receipt[kendra] &&
                                            activeFilters.source_of_receipt[kendra].includes(source))
                                             ? "primary"
@@ -2377,6 +2434,20 @@ const VivranSummaryModal = ({
                               if (activeFilters.center_name && activeFilters.center_name.length > 0) {
                                 return activeFilters.center_name.includes(kendra);
                               }
+                              // If scheme_name filters are active, only show kendras that have selected schemes
+                              if (activeFilters.scheme_name && Object.keys(activeFilters.scheme_name).length > 0) {
+                                const kendraSchemes = kendraToSchemes[kendra] || [];
+                                if (!kendraSchemes.some(scheme => Object.values(activeFilters.scheme_name).flat().includes(scheme))) {
+                                  return false;
+                                }
+                              }
+                              // If investment_name filters are active, only show kendras that have selected investments
+                              if (activeFilters.investment_name && Object.keys(activeFilters.investment_name).length > 0) {
+                                const kendraInvestments = kendraToInvestments[kendra] || [];
+                                if (!kendraInvestments.some(investment => Object.values(activeFilters.investment_name).flat().includes(investment))) {
+                                  return false;
+                                }
+                              }
                               return true;
                             })
                             .map(([kendra, components]) => (
@@ -2384,11 +2455,26 @@ const VivranSummaryModal = ({
                               <div key={kendra} className="mb-3">
                                 <h6 className="small-fonts">{kendra}</h6>
                                 <Row className="g-1 align-items-center">
-                                  {components.map((component) => (
+                                  {components.filter(component => {
+                                    let valid = true;
+                                    if (activeFilters.source_of_receipt && activeFilters.source_of_receipt[kendra]) {
+                                      const selectedSources = activeFilters.source_of_receipt[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && selectedSources.includes(item.source_of_receipt));
+                                    }
+                                    if (activeFilters.scheme_name && activeFilters.scheme_name[kendra]) {
+                                      const selectedSchemes = activeFilters.scheme_name[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && selectedSchemes.includes(item.scheme_name));
+                                    }
+                                    if (activeFilters.investment_name && activeFilters.investment_name[kendra]) {
+                                      const selectedInvestments = activeFilters.investment_name[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && selectedInvestments.includes(item.investment_name));
+                                    }
+                                    return valid;
+                                  }).map((component) => (
                                     <Col key={component} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.component && 
+                                          (activeFilters.component &&
                                            activeFilters.component[kendra] &&
                                            activeFilters.component[kendra].includes(component))
                                             ? "primary"
@@ -2425,6 +2511,20 @@ const VivranSummaryModal = ({
                               if (activeFilters.center_name && activeFilters.center_name.length > 0) {
                                 return activeFilters.center_name.includes(kendra);
                               }
+                              // If scheme_name filters are active, only show kendras that have selected schemes
+                              if (activeFilters.scheme_name && Object.keys(activeFilters.scheme_name).length > 0) {
+                                const kendraSchemes = kendraToSchemes[kendra] || [];
+                                if (!kendraSchemes.some(scheme => Object.values(activeFilters.scheme_name).flat().includes(scheme))) {
+                                  return false;
+                                }
+                              }
+                              // If component filters are active, only show kendras that have selected components
+                              if (activeFilters.component && Object.keys(activeFilters.component).length > 0) {
+                                const kendraComponents = kendraToComponents[kendra] || [];
+                                if (!kendraComponents.some(component => Object.values(activeFilters.component).flat().includes(component))) {
+                                  return false;
+                                }
+                              }
                               return true;
                             })
                             .map(([kendra, investments]) => (
@@ -2432,11 +2532,26 @@ const VivranSummaryModal = ({
                               <div key={kendra} className="mb-3">
                                 <h6 className="small-fonts">{kendra}</h6>
                                 <Row className="g-1 align-items-center">
-                                  {investments.map((investment) => (
+                                  {investments.filter(investment => {
+                                    let valid = true;
+                                    if (activeFilters.component && activeFilters.component[kendra]) {
+                                      const selectedComponents = activeFilters.component[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && selectedComponents.includes(item.component));
+                                    }
+                                    if (activeFilters.scheme_name && activeFilters.scheme_name[kendra]) {
+                                      const selectedSchemes = activeFilters.scheme_name[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && selectedSchemes.includes(item.scheme_name));
+                                    }
+                                    if (activeFilters.source_of_receipt && activeFilters.source_of_receipt[kendra]) {
+                                      const selectedSources = activeFilters.source_of_receipt[kendra];
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && selectedSources.includes(item.source_of_receipt));
+                                    }
+                                    return valid;
+                                  }).map((investment) => (
                                     <Col key={investment} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.investment_name && 
+                                          (activeFilters.investment_name &&
                                            activeFilters.investment_name[kendra] &&
                                            activeFilters.investment_name[kendra].includes(investment))
                                             ? "primary"
