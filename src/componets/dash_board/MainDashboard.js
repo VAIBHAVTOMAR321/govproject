@@ -45,7 +45,7 @@ const BarChart = ({ data }) => {
   // Bar spacing - improved calculation
   const totalBarSpace = chartWidth;
   const numBars = data.length;
-  const barWidth = Math.max(20, totalBarSpace / (numBars * 1.5)); // Minimum width of 20px
+  const barWidth = Math.min(40, Math.max(15, totalBarSpace / (numBars * 1.5))); // Max 40px, min 15px
   const barPadding = (totalBarSpace - numBars * barWidth) / (numBars - 1) || 10;
 
   // Colors for bars
@@ -62,7 +62,9 @@ const BarChart = ({ data }) => {
 
   // Generate bars with tooltips
   const bars = data.map((item, index) => {
-    const x = margin.left + index * (barWidth + barPadding);
+    const x = numBars === 1
+      ? margin.left + (totalBarSpace - barWidth) / 2
+      : margin.left + index * (barWidth + barPadding);
     const y = margin.top + chartHeight - (item.value / maxValue) * chartHeight;
     const height = (item.value / maxValue) * chartHeight;
     const color = colors[index % colors.length];
@@ -330,7 +332,6 @@ const MainDashboard = () => {
   // Filter data based on selected type
   const filterData = (filterType, data) => {
     let filtered = [];
-    let graphDataArray = [];
 
     switch (filterType) {
       case "kendra":
@@ -346,25 +347,6 @@ const MainDashboard = () => {
         // Set available centers
         setAvailableCenters(filtered);
         setSelectedCenters([]); // Reset selected centers
-
-        // Calculate total allocated quantity for each center
-        const centerTotals = {};
-        data.forEach((item) => {
-          if (
-            item.center_name &&
-            item.center_name.trim() &&
-            item.allocated_quantity
-          ) {
-            const quantity = parseFloat(item.allocated_quantity) || 0;
-            centerTotals[item.center_name] =
-              (centerTotals[item.center_name] || 0) + quantity;
-          }
-        });
-
-        graphDataArray = Object.entries(centerTotals).map(([name, total]) => ({
-          name: name,
-          value: total,
-        }));
         break;
 
       case "vidhanSabha":
@@ -380,27 +362,6 @@ const MainDashboard = () => {
         // Set available centers
         setAvailableCenters(filtered);
         setSelectedCenters([]); // Reset selected centers
-
-        // Calculate total allocated quantity for each vidhan sabha
-        const vidhanSabhaTotals = {};
-        data.forEach((item) => {
-          if (
-            item.vidhan_sabha_name &&
-            item.vidhan_sabha_name.trim() &&
-            item.allocated_quantity
-          ) {
-            const quantity = parseFloat(item.allocated_quantity) || 0;
-            vidhanSabhaTotals[item.vidhan_sabha_name] =
-              (vidhanSabhaTotals[item.vidhan_sabha_name] || 0) + quantity;
-          }
-        });
-
-        graphDataArray = Object.entries(vidhanSabhaTotals).map(
-          ([name, total]) => ({
-            name: name,
-            value: total,
-          })
-        );
         break;
 
       case "vikasKhand":
@@ -416,36 +377,13 @@ const MainDashboard = () => {
         // Set available centers
         setAvailableCenters(filtered);
         setSelectedCenters([]); // Reset selected centers
-
-        // Calculate total allocated quantity for each vikas khand
-        const vikasKhandTotals = {};
-        data.forEach((item) => {
-          if (
-            item.vikas_khand_name &&
-            item.vikas_khand_name.trim() &&
-            item.allocated_quantity
-          ) {
-            const quantity = parseFloat(item.allocated_quantity) || 0;
-            vikasKhandTotals[item.vikas_khand_name] =
-              (vikasKhandTotals[item.vikas_khand_name] || 0) + quantity;
-          }
-        });
-
-        graphDataArray = Object.entries(vikasKhandTotals).map(
-          ([name, total]) => ({
-            name: name,
-            value: total,
-          })
-        );
         break;
 
       default:
         filtered = [];
-        graphDataArray = [];
     }
 
     setFilteredData(filtered);
-    setGraphData(graphDataArray);
   };
 
   // Handle selected centers to show VivranSummaryModal
@@ -570,6 +508,66 @@ const MainDashboard = () => {
   useEffect(() => {
     fetchBillingData();
   }, []);
+
+  // Update graph data when selectedCenters changes
+  useEffect(() => {
+    if (selectedFilter && billingData.length > 0) {
+      let dataToUse = billingData;
+      if (selectedCenters.length > 0) {
+        // Filter based on selectedFilter type
+        switch (selectedFilter) {
+          case "kendra":
+            dataToUse = billingData.filter(item => selectedCenters.includes(item.center_name));
+            break;
+          case "vidhanSabha":
+            dataToUse = billingData.filter(item => selectedCenters.includes(item.vidhan_sabha_name));
+            break;
+          case "vikasKhand":
+            dataToUse = billingData.filter(item => selectedCenters.includes(item.vikas_khand_name));
+            break;
+        }
+      }
+
+      // Calculate graph data from filtered data
+      let graphDataArray = [];
+      switch (selectedFilter) {
+        case "kendra":
+          const centerTotals = {};
+          dataToUse.forEach((item) => {
+            if (item.center_name && item.allocated_quantity) {
+              const quantity = parseFloat(item.allocated_quantity) || 0;
+              centerTotals[item.center_name] = (centerTotals[item.center_name] || 0) + quantity;
+            }
+          });
+          graphDataArray = Object.entries(centerTotals).map(([name, total]) => ({ name, value: total }));
+          break;
+
+        case "vidhanSabha":
+          const vidhanSabhaTotals = {};
+          dataToUse.forEach((item) => {
+            if (item.vidhan_sabha_name && item.allocated_quantity) {
+              const quantity = parseFloat(item.allocated_quantity) || 0;
+              vidhanSabhaTotals[item.vidhan_sabha_name] = (vidhanSabhaTotals[item.vidhan_sabha_name] || 0) + quantity;
+            }
+          });
+          graphDataArray = Object.entries(vidhanSabhaTotals).map(([name, total]) => ({ name, value: total }));
+          break;
+
+        case "vikasKhand":
+          const vikasKhandTotals = {};
+          dataToUse.forEach((item) => {
+            if (item.vikas_khand_name && item.allocated_quantity) {
+              const quantity = parseFloat(item.allocated_quantity) || 0;
+              vikasKhandTotals[item.vikas_khand_name] = (vikasKhandTotals[item.vikas_khand_name] || 0) + quantity;
+            }
+          });
+          graphDataArray = Object.entries(vikasKhandTotals).map(([name, total]) => ({ name, value: total }));
+          break;
+      }
+
+      setGraphData(graphDataArray);
+    }
+  }, [selectedFilter, billingData, selectedCenters]);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
