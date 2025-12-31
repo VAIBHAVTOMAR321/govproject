@@ -917,10 +917,10 @@ const KrishiRegistration = () => {
   };
 
   // Handle save edit - FIXED VERSION
-  const handleSave = async (item) => {
+const handleSave = async (item) => {
     try {
       const payload = {
-        beneficiary_id: item.beneficiary_id, // Include beneficiary_id in payload
+        beneficiary_id: item.beneficiary_id,
         farmer_name: editingValues.farmer_name,
         father_name: editingValues.father_name,
         address: editingValues.address,
@@ -939,13 +939,7 @@ const KrishiRegistration = () => {
         vikas_khand_name: editingValues.vikas_khand_name,
         vidhan_sabha_name: editingValues.vidhan_sabha_name,
       };
-
-      console.log("Sending payload:", payload);
-
-      // Use the base API URL without appending the ID
       const response = await axios.put(BENEFICIARIES_API_URL, payload);
-      console.log("Update response:", response);
-
       setAllBeneficiaries((prev) =>
         prev.map((i) =>
           i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
@@ -956,7 +950,6 @@ const KrishiRegistration = () => {
       setApiResponse({ message: "लाभार्थी सफलतापूर्वक अपडेट किया गया!" });
     } catch (error) {
       console.error("Error updating item:", error);
-      console.error("Error response:", error.response);
       setApiError("लाभार्थी अपडेट करने में त्रुटि हुई।");
     }
   };

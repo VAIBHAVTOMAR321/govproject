@@ -401,6 +401,7 @@ const Registration = () => {
           ...prev,
           vikas_khand_name: vikasData.vikas_khand_name || "",
           vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
+          scheme_name: "MGNREGA", // Set default scheme_name
         }));
         // Update editing values if editing
         if (editingRowId) {
@@ -408,6 +409,7 @@ const Registration = () => {
             ...prev,
             vikas_khand_name: vikasData.vikas_khand_name || "",
             vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
+            scheme_name: "MGNREGA", // Set default scheme_name
           }));
         }
         console.log("Form data updated with:", vikasData);

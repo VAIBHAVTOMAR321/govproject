@@ -25,21 +25,26 @@ const getContrastColor = (bgColor) => {
 };
 
 const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
-  const [collapsedSections, setCollapsedSections] = useState({
-    hierarchy: true,
+  // Default state for collapsed sections
+  const defaultCollapsedSections = {
+    hierarchy: false,  // First accordion - open by default
     schemes: true,
     investments: true,
-    filter: true,
+    filter: false,     // Second accordion - open by default
     sources: true,
     places: true,
     allocation: true,
     sales: true,
     remaining: true
-  });
+  };
 
-  // Set initial selected kendra when modal opens
+  const [collapsedSections, setCollapsedSections] = useState(defaultCollapsedSections);
+
+  // Reset collapsed sections when modal is opened
   useEffect(() => {
     if (show) {
+      setCollapsedSections(defaultCollapsedSections);
+      
       // Simple tooltip initialization
       const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
       tooltipElements.forEach(element => {
@@ -159,7 +164,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
 आवंटित: ${formatCurrency(tooltipData.totalAllocated)}
 बेचा गया: ${formatCurrency(tooltipData.totalUpdated)}
 शेष: ${formatCurrency(tooltipData.totalRemaining)}
-${relatedInfo}
+ ${relatedInfo}
 विधानसभा: ${locations}
 विकासखंड: ${vikasKhands}`;
   };
@@ -466,32 +471,6 @@ ${relatedInfo}
                         <span className="fw-bold text-dark">{source}</span>
                         <div className="d-flex align-items-center gap-2">
                           <small className="text-muted">{records.length} रिकॉर्ड</small>
-                          {/* <div className="btn-group btn-group-sm" role="group">
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm" 
-                              className="compact-action-btn"
-                              title="आवंटन देखें"
-                            >
-                              <FaEye size={10} />
-                            </Button>
-                            <Button 
-                              variant="outline-success" 
-                              size="sm" 
-                              className="compact-action-btn"
-                              title="बिक्री देखें"
-                            >
-                              <FaChartBar size={10} />
-                            </Button>
-                            <Button 
-                              variant="outline-info" 
-                              size="sm" 
-                              className="compact-action-btn"
-                              title="विवरण देखें"
-                            >
-                              <FaList size={10} />
-                            </Button>
-                          </div> */}
                         </div>
                       </div>
                       <div className="compact-data-line">
@@ -867,24 +846,6 @@ ${relatedInfo}
                           <span className="fw-bold">{scheme}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-info">{formatCurrency(totalAllocated)}</span>
-                            {/* <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="आवंटन देखें"
-                              >
-                                <FaEye size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div> */}
                           </div>
                         </div>
                         <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
@@ -911,24 +872,6 @@ ${relatedInfo}
                           <span className="fw-bold">{component}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-warning">{formatCurrency(totalAllocated)}</span>
-                            {/* <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="आवंटन देखें"
-                              >
-                                <FaEye size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div> */}
                           </div>
                         </div>
                         <small className="text-muted">{componentData.length} रिकॉर्ड</small>
@@ -980,24 +923,6 @@ ${relatedInfo}
                           <span className="fw-bold">{scheme}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-secondary">{formatCurrency(totalSold)}</span>
-                            {/* <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-secondary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="बिक्री देखें"
-                              >
-                                <FaChartBar size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div> */}
                           </div>
                         </div>
                         <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
@@ -1024,24 +949,6 @@ ${relatedInfo}
                           <span className="fw-bold">{component}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-dark">{formatCurrency(totalSold)}</span>
-                            {/* <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-secondary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="बिक्री देखें"
-                              >
-                                <FaChartBar size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div> */}
                           </div>
                         </div>
                         <small className="text-muted">{componentData.length} रिकॉर्ड</small>
@@ -1096,24 +1003,6 @@ ${relatedInfo}
                           <span className="fw-bold">{scheme}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-primary">{formatCurrency(remaining)}</span>
-                            {/* <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="शेष राशि देखें"
-                              >
-                                <FaLayerGroup size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div> */}
                           </div>
                         </div>
                         <small className="text-muted single-line-data">
@@ -1147,24 +1036,6 @@ ${relatedInfo}
                           <span className="fw-bold">{component}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-info">{formatCurrency(remaining)}</span>
-                            {/* <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-info" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="शेष राशि देखें"
-                              >
-                                <FaLayerGroup size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div> */}
                           </div>
                         </div>
                         <small className="text-muted single-line-data">
