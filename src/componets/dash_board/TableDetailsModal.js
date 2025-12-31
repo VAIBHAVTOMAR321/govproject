@@ -680,8 +680,8 @@ ${relatedInfo}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: विधानसभा और विकासखंड देखें"
                 >
-                  <FaGavel size={16} className="text-primary mb-1" />
-                  <h5 className="text-primary mb-1">{uniqueVidhanSabhas.length}</h5>
+                  
+                  <h5 className="text-primary mb-1"><FaGavel size={16} className="text-primary mb-1 mx-1" />{uniqueVidhanSabhas.length}</h5>
                   <small className="text-muted">विधानसभा</small>
                 </div>
               </Col>
@@ -692,8 +692,8 @@ ${relatedInfo}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: विकासखंड और विधानसभा देखें"
                 >
-                  <FaMapMarkerAlt size={16} className="text-success mb-1" />
-                  <h5 className="text-success mb-1">{uniqueVikasKhands.length}</h5>
+                  
+                  <h5 className="text-success mb-1"><FaMapMarkerAlt size={16} className="text-success mb-1 mx-1" />{uniqueVikasKhands.length}</h5>
                   <small className="text-muted">विकासखंड</small>
                 </div>
               </Col>
@@ -704,8 +704,8 @@ ${relatedInfo}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: योजनाएं और निवेश देखें"
                 >
-                  <FaPiggyBank size={16} className="text-info mb-1" />
-                  <h5 className="text-info mb-1">{uniqueSchemes.length}</h5>
+                  
+                  <h5 className="text-info mb-1"><FaPiggyBank size={16} className="text-info mb-1 mx-1" />{uniqueSchemes.length}</h5>
                   <small className="text-muted">योजनाएं</small>
                 </div>
               </Col>
@@ -716,8 +716,8 @@ ${relatedInfo}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: निवेश और योजनाएं देखें"
                 >
-                  <FaPuzzlePiece size={16} className="text-warning mb-1" />
-                  <h5 className="text-warning mb-1">{uniqueInvestments.length}</h5>
+                  
+                  <h5 className="text-warning mb-1"><FaPuzzlePiece size={16} className="text-warning mb-1 mx-1" />{uniqueInvestments.length}</h5>
                   <small className="text-muted">निवेश</small>
                 </div>
               </Col>
@@ -728,8 +728,8 @@ ${relatedInfo}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: घटक और योजनाएं देखें"
                 >
-                  <FaLayerGroup size={16} className="text-secondary mb-1" />
-                  <h5 className="text-secondary mb-1">{uniqueComponents.length}</h5>
+                  
+                  <h5 className="text-secondary mb-1"><FaLayerGroup size={16} className="text-secondary mb-1 mx-1" />{uniqueComponents.length}</h5>
                   <small className="text-muted">घटक</small>
                 </div>
               </Col>
@@ -740,8 +740,8 @@ ${relatedInfo}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: स्रोत और योजनाएं देखें"
                 >
-                  <FaTags size={16} className="text-dark mb-1" />
-                  <h5 className="text-dark mb-1">{uniqueSources.length}</h5>
+                 <div>
+                  <h5 className="text-dark mb-1"> <FaTags size={16} className="text-dark mb-1 mx-1" />{uniqueSources.length}</h5></div>
                   <small className="text-muted">स्रोत</small>
                 </div>
               </Col>
@@ -754,7 +754,7 @@ ${relatedInfo}
           <Card.Header style={{ backgroundColor: centerColor, color: textColor, borderBottom: '1px solid rgba(0,0,0,0.125)' }}>
             <Row>
               <Col md={6}>
-                <div className="mb-0">{centerName}</div>
+                <div className="mb-0 modal-card-title ">{centerName}</div>
               </Col>
               <Col md={6} className="text-end">
                 <div className="d-flex flex-row align-items-end">
