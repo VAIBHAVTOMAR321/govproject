@@ -754,7 +754,7 @@ ${relatedInfo}
           <Card.Header style={{ backgroundColor: centerColor, color: textColor, borderBottom: '1px solid rgba(0,0,0,0.125)' }}>
             <Row>
               <Col md={6}>
-                <div className="mb-0">{centerName}</div>
+                <div className="modal-card-title">{centerName}</div>
               </Col>
               <Col md={6} className="text-end">
                 <div className="d-flex flex-row align-items-end">
