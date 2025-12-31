@@ -11,6 +11,7 @@ import {
   Tooltip,
   Spinner,
   Pagination,
+  Modal,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaTimes, FaSync } from "react-icons/fa";
 import axios from "axios";
@@ -63,7 +64,7 @@ const categoryOptions = [
 ];
 const unitOptions = ["नग", "किलोग्राम", "लीटर", "मीटर", "बैग"];
 
-// Available columns for the table (excluding sno which is always shown)
+// Available columns for table (excluding sno which is always shown)
 const beneficiariesTableColumns = [
   { key: "farmer_name", label: "किसान का नाम" },
   { key: "father_name", label: "पिता का नाम" },
@@ -80,6 +81,8 @@ const beneficiariesTableColumns = [
   { key: "mobile_number", label: "मोबाइल नंबर" },
   { key: "category", label: "श्रेणी" },
   { key: "scheme_name", label: "योजना का नाम" },
+  { key: "vikas_khand_name", label: "विकास खंड का नाम" },
+  { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
 ];
 
 // Column mapping for data access
@@ -115,6 +118,14 @@ const beneficiariesTableColumnMapping = {
   },
   category: { header: "श्रेणी", accessor: (item) => item.category },
   scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
+  vikas_khand_name: {
+    header: "विकास खंड का नाम",
+    accessor: (item) => item.vikas_khand_name,
+  },
+  vidhan_sabha_name: {
+    header: "विधानसभा का नाम",
+    accessor: (item) => item.vidhan_sabha_name,
+  },
 };
 
 // Hindi translations for form
@@ -152,6 +163,10 @@ const translations = {
   of: "का",
   entries: "प्रविष्टियां",
   page: "पृष्ठ",
+  itemsPerPage: "प्रति पृष्ठ आइटम",
+  editBeneficiary: "लाभार्थी संपादित करें",
+  saveChanges: "परिवर्तन सहेजें",
+  cancel: "रद्द करें",
 };
 
 const KrishiRegistration = () => {
@@ -283,8 +298,17 @@ const KrishiRegistration = () => {
   });
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+
+  // State for inline editing
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
+  const [editingOtherMode, setEditingOtherMode] = useState({
+    supplied_item_name: false,
+    unit: false,
+    category: false,
+    scheme_name: false,
+  });
+  const [editingVikasKhandData, setEditingVikasKhandData] = useState(null);
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -332,19 +356,30 @@ const KrishiRegistration = () => {
   };
 
   // Fetch vikas khand data based on center
-  const fetchVikasKhandData = async (centerName) => {
+  const fetchVikasKhandData = async (centerName, isEditMode = false) => {
     if (!centerName) {
-      setVikasKhandData(null);
-      setFormData((prev) => ({
-        ...prev,
-        vikas_khand_name: "",
-        vidhan_sabha_name: "",
-      }));
+      if (isEditMode) {
+        setEditingVikasKhandData(null);
+        setEditingValues((prev) => ({
+          ...prev,
+          vikas_khand_name: "",
+          vidhan_sabha_name: "",
+        }));
+      } else {
+        setVikasKhandData(null);
+        setFormData((prev) => ({
+          ...prev,
+          vikas_khand_name: "",
+          vidhan_sabha_name: "",
+        }));
+      }
       return;
     }
 
     try {
-      setIsFetchingVikasKhand(true);
+      if (isEditMode) {
+        setIsFetchingVikasKhand(true);
+      }
       console.log("Fetching vikas khand for center:", centerName);
       const response = await axios.get(
         `${VIKAS_KHAND_API_URL}?center_name=${encodeURIComponent(centerName)}`
@@ -364,14 +399,53 @@ const KrishiRegistration = () => {
       console.log("Extracted vikas data:", vikasData);
 
       if (vikasData) {
-        setVikasKhandData(vikasData);
-        // Update form data immediately
-        setFormData((prev) => ({
+        if (isEditMode) {
+          setEditingVikasKhandData(vikasData);
+          // Update form data immediately
+          setEditingValues((prev) => ({
+            ...prev,
+            vikas_khand_name: vikasData.vikas_khand_name || "",
+            vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
+          }));
+          console.log("Edit form data updated with:", vikasData);
+        } else {
+          setVikasKhandData(vikasData);
+          // Update form data immediately
+          setFormData((prev) => ({
+            ...prev,
+            vikas_khand_name: vikasData.vikas_khand_name || "",
+            vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
+          }));
+          console.log("Form data updated with:", vikasData);
+        }
+      } else {
+        if (isEditMode) {
+          setEditingVikasKhandData(null);
+          setEditingValues((prev) => ({
+            ...prev,
+            vikas_khand_name: "",
+            vidhan_sabha_name: "",
+          }));
+          console.log("No vikas data found for edit, cleared form");
+        } else {
+          setVikasKhandData(null);
+          setFormData((prev) => ({
+            ...prev,
+            vikas_khand_name: "",
+            vidhan_sabha_name: "",
+          }));
+          console.log("No vikas data found, cleared form");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching vikas khand data:", error);
+      if (isEditMode) {
+        setEditingVikasKhandData(null);
+        setEditingValues((prev) => ({
           ...prev,
-          vikas_khand_name: vikasData.vikas_khand_name || "",
-          vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
+          vikas_khand_name: "",
+          vidhan_sabha_name: "",
         }));
-        console.log("Form data updated with:", vikasData);
       } else {
         setVikasKhandData(null);
         setFormData((prev) => ({
@@ -379,18 +453,11 @@ const KrishiRegistration = () => {
           vikas_khand_name: "",
           vidhan_sabha_name: "",
         }));
-        console.log("No vikas data found, cleared form");
       }
-    } catch (error) {
-      console.error("Error fetching vikas khand data:", error);
-      setVikasKhandData(null);
-      setFormData((prev) => ({
-        ...prev,
-        vikas_khand_name: "",
-        vidhan_sabha_name: "",
-      }));
     } finally {
-      setIsFetchingVikasKhand(false);
+      if (isEditMode) {
+        setIsFetchingVikasKhand(false);
+      }
     }
   };
 
@@ -431,33 +498,6 @@ const KrishiRegistration = () => {
     fetchBeneficiaries();
     fetchFormFilters();
   }, []);
-
-  // Test function to check API requirements
-  const testAPIRequirements = async () => {
-    try {
-      const testPayload = {
-        center_name: "किनगोड़िखाल",
-        supplied_item_name: "आम का पौधा",
-        unit: "नग",
-        quantity: 1,
-        rate: 25,
-        amount: 25,
-        category: "सामान्य",
-        scheme_name: "उद्यान विकास योजना",
-      };
-
-      console.log("Testing API with minimal payload:", testPayload);
-      const response = await axios.post(BENEFICIARIES_API_URL, testPayload);
-      console.log("API test response:", response.status, response.data);
-    } catch (error) {
-      console.error("API test failed:", error.response?.data || error.message);
-    }
-  };
-
-  // Uncomment to test API requirements (only for debugging)
-  // useEffect(() => {
-  //   testAPIRequirements();
-  // }, []);
 
   // Reset to page 1 when data changes
   useEffect(() => {
@@ -631,7 +671,7 @@ const KrishiRegistration = () => {
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
-        { wch: 15 }, // आधार नंबर
+        { wch: 10 }, // आधार नंबर
         { wch: 20 }, // बैंक खाता नंबर
         { wch: 15 }, // IFSC कोड
         { wch: 15 }, // मोबाइल नंबर
@@ -733,7 +773,7 @@ const KrishiRegistration = () => {
       printWindow.document.write(tableHtml);
       printWindow.document.close();
 
-      // Wait for the content to load before printing
+      // Wait for content to load before printing
       printWindow.onload = function () {
         setTimeout(() => {
           printWindow.print();
@@ -767,7 +807,7 @@ const KrishiRegistration = () => {
     setCurrentPage(pageNumber);
   };
 
-  // Handle edit
+  // Handle inline edit
   const handleEdit = (item) => {
     setEditingRowId(item.beneficiary_id);
     setEditingValues({
@@ -789,15 +829,98 @@ const KrishiRegistration = () => {
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
     });
+
+    // Fetch vikas khand data for this center if available
+    if (item.center_name) {
+      fetchVikasKhandData(item.center_name, true);
+    }
+
     setApiError(null);
     setApiResponse(null);
   };
 
-  // Handle save edit
+  // Handle edit form field changes
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    let updatedValues = {
+      ...editingValues,
+      [name]: value,
+    };
+
+    // Handle "Other" selection - switch to text input mode
+    if (value === "Other") {
+      setEditingOtherMode((prev) => ({
+        ...prev,
+        [name]: true,
+      }));
+      updatedValues[name] = ""; // Clear the value
+    } else {
+      // If not "Other", ensure we're in dropdown mode (unless already in other mode)
+      if (!editingOtherMode[name]) {
+        setEditingOtherMode((prev) => ({
+          ...prev,
+          [name]: false,
+        }));
+
+        // Handle cascading dropdowns only when not in other mode
+        if (name === "supplied_item_name" && value) {
+          // Reset dependent fields
+          updatedValues.unit = "";
+          updatedValues.category = "";
+          updatedValues.scheme_name = "";
+          setEditingOtherMode((prev) => ({
+            ...prev,
+            unit: false,
+            category: false,
+            scheme_name: false,
+          }));
+          // Fetch unit options
+          fetchFormFilters(value);
+        } else if (
+          name === "category" &&
+          value &&
+          editingValues.supplied_item_name
+        ) {
+          // Reset dependent fields
+          updatedValues.scheme_name = "";
+          setEditingOtherMode((prev) => ({
+            ...prev,
+            scheme_name: false,
+          }));
+          // Fetch scheme options
+          fetchFormFilters(editingValues.supplied_item_name, value);
+        }
+
+        // If center changes, fetch vikas khand data and reset related fields
+        if (name === "center_name") {
+          if (value) {
+            fetchVikasKhandData(value, true);
+          } else {
+            setEditingVikasKhandData(null);
+            updatedValues.vikas_khand_name = "";
+            updatedValues.vidhan_sabha_name = "";
+          }
+        }
+      }
+      // If in other mode, just update the value without triggering cascading
+    }
+
+    // Auto-calculate amount when quantity and rate change
+    if (name === "quantity" || name === "rate") {
+      const quantity = parseFloat(value) || 0;
+      const rate =
+        parseFloat(name === "quantity" ? editingValues.rate : value) || 0;
+      updatedValues.amount = (quantity * rate).toString();
+    }
+
+    setEditingValues(updatedValues);
+  };
+
+  // Handle save edit - FIXED VERSION
   const handleSave = async (item) => {
     try {
       const payload = {
-        beneficiary_id: item.beneficiary_id,
+        beneficiary_id: item.beneficiary_id, // Include beneficiary_id in payload
         farmer_name: editingValues.farmer_name,
         father_name: editingValues.father_name,
         address: editingValues.address,
@@ -816,7 +939,13 @@ const KrishiRegistration = () => {
         vikas_khand_name: editingValues.vikas_khand_name,
         vidhan_sabha_name: editingValues.vidhan_sabha_name,
       };
+
+      console.log("Sending payload:", payload);
+
+      // Use the base API URL without appending the ID
       const response = await axios.put(BENEFICIARIES_API_URL, payload);
+      console.log("Update response:", response);
+
       setAllBeneficiaries((prev) =>
         prev.map((i) =>
           i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
@@ -827,6 +956,7 @@ const KrishiRegistration = () => {
       setApiResponse({ message: "लाभार्थी सफलतापूर्वक अपडेट किया गया!" });
     } catch (error) {
       console.error("Error updating item:", error);
+      console.error("Error response:", error.response);
       setApiError("लाभार्थी अपडेट करने में त्रुटि हुई।");
     }
   };
@@ -835,15 +965,21 @@ const KrishiRegistration = () => {
   const handleCancel = () => {
     setEditingRowId(null);
     setEditingValues({});
+    setEditingOtherMode({
+      supplied_item_name: false,
+      unit: false,
+      category: false,
+      scheme_name: false,
+    });
   };
 
   // Handle delete
   const handleDelete = async (item) => {
     if (window.confirm("क्या आप इस लाभार्थी को हटाना चाहते हैं?")) {
       try {
-        const response = await axios.delete(BENEFICIARIES_API_URL, {
-          data: { beneficiary_id: item.beneficiary_id },
-        });
+        const response = await axios.delete(
+          `${BENEFICIARIES_API_URL}${item.beneficiary_id}`
+        );
         setAllBeneficiaries((prev) =>
           prev.filter((i) => i.beneficiary_id !== item.beneficiary_id)
         );
@@ -1290,93 +1426,733 @@ const KrishiRegistration = () => {
       newErrors.vidhan_sabha_name = `${translations.vidhanSabhaName} ${translations.required}`;
     return newErrors;
   };
-
   return (
-    <div className="">
-      <Container fluid className="">
-        <Row>
-          <Col lg={12} md={12} sm={12}>
-            <DashBoardHeader />
-          </Col>
-        </Row>
+    <div className="dashboard-container">
+      <Row>
+        <Col lg={12} md={12} sm={12}>
+          <DashBoardHeader />
+        </Col>
+      </Row>
 
-        <Row className="left-top">
-          <Col lg={2} md={2} sm={12}>
-            <LeftNav />
-          </Col>
+      <Row className="left-top">
+        <Col lg={2} md={2} sm={12}>
+          <LeftNav />
+        </Col>
 
-          <Col lg={10} md={10} sm={12}>
-            <Container className="dashboard-body-main">
-              <h1 className="page-title small-fonts">
-                {translations.pageTitle}
-              </h1>
+        <Col lg={10} md={12} sm={10}>
+          <Container fluid className="dashboard-body-main">
+            <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
 
-              {/* Bulk Upload Section */}
-              <Row className="mb-3">
-                <Col xs={12} md={6} lg={6}>
-                  <Form.Group controlId="excelFile">
-                    <Form.Label className="small-fonts fw-bold">
-                      {translations.bulkUpload}
-                    </Form.Label>
-                    <Form.Control
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileChange}
-                      className="compact-input"
-                      ref={fileInputRef}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={12} md={3} className="d-flex align-items-end">
-                  <Button
-                    variant="secondary"
-                    onClick={handleBulkUpload}
-                    disabled={!excelFile || isUploading}
-                    className="compact-submit-btn w-100"
-                  >
-                    {isUploading
-                      ? "अपलोड हो रहा है..."
-                      : translations.uploadButton}
-                  </Button>
-                </Col>
-                <Col xs={12} md={3} className="d-flex align-items-end">
-                  <Button
-                    variant="info"
-                    onClick={downloadSampleTemplate}
-                    disabled={isUploading}
-                    className="compact-submit-btn w-100"
-                  >
-                    डाउनलोड टेम्पलेट
-                  </Button>
-                </Col>
-              </Row>
+            {/* Bulk Upload Section */}
+            <Row className="mb-3">
+              <Col xs={12} md={6} lg={6}>
+                <Form.Group controlId="excelFile">
+                  <Form.Label className="small-fonts fw-bold">
+                    {translations.bulkUpload}
+                  </Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="compact-input"
+                    ref={fileInputRef}
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={3} className="d-flex align-items-end">
+                <Button
+                  variant="secondary"
+                  onClick={handleBulkUpload}
+                  disabled={!excelFile || isUploading}
+                  className="compact-submit-btn w-100"
+                >
+                  {isUploading
+                    ? "अपलोड हो रहा है..."
+                    : translations.uploadButton}
+                </Button>
+              </Col>
+              <Col xs={12} md={3} className="d-flex align-items-end">
+                <Button
+                  variant="info"
+                  onClick={downloadSampleTemplate}
+                  disabled={isUploading}
+                  className="compact-submit-btn w-100"
+                >
+                  डाउनलोड टेम्पलेट
+                </Button>
+              </Col>
+            </Row>
 
-              {apiResponse && (
-                <Alert variant="success" className="small-fonts">
-                  {translations.successMessage}
-                </Alert>
-              )}
-              {apiError && (
-                <Alert variant="danger" className="small-fonts">
-                  {apiError}
-                </Alert>
-              )}
-
-              {/* Excel Upload Instructions */}
-              <Alert variant="info" className="small-fonts mb-3">
-                <strong>Excel अपलोड निर्देश:</strong>
-                <ul className="mb-0">
-                  <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
-                  <li>
-                    अनिवार्य फ़ील्ड: किसान का नाम, पिता का नाम, पता, केंद्र का
-                    नाम, आपूर्ति की गई वस्तु का नाम, इकाई, मात्रा, दर, राशि,
-                    आधार नंबर, बैंक खाता नंबर, IFSC कोड, मोबाइल नंबर, श्रेणी,
-                    योजना का नाम, विकास खंड का नाम, विधानसभा का नाम
-                  </li>
-                  <li>मात्रा, दर और राशि संख्यात्मक होने चाहिए</li>
-                  <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
-                </ul>
+            {apiResponse && (
+              <Alert variant="success" className="small-fonts">
+                {translations.successMessage}
               </Alert>
+            )}
+            {apiError && (
+              <Alert variant="danger" className="small-fonts">
+                {apiError}
+              </Alert>
+            )}
+
+            {/* Excel Upload Instructions */}
+            <Alert variant="info" className="small-fonts mb-3">
+              <strong>Excel अपलोड निर्देश:</strong>
+              <ul className="mb-0">
+                <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
+                <li>
+                  अनिवार्य फ़ील्ड: किसान का नाम, पिता का नाम, पता, केंद्र का
+                  नाम, आपूर्ति की गई वस्तु का नाम, इकाई, मात्रा, दर, राशि, आधार
+                  नंबर, बैंक खाता नंबर, IFSC कोड, मोबाइल नंबर, श्रेणी, योजना का
+                  नाम, विकास खंड का नाम, विधानसभा का नाम
+                </li>
+                <li>मात्रा, दर और राशि संख्यात्मक होनी चाहिए</li>
+                <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
+              </ul>
+            </Alert>
+
+            {/* Center Selection - Always visible */}
+            <Form.Group className="mb-3" controlId="center_selection">
+              <Form.Label className="small-fonts fw-bold">
+                {translations.centerName}
+              </Form.Label>
+              <Form.Select
+                name="center_name"
+                value={formData.center_name}
+                onChange={handleChange}
+                isInvalid={!!errors.center_name}
+                className="compact-input"
+              >
+                <option value="">{translations.selectOption}</option>
+                {centerOptions.map((center, index) => (
+                  <option key={index} value={center}>
+                    {center}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Control.Feedback type="invalid">
+                {errors.center_name}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            {/* Beneficiaries Form Section - Only show when center is selected */}
+            {formData.center_name && (
+              <Form
+                onSubmit={handleSubmit}
+                className="registration-form compact-form"
+              >
+                <Row>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="farmer_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.farmerName}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="farmer_name"
+                        value={formData.farmer_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.farmer_name}
+                        className="compact-input"
+                        placeholder="किसान का नाम दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.farmer_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="father_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.fatherName}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="father_name"
+                        value={formData.father_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.father_name}
+                        className="compact-input"
+                        placeholder="पिता का नाम दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.father_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="address">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.address}
+                      </Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        isInvalid={!!errors.address}
+                        className="compact-input"
+                        placeholder="पता दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.address}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="supplied_item_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.suppliedItemName}
+                      </Form.Label>
+                      {otherMode.supplied_item_name ? (
+                        <div className="d-flex">
+                          <Form.Control
+                            type="text"
+                            name="supplied_item_name"
+                            value={formData.supplied_item_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.supplied_item_name}
+                            className="compact-input"
+                            placeholder="आपूर्ति की गई वस्तु का नाम दर्ज करें"
+                          />
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="ms-1"
+                            onClick={() => {
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                supplied_item_name: false,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                supplied_item_name: "",
+                              }));
+                              // Refetch options
+                              fetchFormFilters();
+                            }}
+                            title="विकल्प दिखाएं"
+                          >
+                            ↺
+                          </Button>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="supplied_item_name"
+                          value={formData.supplied_item_name}
+                          onChange={handleChange}
+                          isInvalid={!!errors.supplied_item_name}
+                          className="compact-input"
+                          disabled={isLoadingFilters}
+                        >
+                          <option value="">{translations.selectOption}</option>
+                          {formOptions.supplied_item_name.map((item, index) => (
+                            <option key={index} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                          <option value="Other">अन्य</option>
+                        </Form.Select>
+                      )}
+                      <Form.Control.Feedback type="invalid">
+                        {errors.supplied_item_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="unit">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.unit}
+                      </Form.Label>
+                      {otherMode.unit ? (
+                        <div className="d-flex">
+                          <Form.Control
+                            type="text"
+                            name="unit"
+                            value={formData.unit}
+                            onChange={handleChange}
+                            isInvalid={!!errors.unit}
+                            className="compact-input"
+                            placeholder="इकाई दर्ज करें"
+                          />
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="ms-1"
+                            onClick={() => {
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                unit: false,
+                              }));
+                              setFormData((prev) => ({ ...prev, unit: "" }));
+                              // Refetch base options
+                              fetchFormFilters();
+                            }}
+                            title="विकल्प दिखाएं"
+                          >
+                            ↺
+                          </Button>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="unit"
+                          value={formData.unit}
+                          onChange={handleChange}
+                          isInvalid={!!errors.unit}
+                          className="compact-input"
+                          disabled={isLoadingFilters}
+                        >
+                          <option value="">{translations.selectOption}</option>
+                          {formOptions.unit.map((unit, index) => (
+                            <option key={index} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                          <option value="Other">अन्य</option>
+                        </Form.Select>
+                      )}
+                      <Form.Control.Feedback type="invalid">
+                        {errors.unit}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="quantity">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.quantity}
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="quantity"
+                        value={formData.quantity}
+                        onChange={handleChange}
+                        isInvalid={!!errors.quantity}
+                        className="compact-input"
+                        placeholder="मात्रा दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.quantity}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="rate">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.rate}
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        name="rate"
+                        value={formData.rate}
+                        onChange={handleChange}
+                        isInvalid={!!errors.rate}
+                        className="compact-input"
+                        placeholder="दर दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.rate}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="amount">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.amount}
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        name="amount"
+                        value={formData.amount}
+                        onChange={handleChange}
+                        isInvalid={!!errors.amount}
+                        className="compact-input"
+                        placeholder="राशि दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.amount}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="aadhaar_number">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.aadhaarNumber}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="aadhaar_number"
+                        value={formData.aadhaar_number}
+                        onChange={handleChange}
+                        isInvalid={!!errors.aadhaar_number}
+                        className="compact-input"
+                        placeholder="आधार नंबर दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.aadhaar_number}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group
+                      className="mb-2"
+                      controlId="bank_account_number"
+                    >
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.bankAccountNumber}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="bank_account_number"
+                        value={formData.bank_account_number}
+                        onChange={handleChange}
+                        isInvalid={!!errors.bank_account_number}
+                        className="compact-input"
+                        placeholder="बैंक खाता नंबर दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.bank_account_number}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="ifsc_code">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.ifscCode}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="ifsc_code"
+                        value={formData.ifsc_code}
+                        onChange={handleChange}
+                        isInvalid={!!errors.ifsc_code}
+                        className="compact-input"
+                        placeholder="IFSC कोड दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.ifsc_code}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="mobile_number">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.mobileNumber}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="mobile_number"
+                        value={formData.mobile_number}
+                        onChange={handleChange}
+                        isInvalid={!!errors.mobile_number}
+                        className="compact-input"
+                        placeholder="मोबाइल नंबर दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.mobile_number}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="category">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.category}
+                      </Form.Label>
+                      {otherMode.category ? (
+                        <div className="d-flex">
+                          <Form.Control
+                            type="text"
+                            name="category"
+                            value={formData.category}
+                            onChange={handleChange}
+                            isInvalid={!!errors.category}
+                            className="compact-input"
+                            placeholder="श्रेणी दर्ज करें"
+                          />
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="ms-1"
+                            onClick={() => {
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                category: false,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                category: "",
+                              }));
+                              // Refetch base options
+                              fetchFormFilters();
+                            }}
+                            title="विकल्प दिखाएं"
+                          >
+                            ↺
+                          </Button>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="category"
+                          value={formData.category}
+                          onChange={handleChange}
+                          isInvalid={!!errors.category}
+                          className="compact-input"
+                          disabled={isLoadingFilters}
+                        >
+                          <option value="">{translations.selectOption}</option>
+                          {formOptions.category.map((cat, index) => (
+                            <option key={index} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                          <option value="Other">अन्य</option>
+                        </Form.Select>
+                      )}
+                      <Form.Control.Feedback type="invalid">
+                        {errors.category}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="scheme_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.schemeName}
+                      </Form.Label>
+                      {otherMode.scheme_name ? (
+                        <div className="d-flex">
+                          <Form.Control
+                            type="text"
+                            name="scheme_name"
+                            value={formData.scheme_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.scheme_name}
+                            className="compact-input"
+                            placeholder="योजना का नाम दर्ज करें"
+                          />
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="ms-1"
+                            onClick={() => {
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                scheme_name: false,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                scheme_name: "",
+                              }));
+                              // Refetch base options
+                              fetchFormFilters();
+                            }}
+                            title="विकल्प दिखाएं"
+                          >
+                            ↺
+                          </Button>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="scheme_name"
+                          value={formData.scheme_name}
+                          onChange={handleChange}
+                          isInvalid={!!errors.scheme_name}
+                          className="compact-input"
+                          disabled={isLoadingFilters}
+                        >
+                          <option value="">{translations.selectOption}</option>
+                          {formOptions.scheme_name.map((scheme, index) => (
+                            <option key={index} value={scheme}>
+                              {scheme}
+                            </option>
+                          ))}
+                          <option value="Other">अन्य</option>
+                        </Form.Select>
+                      )}
+                      <Form.Control.Feedback type="invalid">
+                        {errors.scheme_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="vikas_khand_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.vikasKhandName}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="vikas_khand_name"
+                        value={formData.vikas_khand_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.vikas_khand_name}
+                        className="compact-input"
+                        disabled
+                        placeholder={
+                          isFetchingVikasKhand ? "लोड हो रहा है..." : ""
+                        }
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.vikas_khand_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={2}>
+                    <Form.Group className="mb-2" controlId="vidhan_sabha_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.vidhanSabhaName}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="vidhan_sabha_name"
+                        value={formData.vidhan_sabha_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.vidhan_sabha_name}
+                        className="compact-input"
+                        disabled
+                        placeholder={
+                          isFetchingVikasKhand ? "लोड हो रहा है..." : ""
+                        }
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.vidhan_sabha_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col
+                    xs={12}
+                    sm={6}
+                    md={4}
+                    className="d-flex align-items-center"
+                  >
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="compact-submit-btn w-100"
+                    >
+                      {isSubmitting
+                        ? translations.submitting
+                        : translations.submitButton}
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
+            )}
+            {/* Table Section */}
+            <div className="billing-table-section mt-4">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3 className="small-fonts mb-0">लाभार्थी डेटा</h3>
+                <div className="d-flex align-items-center">
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={
+                      <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
+                    }
+                  >
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={handleRefresh}
+                      disabled={isLoading}
+                      className="me-2"
+                    >
+                      <FaSync
+                        className={`me-1 ${isLoading ? "fa-spin" : ""}`}
+                      />
+                      रीफ्रेश
+                    </Button>
+                  </OverlayTrigger>
+                  {beneficiaries.length > 0 && (
+                    <>
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip id="tooltip-excel">
+                            Excel डाउनलोड करें
+                          </Tooltip>
+                        }
+                      >
+                        <Button
+                          variant="outline-success"
+                          size="sm"
+                          onClick={() =>
+                            downloadExcel(
+                              beneficiaries,
+                              `Beneficiaries_${new Date()
+                                .toISOString()
+                                .slice(0, 10)}`,
+                              beneficiariesTableColumnMapping,
+                              selectedColumns
+                            )
+                          }
+                          className="me-2"
+                        >
+                          <FaFileExcel className="me-1" />
+                          Excel
+                        </Button>
+                      </OverlayTrigger>
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip id="tooltip-pdf">PDF डाउनलोड करें</Tooltip>
+                        }
+                      >
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() =>
+                            downloadPdf(
+                              beneficiaries,
+                              `Beneficiaries_${new Date()
+                                .toISOString()
+                                .slice(0, 10)}`,
+                              beneficiariesTableColumnMapping,
+                              selectedColumns,
+                              "लाभार्थी डेटा"
+                            )
+                          }
+                        >
+                          <FaFilePdf className="me-1" />
+                          PDF
+                        </Button>
+                      </OverlayTrigger>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Table info with pagination details */}
+              {beneficiaries.length > 0 && (
+                <div className="table-info mb-2 d-flex justify-content-between align-items-center">
+                  <span className="small-fonts">
+                    {translations.showing}{" "}
+                    {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
+                    {Math.min(currentPage * itemsPerPage, beneficiaries.length)}{" "}
+                    {translations.of} {beneficiaries.length}{" "}
+                    {translations.entries}
+                  </span>
+                  <div className="d-flex align-items-center">
+                    <span className="small-fonts me-2">
+                      {translations.itemsPerPage}
+                    </span>
+                    <span className="badge bg-primary">{itemsPerPage}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Column Selection Section */}
+              {beneficiaries.length > 0 && (
+                <ColumnSelection
+                  columns={beneficiariesTableColumns}
+                  selectedColumns={selectedColumns}
+                  setSelectedColumns={setSelectedColumns}
+                  title="कॉलम चुनें"
+                />
+              )}
 
               {/* Multi-Filter Section */}
               {beneficiaries.length > 0 && (
@@ -1596,1110 +2372,609 @@ const KrishiRegistration = () => {
                 </div>
               )}
 
-              {/* Center Selection - Always visible */}
-              <Form.Group className="mb-3" controlId="center_selection">
-                <Form.Label className="small-fonts fw-bold">
-                  {translations.centerName}
-                </Form.Label>
-                <Form.Select
-                  name="center_name"
-                  value={formData.center_name}
-                  onChange={handleChange}
-                  isInvalid={!!errors.center_name}
-                  className="compact-input"
-                >
-                  <option value="">{translations.selectOption}</option>
-                  {centerOptions.map((center, index) => (
-                    <option key={index} value={center}>
-                      {center}
-                    </option>
-                  ))}
-                </Form.Select>
-                <Form.Control.Feedback type="invalid">
-                  {errors.center_name}
-                </Form.Control.Feedback>
-              </Form.Group>
-
-              {/* Beneficiaries Form Section - Only show when center is selected */}
-              {formData.center_name && (
-                <Form
-                  onSubmit={handleSubmit}
-                  className="registration-form compact-form"
-                >
-                  <Row>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="farmer_name">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.farmerName}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="farmer_name"
-                          value={formData.farmer_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.farmer_name}
-                          className="compact-input"
-                          placeholder="किसान का नाम दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.farmer_name}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="father_name">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.fatherName}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="father_name"
-                          value={formData.father_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.father_name}
-                          className="compact-input"
-                          placeholder="पिता का नाम दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.father_name}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="address">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.address}
-                        </Form.Label>
-                        <Form.Control
-                          as="textarea"
-                          rows={2}
-                          name="address"
-                          value={formData.address}
-                          onChange={handleChange}
-                          isInvalid={!!errors.address}
-                          className="compact-input"
-                          placeholder="पता दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.address}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group
-                        className="mb-2"
-                        controlId="supplied_item_name"
-                      >
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.suppliedItemName}
-                        </Form.Label>
-                        {otherMode.supplied_item_name ? (
-                          <div className="d-flex">
-                            <Form.Control
-                              type="text"
-                              name="supplied_item_name"
-                              value={formData.supplied_item_name}
-                              onChange={handleChange}
-                              isInvalid={!!errors.supplied_item_name}
-                              className="compact-input"
-                              placeholder="आपूर्ति की गई वस्तु का नाम दर्ज करें"
-                            />
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              className="ms-1"
-                              onClick={() => {
-                                setOtherMode((prev) => ({
-                                  ...prev,
-                                  supplied_item_name: false,
-                                }));
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  supplied_item_name: "",
-                                }));
-                                // Refetch options
-                                fetchFormFilters();
-                              }}
-                              title="विकल्प दिखाएं"
-                            >
-                              ↺
-                            </Button>
-                          </div>
-                        ) : (
-                          <Form.Select
-                            name="supplied_item_name"
-                            value={formData.supplied_item_name}
-                            onChange={handleChange}
-                            isInvalid={!!errors.supplied_item_name}
-                            className="compact-input"
-                            disabled={isLoadingFilters}
-                          >
-                            <option value="">
-                              {translations.selectOption}
-                            </option>
-                            {formOptions.supplied_item_name.map(
-                              (item, index) => (
-                                <option key={index} value={item}>
-                                  {item}
-                                </option>
-                              )
-                            )}
-                            <option value="Other">अन्य</option>
-                          </Form.Select>
-                        )}
-                        <Form.Control.Feedback type="invalid">
-                          {errors.supplied_item_name}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="unit">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.unit}
-                        </Form.Label>
-                        {otherMode.unit ? (
-                          <div className="d-flex">
-                            <Form.Control
-                              type="text"
-                              name="unit"
-                              value={formData.unit}
-                              onChange={handleChange}
-                              isInvalid={!!errors.unit}
-                              className="compact-input"
-                              placeholder="इकाई दर्ज करें"
-                            />
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              className="ms-1"
-                              onClick={() => {
-                                setOtherMode((prev) => ({
-                                  ...prev,
-                                  unit: false,
-                                }));
-                                setFormData((prev) => ({ ...prev, unit: "" }));
-                                // Refetch base options
-                                fetchFormFilters();
-                              }}
-                              title="विकल्प दिखाएं"
-                            >
-                              ↺
-                            </Button>
-                          </div>
-                        ) : (
-                          <Form.Select
-                            name="unit"
-                            value={formData.unit}
-                            onChange={handleChange}
-                            isInvalid={!!errors.unit}
-                            className="compact-input"
-                            disabled={isLoadingFilters}
-                          >
-                            <option value="">
-                              {translations.selectOption}
-                            </option>
-                            {formOptions.unit.map((unit, index) => (
-                              <option key={index} value={unit}>
-                                {unit}
-                              </option>
-                            ))}
-                            <option value="Other">अन्य</option>
-                          </Form.Select>
-                        )}
-                        <Form.Control.Feedback type="invalid">
-                          {errors.unit}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="quantity">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.quantity}
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="quantity"
-                          value={formData.quantity}
-                          onChange={handleChange}
-                          isInvalid={!!errors.quantity}
-                          className="compact-input"
-                          placeholder="मात्रा दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.quantity}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="rate">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.rate}
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          step="0.01"
-                          name="rate"
-                          value={formData.rate}
-                          onChange={handleChange}
-                          isInvalid={!!errors.rate}
-                          className="compact-input"
-                          placeholder="दर दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.rate}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="amount">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.amount}
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          step="0.01"
-                          name="amount"
-                          value={formData.amount}
-                          onChange={handleChange}
-                          isInvalid={!!errors.amount}
-                          className="compact-input"
-                          placeholder="राशि दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.amount}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="aadhaar_number">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.aadhaarNumber}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="aadhaar_number"
-                          value={formData.aadhaar_number}
-                          onChange={handleChange}
-                          isInvalid={!!errors.aadhaar_number}
-                          className="compact-input"
-                          placeholder="आधार नंबर दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.aadhaar_number}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group
-                        className="mb-2"
-                        controlId="bank_account_number"
-                      >
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.bankAccountNumber}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="bank_account_number"
-                          value={formData.bank_account_number}
-                          onChange={handleChange}
-                          isInvalid={!!errors.bank_account_number}
-                          className="compact-input"
-                          placeholder="बैंक खाता नंबर दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.bank_account_number}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="ifsc_code">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.ifscCode}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="ifsc_code"
-                          value={formData.ifsc_code}
-                          onChange={handleChange}
-                          isInvalid={!!errors.ifsc_code}
-                          className="compact-input"
-                          placeholder="IFSC कोड दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.ifsc_code}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="mobile_number">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.mobileNumber}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="mobile_number"
-                          value={formData.mobile_number}
-                          onChange={handleChange}
-                          isInvalid={!!errors.mobile_number}
-                          className="compact-input"
-                          placeholder="मोबाइल नंबर दर्ज करें"
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.mobile_number}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="category">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.category}
-                        </Form.Label>
-                        {otherMode.category ? (
-                          <div className="d-flex">
-                            <Form.Control
-                              type="text"
-                              name="category"
-                              value={formData.category}
-                              onChange={handleChange}
-                              isInvalid={!!errors.category}
-                              className="compact-input"
-                              placeholder="श्रेणी दर्ज करें"
-                            />
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              className="ms-1"
-                              onClick={() => {
-                                setOtherMode((prev) => ({
-                                  ...prev,
-                                  category: false,
-                                }));
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  category: "",
-                                }));
-                                // Refetch base options
-                                fetchFormFilters();
-                              }}
-                              title="विकल्प दिखाएं"
-                            >
-                              ↺
-                            </Button>
-                          </div>
-                        ) : (
-                          <Form.Select
-                            name="category"
-                            value={formData.category}
-                            onChange={handleChange}
-                            isInvalid={!!errors.category}
-                            className="compact-input"
-                            disabled={isLoadingFilters}
-                          >
-                            <option value="">
-                              {translations.selectOption}
-                            </option>
-                            {formOptions.category.map((cat, index) => (
-                              <option key={index} value={cat}>
-                                {cat}
-                              </option>
-                            ))}
-                            <option value="Other">अन्य</option>
-                          </Form.Select>
-                        )}
-                        <Form.Control.Feedback type="invalid">
-                          {errors.category}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="scheme_name">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.schemeName}
-                        </Form.Label>
-                        {otherMode.scheme_name ? (
-                          <div className="d-flex">
-                            <Form.Control
-                              type="text"
-                              name="scheme_name"
-                              value={formData.scheme_name}
-                              onChange={handleChange}
-                              isInvalid={!!errors.scheme_name}
-                              className="compact-input"
-                              placeholder="योजना का नाम दर्ज करें"
-                            />
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              className="ms-1"
-                              onClick={() => {
-                                setOtherMode((prev) => ({
-                                  ...prev,
-                                  scheme_name: false,
-                                }));
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  scheme_name: "",
-                                }));
-                                // Refetch base options
-                                fetchFormFilters();
-                              }}
-                              title="विकल्प दिखाएं"
-                            >
-                              ↺
-                            </Button>
-                          </div>
-                        ) : (
-                          <Form.Select
-                            name="scheme_name"
-                            value={formData.scheme_name}
-                            onChange={handleChange}
-                            isInvalid={!!errors.scheme_name}
-                            className="compact-input"
-                            disabled={isLoadingFilters}
-                          >
-                            <option value="">
-                              {translations.selectOption}
-                            </option>
-                            {formOptions.scheme_name.map((scheme, index) => (
-                              <option key={index} value={scheme}>
-                                {scheme}
-                              </option>
-                            ))}
-                            <option value="Other">अन्य</option>
-                          </Form.Select>
-                        )}
-                        <Form.Control.Feedback type="invalid">
-                          {errors.scheme_name}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="vikas_khand_name">
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.vikasKhandName}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="vikas_khand_name"
-                          value={formData.vikas_khand_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.vikas_khand_name}
-                          className="compact-input"
-                          disabled
-                          placeholder={
-                            isFetchingVikasKhand ? "लोड हो रहा है..." : ""
-                          }
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.vikas_khand_name}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} sm={6} md={2}>
-                      <Form.Group
-                        className="mb-2"
-                        controlId="vidhan_sabha_name"
-                      >
-                        <Form.Label className="small-fonts fw-bold">
-                          {translations.vidhanSabhaName}
-                        </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="vidhan_sabha_name"
-                          value={formData.vidhan_sabha_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.vidhan_sabha_name}
-                          className="compact-input"
-                          disabled
-                          placeholder={
-                            isFetchingVikasKhand ? "लोड हो रहा है..." : ""
-                          }
-                        />
-                        <Form.Control.Feedback type="invalid">
-                          {errors.vidhan_sabha_name}
-                        </Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col
-                      xs={12}
-                      sm={6}
-                      md={4}
-                      className="d-flex align-items-center"
-                    >
-                      <Button
-                        variant="primary"
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="compact-submit-btn w-100"
-                      >
-                        {isSubmitting
-                          ? translations.submitting
-                          : translations.submitButton}
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form>
-              )}
-              {/* Table Section */}
-              <div className="billing-table-section mt-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h3 className="small-fonts mb-0">लाभार्थी डेटा</h3>
-                  <div className="d-flex align-items-center">
-                    <OverlayTrigger
-                      placement="top"
-                      overlay={
-                        <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
-                      }
-                    >
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={handleRefresh}
-                        disabled={isLoading}
-                        className="me-2"
-                      >
-                        <FaSync
-                          className={`me-1 ${isLoading ? "fa-spin" : ""}`}
-                        />
-                        रीफ्रेश
-                      </Button>
-                    </OverlayTrigger>
-                    {beneficiaries.length > 0 && (
-                      <>
-                        <OverlayTrigger
-                          placement="top"
-                          overlay={
-                            <Tooltip id="tooltip-excel">
-                              Excel डाउनलोड करें
-                            </Tooltip>
-                          }
-                        >
-                          <Button
-                            variant="outline-success"
-                            size="sm"
-                            onClick={() =>
-                              downloadExcel(
-                                beneficiaries,
-                                `Beneficiaries_${new Date()
-                                  .toISOString()
-                                  .slice(0, 10)}`,
-                                beneficiariesTableColumnMapping,
-                                selectedColumns
-                              )
-                            }
-                            className="me-2"
-                          >
-                            <FaFileExcel className="me-1" />
-                            Excel
-                          </Button>
-                        </OverlayTrigger>
-                        <OverlayTrigger
-                          placement="top"
-                          overlay={
-                            <Tooltip id="tooltip-pdf">PDF डाउनलोड करें</Tooltip>
-                          }
-                        >
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() =>
-                              downloadPdf(
-                                beneficiaries,
-                                `Beneficiaries_${new Date()
-                                  .toISOString()
-                                  .slice(0, 10)}`,
-                                beneficiariesTableColumnMapping,
-                                selectedColumns,
-                                "लाभार्थी डेटा"
-                              )
-                            }
-                          >
-                            <FaFilePdf className="me-1" />
-                            PDF
-                          </Button>
-                        </OverlayTrigger>
-                      </>
-                    )}
+              {isLoading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">लोड हो रहा है...</span>
                   </div>
+                  <p className="mt-2 small-fonts">डेटा लोड हो रहा है...</p>
                 </div>
-
-                {/* Table info with pagination details */}
-                {beneficiaries.length > 0 && (
-                  <div className="table-info mb-2 d-flex justify-content-between align-items-center">
-                    <span className="small-fonts">
-                      {translations.showing}{" "}
-                      {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
-                      {Math.min(
-                        currentPage * itemsPerPage,
-                        beneficiaries.length
-                      )}{" "}
-                      {translations.of} {beneficiaries.length}{" "}
-                      {translations.entries}
-                    </span>
-                    <div className="d-flex align-items-center">
-                      <span className="small-fonts me-2">
-                        {translations.itemsPerPage}
-                      </span>
-                      <span className="badge bg-primary">{itemsPerPage}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Column Selection Section */}
-                {beneficiaries.length > 0 && (
-                  <ColumnSelection
-                    columns={beneficiariesTableColumns}
-                    selectedColumns={selectedColumns}
-                    setSelectedColumns={setSelectedColumns}
-                    title="कॉलम चुनें"
-                  />
-                )}
-
-                {isLoading ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">लोड हो रहा है...</span>
-                    </div>
-                    <p className="mt-2 small-fonts">डेटा लोड हो रहा है...</p>
-                  </div>
-                ) : beneficiaries.length === 0 ? (
-                  <Alert variant="info" className="text-center">
-                    कोई लाभार्थी डेटा उपलब्ध नहीं है।
-                  </Alert>
-                ) : (
-                  <>
-                    <Table striped bordered hover className="registration-form">
-                      <thead className="table-light">
-                        <tr>
-                          <th>क्र.सं.</th>
-                          {selectedColumns.includes("farmer_name") && (
-                            <th>{translations.farmerName}</th>
-                          )}
-                          {selectedColumns.includes("father_name") && (
-                            <th>{translations.fatherName}</th>
-                          )}
-                          {selectedColumns.includes("address") && (
-                            <th>{translations.address}</th>
-                          )}
-                          {selectedColumns.includes("center_name") && (
-                            <th>{translations.centerName}</th>
-                          )}
-                          {selectedColumns.includes("supplied_item_name") && (
-                            <th>{translations.suppliedItemName}</th>
-                          )}
-                          {selectedColumns.includes("unit") && (
-                            <th>{translations.unit}</th>
-                          )}
-                          {selectedColumns.includes("quantity") && (
-                            <th>{translations.quantity}</th>
-                          )}
-                          {selectedColumns.includes("rate") && (
-                            <th>{translations.rate}</th>
-                          )}
-                          {selectedColumns.includes("amount") && (
-                            <th>{translations.amount}</th>
-                          )}
-                          {selectedColumns.includes("aadhaar_number") && (
-                            <th>{translations.aadhaarNumber}</th>
-                          )}
-                          {selectedColumns.includes("bank_account_number") && (
-                            <th>{translations.bankAccountNumber}</th>
-                          )}
-                          {selectedColumns.includes("ifsc_code") && (
-                            <th>{translations.ifscCode}</th>
-                          )}
-                          {selectedColumns.includes("mobile_number") && (
-                            <th>{translations.mobileNumber}</th>
-                          )}
-                          {selectedColumns.includes("category") && (
-                            <th>{translations.category}</th>
-                          )}
-                          {selectedColumns.includes("scheme_name") && (
-                            <th>{translations.schemeName}</th>
-                          )}
-                          <th>कार्रवाई</th>
-                        </tr>
-                      </thead>
-                      <tbody className="tbl-body">
-                        {beneficiaries
-                          .slice(
-                            (currentPage - 1) * itemsPerPage,
-                            currentPage * itemsPerPage
-                          )
-                          .map((item, index) => (
-                            <tr key={item.beneficiary_id || index}>
-                              <td>
-                                {(currentPage - 1) * itemsPerPage + index + 1}
-                              </td>
-                              {selectedColumns.includes("farmer_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.farmer_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          farmer_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.farmer_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("father_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.father_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          father_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.father_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("address") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      as="textarea"
-                                      rows={2}
-                                      value={editingValues.address}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          address: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.address
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("center_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.center_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          center_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.center_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes(
-                                "supplied_item_name"
-                              ) && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.supplied_item_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          supplied_item_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.supplied_item_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("unit") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.unit}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          unit: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.unit
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("quantity") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="number"
-                                      value={editingValues.quantity}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          quantity: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.quantity
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("rate") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="number"
-                                      step="0.01"
-                                      value={editingValues.rate}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          rate: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.rate
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("amount") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="number"
-                                      step="0.01"
-                                      value={editingValues.amount}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          amount: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.amount
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("aadhaar_number") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.aadhaar_number}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          aadhaar_number: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.aadhaar_number
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes(
-                                "bank_account_number"
-                              ) && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.bank_account_number}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          bank_account_number: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.bank_account_number
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("ifsc_code") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.ifsc_code}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          ifsc_code: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.ifsc_code
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("mobile_number") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.mobile_number}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          mobile_number: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.mobile_number
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("category") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.category}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          category: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.category
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("scheme_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.scheme_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          scheme_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.scheme_name
-                                  )}
-                                </td>
-                              )}
+              ) : beneficiaries.length === 0 ? (
+                <Alert variant="info" className="text-center">
+                  कोई लाभार्थी डेटा उपलब्ध नहीं है।
+                </Alert>
+              ) : (
+                <>
+                  <Table striped bordered hover className="registration-form">
+                    <thead className="table-light">
+                      <tr>
+                        <th>क्र.सं.</th>
+                        {selectedColumns.includes("farmer_name") && (
+                          <th>{translations.farmerName}</th>
+                        )}
+                        {selectedColumns.includes("father_name") && (
+                          <th>{translations.fatherName}</th>
+                        )}
+                        {selectedColumns.includes("address") && (
+                          <th>{translations.address}</th>
+                        )}
+                        {selectedColumns.includes("center_name") && (
+                          <th>{translations.centerName}</th>
+                        )}
+                        {selectedColumns.includes("supplied_item_name") && (
+                          <th>{translations.suppliedItemName}</th>
+                        )}
+                        {selectedColumns.includes("unit") && (
+                          <th>{translations.unit}</th>
+                        )}
+                        {selectedColumns.includes("quantity") && (
+                          <th>{translations.quantity}</th>
+                        )}
+                        {selectedColumns.includes("rate") && (
+                          <th>{translations.rate}</th>
+                        )}
+                        {selectedColumns.includes("amount") && (
+                          <th>{translations.amount}</th>
+                        )}
+                        {selectedColumns.includes("aadhaar_number") && (
+                          <th>{translations.aadhaarNumber}</th>
+                        )}
+                        {selectedColumns.includes("bank_account_number") && (
+                          <th>{translations.bankAccountNumber}</th>
+                        )}
+                        {selectedColumns.includes("ifsc_code") && (
+                          <th>{translations.ifscCode}</th>
+                        )}
+                        {selectedColumns.includes("mobile_number") && (
+                          <th>{translations.mobileNumber}</th>
+                        )}
+                        {selectedColumns.includes("category") && (
+                          <th>{translations.category}</th>
+                        )}
+                        {selectedColumns.includes("scheme_name") && (
+                          <th>{translations.schemeName}</th>
+                        )}
+                        {selectedColumns.includes("vikas_khand_name") && (
+                          <th>{translations.vikasKhandName}</th>
+                        )}
+                        {selectedColumns.includes("vidhan_sabha_name") && (
+                          <th>{translations.vidhanSabhaName}</th>
+                        )}
+                        <th>कार्रवाई</th>
+                      </tr>
+                    </thead>
+                    <tbody className="tbl-body">
+                      {beneficiaries
+                        .slice(
+                          (currentPage - 1) * itemsPerPage,
+                          currentPage * itemsPerPage
+                        )
+                        .map((item, index) => (
+                          <tr key={item.beneficiary_id || index}>
+                            <td>
+                              {(currentPage - 1) * itemsPerPage + index + 1}
+                            </td>
+                            {selectedColumns.includes("farmer_name") && (
                               <td>
                                 {editingRowId === item.beneficiary_id ? (
-                                  <>
-                                    <Button
-                                      variant="outline-success"
-                                      size="sm"
-                                      onClick={() => handleSave(item)}
-                                      className="me-1"
-                                    >
-                                      सहेजें
-                                    </Button>
-                                    <Button
-                                      variant="outline-secondary"
-                                      size="sm"
-                                      onClick={handleCancel}
-                                    >
-                                      रद्द करें
-                                    </Button>
-                                  </>
+                                  <Form.Control
+                                    type="text"
+                                    name="farmer_name"
+                                    value={editingValues.farmer_name}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
                                 ) : (
-                                  <>
-                                 <div className="d-flex justify-content-between">
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      onClick={() => handleEdit(item)}
-                                      className="me-1 gov-edit-btn"
-                                    >
-                                      संपादित करें
-                                    </Button>
-                                    <Button className="gov-delete-btn"
-                                      variant="outline-danger"
-                                      size="sm"
-                                      onClick={() => handleDelete(item)}
-                                    >
-                                      हटाएं
-                                    </Button>
-                                  </div>
-                                  </>
+                                  item.farmer_name
                                 )}
                               </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </Table>
+                            )}
+                            {selectedColumns.includes("father_name") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="father_name"
+                                    value={editingValues.father_name}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.father_name
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("address") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    as="textarea"
+                                    rows={2}
+                                    name="address"
+                                    value={editingValues.address}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.address
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("center_name") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Select
+                                    name="center_name"
+                                    value={editingValues.center_name}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  >
+                                    <option value="">
+                                      {translations.selectOption}
+                                    </option>
+                                    {centerOptions.map((center, index) => (
+                                      <option key={index} value={center}>
+                                        {center}
+                                      </option>
+                                    ))}
+                                  </Form.Select>
+                                ) : (
+                                  item.center_name
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("supplied_item_name") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  editingOtherMode.supplied_item_name ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        name="supplied_item_name"
+                                        value={editingValues.supplied_item_name}
+                                        onChange={handleEditChange}
+                                        size="sm"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            supplied_item_name: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            supplied_item_name: "",
+                                          }));
+                                          // Refetch options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      name="supplied_item_name"
+                                      value={editingValues.supplied_item_name}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    >
+                                      <option value="">
+                                        {translations.selectOption}
+                                      </option>
+                                      {formOptions.supplied_item_name.map(
+                                        (item, index) => (
+                                          <option key={index} value={item}>
+                                            {item}
+                                          </option>
+                                        )
+                                      )}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
+                                ) : (
+                                  item.supplied_item_name
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("unit") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  editingOtherMode.unit ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        name="unit"
+                                        value={editingValues.unit}
+                                        onChange={handleEditChange}
+                                        size="sm"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            unit: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            unit: "",
+                                          }));
+                                          // Refetch base options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      name="unit"
+                                      value={editingValues.unit}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    >
+                                      <option value="">
+                                        {translations.selectOption}
+                                      </option>
+                                      {formOptions.unit.map((unit, index) => (
+                                        <option key={index} value={unit}>
+                                          {unit}
+                                        </option>
+                                      ))}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
+                                ) : (
+                                  item.unit
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("quantity") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="number"
+                                    name="quantity"
+                                    value={editingValues.quantity}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.quantity
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("rate") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    name="rate"
+                                    value={editingValues.rate}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.rate
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("amount") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    name="amount"
+                                    value={editingValues.amount}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.amount
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("aadhaar_number") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="aadhaar_number"
+                                    value={editingValues.aadhaar_number}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.aadhaar_number
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes(
+                              "bank_account_number"
+                            ) && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="bank_account_number"
+                                    value={editingValues.bank_account_number}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.bank_account_number
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("ifsc_code") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="ifsc_code"
+                                    value={editingValues.ifsc_code}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.ifsc_code
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("mobile_number") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="mobile_number"
+                                    value={editingValues.mobile_number}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.mobile_number
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("category") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  editingOtherMode.category ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        name="category"
+                                        value={editingValues.category}
+                                        onChange={handleEditChange}
+                                        size="sm"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            category: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            category: "",
+                                          }));
+                                          // Refetch base options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      name="category"
+                                      value={editingValues.category}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    >
+                                      <option value="">
+                                        {translations.selectOption}
+                                      </option>
+                                      {formOptions.category.map(
+                                        (cat, index) => (
+                                          <option key={index} value={cat}>
+                                            {cat}
+                                          </option>
+                                        )
+                                      )}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
+                                ) : (
+                                  item.category
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("scheme_name") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  editingOtherMode.scheme_name ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        name="scheme_name"
+                                        value={editingValues.scheme_name}
+                                        onChange={handleEditChange}
+                                        size="sm"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            scheme_name: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            scheme_name: "",
+                                          }));
+                                          // Refetch base options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      name="scheme_name"
+                                      value={editingValues.scheme_name}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    >
+                                      <option value="">
+                                        {translations.selectOption}
+                                      </option>
+                                      {formOptions.scheme_name.map(
+                                        (scheme, index) => (
+                                          <option key={index} value={scheme}>
+                                            {scheme}
+                                          </option>
+                                        )
+                                      )}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
+                                ) : (
+                                  item.scheme_name
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("vikas_khand_name") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="vikas_khand_name"
+                                    value={editingValues.vikas_khand_name}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                    disabled
+                                    placeholder={
+                                      isFetchingVikasKhand
+                                        ? "लोड हो रहा है..."
+                                        : ""
+                                    }
+                                  />
+                                ) : (
+                                  item.vikas_khand_name
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("vidhan_sabha_name") && (
+                              <td>
+                                {editingRowId === item.beneficiary_id ? (
+                                  <Form.Control
+                                    type="text"
+                                    name="vidhan_sabha_name"
+                                    value={editingValues.vidhan_sabha_name}
+                                    onChange={handleEditChange}
+                                    size="sm"
+                                    disabled
+                                    placeholder={
+                                      isFetchingVikasKhand
+                                        ? "लोड हो रहा है..."
+                                        : ""
+                                    }
+                                  />
+                                ) : (
+                                  item.vidhan_sabha_name
+                                )}
+                              </td>
+                            )}
+                            <td>
+                              {editingRowId === item.beneficiary_id ? (
+                                <>
+                                  <Button
+                                    variant="outline-success"
+                                    size="sm"
+                                    onClick={() => handleSave(item)}
+                                    className="me-1"
+                                  >
+                                    सहेजें
+                                  </Button>
+                                  <Button
+                                    variant="outline-secondary"
+                                    size="sm"
+                                    onClick={handleCancel}
+                                  >
+                                    रद्द करें
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={() => handleEdit(item)}
+                                    className="me-1 gov-edit-btn"
+                                  >
+                                    संपादित करें
+                                  </Button>
+                                  <Button
+                                    className="gov-delete-btn"
+                                    variant="outline-danger"
+                                    size="sm"
+                                    onClick={() => handleDelete(item)}
+                                  >
+                                    हटाएं
+                                  </Button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </Table>
 
-                    {/* Pagination controls */}
-                    {beneficiaries.length > itemsPerPage && (
-                      <div className="mt-3">
-                        <div className="small-fonts mb-3 text-center">
-                          {translations.page} {currentPage} {translations.of}{" "}
-                          {totalPages}
-                        </div>
-                        <Pagination className="d-flex justify-content-center">
-                          <Pagination.Prev
-                            disabled={currentPage === 1}
-                            onClick={() => handlePageChange(currentPage - 1)}
-                          />
-                          {paginationItems}
-                          <Pagination.Next
-                            disabled={currentPage === totalPages}
-                            onClick={() => handlePageChange(currentPage + 1)}
-                          />
-                        </Pagination>
+                  {/* Pagination controls */}
+                  {beneficiaries.length > itemsPerPage && (
+                    <div className="mt-3">
+                      <div className="small-fonts mb-3 text-center">
+                        {translations.page} {currentPage} {translations.of}{" "}
+                        {totalPages}
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </Container>
-          </Col>
-        </Row>
-      </Container>
+                      <Pagination className="d-flex justify-content-center">
+                        <Pagination.Prev
+                          disabled={currentPage === 1}
+                          onClick={() => handlePageChange(currentPage - 1)}
+                        />
+                        {paginationItems}
+                        <Pagination.Next
+                          disabled={currentPage === totalPages}
+                          onClick={() => handlePageChange(currentPage + 1)}
+                        />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </Container>
+        </Col>
+      </Row>
     </div>
   );
 };

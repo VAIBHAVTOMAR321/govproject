@@ -54,7 +54,41 @@
   color: #fff;
   background-color: #0a1a2d;
 }
+.dashborad-card-header{
+  background-color: #194e8b;
+  color: #fff;
 
+}
+.dashborad-card-header h5{
+  font-size: 16px;
+}
+.unselected-details h6{
+  font-size: 14px;
+  color: #022147;
+   font-weight: 600;
+}
+.view-details-btn{
+  background-color: #fff;
+  color: #000;
+  font-weight: 600;
+  font-size: 12px;
+}
+.selected-details{
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+
+}
+.selected-details h6{
+  font-size: 14px;
+  font-weight: 600;
+  color: #022147;
+}
+
+.view-details-btn:hover{
+  background-color: #0a1a2d;
+  color: #fff;
+  border: 1px solid #0a1a2d;;
+}
 .custom-tabs .nav-link.active {
   color: #fff;
   background-color: #764ba2;
@@ -395,10 +429,21 @@
 .accordion-header {
   margin-bottom: 0;
 }
-
+  .multiselect-item-grid {
+          padding: 8px 10px;
+          background-color: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 4px;
+          text-align: center;
+          font-size: 10px;
+          transition: all 0.2s ease;
+          border-radius: 22px;
+          border: 1px solid #4facfe;
+        }
 /* Multiselect Styles */
 .multiselect-container {
-  padding: 20px;
+  padding: 8px;
+  background-color: #ffffffe7;
 }
 
 .multiselect-list {

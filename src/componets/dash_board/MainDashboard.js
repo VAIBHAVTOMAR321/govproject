@@ -625,6 +625,7 @@ const MainDashboard = () => {
                           <div className="gov-icon">
                             <i className="bi bi-building"></i>
                             <p>केंद्र (Kendra)</p>
+                            
                           </div>
                           <div className="gov-text">
                             <h2>{counts.kendra}</h2>
@@ -686,11 +687,14 @@ const MainDashboard = () => {
                   </Row>
 
                   {/* Detailed View Section */}
+                    
                   {selectedFilter && (
+                    
                     <Row className="mt-4">
                       <Col lg={8} md={8} sm={12}>
                         <Card>
-                          <Card.Header>
+                          <Card.Header className="d-flex justify-content-between dashborad-card-header">
+
                             <h5>
                               {selectedFilter === "kendra" &&
                                 "केंद्र (Kendra) Details"}
@@ -699,6 +703,17 @@ const MainDashboard = () => {
                               {selectedFilter === "vikasKhand" &&
                                 "विकासखंड (Vikas Khand) Details"}
                             </h5>
+
+                                  <Button
+                                    variant="success" className="view-details-btn"
+                                    onClick={() =>
+                                      handleSelectedCenters(selectedCenters)
+                                    }
+                                    disabled={selectedCenters.length === 0}
+                                  >
+                                   चयनित
+                                  </Button>
+                              
                           </Card.Header>
                           <Card.Body>
                             {loading && selectedFilter ? (
@@ -712,70 +727,64 @@ const MainDashboard = () => {
                               <div className="alert alert-danger">{error}</div>
                             ) : selectedFilter ? (
                               <div className="multiselect-container">
-                                <Row>
-                                  <Col md={5}>
-                                    <h6>
-                                      Available{" "}
-                                      {selectedFilter === "kendra"
-                                        ? "Centers"
-                                        : selectedFilter === "vidhanSabha"
-                                        ? "Vidhan Sabhas"
-                                        : "Vikas Khands"}{" "}
-                                      ({availableCenters.length})
-                                    </h6>
-                                    <div className="multiselect-grid">
-                                      {availableCenters.map((center, index) => (
-                                        <div
-                                          key={index}
-                                          className="multiselect-item-grid"
-                                          onClick={() => toggleCenterSelection(center)}
-                                          style={{ cursor: "pointer" }}
-                                        >
-                                          {center}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </Col>
-                                  <Col md={2} className="text-center">
-                                    <div className="d-flex flex-column align-items-center justify-content-center h-100">
-                                      <i className="bi bi-arrow-left-right text-muted"></i>
-                                    </div>
-                                  </Col>
-                                  <Col md={5}>
-                                    <h6>
-                                      Selected{" "}
-                                      {selectedFilter === "kendra"
-                                        ? "Centers"
-                                        : selectedFilter === "vidhanSabha"
-                                        ? "Vidhan Sabhas"
-                                        : "Vikas Khands"}{" "}
-                                      ({selectedCenters.length})
-                                    </h6>
-                                    <div className="multiselect-grid">
-                                      {selectedCenters.map((center, index) => (
-                                        <div
-                                          key={index}
-                                          className="multiselect-item-grid selected"
-                                          onClick={() => toggleCenterSelection(center)}
-                                          style={{ cursor: "pointer" }}
-                                        >
-                                          {center}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </Col>
-                                </Row>
-                                <div className="text-center mt-3">
-                                  <Button
-                                    variant="success"
-                                    onClick={() =>
-                                      handleSelectedCenters(selectedCenters)
-                                    }
-                                    disabled={selectedCenters.length === 0}
-                                  >
-                                    View Details
-                                  </Button>
-                                </div>
+                              <Row>
+  <Col md={6} className="unselected-details">
+    <div className="d-flex justify-content-between align-items-center mb-3">
+      <h6 className="mb-0">
+        उपलब्ध{" "}
+        {selectedFilter === "kendra"
+          ? "Centers"
+          : selectedFilter === "vidhanSabha"
+          ? "Vidhan Sabhas"
+          : "Vikas Khands"}
+      </h6>
+      <Badge pill bg="transparent" text="primary" className="border border-primary">
+        {availableCenters.length}
+      </Badge>
+    </div>
+    <div className="multiselect-grid">
+      {availableCenters.map((center, index) => (
+        <div
+          key={index}
+          className="multiselect-item-grid"
+          onClick={() => toggleCenterSelection(center)}
+          style={{ cursor: "pointer" }}
+        >
+          {center}
+        </div>
+      ))}
+    </div>
+  </Col>
+  
+  <Col md={6} className="selected-details">
+    <div className="d-flex justify-content-between align-items-center mb-3">
+      <h6 className="mb-0">
+        चयनित{" "}
+        {selectedFilter === "kendra"
+          ? "Centers"
+          : selectedFilter === "vidhanSabha"
+          ? "Vidhan Sabhas"
+          : "Vikas Khands"}
+      </h6>
+      <Badge pill bg="transparent" text="primary" className="border border-primary">
+        {selectedCenters.length}
+      </Badge>
+    </div>
+    <div className="multiselect-grid">
+      {selectedCenters.map((center, index) => (
+        <div
+          key={index}
+          className="multiselect-item-grid selected"
+          onClick={() => toggleCenterSelection(center)}
+          style={{ cursor: "pointer" }}
+        >
+          {center}
+        </div>
+      ))}
+    </div>
+  </Col>
+</Row>
+                              
                               </div>
                             ) : (
                               <p className="text-muted">
@@ -851,42 +860,33 @@ const MainDashboard = () => {
           setSelectedColumns={setSelectedColumns}
         />
       </Container>
-      
+
       {/* Add custom styles for the grid layout */}
       <style jsx>{`
         .multiselect-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 10px;
-         
-        
+
           padding: 10px;
           border: 1px solid #e9ecef;
           border-radius: 4px;
         }
-        
-        .multiselect-item-grid {
-          padding: 8px 10px;
-          background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 4px;
-          text-align: center;
-          font-size: 0.9rem;
-          transition: all 0.2s ease;
-        }
-        
+
+      
+
         .multiselect-item-grid:hover {
           background-color: #e9ecef;
           transform: translateY(-2px);
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         .multiselect-item-grid.selected {
           background-color: #007bff;
           color: white;
           border-color: #0056b3;
         }
-        
+
         .multiselect-item-grid.selected:hover {
           background-color: #0069d9;
         }
@@ -895,4 +895,4 @@ const MainDashboard = () => {
   );
 };
 
-export default MainDashboard
+export default MainDashboard;
