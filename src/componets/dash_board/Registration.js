@@ -318,25 +318,7 @@ const Registration = () => {
     scheme_name: schemeOptions,
   });
 
-  // Track which fields are in "Other" mode (text input instead of dropdown)
-  const [otherMode, setOtherMode] = useState({
-    component: true,
-    investment_name: true,
-    sub_investment_name: true,
-    unit: true,
-    source_of_receipt: true,
-    scheme_name: true,
-  });
-
-  // Track which fields are in "Other" mode for editing
-  const [editingOtherMode, setEditingOtherMode] = useState({
-    component: false,
-    investment_name: false,
-    sub_investment_name: false,
-    unit: false,
-    source_of_receipt: false,
-    scheme_name: false,
-  });
+  // Removed otherMode and editingOtherMode states - all fields are now always dropdowns
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
@@ -856,22 +838,6 @@ const Registration = () => {
     setApiResponse(null);
     setApiError(null);
     clearFilters();
-    setOtherMode({
-      component: false,
-      investment_name: false,
-      sub_investment_name: false,
-      unit: false,
-      source_of_receipt: false,
-      scheme_name: false,
-    });
-    setEditingOtherMode({
-      component: false,
-      investment_name: false,
-      sub_investment_name: false,
-      unit: false,
-      source_of_receipt: false,
-      scheme_name: false,
-    });
     setEditingRowId(null);
     setEditingValues({});
   };
@@ -891,14 +857,6 @@ const Registration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
-    });
-    setEditingOtherMode({
-      component: false,
-      investment_name: false,
-      sub_investment_name: false,
-      unit: false,
-      source_of_receipt: false,
-      scheme_name: false,
     });
     // Fetch options based on current values
     if (item.investment_name) {
@@ -931,14 +889,6 @@ const Registration = () => {
       );
       setEditingRowId(null);
       setEditingValues({});
-      setEditingOtherMode({
-        component: false,
-        investment_name: false,
-        sub_investment_name: false,
-        unit: false,
-        source_of_receipt: false,
-        scheme_name: false,
-      });
       setApiResponse({ message: "आइटम सफलतापूर्वक अपडेट किया गया!" });
     } catch (error) {
       console.error("Error updating item:", error);
@@ -950,14 +900,6 @@ const Registration = () => {
   const handleCancel = () => {
     setEditingRowId(null);
     setEditingValues({});
-    setEditingOtherMode({
-      component: false,
-      investment_name: false,
-      sub_investment_name: false,
-      unit: false,
-      source_of_receipt: false,
-      scheme_name: false,
-    });
   };
 
   // Handle delete
@@ -1180,68 +1122,57 @@ const Registration = () => {
       [name]: value,
     };
 
-    // Handle "Other" selection - switch to text input mode
-    if (value === "Other") {
-      setOtherMode((prev) => ({
-        ...prev,
-        [name]: true,
-      }));
-      updatedFormData[name] = ""; // Clear the value
-    } else {
-      // If not "Other", ensure we're in dropdown mode (unless already in other mode)
-      if (!otherMode[name]) {
-        setOtherMode((prev) => ({
-          ...prev,
-          [name]: false,
-        }));
+    // Handle cascading dropdowns
+    if (name === "component" && value) {
+      // Reset dependent fields
+      updatedFormData.investment_name = "";
+      updatedFormData.sub_investment_name = "";
+      updatedFormData.unit = "";
+      // Fetch investment options
+      fetchFormFilters(value);
+    } else if (name === "investment_name" && value) {
+      // Reset dependent fields
+      updatedFormData.sub_investment_name = "";
+      updatedFormData.unit = "";
+      // Fetch options based on investment_name
+      fetchFormFilters("", value);
+    } else if (
+      name === "sub_investment_name" &&
+      value &&
+      formData.component &&
+      formData.investment_name
+    ) {
+      // Sub-investment changed, no need to reset unit as it's independent
+      // Could fetch sub-investment specific data if needed, but unit is independent
+    }
 
-        // Handle cascading dropdowns only when not in other mode
-        if (name === "component" && value) {
-          // Reset dependent fields
-          updatedFormData.investment_name = "";
-          updatedFormData.sub_investment_name = "";
-          updatedFormData.unit = "";
-          setOtherMode((prev) => ({
-            ...prev,
-            investment_name: false,
-            sub_investment_name: false,
-            unit: false,
-          }));
-          // Fetch investment options
-          fetchFormFilters(value);
-        } else if (name === "investment_name" && value) {
-          // Reset dependent fields
-          updatedFormData.sub_investment_name = "";
-          updatedFormData.unit = "";
-          setOtherMode((prev) => ({
-            ...prev,
-            sub_investment_name: false,
-            unit: false,
-          }));
-          // Fetch options based on investment_name
-          fetchFormFilters("", value);
-        } else if (
-          name === "sub_investment_name" &&
-          value &&
-          formData.component &&
-          formData.investment_name
-        ) {
-          // Sub-investment changed, no need to reset unit as it's independent
-          // Could fetch sub-investment specific data if needed, but unit is independent
-        }
-
-        // If center changes, fetch vikas khand data and reset related fields
-        if (name === "center_name") {
-          if (value) {
-            fetchVikasKhandData(value);
-          } else {
-            setVikasKhandData(null);
-            updatedFormData.vikas_khand_name = "";
-            updatedFormData.vidhan_sabha_name = "";
-          }
-        }
+    // If center changes, fetch vikas khand data and auto-fill all fields with default values
+    if (name === "center_name") {
+      if (value) {
+        fetchVikasKhandData(value);
+        // Auto-fill all fields with default values
+        updatedFormData.component = "सीमेंट";
+        updatedFormData.investment_name = "भवन निर्माण";
+        updatedFormData.sub_investment_name = "नया भवन";
+        updatedFormData.unit = "बैग";
+        updatedFormData.allocated_quantity = "100";
+        updatedFormData.rate = "450.5";
+        updatedFormData.source_of_receipt = "PWD";
+        updatedFormData.scheme_name = "MGNREGA";
+      } else {
+        setVikasKhandData(null);
+        updatedFormData.vikas_khand_name = "";
+        updatedFormData.vidhan_sabha_name = "";
+        // Clear all fields
+        updatedFormData.component = "";
+        updatedFormData.investment_name = "";
+        updatedFormData.sub_investment_name = "";
+        updatedFormData.unit = "";
+        updatedFormData.allocated_quantity = "";
+        updatedFormData.rate = "";
+        updatedFormData.source_of_receipt = "";
+        updatedFormData.scheme_name = "";
       }
-      // If in other mode, just update the value without triggering cascading
     }
 
     setFormData(updatedFormData);
@@ -1308,16 +1239,8 @@ const Registration = () => {
         vidhan_sabha_name: "",
       });
 
-      // Clear vikas khand data and other mode
+      // Clear vikas khand data
       setVikasKhandData(null);
-      setOtherMode({
-        component: true,
-        investment_name: true,
-        sub_investment_name: true,
-        unit: true,
-        source_of_receipt: true,
-        scheme_name: true,
-      });
 
       // Add to table
       setAllBillingItems((prev) => [payload, ...prev]);
@@ -1488,56 +1411,21 @@ const Registration = () => {
                       <Form.Label className="small-fonts fw-bold">
                         {translations.component}
                       </Form.Label>
-                      {otherMode.component ? (
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
-                            name="component"
-                            value={formData.component}
-                            onChange={handleChange}
-                            isInvalid={!!errors.component}
-                            className="compact-input"
-                            placeholder="घटक दर्ज करें"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-1"
-                            onClick={() => {
-                              setOtherMode((prev) => ({
-                                ...prev,
-                                component: false,
-                              }));
-                              setFormData((prev) => ({
-                                ...prev,
-                                component: "",
-                              }));
-                              // Refetch options
-                              fetchFormFilters();
-                            }}
-                            title="विकल्प दिखाएं"
-                          >
-                            ↺
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="component"
-                          value={formData.component}
-                          onChange={handleChange}
-                          isInvalid={!!errors.component}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {formOptions.component.map((comp, index) => (
-                            <option key={index} value={comp}>
-                              {comp}
-                            </option>
-                          ))}
-                          <option value="Other">अन्य</option>
-                        </Form.Select>
-                      )}
+                      <Form.Select
+                        name="component"
+                        value={formData.component}
+                        onChange={handleChange}
+                        isInvalid={!!errors.component}
+                        className="compact-input"
+                        disabled={isLoadingFilters}
+                      >
+                        <option value="">{translations.selectOption}</option>
+                        {formOptions.component.map((comp, index) => (
+                          <option key={index} value={comp}>
+                            {comp}
+                          </option>
+                        ))}
+                      </Form.Select>
                       <Form.Control.Feedback type="invalid">
                         {errors.component}
                       </Form.Control.Feedback>
@@ -1548,58 +1436,21 @@ const Registration = () => {
                       <Form.Label className="small-fonts fw-bold">
                         {translations.investmentName}
                       </Form.Label>
-                      {otherMode.investment_name ? (
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
-                            name="investment_name"
-                            value={formData.investment_name}
-                            onChange={handleChange}
-                            isInvalid={!!errors.investment_name}
-                            className="compact-input"
-                            placeholder="निवेश का नाम दर्ज करें"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-1"
-                            onClick={() => {
-                              setOtherMode((prev) => ({
-                                ...prev,
-                                investment_name: false,
-                              }));
-                              setFormData((prev) => ({
-                                ...prev,
-                                investment_name: "",
-                              }));
-                              // Refetch investment options based on component
-                              if (formData.component) {
-                                fetchFormFilters(formData.component);
-                              }
-                            }}
-                            title="विकल्प दिखाएं"
-                          >
-                            ↺
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="investment_name"
-                          value={formData.investment_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.investment_name}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {formOptions.investment_name.map((inv, index) => (
-                            <option key={index} value={inv}>
-                              {inv}
-                            </option>
-                          ))}
-                          <option value="Other">अन्य</option>
-                        </Form.Select>
-                      )}
+                      <Form.Select
+                        name="investment_name"
+                        value={formData.investment_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.investment_name}
+                        className="compact-input"
+                        disabled={isLoadingFilters}
+                      >
+                        <option value="">{translations.selectOption}</option>
+                        {formOptions.investment_name.map((inv, index) => (
+                          <option key={index} value={inv}>
+                            {inv}
+                          </option>
+                        ))}
+                      </Form.Select>
                       <Form.Control.Feedback type="invalid">
                         {errors.investment_name}
                       </Form.Control.Feedback>
@@ -1613,66 +1464,23 @@ const Registration = () => {
                       <Form.Label className="small-fonts fw-bold">
                         {translations.subInvestmentName}
                       </Form.Label>
-                      {otherMode.sub_investment_name ? (
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
-                            name="sub_investment_name"
-                            value={formData.sub_investment_name}
-                            onChange={handleChange}
-                            isInvalid={!!errors.sub_investment_name}
-                            className="compact-input"
-                            placeholder="उप-निवेश का नाम दर्ज करें"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-1"
-                            onClick={() => {
-                              setOtherMode((prev) => ({
-                                ...prev,
-                                sub_investment_name: false,
-                              }));
-                              setFormData((prev) => ({
-                                ...prev,
-                                sub_investment_name: "",
-                              }));
-                              // Refetch sub-investment options based on component and investment_name
-                              if (
-                                formData.component &&
-                                formData.investment_name
-                              ) {
-                                fetchFormFilters(
-                                  formData.component,
-                                  formData.investment_name
-                                );
-                              }
-                            }}
-                            title="विकल्प दिखाएं"
-                          >
-                            ↺
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="sub_investment_name"
-                          value={formData.sub_investment_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.sub_investment_name}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {filterOptions.sub_investment_name.map(
-                            (subInv, index) => (
-                              <option key={index} value={subInv}>
-                                {subInv}
-                              </option>
-                            )
-                          )}
-                          <option value="Other">अन्य</option>
-                        </Form.Select>
-                      )}
+                      <Form.Select
+                        name="sub_investment_name"
+                        value={formData.sub_investment_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.sub_investment_name}
+                        className="compact-input"
+                        disabled={isLoadingFilters}
+                      >
+                        <option value="">{translations.selectOption}</option>
+                        {filterOptions.sub_investment_name.map(
+                          (subInv, index) => (
+                            <option key={index} value={subInv}>
+                              {subInv}
+                            </option>
+                          )
+                        )}
+                      </Form.Select>
                       <Form.Control.Feedback type="invalid">
                         {errors.sub_investment_name}
                       </Form.Control.Feedback>
@@ -1683,53 +1491,21 @@ const Registration = () => {
                       <Form.Label className="small-fonts fw-bold">
                         {translations.unit}
                       </Form.Label>
-                      {otherMode.unit ? (
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
-                            name="unit"
-                            value={formData.unit}
-                            onChange={handleChange}
-                            isInvalid={!!errors.unit}
-                            className="compact-input"
-                            placeholder="इकाई दर्ज करें"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-1"
-                            onClick={() => {
-                              setOtherMode((prev) => ({
-                                ...prev,
-                                unit: false,
-                              }));
-                              setFormData((prev) => ({ ...prev, unit: "" }));
-                              // Refetch base options
-                              fetchFormFilters();
-                            }}
-                            title="विकल्प दिखाएं"
-                          >
-                            ↺
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="unit"
-                          value={formData.unit}
-                          onChange={handleChange}
-                          isInvalid={!!errors.unit}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {filterOptions.unit.map((unit, index) => (
-                            <option key={index} value={unit}>
-                              {unit}
-                            </option>
-                          ))}
-                          <option value="Other">अन्य</option>
-                        </Form.Select>
-                      )}
+                      <Form.Select
+                        name="unit"
+                        value={formData.unit}
+                        onChange={handleChange}
+                        isInvalid={!!errors.unit}
+                        className="compact-input"
+                        disabled={isLoadingFilters}
+                      >
+                        <option value="">{translations.selectOption}</option>
+                        {filterOptions.unit.map((unit, index) => (
+                          <option key={index} value={unit}>
+                            {unit}
+                          </option>
+                        ))}
+                      </Form.Select>
                       <Form.Control.Feedback type="invalid">
                         {errors.unit}
                       </Form.Control.Feedback>
@@ -1781,61 +1557,26 @@ const Registration = () => {
                       <Form.Label className="small-fonts fw-bold">
                         {translations.sourceOfReceipt}
                       </Form.Label>
-                      {otherMode.source_of_receipt ? (
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
-                            name="source_of_receipt"
-                            value={formData.source_of_receipt}
-                            onChange={handleChange}
-                            isInvalid={!!errors.source_of_receipt}
-                            className="compact-input"
-                            placeholder="प्राप्ति का स्रोत दर्ज करें"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-1"
-                            onClick={() => {
-                              setOtherMode((prev) => ({
-                                ...prev,
-                                source_of_receipt: false,
-                              }));
-                              setFormData((prev) => ({
-                                ...prev,
-                                source_of_receipt: "",
-                              }));
-                              // Refetch base options
-                              fetchFormFilters();
-                            }}
-                            title="विकल्प दिखाएं"
-                          >
-                            ↺
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="source_of_receipt"
-                          value={formData.source_of_receipt}
-                          onChange={handleChange}
-                          isInvalid={!!errors.source_of_receipt}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {[
-                            ...new Set([
-                              ...filterOptions.source_of_receipt,
-                              ...sourceOptions,
-                            ]),
-                          ].map((source, index) => (
-                            <option key={index} value={source}>
-                              {source}
-                            </option>
-                          ))}
-                          <option value="Other">अन्य</option>
-                        </Form.Select>
-                      )}
+                      <Form.Select
+                        name="source_of_receipt"
+                        value={formData.source_of_receipt}
+                        onChange={handleChange}
+                        isInvalid={!!errors.source_of_receipt}
+                        className="compact-input"
+                        disabled={isLoadingFilters}
+                      >
+                        <option value="">{translations.selectOption}</option>
+                        {[
+                          ...new Set([
+                            ...filterOptions.source_of_receipt,
+                            ...sourceOptions,
+                          ]),
+                        ].map((source, index) => (
+                          <option key={index} value={source}>
+                            {source}
+                          </option>
+                        ))}
+                      </Form.Select>
                       <Form.Control.Feedback type="invalid">
                         {errors.source_of_receipt}
                       </Form.Control.Feedback>
@@ -1846,56 +1587,26 @@ const Registration = () => {
                       <Form.Label className="small-fonts fw-bold">
                         {translations.schemeName}
                       </Form.Label>
-                      {otherMode.scheme_name ? (
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
-                            name="scheme_name"
-                            value={formData.scheme_name}
-                            onChange={handleChange}
-                            isInvalid={!!errors.scheme_name}
-                            className="compact-input"
-                            placeholder="योजना का नाम दर्ज करें"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-1"
-                            onClick={() => {
-                              setOtherMode((prev) => ({
-                                ...prev,
-                                scheme_name: false,
-                              }));
-                              setFormData((prev) => ({
-                                ...prev,
-                                scheme_name: "",
-                              }));
-                              // Refetch base options
-                              fetchFormFilters();
-                            }}
-                            title="विकल्प दिखाएं"
-                          >
-                            ↺
-                          </Button>
-                        </div>
-                      ) : (
-                        <Form.Select
-                          name="scheme_name"
-                          value={formData.scheme_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.scheme_name}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {formOptions.scheme_name.map((scheme, index) => (
-                            <option key={index} value={scheme}>
-                              {scheme}
-                            </option>
-                          ))}
-                          <option value="Other">अन्य</option>
-                        </Form.Select>
-                      )}
+                      <Form.Select
+                        name="scheme_name"
+                        value={formData.scheme_name}
+                        onChange={handleChange}
+                        isInvalid={!!errors.scheme_name}
+                        className="compact-input"
+                        disabled={isLoadingFilters}
+                      >
+                        <option value="">{translations.selectOption}</option>
+                        {[
+                          ...new Set([
+                            ...filterOptions.scheme_name,
+                            ...schemeOptions,
+                          ]),
+                        ].map((scheme, index) => (
+                          <option key={index} value={scheme}>
+                            {scheme}
+                          </option>
+                        ))}
+                      </Form.Select>
                       <Form.Control.Feedback type="invalid">
                         {errors.scheme_name}
                       </Form.Control.Feedback>
@@ -2402,92 +2113,32 @@ const Registration = () => {
                             {selectedColumns.includes("component") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  editingOtherMode.component ? (
-                                    <div className="d-flex">
-                                      <Form.Control
-                                        type="text"
-                                        value={editingValues.component}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            component: value,
-                                            investment_name: "",
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                          // No fetch for other mode
-                                        }}
-                                        size="sm"
-                                        placeholder="घटक दर्ज करें"
-                                      />
-                                      <Button
-                                        variant="outline-secondary"
-                                        size="sm"
-                                        className="ms-1"
-                                        onClick={() => {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            component: false,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            component: "",
-                                            investment_name: "",
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                          // Refetch options
-                                          fetchFormFilters();
-                                        }}
-                                        title="विकल्प दिखाएं"
-                                      >
-                                        ↺
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <Form.Select
-                                      value={editingValues.component}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === "Other") {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            component: true,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            component: "",
-                                            investment_name: "",
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                        } else {
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            component: value,
-                                            investment_name: "",
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                          if (value) {
-                                            fetchFormFilters(value);
-                                          }
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {filterOptions.component.map(
-                                        (comp, index) => (
-                                          <option key={index} value={comp}>
-                                            {comp}
-                                          </option>
-                                        )
-                                      )}
-                                      <option value="Other">अन्य</option>
-                                    </Form.Select>
-                                  )
+                                  <Form.Select
+                                    value={editingValues.component}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEditingValues((prev) => ({
+                                        ...prev,
+                                        component: value,
+                                        investment_name: "",
+                                        sub_investment_name: "",
+                                        unit: "",
+                                      }));
+                                      if (value) {
+                                        fetchFormFilters(value);
+                                      }
+                                    }}
+                                    size="sm"
+                                  >
+                                    <option value="">चुनें</option>
+                                    {filterOptions.component.map(
+                                      (comp, index) => (
+                                        <option key={index} value={comp}>
+                                          {comp}
+                                        </option>
+                                      )
+                                    )}
+                                  </Form.Select>
                                 ) : (
                                   item.component
                                 )}
@@ -2496,91 +2147,31 @@ const Registration = () => {
                             {selectedColumns.includes("investment_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  editingOtherMode.investment_name ? (
-                                    <div className="d-flex">
-                                      <Form.Control
-                                        type="text"
-                                        value={editingValues.investment_name}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            investment_name: value,
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                        }}
-                                        size="sm"
-                                        placeholder="निवेश का नाम दर्ज करें"
-                                      />
-                                      <Button
-                                        variant="outline-secondary"
-                                        size="sm"
-                                        className="ms-1"
-                                        onClick={() => {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            investment_name: false,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            investment_name: "",
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                          // Refetch investment options based on component
-                                          if (editingValues.component) {
-                                            fetchFormFilters(
-                                              editingValues.component
-                                            );
-                                          }
-                                        }}
-                                        title="विकल्प दिखाएं"
-                                      >
-                                        ↺
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <Form.Select
-                                      value={editingValues.investment_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === "Other") {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            investment_name: true,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            investment_name: "",
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                        } else {
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            investment_name: value,
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                          if (value) {
-                                            fetchFormFilters("", value);
-                                          }
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {filterOptions.investment_name.map(
-                                        (inv, index) => (
-                                          <option key={index} value={inv}>
-                                            {inv}
-                                          </option>
-                                        )
-                                      )}
-                                      <option value="Other">अन्य</option>
-                                    </Form.Select>
-                                  )
+                                  <Form.Select
+                                    value={editingValues.investment_name}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEditingValues((prev) => ({
+                                        ...prev,
+                                        investment_name: value,
+                                        sub_investment_name: "",
+                                        unit: "",
+                                      }));
+                                      if (value) {
+                                        fetchFormFilters("", value);
+                                      }
+                                    }}
+                                    size="sm"
+                                  >
+                                    <option value="">चुनें</option>
+                                    {filterOptions.investment_name.map(
+                                      (inv, index) => (
+                                        <option key={index} value={inv}>
+                                          {inv}
+                                        </option>
+                                      )
+                                    )}
+                                  </Form.Select>
                                 ) : (
                                   item.investment_name
                                 )}
@@ -2591,8 +2182,7 @@ const Registration = () => {
                             ) && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
+                                  <Form.Select
                                     value={editingValues.sub_investment_name}
                                     onChange={(e) =>
                                       setEditingValues((prev) => ({
@@ -2601,8 +2191,16 @@ const Registration = () => {
                                       }))
                                     }
                                     size="sm"
-                                    placeholder="उप-निवेश का नाम दर्ज करें"
-                                  />
+                                  >
+                                    <option value="">चुनें</option>
+                                    {filterOptions.sub_investment_name.map(
+                                      (subInv, index) => (
+                                        <option key={index} value={subInv}>
+                                          {subInv}
+                                        </option>
+                                      )
+                                    )}
+                                  </Form.Select>
                                 ) : (
                                   item.sub_investment_name
                                 )}
@@ -2611,73 +2209,24 @@ const Registration = () => {
                             {selectedColumns.includes("unit") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  editingOtherMode.unit ? (
-                                    <div className="d-flex">
-                                      <Form.Control
-                                        type="text"
-                                        value={editingValues.unit}
-                                        onChange={(e) =>
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            unit: e.target.value,
-                                          }))
-                                        }
-                                        size="sm"
-                                        placeholder="इकाई दर्ज करें"
-                                      />
-                                      <Button
-                                        variant="outline-secondary"
-                                        size="sm"
-                                        className="ms-1"
-                                        onClick={() => {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            unit: false,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            unit: "",
-                                          }));
-                                          // Refetch base options
-                                          fetchFormFilters();
-                                        }}
-                                        title="विकल्प दिखाएं"
-                                      >
-                                        ↺
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <Form.Select
-                                      value={editingValues.unit}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === "Other") {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            unit: true,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            unit: "",
-                                          }));
-                                        } else {
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            unit: value,
-                                          }));
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {formOptions.unit.map((unit, index) => (
-                                        <option key={index} value={unit}>
-                                          {unit}
-                                        </option>
-                                      ))}
-                                      <option value="Other">अन्य</option>
-                                    </Form.Select>
-                                  )
+                                  <Form.Select
+                                    value={editingValues.unit}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEditingValues((prev) => ({
+                                        ...prev,
+                                        unit: value,
+                                      }));
+                                    }}
+                                    size="sm"
+                                  >
+                                    <option value="">चुनें</option>
+                                    {formOptions.unit.map((unit, index) => (
+                                      <option key={index} value={unit}>
+                                        {unit}
+                                      </option>
+                                    ))}
+                                  </Form.Select>
                                 ) : (
                                   item.unit
                                 )}
@@ -2725,75 +2274,29 @@ const Registration = () => {
                             {selectedColumns.includes("source_of_receipt") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  editingOtherMode.source_of_receipt ? (
-                                    <div className="d-flex">
-                                      <Form.Control
-                                        type="text"
-                                        value={editingValues.source_of_receipt}
-                                        onChange={(e) =>
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: e.target.value,
-                                          }))
-                                        }
-                                        size="sm"
-                                        placeholder="प्राप्ति का स्रोत दर्ज करें"
-                                      />
-                                      <Button
-                                        variant="outline-secondary"
-                                        size="sm"
-                                        className="ms-1"
-                                        onClick={() => {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: false,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: "",
-                                          }));
-                                          // Refetch base options
-                                          fetchFormFilters();
-                                        }}
-                                        title="विकल्प दिखाएं"
-                                      >
-                                        ↺
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <Form.Select
-                                      value={editingValues.source_of_receipt}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === "Other") {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: true,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: "",
-                                          }));
-                                        } else {
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: value,
-                                          }));
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {formOptions.source_of_receipt.map(
-                                        (source, index) => (
-                                          <option key={index} value={source}>
-                                            {source}
-                                          </option>
-                                        )
-                                      )}
-                                      <option value="Other">अन्य</option>
-                                    </Form.Select>
-                                  )
+                                  <Form.Select
+                                    value={editingValues.source_of_receipt}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEditingValues((prev) => ({
+                                        ...prev,
+                                        source_of_receipt: value,
+                                      }));
+                                    }}
+                                    size="sm"
+                                  >
+                                    <option value="">चुनें</option>
+                                    {[
+                                      ...new Set([
+                                        ...filterOptions.source_of_receipt,
+                                        ...sourceOptions,
+                                      ]),
+                                    ].map((source, index) => (
+                                      <option key={index} value={source}>
+                                        {source}
+                                      </option>
+                                    ))}
+                                  </Form.Select>
                                 ) : (
                                   item.source_of_receipt
                                 )}
@@ -2802,78 +2305,29 @@ const Registration = () => {
                             {selectedColumns.includes("scheme_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  editingOtherMode.scheme_name ? (
-                                    <div className="d-flex">
-                                      <Form.Control
-                                        type="text"
-                                        value={editingValues.scheme_name}
-                                        onChange={(e) =>
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            scheme_name: e.target.value,
-                                          }))
-                                        }
-                                        size="sm"
-                                        placeholder="योजना का नाम दर्ज करें"
-                                      />
-                                      <Button
-                                        variant="outline-secondary"
-                                        size="sm"
-                                        className="ms-1"
-                                        onClick={() => {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            scheme_name: false,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            scheme_name: "",
-                                          }));
-                                          // Refetch base options
-                                          fetchFormFilters();
-                                        }}
-                                        title="विकल्प दिखाएं"
-                                      >
-                                        ↺
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <Form.Select
-                                      value={editingValues.scheme_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === "Other") {
-                                          setEditingOtherMode((prev) => ({
-                                            ...prev,
-                                            scheme_name: true,
-                                          }));
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            scheme_name: "",
-                                          }));
-                                        } else {
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            scheme_name: value,
-                                          }));
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.scheme_name,
-                                          ...schemeOptions,
-                                        ]),
-                                      ].map((scheme, index) => (
-                                        <option key={index} value={scheme}>
-                                          {scheme}
-                                        </option>
-                                      ))}
-                                      <option value="Other">अन्य</option>
-                                    </Form.Select>
-                                  )
+                                  <Form.Select
+                                    value={editingValues.scheme_name}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setEditingValues((prev) => ({
+                                        ...prev,
+                                        scheme_name: value,
+                                      }));
+                                    }}
+                                    size="sm"
+                                  >
+                                    <option value="">चुनें</option>
+                                    {[
+                                      ...new Set([
+                                        ...filterOptions.scheme_name,
+                                        ...schemeOptions,
+                                      ]),
+                                    ].map((scheme, index) => (
+                                      <option key={index} value={scheme}>
+                                        {scheme}
+                                      </option>
+                                    ))}
+                                  </Form.Select>
                                 ) : (
                                   item.scheme_name
                                 )}
