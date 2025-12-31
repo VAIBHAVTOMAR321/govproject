@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Container, Form } from "react-bootstrap";
-import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList } from "react-icons/fa";
+import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaList } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 
@@ -363,193 +363,6 @@ ${relatedInfo}
     setSelectedSources(new Set());
   };
 
-  // Handle scheme/component detail clicks
-  const showAllocationDetails = (item, itemType) => {
-    setAllocationDetails(prev => {
-      const exists = prev.find(d => d.selectedItem === item && d.itemType === itemType);
-      if (exists) {
-        return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
-      } else {
-        return [...prev, { selectedItem: item, itemType }];
-      }
-    });
-  };
-
-  const showSalesDetails = (item, itemType) => {
-    setSalesDetails(prev => {
-      const exists = prev.find(d => d.selectedItem === item && d.itemType === itemType);
-      if (exists) {
-        return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
-      } else {
-        return [...prev, { selectedItem: item, itemType }];
-      }
-    });
-  };
-
-  const showRemainingDetails = (item, itemType) => {
-    setRemainingDetails(prev => {
-      const exists = prev.find(d => d.selectedItem === item && d.itemType === itemType);
-      if (exists) {
-        return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
-      } else {
-        return [...prev, { selectedItem: item, itemType }];
-      }
-    });
-  };
-
-  const closeAllocationDetails = (item, itemType) => {
-    setAllocationDetails(prev => prev.filter(d => !(d.selectedItem === item && d.itemType === itemType)));
-  };
-
-  const closeSalesDetails = (item, itemType) => {
-    setSalesDetails(prev => prev.filter(d => !(d.selectedItem === item && d.itemType === itemType)));
-  };
-
-  const closeRemainingDetails = (item, itemType) => {
-    setRemainingDetails(prev => prev.filter(d => !(d.selectedItem === item && d.itemType === itemType)));
-  };
-
-  // Render detailed breakdown for a specific section
-  const renderSectionBreakdown = (details, sectionType, closeFunction) => {
-    if (!details.selectedItem) return null;
-
-    const itemName = details.selectedItem;
-    const filterKey = details.itemType === 'scheme' ? 'scheme_name' : 'component';
-    const itemData = tableData.filter(item => item[filterKey] === itemName);
-
-    const breakdown = itemData.reduce((acc, item) => {
-      const vidhanSabha = item.vidhan_sabha_name;
-      const vikasKhand = item.vikas_khand_name;
-      const source = item.source_of_receipt;
-
-      if (!acc[vidhanSabha]) {
-        acc[vidhanSabha] = {};
-      }
-      if (!acc[vidhanSabha][vikasKhand]) {
-        acc[vidhanSabha][vikasKhand] = {};
-      }
-      if (!acc[vidhanSabha][vikasKhand][source]) {
-        acc[vidhanSabha][vikasKhand][source] = [];
-      }
-      acc[vidhanSabha][vikasKhand][source].push(item);
-      return acc;
-    }, {});
-
-    const getTitle = () => {
-      const typeLabel = details.itemType === 'scheme' ? 'योजना' : 'घटक';
-      switch(sectionType) {
-        case 'allocation': return `${typeLabel} आवंटन विवरण: ${itemName}`;
-        case 'sales': return `${typeLabel} बिक्री विवरण: ${itemName}`;
-        case 'remaining': return `${typeLabel} शेष राशि विवरण: ${itemName}`;
-        default: return `${itemName} विवरण`;
-      }
-    };
-
-    return (
-      <div className="mt-2 p-2 border rounded bg-light compact-breakdown">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h6 className="mb-0 text-primary">{getTitle()}</h6>
-          <Button variant="outline-secondary" size="sm" onClick={closeFunction}>
-            <FaTimes />
-          </Button>
-        </div>
-        <div className="breakdown-content compact-breakdown-content">
-          {Object.entries(breakdown).map(([vidhanSabha, vikasKhands]) => (
-            <div key={vidhanSabha} className="mb-2">
-              <h6 className="text-success fw-bold mb-2">{vidhanSabha}</h6>
-              {Object.entries(vikasKhands).map(([vikasKhand, sources]) => (
-                <div key={vikasKhand} className="mb-2 ms-2">
-                  <div className="fw-bold text-info mb-1">{vikasKhand}</div>
-                  {Object.entries(sources).map(([source, records]) => (
-                    <div key={source} className="mb-1 ms-2 p-1 border rounded bg-white compact-source-card">
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <span className="fw-bold text-dark">{source}</span>
-                        <div className="d-flex align-items-center gap-2">
-                          <small className="text-muted">{records.length} रिकॉर्ड</small>
-                          <div className="btn-group btn-group-sm" role="group">
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm" 
-                              className="compact-action-btn"
-                              title="आवंटन देखें"
-                            >
-                              <FaEye size={10} />
-                            </Button>
-                            <Button 
-                              variant="outline-success" 
-                              size="sm" 
-                              className="compact-action-btn"
-                              title="बिक्री देखें"
-                            >
-                              <FaChartBar size={10} />
-                            </Button>
-                            <Button 
-                              variant="outline-info" 
-                              size="sm" 
-                              className="compact-action-btn"
-                              title="विवरण देखें"
-                            >
-                              <FaList size={10} />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="compact-data-line">
-                        {records.map((record, index) => {
-                          const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
-                          const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
-                          const remaining = allocated - sold;
-
-                          return (
-                            <div key={index} className="small text-muted mb-0 single-line-data">
-                              <>
-                                <span className="data-item">
-                                  मात्रा: <strong>{record.allocated_quantity}</strong>
-                                </span>
-                                <span className="separator">|</span>
-                                <span className="data-item">
-                                  दर: <strong>₹{record.rate}</strong>
-                                </span>
-                                {sectionType === 'allocation' && (
-                                  <>
-                                    <span className="separator">|</span>
-                                    <span className="data-item text-primary">
-                                      आवंटित: <strong>₹{allocated.toFixed(2)}</strong>
-                                    </span>
-                                  </>
-                                )}
-                                {sectionType === 'sales' && (
-                                  <>
-                                    <span className="separator">|</span>
-                                    <span className="data-item text-success">
-                                      बेचा गया: <strong>₹{sold.toFixed(2)}</strong>
-                                    </span>
-                                  </>
-                                )}
-                                {sectionType === 'remaining' && (
-                                  <>
-                                    <span className="separator">|</span>
-                                    <span className="data-item text-info">
-                                      शेष: <strong>₹{remaining.toFixed(2)}</strong>
-                                    </span>
-                                  </>
-                                )}
-                              </>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   // Get filtered data based on selections for scheme/component filter
   const getFilteredData = () => {
     let filteredData = tableData;
@@ -854,37 +667,15 @@ ${relatedInfo}
                     const schemeData = tableData.filter(item => item.scheme_name === scheme);
                     const totalAllocated = schemeData.reduce((sum, item) =>
                       sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                    const isSelected = allocationDetails.some(d => d.selectedItem === scheme && d.itemType === 'scheme');
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
-                        onClick={() => showAllocationDetails(scheme, 'scheme')}
-                        style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत आवंटन विवरण देखने के लिए"
+                        className="mb-2 p-2 border rounded compact-detail-item"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-info">{formatCurrency(totalAllocated)}</span>
-                            <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="आवंटन देखें"
-                              >
-                                <FaEye size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div>
                           </div>
                         </div>
                         <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
@@ -898,37 +689,15 @@ ${relatedInfo}
                     const componentData = tableData.filter(item => item.component === component);
                     const totalAllocated = componentData.reduce((sum, item) =>
                       sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                    const isSelected = allocationDetails.some(d => d.selectedItem === component && d.itemType === 'component');
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
-                        onClick={() => showAllocationDetails(component, 'component')}
-                        style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत आवंटन विवरण देखने के लिए"
+                        className="mb-2 p-2 border rounded compact-detail-item"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-warning">{formatCurrency(totalAllocated)}</span>
-                            <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="आवंटन देखें"
-                              >
-                                <FaEye size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div>
                           </div>
                         </div>
                         <small className="text-muted">{componentData.length} रिकॉर्ड</small>
@@ -937,7 +706,6 @@ ${relatedInfo}
                   })}
                 </Col>
               </Row>
-              {allocationDetails.map(detail => renderSectionBreakdown(detail, 'allocation', () => closeAllocationDetails(detail.selectedItem, detail.itemType)))}
             </Card.Body>
           </Collapse>
         </Card>
@@ -967,37 +735,15 @@ ${relatedInfo}
                     const schemeData = tableData.filter(item => item.scheme_name === scheme);
                     const totalSold = schemeData.reduce((sum, item) =>
                       sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                    const isSelected = salesDetails.some(d => d.selectedItem === scheme && d.itemType === 'scheme');
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
-                        onClick={() => showSalesDetails(scheme, 'scheme')}
-                        style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
+                        className="mb-2 p-2 border rounded compact-detail-item"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-secondary">{formatCurrency(totalSold)}</span>
-                            <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-secondary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="बिक्री देखें"
-                              >
-                                <FaChartBar size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div>
                           </div>
                         </div>
                         <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
@@ -1011,37 +757,15 @@ ${relatedInfo}
                     const componentData = tableData.filter(item => item.component === component);
                     const totalSold = componentData.reduce((sum, item) =>
                       sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                    const isSelected = salesDetails.some(d => d.selectedItem === component && d.itemType === 'component');
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
-                        onClick={() => showSalesDetails(component, 'component')}
-                        style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
+                        className="mb-2 p-2 border rounded compact-detail-item"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-dark">{formatCurrency(totalSold)}</span>
-                            <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-secondary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="बिक्री देखें"
-                              >
-                                <FaChartBar size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div>
                           </div>
                         </div>
                         <small className="text-muted">{componentData.length} रिकॉर्ड</small>
@@ -1050,7 +774,6 @@ ${relatedInfo}
                   })}
                 </Col>
               </Row>
-              {salesDetails.map(detail => renderSectionBreakdown(detail, 'sales', () => closeSalesDetails(detail.selectedItem, detail.itemType)))}
             </Card.Body>
           </Collapse>
         </Card>
@@ -1083,37 +806,15 @@ ${relatedInfo}
                     const totalSold = schemeData.reduce((sum, item) =>
                       sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
                     const remaining = totalAllocated - totalSold;
-                    const isSelected = remainingDetails.some(d => d.selectedItem === scheme && d.itemType === 'scheme');
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
-                        onClick={() => showRemainingDetails(scheme, 'scheme')}
-                        style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
+                        className="mb-2 p-2 border rounded compact-detail-item"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-primary">{formatCurrency(remaining)}</span>
-                            <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="शेष राशि देखें"
-                              >
-                                <FaLayerGroup size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div>
                           </div>
                         </div>
                         <small className="text-muted single-line-data">
@@ -1134,37 +835,15 @@ ${relatedInfo}
                     const totalSold = componentData.reduce((sum, item) =>
                       sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
                     const remaining = totalAllocated - totalSold;
-                    const isSelected = remainingDetails.some(d => d.selectedItem === component && d.itemType === 'component');
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
-                        onClick={() => showRemainingDetails(component, 'component')}
-                        style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
+                        className="mb-2 p-2 border rounded compact-detail-item"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
                           <div className="d-flex align-items-center gap-2">
                             <span className="badge bg-info">{formatCurrency(remaining)}</span>
-                            <div className="btn-group btn-group-sm" role="group">
-                              <Button 
-                                variant="outline-info" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="शेष राशि देखें"
-                              >
-                                <FaLayerGroup size={10} />
-                              </Button>
-                              <Button 
-                                variant="outline-success" 
-                                size="sm" 
-                                className="compact-action-btn"
-                                title="विवरण देखें"
-                              >
-                                <FaList size={10} />
-                              </Button>
-                            </div>
                           </div>
                         </div>
                         <small className="text-muted single-line-data">
@@ -1177,7 +856,6 @@ ${relatedInfo}
                   })}
                 </Col>
               </Row>
-              {remainingDetails.map(detail => renderSectionBreakdown(detail, 'remaining', () => closeRemainingDetails(detail.selectedItem, detail.itemType)))}
             </Card.Body>
           </Collapse>
         </Card>
