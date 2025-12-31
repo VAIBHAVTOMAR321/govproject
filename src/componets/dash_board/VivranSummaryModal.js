@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Modal,
   Row,
@@ -145,6 +145,10 @@ const HierarchicalFilter = ({
   onToggleCollapse,
 }) => {
   const [expandedItems, setExpandedItems] = useState(new Set());
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState(null);
+  const [dragEnd, setDragEnd] = useState(null);
+  const buttonRefs = useRef({});
 
   const toggleItemExpansion = (item) => {
     setExpandedItems(prev => {
@@ -156,6 +160,70 @@ const HierarchicalFilter = ({
       }
       return newSet;
     });
+  };
+
+  // Drag selection handlers
+  const handleMouseDown = (e) => {
+    if (['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+      setDragEnd({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging && ['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDragEnd({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging && ['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
+      // Calculate which buttons are within the selection rectangle
+      const selectedItems = [];
+      const minX = Math.min(dragStart.x, dragEnd.x);
+      const maxX = Math.max(dragStart.x, dragEnd.x);
+      const minY = Math.min(dragStart.y, dragEnd.y);
+      const maxY = Math.max(dragStart.y, dragEnd.y);
+
+      Object.entries(buttonRefs.current).forEach(([value, ref]) => {
+        if (ref) {
+          const rect = ref.getBoundingClientRect();
+          const buttonRect = {
+            left: rect.left - ref.parentElement.getBoundingClientRect().left,
+            top: rect.top - ref.parentElement.getBoundingClientRect().top,
+            right: rect.right - ref.parentElement.getBoundingClientRect().left,
+            bottom: rect.bottom - ref.parentElement.getBoundingClientRect().top,
+          };
+
+          // Check if button overlaps with selection rectangle
+          if (buttonRect.left < maxX && buttonRect.right > minX &&
+              buttonRect.top < maxY && buttonRect.bottom > minY) {
+            selectedItems.push(value);
+          }
+        }
+      });
+
+      // Toggle selection for all selected items
+      selectedItems.forEach(value => {
+        onFilterChange(hierarchyType, value);
+      });
+
+      setIsDragging(false);
+      setDragStart(null);
+      setDragEnd(null);
+    }
   };
 
   const getHierarchyDisplay = (item, type) => {
@@ -229,24 +297,50 @@ const HierarchicalFilter = ({
         </Card.Header>
         <Collapse in={!collapsed}>
           <Card.Body>
-            <Row className="g-1 align-items-center">
-              {items.map((value) => (
-                <Col key={value} xs="auto" className="mb-2">
-                  <Button
-                    variant={
-                      (activeFilters.center_name || []).includes(value)
-                        ? "primary"
-                        : "outline-secondary" 
-                    }
-                    size="sm"
-                    className="filter-button"
-                    onClick={() => onFilterChange("center_name", value)}
-                  >
-                    {value}
-                  </Button>
-                </Col>
-              ))}
-            </Row>
+            <div
+              className="position-relative"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{ userSelect: 'none' }}
+            >
+              <Row className="g-1 align-items-center">
+                {items.map((value) => (
+                  <Col key={value} xs="auto" className="mb-2">
+                    <Button
+                      ref={(el) => (buttonRefs.current[value] = el)}
+                      variant={
+                        (activeFilters.center_name || []).includes(value)
+                          ? "primary"
+                          : "outline-secondary" 
+                      }
+                      size="sm"
+                      className="filter-button"
+                      onClick={() => onFilterChange("center_name", value)}
+                    >
+                      {value}
+                    </Button>
+                  </Col>
+                ))}
+              </Row>
+              {/* Selection rectangle overlay */}
+              {isDragging && dragStart && dragEnd && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: Math.min(dragStart.x, dragEnd.x),
+                    top: Math.min(dragStart.y, dragEnd.y),
+                    width: Math.abs(dragEnd.x - dragStart.x),
+                    height: Math.abs(dragEnd.y - dragStart.y),
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    border: '2px dashed #007bff',
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                  }}
+                />
+              )}
+            </div>
           </Card.Body>
         </Collapse>
       </Card>
@@ -300,7 +394,14 @@ const HierarchicalFilter = ({
               if (uniqueVidhanSabhas.length === 0) return null;
 
               return (
-                <div className="mb-3">
+                <div
+                  className="position-relative mb-3"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  style={{ userSelect: 'none' }}
+                >
                   {uniqueVidhanSabhas.map((vidhanSabha) => {
                     const isSelected = (() => {
                       const filterValue = activeFilters[hierarchyType];
@@ -328,6 +429,7 @@ const HierarchicalFilter = ({
                         <Row className="g-1 align-items-center">
                           <Col xs="auto" className="mb-2">
                             <Button
+                              ref={(el) => (buttonRefs.current[vidhanSabha] = el)}
                               variant={isSelected ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
@@ -341,6 +443,22 @@ const HierarchicalFilter = ({
                       </div>
                     );
                   })}
+                  {/* Selection rectangle overlay */}
+                  {isDragging && dragStart && dragEnd && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: Math.min(dragStart.x, dragEnd.x),
+                        top: Math.min(dragStart.y, dragEnd.y),
+                        width: Math.abs(dragEnd.x - dragStart.x),
+                        height: Math.abs(dragEnd.y - dragStart.y),
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        border: '2px dashed #007bff',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                      }}
+                    />
+                  )}
                 </div>
               );
             })()
@@ -396,7 +514,14 @@ const HierarchicalFilter = ({
               if (uniqueVikasKhands.length === 0) return null;
 
               return (
-                <div className="mb-3">
+                <div
+                  className="position-relative mb-3"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  style={{ userSelect: 'none' }}
+                >
                   {uniqueVikasKhands.map((vikasKhand) => {
                     const isSelected = (() => {
                       const filterValue = activeFilters[hierarchyType];
@@ -424,6 +549,7 @@ const HierarchicalFilter = ({
                         <Row className="g-1 align-items-center">
                           <Col xs="auto" className="mb-2">
                             <Button
+                              ref={(el) => (buttonRefs.current[vikasKhand] = el)}
                               variant={isSelected ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
@@ -437,6 +563,22 @@ const HierarchicalFilter = ({
                       </div>
                     );
                   })}
+                  {/* Selection rectangle overlay */}
+                  {isDragging && dragStart && dragEnd && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: Math.min(dragStart.x, dragEnd.x),
+                        top: Math.min(dragStart.y, dragEnd.y),
+                        width: Math.abs(dragEnd.x - dragStart.x),
+                        height: Math.abs(dragEnd.y - dragStart.y),
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        border: '2px dashed #007bff',
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                      }}
+                    />
+                  )}
                 </div>
               );
             })()
@@ -2757,37 +2899,48 @@ const VivranSummaryModal = ({
               <Col md={12}>
                 <Form.Label className="mb-2 fw-bold">केंद्र चुनें (संपूर्ण विवरण तालिका के लिए):</Form.Label>
                 <div className="d-flex flex-wrap gap-2">
-                  <Form.Check
-                    type="checkbox"
-                    name="combined-table-kendra"
-                    id="combined-all-kendra"
-                    label="सभी चुनें"
-                    checked={selectedCombinedKendra.length === uniqueCenters.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedCombinedKendra(uniqueCenters);
-                      } else {
-                        setSelectedCombinedKendra([]);
-                      }
-                    }}
-                  />
-                  {uniqueCenters.map(kendra => (
-                    <Form.Check
-                      key={kendra}
-                      type="checkbox"
-                      name="combined-table-kendra"
-                      id={`combined-kendra-${kendra}`}
-                      label={kendra}
-                      checked={selectedCombinedKendra.includes(kendra)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedCombinedKendra(prev => [...prev, kendra]);
-                        } else {
-                          setSelectedCombinedKendra(prev => prev.filter(k => k !== kendra));
-                        }
-                      }}
-                    />
-                  ))}
+                  {(() => {
+                    // Show only kendras that are selected in the kendra filter above
+                    const kendrasToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
+                      ? activeFilters.center_name 
+                      : uniqueCenters;
+                    
+                    return (
+                      <>
+                        <Form.Check
+                          type="checkbox"
+                          name="combined-table-kendra"
+                          id="combined-all-kendra"
+                          label="सभी चुनें"
+                          checked={selectedCombinedKendra.length === kendrasToShow.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCombinedKendra(kendrasToShow);
+                            } else {
+                              setSelectedCombinedKendra([]);
+                            }
+                          }}
+                        />
+                        {kendrasToShow.map(kendra => (
+                          <Form.Check
+                            key={kendra}
+                            type="checkbox"
+                            name="combined-table-kendra"
+                            id={`combined-kendra-${kendra}`}
+                            label={kendra}
+                            checked={selectedCombinedKendra.includes(kendra)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCombinedKendra(prev => [...prev, kendra]);
+                              } else {
+                                setSelectedCombinedKendra(prev => prev.filter(k => k !== kendra));
+                              }
+                            }}
+                          />
+                        ))}
+                      </>
+                    );
+                  })()}
                 </div>
               </Col>
             </Row>
