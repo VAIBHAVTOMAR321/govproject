@@ -86,10 +86,8 @@ const LeftNav = ({
   }, []);
 
   const handleChange = (e) => {
-    const { name, options } = e.target;
-    const values = Array.from(options)
-      .filter(option => option.selected)
-      .map(option => option.value);
+    const { name } = e.target;
+    const values = Array.from(e.target.selectedOptions).map(option => option.value);
 
     setFilters(prev => ({
       ...prev,
@@ -264,6 +262,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.vidhanSabha}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.vidhanSabha.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -291,6 +291,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.vikasKhand}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.vikasKhand.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -318,6 +320,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.center}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.center.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -345,6 +349,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.scheme}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.scheme.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -372,6 +378,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.source}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.source.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -399,6 +407,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.component}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.component.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -426,6 +436,8 @@ const LeftNav = ({
                 className="filter-select"
                 onChange={handleChange}
                 value={filters.investment}
+                size="4"
+                style={{ minHeight: '100px' }}
               >
                 {filterOptions.investment.map(option => (
                   <option key={option} value={option}>{option}</option>
