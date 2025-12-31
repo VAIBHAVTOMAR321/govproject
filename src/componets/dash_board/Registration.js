@@ -286,6 +286,8 @@ const Registration = () => {
     center_name: [],
     component: [],
     investment_name: [],
+    sub_investment_name: [],
+    unit: [],
     source_of_receipt: [],
     scheme_name: [],
     vikas_khand_name: [],
@@ -302,12 +304,32 @@ const Registration = () => {
     investment_name: [],
     sub_investment_name: [],
     unit: ["Number", "meter", "Square meter", "kg", "बैग"], // Default unit options from API
-    source_of_receipt: [],
-    scheme_name: [],
+    source_of_receipt: sourceOptions,
+    scheme_name: schemeOptions,
+  });
+
+  // Dynamic edit options
+  const [editOptions, setEditOptions] = useState({
+    component: [],
+    investment_name: [],
+    sub_investment_name: [],
+    unit: ["Number", "meter", "Square meter", "kg", "बैग"], // Default unit options from API
+    source_of_receipt: sourceOptions,
+    scheme_name: schemeOptions,
   });
 
   // Track which fields are in "Other" mode (text input instead of dropdown)
   const [otherMode, setOtherMode] = useState({
+    component: true,
+    investment_name: true,
+    sub_investment_name: true,
+    unit: true,
+    source_of_receipt: true,
+    scheme_name: true,
+  });
+
+  // Track which fields are in "Other" mode for editing
+  const [editingOtherMode, setEditingOtherMode] = useState({
     component: false,
     investment_name: false,
     sub_investment_name: false,
@@ -398,6 +420,14 @@ const Registration = () => {
           vikas_khand_name: vikasData.vikas_khand_name || "",
           vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
         }));
+        // Update editing values if editing
+        if (editingRowId) {
+          setEditingValues((prev) => ({
+            ...prev,
+            vikas_khand_name: vikasData.vikas_khand_name || "",
+            vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
+          }));
+        }
         console.log("Form data updated with:", vikasData);
       } else {
         setVikasKhandData(null);
@@ -406,6 +436,13 @@ const Registration = () => {
           vikas_khand_name: "",
           vidhan_sabha_name: "",
         }));
+        if (editingRowId) {
+          setEditingValues((prev) => ({
+            ...prev,
+            vikas_khand_name: "",
+            vidhan_sabha_name: "",
+          }));
+        }
         console.log("No vikas data found, cleared form");
       }
     } catch (error) {
@@ -416,6 +453,13 @@ const Registration = () => {
         vikas_khand_name: "",
         vidhan_sabha_name: "",
       }));
+      if (editingRowId) {
+        setEditingValues((prev) => ({
+          ...prev,
+          vikas_khand_name: "",
+          vidhan_sabha_name: "",
+        }));
+      }
     } finally {
       setIsFetchingVikasKhand(false);
     }
@@ -468,6 +512,48 @@ const Registration = () => {
     }
   };
 
+  // Fetch edit options
+  const fetchEditOptions = async (
+    component = "",
+    investmentName = "",
+    subInvestmentName = ""
+  ) => {
+    try {
+      let url = FORM_FILTERS_API_URL;
+      const params = [];
+      if (component) params.push(`component=${encodeURIComponent(component)}`);
+      if (investmentName)
+        params.push(`investment_name=${encodeURIComponent(investmentName)}`);
+      if (subInvestmentName)
+        params.push(
+          `sub_investment_name=${encodeURIComponent(subInvestmentName)}`
+        );
+      if (params.length > 0) url += "?" + params.join("&");
+
+      const response = await axios.get(url);
+      const data = response.data;
+
+      setEditOptions((prev) => ({
+        ...prev,
+        component:
+          data.level === "component" ? data.data || [] : prev.component,
+        investment_name:
+          data.level === "investment_name"
+            ? data.data || []
+            : prev.investment_name,
+        sub_investment_name:
+          data.level === "sub_investment_name"
+            ? data.data || []
+            : prev.sub_investment_name,
+        unit: data.unit || prev.unit,
+        source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
+        scheme_name: data.scheme_name || prev.scheme_name,
+      }));
+    } catch (error) {
+      console.error("Error fetching edit filters:", error);
+    }
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     fetchBillingItems();
@@ -497,6 +583,16 @@ const Registration = () => {
           ...new Set(
             allBillingItems.map((item) => item.investment_name).filter(Boolean)
           ),
+        ],
+        sub_investment_name: [
+          ...new Set(
+            allBillingItems
+              .map((item) => item.sub_investment_name)
+              .filter(Boolean)
+          ),
+        ],
+        unit: [
+          ...new Set(allBillingItems.map((item) => item.unit).filter(Boolean)),
         ],
         source_of_receipt: [
           ...new Set(
@@ -768,6 +864,14 @@ const Registration = () => {
       source_of_receipt: false,
       scheme_name: false,
     });
+    setEditingOtherMode({
+      component: false,
+      investment_name: false,
+      sub_investment_name: false,
+      unit: false,
+      source_of_receipt: false,
+      scheme_name: false,
+    });
     setEditingRowId(null);
     setEditingValues({});
   };
@@ -788,6 +892,18 @@ const Registration = () => {
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
     });
+    setEditingOtherMode({
+      component: false,
+      investment_name: false,
+      sub_investment_name: false,
+      unit: false,
+      source_of_receipt: false,
+      scheme_name: false,
+    });
+    // Fetch options based on current values
+    if (item.investment_name) {
+      fetchFormFilters("", item.investment_name);
+    }
     setApiError(null);
     setApiResponse(null);
   };
@@ -815,6 +931,14 @@ const Registration = () => {
       );
       setEditingRowId(null);
       setEditingValues({});
+      setEditingOtherMode({
+        component: false,
+        investment_name: false,
+        sub_investment_name: false,
+        unit: false,
+        source_of_receipt: false,
+        scheme_name: false,
+      });
       setApiResponse({ message: "आइटम सफलतापूर्वक अपडेट किया गया!" });
     } catch (error) {
       console.error("Error updating item:", error);
@@ -826,6 +950,14 @@ const Registration = () => {
   const handleCancel = () => {
     setEditingRowId(null);
     setEditingValues({});
+    setEditingOtherMode({
+      component: false,
+      investment_name: false,
+      sub_investment_name: false,
+      unit: false,
+      source_of_receipt: false,
+      scheme_name: false,
+    });
   };
 
   // Handle delete
@@ -1077,7 +1209,7 @@ const Registration = () => {
           }));
           // Fetch investment options
           fetchFormFilters(value);
-        } else if (name === "investment_name" && value && formData.component) {
+        } else if (name === "investment_name" && value) {
           // Reset dependent fields
           updatedFormData.sub_investment_name = "";
           updatedFormData.unit = "";
@@ -1086,8 +1218,8 @@ const Registration = () => {
             sub_investment_name: false,
             unit: false,
           }));
-          // Fetch sub-investment options
-          fetchFormFilters(formData.component, value);
+          // Fetch options based on investment_name
+          fetchFormFilters("", value);
         } else if (
           name === "sub_investment_name" &&
           value &&
@@ -1179,12 +1311,12 @@ const Registration = () => {
       // Clear vikas khand data and other mode
       setVikasKhandData(null);
       setOtherMode({
-        component: false,
-        investment_name: false,
-        sub_investment_name: false,
-        unit: false,
-        source_of_receipt: false,
-        scheme_name: false,
+        component: true,
+        investment_name: true,
+        sub_investment_name: true,
+        unit: true,
+        source_of_receipt: true,
+        scheme_name: true,
       });
 
       // Add to table
@@ -1457,7 +1589,7 @@ const Registration = () => {
                           onChange={handleChange}
                           isInvalid={!!errors.investment_name}
                           className="compact-input"
-                          disabled={!formData.component || isLoadingFilters}
+                          disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
                           {formOptions.investment_name.map((inv, index) => (
@@ -1528,12 +1660,10 @@ const Registration = () => {
                           onChange={handleChange}
                           isInvalid={!!errors.sub_investment_name}
                           className="compact-input"
-                          disabled={
-                            !formData.investment_name || isLoadingFilters
-                          }
+                          disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {formOptions.sub_investment_name.map(
+                          {filterOptions.sub_investment_name.map(
                             (subInv, index) => (
                               <option key={index} value={subInv}>
                                 {subInv}
@@ -1592,7 +1722,7 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {formOptions.unit.map((unit, index) => (
+                          {filterOptions.unit.map((unit, index) => (
                             <option key={index} value={unit}>
                               {unit}
                             </option>
@@ -1693,13 +1823,16 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {formOptions.source_of_receipt.map(
-                            (source, index) => (
-                              <option key={index} value={source}>
-                                {source}
-                              </option>
-                            )
-                          )}
+                          {[
+                            ...new Set([
+                              ...filterOptions.source_of_receipt,
+                              ...sourceOptions,
+                            ]),
+                          ].map((source, index) => (
+                            <option key={index} value={source}>
+                              {source}
+                            </option>
+                          ))}
                           <option value="Other">अन्य</option>
                         </Form.Select>
                       )}
@@ -2066,9 +2199,12 @@ const Registration = () => {
                                 : [],
                             }));
                           }}
-                          options={filterOptions.source_of_receipt.map(
-                            (option) => ({ value: option, label: option })
-                          )}
+                          options={[
+                            ...new Set([
+                              ...filterOptions.source_of_receipt,
+                              ...sourceOptions,
+                            ]),
+                          ].map((option) => ({ value: option, label: option }))}
                           className="compact-input"
                           placeholder="चुनें"
                         />
@@ -2094,7 +2230,12 @@ const Registration = () => {
                                 : [],
                             }));
                           }}
-                          options={filterOptions.scheme_name.map((option) => ({
+                          options={[
+                            ...new Set([
+                              ...filterOptions.scheme_name,
+                              ...schemeOptions,
+                            ]),
+                          ].map((option) => ({
                             value: option,
                             label: option,
                           }))}
@@ -2230,17 +2371,29 @@ const Registration = () => {
                             {selectedColumns.includes("center_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
+                                  <Form.Select
                                     value={editingValues.center_name}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                      const value = e.target.value;
                                       setEditingValues((prev) => ({
                                         ...prev,
-                                        center_name: e.target.value,
-                                      }))
-                                    }
+                                        center_name: value,
+                                        vikas_khand_name: "",
+                                        vidhan_sabha_name: "",
+                                      }));
+                                      if (value) {
+                                        fetchVikasKhandData(value);
+                                      }
+                                    }}
                                     size="sm"
-                                  />
+                                  >
+                                    <option value="">चुनें</option>
+                                    {centerOptions.map((center, index) => (
+                                      <option key={index} value={center}>
+                                        {center}
+                                      </option>
+                                    ))}
+                                  </Form.Select>
                                 ) : (
                                   item.center_name
                                 )}
@@ -2249,17 +2402,92 @@ const Registration = () => {
                             {selectedColumns.includes("component") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
-                                    value={editingValues.component}
-                                    onChange={(e) =>
-                                      setEditingValues((prev) => ({
-                                        ...prev,
-                                        component: e.target.value,
-                                      }))
-                                    }
-                                    size="sm"
-                                  />
+                                  editingOtherMode.component ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        value={editingValues.component}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            component: value,
+                                            investment_name: "",
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                          // No fetch for other mode
+                                        }}
+                                        size="sm"
+                                        placeholder="घटक दर्ज करें"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            component: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            component: "",
+                                            investment_name: "",
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                          // Refetch options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      value={editingValues.component}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === "Other") {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            component: true,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            component: "",
+                                            investment_name: "",
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                        } else {
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            component: value,
+                                            investment_name: "",
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                          if (value) {
+                                            fetchFormFilters(value);
+                                          }
+                                        }
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {filterOptions.component.map(
+                                        (comp, index) => (
+                                          <option key={index} value={comp}>
+                                            {comp}
+                                          </option>
+                                        )
+                                      )}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
                                 ) : (
                                   item.component
                                 )}
@@ -2268,17 +2496,91 @@ const Registration = () => {
                             {selectedColumns.includes("investment_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
-                                    value={editingValues.investment_name}
-                                    onChange={(e) =>
-                                      setEditingValues((prev) => ({
-                                        ...prev,
-                                        investment_name: e.target.value,
-                                      }))
-                                    }
-                                    size="sm"
-                                  />
+                                  editingOtherMode.investment_name ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        value={editingValues.investment_name}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            investment_name: value,
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                        }}
+                                        size="sm"
+                                        placeholder="निवेश का नाम दर्ज करें"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            investment_name: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            investment_name: "",
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                          // Refetch investment options based on component
+                                          if (editingValues.component) {
+                                            fetchFormFilters(
+                                              editingValues.component
+                                            );
+                                          }
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      value={editingValues.investment_name}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === "Other") {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            investment_name: true,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            investment_name: "",
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                        } else {
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            investment_name: value,
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                          if (value) {
+                                            fetchFormFilters("", value);
+                                          }
+                                        }
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {filterOptions.investment_name.map(
+                                        (inv, index) => (
+                                          <option key={index} value={inv}>
+                                            {inv}
+                                          </option>
+                                        )
+                                      )}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
                                 ) : (
                                   item.investment_name
                                 )}
@@ -2299,6 +2601,7 @@ const Registration = () => {
                                       }))
                                     }
                                     size="sm"
+                                    placeholder="उप-निवेश का नाम दर्ज करें"
                                   />
                                 ) : (
                                   item.sub_investment_name
@@ -2308,17 +2611,73 @@ const Registration = () => {
                             {selectedColumns.includes("unit") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
-                                    value={editingValues.unit}
-                                    onChange={(e) =>
-                                      setEditingValues((prev) => ({
-                                        ...prev,
-                                        unit: e.target.value,
-                                      }))
-                                    }
-                                    size="sm"
-                                  />
+                                  editingOtherMode.unit ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        value={editingValues.unit}
+                                        onChange={(e) =>
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            unit: e.target.value,
+                                          }))
+                                        }
+                                        size="sm"
+                                        placeholder="इकाई दर्ज करें"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            unit: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            unit: "",
+                                          }));
+                                          // Refetch base options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      value={editingValues.unit}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === "Other") {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            unit: true,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            unit: "",
+                                          }));
+                                        } else {
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            unit: value,
+                                          }));
+                                        }
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {formOptions.unit.map((unit, index) => (
+                                        <option key={index} value={unit}>
+                                          {unit}
+                                        </option>
+                                      ))}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
                                 ) : (
                                   item.unit
                                 )}
@@ -2366,17 +2725,75 @@ const Registration = () => {
                             {selectedColumns.includes("source_of_receipt") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
-                                    value={editingValues.source_of_receipt}
-                                    onChange={(e) =>
-                                      setEditingValues((prev) => ({
-                                        ...prev,
-                                        source_of_receipt: e.target.value,
-                                      }))
-                                    }
-                                    size="sm"
-                                  />
+                                  editingOtherMode.source_of_receipt ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        value={editingValues.source_of_receipt}
+                                        onChange={(e) =>
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: e.target.value,
+                                          }))
+                                        }
+                                        size="sm"
+                                        placeholder="प्राप्ति का स्रोत दर्ज करें"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: "",
+                                          }));
+                                          // Refetch base options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      value={editingValues.source_of_receipt}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === "Other") {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: true,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: "",
+                                          }));
+                                        } else {
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: value,
+                                          }));
+                                        }
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {formOptions.source_of_receipt.map(
+                                        (source, index) => (
+                                          <option key={index} value={source}>
+                                            {source}
+                                          </option>
+                                        )
+                                      )}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
                                 ) : (
                                   item.source_of_receipt
                                 )}
@@ -2385,17 +2802,78 @@ const Registration = () => {
                             {selectedColumns.includes("scheme_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
-                                    value={editingValues.scheme_name}
-                                    onChange={(e) =>
-                                      setEditingValues((prev) => ({
-                                        ...prev,
-                                        scheme_name: e.target.value,
-                                      }))
-                                    }
-                                    size="sm"
-                                  />
+                                  editingOtherMode.scheme_name ? (
+                                    <div className="d-flex">
+                                      <Form.Control
+                                        type="text"
+                                        value={editingValues.scheme_name}
+                                        onChange={(e) =>
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            scheme_name: e.target.value,
+                                          }))
+                                        }
+                                        size="sm"
+                                        placeholder="योजना का नाम दर्ज करें"
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        className="ms-1"
+                                        onClick={() => {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            scheme_name: false,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            scheme_name: "",
+                                          }));
+                                          // Refetch base options
+                                          fetchFormFilters();
+                                        }}
+                                        title="विकल्प दिखाएं"
+                                      >
+                                        ↺
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Form.Select
+                                      value={editingValues.scheme_name}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === "Other") {
+                                          setEditingOtherMode((prev) => ({
+                                            ...prev,
+                                            scheme_name: true,
+                                          }));
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            scheme_name: "",
+                                          }));
+                                        } else {
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            scheme_name: value,
+                                          }));
+                                        }
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {[
+                                        ...new Set([
+                                          ...filterOptions.scheme_name,
+                                          ...schemeOptions,
+                                        ]),
+                                      ].map((scheme, index) => (
+                                        <option key={index} value={scheme}>
+                                          {scheme}
+                                        </option>
+                                      ))}
+                                      <option value="Other">अन्य</option>
+                                    </Form.Select>
+                                  )
                                 ) : (
                                   item.scheme_name
                                 )}
@@ -2404,8 +2882,7 @@ const Registration = () => {
                             {selectedColumns.includes("vikas_khand_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
+                                  <Form.Select
                                     value={editingValues.vikas_khand_name}
                                     onChange={(e) =>
                                       setEditingValues((prev) => ({
@@ -2414,7 +2891,16 @@ const Registration = () => {
                                       }))
                                     }
                                     size="sm"
-                                  />
+                                  >
+                                    <option value="">चुनें</option>
+                                    {filterOptions.vikas_khand_name.map(
+                                      (vikas, index) => (
+                                        <option key={index} value={vikas}>
+                                          {vikas}
+                                        </option>
+                                      )
+                                    )}
+                                  </Form.Select>
                                 ) : (
                                   item.vikas_khand_name
                                 )}
@@ -2423,8 +2909,7 @@ const Registration = () => {
                             {selectedColumns.includes("vidhan_sabha_name") && (
                               <td>
                                 {editingRowId === item.id ? (
-                                  <Form.Control
-                                    type="text"
+                                  <Form.Select
                                     value={editingValues.vidhan_sabha_name}
                                     onChange={(e) =>
                                       setEditingValues((prev) => ({
@@ -2433,7 +2918,16 @@ const Registration = () => {
                                       }))
                                     }
                                     size="sm"
-                                  />
+                                  >
+                                    <option value="">चुनें</option>
+                                    {filterOptions.vidhan_sabha_name.map(
+                                      (vidhan, index) => (
+                                        <option key={index} value={vidhan}>
+                                          {vidhan}
+                                        </option>
+                                      )
+                                    )}
+                                  </Form.Select>
                                 ) : (
                                   item.vidhan_sabha_name
                                 )}
@@ -2468,7 +2962,8 @@ const Registration = () => {
                                   >
                                     संपादित करें
                                   </Button>
-                                  <Button className="gov-delete-btn"
+                                  <Button
+                                    className="gov-delete-btn"
                                     variant="outline-danger"
                                     size="sm"
                                     onClick={() => handleDelete(item)}
