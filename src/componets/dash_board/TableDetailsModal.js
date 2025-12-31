@@ -272,12 +272,31 @@ ${relatedInfo}
   }, [tableData, uniqueVikasKhands]);
 
 
-  // Toggle collapse section
+  // Toggle collapse section with auto-scroll
   const toggleCollapse = (section) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+    setCollapsedSections(prev => {
+      const newState = {
+        ...prev,
+        [section]: !prev[section]
+      };
+      
+      // If the section is being opened (was collapsed, now expanded)
+      if (prev[section] === true) {
+        // Small delay to allow the collapse animation to complete
+        setTimeout(() => {
+          const element = document.getElementById(`${section}-section`);
+          if (element) {
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+          }
+        }, 100);
+      }
+      
+      return newState;
+    });
   };
 
   // Toggle scheme selection
@@ -427,40 +446,99 @@ ${relatedInfo}
     };
 
     return (
-      <div className="mt-3 p-3 border rounded bg-light">
-        <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="mt-2 p-2 border rounded bg-light compact-breakdown">
+        <div className="d-flex justify-content-between align-items-center mb-2">
           <h6 className="mb-0 text-primary">{getTitle()}</h6>
           <Button variant="outline-secondary" size="sm" onClick={closeFunction}>
             <FaTimes />
           </Button>
         </div>
-        <div className="breakdown-content">
+        <div className="breakdown-content compact-breakdown-content">
           {Object.entries(breakdown).map(([vidhanSabha, vikasKhands]) => (
-            <div key={vidhanSabha} className="mb-4">
-              <h6 className="text-success fw-bold mb-3">{vidhanSabha}</h6>
+            <div key={vidhanSabha} className="mb-2">
+              <h6 className="text-success fw-bold mb-2">{vidhanSabha}</h6>
               {Object.entries(vikasKhands).map(([vikasKhand, sources]) => (
-                <div key={vikasKhand} className="mb-3 ms-3">
-                  <div className="fw-bold text-info mb-2">{vikasKhand}</div>
+                <div key={vikasKhand} className="mb-2 ms-2">
+                  <div className="fw-bold text-info mb-1">{vikasKhand}</div>
                   {Object.entries(sources).map(([source, records]) => (
-                    <div key={source} className="mb-2 ms-3 p-2 border rounded bg-white">
+                    <div key={source} className="mb-1 ms-2 p-1 border rounded bg-white compact-source-card">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <span className="fw-bold text-dark">{source}</span>
-                        <small className="text-muted">{records.length} रिकॉर्ड</small>
-                      </div>
-                      {records.map((record, index) => {
-                        const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
-                        const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
-                        const remaining = allocated - sold;
-
-                        return (
-                          <div key={index} className="small text-muted mb-1">
-                            मात्रा: {record.allocated_quantity} | दर: ₹{record.rate} |
-                            {sectionType === 'allocation' && ` आवंटित: ₹${allocated.toFixed(2)}`}
-                            {sectionType === 'sales' && ` बेचा गया: ₹${sold.toFixed(2)}`}
-                            {sectionType === 'remaining' && ` शेष: ₹${remaining.toFixed(2)}`}
+                        <div className="d-flex align-items-center gap-2">
+                          <small className="text-muted">{records.length} रिकॉर्ड</small>
+                          <div className="btn-group btn-group-sm" role="group">
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm" 
+                              className="compact-action-btn"
+                              title="आवंटन देखें"
+                            >
+                              <FaEye size={10} />
+                            </Button>
+                            <Button 
+                              variant="outline-success" 
+                              size="sm" 
+                              className="compact-action-btn"
+                              title="बिक्री देखें"
+                            >
+                              <FaChartBar size={10} />
+                            </Button>
+                            <Button 
+                              variant="outline-info" 
+                              size="sm" 
+                              className="compact-action-btn"
+                              title="विवरण देखें"
+                            >
+                              <FaList size={10} />
+                            </Button>
                           </div>
-                        );
-                      })}
+                        </div>
+                      </div>
+                      <div className="compact-data-line">
+                        {records.map((record, index) => {
+                          const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
+                          const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
+                          const remaining = allocated - sold;
+
+                          return (
+                            <div key={index} className="small text-muted mb-0 single-line-data">
+                              <>
+                                <span className="data-item">
+                                  मात्रा: <strong>{record.allocated_quantity}</strong>
+                                </span>
+                                <span className="separator">|</span>
+                                <span className="data-item">
+                                  दर: <strong>₹{record.rate}</strong>
+                                </span>
+                                {sectionType === 'allocation' && (
+                                  <>
+                                    <span className="separator">|</span>
+                                    <span className="data-item text-primary">
+                                      आवंटित: <strong>₹{allocated.toFixed(2)}</strong>
+                                    </span>
+                                  </>
+                                )}
+                                {sectionType === 'sales' && (
+                                  <>
+                                    <span className="separator">|</span>
+                                    <span className="data-item text-success">
+                                      बेचा गया: <strong>₹{sold.toFixed(2)}</strong>
+                                    </span>
+                                  </>
+                                )}
+                                {sectionType === 'remaining' && (
+                                  <>
+                                    <span className="separator">|</span>
+                                    <span className="data-item text-info">
+                                      शेष: <strong>₹{remaining.toFixed(2)}</strong>
+                                    </span>
+                                  </>
+                                )}
+                              </>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -581,7 +659,7 @@ ${relatedInfo}
       onHide={onHide}
       size="xl"
       centered
-      className="table-details-modal"
+      className="table-details-modal compact-modal-cards"
       dialogClassName="modal-90w"
     >
       <Modal.Header closeButton onClick={onHide} className="modal-title">
@@ -597,72 +675,72 @@ ${relatedInfo}
             <Row>
               <Col md={2}>
                 <div
-                  className="text-center p-3 border rounded clickable-card"
+                  className="text-center summary-card border rounded clickable-card"
                   onClick={() => toggleCollapse('hierarchy')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: विधानसभा और विकासखंड देखें"
                 >
-                  <FaGavel size={20} className="text-primary mb-2" />
+                  <FaGavel size={16} className="text-primary mb-1" />
                   <h5 className="text-primary mb-1">{uniqueVidhanSabhas.length}</h5>
                   <small className="text-muted">विधानसभा</small>
                 </div>
               </Col>
               <Col md={2}>
                 <div
-                  className="text-center p-3 border rounded clickable-card"
+                  className="text-center summary-card border rounded clickable-card"
                   onClick={() => toggleCollapse('hierarchy')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: विकासखंड और विधानसभा देखें"
                 >
-                  <FaMapMarkerAlt size={20} className="text-success mb-2" />
+                  <FaMapMarkerAlt size={16} className="text-success mb-1" />
                   <h5 className="text-success mb-1">{uniqueVikasKhands.length}</h5>
                   <small className="text-muted">विकासखंड</small>
                 </div>
               </Col>
               <Col md={2}>
                 <div
-                  className="text-center p-3 border rounded clickable-card"
+                  className="text-center summary-card border rounded clickable-card"
                   onClick={() => toggleCollapse('filter')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: योजनाएं और निवेश देखें"
                 >
-                  <FaPiggyBank size={20} className="text-info mb-2" />
+                  <FaPiggyBank size={16} className="text-info mb-1" />
                   <h5 className="text-info mb-1">{uniqueSchemes.length}</h5>
                   <small className="text-muted">योजनाएं</small>
                 </div>
               </Col>
               <Col md={2}>
                 <div
-                  className="text-center p-3 border rounded clickable-card"
+                  className="text-center summary-card border rounded clickable-card"
                   onClick={() => toggleCollapse('filter')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: निवेश और योजनाएं देखें"
                 >
-                  <FaPuzzlePiece size={20} className="text-warning mb-2" />
+                  <FaPuzzlePiece size={16} className="text-warning mb-1" />
                   <h5 className="text-warning mb-1">{uniqueInvestments.length}</h5>
                   <small className="text-muted">निवेश</small>
                 </div>
               </Col>
               <Col md={2}>
                 <div
-                  className="text-center p-3 border rounded clickable-card"
+                  className="text-center summary-card border rounded clickable-card"
                   onClick={() => toggleCollapse('filter')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: घटक और योजनाएं देखें"
                 >
-                  <FaLayerGroup size={20} className="text-secondary mb-2" />
+                  <FaLayerGroup size={16} className="text-secondary mb-1" />
                   <h5 className="text-secondary mb-1">{uniqueComponents.length}</h5>
                   <small className="text-muted">घटक</small>
                 </div>
               </Col>
               <Col md={2}>
                 <div
-                  className="text-center p-3 border rounded clickable-card"
+                  className="text-center summary-card border rounded clickable-card"
                   onClick={() => toggleCollapse('sources')}
                   style={{ cursor: 'pointer' }}
                   title="क्लिक करें: स्रोत और योजनाएं देखें"
                 >
-                  <FaTags size={20} className="text-dark mb-2" />
+                  <FaTags size={16} className="text-dark mb-1" />
                   <h5 className="text-dark mb-1">{uniqueSources.length}</h5>
                   <small className="text-muted">स्रोत</small>
                 </div>
@@ -675,11 +753,11 @@ ${relatedInfo}
         <Card className="mb-3" style={{ backgroundColor: centerColor, border: '1px solid rgba(0,0,0,0.125)' }}>
           <Card.Header style={{ backgroundColor: centerColor, color: textColor, borderBottom: '1px solid rgba(0,0,0,0.125)' }}>
             <Row>
-              <Col md={8}>
+              <Col md={6}>
                 <h5 className="mb-0">{centerName}</h5>
               </Col>
-              <Col md={4} className="text-end">
-                <div className="d-flex flex-column align-items-end">
+              <Col md={6} className="text-end">
+                <div className="d-flex flex-row align-items-end">
                   <span
                     className="badge bg-light text-dark mb-1 clickable-badge"
                     title={`कुल स्थान: ${totals.placesCount} - इस केंद्र में शामिल अद्वितीय विकासखंड | कुल रिकॉर्ड: ${totals.recordsCount} | क्लिक करें विवरण देखने के लिए`}
@@ -727,7 +805,7 @@ ${relatedInfo}
         </Card>
 
         {/* Places Breakdown Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="places-section">
           <Card.Header
             onClick={() => toggleCollapse('places')}
             style={{ cursor: "pointer" }}
@@ -738,7 +816,7 @@ ${relatedInfo}
           </Card.Header>
           <Collapse in={!collapsedSections.places}>
             <Card.Body>
-              <div className="text-center mb-4">
+              <div className="text-center mb-2">
                 <h6 className="text-primary fw-bold">कुल स्थान: {uniqueVikasKhands.length}</h6>
               </div>
               <div className="places-grid">
@@ -758,7 +836,7 @@ ${relatedInfo}
         </Card>
 
         {/* Allocation Breakdown Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="allocation-section">
           <Card.Header
             onClick={() => toggleCollapse('allocation')}
             style={{ cursor: "pointer" }}
@@ -771,7 +849,7 @@ ${relatedInfo}
             <Card.Body>
               <Row>
                 <Col md={6}>
-                  <h6 className="text-info fw-bold mb-3">योजना अनुसार आवंटन</h6>
+                  <h6 className="text-info fw-bold mb-2">योजना अनुसार आवंटन</h6>
                   {uniqueSchemes.map((scheme, index) => {
                     const schemeData = tableData.filter(item => item.scheme_name === scheme);
                     const totalAllocated = schemeData.reduce((sum, item) =>
@@ -780,14 +858,34 @@ ${relatedInfo}
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showAllocationDetails(scheme, 'scheme')}
                         style={{ cursor: 'pointer' }}
                         title="क्लिक करें विस्तृत आवंटन विवरण देखने के लिए"
                       >
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
-                          <span className="badge bg-info">{formatCurrency(totalAllocated)}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-info">{formatCurrency(totalAllocated)}</span>
+                            <div className="btn-group btn-group-sm" role="group">
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="आवंटन देखें"
+                              >
+                                <FaEye size={10} />
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="विवरण देखें"
+                              >
+                                <FaList size={10} />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                         <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
                       </div>
@@ -795,7 +893,7 @@ ${relatedInfo}
                   })}
                 </Col>
                 <Col md={6}>
-                  <h6 className="text-warning fw-bold mb-3">घटक अनुसार आवंटन</h6>
+                  <h6 className="text-warning fw-bold mb-2">घटक अनुसार आवंटन</h6>
                   {uniqueComponents.map((component, index) => {
                     const componentData = tableData.filter(item => item.component === component);
                     const totalAllocated = componentData.reduce((sum, item) =>
@@ -804,14 +902,34 @@ ${relatedInfo}
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showAllocationDetails(component, 'component')}
                         style={{ cursor: 'pointer' }}
                         title="क्लिक करें विस्तृत आवंटन विवरण देखने के लिए"
                       >
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
-                          <span className="badge bg-warning">{formatCurrency(totalAllocated)}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-warning">{formatCurrency(totalAllocated)}</span>
+                            <div className="btn-group btn-group-sm" role="group">
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="आवंटन देखें"
+                              >
+                                <FaEye size={10} />
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="विवरण देखें"
+                              >
+                                <FaList size={10} />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                         <small className="text-muted">{componentData.length} रिकॉर्ड</small>
                       </div>
@@ -825,7 +943,7 @@ ${relatedInfo}
         </Card>
 
         {/* Sales Breakdown Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="sales-section">
           <Card.Header
             onClick={() => toggleCollapse('sales')}
             style={{ cursor: "pointer" }}
@@ -836,7 +954,7 @@ ${relatedInfo}
           </Card.Header>
           <Collapse in={!collapsedSections.sales}>
             <Card.Body>
-              <div className="text-center mb-4">
+              <div className="text-center mb-2">
                 <div className="alert alert-warning">
                   <h6>कुल बेची गई राशि: {formatCurrency(totals.totalUpdated)}</h6>
                   <p className="mb-0">वर्तमान में कोई बिक्री रिकॉर्ड नहीं है</p>
@@ -844,7 +962,7 @@ ${relatedInfo}
               </div>
               <Row>
                 <Col md={6}>
-                  <h6 className="text-secondary fw-bold mb-3">योजना अनुसार बिक्री</h6>
+                  <h6 className="text-secondary fw-bold mb-2">योजना अनुसार बिक्री</h6>
                   {uniqueSchemes.map((scheme, index) => {
                     const schemeData = tableData.filter(item => item.scheme_name === scheme);
                     const totalSold = schemeData.reduce((sum, item) =>
@@ -853,14 +971,34 @@ ${relatedInfo}
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showSalesDetails(scheme, 'scheme')}
                         style={{ cursor: 'pointer' }}
                         title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
                       >
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
-                          <span className="badge bg-secondary">{formatCurrency(totalSold)}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-secondary">{formatCurrency(totalSold)}</span>
+                            <div className="btn-group btn-group-sm" role="group">
+                              <Button 
+                                variant="outline-secondary" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="बिक्री देखें"
+                              >
+                                <FaChartBar size={10} />
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="विवरण देखें"
+                              >
+                                <FaList size={10} />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                         <small className="text-muted">{schemeData.length} रिकॉर्ड</small>
                       </div>
@@ -868,7 +1006,7 @@ ${relatedInfo}
                   })}
                 </Col>
                 <Col md={6}>
-                  <h6 className="text-dark fw-bold mb-3">घटक अनुसार बिक्री</h6>
+                  <h6 className="text-dark fw-bold mb-2">घटक अनुसार बिक्री</h6>
                   {uniqueComponents.map((component, index) => {
                     const componentData = tableData.filter(item => item.component === component);
                     const totalSold = componentData.reduce((sum, item) =>
@@ -877,14 +1015,34 @@ ${relatedInfo}
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showSalesDetails(component, 'component')}
                         style={{ cursor: 'pointer' }}
                         title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
                       >
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
-                          <span className="badge bg-dark">{formatCurrency(totalSold)}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-dark">{formatCurrency(totalSold)}</span>
+                            <div className="btn-group btn-group-sm" role="group">
+                              <Button 
+                                variant="outline-secondary" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="बिक्री देखें"
+                              >
+                                <FaChartBar size={10} />
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="विवरण देखें"
+                              >
+                                <FaList size={10} />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                         <small className="text-muted">{componentData.length} रिकॉर्ड</small>
                       </div>
@@ -898,7 +1056,7 @@ ${relatedInfo}
         </Card>
 
         {/* Remaining Amount Breakdown Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="remaining-section">
           <Card.Header
             onClick={() => toggleCollapse('remaining')}
             style={{ cursor: "pointer" }}
@@ -909,7 +1067,7 @@ ${relatedInfo}
           </Card.Header>
           <Collapse in={!collapsedSections.remaining}>
             <Card.Body>
-              <div className="text-center mb-4">
+              <div className="text-center mb-2">
                 <div className="alert alert-success">
                   <h6>कुल शेष राशि: {formatCurrency(totals.totalRemaining)}</h6>
                   <p className="mb-0">बेचने के लिए उपलब्ध राशि</p>
@@ -917,7 +1075,7 @@ ${relatedInfo}
               </div>
               <Row>
                 <Col md={6}>
-                  <h6 className="text-primary fw-bold mb-3">योजना अनुसार शेष</h6>
+                  <h6 className="text-primary fw-bold mb-2">योजना अनुसार शेष</h6>
                   {uniqueSchemes.map((scheme, index) => {
                     const schemeData = tableData.filter(item => item.scheme_name === scheme);
                     const totalAllocated = schemeData.reduce((sum, item) =>
@@ -929,24 +1087,46 @@ ${relatedInfo}
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showRemainingDetails(scheme, 'scheme')}
                         style={{ cursor: 'pointer' }}
                         title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
                       >
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
-                          <span className="badge bg-primary">{formatCurrency(remaining)}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-primary">{formatCurrency(remaining)}</span>
+                            <div className="btn-group btn-group-sm" role="group">
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="शेष राशि देखें"
+                              >
+                                <FaLayerGroup size={10} />
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="विवरण देखें"
+                              >
+                                <FaList size={10} />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <small className="text-muted">
-                          आवंटित: {formatCurrency(totalAllocated)} | बेचा: {formatCurrency(totalSold)}
+                        <small className="text-muted single-line-data">
+                          <span className="data-item">आवंटित: <strong>{formatCurrency(totalAllocated)}</strong></span>
+                          <span className="separator">|</span>
+                          <span className="data-item">बेचा: <strong>{formatCurrency(totalSold)}</strong></span>
                         </small>
                       </div>
                     );
                   })}
                 </Col>
                 <Col md={6}>
-                  <h6 className="text-info fw-bold mb-3">घटक अनुसार शेष</h6>
+                  <h6 className="text-info fw-bold mb-2">घटक अनुसार शेष</h6>
                   {uniqueComponents.map((component, index) => {
                     const componentData = tableData.filter(item => item.component === component);
                     const totalAllocated = componentData.reduce((sum, item) =>
@@ -958,17 +1138,39 @@ ${relatedInfo}
                     return (
                       <div
                         key={index}
-                        className={`mb-2 p-2 border rounded clickable-detail-item ${isSelected ? 'selected-detail' : ''}`}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showRemainingDetails(component, 'component')}
                         style={{ cursor: 'pointer' }}
                         title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
                       >
-                        <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
-                          <span className="badge bg-info">{formatCurrency(remaining)}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-info">{formatCurrency(remaining)}</span>
+                            <div className="btn-group btn-group-sm" role="group">
+                              <Button 
+                                variant="outline-info" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="शेष राशि देखें"
+                              >
+                                <FaLayerGroup size={10} />
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                className="compact-action-btn"
+                                title="विवरण देखें"
+                              >
+                                <FaList size={10} />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <small className="text-muted">
-                          आवंटित: {formatCurrency(totalAllocated)} | बेचा: {formatCurrency(totalSold)}
+                        <small className="text-muted single-line-data">
+                          <span className="data-item">आवंटित: <strong>{formatCurrency(totalAllocated)}</strong></span>
+                          <span className="separator">|</span>
+                          <span className="data-item">बेचा: <strong>{formatCurrency(totalSold)}</strong></span>
                         </small>
                       </div>
                     );
@@ -982,7 +1184,7 @@ ${relatedInfo}
 
 
         {/* Hierarchical Structure Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="hierarchy-section">
           <Card.Header
             onClick={() => toggleCollapse('hierarchy')}
             style={{ cursor: "pointer" }}
@@ -996,9 +1198,9 @@ ${relatedInfo}
               <Row>
                 <Col md={6}>
                   <div className="hierarchy-section">
-                    <h6 className="text-primary fw-bold mb-3">विधानसभा → विकासखंड</h6>
+                    <h6 className="text-primary fw-bold mb-2">विधानसभा → विकासखंड</h6>
                     {Object.entries(hierarchicalData).map(([vidhanSabha, data]) => (
-                      <div key={vidhanSabha} className="mb-2">
+                      <div key={vidhanSabha} className="mb-1">
                         <div className="d-flex justify-content-between align-items-center">
                           <span className="fw-bold">{vidhanSabha}</span>
                           <span className="badge bg-light text-dark">{data.vikasKhands.length}</span>
@@ -1029,9 +1231,9 @@ ${relatedInfo}
                 </Col>
                 <Col md={6}>
                   <div className="hierarchy-section">
-                    <h6 className="text-success fw-bold mb-3">योजनाएं → निवेश</h6>
+                    <h6 className="text-success fw-bold mb-2">योजनाएं → निवेश</h6>
                     {Object.entries(hierarchicalData).map(([vidhanSabha, data]) => (
-                      <div key={vidhanSabha} className="mb-2">
+                      <div key={vidhanSabha} className="mb-1">
                         <div className="d-flex justify-content-between align-items-center">
                           <span className="fw-bold">{vidhanSabha}</span>
                           <span className="badge bg-light text-dark">{data.schemes.length}</span>
@@ -1089,7 +1291,7 @@ ${relatedInfo}
         </Card>
 
         {/* Multi-Select Filtering Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="filter-section">
           <Card.Header
             onClick={() => toggleCollapse('filter')}
             style={{ cursor: "pointer" }}
@@ -1104,7 +1306,7 @@ ${relatedInfo}
                 {/* Left Side: Selection Panel */}
                 <Col md={6}>
                   <div className="selection-panel">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="fw-bold mb-0">फ़िल्टर विकल्प</h6>
                       <Button
                         variant="outline-secondary"
@@ -1117,9 +1319,9 @@ ${relatedInfo}
                     </div>
                     
                     {/* Schemes Selection */}
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <h6 className="fw-bold mb-2 text-info">सभी योजनाएं ({uniqueSchemes.length})</h6>
-                      <div className="d-flex flex-wrap gap-2">
+                      <div className="d-flex flex-wrap gap-1">
                         {uniqueSchemes.map((scheme, index) => {
                           const tooltipData = getTooltipData('scheme', scheme, tableData);
                           const tooltipContent = getTooltipContent('scheme', scheme, tooltipData, tableData);
@@ -1147,7 +1349,7 @@ ${relatedInfo}
                     {/* Components Selection */}
                     <div>
                       <h6 className="fw-bold mb-2 text-secondary">घटक ({uniqueComponents.length})</h6>
-                      <div className="d-flex flex-wrap gap-2">
+                      <div className="d-flex flex-wrap gap-1">
                         {uniqueComponents.map((component, index) => {
                           const tooltipData = getTooltipData('component', component, tableData);
                           const tooltipContent = getTooltipContent('component', component, tooltipData, tableData);
@@ -1177,7 +1379,7 @@ ${relatedInfo}
                 {/* Right Side: Filtered Results */}
                 <Col md={6}>
                   <div className="results-panel">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="fw-bold mb-0">फ़िल्टर्ड परिणाम</h6>
                       <div className="text-end">
                         <small className="text-muted">
@@ -1187,8 +1389,8 @@ ${relatedInfo}
                     </div>
 
                     {/* Filtered Summary */}
-                    <div className="mb-4">
-                      <div className="bg-light p-3 rounded">
+                    <div className="mb-3">
+                      <div className="bg-light p-2 rounded">
                         <div className="row text-center">
                           <div className="col-4">
                             <div className="fw-bold text-info">{filteredData.length}</div>
@@ -1210,10 +1412,10 @@ ${relatedInfo}
                     <div className="filtered-categories-grid">
                       {/* Filtered Schemes */}
                       {filteredUniqueSchemes.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaPiggyBank className="me-2 text-info" />
-                            <h6 className="fw-bold mb-2 text-info">योजनाएं ({filteredUniqueSchemes.length})</h6>
+                            <FaPiggyBank className="me-1 text-info" />
+                            <h6 className="fw-bold mb-1 text-info">योजनाएं ({filteredUniqueSchemes.length})</h6>
                           </div>
                           <div className="category-content">
                             {filteredUniqueSchemes.map((scheme, index) => {
@@ -1239,10 +1441,10 @@ ${relatedInfo}
 
                       {/* Filtered Investments */}
                       {filteredUniqueInvestments.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaPuzzlePiece className="me-2 text-warning" />
-                            <h6 className="fw-bold mb-2 text-warning">निवेश ({filteredUniqueInvestments.length})</h6>
+                            <FaPuzzlePiece className="me-1 text-warning" />
+                            <h6 className="fw-bold mb-1 text-warning">निवेश ({filteredUniqueInvestments.length})</h6>
                           </div>
                           <div className="category-content">
                             {filteredUniqueInvestments.map((investment, index) => {
@@ -1268,10 +1470,10 @@ ${relatedInfo}
 
                       {/* Filtered Components */}
                       {filteredUniqueComponents.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaLayerGroup className="me-2 text-secondary" />
-                            <h6 className="fw-bold mb-2 text-secondary">घटक ({filteredUniqueComponents.length})</h6>
+                            <FaLayerGroup className="me-1 text-secondary" />
+                            <h6 className="fw-bold mb-1 text-secondary">घटक ({filteredUniqueComponents.length})</h6>
                           </div>
                           <div className="category-content">
                             {filteredUniqueComponents.map((component, index) => {
@@ -1297,10 +1499,10 @@ ${relatedInfo}
 
                       {/* Filtered Sources */}
                       {filteredUniqueSources.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaTags className="me-2 text-dark" />
-                            <h6 className="fw-bold mb-2 text-dark">स्रोत ({filteredUniqueSources.length})</h6>
+                            <FaTags className="me-1 text-dark" />
+                            <h6 className="fw-bold mb-1 text-dark">स्रोत ({filteredUniqueSources.length})</h6>
                           </div>
                           <div className="category-content">
                             {filteredUniqueSources.map((source, index) => {
@@ -1341,7 +1543,7 @@ ${relatedInfo}
         </Card>
 
         {/* Source Filtering Section */}
-        <Card className="mb-3">
+        <Card className="mb-3" id="sources-section">
           <Card.Header
             onClick={() => toggleCollapse('sources')}
             style={{ cursor: "pointer" }}
@@ -1356,7 +1558,7 @@ ${relatedInfo}
                 {/* Left Side: Source Selection Panel */}
                 <Col md={6}>
                   <div className="selection-panel">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="fw-bold mb-0">स्रोत चयन</h6>
                       <Button
                         variant="outline-secondary"
@@ -1371,7 +1573,7 @@ ${relatedInfo}
                     {/* Sources Selection */}
                     <div>
                       <h6 className="fw-bold mb-2 text-dark">सभी स्रोत ({uniqueSources.length})</h6>
-                      <div className="d-flex flex-wrap gap-2">
+                      <div className="d-flex flex-wrap gap-1">
                         {uniqueSources.map((source, index) => {
                           const tooltipData = getTooltipData('source', source, tableData);
                           const tooltipContent = getTooltipContent('source', source, tooltipData, tableData);
@@ -1401,7 +1603,7 @@ ${relatedInfo}
                 {/* Right Side: Source Filtered Results */}
                 <Col md={6}>
                   <div className="results-panel">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="fw-bold mb-0">स्रोत आधारित परिणाम</h6>
                       <div className="text-end">
                         <small className="text-muted">
@@ -1411,8 +1613,8 @@ ${relatedInfo}
                     </div>
 
                     {/* Source Filtered Summary */}
-                    <div className="mb-4">
-                      <div className="bg-light p-3 rounded">
+                    <div className="mb-3">
+                      <div className="bg-light p-2 rounded">
                         <div className="row text-center">
                           <div className="col-4">
                             <div className="fw-bold text-info">{sourceFilteredData.length}</div>
@@ -1434,10 +1636,10 @@ ${relatedInfo}
                     <div className="filtered-categories-grid">
                       {/* Filtered Schemes */}
                       {sourceFilteredUniqueSchemes.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaPiggyBank className="me-2 text-info" />
-                            <h6 className="fw-bold mb-2 text-info">योजनाएं ({sourceFilteredUniqueSchemes.length})</h6>
+                            <FaPiggyBank className="me-1 text-info" />
+                            <h6 className="fw-bold mb-1 text-info">योजनाएं ({sourceFilteredUniqueSchemes.length})</h6>
                           </div>
                           <div className="category-content">
                             {sourceFilteredUniqueSchemes.map((scheme, index) => {
@@ -1463,10 +1665,10 @@ ${relatedInfo}
 
                       {/* Filtered Investments */}
                       {sourceFilteredUniqueInvestments.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaPuzzlePiece className="me-2 text-warning" />
-                            <h6 className="fw-bold mb-2 text-warning">निवेश ({sourceFilteredUniqueInvestments.length})</h6>
+                            <FaPuzzlePiece className="me-1 text-warning" />
+                            <h6 className="fw-bold mb-1 text-warning">निवेश ({sourceFilteredUniqueInvestments.length})</h6>
                           </div>
                           <div className="category-content">
                             {sourceFilteredUniqueInvestments.map((investment, index) => {
@@ -1492,10 +1694,10 @@ ${relatedInfo}
 
                       {/* Filtered Components */}
                       {sourceFilteredUniqueComponents.length > 0 && (
-                        <div className="category-section mb-3">
+                        <div className="category-section">
                           <div className="category-header">
-                            <FaLayerGroup className="me-2 text-secondary" />
-                            <h6 className="fw-bold mb-2 text-secondary">घटक ({sourceFilteredUniqueComponents.length})</h6>
+                            <FaLayerGroup className="me-1 text-secondary" />
+                            <h6 className="fw-bold mb-1 text-secondary">घटक ({sourceFilteredUniqueComponents.length})</h6>
                           </div>
                           <div className="category-content">
                             {sourceFilteredUniqueComponents.map((component, index) => {
