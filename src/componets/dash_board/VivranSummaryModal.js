@@ -188,43 +188,57 @@ const HierarchicalFilter = ({
     }
   };
 
-  const handleMouseUp = () => {
-    if (isDragging && ['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
-      // Calculate which buttons are within the selection rectangle
-      const selectedItems = [];
-      const minX = Math.min(dragStart.x, dragEnd.x);
-      const maxX = Math.max(dragStart.x, dragEnd.x);
-      const minY = Math.min(dragStart.y, dragEnd.y);
-      const maxY = Math.max(dragStart.y, dragEnd.y);
-
-      Object.entries(buttonRefs.current).forEach(([value, ref]) => {
-        if (ref) {
-          const rect = ref.getBoundingClientRect();
-          const buttonRect = {
-            left: rect.left - ref.parentElement.getBoundingClientRect().left,
-            top: rect.top - ref.parentElement.getBoundingClientRect().top,
-            right: rect.right - ref.parentElement.getBoundingClientRect().left,
-            bottom: rect.bottom - ref.parentElement.getBoundingClientRect().top,
-          };
-
-          // Check if button overlaps with selection rectangle
-          if (buttonRect.left < maxX && buttonRect.right > minX &&
-              buttonRect.top < maxY && buttonRect.bottom > minY) {
-            selectedItems.push(value);
-          }
-        }
-      });
-
-      // Toggle selection for all selected items
-      selectedItems.forEach(value => {
-        onFilterChange(hierarchyType, value);
-      });
-
+// Replace the handleMouseUp function in the HierarchicalFilter component with this version
+const handleMouseUp = () => {
+  if (isDragging && ['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
+    // Calculate drag distance to distinguish between click and drag
+    const dragDistance = Math.sqrt(
+      Math.pow(dragEnd.x - dragStart.x, 2) + Math.pow(dragEnd.y - dragStart.y, 2)
+    );
+ 
+    // If the drag distance is less than 5 pixels, treat it as a click, not a drag
+    if (dragDistance < 5) {
       setIsDragging(false);
       setDragStart(null);
       setDragEnd(null);
+      return;
     }
-  };
+ 
+    // Calculate which buttons are within the selection rectangle
+    const selectedItems = [];
+    const minX = Math.min(dragStart.x, dragEnd.x);
+    const maxX = Math.max(dragStart.x, dragEnd.x);
+    const minY = Math.min(dragStart.y, dragEnd.y);
+    const maxY = Math.max(dragStart.y, dragEnd.y);
+ 
+    Object.entries(buttonRefs.current).forEach(([value, ref]) => {
+      if (ref) {
+        const rect = ref.getBoundingClientRect();
+        const buttonRect = {
+          left: rect.left - ref.parentElement.getBoundingClientRect().left,
+          top: rect.top - ref.parentElement.getBoundingClientRect().top,
+          right: rect.right - ref.parentElement.getBoundingClientRect().left,
+          bottom: rect.bottom - ref.parentElement.getBoundingClientRect().top,
+        };
+ 
+        // Check if button overlaps with selection rectangle
+        if (buttonRect.left < maxX && buttonRect.right > minX &&
+            buttonRect.top < maxY && buttonRect.bottom > minY) {
+          selectedItems.push(value);
+        }
+      }
+    });
+ 
+    // Toggle selection for all selected items
+    selectedItems.forEach(value => {
+      onFilterChange(hierarchyType, value);
+    });
+ 
+    setIsDragging(false);
+    setDragStart(null);
+    setDragEnd(null);
+  }
+};
 
   const getHierarchyDisplay = (item, type) => {
     switch (type) {
