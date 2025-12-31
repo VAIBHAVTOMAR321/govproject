@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Container } from "react-bootstrap";
+import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Container, Form } from "react-bootstrap";
 import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
@@ -36,6 +36,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     sales: true,
     remaining: true
   });
+
+  // Set initial selected kendra when modal opens
+  useEffect(() => {
+    if (show) {
+      // Simple tooltip initialization
+      const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltipElements.forEach(element => {
+        // Tooltips are handled by Bootstrap
+      });
+    }
+  }, [show]);
 
   // State for detailed breakdowns within each section
   const [allocationDetails, setAllocationDetails] = useState([]);
@@ -574,7 +585,7 @@ ${relatedInfo}
       dialogClassName="modal-90w"
     >
       <Modal.Header closeButton onClick={onHide} className="modal-title">
-        <Modal.Title>{centerName} - विस्तृत विवरण</Modal.Title>
+        <Modal.Title>{centerName}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {/* Summary Statistics Cards - Always Visible at Top */}
@@ -666,7 +677,6 @@ ${relatedInfo}
             <Row>
               <Col md={8}>
                 <h5 className="mb-0">{centerName}</h5>
-                <small>केंद्र का विस्तृत विवरण</small>
               </Col>
               <Col md={4} className="text-end">
                 <div className="d-flex flex-column align-items-end">
