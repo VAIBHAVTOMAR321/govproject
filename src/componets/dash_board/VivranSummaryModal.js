@@ -332,7 +332,7 @@ const HierarchicalFilter = ({
                               size="sm"
                               className="filter-button"
                               // FIX: Pass the first kendra associated with this vidhanSabha
-                              onClick={() => onFilterChange(hierarchyType, vidhanSabha, kendrasForThisVidhanSabha[0])}
+                              onClick={() => onFilterChange(hierarchyType, vidhanSabha, kendrasForThisVidhanSabha)}
                             >
                               {vidhanSabha}
                             </Button>
@@ -428,7 +428,7 @@ const HierarchicalFilter = ({
                               size="sm"
                               className="filter-button"
                               // FIX: Pass the first kendra associated with this vikasKhand
-                              onClick={() => onFilterChange(hierarchyType, vikasKhand, kendrasForThisVikasKhand[0])}
+                              onClick={() => onFilterChange(hierarchyType, vikasKhand, kendrasForThisVikasKhand)}
                             >
                               {vikasKhand}
                             </Button>
@@ -1125,59 +1125,124 @@ const VivranSummaryModal = ({
 
   // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
-    if (groupData && groupData.group_field) {
+    if (groupData && groupData.group_field && groupData.selectedItems && groupData.selectedItems.length > 0) {
       let newActiveFilters = {};
-      
+
       if (groupData.group_field === "center_name") {
         // For center_name, use simple array format
         newActiveFilters = {
-          center_name: [groupData.group_name],
+          center_name: groupData.selectedItems,
         };
+      } else if (groupData.group_field === "vidhan_sabha_name") {
+        // For vidhan_sabha_name, group selected vidhan_sabhas by kendra
+        const vidhanSabhaFilters = {};
+        groupData.selectedItems.forEach(vidhanSabha => {
+          // Find kendras that have this vidhan_sabha
+          Object.entries(centerToVidhanSabha).forEach(([kendra, vidhanSabhas]) => {
+            if (vidhanSabhas && vidhanSabhas.includes(vidhanSabha)) {
+              if (!vidhanSabhaFilters[kendra]) {
+                vidhanSabhaFilters[kendra] = [];
+              }
+              if (!vidhanSabhaFilters[kendra].includes(vidhanSabha)) {
+                vidhanSabhaFilters[kendra].push(vidhanSabha);
+              }
+            }
+          });
+        });
+        newActiveFilters.vidhan_sabha_name = vidhanSabhaFilters;
+      } else if (groupData.group_field === "vikas_khand_name") {
+        // For vikas_khand_name, group selected vikas_khands by kendra
+        const vikasKhandFilters = {};
+        groupData.selectedItems.forEach(vikasKhand => {
+          // Find kendras that have this vikas_khand
+          Object.entries(centerToVikasKhand).forEach(([kendra, vikasKhands]) => {
+            if (vikasKhands && vikasKhands.includes(vikasKhand)) {
+              if (!vikasKhandFilters[kendra]) {
+                vikasKhandFilters[kendra] = [];
+              }
+              if (!vikasKhandFilters[kendra].includes(vikasKhand)) {
+                vikasKhandFilters[kendra].push(vikasKhand);
+              }
+            }
+          });
+        });
+        newActiveFilters.vikas_khand_name = vikasKhandFilters;
       } else {
         // For other types, use kendra-based format
-        // Find the kendra(s) associated with the selected item
+        // Find the kendra(s) associated with the selected items
         const associatedKendras = [...new Set(
           (groupData.items || [])
-            .filter(item => item[groupData.group_field] === groupData.group_name)
+            .filter(item => groupData.selectedItems.includes(item[groupData.group_field]))
             .map(item => item.center_name)
         )].filter(Boolean);
-        
+
         if (associatedKendras.length > 0) {
           newActiveFilters[groupData.group_field] = {};
           associatedKendras.forEach(kendra => {
-            newActiveFilters[groupData.group_field][kendra] = [groupData.group_name];
+            newActiveFilters[groupData.group_field][kendra] = groupData.selectedItems.filter(item =>
+              (groupData.items || []).some(dataItem =>
+                dataItem.center_name === kendra && dataItem[groupData.group_field] === item
+              )
+            );
           });
         }
       }
-      
+
       setActiveFilters(newActiveFilters);
 
-      // Expand the section for the selected group type
-      if (groupData.group_field === "center_name") {
-        setCollapsedSections((prev) => ({ ...prev, center_name: false }));
-      } else if (groupData.group_field === "vidhan_sabha_name") {
-        setCollapsedSections((prev) => ({ ...prev, vidhan_sabha_name: false }));
-      } else if (groupData.group_field === "vikas_khand_name") {
-        setCollapsedSections((prev) => ({ ...prev, vikas_khand_name: false }));
-      } else if (groupData.group_field === "investment_name") {
-        setCollapsedSections((prev) => ({ ...prev, investment_name: false }));
-      } else if (groupData.group_field === "component") {
-        setCollapsedSections((prev) => ({ ...prev, component: false }));
-      } else if (groupData.group_field === "source_of_receipt") {
-        setCollapsedSections((prev) => ({ ...prev, source_of_receipt: false }));
-      } else if (groupData.group_field === "scheme_name") {
-        setCollapsedSections((prev) => ({ ...prev, scheme_name: false }));
-      }
-    }
-  }, [groupData]);
+      // Close all filter sections and open only the relevant one
+      setCollapsedSections((prev) => {
+        const newState = {
+          ...prev,
+          center_name: true,
+          vidhan_sabha_name: true,
+          vikas_khand_name: true,
+          investment_name: true,
+          component: true,
+          source_of_receipt: true,
+          scheme_name: true,
+          financial_summary: false, // Keep financial summary open
+        };
 
-  // Reset filters when modal is closed
+        // Open only the section for the selected group type
+        if (groupData.group_field === "center_name") {
+          newState.center_name = false;
+        } else if (groupData.group_field === "vidhan_sabha_name") {
+          newState.vidhan_sabha_name = false;
+        } else if (groupData.group_field === "vikas_khand_name") {
+          newState.vikas_khand_name = false;
+        } else if (groupData.group_field === "investment_name") {
+          newState.investment_name = false;
+        } else if (groupData.group_field === "component") {
+          newState.component = false;
+        } else if (groupData.group_field === "source_of_receipt") {
+          newState.source_of_receipt = false;
+        } else if (groupData.group_field === "scheme_name") {
+          newState.scheme_name = false;
+        }
+
+        return newState;
+      });
+    }
+  }, [groupData, centerToVidhanSabha, centerToVikasKhand]);
+
+  // Reset filters and collapsed sections when modal is closed
   useEffect(() => {
     if (!show) {
       setActiveFilters({});
       setShowOnlySold(false);
       setShowOnlyAllocated(false);
       setShowOnlyRemaining(false);
+      setCollapsedSections({
+        center_name: true,
+        vidhan_sabha_name: true,
+        vikas_khand_name: true,
+        investment_name: true,
+        component: true,
+        source_of_receipt: true,
+        scheme_name: true,
+        financial_summary: false,
+      });
     }
   }, [show]);
 
@@ -1273,17 +1338,34 @@ const VivranSummaryModal = ({
       // Handle other filters with kendra context
       setActiveFilters((prev) => {
         const currentFilters = prev[category] || {};
-        const currentValues = currentFilters[kendra] || [];
+        let newCategoryFilters = { ...currentFilters };
         
-        const newValues = currentValues.includes(value)
-          ? currentValues.filter((v) => v !== value)
-          : [...currentValues, value];
-
-        const newCategoryFilters = { ...currentFilters };
-        if (newValues.length === 0) {
-          delete newCategoryFilters[kendra];
+        // Handle case where kendra is an array (for hierarchical multi-kendra items)
+        if (Array.isArray(kendra)) {
+          kendra.forEach(k => {
+            const currentValues = currentFilters[k] || [];
+            const newValues = currentValues.includes(value)
+              ? currentValues.filter((v) => v !== value)
+              : [...currentValues, value];
+            
+            if (newValues.length === 0) {
+              delete newCategoryFilters[k];
+            } else {
+              newCategoryFilters[k] = newValues;
+            }
+          });
         } else {
-          newCategoryFilters[kendra] = newValues;
+          // Single kendra case
+          const currentValues = currentFilters[kendra] || [];
+          const newValues = currentValues.includes(value)
+            ? currentValues.filter((v) => v !== value)
+            : [...currentValues, value];
+          
+          if (newValues.length === 0) {
+            delete newCategoryFilters[kendra];
+          } else {
+            newCategoryFilters[kendra] = newValues;
+          }
         }
 
         const newFilters = { ...prev };
