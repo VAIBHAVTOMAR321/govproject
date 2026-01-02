@@ -762,25 +762,6 @@ const VivranSummaryModal = ({
       }
     });
 
-    // Additional center_name filtering check for proper hierarchy display
-    // This ensures that when vidhan_sabha filters are active, the center_name filter works correctly
-    if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-      // Double-check that all selected centers belong to the filtered data
-      const centerSet = new Set(filtered.map((item) => item.center_name));
-      const validCenters = activeFilters.center_name.filter((center) =>
-        centerSet.has(center)
-      );
-      if (validCenters.length !== activeFilters.center_name.length) {
-        // If some selected centers don't exist in filtered data, update the filter
-        // This happens when vidhan_sabha filters exclude some centers
-        const newFilters = { ...activeFilters };
-        newFilters.center_name = validCenters;
-        if (validCenters.length === 0) {
-          delete newFilters.center_name;
-        }
-        setActiveFilters(newFilters);
-      }
-    }
 
     if (showOnlySold) {
       filtered = filtered.filter(
@@ -946,16 +927,16 @@ const VivranSummaryModal = ({
   ]);
 
   const uniqueVidhanSabha = useMemo(() => {
-    return [...new Set(filteredItems.map((item) => item.vidhan_sabha_name))]
+    return [...new Set((groupData?.items || []).map((item) => item.vidhan_sabha_name))]
       .filter(Boolean)
       .sort();
-  }, [filteredItems]);
+  }, [groupData]);
 
   const uniqueVikasKhand = useMemo(() => {
-    return [...new Set(filteredItems.map((item) => item.vikas_khand_name))]
+    return [...new Set((groupData?.items || []).map((item) => item.vikas_khand_name))]
       .filter(Boolean)
       .sort();
-  }, [filteredItems]);
+  }, [groupData]);
 
   const centerToVidhanSabha = useMemo(() => {
     const mapping = {};
