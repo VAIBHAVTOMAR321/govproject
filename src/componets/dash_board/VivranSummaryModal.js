@@ -2136,6 +2136,7 @@ const VivranSummaryModal = ({
               return "";
           }
         })
+        .filter(header => header !== "")
         .join("");
 
       const rows = data
@@ -2144,37 +2145,38 @@ const VivranSummaryModal = ({
             .map((col) => {
               switch (col) {
                 case "center_name":
-                  return `<td>${item.center_name}</td>`;
+                  return `<td>${item.center_name || ''}</td>`;
                 case "vidhan_sabha_name":
-                  return `<td>${item.vidhan_sabha_name}</td>`;
+                  return `<td>${item.vidhan_sabha_name || ''}</td>`;
                 case "vikas_khand_name":
-                  return `<td>${item.vikas_khand_name}</td>`;
+                  return `<td>${item.vikas_khand_name || ''}</td>`;
                 case "component":
-                  return `<td>${item.component}</td>`;
+                  return `<td>${item.component || ''}</td>`;
                 case "investment_name":
-                  return `<td>${item.investment_name}</td>`;
+                  return `<td>${item.investment_name || ''}</td>`;
                 case "allocated_quantity":
-                  return `<td>${item.allocated_quantity}</td>`;
+                  return `<td>${item.allocated_quantity || ''}</td>`;
                 case "rate":
-                  return `<td>${item.rate}</td>`;
+                  return `<td>${item.rate || ''}</td>`;
                 case "allocated_amount":
                   return `<td>${formatCurrency(
                     parseFloat(item.allocated_quantity) * parseFloat(item.rate)
                   )}</td>`;
                 case "updated_quantity":
-                  return `<td>${item.updated_quantity}</td>`;
+                  return `<td>${item.updated_quantity || ''}</td>`;
                 case "updated_amount":
                   return `<td>${formatCurrency(
                     parseFloat(item.updated_quantity) * parseFloat(item.rate)
                   )}</td>`;
                 case "source_of_receipt":
-                  return `<td>${item.source_of_receipt}</td>`;
+                  return `<td>${item.source_of_receipt || ''}</td>`;
                 case "scheme_name":
-                  return `<td>${item.scheme_name}</td>`;
+                  return `<td>${item.scheme_name || ''}</td>`;
                 default:
-                  return "<td></td>";
+                  return "";
               }
             })
+            .filter(cell => cell !== "")
             .join("");
           return `<tr>${cells}</tr>`;
         })
@@ -2183,8 +2185,9 @@ const VivranSummaryModal = ({
       // Totals row
       const totalsCells = "<td></td>" + selectedColumns
         .map((col) => {
-          if (
-            col === "center_name" ||
+          if (col === "center_name")
+            return "<td><strong>कुल</strong></td>";
+          else if (
             col === "vidhan_sabha_name" ||
             col === "vikas_khand_name" ||
             col === "component" ||
@@ -2192,7 +2195,7 @@ const VivranSummaryModal = ({
             col === "source_of_receipt" ||
             col === "scheme_name"
           )
-            return "<td></td>";
+            return "";
           else if (col === "rate") return "<td>-</td>";
           else if (col === "allocated_quantity")
             return `<td><strong>${data
@@ -2226,8 +2229,9 @@ const VivranSummaryModal = ({
                 0
               )
             )}</strong></td>`;
-          return "<td></td>";
+          return "";
         })
+        .filter(cell => cell !== "")
         .join("");
       const totalsRow = `<tr>${totalsCells}</tr>`;
 
