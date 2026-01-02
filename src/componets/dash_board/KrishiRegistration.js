@@ -148,6 +148,8 @@ const translations = {
   schemeName: "योजना का नाम",
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
+  startDate: "प्रारंभ तिथि",
+  endDate: "अंतिम तिथि",
   submitButton: "जमा करें",
   submitting: "जमा कर रहे हैं...",
   successMessage: "लाभार्थी सफलतापूर्वक जोड़ा गया!",
@@ -319,6 +321,8 @@ const KrishiRegistration = () => {
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
+    start_date: "",
+    end_date: "",
   });
 
   // State for filter options (unique values from API)
@@ -562,11 +566,33 @@ const KrishiRegistration = () => {
     );
     if (hasFilters) {
       const filtered = allBeneficiaries.filter((item) => {
+        // Check all other filters
         for (const key in filters) {
+          if (key === "start_date" || key === "end_date") continue; // Skip date filters for now
           if (filters[key].length > 0 && !filters[key].includes(item[key])) {
             return false;
           }
         }
+
+        // Check date range filters
+        if (filters.start_date || filters.end_date) {
+          if (!item.created_at) return false; // Skip if no date field
+
+          const itemDate = new Date(item.created_at);
+          const startDate = filters.start_date
+            ? new Date(filters.start_date)
+            : null;
+          const endDate = filters.end_date ? new Date(filters.end_date) : null;
+
+          // Set end date to end of day for inclusive comparison
+          if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+          }
+
+          if (startDate && itemDate < startDate) return false;
+          if (endDate && itemDate > endDate) return false;
+        }
+
         return true;
       });
       setBeneficiaries(filtered);
@@ -601,6 +627,8 @@ const KrishiRegistration = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
+      start_date: "",
+      end_date: "",
     });
   };
 
@@ -917,7 +945,7 @@ const KrishiRegistration = () => {
   };
 
   // Handle save edit - FIXED VERSION
-const handleSave = async (item) => {
+  const handleSave = async (item) => {
     try {
       const payload = {
         beneficiary_id: item.beneficiary_id,
@@ -2358,6 +2386,35 @@ const handleSave = async (item) => {
                           )}
                           className="compact-input"
                           placeholder="चुनें"
+                        />
+                      </Form.Group>
+                    </Col>
+                    {/* Added date range filters */}
+                    <Col xs={12} sm={6} md={3}>
+                      <Form.Group className="mb-2">
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.startDate}
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="start_date"
+                          value={filters.start_date}
+                          onChange={handleFilterChange}
+                          className="compact-input"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={3}>
+                      <Form.Group className="mb-2">
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.endDate}
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="end_date"
+                          value={filters.end_date}
+                          onChange={handleFilterChange}
+                          className="compact-input"
                         />
                       </Form.Group>
                     </Col>

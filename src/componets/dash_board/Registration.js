@@ -97,6 +97,7 @@ const billingTableColumns = [
   { key: "scheme_name", label: "योजना का नाम" },
   { key: "vikas_khand_name", label: "विकास खंड का नाम" },
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
+  { key: "created_at", label: "बनाने की तारीख" }, // Added date column
 ];
 
 // Column mapping for data access
@@ -134,6 +135,14 @@ const billingTableColumnMapping = {
     header: "विधानसभा का नाम",
     accessor: (item) => item.vidhan_sabha_name,
   },
+  created_at: {
+    header: "बनाने की तारीख",
+    accessor: (item) => {
+      if (!item.created_at) return "";
+      const date = new Date(item.created_at);
+      return date.toLocaleDateString("hi-IN");
+    },
+  },
 };
 
 // Hindi translations for form
@@ -150,6 +159,8 @@ const translations = {
   schemeName: "योजना का नाम",
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
+  startDate: "प्रारंभ तिथि",
+  endDate: "अंतिम तिथि",
   submitButton: "जमा करें",
   submitting: "जमा कर रहे हैं...",
   successMessage: "बिलिंग आइटम सफलतापूर्वक जोड़ा गया!",
@@ -270,7 +281,7 @@ const Registration = () => {
   const [vikasKhandData, setVikasKhandData] = useState(null);
   const [isFetchingVikasKhand, setIsFetchingVikasKhand] = useState(false);
 
-  // State for filters
+  // State for filters - added start_date and end_date
   const [filters, setFilters] = useState({
     center_name: [],
     component: [],
@@ -279,6 +290,8 @@ const Registration = () => {
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
+    start_date: "",
+    end_date: "",
   });
 
   // State for filter options (unique values from API)
@@ -317,8 +330,6 @@ const Registration = () => {
     source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
   });
-
-  // Removed otherMode and editingOtherMode states - all fields are now always dropdowns
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
@@ -606,7 +617,7 @@ const Registration = () => {
     }
   }, [allBillingItems]);
 
-  // Apply local filtering when filters change
+  // Apply local filtering when filters change - updated to include date filtering
   useEffect(() => {
     const hasFilters = Object.keys(filters).some((key) =>
       Array.isArray(filters[key])
@@ -615,11 +626,31 @@ const Registration = () => {
     );
     if (hasFilters) {
       const filtered = allBillingItems.filter((item) => {
+        // Check all other filters
         for (const key in filters) {
+          if (key === "start_date" || key === "end_date") continue; // Skip date filters for now
           if (filters[key].length > 0 && !filters[key].includes(item[key])) {
             return false;
           }
         }
+        
+        // Check date range filters
+        if (filters.start_date || filters.end_date) {
+          if (!item.created_at) return false; // Skip if no date field
+          
+          const itemDate = new Date(item.created_at);
+          const startDate = filters.start_date ? new Date(filters.start_date) : null;
+          const endDate = filters.end_date ? new Date(filters.end_date) : null;
+          
+          // Set end date to end of day for inclusive comparison
+          if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+          }
+          
+          if (startDate && itemDate < startDate) return false;
+          if (endDate && itemDate > endDate) return false;
+        }
+        
         return true;
       });
       setBillingItems(filtered);
@@ -633,7 +664,7 @@ const Registration = () => {
     setCurrentPage(1);
   }, [filters]);
 
-  // Handle filter changes
+  // Handle filter changes - updated to handle date inputs
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({
@@ -642,7 +673,7 @@ const Registration = () => {
     }));
   };
 
-  // Clear all filters
+  // Clear all filters - updated to clear date filters
   const clearFilters = () => {
     setFilters({
       center_name: [],
@@ -652,6 +683,8 @@ const Registration = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
+      start_date: "",
+      end_date: "",
     });
   };
 
@@ -1372,7 +1405,7 @@ const Registration = () => {
                   आवंटित मात्रा, दर, प्राप्ति का स्रोत, योजना का नाम,उप-निवेश का
                   नाम, विकास खंड का नाम, विधानसभा का नाम
                 </li>
-                <li>आवंटित मात्रा और दर संख्यात्मक होने चाहिए</li>
+                <li>आवंटित मात्रा और दर संख्यात्मक होनी चाहिए</li>
                 <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
               </ul>
             </Alert>
@@ -2013,6 +2046,35 @@ const Registration = () => {
                         />
                       </Form.Group>
                     </Col>
+                    {/* Added date range filters */}
+                    <Col xs={12} sm={6} md={3}>
+                      <Form.Group className="mb-2">
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.startDate}
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="start_date"
+                          value={filters.start_date}
+                          onChange={handleFilterChange}
+                          className="compact-input"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={3}>
+                      <Form.Group className="mb-2">
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.endDate}
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="end_date"
+                          value={filters.end_date}
+                          onChange={handleFilterChange}
+                          className="compact-input"
+                        />
+                      </Form.Group>
+                    </Col>
                   </Row>
                 </div>
               )}
@@ -2066,6 +2128,9 @@ const Registration = () => {
                         )}
                         {selectedColumns.includes("vidhan_sabha_name") && (
                           <th>{translations.vidhanSabhaName}</th>
+                        )}
+                        {selectedColumns.includes("created_at") && (
+                          <th>{billingTableColumnMapping.created_at.header}</th>
                         )}
                         <th>कार्रवाई</th>
                       </tr>
@@ -2386,6 +2451,13 @@ const Registration = () => {
                                   </Form.Select>
                                 ) : (
                                   item.vidhan_sabha_name
+                                )}
+                              </td>
+                            )}
+                            {selectedColumns.includes("created_at") && (
+                              <td>
+                                {billingTableColumnMapping.created_at.accessor(
+                                  item
                                 )}
                               </td>
                             )}
