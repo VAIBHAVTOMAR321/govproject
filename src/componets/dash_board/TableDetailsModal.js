@@ -1479,6 +1479,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
   // State for scheme collapse within hierarchy section
   const [collapsedSchemes, setCollapsedSchemes] = useState(new Set());
 
+  // State for selected vikas khand in places section
+  const [selectedVikasKhand, setSelectedVikasKhand] = useState(null);
+
   // Get unique values for each category
   const uniqueVidhanSabhas = useMemo(() => {
     return [...new Set(tableData.map(item => item.vidhan_sabha_name))].filter(Boolean).sort();
@@ -1726,24 +1729,6 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     const filterKey = details.itemType === 'scheme' ? 'scheme_name' : 'component';
     const itemData = tableData.filter(item => item[filterKey] === itemName);
 
-    const breakdown = itemData.reduce((acc, item) => {
-      const vidhanSabha = item.vidhan_sabha_name;
-      const vikasKhand = item.vikas_khand_name;
-      const source = item.source_of_receipt;
-
-      if (!acc[vidhanSabha]) {
-        acc[vidhanSabha] = {};
-      }
-      if (!acc[vidhanSabha][vikasKhand]) {
-        acc[vidhanSabha][vikasKhand] = {};
-      }
-      if (!acc[vidhanSabha][vikasKhand][source]) {
-        acc[vidhanSabha][vikasKhand][source] = [];
-      }
-      acc[vidhanSabha][vikasKhand][source].push(item);
-      return acc;
-    }, {});
-
     const getTitle = () => {
       const typeLabel = details.itemType === 'scheme' ? 'योजना' : 'घटक';
       switch(sectionType) {
@@ -1755,88 +1740,38 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     };
 
     return (
-      <div className="mt-2 p-2 border rounded bg-light compact-breakdown">
+      <div className="mt-2 p-2 border rounded bg-light">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <h6 className="mb-0 text-primary">{getTitle()}</h6>
           <Button variant="outline-secondary" size="sm" onClick={closeFunction}>
             <FaTimes />
           </Button>
         </div>
-        <div className="breakdown-content compact-breakdown-content">
-          {Object.entries(breakdown).map(([vidhanSabha, vikasKhands]) => (
-            <div key={vidhanSabha} className="mb-2">
-              <h6 className="text-success fw-bold mb-2">{vidhanSabha}</h6>
-              {Object.entries(vikasKhands).map(([vikasKhand, sources]) => (
-                <div key={vikasKhand} className="mb-2 ms-2">
-                  <div className="fw-bold text-info mb-1">{vikasKhand}</div>
-                  {Object.entries(sources).map(([source, records]) => (
-                    <div key={source} className="mb-1 ms-2 p-1 border rounded bg-white compact-source-card">
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <span className="fw-bold text-dark">{source}</span>
-                        <div className="d-flex align-items-center gap-2">
-                          <small className="text-muted">{records.length} रिकॉर्ड</small>
-                        </div>
-                      </div>
-                      <div className="compact-data-line">
-                        {records.map((record, index) => {
-                          const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
-                          const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
-                          const remaining = allocated - sold;
-
-                          return (
-                            <div key={index} className="small text-muted mb-0 single-line-data">
-                              <>
-                                <span className="data-item">
-                                  मात्रा: <strong>{record.allocated_quantity}</strong>
-                                </span>
-                                <span className="separator">|</span>
-                                <span className="data-item">
-                                  दर: <strong>₹{record.rate}</strong>
-                                </span>
-                                <span className="separator">|</span>
-                                <span className="data-item text-warning">
-                                  निवेश: <strong>{record.investment_name || 'N/A'}</strong>
-                                </span>
-                                <span className="separator">|</span>
-                                <span className="data-item text-secondary">
-                                  घटक: <strong>{record.component || 'N/A'}</strong>
-                                </span>
-                                {sectionType === 'allocation' && (
-                                  <>
-                                    <span className="separator">|</span>
-                                    <span className="data-item text-primary">
-                                      आवंटित: <strong>₹{allocated.toFixed(2)}</strong>
-                                    </span>
-                                  </>
-                                )}
-                                {sectionType === 'sales' && (
-                                  <>
-                                    <span className="separator">|</span>
-                                    <span className="data-item text-success">
-                                      बेचा गया: <strong>₹{sold.toFixed(2)}</strong>
-                                    </span>
-                                  </>
-                                )}
-                                {sectionType === 'remaining' && (
-                                  <>
-                                    <span className="separator">|</span>
-                                    <span className="data-item text-info">
-                                      शेष: <strong>₹{remaining.toFixed(2)}</strong>
-                                    </span>
-                                  </>
-                                )}
-                              </>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
+        <Table striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>घटक</th>
+              <th>निवेश</th>
+              <th>मात्रा</th>
+              <th>दर</th>
+              <th>आवंटित</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemData.map((record, index) => {
+              const allocated = parseFloat(record.allocated_quantity || 0) * parseFloat(record.rate || 0);
+              return (
+                <tr key={index}>
+                  <td>{record.component || 'N/A'}</td>
+                  <td>{record.investment_name || 'N/A'}</td>
+                  <td>{parseFloat(record.allocated_quantity || 0).toFixed(2)}</td>
+                  <td>₹{parseFloat(record.rate || 0).toFixed(2)}</td>
+                  <td>₹{allocated.toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
       </div>
     );
   };
@@ -2073,13 +2008,13 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 <div className="d-flex flex-row align-items-end">
                   <span
                     className="badge bg-light text-dark mb-1 clickable-badge"
-                    title={`कुल स्थान: ${totals.placesCount} - इस केंद्र में शामिल अद्वितीय विकासखंड | कुल रिकॉर्ड: ${totals.recordsCount} | क्लिक करें विवरण देखने के लिए`}
+                    title={`विकासखंड: ${totals.placesCount} - इस केंद्र में शामिल अद्वितीय विकासखंड | कुल रिकॉर्ड: ${totals.recordsCount} | क्लिक करें विवरण देखने के लिए`}
                     data-bs-toggle="tooltip"
                     data-bs-placement="left"
                     onClick={() => toggleCollapse('places')}
                     style={{ cursor: 'pointer' }}
                   >
-                    कुल स्थान: {totals.placesCount}
+                    विकासखंड: {totals.placesCount}
                   </span>
                   <span
                     className="badge bg-light text-dark mb-1 clickable-badge"
@@ -2124,7 +2059,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             style={{ cursor: "pointer" }}
             className="d-flex justify-content-between align-items-center accordin-header"
           >
-            <span><FaBuilding className="me-2" /> स्थान विवरण</span>
+            <span><FaBuilding className="me-2" /> विकासखंड</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
               <Button className="pdf-file"
@@ -2162,20 +2097,62 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           <Collapse in={!collapsedSections.places}>
             <Card.Body>
               <div className="text-center mb-2">
-                <h6 className="text-primary fw-bold">कुल स्थान: {uniqueVikasKhands.length}</h6>
+                <h6 className="text-primary fw-bold">विकासखंड: {uniqueVikasKhands.length}</h6>
               </div>
               <div className="places-grid">
                 {uniqueVikasKhands.map((vikasKhand, index) => (
                   <Badge
                     key={index}
-                    bg="primary"
-                    className="me-2 mb-2 p-2"
-                    style={{ fontSize: '14px' }}
+                    bg={selectedVikasKhand === vikasKhand ? "success" : "primary"}
+                    className="me-2 mb-2 p-2 clickable-badge"
+                    style={{ fontSize: '14px', cursor: 'pointer' }}
+                    onClick={() => setSelectedVikasKhand(selectedVikasKhand === vikasKhand ? null : vikasKhand)}
+                    title={selectedVikasKhand === vikasKhand ? "क्लिक करें तालिका बंद करने के लिए" : "क्लिक करें तालिका देखने के लिए"}
                   >
                     {vikasKhand}
+                    {selectedVikasKhand === vikasKhand && <span className="ms-1">✓</span>}
                   </Badge>
                 ))}
               </div>
+
+              {/* Vikas Khand Details Table */}
+              {selectedVikasKhand && (
+                <div className="mt-3">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="text-success fw-bold mb-0">{selectedVikasKhand} - विवरण</h6>
+                    <Button variant="outline-secondary" size="sm" onClick={() => setSelectedVikasKhand(null)}>
+                      <FaTimes />
+                    </Button>
+                  </div>
+                  <Table striped bordered hover size="sm" className="vikas-khand-table">
+                    <thead>
+                      <tr>
+                        <th>घटक</th>
+                        <th>निवेश</th>
+                        <th>मात्रा</th>
+                        <th>दर</th>
+                        <th>आवंटित</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tableData
+                        .filter(item => item.vikas_khand_name === selectedVikasKhand)
+                        .map((item, index) => {
+                          const allocated = parseFloat(item.allocated_quantity) * parseFloat(item.rate);
+                          return (
+                            <tr key={index}>
+                              <td>{item.component || 'N/A'}</td>
+                              <td>{item.investment_name || 'N/A'}</td>
+                              <td>{parseFloat(item.allocated_quantity || 0).toFixed(2)}</td>
+                              <td>₹{parseFloat(item.rate || 0).toFixed(2)}</td>
+                              <td>₹{allocated.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
             </Card.Body>
           </Collapse>
         </Card>
