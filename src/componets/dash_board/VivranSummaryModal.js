@@ -31,7 +31,7 @@ import "../../assets/css/table.css";
 const generateCenterColors = (count) => {
   const colors = [];
   const hueStep = 360 / count;
-  
+
   for (let i = 0; i < count; i++) {
     // Use HSL color space for better distribution
     const hue = i * hueStep;
@@ -40,7 +40,7 @@ const generateCenterColors = (count) => {
     const lightness = 85;
     colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
   }
-  
+
   return colors;
 };
 
@@ -85,14 +85,22 @@ const ColumnSelection = ({
             onClick={handleSelectAll}
             className="me-2 fillter-add-btn"
           >
-            <i className="delete-icon"><MdOutlineCheck /> </i> सभी चुनें
+            <i className="delete-icon">
+              <MdOutlineCheck />{" "}
+            </i>{" "}
+            सभी चुनें
           </Button>
           <Button
-            variant="outline-secondary" className="fillter-remove-btn"
+            variant="outline-secondary"
+            className="fillter-remove-btn"
             size="sm"
             onClick={handleDeselectAll}
           >
-          <i className="delete-icon"> <RiDeleteBin6Line /></i>  सभी हटाएं
+            <i className="delete-icon">
+              {" "}
+              <RiDeleteBin6Line />
+            </i>{" "}
+            सभी हटाएं
           </Button>
         </div>
       </div>
@@ -151,7 +159,7 @@ const HierarchicalFilter = ({
   const buttonRefs = useRef({});
 
   const toggleItemExpansion = (item) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(item)) {
         newSet.delete(item);
@@ -164,7 +172,11 @@ const HierarchicalFilter = ({
 
   // Drag selection handlers
   const handleMouseDown = (e) => {
-    if (['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
+    if (
+      ["center_name", "vidhan_sabha_name", "vikas_khand_name"].includes(
+        hierarchyType
+      )
+    ) {
       const rect = e.currentTarget.getBoundingClientRect();
       setIsDragging(true);
       setDragStart({
@@ -179,7 +191,12 @@ const HierarchicalFilter = ({
   };
 
   const handleMouseMove = (e) => {
-    if (isDragging && ['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
+    if (
+      isDragging &&
+      ["center_name", "vidhan_sabha_name", "vikas_khand_name"].includes(
+        hierarchyType
+      )
+    ) {
       const rect = e.currentTarget.getBoundingClientRect();
       setDragEnd({
         x: e.clientX - rect.left,
@@ -188,115 +205,135 @@ const HierarchicalFilter = ({
     }
   };
 
-// Replace the handleMouseUp function in the HierarchicalFilter component with this version
-const handleMouseUp = () => {
-  if (isDragging && ['center_name', 'vidhan_sabha_name', 'vikas_khand_name'].includes(hierarchyType)) {
-    // Calculate drag distance to distinguish between click and drag
-    const dragDistance = Math.sqrt(
-      Math.pow(dragEnd.x - dragStart.x, 2) + Math.pow(dragEnd.y - dragStart.y, 2)
-    );
- 
-    // If the drag distance is less than 5 pixels, treat it as a click, not a drag
-    if (dragDistance < 5) {
+  // Replace the handleMouseUp function in the HierarchicalFilter component with this version
+  const handleMouseUp = () => {
+    if (
+      isDragging &&
+      ["center_name", "vidhan_sabha_name", "vikas_khand_name"].includes(
+        hierarchyType
+      )
+    ) {
+      // Calculate drag distance to distinguish between click and drag
+      const dragDistance = Math.sqrt(
+        Math.pow(dragEnd.x - dragStart.x, 2) +
+          Math.pow(dragEnd.y - dragStart.y, 2)
+      );
+
+      // If the drag distance is less than 5 pixels, treat it as a click, not a drag
+      if (dragDistance < 5) {
+        setIsDragging(false);
+        setDragStart(null);
+        setDragEnd(null);
+        return;
+      }
+
+      // Calculate which buttons are within the selection rectangle
+      const selectedItems = [];
+      const minX = Math.min(dragStart.x, dragEnd.x);
+      const maxX = Math.max(dragStart.x, dragEnd.x);
+      const minY = Math.min(dragStart.y, dragEnd.y);
+      const maxY = Math.max(dragStart.y, dragEnd.y);
+
+      Object.entries(buttonRefs.current).forEach(([value, ref]) => {
+        if (ref) {
+          const rect = ref.getBoundingClientRect();
+          const buttonRect = {
+            left: rect.left - ref.parentElement.getBoundingClientRect().left,
+            top: rect.top - ref.parentElement.getBoundingClientRect().top,
+            right: rect.right - ref.parentElement.getBoundingClientRect().left,
+            bottom: rect.bottom - ref.parentElement.getBoundingClientRect().top,
+          };
+
+          // Check if button overlaps with selection rectangle
+          if (
+            buttonRect.left < maxX &&
+            buttonRect.right > minX &&
+            buttonRect.top < maxY &&
+            buttonRect.bottom > minY
+          ) {
+            selectedItems.push(value);
+          }
+        }
+      });
+
+      // Toggle selection for all selected items
+      selectedItems.forEach((value) => {
+        onFilterChange(hierarchyType, value);
+      });
+
       setIsDragging(false);
       setDragStart(null);
       setDragEnd(null);
-      return;
     }
- 
-    // Calculate which buttons are within the selection rectangle
-    const selectedItems = [];
-    const minX = Math.min(dragStart.x, dragEnd.x);
-    const maxX = Math.max(dragStart.x, dragEnd.x);
-    const minY = Math.min(dragStart.y, dragEnd.y);
-    const maxY = Math.max(dragStart.y, dragEnd.y);
- 
-    Object.entries(buttonRefs.current).forEach(([value, ref]) => {
-      if (ref) {
-        const rect = ref.getBoundingClientRect();
-        const buttonRect = {
-          left: rect.left - ref.parentElement.getBoundingClientRect().left,
-          top: rect.top - ref.parentElement.getBoundingClientRect().top,
-          right: rect.right - ref.parentElement.getBoundingClientRect().left,
-          bottom: rect.bottom - ref.parentElement.getBoundingClientRect().top,
-        };
- 
-        // Check if button overlaps with selection rectangle
-        if (buttonRect.left < maxX && buttonRect.right > minX &&
-            buttonRect.top < maxY && buttonRect.bottom > minY) {
-          selectedItems.push(value);
-        }
-      }
-    });
- 
-    // Toggle selection for all selected items
-    selectedItems.forEach(value => {
-      onFilterChange(hierarchyType, value);
-    });
- 
-    setIsDragging(false);
-    setDragStart(null);
-    setDragEnd(null);
-  }
-};
+  };
 
   const getHierarchyDisplay = (item, type) => {
     switch (type) {
-      case 'center_name':
-        const vidhanSabhas = hierarchyData.centerToVidhanSabha ? hierarchyData.centerToVidhanSabha[item] || [] : [];
+      case "center_name":
+        const vidhanSabhas = hierarchyData.centerToVidhanSabha
+          ? hierarchyData.centerToVidhanSabha[item] || []
+          : [];
         const vikasKhands = hierarchyData.centerToVikasKhand[item] || [];
         return {
           primary: item,
           secondary: vidhanSabhas.length > 0 ? vidhanSabhas : vikasKhands,
-          secondaryLabel: vidhanSabhas.length > 0 ? 'विधानसभा' : 'विकासखंड'
+          secondaryLabel: vidhanSabhas.length > 0 ? "विधानसभा" : "विकासखंड",
         };
-      case 'vidhan_sabha_name':
+      case "vidhan_sabha_name":
         const centersForVidhan = hierarchyData.vidhanSabhaToCenters[item] || [];
-        const vikasKhandsForVidhan = hierarchyData.vidhanSabhaToVikasKhand ? hierarchyData.vidhanSabhaToVikasKhand[item] || [] : [];
+        const vikasKhandsForVidhan = hierarchyData.vidhanSabhaToVikasKhand
+          ? hierarchyData.vidhanSabhaToVikasKhand[item] || []
+          : [];
         return {
           primary: item,
-          secondary: centersForVidhan.length > 0 ? centersForVidhan : vikasKhandsForVidhan,
-          secondaryLabel: centersForVidhan.length > 0 ? 'केंद्र' : 'विकासखंड'
+          secondary:
+            centersForVidhan.length > 0
+              ? centersForVidhan
+              : vikasKhandsForVidhan,
+          secondaryLabel: centersForVidhan.length > 0 ? "केंद्र" : "विकासखंड",
         };
-      case 'vikas_khand_name':
+      case "vikas_khand_name":
         const centersForVikas = hierarchyData.vikasKhandToCenters[item] || [];
-        const vidhanSabhasForVikas = hierarchyData.vikasKhandToVidhanSabha ? hierarchyData.vikasKhandToVidhanSabha[item] || [] : [];
+        const vidhanSabhasForVikas = hierarchyData.vikasKhandToVidhanSabha
+          ? hierarchyData.vikasKhandToVidhanSabha[item] || []
+          : [];
         return {
           primary: item,
-          secondary: centersForVikas.length > 0 ? centersForVikas : vidhanSabhasForVikas,
-          secondaryLabel: centersForVikas.length > 0 ? 'केंद्र' : 'विधानसभा'
+          secondary:
+            centersForVikas.length > 0 ? centersForVikas : vidhanSabhasForVikas,
+          secondaryLabel: centersForVikas.length > 0 ? "केंद्र" : "विधानसभा",
         };
-      case 'scheme_name':
+      case "scheme_name":
         return {
           primary: item,
           secondary: hierarchyData.schemeToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'investment_name':
+      case "investment_name":
         return {
           primary: item,
           secondary: hierarchyData.investmentToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'component':
+      case "component":
         return {
           primary: item,
           secondary: hierarchyData.componentToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
-      case 'source_of_receipt':
+      case "source_of_receipt":
         return {
           primary: item,
           secondary: hierarchyData.sourceToCenters[item] || [],
-          secondaryLabel: 'केंद्र'
+          secondaryLabel: "केंद्र",
         };
       default:
-        return { primary: item, secondary: [], secondaryLabel: '' };
+        return { primary: item, secondary: [], secondaryLabel: "" };
     }
   };
 
   // For kendra (center_name), use the original flat button layout
-  if (hierarchyType === 'center_name') {
+  if (hierarchyType === "center_name") {
     return (
       <Card className="mb-2">
         <Card.Header
@@ -317,7 +354,7 @@ const handleMouseUp = () => {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              style={{ userSelect: 'none' }}
+              style={{ userSelect: "none" }}
             >
               <Row className="g-1 align-items-center">
                 {items.map((value) => (
@@ -327,7 +364,7 @@ const handleMouseUp = () => {
                       variant={
                         (activeFilters.center_name || []).includes(value)
                           ? "primary"
-                          : "outline-secondary" 
+                          : "outline-secondary"
                       }
                       size="sm"
                       className="filter-button"
@@ -342,14 +379,14 @@ const handleMouseUp = () => {
               {isDragging && dragStart && dragEnd && (
                 <div
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     left: Math.min(dragStart.x, dragEnd.x),
                     top: Math.min(dragStart.y, dragEnd.y),
                     width: Math.abs(dragEnd.x - dragStart.x),
                     height: Math.abs(dragEnd.y - dragStart.y),
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                    border: '2px dashed #007bff',
-                    pointerEvents: 'none',
+                    backgroundColor: "rgba(0, 123, 255, 0.2)",
+                    border: "2px dashed #007bff",
+                    pointerEvents: "none",
                     zIndex: 10,
                   }}
                 />
@@ -369,19 +406,26 @@ const handleMouseUp = () => {
         style={{ cursor: "pointer" }}
         className="d-flex justify-content-between align-items-center"
       >
-        <span>{title} ({items.length})</span>
+        <span>
+          {title} ({items.length})
+        </span>
         {collapsed ? <FaChevronDown /> : <FaChevronUp />}
       </Card.Header>
       <Collapse in={!collapsed}>
         <Card.Body>
           {/* For vidhan_sabha_name, show vidhan_sabhas with their kendras */}
-          {hierarchyType === 'vidhan_sabha_name' ? (
+          {hierarchyType === "vidhan_sabha_name" ? (
             (() => {
               // Get selected kendras
-              const selectedKendras = Object.entries(hierarchyData.centerToVidhanSabha || {})
+              const selectedKendras = Object.entries(
+                hierarchyData.centerToVidhanSabha || {}
+              )
                 .filter(([kendra]) => {
                   // If centers are selected, only show kendras that are selected
-                  if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                  if (
+                    activeFilters.center_name &&
+                    activeFilters.center_name.length > 0
+                  ) {
                     return activeFilters.center_name.includes(kendra);
                   }
                   return true;
@@ -392,9 +436,10 @@ const handleMouseUp = () => {
 
               // Create mapping of vidhan_sabha to kendras
               const vidhanSabhaToKendras = {};
-              selectedKendras.forEach(kendra => {
-                const kendrasVidhanSabhas = hierarchyData.centerToVidhanSabha[kendra] || [];
-                kendrasVidhanSabhas.forEach(vidhanSabha => {
+              selectedKendras.forEach((kendra) => {
+                const kendrasVidhanSabhas =
+                  hierarchyData.centerToVidhanSabha[kendra] || [];
+                kendrasVidhanSabhas.forEach((vidhanSabha) => {
                   if (!vidhanSabhaToKendras[vidhanSabha]) {
                     vidhanSabhaToKendras[vidhanSabha] = [];
                   }
@@ -403,7 +448,8 @@ const handleMouseUp = () => {
               });
 
               // Get unique vidhan_sabhas sorted by name
-              const uniqueVidhanSabhas = Object.keys(vidhanSabhaToKendras).sort();
+              const uniqueVidhanSabhas =
+                Object.keys(vidhanSabhaToKendras).sort();
 
               if (uniqueVidhanSabhas.length === 0) return null;
 
@@ -414,26 +460,35 @@ const handleMouseUp = () => {
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
-                  style={{ userSelect: 'none' }}
+                  style={{ userSelect: "none" }}
                 >
                   {uniqueVidhanSabhas.map((vidhanSabha) => {
-                    const isSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(vidhanSabha);
+                    const isSelected =
+                      activeFilters[hierarchyType] &&
+                      activeFilters[hierarchyType].includes(vidhanSabha);
 
-                    const kendrasForThisVidhanSabha = vidhanSabhaToKendras[vidhanSabha];
+                    const kendrasForThisVidhanSabha =
+                      vidhanSabhaToKendras[vidhanSabha];
 
                     return (
                       <div key={vidhanSabha} className="mb-3">
                         <h6 className="small-fonts">
-                          {kendrasForThisVidhanSabha.join(', ')}
+                          {kendrasForThisVidhanSabha.join(", ")}
                         </h6>
                         <Row className="g-1 align-items-center">
                           <Col xs="auto" className="mb-2">
                             <Button
-                              ref={(el) => (buttonRefs.current[vidhanSabha] = el)}
-                              variant={isSelected ? "primary" : "outline-secondary"}
+                              ref={(el) =>
+                                (buttonRefs.current[vidhanSabha] = el)
+                              }
+                              variant={
+                                isSelected ? "primary" : "outline-secondary"
+                              }
                               size="sm"
                               className="filter-button"
-                              onClick={() => onFilterChange(hierarchyType, vidhanSabha)}
+                              onClick={() =>
+                                onFilterChange(hierarchyType, vidhanSabha)
+                              }
                             >
                               {vidhanSabha}
                             </Button>
@@ -446,14 +501,14 @@ const handleMouseUp = () => {
                   {isDragging && dragStart && dragEnd && (
                     <div
                       style={{
-                        position: 'absolute',
+                        position: "absolute",
                         left: Math.min(dragStart.x, dragEnd.x),
                         top: Math.min(dragStart.y, dragEnd.y),
                         width: Math.abs(dragEnd.x - dragStart.x),
                         height: Math.abs(dragEnd.y - dragStart.y),
-                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                        border: '2px dashed #007bff',
-                        pointerEvents: 'none',
+                        backgroundColor: "rgba(0, 123, 255, 0.2)",
+                        border: "2px dashed #007bff",
+                        pointerEvents: "none",
                         zIndex: 10,
                       }}
                     />
@@ -461,25 +516,36 @@ const handleMouseUp = () => {
                 </div>
               );
             })()
-          ) : hierarchyType === 'vikas_khand_name' ? (
+          ) : hierarchyType === "vikas_khand_name" ? (
             // For vikas_khand_name, show vikas_khonds with their kendras
             (() => {
               // Get selected kendras based on center_name OR vidhan_sabha_name filters
-              const selectedKendras = Object.entries(hierarchyData.centerToVidhanSabha || {})
+              const selectedKendras = Object.entries(
+                hierarchyData.centerToVidhanSabha || {}
+              )
                 .filter(([kendra]) => {
                   // If centers are selected, only show kendras that are selected
-                  if (activeFilters.center_name && activeFilters.center_name.length > 0) {
+                  if (
+                    activeFilters.center_name &&
+                    activeFilters.center_name.length > 0
+                  ) {
                     if (!activeFilters.center_name.includes(kendra)) {
                       return false;
                     }
                   }
-                  
+
                   // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
-                  if (activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0) {
-                    const kendraVidhanSabhas = hierarchyData.centerToVidhanSabha[kendra] || [];
-                    return kendraVidhanSabhas.some(vidhanSabha => {
+                  if (
+                    activeFilters.vidhan_sabha_name &&
+                    Object.keys(activeFilters.vidhan_sabha_name).length > 0
+                  ) {
+                    const kendraVidhanSabhas =
+                      hierarchyData.centerToVidhanSabha[kendra] || [];
+                    return kendraVidhanSabhas.some((vidhanSabha) => {
                       // Check if this vidhanSabha is selected for this kendra or any other kendra
-                      return Object.entries(activeFilters.vidhan_sabha_name).some(([filterKendra, filterValues]) => {
+                      return Object.entries(
+                        activeFilters.vidhan_sabha_name
+                      ).some(([filterKendra, filterValues]) => {
                         if (filterKendra === kendra) {
                           return filterValues.includes(vidhanSabha);
                         }
@@ -488,7 +554,7 @@ const handleMouseUp = () => {
                       });
                     });
                   }
-                  
+
                   return true;
                 })
                 .map(([kendra]) => kendra);
@@ -497,9 +563,10 @@ const handleMouseUp = () => {
 
               // Create mapping of vikas_khand to kendras
               const vikasKhandToKendras = {};
-              selectedKendras.forEach(kendra => {
-                const kendrasVikasKhands = hierarchyData.centerToVikasKhand[kendra] || [];
-                kendrasVikasKhands.forEach(vikasKhand => {
+              selectedKendras.forEach((kendra) => {
+                const kendrasVikasKhands =
+                  hierarchyData.centerToVikasKhand[kendra] || [];
+                kendrasVikasKhands.forEach((vikasKhand) => {
                   if (!vikasKhandToKendras[vikasKhand]) {
                     vikasKhandToKendras[vikasKhand] = [];
                   }
@@ -519,26 +586,35 @@ const handleMouseUp = () => {
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
-                  style={{ userSelect: 'none' }}
+                  style={{ userSelect: "none" }}
                 >
                   {uniqueVikasKhands.map((vikasKhand) => {
-                    const isSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(vikasKhand);
+                    const isSelected =
+                      activeFilters[hierarchyType] &&
+                      activeFilters[hierarchyType].includes(vikasKhand);
 
-                    const kendrasForThisVikasKhand = vikasKhandToKendras[vikasKhand];
+                    const kendrasForThisVikasKhand =
+                      vikasKhandToKendras[vikasKhand];
 
                     return (
                       <div key={vikasKhand} className="mb-3">
                         <h6 className="small-fonts">
-                          {kendrasForThisVikasKhand.join(', ')}
+                          {kendrasForThisVikasKhand.join(", ")}
                         </h6>
                         <Row className="g-1 align-items-center">
                           <Col xs="auto" className="mb-2">
                             <Button
-                              ref={(el) => (buttonRefs.current[vikasKhand] = el)}
-                              variant={isSelected ? "primary" : "outline-secondary"}
+                              ref={(el) =>
+                                (buttonRefs.current[vikasKhand] = el)
+                              }
+                              variant={
+                                isSelected ? "primary" : "outline-secondary"
+                              }
                               size="sm"
                               className="filter-button"
-                              onClick={() => onFilterChange(hierarchyType, vikasKhand)}
+                              onClick={() =>
+                                onFilterChange(hierarchyType, vikasKhand)
+                              }
                             >
                               {vikasKhand}
                             </Button>
@@ -551,14 +627,14 @@ const handleMouseUp = () => {
                   {isDragging && dragStart && dragEnd && (
                     <div
                       style={{
-                        position: 'absolute',
+                        position: "absolute",
                         left: Math.min(dragStart.x, dragEnd.x),
                         top: Math.min(dragStart.y, dragEnd.y),
                         width: Math.abs(dragEnd.x - dragStart.x),
                         height: Math.abs(dragEnd.y - dragStart.y),
-                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                        border: '2px dashed #007bff',
-                        pointerEvents: 'none',
+                        backgroundColor: "rgba(0, 123, 255, 0.2)",
+                        border: "2px dashed #007bff",
+                        pointerEvents: "none",
                         zIndex: 10,
                       }}
                     />
@@ -570,7 +646,9 @@ const handleMouseUp = () => {
             <Row className="g-2">
               {items.map((item) => {
                 const hierarchy = getHierarchyDisplay(item, hierarchyType);
-                const isSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(item);
+                const isSelected =
+                  activeFilters[hierarchyType] &&
+                  activeFilters[hierarchyType].includes(item);
                 const isExpanded = expandedItems.has(item);
 
                 return (
@@ -592,16 +670,23 @@ const handleMouseUp = () => {
                             onClick={() => toggleItemExpansion(item)}
                             className="p-0 text-decoration-none"
                           >
-                            {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                            {isExpanded ? (
+                              <FaChevronUp size={12} />
+                            ) : (
+                              <FaChevronDown size={12} />
+                            )}
                             <small className="ms-1">
-                              {hierarchy.secondaryLabel} ({hierarchy.secondary.length})
+                              {hierarchy.secondaryLabel} (
+                              {hierarchy.secondary.length})
                             </small>
                           </Button>
                         )}
                       </div>
                       {isExpanded && hierarchy.secondary.length > 0 && (
                         <div className="ms-3 mt-2">
-                          <small className="text-muted fw-bold">{hierarchy.secondaryLabel}:</small>
+                          <small className="text-muted fw-bold">
+                            {hierarchy.secondaryLabel}:
+                          </small>
                           <div className="d-flex flex-wrap gap-1 mt-1">
                             {hierarchy.secondary.map((subItem) => (
                               <Badge
@@ -638,7 +723,7 @@ const VivranSummaryModal = ({
   const [activeFilters, setActiveFilters] = useState({});
   const [showTableDetailsModal, setShowTableDetailsModal] = useState(false);
   const [tableDetailsData, setTableDetailsData] = useState([]);
-  const [tableDetailsCenterName, setTableDetailsCenterName] = useState('');
+  const [tableDetailsCenterName, setTableDetailsCenterName] = useState("");
   const [selectedCombinedKendra, setSelectedCombinedKendra] = useState([]);
   const [collapsedSections, setCollapsedSections] = useState({
     center_name: true,
@@ -667,7 +752,7 @@ const VivranSummaryModal = ({
   const filteredItems = useMemo(() => {
     if (!groupData || !groupData.items) return [];
     let filtered = groupData.items;
-    
+
     // Apply all filters
     Object.keys(activeFilters).forEach((category) => {
       if (activeFilters[category] && activeFilters[category].length > 0) {
@@ -676,13 +761,15 @@ const VivranSummaryModal = ({
         );
       }
     });
-    
+
     // Additional center_name filtering check for proper hierarchy display
     // This ensures that when vidhan_sabha filters are active, the center_name filter works correctly
     if (activeFilters.center_name && activeFilters.center_name.length > 0) {
       // Double-check that all selected centers belong to the filtered data
-      const centerSet = new Set(filtered.map(item => item.center_name));
-      const validCenters = activeFilters.center_name.filter(center => centerSet.has(center));
+      const centerSet = new Set(filtered.map((item) => item.center_name));
+      const validCenters = activeFilters.center_name.filter((center) =>
+        centerSet.has(center)
+      );
       if (validCenters.length !== activeFilters.center_name.length) {
         // If some selected centers don't exist in filtered data, update the filter
         // This happens when vidhan_sabha filters exclude some centers
@@ -694,7 +781,7 @@ const VivranSummaryModal = ({
         setActiveFilters(newFilters);
       }
     }
-    
+
     if (showOnlySold) {
       filtered = filtered.filter(
         (item) => parseFloat(item.updated_quantity) > 0
@@ -718,7 +805,7 @@ const VivranSummaryModal = ({
     activeFilters,
     showOnlySold,
     showOnlyAllocated,
-    showOnlyRemaining
+    showOnlyRemaining,
   ]);
 
   // Calculate summary info from filtered items
@@ -746,18 +833,26 @@ const VivranSummaryModal = ({
     if (selectedCombinedKendra.length === 0) {
       return filteredItems;
     }
-    return filteredItems.filter(item => selectedCombinedKendra.includes(item.center_name));
+    return filteredItems.filter((item) =>
+      selectedCombinedKendra.includes(item.center_name)
+    );
   }, [filteredItems, selectedCombinedKendra]);
 
   // Calculate totals for table
   const tableTotalAllocated = useMemo(() => {
-    return tableData.reduce((sum, item) =>
-      sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+    return tableData.reduce(
+      (sum, item) =>
+        sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+      0
+    );
   }, [tableData]);
 
   const tableTotalUpdated = useMemo(() => {
-    return tableData.reduce((sum, item) =>
-      sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+    return tableData.reduce(
+      (sum, item) =>
+        sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+      0
+    );
   }, [tableData]);
 
   // Get ALL options for each card type - these will show all possible options
@@ -790,12 +885,16 @@ const VivranSummaryModal = ({
   // Get unique values from filtered items (for when not the selected type)
   const uniqueCenters = useMemo(() => {
     let centers = [];
-    
+
     // Check if vidhan_sabha filters are active
-    const hasVidhanSabhaFilters = activeFilters.vidhan_sabha_name && activeFilters.vidhan_sabha_name.length > 0;
+    const hasVidhanSabhaFilters =
+      activeFilters.vidhan_sabha_name &&
+      activeFilters.vidhan_sabha_name.length > 0;
 
     // Check if vikas_khand filters are active
-    const hasVikasKhandFilters = activeFilters.vikas_khand_name && activeFilters.vikas_khand_name.length > 0;
+    const hasVikasKhandFilters =
+      activeFilters.vikas_khand_name &&
+      activeFilters.vikas_khand_name.length > 0;
 
     if (hasVidhanSabhaFilters || hasVikasKhandFilters) {
       const selectedVidhanSabhas = new Set();
@@ -803,48 +902,57 @@ const VivranSummaryModal = ({
 
       // Collect selected vidhan_sabhas if filter is active
       if (hasVidhanSabhaFilters) {
-        activeFilters.vidhan_sabha_name.forEach(vidhanSabha => selectedVidhanSabhas.add(vidhanSabha));
+        activeFilters.vidhan_sabha_name.forEach((vidhanSabha) =>
+          selectedVidhanSabhas.add(vidhanSabha)
+        );
       }
 
       // Collect selected vikas_khands if filter is active
       if (hasVikasKhandFilters) {
-        activeFilters.vikas_khand_name.forEach(vikasKhand => selectedVikasKhands.add(vikasKhand));
+        activeFilters.vikas_khand_name.forEach((vikasKhand) =>
+          selectedVikasKhands.add(vikasKhand)
+        );
       }
-      
+
       // Get centers that belong to selected vidhan_sabhas OR vikas_khands
-      centers = [...new Set(
-        (groupData?.items || [])
-          .filter(item => {
-            // Check if vidhan_sabha matches selected ones
-            const matchesVidhanSabha = !hasVidhanSabhaFilters || selectedVidhanSabhas.has(item.vidhan_sabha_name);
-            // Check if vikas_khand matches selected ones
-            const matchesVikasKhand = !hasVikasKhandFilters || selectedVikasKhands.has(item.vikas_khand_name);
-            return matchesVidhanSabha && matchesVikasKhand;
-          })
-          .map(item => item.center_name)
-      )];
+      centers = [
+        ...new Set(
+          (groupData?.items || [])
+            .filter((item) => {
+              // Check if vidhan_sabha matches selected ones
+              const matchesVidhanSabha =
+                !hasVidhanSabhaFilters ||
+                selectedVidhanSabhas.has(item.vidhan_sabha_name);
+              // Check if vikas_khand matches selected ones
+              const matchesVikasKhand =
+                !hasVikasKhandFilters ||
+                selectedVikasKhands.has(item.vikas_khand_name);
+              return matchesVidhanSabha && matchesVikasKhand;
+            })
+            .map((item) => item.center_name)
+        ),
+      ];
     } else {
       // Otherwise, get centers from filtered items
       centers = [...new Set(filteredItems.map((item) => item.center_name))];
     }
-    
+
     return centers.filter(Boolean).sort();
-  }, [filteredItems, activeFilters.vidhan_sabha_name, activeFilters.vikas_khand_name, groupData]);
+  }, [
+    filteredItems,
+    activeFilters.vidhan_sabha_name,
+    activeFilters.vikas_khand_name,
+    groupData,
+  ]);
 
   const uniqueVidhanSabha = useMemo(() => {
-    return [
-      ...new Set(
-        filteredItems.map((item) => item.vidhan_sabha_name)
-      ),
-    ]
+    return [...new Set(filteredItems.map((item) => item.vidhan_sabha_name))]
       .filter(Boolean)
       .sort();
   }, [filteredItems]);
 
   const uniqueVikasKhand = useMemo(() => {
-    return [
-      ...new Set(filteredItems.map((item) => item.vikas_khand_name)),
-    ]
+    return [...new Set(filteredItems.map((item) => item.vikas_khand_name))]
       .filter(Boolean)
       .sort();
   }, [filteredItems]);
@@ -860,7 +968,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -877,7 +985,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -894,7 +1002,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -911,12 +1019,11 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
   }, [groupData]);
-
 
   const vikasKhandToVidhanSabha = useMemo(() => {
     const mapping = {};
@@ -929,7 +1036,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -946,7 +1053,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -963,7 +1070,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -980,7 +1087,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -997,7 +1104,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -1014,7 +1121,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -1039,7 +1146,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -1048,21 +1155,20 @@ const VivranSummaryModal = ({
   const uniqueInvestments = useMemo(() => {
     const allInvestments = new Set();
     // If centers are selected, only include investments from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const investments = kendraToInvestments[kendra] || [];
-      investments.forEach(inv => allInvestments.add(inv));
+      investments.forEach((inv) => allInvestments.add(inv));
     });
     return Array.from(allInvestments).filter(Boolean).sort();
   }, [kendraToInvestments, allCenters, activeFilters.center_name]);
 
   const allComponents = useMemo(() => {
-    return [
-      ...new Set((groupData?.items || []).map((item) => item.component)),
-    ]
+    return [...new Set((groupData?.items || []).map((item) => item.component))]
       .filter(Boolean)
       .sort();
   }, [groupData]);
@@ -1078,7 +1184,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -1087,13 +1193,14 @@ const VivranSummaryModal = ({
   const uniqueComponents = useMemo(() => {
     const allComponents = new Set();
     // If centers are selected, only include components from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const components = kendraToComponents[kendra] || [];
-      components.forEach(comp => allComponents.add(comp));
+      components.forEach((comp) => allComponents.add(comp));
     });
     return Array.from(allComponents).filter(Boolean).sort();
   }, [kendraToComponents, allCenters, activeFilters.center_name]);
@@ -1119,7 +1226,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -1128,13 +1235,14 @@ const VivranSummaryModal = ({
   const uniqueSources = useMemo(() => {
     const allSources = new Set();
     // If centers are selected, only include sources from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const sources = kendraToSources[kendra] || [];
-      sources.forEach(source => allSources.add(source));
+      sources.forEach((source) => allSources.add(source));
     });
     return Array.from(allSources).filter(Boolean).sort();
   }, [kendraToSources, allCenters, activeFilters.center_name]);
@@ -1158,7 +1266,7 @@ const VivranSummaryModal = ({
       }
     });
     // Convert Sets to sorted arrays
-    Object.keys(mapping).forEach(key => {
+    Object.keys(mapping).forEach((key) => {
       mapping[key] = Array.from(mapping[key]).sort();
     });
     return mapping;
@@ -1167,13 +1275,14 @@ const VivranSummaryModal = ({
   const uniqueSchemes = useMemo(() => {
     const allSchemes = new Set();
     // If centers are selected, only include schemes from selected centers
-    const centersToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-      ? activeFilters.center_name 
-      : allCenters;
-    
-    centersToShow.forEach(kendra => {
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
       const schemes = kendraToSchemes[kendra] || [];
-      schemes.forEach(scheme => allSchemes.add(scheme));
+      schemes.forEach((scheme) => allSchemes.add(scheme));
     });
     return Array.from(allSchemes).filter(Boolean).sort();
   }, [kendraToSchemes, allCenters, activeFilters.center_name]);
@@ -1187,12 +1296,17 @@ const VivranSummaryModal = ({
   // Get color for a specific center
   const getCenterColor = (centerName) => {
     const index = allCenters.indexOf(centerName);
-    return index !== -1 ? centerColors[index] : '#f8f9fa';
+    return index !== -1 ? centerColors[index] : "#f8f9fa";
   };
 
   // Set initial filters and collapsed sections based on groupData if from badge click
   useEffect(() => {
-    if (groupData && groupData.group_field && groupData.selectedItems && groupData.selectedItems.length > 0) {
+    if (
+      groupData &&
+      groupData.group_field &&
+      groupData.selectedItems &&
+      groupData.selectedItems.length > 0
+    ) {
       let newActiveFilters = {};
 
       if (groupData.group_field === "center_name") {
@@ -1291,8 +1405,6 @@ const VivranSummaryModal = ({
     ];
   }, [totalAllocated, totalUpdated, totalRemaining]);
 
-
-
   // Handle pie chart click
   const handlePieClick = (item) => {
     // Reset all filters
@@ -1312,15 +1424,22 @@ const VivranSummaryModal = ({
 
   // Handle table row click to show TableDetailsModal
   const handleTableRowClick = (centerName) => {
-    const centerData = tableData.filter(item => item.center_name === centerName);
+    const centerData = tableData.filter(
+      (item) => item.center_name === centerName
+    );
     setTableDetailsData(centerData);
-    setTableDetailsCenterName(centerName + ' का विस्तृत विवरण');
+    setTableDetailsCenterName(centerName + " का विस्तृत विवरण");
     setShowTableDetailsModal(true);
   };
 
   // Handle filter changes
   const handleFilterChange = (category, value, kendra = null) => {
-    console.log('Filter change:', { category, value, kendra, currentFilters: activeFilters });
+    console.log("Filter change:", {
+      category,
+      value,
+      kendra,
+      currentFilters: activeFilters,
+    });
 
     setActiveFilters((prev) => {
       const currentValues = prev[category] || [];
@@ -1968,7 +2087,8 @@ const VivranSummaryModal = ({
           totalsRow["आवंटित राशि"] = formatCurrency(
             data.reduce(
               (sum, item) =>
-                sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                sum +
+                parseFloat(item.allocated_quantity) * parseFloat(item.rate),
               0
             )
           );
@@ -2102,7 +2222,8 @@ const VivranSummaryModal = ({
             return `<td><strong>${formatCurrency(
               data.reduce(
                 (sum, item) =>
-                  sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                  sum +
+                  parseFloat(item.allocated_quantity) * parseFloat(item.rate),
                 0
               )
             )}</strong></td>`;
@@ -2117,7 +2238,8 @@ const VivranSummaryModal = ({
             return `<td><strong>${formatCurrency(
               data.reduce(
                 (sum, item) =>
-                  sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                  sum +
+                  parseFloat(item.updated_quantity) * parseFloat(item.rate),
                 0
               )
             )}</strong></td>`;
@@ -2182,160 +2304,221 @@ const VivranSummaryModal = ({
               <h6 className="mb-0">फिल्टर और ग्राफ</h6>
               <Button
                 variant="outline-secondary fillter-remove-btn"
-                size="sm" 
+                size="sm"
                 onClick={clearAllFilters}
               >
-            <i className="delete-icon"><RiDeleteBin6Line/></i>    सभी फिल्टर हटाएं
+                <i className="delete-icon">
+                  <RiDeleteBin6Line />
+                </i>{" "}
+                सभी फिल्टर हटाएं
               </Button>
             </div>
           </Card.Header>
           <Card.Body>
             <Row>
               <Col md={6}>
-                {/* Financial Summary Section */}
+                {/* Left Column: Center, Vikas Khand, Vidhan Sabha */}
+                <HierarchicalFilter
+                  title="केंद्र का नाम"
+                  items={
+                    groupData?.group_field === "center_name"
+                      ? groupData.allOptions || allCenters
+                      : uniqueCenters
+                  }
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  hierarchyData={{
+                    centerToVidhanSabha,
+                    centerToVikasKhand,
+                    vidhanSabhaToVikasKhand,
+                    vikasKhandToCenters,
+                    vikasKhandToVidhanSabha,
+                    vidhanSabhaToCenters,
+                    schemeToCenters,
+                    investmentToCenters,
+                    componentToCenters,
+                    sourceToCenters,
+                  }}
+                  hierarchyType="center_name"
+                  collapsed={collapsedSections.center_name}
+                  onToggleCollapse={() => toggleCollapse("center_name")}
+                />
+                <HierarchicalFilter
+                  title="विकासखंड का नाम"
+                  items={
+                    groupData?.group_field === "vikas_khand_name"
+                      ? groupData.allOptions || allVikasKhand
+                      : uniqueVikasKhand
+                  }
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  hierarchyData={{
+                    centerToVidhanSabha,
+                    centerToVikasKhand,
+                    vidhanSabhaToVikasKhand,
+                    vikasKhandToCenters,
+                    vikasKhandToVidhanSabha,
+                    vidhanSabhaToCenters,
+                    schemeToCenters,
+                    investmentToCenters,
+                    componentToCenters,
+                    sourceToCenters,
+                  }}
+                  hierarchyType="vikas_khand_name"
+                  collapsed={collapsedSections.vikas_khand_name}
+                  onToggleCollapse={() => toggleCollapse("vikas_khand_name")}
+                />
+                <HierarchicalFilter
+                  title="विधानसभा का नाम"
+                  items={
+                    groupData?.group_field === "vidhan_sabha_name"
+                      ? groupData.allOptions || allVidhanSabha
+                      : uniqueVidhanSabha
+                  }
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
+                  hierarchyData={{
+                    centerToVidhanSabha,
+                    centerToVikasKhand,
+                    vidhanSabhaToVikasKhand,
+                    vikasKhandToCenters,
+                    vikasKhandToVidhanSabha,
+                    vidhanSabhaToCenters,
+                    schemeToCenters,
+                    investmentToCenters,
+                    componentToCenters,
+                    sourceToCenters,
+                  }}
+                  hierarchyType="vidhan_sabha_name"
+                  collapsed={collapsedSections.vidhan_sabha_name}
+                  onToggleCollapse={() => toggleCollapse("vidhan_sabha_name")}
+                />
+              </Col>
+              <Col md={6}>
+                {/* Right Column: Yojana, Ghatak, Nivesh, Sarut, Financial Summary */}
                 <Card className="mb-2">
-                  <Card.Header 
-                    onClick={() => toggleCollapse("financial_summary")}
+                  <Card.Header
+                    onClick={() => toggleCollapse("scheme_name")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>वित्तीय सारांश</span>
-                    {collapsedSections.financial_summary ? (
+                    <span>योजना ({uniqueSchemes.length})</span>
+                    {collapsedSections.scheme_name ? (
                       <FaChevronDown />
                     ) : (
                       <FaChevronUp />
                     )}
                   </Card.Header>
-                  <Collapse in={!collapsedSections.financial_summary}>
+                  <Collapse in={!collapsedSections.scheme_name}>
                     <Card.Body>
-                     <Row className="text-center g-2">
-  <Col md={4}>
-    <div className="p-2 border rounded amount-box">
-      <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
-      <p className="mb-0 fw-bold small">
-        {formatCurrency(totalAllocated)}
-      </p>
-    </div>
-  </Col>
-
-  <Col md={4}>
-    <div className="p-2 border rounded amount-box">
-      <h6 className="mb-1 small-fonts">शेष राशि</h6>
-      <p className="mb-0 text-success fw-bold small">
-        {formatCurrency(totalRemaining)}
-      </p>
-    </div>
-  </Col>
-
-  <Col md={4}>
-    <div className="p-2 border rounded amount-box">
-      <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
-      <p className="mb-0 text-warning fw-bold small">
-        {formatCurrency(totalUpdated)}
-      </p>
-    </div>
-  </Col>
-</Row>
-
-                    </Card.Body>
-                  </Collapse>
-                </Card>
-                
-                {/* Dynamic filter ordering - selected card filter first */}
-                {(() => {
-                  // Define all filter configurations
-                  const filterConfigs = [
-                    {
-                      type: "center_name",
-                      title: "केंद्र का नाम",
-                      items: groupData?.group_field === "center_name" ? groupData.allOptions || allCenters : uniqueCenters,
-                      collapsed: collapsedSections.center_name,
-                      onToggle: () => toggleCollapse("center_name")
-                    },
-                    {
-                      type: "vidhan_sabha_name",
-                      title: "विधानसभा का नाम",
-                      items: groupData?.group_field === "vidhan_sabha_name" ? groupData.allOptions || allVidhanSabha : uniqueVidhanSabha,
-                      collapsed: collapsedSections.vidhan_sabha_name,
-                      onToggle: () => toggleCollapse("vidhan_sabha_name")
-                    },
-                    {
-                      type: "vikas_khand_name",
-                      title: "विकासखंड का नाम",
-                      items: groupData?.group_field === "vikas_khand_name" ? groupData.allOptions || allVikasKhand : uniqueVikasKhand,
-                      collapsed: collapsedSections.vikas_khand_name,
-                      onToggle: () => toggleCollapse("vikas_khand_name")
-                    },
-                    {
-                      type: "scheme_name",
-                      title: `योजना (${uniqueSchemes.length})`,
-                      items: uniqueSchemes,
-                      collapsed: collapsedSections.scheme_name,
-                      onToggle: () => toggleCollapse("scheme_name"),
-                      customRender: (items) => (
-                        <Card.Body>
-                          {Object.entries(kendraToSchemes)
-                            .filter(([kendra]) => {
-                              // Check if centers are selected
-                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                                if (!activeFilters.center_name.includes(kendra)) {
-                                  return false;
-                                }
-                              }
-                              
-                              // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
-                              if (activeFilters.vidhan_sabha_name && activeFilters.vidhan_sabha_name.length > 0) {
-                                const kendraVidhanSabhas = centerToVidhanSabha[kendra] || [];
-                                return kendraVidhanSabhas.some(vidhanSabha => activeFilters.vidhan_sabha_name.includes(vidhanSabha));
-                              }
-                              
-                              // If scheme_name filters are active, only show kendras that have selected schemes
-                              if (activeFilters.scheme_name && activeFilters.scheme_name.length > 0) {
-                                const kendraSchemes = kendraToSchemes[kendra] || [];
-                                if (!kendraSchemes.some(scheme => activeFilters.scheme_name.includes(scheme))) {
-                                  return false;
-                                }
-                              }
-                              // If component filters are active, only show kendras that have selected components
-                              if (activeFilters.component && activeFilters.component.length > 0) {
-                                const kendraComponents = kendraToComponents[kendra] || [];
-                                if (!kendraComponents.some(component => activeFilters.component.includes(component))) {
-                                  return false;
-                                }
-                              }
-                              // If investment_name filters are active, only show kendras that have selected investments
-                              if (activeFilters.investment_name && activeFilters.investment_name.length > 0) {
-                                const kendraInvestments = kendraToInvestments[kendra] || [];
-                                if (!kendraInvestments.some(investment => activeFilters.investment_name.includes(investment))) {
-                                  return false;
-                                }
-                              }
-                              // If source_of_receipt filters are active, only show kendras that have selected sources
-                              if (activeFilters.source_of_receipt && activeFilters.source_of_receipt.length > 0) {
-                                const kendraSources = kendraToSources[kendra] || [];
-                                if (!kendraSources.some(source => activeFilters.source_of_receipt.includes(source))) {
-                                  return false;
-                                }
-                              }
-                              return true;
-                            })
-                            .map(([kendra, schemes]) => (
+                      {Object.entries(kendraToSchemes)
+                        .filter(([kendra]) => {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
+                            if (!activeFilters.center_name.includes(kendra)) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.vidhan_sabha_name &&
+                            activeFilters.vidhan_sabha_name.length > 0
+                          ) {
+                            const kendraVidhanSabhas =
+                              centerToVidhanSabha[kendra] || [];
+                            return kendraVidhanSabhas.some((vidhanSabha) =>
+                              activeFilters.vidhan_sabha_name.includes(
+                                vidhanSabha
+                              )
+                            );
+                          }
+                          if (
+                            activeFilters.scheme_name &&
+                            activeFilters.scheme_name.length > 0
+                          ) {
+                            const kendraSchemes = kendraToSchemes[kendra] || [];
+                            if (
+                              !kendraSchemes.some((scheme) =>
+                                activeFilters.scheme_name.includes(scheme)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.component &&
+                            activeFilters.component.length > 0
+                          ) {
+                            const kendraComponents =
+                              kendraToComponents[kendra] || [];
+                            if (
+                              !kendraComponents.some((component) =>
+                                activeFilters.component.includes(component)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.investment_name &&
+                            activeFilters.investment_name.length > 0
+                          ) {
+                            const kendraInvestments =
+                              kendraToInvestments[kendra] || [];
+                            if (
+                              !kendraInvestments.some((investment) =>
+                                activeFilters.investment_name.includes(
+                                  investment
+                                )
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.source_of_receipt &&
+                            activeFilters.source_of_receipt.length > 0
+                          ) {
+                            const kendraSources = kendraToSources[kendra] || [];
+                            if (
+                              !kendraSources.some((source) =>
+                                activeFilters.source_of_receipt.includes(source)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map(
+                          ([kendra, schemes]) =>
                             schemes.length > 0 && (
                               <div key={kendra} className="mb-3">
                                 <h6 className="small-fonts">{kendra}</h6>
                                 <Row className="g-1 align-items-center">
                                   {schemes.map((scheme) => (
-                                    <Col key={scheme} xs="auto" className="mb-2">
+                                    <Col
+                                      key={scheme}
+                                      xs="auto"
+                                      className="mb-2"
+                                    >
                                       <Button
                                         variant={
-                                          activeFilters.scheme_name && activeFilters.scheme_name.includes(scheme)
+                                          activeFilters.scheme_name &&
+                                          activeFilters.scheme_name.includes(
+                                            scheme
+                                          )
                                             ? "primary"
                                             : "outline-secondary"
                                         }
                                         size="sm"
                                         className="filter-button"
                                         onClick={() =>
-                                          handleFilterChange("scheme_name", scheme)
+                                          handleFilterChange(
+                                            "scheme_name",
+                                            scheme
+                                          )
                                         }
                                       >
                                         {scheme}
@@ -2345,355 +2528,466 @@ const VivranSummaryModal = ({
                                 </Row>
                               </div>
                             )
-                          ))}
-                        </Card.Body>
-                      )
-                    },
-                    {
-                      type: "source_of_receipt",
-                      title: `स्रोत (${uniqueSources.length})`,
-                      items: uniqueSources,
-                      collapsed: collapsedSections.source_of_receipt,
-                      onToggle: () => toggleCollapse("source_of_receipt"),
-                      customRender: (items) => (
-                        <Card.Body>
-                          {Object.entries(kendraToSources)
-                            .filter(([kendra]) => {
-                              // Check if centers are selected
-                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                                if (!activeFilters.center_name.includes(kendra)) {
-                                  return false;
-                                }
-                              }
-                              
-                              // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
-                              if (activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0) {
-                                const kendraVidhanSabhas = centerToVidhanSabha[kendra] || [];
-                                return kendraVidhanSabhas.some(vidhanSabha => {
-                                  // Check if this vidhanSabha is selected for this kendra or any other kendra
-                                  return Object.entries(activeFilters.vidhan_sabha_name).some(([filterKendra, filterValues]) => {
-                                    if (filterKendra === kendra) {
-                                      return filterValues.includes(vidhanSabha);
-                                    }
-                                    // Also check if this vidhanSabha is selected for any kendra that belongs to it
-                                    return filterValues.includes(vidhanSabha);
-                                  });
-                                });
-                              }
-                              
-                              // If component filters are active, only show kendras that have selected components
-                              if (activeFilters.component && activeFilters.component.length > 0) {
-                                const kendraComponents = kendraToComponents[kendra] || [];
-                                if (!kendraComponents.some(component => activeFilters.component.includes(component))) {
-                                  return false;
-                                }
-                              }
-                              // If investment_name filters are active, only show kendras that have selected investments
-                              if (activeFilters.investment_name && activeFilters.investment_name.length > 0) {
-                                const kendraInvestments = kendraToInvestments[kendra] || [];
-                                if (!kendraInvestments.some(investment => activeFilters.investment_name.includes(investment))) {
-                                  return false;
-                                }
-                              }
-                              return true;
-                            })
-                            .map(([kendra, sources]) => (
-                            sources.length > 0 && (
-                              <div key={kendra} className="mb-3">
-                                <h6 className="small-fonts">{kendra}</h6>
-                                <Row className="g-1 align-items-center">
-                                  {sources.filter(source => {
-                                    let valid = true;
-                                    if (activeFilters.scheme_name) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && activeFilters.scheme_name.includes(item.scheme_name));
-                                    }
-                                    if (activeFilters.component) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && activeFilters.component.includes(item.component));
-                                    }
-                                    if (activeFilters.investment_name) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && activeFilters.investment_name.includes(item.investment_name));
-                                    }
-                                    return valid;
-                                  }).map((source) => (
-                                    <Col key={source} xs="auto" className="mb-2">
-                                      <Button
-                                        variant={
-                                          activeFilters.source_of_receipt && activeFilters.source_of_receipt.includes(source)
-                                            ? "primary"
-                                            : "outline-secondary"
-                                        }
-                                        size="sm"
-                                        className="filter-button"
-                                        onClick={() =>
-                                          handleFilterChange("source_of_receipt", source)
-                                        }
-                                      >
-                                        {source}
-                                      </Button>
-                                    </Col>
-                                  ))}
-                                </Row>
-                              </div>
-                            )
-                          ))}
-                        </Card.Body>
-                      )
-                    },
-                    {
-                      type: "component",
-                      title: `घटक (${uniqueComponents.length})`,
-                      items: uniqueComponents,
-                      collapsed: collapsedSections.component,
-                      onToggle: () => toggleCollapse("component"),
-                      customRender: (items) => (
-                        <Card.Body>
-                          {Object.entries(kendraToComponents)
-                            .filter(([kendra]) => {
-                              // If centers are selected, only show kendras that are selected
-                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                                return activeFilters.center_name.includes(kendra);
-                              }
-                              // If scheme_name filters are active, only show kendras that have selected schemes
-                              if (activeFilters.scheme_name && activeFilters.scheme_name.length > 0) {
-                                const kendraSchemes = kendraToSchemes[kendra] || [];
-                                if (!kendraSchemes.some(scheme => activeFilters.scheme_name.includes(scheme))) {
-                                  return false;
-                                }
-                              }
-                              // If investment_name filters are active, only show kendras that have selected investments
-                              if (activeFilters.investment_name && activeFilters.investment_name.length > 0) {
-                                const kendraInvestments = kendraToInvestments[kendra] || [];
-                                if (!kendraInvestments.some(investment => activeFilters.investment_name.includes(investment))) {
-                                  return false;
-                                }
-                              }
-                              return true;
-                            })
-                            .map(([kendra, components]) => (
+                        )}
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse("component")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>घटक ({uniqueComponents.length})</span>
+                    {collapsedSections.component ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.component}>
+                    <Card.Body>
+                      {Object.entries(kendraToComponents)
+                        .filter(([kendra]) => {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          if (
+                            activeFilters.scheme_name &&
+                            activeFilters.scheme_name.length > 0
+                          ) {
+                            const kendraSchemes = kendraToSchemes[kendra] || [];
+                            if (
+                              !kendraSchemes.some((scheme) =>
+                                activeFilters.scheme_name.includes(scheme)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.investment_name &&
+                            activeFilters.investment_name.length > 0
+                          ) {
+                            const kendraInvestments =
+                              kendraToInvestments[kendra] || [];
+                            if (
+                              !kendraInvestments.some((investment) =>
+                                activeFilters.investment_name.includes(
+                                  investment
+                                )
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map(
+                          ([kendra, components]) =>
                             components.length > 0 && (
                               <div key={kendra} className="mb-3">
                                 <h6 className="small-fonts">{kendra}</h6>
                                 <Row className="g-1 align-items-center">
-                                  {components.filter(component => {
-                                    let valid = true;
-                                    if (activeFilters.source_of_receipt) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && activeFilters.source_of_receipt.includes(item.source_of_receipt));
-                                    }
-                                    if (activeFilters.scheme_name) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && activeFilters.scheme_name.includes(item.scheme_name));
-                                    }
-                                    if (activeFilters.investment_name) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && activeFilters.investment_name.includes(item.investment_name));
-                                    }
-                                    return valid;
-                                  }).map((component) => (
-                                    <Col key={component} xs="auto" className="mb-2">
-                                      <Button
-                                        variant={
-                                          activeFilters.component && activeFilters.component.includes(component)
-                                            ? "primary"
-                                            : "outline-secondary"
-                                        }
-                                        size="sm"
-                                        className="filter-button"
-                                        onClick={() =>
-                                          handleFilterChange("component", component)
-                                        }
+                                  {components
+                                    .filter((component) => {
+                                      let valid = true;
+                                      if (activeFilters.source_of_receipt) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.component === component &&
+                                              activeFilters.source_of_receipt.includes(
+                                                item.source_of_receipt
+                                              )
+                                          );
+                                      }
+                                      if (activeFilters.scheme_name) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.component === component &&
+                                              activeFilters.scheme_name.includes(
+                                                item.scheme_name
+                                              )
+                                          );
+                                      }
+                                      if (activeFilters.investment_name) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.component === component &&
+                                              activeFilters.investment_name.includes(
+                                                item.investment_name
+                                              )
+                                          );
+                                      }
+                                      return valid;
+                                    })
+                                    .map((component) => (
+                                      <Col
+                                        key={component}
+                                        xs="auto"
+                                        className="mb-2"
                                       >
-                                        {component}
-                                      </Button>
-                                    </Col>
-                                  ))}
+                                        <Button
+                                          variant={
+                                            activeFilters.component &&
+                                            activeFilters.component.includes(
+                                              component
+                                            )
+                                              ? "primary"
+                                              : "outline-secondary"
+                                          }
+                                          size="sm"
+                                          className="filter-button"
+                                          onClick={() =>
+                                            handleFilterChange(
+                                              "component",
+                                              component
+                                            )
+                                          }
+                                        >
+                                          {component}
+                                        </Button>
+                                      </Col>
+                                    ))}
                                 </Row>
                               </div>
                             )
-                          ))}
-                        </Card.Body>
-                      )
-                    },
-                    {
-                      type: "investment_name",
-                      title: `निवेश का नाम (${uniqueInvestments.length})`,
-                      items: uniqueInvestments,
-                      collapsed: collapsedSections.investment_name,
-                      onToggle: () => toggleCollapse("investment_name"),
-                      customRender: (items) => (
-                        <Card.Body>
-                          {Object.entries(kendraToInvestments)
-                            .filter(([kendra]) => {
-                              // If centers are selected, only show kendras that are selected
-                              if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-                                return activeFilters.center_name.includes(kendra);
-                              }
-                              // If scheme_name filters are active, only show kendras that have selected schemes
-                              if (activeFilters.scheme_name && activeFilters.scheme_name.length > 0) {
-                                const kendraSchemes = kendraToSchemes[kendra] || [];
-                                if (!kendraSchemes.some(scheme => activeFilters.scheme_name.includes(scheme))) {
-                                  return false;
-                                }
-                              }
-                              // If component filters are active, only show kendras that have selected components
-                              if (activeFilters.component && activeFilters.component.length > 0) {
-                                const kendraComponents = kendraToComponents[kendra] || [];
-                                if (!kendraComponents.some(component => activeFilters.component.includes(component))) {
-                                  return false;
-                                }
-                              }
-                              return true;
-                            })
-                            .map(([kendra, investments]) => (
+                        )}
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse("investment_name")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>निवेश का नाम ({uniqueInvestments.length})</span>
+                    {collapsedSections.investment_name ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.investment_name}>
+                    <Card.Body>
+                      {Object.entries(kendraToInvestments)
+                        .filter(([kendra]) => {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          if (
+                            activeFilters.scheme_name &&
+                            activeFilters.scheme_name.length > 0
+                          ) {
+                            const kendraSchemes = kendraToSchemes[kendra] || [];
+                            if (
+                              !kendraSchemes.some((scheme) =>
+                                activeFilters.scheme_name.includes(scheme)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.component &&
+                            activeFilters.component.length > 0
+                          ) {
+                            const kendraComponents =
+                              kendraToComponents[kendra] || [];
+                            if (
+                              !kendraComponents.some((component) =>
+                                activeFilters.component.includes(component)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map(
+                          ([kendra, investments]) =>
                             investments.length > 0 && (
                               <div key={kendra} className="mb-3">
                                 <h6 className="small-fonts">{kendra}</h6>
                                 <Row className="g-1 align-items-center">
-                                  {investments.filter(investment => {
-                                    let valid = true;
-                                    if (activeFilters.component) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && activeFilters.component.includes(item.component));
-                                    }
-                                    if (activeFilters.scheme_name) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && activeFilters.scheme_name.includes(item.scheme_name));
-                                    }
-                                    if (activeFilters.source_of_receipt) {
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && activeFilters.source_of_receipt.includes(item.source_of_receipt));
-                                    }
-                                    return valid;
-                                  }).map((investment) => (
-                                    <Col key={investment} xs="auto" className="mb-2">
-                                      <Button
-                                        variant={
-                                          activeFilters.investment_name && activeFilters.investment_name.includes(investment)
-                                            ? "primary"
-                                            : "outline-secondary"
-                                        }
-                                        size="sm"
-                                        className="filter-button"
-                                        onClick={() =>
-                                          handleFilterChange("investment_name", investment)
-                                        }
+                                  {investments
+                                    .filter((investment) => {
+                                      let valid = true;
+                                      if (activeFilters.component) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.investment_name ===
+                                                investment &&
+                                              activeFilters.component.includes(
+                                                item.component
+                                              )
+                                          );
+                                      }
+                                      if (activeFilters.scheme_name) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.investment_name ===
+                                                investment &&
+                                              activeFilters.scheme_name.includes(
+                                                item.scheme_name
+                                              )
+                                          );
+                                      }
+                                      if (activeFilters.source_of_receipt) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.investment_name ===
+                                                investment &&
+                                              activeFilters.source_of_receipt.includes(
+                                                item.source_of_receipt
+                                              )
+                                          );
+                                      }
+                                      return valid;
+                                    })
+                                    .map((investment) => (
+                                      <Col
+                                        key={investment}
+                                        xs="auto"
+                                        className="mb-2"
                                       >
-                                        {investment}
-                                      </Button>
-                                    </Col>
-                                  ))}
+                                        <Button
+                                          variant={
+                                            activeFilters.investment_name &&
+                                            activeFilters.investment_name.includes(
+                                              investment
+                                            )
+                                              ? "primary"
+                                              : "outline-secondary"
+                                          }
+                                          size="sm"
+                                          className="filter-button"
+                                          onClick={() =>
+                                            handleFilterChange(
+                                              "investment_name",
+                                              investment
+                                            )
+                                          }
+                                        >
+                                          {investment}
+                                        </Button>
+                                      </Col>
+                                    ))}
                                 </Row>
                               </div>
                             )
-                          ))}
-                        </Card.Body>
-                      )
-                    }
-                  ];
-                  
-                  // Sort filters to put selected card first
-                  const sortedFilters = filterConfigs.sort((a, b) => {
-                    // If current filter matches the selected group field, put it first
-                    if (groupData?.group_field === a.type && groupData?.group_field !== b.type) {
-                      return -1;
-                    }
-                    if (groupData?.group_field === b.type && groupData?.group_field !== a.type) {
-                      return 1;
-                    }
-                    // Otherwise maintain original order
-                    return 0;
-                  });
-                  
-                  // Render sorted filters
-                  return sortedFilters.map((config) => {
-                    
-                    if (config.type === "scheme_name" || config.type === "source_of_receipt" || 
-                        config.type === "component" || config.type === "investment_name") {
-                      // Custom render for complex filters
-                      return (
-                        <Card key={config.type} className="mb-2">
-                          <Card.Header
-                            onClick={config.onToggle}
-                            style={{ cursor: "pointer" }}
-                            className="d-flex justify-content-between align-items-center accordin-header"
-                          >
-                            <span>{config.title}</span>
-                            {config.collapsed ? <FaChevronDown /> : <FaChevronUp />}
-                          </Card.Header>
-                          <Collapse in={!config.collapsed}>
-                            {config.customRender(config.items)}
-                          </Collapse>
-                        </Card>
-                      );
-                    } else {
-                      // Standard HierarchicalFilter for main categories
-                      return (
-                        <HierarchicalFilter 
-                          key={config.type}
-                          title={config.title}
-                          items={config.items}
-                          activeFilters={activeFilters}
-                          onFilterChange={handleFilterChange}
-                          hierarchyData={{
-                            centerToVidhanSabha,
-                            centerToVikasKhand,
-                            vidhanSabhaToVikasKhand,
-                            vikasKhandToCenters,
-                            vikasKhandToVidhanSabha,
-                            vidhanSabhaToCenters,
-                            schemeToCenters,
-                            investmentToCenters,
-                            componentToCenters,
-                            sourceToCenters
-                          }}
-                          hierarchyType={config.type}
-                          collapsed={config.collapsed}
-                          onToggleCollapse={config.onToggle}
-                        />
-                      );
-                    }
-                  });
-                })()}
-              </Col>
-              <Col md={6}>
-             <Tabs
-  defaultActiveKey="bar"
-  id="graph-tabs"
-  className="mb-3 custom-tabs"
->
-  <Tab eventKey="bar" title="बार ग्राफ">
-    <div style={{ overflowX: "auto" }}>
-      <ComparisonBarChart
-        data={chartData}
-        title="आवंटित बनाम बेचा गया"
-        onBarClick={handleBarClick}
-      />
-    </div>
-  </Tab>
-
-  <Tab eventKey="pie" title="पाई चार्ट">
-    <PieChart
-      data={pieChartData}
-      title="विवरण पाई चार्ट"
-      onPieClick={handlePieClick}
-    />
-  </Tab>
-</Tabs>
-
+                        )}
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+                <Card className="mb-2">
+                  <Card.Header
+                    onClick={() => toggleCollapse("source_of_receipt")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>स्रोत ({uniqueSources.length})</span>
+                    {collapsedSections.source_of_receipt ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.source_of_receipt}>
+                    <Card.Body>
+                      {Object.entries(kendraToSources)
+                        .filter(([kendra]) => {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
+                            if (!activeFilters.center_name.includes(kendra)) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.vidhan_sabha_name &&
+                            Object.keys(activeFilters.vidhan_sabha_name)
+                              .length > 0
+                          ) {
+                            const kendraVidhanSabhas =
+                              centerToVidhanSabha[kendra] || [];
+                            return kendraVidhanSabhas.some((vidhanSabha) => {
+                              return Object.entries(
+                                activeFilters.vidhan_sabha_name
+                              ).some(([filterKendra, filterValues]) => {
+                                if (filterKendra === kendra) {
+                                  return filterValues.includes(vidhanSabha);
+                                }
+                                return filterValues.includes(vidhanSabha);
+                              });
+                            });
+                          }
+                          if (
+                            activeFilters.component &&
+                            activeFilters.component.length > 0
+                          ) {
+                            const kendraComponents =
+                              kendraToComponents[kendra] || [];
+                            if (
+                              !kendraComponents.some((component) =>
+                                activeFilters.component.includes(component)
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.investment_name &&
+                            activeFilters.investment_name.length > 0
+                          ) {
+                            const kendraInvestments =
+                              kendraToInvestments[kendra] || [];
+                            if (
+                              !kendraInvestments.some((investment) =>
+                                activeFilters.investment_name.includes(
+                                  investment
+                                )
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map(
+                          ([kendra, sources]) =>
+                            sources.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {sources
+                                    .filter((source) => {
+                                      let valid = true;
+                                      if (activeFilters.scheme_name) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.source_of_receipt ===
+                                                source &&
+                                              activeFilters.scheme_name.includes(
+                                                item.scheme_name
+                                              )
+                                          );
+                                      }
+                                      if (activeFilters.component) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.source_of_receipt ===
+                                                source &&
+                                              activeFilters.component.includes(
+                                                item.component
+                                              )
+                                          );
+                                      }
+                                      if (activeFilters.investment_name) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.source_of_receipt ===
+                                                source &&
+                                              activeFilters.investment_name.includes(
+                                                item.investment_name
+                                              )
+                                          );
+                                      }
+                                      return valid;
+                                    })
+                                    .map((source) => (
+                                      <Col
+                                        key={source}
+                                        xs="auto"
+                                        className="mb-2"
+                                      >
+                                        <Button
+                                          variant={
+                                            activeFilters.source_of_receipt &&
+                                            activeFilters.source_of_receipt.includes(
+                                              source
+                                            )
+                                              ? "primary"
+                                              : "outline-secondary"
+                                          }
+                                          size="sm"
+                                          className="filter-button"
+                                          onClick={() =>
+                                            handleFilterChange(
+                                              "source_of_receipt",
+                                              source
+                                            )
+                                          }
+                                        >
+                                          {source}
+                                        </Button>
+                                      </Col>
+                                    ))}
+                                </Row>
+                              </div>
+                            )
+                        )}
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+                {/* Financial Summary Section */}
+               
               </Col>
             </Row>
           </Card.Body>
         </Card>
-
-
-
 
         {/* Kendra Selection Filter for Combined Table */}
         <Card className="mb-3">
           <Card.Body className="py-2">
             <Row className="align-items-center">
               <Col md={12}>
-                <Form.Label className="mb-2 fw-bold">केंद्र चुनें (संपूर्ण विवरण तालिका के लिए):</Form.Label>
+                <Form.Label className="mb-2 fw-bold">
+                  केंद्र चुनें (संपूर्ण विवरण तालिका के लिए):
+                </Form.Label>
                 <div className="d-flex flex-wrap gap-2">
                   {(() => {
                     // Show only kendras that are selected in the kendra filter above
-                    const kendrasToShow = activeFilters.center_name && activeFilters.center_name.length > 0
-                      ? activeFilters.center_name
-                      : uniqueCenters;
+                    const kendrasToShow =
+                      activeFilters.center_name &&
+                      activeFilters.center_name.length > 0
+                        ? activeFilters.center_name
+                        : uniqueCenters;
 
                     return (
                       <>
@@ -2702,7 +2996,10 @@ const VivranSummaryModal = ({
                           name="combined-table-kendra"
                           id="combined-all-kendra"
                           label="सभी चुनें"
-                          checked={selectedCombinedKendra.length === kendrasToShow.length}
+                          checked={
+                            selectedCombinedKendra.length ===
+                            kendrasToShow.length
+                          }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedCombinedKendra(kendrasToShow);
@@ -2711,7 +3008,7 @@ const VivranSummaryModal = ({
                             }
                           }}
                         />
-                        {kendrasToShow.map(kendra => (
+                        {kendrasToShow.map((kendra) => (
                           <Form.Check
                             key={kendra}
                             type="checkbox"
@@ -2721,9 +3018,14 @@ const VivranSummaryModal = ({
                             checked={selectedCombinedKendra.includes(kendra)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedCombinedKendra(prev => [...prev, kendra]);
+                                setSelectedCombinedKendra((prev) => [
+                                  ...prev,
+                                  kendra,
+                                ]);
                               } else {
-                                setSelectedCombinedKendra(prev => prev.filter(k => k !== kendra));
+                                setSelectedCombinedKendra((prev) =>
+                                  prev.filter((k) => k !== kendra)
+                                );
                               }
                             }}
                           />
@@ -2745,13 +3047,26 @@ const VivranSummaryModal = ({
               <Button
                 variant="outline-success"
                 size="sm"
-                onClick={() => downloadExcel(tableData, 'Filtered')}
+                onClick={() => downloadExcel(tableData, "Filtered")}
                 className="me-2 fillter-exel-btn"
               >
-                <i className="delete-icon"> <FaFileExcel /></i>  Excel
+                <i className="delete-icon">
+                  {" "}
+                  <FaFileExcel />
+                </i>{" "}
+                Excel
               </Button>
-              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(tableData, 'Filtered')} className="fillter-pdf-btn">
-              <i className="delete-icon"> <FaFilePdf /></i>  PDF
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => downloadPdf(tableData, "Filtered")}
+                className="fillter-pdf-btn"
+              >
+                <i className="delete-icon">
+                  {" "}
+                  <FaFilePdf />
+                </i>{" "}
+                PDF
               </Button>
             </div>
           </Card.Header>
@@ -2768,7 +3083,10 @@ const VivranSummaryModal = ({
               style={{ maxHeight: "200px", overflowY: "auto" }}
             >
               <table className="responsive-table small-fonts">
-                <thead className="table-light" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                <thead
+                  className="table-light"
+                  style={{ position: "sticky", top: 0, zIndex: 1 }}
+                >
                   <tr>
                     {selectedColumns.includes("center_name") && (
                       <th>केंद्र का नाम</th>
@@ -2812,7 +3130,11 @@ const VivranSummaryModal = ({
                       parseFloat(item.updated_quantity) * parseFloat(item.rate)
                     ).toFixed(2);
                     return (
-                      <tr key={index} style={{ cursor: 'pointer' }} onClick={() => handleTableRowClick(item.center_name)}>
+                      <tr
+                        key={index}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleTableRowClick(item.center_name)}
+                      >
                         {selectedColumns.includes("center_name") && (
                           <td data-label="केंद्र का नाम">{item.center_name}</td>
                         )}
@@ -2907,6 +3229,40 @@ const VivranSummaryModal = ({
             </div>
           </Card.Body>
         </Card>
+<Card className="mb-2">
+  <Card.Body>
+    <h6 className="mb-3 fw-bold">वित्तीय सारांश</h6>
+
+    <Row className="text-center g-2">
+      <Col md={4}>
+        <div className="p-2 border rounded amount-box">
+          <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
+          <p className="mb-0 fw-bold small">
+            {formatCurrency(totalAllocated)}
+          </p>
+        </div>
+      </Col>
+
+      <Col md={4}>
+        <div className="p-2 border rounded amount-box">
+          <h6 className="mb-1 small-fonts">शेष राशि</h6>
+          <p className="mb-0 text-success fw-bold small">
+            {formatCurrency(totalRemaining)}
+          </p>
+        </div>
+      </Col>
+
+      <Col md={4}>
+        <div className="p-2 border rounded amount-box">
+          <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
+          <p className="mb-0 text-warning fw-bold small">
+            {formatCurrency(totalUpdated)}
+          </p>
+        </div>
+      </Col>
+    </Row>
+  </Card.Body>
+</Card>
 
         {/* Graph Section */}
         <Card>
@@ -2917,34 +3273,33 @@ const VivranSummaryModal = ({
             className="text-center position-relative"
             style={{ overflow: "visible" }}
           >
-           <Tabs
-  defaultActiveKey="bar"
-  id="graph-tabs-bottom"
-  className="mb-3 custom-tabs"
->
-  <Tab eventKey="bar" title="बार ग्राफ">
-    <div style={{ overflowX: "auto" }}>
-      <ComparisonBarChart
-        data={chartData}
-        title="आवंटित बनाम बेचा गया"
-        onBarClick={handleBarClick}
-      />
-    </div>
-  </Tab>
+            <Tabs
+              defaultActiveKey="bar"
+              id="graph-tabs-bottom"
+              className="mb-3 custom-tabs"
+            >
+              <Tab eventKey="bar" title="बार ग्राफ">
+                <div style={{ overflowX: "auto" }}>
+                  <ComparisonBarChart
+                    data={chartData}
+                    title="आवंटित बनाम बेचा गया"
+                    onBarClick={handleBarClick}
+                  />
+                </div>
+              </Tab>
 
-  <Tab eventKey="pie" title="पाई चार्ट">
-    <PieChart
-      data={pieChartData}
-      title="विवरण पाई चार्ट"
-      onPieClick={handlePieClick}
-    />
-  </Tab>
-</Tabs>
-
+              <Tab eventKey="pie" title="पाई चार्ट">
+                <PieChart
+                  data={pieChartData}
+                  title="विवरण पाई चार्ट"
+                  onPieClick={handlePieClick}
+                />
+              </Tab>
+            </Tabs>
           </Card.Body>
         </Card>
       </Modal.Body>
-      
+
       {/* Table Details Modal */}
       <TableDetailsModal
         show={showTableDetailsModal}
