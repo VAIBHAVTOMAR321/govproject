@@ -18,10 +18,10 @@ function DashBoardHeader() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link href="MainDashboard">डैशबोर्ड</Nav.Link>
-             <NavDropdown title="पंजीकरण" id="basic-nav-dropdown">
-              <NavDropdown.Item href="Registration">पंजीकरण One</NavDropdown.Item>
+             <NavDropdown title="डेटा एंट्री" id="basic-nav-dropdown">
+              <NavDropdown.Item href="Registration">सप्लायर डेटा एंट्री</NavDropdown.Item>
               <NavDropdown.Item href="KrishiRegistration">
-              पंजीकरण Two
+              कृषि डेटा एंट्री
               </NavDropdown.Item>
                 
             </NavDropdown>
