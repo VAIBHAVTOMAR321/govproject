@@ -639,6 +639,7 @@ const VivranSummaryModal = ({
   const [showTableDetailsModal, setShowTableDetailsModal] = useState(false);
   const [tableDetailsData, setTableDetailsData] = useState([]);
   const [tableDetailsCenterName, setTableDetailsCenterName] = useState('');
+  const [selectedCombinedKendra, setSelectedCombinedKendra] = useState([]);
   const [collapsedSections, setCollapsedSections] = useState({
     center_name: true,
     vidhan_sabha_name: true,
@@ -741,7 +742,12 @@ const VivranSummaryModal = ({
   const placesCount = filteredItems.length;
 
   // Filtered data for table
-  const tableData = filteredItems;
+  const tableData = useMemo(() => {
+    if (selectedCombinedKendra.length === 0) {
+      return filteredItems;
+    }
+    return filteredItems.filter(item => selectedCombinedKendra.includes(item.center_name));
+  }, [filteredItems, selectedCombinedKendra]);
 
   // Calculate totals for table
   const tableTotalAllocated = useMemo(() => {
@@ -1241,6 +1247,7 @@ const VivranSummaryModal = ({
   useEffect(() => {
     if (!show) {
       setActiveFilters({});
+      setSelectedCombinedKendra([]);
       setShowOnlySold(false);
       setShowOnlyAllocated(false);
       setShowOnlyRemaining(false);
@@ -2674,6 +2681,61 @@ const VivranSummaryModal = ({
 
 
 
+
+        {/* Kendra Selection Filter for Combined Table */}
+        <Card className="mb-3">
+          <Card.Body className="py-2">
+            <Row className="align-items-center">
+              <Col md={12}>
+                <Form.Label className="mb-2 fw-bold">केंद्र चुनें (संपूर्ण विवरण तालिका के लिए):</Form.Label>
+                <div className="d-flex flex-wrap gap-2">
+                  {(() => {
+                    // Show only kendras that are selected in the kendra filter above
+                    const kendrasToShow = activeFilters.center_name && activeFilters.center_name.length > 0
+                      ? activeFilters.center_name
+                      : uniqueCenters;
+
+                    return (
+                      <>
+                        <Form.Check
+                          type="checkbox"
+                          name="combined-table-kendra"
+                          id="combined-all-kendra"
+                          label="सभी चुनें"
+                          checked={selectedCombinedKendra.length === kendrasToShow.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCombinedKendra(kendrasToShow);
+                            } else {
+                              setSelectedCombinedKendra([]);
+                            }
+                          }}
+                        />
+                        {kendrasToShow.map(kendra => (
+                          <Form.Check
+                            key={kendra}
+                            type="checkbox"
+                            name="combined-table-kendra"
+                            id={`combined-kendra-${kendra}`}
+                            label={kendra}
+                            checked={selectedCombinedKendra.includes(kendra)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCombinedKendra(prev => [...prev, kendra]);
+                              } else {
+                                setSelectedCombinedKendra(prev => prev.filter(k => k !== kendra));
+                              }
+                            }}
+                          />
+                        ))}
+                      </>
+                    );
+                  })()}
+                </div>
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
 
         {/* Combined Table Section */}
         <Card className="mb-3">
