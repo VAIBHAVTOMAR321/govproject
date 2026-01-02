@@ -417,21 +417,7 @@ const handleMouseUp = () => {
                   style={{ userSelect: 'none' }}
                 >
                   {uniqueVidhanSabhas.map((vidhanSabha) => {
-                    const isSelected = (() => {
-                      const filterValue = activeFilters[hierarchyType];
-                      if (!filterValue) return false;
-                      
-                      // Handle kendra-based filters (object with kendra keys)
-                      if (typeof filterValue === 'object' && !Array.isArray(filterValue)) {
-                        // Check if any kendra has this item selected
-                        return Object.values(filterValue).some(kendraFilters =>
-                          Array.isArray(kendraFilters) && kendraFilters.includes(vidhanSabha)
-                        );
-                      }
-                      
-                      // Handle legacy array-based filters
-                      return Array.isArray(filterValue) && filterValue.includes(vidhanSabha);
-                    })();
+                    const isSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(vidhanSabha);
 
                     const kendrasForThisVidhanSabha = vidhanSabhaToKendras[vidhanSabha];
 
@@ -447,8 +433,7 @@ const handleMouseUp = () => {
                               variant={isSelected ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
-                              // FIX: Pass the first kendra associated with this vidhanSabha
-                              onClick={() => onFilterChange(hierarchyType, vidhanSabha, kendrasForThisVidhanSabha)}
+                              onClick={() => onFilterChange(hierarchyType, vidhanSabha)}
                             >
                               {vidhanSabha}
                             </Button>
@@ -537,21 +522,7 @@ const handleMouseUp = () => {
                   style={{ userSelect: 'none' }}
                 >
                   {uniqueVikasKhands.map((vikasKhand) => {
-                    const isSelected = (() => {
-                      const filterValue = activeFilters[hierarchyType];
-                      if (!filterValue) return false;
-                      
-                      // Handle kendra-based filters (object with kendra keys)
-                      if (typeof filterValue === 'object' && !Array.isArray(filterValue)) {
-                        // Check if any kendra has this item selected
-                        return Object.values(filterValue).some(kendraFilters =>
-                          Array.isArray(kendraFilters) && kendraFilters.includes(vikasKhand)
-                        );
-                      }
-                      
-                      // Handle legacy array-based filters
-                      return Array.isArray(filterValue) && filterValue.includes(vikasKhand);
-                    })();
+                    const isSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(vikasKhand);
 
                     const kendrasForThisVikasKhand = vikasKhandToKendras[vikasKhand];
 
@@ -567,8 +538,7 @@ const handleMouseUp = () => {
                               variant={isSelected ? "primary" : "outline-secondary"}
                               size="sm"
                               className="filter-button"
-                              // FIX: Pass the first kendra associated with this vikasKhand
-                              onClick={() => onFilterChange(hierarchyType, vikasKhand, kendrasForThisVikasKhand)}
+                              onClick={() => onFilterChange(hierarchyType, vikasKhand)}
                             >
                               {vikasKhand}
                             </Button>
@@ -600,21 +570,7 @@ const handleMouseUp = () => {
             <Row className="g-2">
               {items.map((item) => {
                 const hierarchy = getHierarchyDisplay(item, hierarchyType);
-                const isSelected = (() => {
-                  const filterValue = activeFilters[hierarchyType];
-                  if (!filterValue) return false;
-                  
-                  // Handle kendra-based filters (object with kendra keys)
-                  if (typeof filterValue === 'object' && !Array.isArray(filterValue)) {
-                    // Check if any kendra has this item selected
-                    return Object.values(filterValue).some(kendraFilters =>
-                      Array.isArray(kendraFilters) && kendraFilters.includes(item)
-                    );
-                  }
-                  
-                  // Handle legacy array-based filters
-                  return Array.isArray(filterValue) && filterValue.includes(item);
-                })();
+                const isSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(item);
                 const isExpanded = expandedItems.has(item);
 
                 return (
@@ -683,7 +639,6 @@ const VivranSummaryModal = ({
   const [showTableDetailsModal, setShowTableDetailsModal] = useState(false);
   const [tableDetailsData, setTableDetailsData] = useState([]);
   const [tableDetailsCenterName, setTableDetailsCenterName] = useState('');
-  const [selectedCombinedKendra, setSelectedCombinedKendra] = useState([]);
   const [collapsedSections, setCollapsedSections] = useState({
     center_name: true,
     vidhan_sabha_name: true,
@@ -712,49 +667,12 @@ const VivranSummaryModal = ({
     if (!groupData || !groupData.items) return [];
     let filtered = groupData.items;
     
-    // Apply center_name filter first
-    if (activeFilters.center_name && activeFilters.center_name.length > 0) {
-      filtered = filtered.filter((item) => 
-        activeFilters.center_name.includes(item.center_name)
-      );
-    }
-    
-    // Apply other filters with kendra context
+    // Apply all filters
     Object.keys(activeFilters).forEach((category) => {
-      if (category !== 'center_name' && activeFilters[category]) {
-        const categoryFilters = activeFilters[category];
-        
-        // Handle kendra-based filters (object with kendra keys)
-        if (typeof categoryFilters === 'object' && !Array.isArray(categoryFilters)) {
-          filtered = filtered.filter((item) => {
-            // If no center filter is active, apply kendra-specific filters
-            if (!activeFilters.center_name || activeFilters.center_name.length === 0) {
-              const kendraFilters = categoryFilters[item.center_name] || [];
-              if (kendraFilters.length === 0) {
-                return true; // Include items if no specific filters for this kendra
-              }
-              return kendraFilters.includes(item[category]);
-            }
-            
-            // If center filter is active, only apply filters to selected centers
-            if (activeFilters.center_name.includes(item.center_name)) {
-              const kendraFilters = categoryFilters[item.center_name] || [];
-              if (kendraFilters.length === 0) {
-                return true; // Include items if no specific filters for this selected kendra
-              }
-              return kendraFilters.includes(item[category]);
-            }
-            
-            // Include items from non-selected centers
-            return true;
-          });
-        }
-        // Handle legacy array-based filters
-        else if (Array.isArray(categoryFilters) && categoryFilters.length > 0) {
-          filtered = filtered.filter((item) => 
-            categoryFilters.includes(item[category])
-          );
-        }
+      if (activeFilters[category] && activeFilters[category].length > 0) {
+        filtered = filtered.filter((item) =>
+          activeFilters[category].includes(item[category])
+        );
       }
     });
     
@@ -822,24 +740,19 @@ const VivranSummaryModal = ({
   const totalRemaining = totalAllocated - totalUpdated;
   const placesCount = filteredItems.length;
 
-  // Filtered data for combined table based on kendra selection
-  const combinedTableData = useMemo(() => {
-    if (selectedCombinedKendra.length === 0) {
-      return filteredItems;
-    }
-    return filteredItems.filter(item => selectedCombinedKendra.includes(item.center_name));
-  }, [filteredItems, selectedCombinedKendra]);
+  // Filtered data for table
+  const tableData = filteredItems;
 
-  // Calculate totals for combined table
-  const combinedTotalAllocated = useMemo(() => {
-    return combinedTableData.reduce((sum, item) =>
+  // Calculate totals for table
+  const tableTotalAllocated = useMemo(() => {
+    return tableData.reduce((sum, item) =>
       sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-  }, [combinedTableData]);
+  }, [tableData]);
 
-  const combinedTotalUpdated = useMemo(() => {
-    return combinedTableData.reduce((sum, item) =>
+  const tableTotalUpdated = useMemo(() => {
+    return tableData.reduce((sum, item) =>
       sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-  }, [combinedTableData]);
+  }, [tableData]);
 
   // Get ALL options for each card type - these will show all possible options
   const allCenters = useMemo(() => {
@@ -873,31 +786,23 @@ const VivranSummaryModal = ({
     let centers = [];
     
     // Check if vidhan_sabha filters are active
-    const hasVidhanSabhaFilters = activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0;
-    
-    // Check if vikas_khand filters are active  
-    const hasVikasKhandFilters = activeFilters.vikas_khand_name && Object.keys(activeFilters.vikas_khand_name).length > 0;
-    
+    const hasVidhanSabhaFilters = activeFilters.vidhan_sabha_name && activeFilters.vidhan_sabha_name.length > 0;
+
+    // Check if vikas_khand filters are active
+    const hasVikasKhandFilters = activeFilters.vikas_khand_name && activeFilters.vikas_khand_name.length > 0;
+
     if (hasVidhanSabhaFilters || hasVikasKhandFilters) {
       const selectedVidhanSabhas = new Set();
       const selectedVikasKhands = new Set();
-      
+
       // Collect selected vidhan_sabhas if filter is active
       if (hasVidhanSabhaFilters) {
-        Object.values(activeFilters.vidhan_sabha_name).forEach(kendraFilters => {
-          if (Array.isArray(kendraFilters)) {
-            kendraFilters.forEach(vidhanSabha => selectedVidhanSabhas.add(vidhanSabha));
-          }
-        });
+        activeFilters.vidhan_sabha_name.forEach(vidhanSabha => selectedVidhanSabhas.add(vidhanSabha));
       }
-      
+
       // Collect selected vikas_khands if filter is active
       if (hasVikasKhandFilters) {
-        Object.values(activeFilters.vikas_khand_name).forEach(kendraFilters => {
-          if (Array.isArray(kendraFilters)) {
-            kendraFilters.forEach(vikasKhand => selectedVikasKhands.add(vikasKhand));
-          }
-        });
+        activeFilters.vikas_khand_name.forEach(vikasKhand => selectedVikasKhands.add(vikasKhand));
       }
       
       // Get centers that belong to selected vidhan_sabhas OR vikas_khands
@@ -1289,59 +1194,9 @@ const VivranSummaryModal = ({
         newActiveFilters = {
           center_name: groupData.selectedItems,
         };
-      } else if (groupData.group_field === "vidhan_sabha_name") {
-        // For vidhan_sabha_name, group selected vidhan_sabhas by kendra
-        const vidhanSabhaFilters = {};
-        groupData.selectedItems.forEach(vidhanSabha => {
-          // Find kendras that have this vidhan_sabha
-          Object.entries(centerToVidhanSabha).forEach(([kendra, vidhanSabhas]) => {
-            if (vidhanSabhas && vidhanSabhas.includes(vidhanSabha)) {
-              if (!vidhanSabhaFilters[kendra]) {
-                vidhanSabhaFilters[kendra] = [];
-              }
-              if (!vidhanSabhaFilters[kendra].includes(vidhanSabha)) {
-                vidhanSabhaFilters[kendra].push(vidhanSabha);
-              }
-            }
-          });
-        });
-        newActiveFilters.vidhan_sabha_name = vidhanSabhaFilters;
-      } else if (groupData.group_field === "vikas_khand_name") {
-        // For vikas_khand_name, group selected vikas_khands by kendra
-        const vikasKhandFilters = {};
-        groupData.selectedItems.forEach(vikasKhand => {
-          // Find kendras that have this vikas_khand
-          Object.entries(centerToVikasKhand).forEach(([kendra, vikasKhands]) => {
-            if (vikasKhands && vikasKhands.includes(vikasKhand)) {
-              if (!vikasKhandFilters[kendra]) {
-                vikasKhandFilters[kendra] = [];
-              }
-              if (!vikasKhandFilters[kendra].includes(vikasKhand)) {
-                vikasKhandFilters[kendra].push(vikasKhand);
-              }
-            }
-          });
-        });
-        newActiveFilters.vikas_khand_name = vikasKhandFilters;
       } else {
-        // For other types, use kendra-based format
-        // Find the kendra(s) associated with the selected items
-        const associatedKendras = [...new Set(
-          (groupData.items || [])
-            .filter(item => groupData.selectedItems.includes(item[groupData.group_field]))
-            .map(item => item.center_name)
-        )].filter(Boolean);
-
-        if (associatedKendras.length > 0) {
-          newActiveFilters[groupData.group_field] = {};
-          associatedKendras.forEach(kendra => {
-            newActiveFilters[groupData.group_field][kendra] = groupData.selectedItems.filter(item =>
-              (groupData.items || []).some(dataItem =>
-                dataItem.center_name === kendra && dataItem[groupData.group_field] === item
-              )
-            );
-          });
-        }
+        // For all other types, use simple array format
+        newActiveFilters[groupData.group_field] = groupData.selectedItems;
       }
 
       setActiveFilters(newActiveFilters);
@@ -1450,91 +1305,30 @@ const VivranSummaryModal = ({
 
   // Handle table row click to show TableDetailsModal
   const handleTableRowClick = (centerName) => {
-    if (selectedCombinedKendra.length === 0 || selectedCombinedKendra.length === uniqueCenters.length) {
-      // When no selection or all selected, show all data
-      const uniqueKendras = [...new Set(combinedTableData.map(item => item.center_name))];
-      const heading = uniqueKendras.join(', ') + ' का विस्तृत विवरण';
-      setTableDetailsData(combinedTableData);
-      setTableDetailsCenterName(heading);
-    } else if (selectedCombinedKendra.length === 1) {
-      // When single kendra selected, show that kendra's data
-      setTableDetailsData(combinedTableData);
-      setTableDetailsCenterName(selectedCombinedKendra[0] + ' का विस्तृत विवरण');
-    } else {
-      // When multiple kendras selected, show combined data for selected kendras
-      const selectedKendrasStr = selectedCombinedKendra.join(', ');
-      const heading = selectedKendrasStr + ' का विस्तृत विवरण';
-      setTableDetailsData(combinedTableData);
-      setTableDetailsCenterName(heading);
-    }
+    const centerData = tableData.filter(item => item.center_name === centerName);
+    setTableDetailsData(centerData);
+    setTableDetailsCenterName(centerName + ' का विस्तृत विवरण');
     setShowTableDetailsModal(true);
   };
 
   // Handle filter changes
   const handleFilterChange = (category, value, kendra = null) => {
     console.log('Filter change:', { category, value, kendra, currentFilters: activeFilters });
-    
-    if (category === 'center_name') {
-      // Handle center_name filter normally
-      setActiveFilters((prev) => {
-        const currentValues = prev[category] || [];
-        const newValues = currentValues.includes(value)
-          ? currentValues.filter((v) => v !== value)
-          : [...currentValues, value];
 
-        if (newValues.length === 0) {
-          const newFilters = { ...prev };
-          delete newFilters[category];
-          return newFilters;
-        }
+    setActiveFilters((prev) => {
+      const currentValues = prev[category] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter((v) => v !== value)
+        : [...currentValues, value];
 
-        return { ...prev, [category]: newValues };
-      });
-    } else {
-      // Handle other filters with kendra context
-      setActiveFilters((prev) => {
-        const currentFilters = prev[category] || {};
-        let newCategoryFilters = { ...currentFilters };
-        
-        // Handle case where kendra is an array (for hierarchical multi-kendra items)
-        if (Array.isArray(kendra)) {
-          kendra.forEach(k => {
-            const currentValues = currentFilters[k] || [];
-            const newValues = currentValues.includes(value)
-              ? currentValues.filter((v) => v !== value)
-              : [...currentValues, value];
-            
-            if (newValues.length === 0) {
-              delete newCategoryFilters[k];
-            } else {
-              newCategoryFilters[k] = newValues;
-            }
-          });
-        } else {
-          // Single kendra case
-          const currentValues = currentFilters[kendra] || [];
-          const newValues = currentValues.includes(value)
-            ? currentValues.filter((v) => v !== value)
-            : [...currentValues, value];
-          
-          if (newValues.length === 0) {
-            delete newCategoryFilters[kendra];
-          } else {
-            newCategoryFilters[kendra] = newValues;
-          }
-        }
-
+      if (newValues.length === 0) {
         const newFilters = { ...prev };
-        if (Object.keys(newCategoryFilters).length === 0) {
-          delete newFilters[category];
-        } else {
-          newFilters[category] = newCategoryFilters;
-        }
-
-        console.log('New filters:', newFilters);
+        delete newFilters[category];
         return newFilters;
-      });
-    }
+      }
+
+      return { ...prev, [category]: newValues };
+    });
   };
 
   // Handle bar click in graph
@@ -2483,45 +2277,36 @@ const VivranSummaryModal = ({
                               }
                               
                               // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
-                              if (activeFilters.vidhan_sabha_name && Object.keys(activeFilters.vidhan_sabha_name).length > 0) {
+                              if (activeFilters.vidhan_sabha_name && activeFilters.vidhan_sabha_name.length > 0) {
                                 const kendraVidhanSabhas = centerToVidhanSabha[kendra] || [];
-                                return kendraVidhanSabhas.some(vidhanSabha => {
-                                  // Check if this vidhanSabha is selected for this kendra or any other kendra
-                                  return Object.entries(activeFilters.vidhan_sabha_name).some(([filterKendra, filterValues]) => {
-                                    if (filterKendra === kendra) {
-                                      return filterValues.includes(vidhanSabha);
-                                    }
-                                    // Also check if this vidhanSabha is selected for any kendra that belongs to it
-                                    return filterValues.includes(vidhanSabha);
-                                  });
-                                });
+                                return kendraVidhanSabhas.some(vidhanSabha => activeFilters.vidhan_sabha_name.includes(vidhanSabha));
                               }
                               
                               // If scheme_name filters are active, only show kendras that have selected schemes
-                              if (activeFilters.scheme_name && Object.keys(activeFilters.scheme_name).length > 0) {
+                              if (activeFilters.scheme_name && activeFilters.scheme_name.length > 0) {
                                 const kendraSchemes = kendraToSchemes[kendra] || [];
-                                if (!kendraSchemes.some(scheme => Object.values(activeFilters.scheme_name).flat().includes(scheme))) {
+                                if (!kendraSchemes.some(scheme => activeFilters.scheme_name.includes(scheme))) {
                                   return false;
                                 }
                               }
                               // If component filters are active, only show kendras that have selected components
-                              if (activeFilters.component && Object.keys(activeFilters.component).length > 0) {
+                              if (activeFilters.component && activeFilters.component.length > 0) {
                                 const kendraComponents = kendraToComponents[kendra] || [];
-                                if (!kendraComponents.some(component => Object.values(activeFilters.component).flat().includes(component))) {
+                                if (!kendraComponents.some(component => activeFilters.component.includes(component))) {
                                   return false;
                                 }
                               }
                               // If investment_name filters are active, only show kendras that have selected investments
-                              if (activeFilters.investment_name && Object.keys(activeFilters.investment_name).length > 0) {
+                              if (activeFilters.investment_name && activeFilters.investment_name.length > 0) {
                                 const kendraInvestments = kendraToInvestments[kendra] || [];
-                                if (!kendraInvestments.some(investment => Object.values(activeFilters.investment_name).flat().includes(investment))) {
+                                if (!kendraInvestments.some(investment => activeFilters.investment_name.includes(investment))) {
                                   return false;
                                 }
                               }
                               // If source_of_receipt filters are active, only show kendras that have selected sources
-                              if (activeFilters.source_of_receipt && Object.keys(activeFilters.source_of_receipt).length > 0) {
+                              if (activeFilters.source_of_receipt && activeFilters.source_of_receipt.length > 0) {
                                 const kendraSources = kendraToSources[kendra] || [];
-                                if (!kendraSources.some(source => Object.values(activeFilters.source_of_receipt).flat().includes(source))) {
+                                if (!kendraSources.some(source => activeFilters.source_of_receipt.includes(source))) {
                                   return false;
                                 }
                               }
@@ -2536,16 +2321,14 @@ const VivranSummaryModal = ({
                                     <Col key={scheme} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.scheme_name && 
-                                           activeFilters.scheme_name[kendra] &&
-                                           activeFilters.scheme_name[kendra].includes(scheme))
+                                          activeFilters.scheme_name && activeFilters.scheme_name.includes(scheme)
                                             ? "primary"
                                             : "outline-secondary"
                                         }
                                         size="sm"
                                         className="filter-button"
                                         onClick={() =>
-                                          handleFilterChange("scheme_name", scheme, kendra)
+                                          handleFilterChange("scheme_name", scheme)
                                         }
                                       >
                                         {scheme}
@@ -2592,16 +2375,16 @@ const VivranSummaryModal = ({
                               }
                               
                               // If component filters are active, only show kendras that have selected components
-                              if (activeFilters.component && Object.keys(activeFilters.component).length > 0) {
+                              if (activeFilters.component && activeFilters.component.length > 0) {
                                 const kendraComponents = kendraToComponents[kendra] || [];
-                                if (!kendraComponents.some(component => Object.values(activeFilters.component).flat().includes(component))) {
+                                if (!kendraComponents.some(component => activeFilters.component.includes(component))) {
                                   return false;
                                 }
                               }
                               // If investment_name filters are active, only show kendras that have selected investments
-                              if (activeFilters.investment_name && Object.keys(activeFilters.investment_name).length > 0) {
+                              if (activeFilters.investment_name && activeFilters.investment_name.length > 0) {
                                 const kendraInvestments = kendraToInvestments[kendra] || [];
-                                if (!kendraInvestments.some(investment => Object.values(activeFilters.investment_name).flat().includes(investment))) {
+                                if (!kendraInvestments.some(investment => activeFilters.investment_name.includes(investment))) {
                                   return false;
                                 }
                               }
@@ -2614,33 +2397,28 @@ const VivranSummaryModal = ({
                                 <Row className="g-1 align-items-center">
                                   {sources.filter(source => {
                                     let valid = true;
-                                    if (activeFilters.scheme_name && activeFilters.scheme_name[kendra]) {
-                                      const selectedSchemes = activeFilters.scheme_name[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && selectedSchemes.includes(item.scheme_name));
+                                    if (activeFilters.scheme_name) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && activeFilters.scheme_name.includes(item.scheme_name));
                                     }
-                                    if (activeFilters.component && activeFilters.component[kendra]) {
-                                      const selectedComponents = activeFilters.component[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && selectedComponents.includes(item.component));
+                                    if (activeFilters.component) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && activeFilters.component.includes(item.component));
                                     }
-                                    if (activeFilters.investment_name && activeFilters.investment_name[kendra]) {
-                                      const selectedInvestments = activeFilters.investment_name[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && selectedInvestments.includes(item.investment_name));
+                                    if (activeFilters.investment_name) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.source_of_receipt === source && activeFilters.investment_name.includes(item.investment_name));
                                     }
                                     return valid;
                                   }).map((source) => (
                                     <Col key={source} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.source_of_receipt &&
-                                           activeFilters.source_of_receipt[kendra] &&
-                                           activeFilters.source_of_receipt[kendra].includes(source))
+                                          activeFilters.source_of_receipt && activeFilters.source_of_receipt.includes(source)
                                             ? "primary"
                                             : "outline-secondary"
                                         }
                                         size="sm"
                                         className="filter-button"
                                         onClick={() =>
-                                          handleFilterChange("source_of_receipt", source, kendra)
+                                          handleFilterChange("source_of_receipt", source)
                                         }
                                       >
                                         {source}
@@ -2669,16 +2447,16 @@ const VivranSummaryModal = ({
                                 return activeFilters.center_name.includes(kendra);
                               }
                               // If scheme_name filters are active, only show kendras that have selected schemes
-                              if (activeFilters.scheme_name && Object.keys(activeFilters.scheme_name).length > 0) {
+                              if (activeFilters.scheme_name && activeFilters.scheme_name.length > 0) {
                                 const kendraSchemes = kendraToSchemes[kendra] || [];
-                                if (!kendraSchemes.some(scheme => Object.values(activeFilters.scheme_name).flat().includes(scheme))) {
+                                if (!kendraSchemes.some(scheme => activeFilters.scheme_name.includes(scheme))) {
                                   return false;
                                 }
                               }
                               // If investment_name filters are active, only show kendras that have selected investments
-                              if (activeFilters.investment_name && Object.keys(activeFilters.investment_name).length > 0) {
+                              if (activeFilters.investment_name && activeFilters.investment_name.length > 0) {
                                 const kendraInvestments = kendraToInvestments[kendra] || [];
-                                if (!kendraInvestments.some(investment => Object.values(activeFilters.investment_name).flat().includes(investment))) {
+                                if (!kendraInvestments.some(investment => activeFilters.investment_name.includes(investment))) {
                                   return false;
                                 }
                               }
@@ -2691,33 +2469,28 @@ const VivranSummaryModal = ({
                                 <Row className="g-1 align-items-center">
                                   {components.filter(component => {
                                     let valid = true;
-                                    if (activeFilters.source_of_receipt && activeFilters.source_of_receipt[kendra]) {
-                                      const selectedSources = activeFilters.source_of_receipt[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && selectedSources.includes(item.source_of_receipt));
+                                    if (activeFilters.source_of_receipt) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && activeFilters.source_of_receipt.includes(item.source_of_receipt));
                                     }
-                                    if (activeFilters.scheme_name && activeFilters.scheme_name[kendra]) {
-                                      const selectedSchemes = activeFilters.scheme_name[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && selectedSchemes.includes(item.scheme_name));
+                                    if (activeFilters.scheme_name) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && activeFilters.scheme_name.includes(item.scheme_name));
                                     }
-                                    if (activeFilters.investment_name && activeFilters.investment_name[kendra]) {
-                                      const selectedInvestments = activeFilters.investment_name[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && selectedInvestments.includes(item.investment_name));
+                                    if (activeFilters.investment_name) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.component === component && activeFilters.investment_name.includes(item.investment_name));
                                     }
                                     return valid;
                                   }).map((component) => (
                                     <Col key={component} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.component &&
-                                           activeFilters.component[kendra] &&
-                                           activeFilters.component[kendra].includes(component))
+                                          activeFilters.component && activeFilters.component.includes(component)
                                             ? "primary"
                                             : "outline-secondary"
                                         }
                                         size="sm"
                                         className="filter-button"
                                         onClick={() =>
-                                          handleFilterChange("component", component, kendra)
+                                          handleFilterChange("component", component)
                                         }
                                       >
                                         {component}
@@ -2746,16 +2519,16 @@ const VivranSummaryModal = ({
                                 return activeFilters.center_name.includes(kendra);
                               }
                               // If scheme_name filters are active, only show kendras that have selected schemes
-                              if (activeFilters.scheme_name && Object.keys(activeFilters.scheme_name).length > 0) {
+                              if (activeFilters.scheme_name && activeFilters.scheme_name.length > 0) {
                                 const kendraSchemes = kendraToSchemes[kendra] || [];
-                                if (!kendraSchemes.some(scheme => Object.values(activeFilters.scheme_name).flat().includes(scheme))) {
+                                if (!kendraSchemes.some(scheme => activeFilters.scheme_name.includes(scheme))) {
                                   return false;
                                 }
                               }
                               // If component filters are active, only show kendras that have selected components
-                              if (activeFilters.component && Object.keys(activeFilters.component).length > 0) {
+                              if (activeFilters.component && activeFilters.component.length > 0) {
                                 const kendraComponents = kendraToComponents[kendra] || [];
-                                if (!kendraComponents.some(component => Object.values(activeFilters.component).flat().includes(component))) {
+                                if (!kendraComponents.some(component => activeFilters.component.includes(component))) {
                                   return false;
                                 }
                               }
@@ -2768,33 +2541,28 @@ const VivranSummaryModal = ({
                                 <Row className="g-1 align-items-center">
                                   {investments.filter(investment => {
                                     let valid = true;
-                                    if (activeFilters.component && activeFilters.component[kendra]) {
-                                      const selectedComponents = activeFilters.component[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && selectedComponents.includes(item.component));
+                                    if (activeFilters.component) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && activeFilters.component.includes(item.component));
                                     }
-                                    if (activeFilters.scheme_name && activeFilters.scheme_name[kendra]) {
-                                      const selectedSchemes = activeFilters.scheme_name[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && selectedSchemes.includes(item.scheme_name));
+                                    if (activeFilters.scheme_name) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && activeFilters.scheme_name.includes(item.scheme_name));
                                     }
-                                    if (activeFilters.source_of_receipt && activeFilters.source_of_receipt[kendra]) {
-                                      const selectedSources = activeFilters.source_of_receipt[kendra];
-                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && selectedSources.includes(item.source_of_receipt));
+                                    if (activeFilters.source_of_receipt) {
+                                      valid = valid && groupData.items.some(item => item.center_name === kendra && item.investment_name === investment && activeFilters.source_of_receipt.includes(item.source_of_receipt));
                                     }
                                     return valid;
                                   }).map((investment) => (
                                     <Col key={investment} xs="auto" className="mb-2">
                                       <Button
                                         variant={
-                                          (activeFilters.investment_name &&
-                                           activeFilters.investment_name[kendra] &&
-                                           activeFilters.investment_name[kendra].includes(investment))
+                                          activeFilters.investment_name && activeFilters.investment_name.includes(investment)
                                             ? "primary"
                                             : "outline-secondary"
                                         }
                                         size="sm"
                                         className="filter-button"
                                         onClick={() =>
-                                          handleFilterChange("investment_name", investment, kendra)
+                                          handleFilterChange("investment_name", investment)
                                         }
                                       >
                                         {investment}
@@ -2906,60 +2674,6 @@ const VivranSummaryModal = ({
 
 
 
-        {/* Kendra Selection Filter for Combined Table */}
-        <Card className="mb-3">
-          <Card.Body className="py-2">
-            <Row className="align-items-center">
-              <Col md={12}>
-                <Form.Label className="mb-2 fw-bold">केंद्र चुनें (संपूर्ण विवरण तालिका के लिए):</Form.Label>
-                <div className="d-flex flex-wrap gap-2">
-                  {(() => {
-                    // Show only kendras that are selected in the kendra filter above
-                    const kendrasToShow = activeFilters.center_name && activeFilters.center_name.length > 0 
-                      ? activeFilters.center_name 
-                      : uniqueCenters;
-                    
-                    return (
-                      <>
-                        <Form.Check
-                          type="checkbox"
-                          name="combined-table-kendra"
-                          id="combined-all-kendra"
-                          label="सभी चुनें"
-                          checked={selectedCombinedKendra.length === kendrasToShow.length}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedCombinedKendra(kendrasToShow);
-                            } else {
-                              setSelectedCombinedKendra([]);
-                            }
-                          }}
-                        />
-                        {kendrasToShow.map(kendra => (
-                          <Form.Check
-                            key={kendra}
-                            type="checkbox"
-                            name="combined-table-kendra"
-                            id={`combined-kendra-${kendra}`}
-                            label={kendra}
-                            checked={selectedCombinedKendra.includes(kendra)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedCombinedKendra(prev => [...prev, kendra]);
-                              } else {
-                                setSelectedCombinedKendra(prev => prev.filter(k => k !== kendra));
-                              }
-                            }}
-                          />
-                        ))}
-                      </>
-                    );
-                  })()}
-                </div>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
 
         {/* Combined Table Section */}
         <Card className="mb-3">
@@ -2969,12 +2683,12 @@ const VivranSummaryModal = ({
               <Button
                 variant="outline-success"
                 size="sm"
-                onClick={() => downloadExcel(combinedTableData, 'Combined')}
+                onClick={() => downloadExcel(tableData, 'Filtered')}
                 className="me-2 fillter-exel-btn"
               >
                 <i className="delete-icon"> <FaFileExcel /></i>  Excel
               </Button>
-              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(combinedTableData, 'Combined')} className="fillter-pdf-btn">
+              <Button variant="outline-danger" size="sm" onClick={() => downloadPdf(tableData, 'Filtered')} className="fillter-pdf-btn">
               <i className="delete-icon"> <FaFilePdf /></i>  PDF
               </Button>
             </div>
@@ -3027,7 +2741,7 @@ const VivranSummaryModal = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {combinedTableData.map((item, index) => {
+                  {tableData.map((item, index) => {
                     const allocatedAmount = (
                       parseFloat(item.allocated_quantity) *
                       parseFloat(item.rate)
@@ -3096,7 +2810,7 @@ const VivranSummaryModal = ({
                     {selectedColumns.includes("investment_name") && <td></td>}
                     {selectedColumns.includes("allocated_quantity") && (
                       <td>
-                        {combinedTableData
+                        {tableData
                           .reduce(
                             (sum, item) =>
                               sum + parseFloat(item.allocated_quantity || 0),
@@ -3107,11 +2821,11 @@ const VivranSummaryModal = ({
                     )}
                     {selectedColumns.includes("rate") && <td></td>}
                     {selectedColumns.includes("allocated_amount") && (
-                      <td>{formatCurrency(combinedTotalAllocated)}</td>
+                      <td>{formatCurrency(tableTotalAllocated)}</td>
                     )}
                     {selectedColumns.includes("updated_quantity") && (
                       <td>
-                        {combinedTableData
+                        {tableData
                           .reduce(
                             (sum, item) =>
                               sum + parseFloat(item.updated_quantity || 0),
@@ -3121,7 +2835,7 @@ const VivranSummaryModal = ({
                       </td>
                     )}
                     {selectedColumns.includes("updated_amount") && (
-                      <td>{formatCurrency(combinedTotalUpdated)}</td>
+                      <td>{formatCurrency(tableTotalUpdated)}</td>
                     )}
                     {selectedColumns.includes("source_of_receipt") && <td></td>}
                     {selectedColumns.includes("scheme_name") && <td></td>}
