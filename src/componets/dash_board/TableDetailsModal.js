@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Container, Form } from "react-bootstrap";
-import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList } from "react-icons/fa";
+import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList, FaFileExcel, FaFilePdf, FaDownload } from "react-icons/fa";
+import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 
@@ -25,12 +26,1313 @@ const getContrastColor = (bgColor) => {
 };
 
 const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
+
+  // Enhanced Export functions with comprehensive relational summaries
+  // Export specific section data to Excel with detailed breakdown
+  const exportSectionToExcel = (sectionType, breakdownData = null) => {
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      // Only export detailed breakdown data (vivran) if available
+      if (breakdownData && breakdownData.length > 0) {
+        const detailWs = XLSX.utils.json_to_sheet(breakdownData);
+        XLSX.utils.book_append_sheet(wb, detailWs, "Detailed Breakdown");
+      } else {
+        // If no breakdown data, show message
+        const emptyData = [{'Message': 'कोई विस्तृत विवरण उपलब्ध नहीं - कृपया कार्ड खोलें'}];
+        const emptyWs = XLSX.utils.json_to_sheet(emptyData);
+        XLSX.utils.book_append_sheet(wb, emptyWs, "Information");
+      }
+      
+      // Export file
+      const fileName = `${centerName || 'data'}_${sectionType}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      console.log('Section Excel export successful:', fileName);
+    } catch (error) {
+      console.error('Error exporting section to Excel:', error);
+      alert('सेक्शन एक्सेल निर्यात में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // Export specific section data to PDF
+  const exportSectionToPDF = (sectionType, sectionData) => {
+    try {
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the specific section
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - ${sectionType} रिपोर्ट</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #2c3e50; text-align: center; }
+            h2 { color: #3498db; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #7f8c8d; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${centerName}</h1>
+            <h2>${sectionType} रिपोर्ट</h2>
+            <p>${new Date().toLocaleDateString('hi-IN')}</p>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                ${Object.keys(sectionData[0] || {}).map(key => `<th>${key}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${sectionData.map(item => `
+                <tr>
+                  ${Object.values(item).map(value => `<td>${value}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="footer">
+            <p>रिपोर्ट तैयार की गई: ${new Date().toLocaleString('hi-IN')}</p>
+            <p>कुल ${sectionData.length} रिकॉर्ड का विश्लेषण</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Wait for content to load and then print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 1000);
+      };
+      
+    } catch (error) {
+      console.error('Error exporting section to PDF:', error);
+      alert('सेक्शन पीडीएफ निर्यात में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      // Enhanced component descriptions
+      const getComponentDescription = (component) => {
+        const descriptions = {
+          'कृषक प्रशिक्षण': 'किसानों को आधुनिक कृषि तकनीकों का प्रशिक्षण',
+          'बीज वितरण': 'उन्नत किस्म के बीजों का वितरण किसानों को',
+          'उपकरण सब्सिडी': 'कृषि उपकरणों पर सब्सिडी या अनुदान',
+          'सिंचाई सुविधा': 'सिंचाई के लिए पाइपलाइन, बोरवेल आदि',
+          'मार्केटिंग सपोर्ट': 'फसल की बिक्री के लिए बाजार सहायता',
+          'पशुपालन सहायता': 'पशुपालन के लिए अनुदान और सहायता',
+          'मशीनरी': 'कृषि मशीनरी और उपकरण',
+          'केंचुवीकम्पोस्ट': 'जैविक खाद बनाने के लिए केंचुआ',
+          'बायोफर्टिलाइजर': 'जैविक उर्वरक और कीटनाशक',
+          'रसायन उर्वरक': 'रासायनिक खाद और कीटनाशक',
+          'सोलर सिस्टम': 'सौर ऊर्जा प्रणाली स्थापना',
+          'ड्रिप सिंचाई': 'बूंद-बूंद सिंचाई प्रणाली'
+        };
+        return descriptions[component] || 'विकास कार्यक्रम का मुख्य घटक';
+      };
+
+      // Enhanced scheme descriptions
+      const getSchemeDescription = (scheme) => {
+        const descriptions = {
+          'कृषक कल्याण योजना': 'किसानों के समग्र विकास और कल्याण के लिए',
+          'सरकारी कृषि योजना': 'सरकार द्वारा संचालित कृषि विकास कार्यक्रम',
+          'राष्ट्रीय कृषि विकास योजना': 'राष्ट्रीय स्तर पर कृषि उत्पादकता बढ़ाने के लिए',
+          'प्रधानमंत्री फसल बीमा योजना': 'फसल के जोखिम से बचाव के लिए',
+          'किसान पेंशन योजना': 'किसानों के वृद्धावस्था सुरक्षा के लिए',
+          'मृदा स्वास्थ्य कार्ड योजना': 'मिट्टी की गुणवत्ता जांच और सुधार के लिए'
+        };
+        return descriptions[scheme] || 'सरकारी विकास कार्यक्रम';
+      };
+
+      // Enhanced geographical analysis
+      const getGeographicalAnalysis = () => {
+        const geoAnalysis = [];
+        
+        // Analyze each scheme's geographical presence
+        uniqueSchemes.forEach(scheme => {
+          const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+          const vidhanSabhas = [...new Set(schemeItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+          const vikasKhands = [...new Set(schemeItems.map(item => item.vikas_khand_name))].filter(Boolean);
+          const centers = [...new Set(schemeItems.map(item => item.center_name))].filter(Boolean);
+          
+          geoAnalysis.push({
+            'योजना': scheme,
+            'योजना विवरण': getSchemeDescription(scheme),
+            'कुल रिकॉर्ड': schemeItems.length,
+            'शामिल विधानसभाएं': vidhanSabhas.join(', '),
+            'विधानसभाओं की संख्या': vidhanSabhas.length,
+            'शामिल विकासखंड': vikasKhands.join(', '),
+            'विकासखंडों की संख्या': vikasKhands.length,
+            'शामिल केंद्र': centers.join(', '),
+            'केंद्रों की संख्या': centers.length,
+            'आवंटित राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)),
+            'बेची गई राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'शेष राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'प्रभावशीलता प्रतिशत': ((schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 1)) * 100).toFixed(2),
+            'भौगोलिक कवरेज': vidhanSabhas.length > 0 ? 'व्यापक' : 'सीमित'
+          });
+        });
+        
+        return geoAnalysis;
+      };
+
+      // Enhanced component analysis with relational data
+      const getComponentAnalysis = () => {
+        const componentAnalysis = [];
+        
+        uniqueComponents.forEach(component => {
+          const componentItems = tableData.filter(item => item.component === component);
+          const schemes = [...new Set(componentItems.map(item => item.scheme_name))].filter(Boolean);
+          const investments = [...new Set(componentItems.map(item => item.investment_name))].filter(Boolean);
+          const sources = [...new Set(componentItems.map(item => item.source_of_receipt))].filter(Boolean);
+          const vidhanSabhas = [...new Set(componentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+          const vikasKhands = [...new Set(componentItems.map(item => item.vikas_khand_name))].filter(Boolean);
+          
+          componentAnalysis.push({
+            'घटक': component,
+            'घटक विवरण': getComponentDescription(component),
+            'कुल रिकॉर्ड': componentItems.length,
+            'संबंधित योजनाएं': schemes.join(', '),
+            'योजनाओं की संख्या': schemes.length,
+            'संबंधित निवेश': investments.join(', '),
+            'निवेशों की संख्या': investments.length,
+            'स्रोत': sources.join(', '),
+            'स्रोतों की संख्या': sources.length,
+            'शामिल विधानसभाएं': vidhanSabhas.join(', '),
+            'विधानसभाओं की संख्या': vidhanSabhas.length,
+            'शामिल विकासखंड': vikasKhands.join(', '),
+            'विकासखंडों की संख्या': vikasKhands.length,
+            'आवंटित राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)),
+            'बेची गई राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'शेष राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'प्रभावशीलता प्रतिशत': ((componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 1)) * 100).toFixed(2)
+          });
+        });
+        
+        return componentAnalysis;
+      };
+
+      // Comprehensive relational matrix
+      const getRelationalMatrix = () => {
+        const matrix = [];
+        
+        uniqueSchemes.forEach(scheme => {
+          const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+          const schemeComponents = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
+          const schemeInvestments = [...new Set(schemeItems.map(item => item.investment_name))].filter(Boolean);
+          const schemeSources = [...new Set(schemeItems.map(item => item.source_of_receipt))].filter(Boolean);
+          const schemeVidhanSabhas = [...new Set(schemeItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+          const schemeVikasKhands = [...new Set(schemeItems.map(item => item.vikas_khand_name))].filter(Boolean);
+          
+          matrix.push({
+            'योजना': scheme,
+            'योजना विवरण': getSchemeDescription(scheme),
+            'घटक': schemeComponents.join(', '),
+            'निवेश': schemeInvestments.join(', '),
+            'स्रोत': schemeSources.join(', '),
+            'विधानसभाएं': schemeVidhanSabhas.join(', '),
+            'विकासखंड': schemeVikasKhands.join(', '),
+            'कुल मात्रा': schemeItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2),
+            'बेची गई मात्रा': schemeItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2),
+            'कुल राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)),
+            'बेची गई राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'शेष राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))
+          });
+        });
+        
+        return matrix;
+      };
+
+      // Prepare main data for Excel export with enhanced information
+      const excelData = tableData.map(item => ({
+        'क्र.सं.': '', // Will be filled by Excel
+        'विधानसभा': item.vidhan_sabha_name || '',
+        'विकासखंड': item.vikas_khand_name || '',
+        'केंद्र': centerName || '',
+        'योजना': item.scheme_name || '',
+        'योजना विवरण': getSchemeDescription(item.scheme_name || ''),
+        'स्रोत': item.source_of_receipt || '',
+        'घटक': item.component || '',
+        'घटक विवरण': getComponentDescription(item.component || ''),
+        'निवेश': item.investment_name || '',
+        'आवंटित मात्रा': parseFloat(item.allocated_quantity || 0),
+        'दर': parseFloat(item.rate || 0),
+        'आवंटित राशि': parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0),
+        'बेची गई मात्रा': parseFloat(item.updated_quantity || 0),
+        'बेची गई राशि': parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0),
+        'शेष मात्रा': parseFloat(item.allocated_quantity || 0) - parseFloat(item.updated_quantity || 0),
+        'शेष राशि': (parseFloat(item.allocated_quantity || 0) - parseFloat(item.updated_quantity || 0)) * parseFloat(item.rate || 0),
+        'बिक्री प्रतिशत': ((parseFloat(item.updated_quantity || 0) / parseFloat(item.allocated_quantity || 1)) * 100).toFixed(2),
+        'स्थिति': parseFloat(item.allocated_quantity || 0) - parseFloat(item.updated_quantity || 0) > 0 ? 'सक्रिय' : 'पूर्ण'
+      }));
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // 1. Executive Summary Sheet
+      const executiveSummary = [
+        ['कार्यकारी सारांश', ''],
+        ['रिपोर्ट तिथि', new Date().toLocaleDateString('hi-IN')],
+        ['केंद्र का नाम', centerName || 'सभी केंद्र'],
+        ['कुल रिकॉर्ड', tableData.length],
+        ['', ''],
+        ['भौगोलिक विवरण', ''],
+        ['विधानसभाओं की संख्या', uniqueVidhanSabhas.length],
+        ['विकासखंडों की संख्या', uniqueVikasKhands.length],
+        ['केंद्रों की संख्या', new Set(tableData.map(item => item.center_name)).size],
+        ['', ''],
+        ['योजना विवरण', ''],
+        ['योजनाओं की कुल संख्या', uniqueSchemes.length],
+        ['घटकों की कुल संख्या', uniqueComponents.length],
+        ['निवेशों की कुल संख्या', uniqueInvestments.length],
+        ['स्रोतों की कुल संख्या', uniqueSources.length],
+        ['', ''],
+        ['वित्तीय सारांश (रुपयों में)', ''],
+        ['कुल आवंटित राशि', formatCurrency(totals.totalAllocated)],
+        ['कुल बेची गई राशि', formatCurrency(totals.totalUpdated)],
+        ['कुल शेष राशि', formatCurrency(totals.totalRemaining)],
+        ['बिक्री प्रतिशत', `${((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2)}%`],
+        ['बची हुई राशि प्रतिशत', `${((totals.totalRemaining / totals.totalAllocated) * 100).toFixed(2)}%`]
+      ];
+      
+      const executiveSheet = XLSX.utils.aoa_to_sheet(executiveSummary);
+      XLSX.utils.book_append_sheet(wb, executiveSheet, "कार्यकारी सारांश");
+      
+      // 2. Main data sheet with serial numbers
+      const mainDataWithSerial = excelData.map((row, index) => ({
+        ...row,
+        'क्र.सं.': index + 1
+      }));
+      
+      const mainSheet = XLSX.utils.json_to_sheet(mainDataWithSerial);
+      XLSX.utils.book_append_sheet(wb, mainSheet, "मुख्य डेटा");
+      
+      // 3. Comprehensive Summary data
+      const summaryData = [
+        ['संपूर्ण सारांश', ''],
+        ['रिकॉर्ड विवरण', 'मान'],
+        ['कुल रिकॉर्ड', tableData.length],
+        ['विधानसभाओं की संख्या', uniqueVidhanSabhas.length],
+        ['विकासखंडों की संख्या', uniqueVikasKhands.length],
+        ['योजनाओं की संख्या', uniqueSchemes.length],
+        ['निवेशों की संख्या', uniqueInvestments.length],
+        ['घटकों की संख्या', uniqueComponents.length],
+        ['स्रोतों की संख्या', uniqueSources.length],
+        ['', ''],
+        ['वित्तीय विवरण (रुपयों में)', ''],
+        ['कुल आवंटित राशि', formatCurrency(totals.totalAllocated)],
+        ['कुल बेची गई राशि', formatCurrency(totals.totalUpdated)],
+        ['कुल शेष राशि', formatCurrency(totals.totalRemaining)],
+        ['बिक्री दर', `${((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2)}%`],
+        ['प्रभावशीलता', totals.totalAllocated > 0 ? 'उत्कृष्ट' : 'मूल्यांकन आवश्यक']
+      ];
+      
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, summarySheet, "संपूर्ण सारांश");
+      
+      // 4. Detailed Scheme-wise breakdown
+      const schemeDetails = uniqueSchemes.map(scheme => {
+        const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+        const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        const vidhanSabhas = [...new Set(schemeItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+        const vikasKhands = [...new Set(schemeItems.map(item => item.vikas_khand_name))].filter(Boolean);
+        const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
+        
+        return {
+          'योजना': scheme,
+          'रिकॉर्ड संख्या': schemeItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'बेची गई राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+          'शामिल विधानसभाएं': vidhanSabhas.join(', '),
+          'शामिल विकासखंड': vikasKhands.join(', '),
+          'शामिल घटक': components.join(', ')
+        };
+      });
+      
+      const schemeSheet = XLSX.utils.json_to_sheet(schemeDetails);
+      XLSX.utils.book_append_sheet(wb, schemeSheet, "योजना विवरण");
+      
+      // 5. Component-wise breakdown
+      const componentDetails = uniqueComponents.map(component => {
+        const componentItems = tableData.filter(item => item.component === component);
+        const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        const schemes = [...new Set(componentItems.map(item => item.scheme_name))].filter(Boolean);
+        const investments = [...new Set(componentItems.map(item => item.investment_name))].filter(Boolean);
+        
+        return {
+          'घटक': component,
+          'रिकॉर्ड संख्या': componentItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'बेची गई राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+          'शामिल योजनाएं': schemes.join(', '),
+          'शामिल निवेश': investments.join(', ')
+        };
+      });
+      
+      const componentSheet = XLSX.utils.json_to_sheet(componentDetails);
+      XLSX.utils.book_append_sheet(wb, componentSheet, "घटक विवरण");
+      
+      // 6. Location-wise breakdown
+      const locationDetails = uniqueVikasKhands.map(location => {
+        const locationItems = tableData.filter(item => item.vikas_khand_name === location);
+        const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        const vidhanSabha = locationItems[0]?.vidhan_sabha_name || '';
+        const centers = [...new Set(locationItems.map(item => item.center_name))].filter(Boolean);
+        const schemes = [...new Set(locationItems.map(item => item.scheme_name))].filter(Boolean);
+        
+        return {
+          'विकासखंड': location,
+          'विधानसभा': vidhanSabha,
+          'शामिल केंद्र': centers.join(', '),
+          'रिकॉर्ड संख्या': locationItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'बेची गई राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+          'शामिल योजनाएं': schemes.join(', ')
+        };
+      });
+      
+      const locationSheet = XLSX.utils.json_to_sheet(locationDetails);
+      XLSX.utils.book_append_sheet(wb, locationSheet, "स्थान विवरण");
+      
+      // 7. Source-wise breakdown
+      const sourceDetails = uniqueSources.map(source => {
+        const sourceItems = tableData.filter(item => item.source_of_receipt === source);
+        const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        return {
+          'स्रोत': source,
+          'रिकॉर्ड संख्या': sourceItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'बेची गई राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`
+        };
+      });
+      
+      const sourceSheet = XLSX.utils.json_to_sheet(sourceDetails);
+      XLSX.utils.book_append_sheet(wb, sourceSheet, "स्रोत विवरण");
+      
+      // 8. Investment-wise breakdown
+      const investmentDetails = uniqueInvestments.map(investment => {
+        const investmentItems = tableData.filter(item => item.investment_name === investment);
+        const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        return {
+          'निवेश': investment,
+          'रिकॉर्ड संख्या': investmentItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'बेची गई राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`
+        };
+      });
+      
+      const investmentSheet = XLSX.utils.json_to_sheet(investmentDetails);
+      XLSX.utils.book_append_sheet(wb, investmentSheet, "निवेश विवरण");
+      
+      // Export file
+      const fileName = `${centerName || 'data'}_संपूर्ण_रिपोर्ट_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      console.log('Excel export successful:', fileName);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('एक्सेल निर्यात में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  const exportToPDF = () => {
+    try {
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+       
+      // Generate comprehensive HTML content for PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - संपूर्ण रिपोर्ट</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .executive-summary {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 20px;
+              border-radius: 10px;
+              margin: 20px 0;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+              margin: 20px 0;
+            }
+            .summary-card {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              text-align: center;
+              border-left: 4px solid #007bff;
+            }
+            .summary-number {
+              font-size: 20px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 5px;
+            }
+            .summary-label {
+              font-size: 11px;
+              color: #7f8c8d;
+              text-transform: uppercase;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .financial-summary {
+              background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+              color: white;
+              padding: 20px;
+              border-radius: 10px;
+              margin: 20px 0;
+            }
+            .financial-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+              text-align: center;
+            }
+            .financial-item h3 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .financial-item p {
+              margin: 5px 0 0 0;
+              font-size: 12px;
+              opacity: 0.9;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            .scheme-location {
+              background: #fff3cd;
+              border: 1px solid #ffeaa7;
+              border-radius: 5px;
+              padding: 15px;
+              margin: 15px 0;
+            }
+            .component-breakdown {
+              background: #d1ecf1;
+              border: 1px solid #bee5eb;
+              border-radius: 5px;
+              padding: 15px;
+              margin: 15px 0;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">संपूर्ण विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <!-- Executive Summary -->
+          <div class="executive-summary">
+            <h2 style="margin-top: 0; text-align: center;">कार्यकारी सारांश</h2>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-number">${tableData.length}</div>
+                <div class="summary-label">कुल रिकॉर्ड</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueVidhanSabhas.length}</div>
+                <div class="summary-label">विधानसभा</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueVikasKhands.length}</div>
+                <div class="summary-label">विकासखंड</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueSchemes.length}</div>
+                <div class="summary-label">योजनाएं</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueComponents.length}</div>
+                <div class="summary-label">घटक</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueSources.length}</div>
+                <div class="summary-label">स्रोत</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial Summary -->
+          <div class="financial-summary">
+            <h2 style="margin-top: 0; text-align: center;">वित्तीय सारांश</h2>
+            <div class="financial-grid">
+              <div class="financial-item">
+                <h3>${formatCurrency(totals.totalAllocated)}</h3>
+                <p>कुल आवंटित राशि</p>
+              </div>
+              <div class="financial-item">
+                <h3>${formatCurrency(totals.totalUpdated)}</h3>
+                <p>कुल बेची गई राशि</p>
+              </div>
+              <div class="financial-item">
+                <h3>${formatCurrency(totals.totalRemaining)}</h3>
+                <p>कुल शेष राशि</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scheme-wise Summary -->
+          <div class="section">
+            <div class="section-title">योजना वार विस्तृत सारांश</div>
+            <div class="scheme-location">
+              <h4>योजनाओं की उपस्थिति और उनके संबंधित घटक:</h4>
+              <ul>
+                ${uniqueSchemes.map(scheme => {
+                  const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+                  const vidhanSabhas = [...new Set(schemeItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+                  const vikasKhands = [...new Set(schemeItems.map(item => item.vikas_khand_name))].filter(Boolean);
+                  const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
+                  const investments = [...new Set(schemeItems.map(item => item.investment_name))].filter(Boolean);
+                  const sources = [...new Set(schemeItems.map(item => item.source_of_receipt))].filter(Boolean);
+                  const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  
+                  // Create geographical mapping
+                  const geoMapping = schemeItems.reduce((acc, item) => {
+                    const vidhanSabha = item.vidhan_sabha_name;
+                    const vikasKhand = item.vikas_khand_name;
+                    if (!acc[vidhanSabha]) {
+                      acc[vidhanSabha] = new Set();
+                    }
+                    if (vikasKhand) {
+                      acc[vidhanSabha].add(vikasKhand);
+                    }
+                    return acc;
+                  }, {});
+                  
+                  const geoDistribution = Object.entries(geoMapping).map(([vidhanSabha, vikasKhandSet]) => 
+                    `${vidhanSabha} → ${Array.from(vikasKhandSet).join(', ')}`
+                  ).join('; ');
+                  
+                  // Create component mapping with detailed relationships
+                  const componentMapping = schemeItems.reduce((acc, item) => {
+                    const component = item.component;
+                    const investment = item.investment_name;
+                    const source = item.source_of_receipt;
+                    const location = `${item.vidhan_sabha_name} → ${item.vikas_khand_name}`;
+                    
+                    if (!acc[component]) {
+                      acc[component] = {
+                        investments: new Set(),
+                        sources: new Set(),
+                        locations: new Set()
+                      };
+                    }
+                    if (investment) acc[component].investments.add(investment);
+                    if (source) acc[component].sources.add(source);
+                    if (location && location !== ' → ') acc[component].locations.add(location);
+                    
+                    return acc;
+                  }, {});
+                  
+                  const componentDetails = Object.entries(componentMapping).map(([component, data]) => 
+                    `${component} → निवेश: ${Array.from(data.investments).join(', ') || 'कोई नहीं'}, स्रोत: ${Array.from(data.sources).join(', ') || 'कोई नहीं'}, स्थान: ${Array.from(data.locations).join(', ') || 'कोई नहीं'}`
+                  ).join('; ');
+                  
+                  return `
+                    <li><strong>${scheme}</strong>
+                      <div class="scheme-details">
+                        <div class="detail-row">
+                          <span class="label">भौगोलिक वितरण:</span>
+                          <span class="value">${geoDistribution || 'स्थान डेटा उपलब्ध नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">घटक-वार विवरण:</span>
+                          <span class="value">${componentDetails || 'घटक विवरण उपलब्ध नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">संबंधित घटक:</span>
+                          <span class="value">${components.length > 0 ? components.join(', ') : 'कोई घटक नहीं'} (${components.length} घटक)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">संबंधित निवेश:</span>
+                          <span class="value">${investments.length > 0 ? investments.join(', ') : 'कोई निवेश नहीं'} (${investments.length} निवेश)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">स्रोत:</span>
+                          <span class="value">${sources.length > 0 ? sources.join(', ') : 'कोई स्रोत नहीं'} (${sources.length} स्रोत)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">उपस्थित विधानसभाएं:</span>
+                          <span class="value">${vidhanSabhas.length > 0 ? vidhanSabhas.join(', ') : 'कोई विधानसभा नहीं'} (${vidhanSabhas.length} विधानसभाएं)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">शामिल विकासखंड:</span>
+                          <span class="value">${vikasKhands.length > 0 ? vikasKhands.join(', ') : 'कोई विकासखंड नहीं'} (${vikasKhands.length} विकासखंड)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">कुल स्थानों की संख्या:</span>
+                          <span class="value highlight">${vidhanSabhas.length + vikasKhands.length} स्थान</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">आवंटित राशि:</span>
+                          <span class="value">${formatCurrency(allocated)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">बेची गई राशि:</span>
+                          <span class="value">${formatCurrency(sold)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">शेष राशि:</span>
+                          <span class="value highlight">${formatCurrency(remaining)}</span>
+                        </div>
+                      </div>
+                    </li>
+                  `;
+                }).join('')}
+              </ul>
+            </div>
+            
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>योजना</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>संबंधित घटक</th>
+                  <th>संबंधित निवेश</th>
+                  <th>आवंटित राशि</th>
+                  <th>बेची गई राशि</th>
+                  <th>शेष राशि</th>
+                  <th>बिक्री प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${uniqueSchemes.map(scheme => {
+                  const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+                  const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
+                  const investments = [...new Set(schemeItems.map(item => item.investment_name))].filter(Boolean);
+                  const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+                  
+                  return `
+                    <tr>
+                      <td class="fw-bold">${scheme}</td>
+                      <td>${schemeItems.length}</td>
+                      <td>${components.length} (${components.join(', ')})</td>
+                      <td>${investments.length} (${investments.join(', ')})</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td class="highlight">${formatCurrency(remaining)}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr class="total-row">
+                  <td><strong>कुल योग</strong></td>
+                  <td><strong>${tableData.length}</strong></td>
+                  <td><strong>${uniqueComponents.length}</strong></td>
+                  <td><strong>${uniqueInvestments.length}</strong></td>
+                  <td><strong>${formatCurrency(totals.totalAllocated)}</strong></td>
+                  <td><strong>${formatCurrency(totals.totalUpdated)}</strong></td>
+                  <td class="highlight"><strong>${formatCurrency(totals.totalRemaining)}</strong></td>
+                  <td><strong>${totals.totalAllocated > 0 ? ((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2) : '0.00'}%</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Component-wise Summary -->
+          <div class="section">
+            <div class="section-title">घटक वार विस्तृत सारांश</div>
+            <div class="component-breakdown">
+              <h4>घटकों का विवरण और उनकी संबंधित योजनाएं:</h4>
+              <ul>
+                ${uniqueComponents.map(component => {
+                  const componentItems = tableData.filter(item => item.component === component);
+                  const schemes = [...new Set(componentItems.map(item => item.scheme_name))].filter(Boolean);
+                  const investments = [...new Set(componentItems.map(item => item.investment_name))].filter(Boolean);
+                  const sources = [...new Set(componentItems.map(item => item.source_of_receipt))].filter(Boolean);
+                  const vidhanSabhas = [...new Set(componentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+                  const vikasKhands = [...new Set(componentItems.map(item => item.vikas_khand_name))].filter(Boolean);
+                  const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  
+                  // Create detailed relationship mapping
+                  const schemeMapping = componentItems.reduce((acc, item) => {
+                    const scheme = item.scheme_name;
+                    const investment = item.investment_name;
+                    const source = item.source_of_receipt;
+                    const location = `${item.vidhan_sabha_name} → ${item.vikas_khand_name}`;
+                    
+                    if (!acc[scheme]) {
+                      acc[scheme] = {
+                        investments: new Set(),
+                        sources: new Set(),
+                        locations: new Set()
+                      };
+                    }
+                    if (investment) acc[scheme].investments.add(investment);
+                    if (source) acc[scheme].sources.add(source);
+                    if (location && location !== ' → ') acc[scheme].locations.add(location);
+                    
+                    return acc;
+                  }, {});
+                  
+                  const relationshipDetails = Object.entries(schemeMapping).map(([scheme, data]) => 
+                    `${scheme} → निवेश: ${Array.from(data.investments).join(', ') || 'कोई नहीं'}, स्रोत: ${Array.from(data.sources).join(', ') || 'कोई नहीं'}, स्थान: ${Array.from(data.locations).join(', ') || 'कोई नहीं'}`
+                  ).join('; ');
+                  
+                  return `
+                    <li><strong>${component}</strong>
+                      <div class="component-details">
+                        <div class="detail-row">
+                          <span class="label">संबंधित योजनाएं:</span>
+                          <span class="value">${schemes.length > 0 ? schemes.join(', ') : 'कोई योजना नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">योजना-वार विवरण:</span>
+                          <span class="value">${relationshipDetails || 'विवरण उपलब्ध नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">संबंधित निवेश:</span>
+                          <span class="value">${investments.length > 0 ? investments.join(', ') : 'कोई निवेश नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">संबंधित स्रोत:</span>
+                          <span class="value">${sources.length > 0 ? sources.join(', ') : 'कोई स्रोत नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">उपस्थित विधानसभाएं:</span>
+                          <span class="value">${vidhanSabhas.length > 0 ? vidhanSabhas.join(', ') : 'कोई विधानसभा नहीं'} (${vidhanSabhas.length} विधानसभाएं)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">शामिल विकासखंड:</span>
+                          <span class="value">${vikasKhands.length > 0 ? vikasKhands.join(', ') : 'कोई विकासखंड नहीं'} (${vikasKhands.length} विकासखंड)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">कुल स्थानों की संख्या:</span>
+                          <span class="value highlight">${vidhanSabhas.length + vikasKhands.length} स्थान</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">आवंटित राशि:</span>
+                          <span class="value">${formatCurrency(allocated)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">बेची गई राशि:</span>
+                          <span class="value">${formatCurrency(sold)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">शेष राशि:</span>
+                          <span class="value highlight">${formatCurrency(remaining)}</span>
+                        </div>
+                      </div>
+                    </li>
+                  `;
+                }).join('')}
+              </ul>
+            </div>
+            
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>घटक</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>बेची गई राशि</th>
+                  <th>शेष राशि</th>
+                  <th>बिक्री प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${uniqueComponents.map(component => {
+                  const componentItems = tableData.filter(item => item.component === component);
+                  const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+                  
+                  return `
+                    <tr>
+                      <td>${component}</td>
+                      <td>${componentItems.length}</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td class="highlight">${formatCurrency(remaining)}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Location-wise Summary -->
+          <div class="section">
+            <div class="section-title">स्थान वार विस्तृत सारांश</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>विकासखंड</th>
+                  <th>विधानसभा</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>बेची गई राशि</th>
+                  <th>शेष राशि</th>
+                  <th>बिक्री प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${uniqueVikasKhands.map(location => {
+                  const locationItems = tableData.filter(item => item.vikas_khand_name === location);
+                  const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+                  const vidhanSabha = locationItems[0]?.vidhan_sabha_name || '';
+                  
+                  return `
+                    <tr>
+                      <td>${location}</td>
+                      <td>${vidhanSabha}</td>
+                      <td>${locationItems.length}</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td class="highlight">${formatCurrency(remaining)}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Investment-wise Comprehensive Summary -->
+          <div class="section">
+            <div class="section-title">निवेश वार संबंधात्मक विस्तृत सारांश</div>
+            <div class="investment-comprehensive">
+              <h4>निवेशों का संबंधात्मक विवरण और उनकी उपस्थिति:</h4>
+              <ul>
+                ${uniqueInvestments.map(investment => {
+                  const investmentItems = tableData.filter(item => item.investment_name === investment);
+                  const schemes = [...new Set(investmentItems.map(item => item.scheme_name))].filter(Boolean);
+                  const components = [...new Set(investmentItems.map(item => item.component))].filter(Boolean);
+                  const sources = [...new Set(investmentItems.map(item => item.source_of_receipt))].filter(Boolean);
+                  const vidhanSabhas = [...new Set(investmentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+                  const vikasKhands = [...new Set(investmentItems.map(item => item.vikas_khand_name))].filter(Boolean);
+                  const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  const utilizationRate = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+                  
+                  // Location presence analysis
+                  const vidhanSabhaCount = vidhanSabhas.length;
+                  const vikasKhandCount = vikasKhands.length;
+                  const totalLocations = vidhanSabhaCount + vikasKhandCount;
+                  
+                  return `
+                    <li><strong>${investment}</strong>
+                      <div class="investment-details">
+                        <div class="detail-row">
+                          <span class="label">संबंधित योजनाएं:</span>
+                          <span class="value">${schemes.length > 0 ? schemes.join(', ') : 'कोई योजना नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">संबंधित घटक:</span>
+                          <span class="value">${components.length > 0 ? components.join(', ') : 'कोई घटक नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">संबंधित स्रोत:</span>
+                          <span class="value">${sources.length > 0 ? sources.join(', ') : 'कोई स्रोत नहीं'}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">उपस्थित विधानसभाएं:</span>
+                          <span class="value">${vidhanSabhas.length > 0 ? vidhanSabhas.join(', ') : 'कोई विधानसभा नहीं'} (${vidhanSabhaCount} विधानसभाएं)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">शामिल विकासखंड:</span>
+                          <span class="value">${vikasKhands.length > 0 ? vikasKhands.join(', ') : 'कोई विकासखंड नहीं'} (${vikasKhandCount} विकासखंड)</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">कुल स्थानों की संख्या:</span>
+                          <span class="value highlight">${totalLocations} स्थान</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">आवंटित राशि:</span>
+                          <span class="value">${formatCurrency(allocated)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">बेची गई राशि:</span>
+                          <span class="value">${formatCurrency(sold)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">शेष राशि:</span>
+                          <span class="value highlight">${formatCurrency(remaining)}</span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="label">उपयोग दर:</span>
+                          <span class="value">${utilizationRate}%</span>
+                        </div>
+                      </div>
+                    </li>
+                  `;
+                }).join('')}
+              </ul>
+            </div>
+            
+            <table class="data-table investment-summary-table">
+              <thead>
+                <tr>
+                  <th rowspan="2">निवेश</th>
+                  <th rowspan="2">रिकॉर्ड<br>संख्या</th>
+                  <th rowspan="2">कुल<br>स्थान</th>
+                  <th colspan="2">वित्तीय विवरण</th>
+                  <th colspan="4">संबंधित डेटा</th>
+                  <th rowspan="2">उपयोग<br>दर</th>
+                </tr>
+                <tr>
+                  <th>आवंटित राशि</th>
+                  <th>बेची गई राशि</th>
+                  <th>योजनाएं</th>
+                  <th>घटक</th>
+                  <th>स्रोत</th>
+                  <th>विधानसभाएं</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${uniqueInvestments.map(investment => {
+                  const investmentItems = tableData.filter(item => item.investment_name === investment);
+                  const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+                  const schemes = [...new Set(investmentItems.map(item => item.scheme_name))].filter(Boolean);
+                  const components = [...new Set(investmentItems.map(item => item.component))].filter(Boolean);
+                  const sources = [...new Set(investmentItems.map(item => item.source_of_receipt))].filter(Boolean);
+                  const vidhanSabhas = [...new Set(investmentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+                  const vikasKhands = [...new Set(investmentItems.map(item => item.vikas_khand_name))].filter(Boolean);
+                  const totalLocations = vidhanSabhas.length + vikasKhands.length;
+                  
+                  return `
+                    <tr>
+                      <td class="investment-name">${investment}</td>
+                      <td>${investmentItems.length}</td>
+                      <td class="highlight">${totalLocations}</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td>${schemes.length}</td>
+                      <td>${components.length}</td>
+                      <td>${sources.length}</td>
+                      <td>${vidhanSabhas.length}</td>
+                      <td class="highlight">${percentage}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>कुल योग</th>
+                  <th>${tableData.length}</th>
+                  <th>${uniqueInvestments.reduce((sum, investment) => {
+                    const items = tableData.filter(item => item.investment_name === investment);
+                    const vidhanSabhas = [...new Set(items.map(item => item.vidhan_sabha_name))].filter(Boolean);
+                    const vikasKhands = [...new Set(items.map(item => item.vikas_khand_name))].filter(Boolean);
+                    return sum + vidhanSabhas.length + vikasKhands.length;
+                  }, 0)}</th>
+                  <th>${formatCurrency(tableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0))}</th>
+                  <th>${formatCurrency(tableData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</th>
+                  <th>${[...new Set(tableData.map(item => item.scheme_name))].filter(Boolean).length}</th>
+                  <th>${[...new Set(tableData.map(item => item.component))].filter(Boolean).length}</th>
+                  <th>${[...new Set(tableData.map(item => item.source_of_receipt))].filter(Boolean).length}</th>
+                  <th>${[...new Set(tableData.map(item => item.vidhan_sabha_name))].filter(Boolean).length}</th>
+                  <th>${((tableData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / 
+                         tableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)) * 100).toFixed(2)}%</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Source-wise Summary -->
+          <div class="section">
+            <div class="section-title">स्रोत वार विस्तृत सारांश</div>
+            <div class="source-breakdown">
+              <h4>स्रोतों का विवरण और वितरण:</h4>
+              <ul>
+                ${uniqueSources.map(source => {
+                  const sourceItems = tableData.filter(item => item.source_of_receipt === source);
+                  const schemes = [...new Set(sourceItems.map(item => item.scheme_name))].filter(Boolean);
+                  const components = [...new Set(sourceItems.map(item => item.component))].filter(Boolean);
+                  const investments = [...new Set(sourceItems.map(item => item.investment_name))].filter(Boolean);
+                  const vidhanSabhas = [...new Set(sourceItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
+                  const vikasKhands = [...new Set(sourceItems.map(item => item.vikas_khand_name))].filter(Boolean);
+                  const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  
+                  return `
+                    <li><strong>${source}</strong>
+                      <ul>
+                        <li>संबंधित योजनाएं: ${schemes.join(', ')}</li>
+                        <li>संबंधित घटक: ${components.join(', ')}</li>
+                        <li>संबंधित निवेश: ${investments.join(', ')}</li>
+                        <li>उपस्थित विधानसभाएं: ${vidhanSabhas.join(', ')}</li>
+                        <li>शामिल विकासखंड: ${vikasKhands.join(', ')}</li>
+                        <li>आवंटित राशि: ${formatCurrency(allocated)}</li>
+                        <li>बेची गई राशि: ${formatCurrency(sold)}</li>
+                        <li>शेष राशि: ${formatCurrency(remaining)}</li>
+                      </ul>
+                    </li>
+                  `;
+                }).join('')}
+              </ul>
+            </div>
+            
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>स्रोत</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>बेची गई राशि</th>
+                  <th>शेष राशि</th>
+                  <th>बिक्री प्रतिशत</th>
+                  <th>योजनाओं की संख्या</th>
+                  <th>घटकों की संख्या</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${uniqueSources.map(source => {
+                  const sourceItems = tableData.filter(item => item.source_of_receipt === source);
+                  const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+                  const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+                  const remaining = allocated - sold;
+                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+                  const schemes = [...new Set(sourceItems.map(item => item.scheme_name))].filter(Boolean);
+                  const components = [...new Set(sourceItems.map(item => item.component))].filter(Boolean);
+                  
+                  return `
+                    <tr>
+                      <td>${source}</td>
+                      <td>${sourceItems.length}</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td class="highlight">${formatCurrency(remaining)}</td>
+                      <td>${percentage}%</td>
+                      <td>${schemes.length}</td>
+                      <td>${components.length}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Main Data Table -->
+          <div class="section">
+            <div class="section-title">मुख्य डेटा तालिका</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>विधानसभा</th>
+                  <th>विकासखंड</th>
+                  <th>योजना</th>
+                  <th>घटक</th>
+                  <th>आवंटित मात्रा</th>
+                  <th>दर</th>
+                  <th>आवंटित राशि</th>
+                  <th>बेची गई मात्रा</th>
+                  <th>बेची गई राशि</th>
+                  <th>शेष राशि</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableData.map(item => {
+                  const allocated = parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0);
+                  const sold = parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0);
+                  const remaining = allocated - sold;
+                  return `
+                    <tr>
+                      <td>${item.vidhan_sabha_name || ''}</td>
+                      <td>${item.vikas_khand_name || ''}</td>
+                      <td>${item.scheme_name || ''}</td>
+                      <td>${item.component || ''}</td>
+                      <td>${parseFloat(item.allocated_quantity || 0).toFixed(2)}</td>
+                      <td>${formatCurrency(parseFloat(item.rate || 0))}</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${parseFloat(item.updated_quantity || 0).toFixed(2)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td class="highlight">${formatCurrency(remaining)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr class="total-row">
+                  <td colspan="6"><strong>कुल योग</strong></td>
+                  <td><strong>${formatCurrency(totals.totalAllocated)}</strong></td>
+                  <td></td>
+                  <td><strong>${formatCurrency(totals.totalUpdated)}</strong></td>
+                  <td class="highlight"><strong>${formatCurrency(totals.totalRemaining)}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${tableData.length} रिकॉर्ड का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Wait for content to load and then print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 1000);
+      };
+      
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+      alert('पीडीएफ निर्यात में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
   // Default state for collapsed sections
   const defaultCollapsedSections = {
-    hierarchy: false,  // First accordion - open by default
+    hierarchy: true,   // All accordions - closed by default
     schemes: true,
     investments: true,
-    filter: false,     // Second accordion - open by default
+    filter: true,      // All accordions - closed by default
     sources: true,
     places: true,
     allocation: true,
@@ -375,7 +1677,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
       if (exists) {
         return prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
       } else {
-        return [...prev, { selectedItem: item, itemType }];
+        // Bring this item to the top by putting it first in the array
+        const filtered = prev.filter(d => !(d.selectedItem === item && d.itemType === itemType));
+        return [{ selectedItem: item, itemType }, ...filtered];
       }
     });
   };
@@ -488,6 +1792,14 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                                 <span className="separator">|</span>
                                 <span className="data-item">
                                   दर: <strong>₹{record.rate}</strong>
+                                </span>
+                                <span className="separator">|</span>
+                                <span className="data-item text-warning">
+                                  निवेश: <strong>{record.investment_name || 'N/A'}</strong>
+                                </span>
+                                <span className="separator">|</span>
+                                <span className="data-item text-secondary">
+                                  घटक: <strong>{record.component || 'N/A'}</strong>
                                 </span>
                                 {sectionType === 'allocation' && (
                                   <>
@@ -642,7 +1954,29 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
       dialogClassName="modal-90w"
     >
       <Modal.Header closeButton onClick={onHide} className="modal-title">
-        <Modal.Title>{centerName}</Modal.Title>
+        <div className="d-flex justify-content-between align-items-center w-100">
+          <Modal.Title>{centerName}</Modal.Title>
+          <div className="d-flex gap-2">
+            <Button
+              variant="outline-success"
+              size="sm"
+              onClick={exportToExcel}
+              title="Excel में निर्यात करें"
+            >
+              <FaFileExcel className="me-1" />
+              Excel
+            </Button>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              onClick={exportToPDF}
+              title="PDF के रूप में सहेजें"
+            >
+              <FaFilePdf className="me-1" />
+              PDF
+            </Button>
+          </div>
+        </div>
       </Modal.Header>
       <Modal.Body>
         {/* Summary Statistics Cards - Always Visible at Top */}
@@ -791,7 +2125,39 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaBuilding className="me-2" /> स्थान विवरण</span>
-            {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const placesData = uniqueVikasKhands.map(location => ({
+                    'विकासखंड': location,
+                    'कुल रिकॉर्ड': tableData.filter(item => item.vikas_khand_name === location).length
+                  }));
+                  exportSectionToExcel('स्थान_विवरण', placesData);
+                }}
+                title="स्थान Excel में निर्यात"
+              >
+                <FaFileExcel />
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const placesData = uniqueVikasKhands.map(location => ({
+                    'विकासखंड': location,
+                    'कुल रिकॉर्ड': tableData.filter(item => item.vikas_khand_name === location).length
+                  }));
+                  exportSectionToPDF('स्थान_विवरण', placesData);
+                }}
+                title="स्थान PDF में निर्यात"
+              >
+                <FaFilePdf />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.places}>
             <Card.Body>
@@ -822,7 +2188,81 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaPiggyBank className="me-2" /> आवंटन विवरण</span>
-            {collapsedSections.allocation ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.allocation ? <FaChevronDown /> : <FaChevronUp />}
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Include detailed breakdown data only
+                  const breakdownData = [];
+                  allocationDetails.forEach(detail => {
+                    if (detail.selectedItem) {
+                      const itemName = detail.selectedItem;
+                      const filterKey = detail.itemType === 'scheme' ? 'scheme_name' : 'component';
+                      const itemData = tableData.filter(item => item[filterKey] === itemName);
+                      
+                      itemData.forEach(record => {
+                        breakdownData.push({
+                          'योजना/घटक': itemName,
+                          'विधानसभा': record.vidhan_sabha_name,
+                          'विकासखंड': record.vikas_khand_name,
+                          'स्रोत': record.source_of_receipt,
+                          'निवेश': record.investment_name,
+                          'घटक': record.component,
+                          'मात्रा': record.allocated_quantity,
+                          'दर': record.rate,
+                          'आवंटित राशि': formatCurrency(parseFloat(record.allocated_quantity) * parseFloat(record.rate))
+                        });
+                      });
+                    }
+                  });
+                  
+                  exportSectionToExcel('आवंटन_विवरण', breakdownData);
+                }}
+                title="आवंटन Excel में निर्यात (विस्तृत विवरण)"
+              >
+                <FaFileExcel />
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Include detailed breakdown data only for PDF
+                  const breakdownData = [];
+                  allocationDetails.forEach(detail => {
+                    if (detail.selectedItem) {
+                      const itemName = detail.selectedItem;
+                      const filterKey = detail.itemType === 'scheme' ? 'scheme_name' : 'component';
+                      const itemData = tableData.filter(item => item[filterKey] === itemName);
+                      
+                      itemData.forEach(record => {
+                        breakdownData.push({
+                          'योजना/घटक': itemName,
+                          'विधानसभा': record.vidhan_sabha_name,
+                          'विकासखंड': record.vikas_khand_name,
+                          'स्रोत': record.source_of_receipt,
+                          'निवेश': record.investment_name,
+                          'घटक': record.component,
+                          'मात्रा': record.allocated_quantity,
+                          'दर': record.rate,
+                          'आवंटित राशि': formatCurrency(parseFloat(record.allocated_quantity) * parseFloat(record.rate))
+                        });
+                      });
+                    }
+                  });
+                  
+                  exportSectionToPDF('आवंटन_विवरण', breakdownData);
+                }}
+                title="आवंटन PDF में निर्यात (विस्तृत विवरण)"
+              >
+                <FaFilePdf />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.allocation}>
             <Card.Body>
@@ -893,7 +2333,81 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaChartBar className="me-2" /> बिक्री विवरण</span>
-            {collapsedSections.sales ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.sales ? <FaChevronDown /> : <FaChevronUp />}
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Include detailed breakdown data only
+                  const breakdownData = [];
+                  salesDetails.forEach(detail => {
+                    if (detail.selectedItem) {
+                      const itemName = detail.selectedItem;
+                      const filterKey = detail.itemType === 'scheme' ? 'scheme_name' : 'component';
+                      const itemData = tableData.filter(item => item[filterKey] === itemName);
+                      
+                      itemData.forEach(record => {
+                        breakdownData.push({
+                          'योजना/घटक': itemName,
+                          'विधानसभा': record.vidhan_sabha_name,
+                          'विकासखंड': record.vikas_khand_name,
+                          'स्रोत': record.source_of_receipt,
+                          'निवेश': record.investment_name,
+                          'घटक': record.component,
+                          'बेची गई मात्रा': record.updated_quantity,
+                          'दर': record.rate,
+                          'बेची गई राशि': formatCurrency(parseFloat(record.updated_quantity) * parseFloat(record.rate))
+                        });
+                      });
+                    }
+                  });
+                  
+                  exportSectionToExcel('बिक्री_विवरण', breakdownData);
+                }}
+                title="बिक्री Excel में निर्यात (विस्तृत विवरण)"
+              >
+                <FaFileExcel />
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Include detailed breakdown data only for PDF
+                  const breakdownData = [];
+                  salesDetails.forEach(detail => {
+                    if (detail.selectedItem) {
+                      const itemName = detail.selectedItem;
+                      const filterKey = detail.itemType === 'scheme' ? 'scheme_name' : 'component';
+                      const itemData = tableData.filter(item => item[filterKey] === itemName);
+                      
+                      itemData.forEach(record => {
+                        breakdownData.push({
+                          'योजना/घटक': itemName,
+                          'विधानसभा': record.vidhan_sabha_name,
+                          'विकासखंड': record.vikas_khand_name,
+                          'स्रोत': record.source_of_receipt,
+                          'निवेश': record.investment_name,
+                          'घटक': record.component,
+                          'बेची गई मात्रा': record.updated_quantity,
+                          'दर': record.rate,
+                          'बेची गई राशि': formatCurrency(parseFloat(record.updated_quantity) * parseFloat(record.rate))
+                        });
+                      });
+                    }
+                  });
+                  
+                  exportSectionToPDF('बिक्री_विवरण', breakdownData);
+                }}
+                title="बिक्री PDF में निर्यात (विस्तृत विवरण)"
+              >
+                <FaFilePdf />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.sales}>
             <Card.Body>
@@ -970,7 +2484,89 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaLayerGroup className="me-2" /> शेष राशि विवरण</span>
-            {collapsedSections.remaining ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.remaining ? <FaChevronDown /> : <FaChevronUp />}
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Include detailed breakdown data only
+                  const breakdownData = [];
+                  remainingDetails.forEach(detail => {
+                    if (detail.selectedItem) {
+                      const itemName = detail.selectedItem;
+                      const filterKey = detail.itemType === 'scheme' ? 'scheme_name' : 'component';
+                      const itemData = tableData.filter(item => item[filterKey] === itemName);
+                      
+                      itemData.forEach(record => {
+                        const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
+                        const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
+                        const remaining = allocated - sold;
+                        
+                        breakdownData.push({
+                          'योजना/घटक': itemName,
+                          'विधानसभा': record.vidhan_sabha_name,
+                          'विकासखंड': record.vikas_khand_name,
+                          'स्रोत': record.source_of_receipt,
+                          'निवेश': record.investment_name,
+                          'घटक': record.component,
+                          'आवंटित': formatCurrency(allocated),
+                          'बेचा गया': formatCurrency(sold),
+                          'शेष राशि': formatCurrency(remaining)
+                        });
+                      });
+                    }
+                  });
+                  
+                  exportSectionToExcel('शेष_राशि_विवरण', breakdownData);
+                }}
+                title="शेष राशि Excel में निर्यात (विस्तृत विवरण)"
+              >
+                <FaFileExcel />
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Include detailed breakdown data only for PDF
+                  const breakdownData = [];
+                  remainingDetails.forEach(detail => {
+                    if (detail.selectedItem) {
+                      const itemName = detail.selectedItem;
+                      const filterKey = detail.itemType === 'scheme' ? 'scheme_name' : 'component';
+                      const itemData = tableData.filter(item => item[filterKey] === itemName);
+                      
+                      itemData.forEach(record => {
+                        const allocated = parseFloat(record.allocated_quantity) * parseFloat(record.rate);
+                        const sold = parseFloat(record.updated_quantity) * parseFloat(record.rate);
+                        const remaining = allocated - sold;
+                        
+                        breakdownData.push({
+                          'योजना/घटक': itemName,
+                          'विधानसभा': record.vidhan_sabha_name,
+                          'विकासखंड': record.vikas_khand_name,
+                          'स्रोत': record.source_of_receipt,
+                          'निवेश': record.investment_name,
+                          'घटक': record.component,
+                          'आवंटित': formatCurrency(allocated),
+                          'बेचा गया': formatCurrency(sold),
+                          'शेष राशि': formatCurrency(remaining)
+                        });
+                      });
+                    }
+                  });
+                  
+                  exportSectionToPDF('शेष_राशि_विवरण', breakdownData);
+                }}
+                title="शेष राशि PDF में निर्यात (विस्तृत विवरण)"
+              >
+                <FaFilePdf />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.remaining}>
             <Card.Body>
@@ -1062,7 +2658,57 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaList className="me-2" /> पदानुक्रमिक संरचना</span>
-            {collapsedSections.hierarchy ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.hierarchy ? <FaChevronDown /> : <FaChevronUp />}
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const hierarchyData = [];
+                  Object.entries(hierarchicalData).forEach(([vidhanSabha, data]) => {
+                    data.schemes.forEach(scheme => {
+                      const schemeInvestments = data.schemeInvestments[scheme] || [];
+                      schemeInvestments.forEach(investment => {
+                        hierarchyData.push({
+                          'विधानसभा': vidhanSabha,
+                          'योजना': scheme,
+                          'निवेश': investment
+                        });
+                      });
+                    });
+                  });
+                  exportSectionToExcel('पदानुक्रमिक_संरचना', hierarchyData);
+                }}
+                title="पदानुक्रमिक संरचना Excel में निर्यात"
+              >
+                <FaFileExcel />
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const hierarchyData = [];
+                  Object.entries(hierarchicalData).forEach(([vidhanSabha, data]) => {
+                    data.schemes.forEach(scheme => {
+                      const schemeInvestments = data.schemeInvestments[scheme] || [];
+                      schemeInvestments.forEach(investment => {
+                        hierarchyData.push({
+                          'विधानसभा': vidhanSabha,
+                          'योजना': scheme,
+                          'निवेश': investment
+                        });
+                      });
+                    });
+                  });
+                  exportSectionToPDF('पदानुक्रमिक_संरचना', hierarchyData);
+                }}
+                title="पदानुक्रमिक संरचना PDF में निर्यात"
+              >
+                <FaFilePdf />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.hierarchy}>
             <Card.Body>
