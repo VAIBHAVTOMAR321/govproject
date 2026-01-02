@@ -1957,22 +1957,22 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         <div className="d-flex justify-content-between align-items-center w-100">
           <Modal.Title>{centerName}</Modal.Title>
           <div className="d-flex gap-2">
-            <Button
+            <Button className="exel-file"
               variant="outline-success"
               size="sm"
               onClick={exportToExcel}
               title="Excel में निर्यात करें"
             >
-              <FaFileExcel className="me-1" />
+              <FaFileExcel className="me-1 exel-file" />
               Excel
             </Button>
-            <Button
+            <Button className="pdf-file"
               variant="outline-danger"
               size="sm"
               onClick={exportToPDF}
               title="PDF के रूप में सहेजें"
             >
-              <FaFilePdf className="me-1" />
+              <FaFilePdf className="me-1 pdf-file" />
               PDF
             </Button>
           </div>
@@ -2127,7 +2127,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <span><FaBuilding className="me-2" /> स्थान विवरण</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
-              <Button
+              <Button className="pdf-file"
                 variant="outline-success"
                 size="sm"
                 onClick={(e) => {
@@ -2140,9 +2140,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 }}
                 title="स्थान Excel में निर्यात"
               >
-                <FaFileExcel />
+                <FaFileExcel className="exel-file"/>
               </Button>
-              <Button
+              <Button className="exel-file"
                 variant="outline-danger"
                 size="sm"
                 onClick={(e) => {
@@ -2155,7 +2155,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 }}
                 title="स्थान PDF में निर्यात"
               >
-                <FaFilePdf />
+                <FaFilePdf  />
               </Button>
             </div>
           </Card.Header>
@@ -2190,7 +2190,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <span><FaPiggyBank className="me-2" /> आवंटन विवरण</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.allocation ? <FaChevronDown /> : <FaChevronUp />}
-              <Button
+              <Button className="pdf-file"
                 variant="outline-success"
                 size="sm"
                 onClick={(e) => {
@@ -2226,7 +2226,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFileExcel />
               </Button>
-              <Button
+              <Button className="pdf-file"
                 variant="outline-danger"
                 size="sm"
                 onClick={(e) => {
@@ -2335,7 +2335,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <span><FaChartBar className="me-2" /> बिक्री विवरण</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.sales ? <FaChevronDown /> : <FaChevronUp />}
-              <Button
+              <Button className="exel-file"
                 variant="outline-success"
                 size="sm"
                 onClick={(e) => {
@@ -2371,7 +2371,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFileExcel />
               </Button>
-              <Button
+              <Button className="pdf-file"
                 variant="outline-danger"
                 size="sm"
                 onClick={(e) => {
@@ -2486,7 +2486,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <span><FaLayerGroup className="me-2" /> शेष राशि विवरण</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.remaining ? <FaChevronDown /> : <FaChevronUp />}
-              <Button
+              <Button className="exel-file"
                 variant="outline-success"
                 size="sm"
                 onClick={(e) => {
@@ -2526,7 +2526,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFileExcel />
               </Button>
-              <Button
+              <Button className="exel-file"
                 variant="outline-danger"
                 size="sm"
                 onClick={(e) => {
@@ -2660,7 +2660,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <span><FaList className="me-2" /> पदानुक्रमिक संरचना</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.hierarchy ? <FaChevronDown /> : <FaChevronUp />}
-              <Button
+              <Button className="exel-file"
                 variant="outline-success"
                 size="sm"
                 onClick={(e) => {
@@ -2684,7 +2684,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFileExcel />
               </Button>
-              <Button
+              <Button className="pdf-file"
                 variant="outline-danger"
                 size="sm"
                 onClick={(e) => {

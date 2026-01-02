@@ -153,12 +153,20 @@ body {
   transform: translate(-50%, 0%);
   margin-top: 10px;
 }
-.btn-outline-success{
-  color: #fff;
-  border-color: #dfdfdfff;
+ .exel-file{
+  color: #fff !important;
+  border-color: #dfdfdfff !important;
+}
+ .pdf-file{
+  color: #fff !important;
+  border-color: #dfdfdfff !important;
 }
 
-.btn-outline-danger{
+.modal-title{
+  background-color: #194e8b !important;
   color: #fff;
-  border-color: #dfdfdfff;
+}
+.responsive-table .tbody{
+  overflow-y: auto !important;
+  max-height: 200px;
 }

@@ -2368,7 +2368,7 @@ const VivranSummaryModal = ({
       onHide={onHide}
       size="xl"
       centered
-      className="vivran-summary-modal"
+      className="vivran-summary-modal "
     >
       <Modal.Header closeButton onClick={onHide} className="modal-title">
         <Modal.Title>{groupData.group_name} - विवरण</Modal.Title>
