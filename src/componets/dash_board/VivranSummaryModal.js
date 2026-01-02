@@ -1985,6 +1985,7 @@ const VivranSummaryModal = ({
     try {
       const excelData = data.map((item, index) => {
         const row = {};
+        row["क्रम संख्या"] = index + 1;
         selectedColumns.forEach((col) => {
           switch (col) {
             case "center_name":
@@ -2034,6 +2035,7 @@ const VivranSummaryModal = ({
 
       // Add totals row
       const totalsRow = {};
+      totalsRow["क्रम संख्या"] = "";
       selectedColumns.forEach((col) => {
         if (
           col === "center_name" ||
@@ -2103,7 +2105,7 @@ const VivranSummaryModal = ({
 
   const downloadPdf = (data, key) => {
     try {
-      const headers = selectedColumns
+      const headers = "<th>क्रम संख्या</th>" + selectedColumns
         .map((col) => {
           switch (col) {
             case "center_name":
@@ -2138,7 +2140,7 @@ const VivranSummaryModal = ({
 
       const rows = data
         .map((item, index) => {
-          const cells = selectedColumns
+          const cells = `<td>${index + 1}</td>` + selectedColumns
             .map((col) => {
               switch (col) {
                 case "center_name":
@@ -2179,7 +2181,7 @@ const VivranSummaryModal = ({
         .join("");
 
       // Totals row
-      const totalsCells = selectedColumns
+      const totalsCells = "<td></td>" + selectedColumns
         .map((col) => {
           if (
             col === "center_name" ||
@@ -3069,6 +3071,7 @@ const VivranSummaryModal = ({
                   style={{ position: "sticky", top: 0, zIndex: 1 }}
                 >
                   <tr>
+                    <th>क्रम संख्या</th>
                     {selectedColumns.includes("center_name") && (
                       <th>केंद्र का नाम</th>
                     )}
@@ -3116,6 +3119,7 @@ const VivranSummaryModal = ({
                         style={{ cursor: "pointer" }}
                         onClick={() => handleTableRowClick(item.center_name)}
                       >
+                        <td data-label="क्रम संख्या">{index + 1}</td>
                         {selectedColumns.includes("center_name") && (
                           <td data-label="केंद्र का नाम">{item.center_name}</td>
                         )}
@@ -3168,6 +3172,7 @@ const VivranSummaryModal = ({
                 </tbody>
                 <tfoot>
                   <tr className="font-weight-bold">
+                    <td></td>
                     {selectedColumns.includes("center_name") && <td>कुल</td>}
                     {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
                     {selectedColumns.includes("vikas_khand_name") && <td></td>}
