@@ -755,13 +755,32 @@ const VivranSummaryModal = ({
 
     // Apply all filters
     Object.keys(activeFilters).forEach((category) => {
-      if (activeFilters[category] && activeFilters[category].length > 0) {
-        filtered = filtered.filter((item) =>
-          activeFilters[category].includes(item[category])
-        );
+      const perKendraCategories = [
+        "scheme_name",
+        "component",
+        "investment_name",
+        "source_of_receipt",
+      ];
+      if (perKendraCategories.includes(category)) {
+        // For per-kendra categories
+        if (
+          activeFilters[category] &&
+          Object.keys(activeFilters[category]).length > 0
+        ) {
+          filtered = filtered.filter((item) => {
+            const kendraFilters = activeFilters[category][item.center_name];
+            return kendraFilters && kendraFilters.includes(item[category]);
+          });
+        }
+      } else {
+        // For other categories
+        if (activeFilters[category] && activeFilters[category].length > 0) {
+          filtered = filtered.filter((item) =>
+            activeFilters[category].includes(item[category])
+          );
+        }
       }
     });
-
 
     if (showOnlySold) {
       filtered = filtered.filter(
@@ -927,13 +946,19 @@ const VivranSummaryModal = ({
   ]);
 
   const uniqueVidhanSabha = useMemo(() => {
-    return [...new Set((groupData?.items || []).map((item) => item.vidhan_sabha_name))]
+    return [
+      ...new Set(
+        (groupData?.items || []).map((item) => item.vidhan_sabha_name)
+      ),
+    ]
       .filter(Boolean)
       .sort();
   }, [groupData]);
 
   const uniqueVikasKhand = useMemo(() => {
-    return [...new Set((groupData?.items || []).map((item) => item.vikas_khand_name))]
+    return [
+      ...new Set((groupData?.items || []).map((item) => item.vikas_khand_name)),
+    ]
       .filter(Boolean)
       .sort();
   }, [groupData]);
@@ -1422,20 +1447,55 @@ const VivranSummaryModal = ({
       currentFilters: activeFilters,
     });
 
-    setActiveFilters((prev) => {
-      const currentValues = prev[category] || [];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter((v) => v !== value)
-        : [...currentValues, value];
+    // Categories that are per-kendra: scheme_name, component, investment_name, source_of_receipt
+    const perKendraCategories = [
+      "scheme_name",
+      "component",
+      "investment_name",
+      "source_of_receipt",
+    ];
 
-      if (newValues.length === 0) {
-        const newFilters = { ...prev };
-        delete newFilters[category];
-        return newFilters;
-      }
+    if (perKendraCategories.includes(category)) {
+      // For per-kendra categories, store as { [kendra]: [values] }
+      setActiveFilters((prev) => {
+        const current = prev[category] || {};
+        const kendraValues = current[kendra] || [];
+        const newKendraValues = kendraValues.includes(value)
+          ? kendraValues.filter((v) => v !== value)
+          : [...kendraValues, value];
 
-      return { ...prev, [category]: newValues };
-    });
+        const newCategory = { ...current };
+        if (newKendraValues.length === 0) {
+          delete newCategory[kendra];
+        } else {
+          newCategory[kendra] = newKendraValues;
+        }
+
+        if (Object.keys(newCategory).length === 0) {
+          const newFilters = { ...prev };
+          delete newFilters[category];
+          return newFilters;
+        }
+
+        return { ...prev, [category]: newCategory };
+      });
+    } else {
+      // For other categories (center_name, vidhan_sabha_name, vikas_khand_name), keep as array
+      setActiveFilters((prev) => {
+        const currentValues = prev[category] || [];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter((v) => v !== value)
+          : [...currentValues, value];
+
+        if (newValues.length === 0) {
+          const newFilters = { ...prev };
+          delete newFilters[category];
+          return newFilters;
+        }
+
+        return { ...prev, [category]: newValues };
+      });
+    }
   };
 
   // Handle bar click in graph
@@ -2105,134 +2165,140 @@ const VivranSummaryModal = ({
 
   const downloadPdf = (data, key) => {
     try {
-      const headers = "<th>क्रम संख्या</th>" + selectedColumns
-        .map((col) => {
-          switch (col) {
-            case "center_name":
-              return "<th>केंद्र का नाम</th>";
-            case "vidhan_sabha_name":
-              return "<th>विधानसभा का नाम</th>";
-            case "vikas_khand_name":
-              return "<th>विकासखंड का नाम</th>";
-            case "component":
-              return "<th>घटक</th>";
-            case "investment_name":
-              return "<th>निवेश का नाम</th>";
-            case "allocated_quantity":
-              return "<th>आवंटित मात्रा</th>";
-            case "rate":
-              return "<th>दर</th>";
-            case "allocated_amount":
-              return "<th>आवंटित राशि</th>";
-            case "updated_quantity":
-              return "<th>अपडेट की गई मात्रा</th>";
-            case "updated_amount":
-              return "<th>अपडेट की गई राशि</th>";
-            case "source_of_receipt":
-              return "<th>स्रोत</th>";
-            case "scheme_name":
-              return "<th>योजना</th>";
-            default:
-              return "";
-          }
-        })
-        .filter(header => header !== "")
-        .join("");
+      const headers =
+        "<th>क्रम संख्या</th>" +
+        selectedColumns
+          .map((col) => {
+            switch (col) {
+              case "center_name":
+                return "<th>केंद्र का नाम</th>";
+              case "vidhan_sabha_name":
+                return "<th>विधानसभा का नाम</th>";
+              case "vikas_khand_name":
+                return "<th>विकासखंड का नाम</th>";
+              case "component":
+                return "<th>घटक</th>";
+              case "investment_name":
+                return "<th>निवेश का नाम</th>";
+              case "allocated_quantity":
+                return "<th>आवंटित मात्रा</th>";
+              case "rate":
+                return "<th>दर</th>";
+              case "allocated_amount":
+                return "<th>आवंटित राशि</th>";
+              case "updated_quantity":
+                return "<th>अपडेट की गई मात्रा</th>";
+              case "updated_amount":
+                return "<th>अपडेट की गई राशि</th>";
+              case "source_of_receipt":
+                return "<th>स्रोत</th>";
+              case "scheme_name":
+                return "<th>योजना</th>";
+              default:
+                return "";
+            }
+          })
+          .filter((header) => header !== "")
+          .join("");
 
       const rows = data
         .map((item, index) => {
-          const cells = `<td>${index + 1}</td>` + selectedColumns
-            .map((col) => {
-              switch (col) {
-                case "center_name":
-                  return `<td>${item.center_name || ''}</td>`;
-                case "vidhan_sabha_name":
-                  return `<td>${item.vidhan_sabha_name || ''}</td>`;
-                case "vikas_khand_name":
-                  return `<td>${item.vikas_khand_name || ''}</td>`;
-                case "component":
-                  return `<td>${item.component || ''}</td>`;
-                case "investment_name":
-                  return `<td>${item.investment_name || ''}</td>`;
-                case "allocated_quantity":
-                  return `<td>${item.allocated_quantity || ''}</td>`;
-                case "rate":
-                  return `<td>${item.rate || ''}</td>`;
-                case "allocated_amount":
-                  return `<td>${formatCurrency(
-                    parseFloat(item.allocated_quantity) * parseFloat(item.rate)
-                  )}</td>`;
-                case "updated_quantity":
-                  return `<td>${item.updated_quantity || ''}</td>`;
-                case "updated_amount":
-                  return `<td>${formatCurrency(
-                    parseFloat(item.updated_quantity) * parseFloat(item.rate)
-                  )}</td>`;
-                case "source_of_receipt":
-                  return `<td>${item.source_of_receipt || ''}</td>`;
-                case "scheme_name":
-                  return `<td>${item.scheme_name || ''}</td>`;
-                default:
-                  return "";
-              }
-            })
-            .filter(cell => cell !== "")
-            .join("");
+          const cells =
+            `<td>${index + 1}</td>` +
+            selectedColumns
+              .map((col) => {
+                switch (col) {
+                  case "center_name":
+                    return `<td>${item.center_name || ""}</td>`;
+                  case "vidhan_sabha_name":
+                    return `<td>${item.vidhan_sabha_name || ""}</td>`;
+                  case "vikas_khand_name":
+                    return `<td>${item.vikas_khand_name || ""}</td>`;
+                  case "component":
+                    return `<td>${item.component || ""}</td>`;
+                  case "investment_name":
+                    return `<td>${item.investment_name || ""}</td>`;
+                  case "allocated_quantity":
+                    return `<td>${item.allocated_quantity || ""}</td>`;
+                  case "rate":
+                    return `<td>${item.rate || ""}</td>`;
+                  case "allocated_amount":
+                    return `<td>${formatCurrency(
+                      parseFloat(item.allocated_quantity) *
+                        parseFloat(item.rate)
+                    )}</td>`;
+                  case "updated_quantity":
+                    return `<td>${item.updated_quantity || ""}</td>`;
+                  case "updated_amount":
+                    return `<td>${formatCurrency(
+                      parseFloat(item.updated_quantity) * parseFloat(item.rate)
+                    )}</td>`;
+                  case "source_of_receipt":
+                    return `<td>${item.source_of_receipt || ""}</td>`;
+                  case "scheme_name":
+                    return `<td>${item.scheme_name || ""}</td>`;
+                  default:
+                    return "";
+                }
+              })
+              .filter((cell) => cell !== "")
+              .join("");
           return `<tr>${cells}</tr>`;
         })
         .join("");
 
       // Totals row
-      const totalsCells = "<td></td>" + selectedColumns
-        .map((col) => {
-          if (col === "center_name")
-            return "<td><strong>कुल</strong></td>";
-          else if (
-            col === "vidhan_sabha_name" ||
-            col === "vikas_khand_name" ||
-            col === "component" ||
-            col === "investment_name" ||
-            col === "source_of_receipt" ||
-            col === "scheme_name"
-          )
+      const totalsCells =
+        "<td></td>" +
+        selectedColumns
+          .map((col) => {
+            if (col === "center_name") return "<td><strong>कुल</strong></td>";
+            else if (
+              col === "vidhan_sabha_name" ||
+              col === "vikas_khand_name" ||
+              col === "component" ||
+              col === "investment_name" ||
+              col === "source_of_receipt" ||
+              col === "scheme_name"
+            )
+              return "";
+            else if (col === "rate") return "<td>-</td>";
+            else if (col === "allocated_quantity")
+              return `<td><strong>${data
+                .reduce(
+                  (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+                  0
+                )
+                .toFixed(2)}</strong></td>`;
+            else if (col === "allocated_amount")
+              return `<td><strong>${formatCurrency(
+                data.reduce(
+                  (sum, item) =>
+                    sum +
+                    parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                  0
+                )
+              )}</strong></td>`;
+            else if (col === "updated_quantity")
+              return `<td><strong>${data
+                .reduce(
+                  (sum, item) => sum + parseFloat(item.updated_quantity || 0),
+                  0
+                )
+                .toFixed(2)}</strong></td>`;
+            else if (col === "updated_amount")
+              return `<td><strong>${formatCurrency(
+                data.reduce(
+                  (sum, item) =>
+                    sum +
+                    parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                  0
+                )
+              )}</strong></td>`;
             return "";
-          else if (col === "rate") return "<td>-</td>";
-          else if (col === "allocated_quantity")
-            return `<td><strong>${data
-              .reduce(
-                (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
-                0
-              )
-              .toFixed(2)}</strong></td>`;
-          else if (col === "allocated_amount")
-            return `<td><strong>${formatCurrency(
-              data.reduce(
-                (sum, item) =>
-                  sum +
-                  parseFloat(item.allocated_quantity) * parseFloat(item.rate),
-                0
-              )
-            )}</strong></td>`;
-          else if (col === "updated_quantity")
-            return `<td><strong>${data
-              .reduce(
-                (sum, item) => sum + parseFloat(item.updated_quantity || 0),
-                0
-              )
-              .toFixed(2)}</strong></td>`;
-          else if (col === "updated_amount")
-            return `<td><strong>${formatCurrency(
-              data.reduce(
-                (sum, item) =>
-                  sum +
-                  parseFloat(item.updated_quantity) * parseFloat(item.rate),
-                0
-              )
-            )}</strong></td>`;
-          return "";
-        })
-        .filter(cell => cell !== "")
-        .join("");
+          })
+          .filter((cell) => cell !== "")
+          .join("");
       const totalsRow = `<tr>${totalsCells}</tr>`;
 
       const tableHtml = `
@@ -2422,12 +2488,15 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.scheme_name &&
-                            activeFilters.scheme_name.length > 0
+                            activeFilters.scheme_name[kendra] &&
+                            activeFilters.scheme_name[kendra].length > 0
                           ) {
                             const kendraSchemes = kendraToSchemes[kendra] || [];
                             if (
                               !kendraSchemes.some((scheme) =>
-                                activeFilters.scheme_name.includes(scheme)
+                                activeFilters.scheme_name[kendra].includes(
+                                  scheme
+                                )
                               )
                             ) {
                               return false;
@@ -2435,13 +2504,16 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.component &&
-                            activeFilters.component.length > 0
+                            activeFilters.component[kendra] &&
+                            activeFilters.component[kendra].length > 0
                           ) {
                             const kendraComponents =
                               kendraToComponents[kendra] || [];
                             if (
                               !kendraComponents.some((component) =>
-                                activeFilters.component.includes(component)
+                                activeFilters.component[kendra].includes(
+                                  component
+                                )
                               )
                             ) {
                               return false;
@@ -2449,13 +2521,14 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.investment_name &&
-                            activeFilters.investment_name.length > 0
+                            activeFilters.investment_name[kendra] &&
+                            activeFilters.investment_name[kendra].length > 0
                           ) {
                             const kendraInvestments =
                               kendraToInvestments[kendra] || [];
                             if (
                               !kendraInvestments.some((investment) =>
-                                activeFilters.investment_name.includes(
+                                activeFilters.investment_name[kendra].includes(
                                   investment
                                 )
                               )
@@ -2486,16 +2559,17 @@ const VivranSummaryModal = ({
                                 <Row className="g-1 align-items-center">
                                   {schemes.map((scheme) => (
                                     <Col
-                                      key={scheme}
+                                      key={`${kendra}-${scheme}`}
                                       xs="auto"
                                       className="mb-2"
                                     >
                                       <Button
                                         variant={
                                           activeFilters.scheme_name &&
-                                          activeFilters.scheme_name.includes(
-                                            scheme
-                                          )
+                                          activeFilters.scheme_name[kendra] &&
+                                          activeFilters.scheme_name[
+                                            kendra
+                                          ].includes(scheme)
                                             ? "primary"
                                             : "outline-secondary"
                                         }
@@ -2504,7 +2578,8 @@ const VivranSummaryModal = ({
                                         onClick={() =>
                                           handleFilterChange(
                                             "scheme_name",
-                                            scheme
+                                            scheme,
+                                            kendra
                                           )
                                         }
                                       >
@@ -2582,40 +2657,49 @@ const VivranSummaryModal = ({
                                   {components
                                     .filter((component) => {
                                       let valid = true;
-                                      if (activeFilters.source_of_receipt) {
+                                      if (
+                                        activeFilters.source_of_receipt &&
+                                        activeFilters.source_of_receipt[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
                                             (item) =>
                                               item.center_name === kendra &&
                                               item.component === component &&
-                                              activeFilters.source_of_receipt.includes(
-                                                item.source_of_receipt
-                                              )
+                                              activeFilters.source_of_receipt[
+                                                kendra
+                                              ].includes(item.source_of_receipt)
                                           );
                                       }
-                                      if (activeFilters.scheme_name) {
+                                      if (
+                                        activeFilters.scheme_name &&
+                                        activeFilters.scheme_name[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
                                             (item) =>
                                               item.center_name === kendra &&
                                               item.component === component &&
-                                              activeFilters.scheme_name.includes(
-                                                item.scheme_name
-                                              )
+                                              activeFilters.scheme_name[
+                                                kendra
+                                              ].includes(item.scheme_name)
                                           );
                                       }
-                                      if (activeFilters.investment_name) {
+                                      if (
+                                        activeFilters.investment_name &&
+                                        activeFilters.investment_name[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
                                             (item) =>
                                               item.center_name === kendra &&
                                               item.component === component &&
-                                              activeFilters.investment_name.includes(
-                                                item.investment_name
-                                              )
+                                              activeFilters.investment_name[
+                                                kendra
+                                              ].includes(item.investment_name)
                                           );
                                       }
                                       return valid;
@@ -2629,9 +2713,10 @@ const VivranSummaryModal = ({
                                         <Button
                                           variant={
                                             activeFilters.component &&
-                                            activeFilters.component.includes(
-                                              component
-                                            )
+                                            activeFilters.component[kendra] &&
+                                            activeFilters.component[
+                                              kendra
+                                            ].includes(component)
                                               ? "primary"
                                               : "outline-secondary"
                                           }
@@ -2640,7 +2725,8 @@ const VivranSummaryModal = ({
                                           onClick={() =>
                                             handleFilterChange(
                                               "component",
-                                              component
+                                              component,
+                                              kendra
                                             )
                                           }
                                         >
@@ -2680,12 +2766,15 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.scheme_name &&
-                            activeFilters.scheme_name.length > 0
+                            activeFilters.scheme_name[kendra] &&
+                            activeFilters.scheme_name[kendra].length > 0
                           ) {
                             const kendraSchemes = kendraToSchemes[kendra] || [];
                             if (
                               !kendraSchemes.some((scheme) =>
-                                activeFilters.scheme_name.includes(scheme)
+                                activeFilters.scheme_name[kendra].includes(
+                                  scheme
+                                )
                               )
                             ) {
                               return false;
@@ -2693,13 +2782,16 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.component &&
-                            activeFilters.component.length > 0
+                            activeFilters.component[kendra] &&
+                            activeFilters.component[kendra].length > 0
                           ) {
                             const kendraComponents =
                               kendraToComponents[kendra] || [];
                             if (
                               !kendraComponents.some((component) =>
-                                activeFilters.component.includes(component)
+                                activeFilters.component[kendra].includes(
+                                  component
+                                )
                               )
                             ) {
                               return false;
@@ -2716,7 +2808,10 @@ const VivranSummaryModal = ({
                                   {investments
                                     .filter((investment) => {
                                       let valid = true;
-                                      if (activeFilters.component) {
+                                      if (
+                                        activeFilters.component &&
+                                        activeFilters.component[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
@@ -2724,12 +2819,15 @@ const VivranSummaryModal = ({
                                               item.center_name === kendra &&
                                               item.investment_name ===
                                                 investment &&
-                                              activeFilters.component.includes(
-                                                item.component
-                                              )
+                                              activeFilters.component[
+                                                kendra
+                                              ].includes(item.component)
                                           );
                                       }
-                                      if (activeFilters.scheme_name) {
+                                      if (
+                                        activeFilters.scheme_name &&
+                                        activeFilters.scheme_name[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
@@ -2737,12 +2835,15 @@ const VivranSummaryModal = ({
                                               item.center_name === kendra &&
                                               item.investment_name ===
                                                 investment &&
-                                              activeFilters.scheme_name.includes(
-                                                item.scheme_name
-                                              )
+                                              activeFilters.scheme_name[
+                                                kendra
+                                              ].includes(item.scheme_name)
                                           );
                                       }
-                                      if (activeFilters.source_of_receipt) {
+                                      if (
+                                        activeFilters.source_of_receipt &&
+                                        activeFilters.source_of_receipt[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
@@ -2750,9 +2851,9 @@ const VivranSummaryModal = ({
                                               item.center_name === kendra &&
                                               item.investment_name ===
                                                 investment &&
-                                              activeFilters.source_of_receipt.includes(
-                                                item.source_of_receipt
-                                              )
+                                              activeFilters.source_of_receipt[
+                                                kendra
+                                              ].includes(item.source_of_receipt)
                                           );
                                       }
                                       return valid;
@@ -2766,9 +2867,12 @@ const VivranSummaryModal = ({
                                         <Button
                                           variant={
                                             activeFilters.investment_name &&
-                                            activeFilters.investment_name.includes(
-                                              investment
-                                            )
+                                            activeFilters.investment_name[
+                                              kendra
+                                            ] &&
+                                            activeFilters.investment_name[
+                                              kendra
+                                            ].includes(investment)
                                               ? "primary"
                                               : "outline-secondary"
                                           }
@@ -2777,7 +2881,8 @@ const VivranSummaryModal = ({
                                           onClick={() =>
                                             handleFilterChange(
                                               "investment_name",
-                                              investment
+                                              investment,
+                                              kendra
                                             )
                                           }
                                         >
@@ -2837,13 +2942,16 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.component &&
-                            activeFilters.component.length > 0
+                            activeFilters.component[kendra] &&
+                            activeFilters.component[kendra].length > 0
                           ) {
                             const kendraComponents =
                               kendraToComponents[kendra] || [];
                             if (
                               !kendraComponents.some((component) =>
-                                activeFilters.component.includes(component)
+                                activeFilters.component[kendra].includes(
+                                  component
+                                )
                               )
                             ) {
                               return false;
@@ -2851,13 +2959,14 @@ const VivranSummaryModal = ({
                           }
                           if (
                             activeFilters.investment_name &&
-                            activeFilters.investment_name.length > 0
+                            activeFilters.investment_name[kendra] &&
+                            activeFilters.investment_name[kendra].length > 0
                           ) {
                             const kendraInvestments =
                               kendraToInvestments[kendra] || [];
                             if (
                               !kendraInvestments.some((investment) =>
-                                activeFilters.investment_name.includes(
+                                activeFilters.investment_name[kendra].includes(
                                   investment
                                 )
                               )
@@ -2876,7 +2985,10 @@ const VivranSummaryModal = ({
                                   {sources
                                     .filter((source) => {
                                       let valid = true;
-                                      if (activeFilters.scheme_name) {
+                                      if (
+                                        activeFilters.scheme_name &&
+                                        activeFilters.scheme_name[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
@@ -2884,12 +2996,15 @@ const VivranSummaryModal = ({
                                               item.center_name === kendra &&
                                               item.source_of_receipt ===
                                                 source &&
-                                              activeFilters.scheme_name.includes(
-                                                item.scheme_name
-                                              )
+                                              activeFilters.scheme_name[
+                                                kendra
+                                              ].includes(item.scheme_name)
                                           );
                                       }
-                                      if (activeFilters.component) {
+                                      if (
+                                        activeFilters.component &&
+                                        activeFilters.component[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
@@ -2897,12 +3012,15 @@ const VivranSummaryModal = ({
                                               item.center_name === kendra &&
                                               item.source_of_receipt ===
                                                 source &&
-                                              activeFilters.component.includes(
-                                                item.component
-                                              )
+                                              activeFilters.component[
+                                                kendra
+                                              ].includes(item.component)
                                           );
                                       }
-                                      if (activeFilters.investment_name) {
+                                      if (
+                                        activeFilters.investment_name &&
+                                        activeFilters.investment_name[kendra]
+                                      ) {
                                         valid =
                                           valid &&
                                           groupData.items.some(
@@ -2910,9 +3028,9 @@ const VivranSummaryModal = ({
                                               item.center_name === kendra &&
                                               item.source_of_receipt ===
                                                 source &&
-                                              activeFilters.investment_name.includes(
-                                                item.investment_name
-                                              )
+                                              activeFilters.investment_name[
+                                                kendra
+                                              ].includes(item.investment_name)
                                           );
                                       }
                                       return valid;
@@ -2926,9 +3044,12 @@ const VivranSummaryModal = ({
                                         <Button
                                           variant={
                                             activeFilters.source_of_receipt &&
-                                            activeFilters.source_of_receipt.includes(
-                                              source
-                                            )
+                                            activeFilters.source_of_receipt[
+                                              kendra
+                                            ] &&
+                                            activeFilters.source_of_receipt[
+                                              kendra
+                                            ].includes(source)
                                               ? "primary"
                                               : "outline-secondary"
                                           }
@@ -2937,7 +3058,8 @@ const VivranSummaryModal = ({
                                           onClick={() =>
                                             handleFilterChange(
                                               "source_of_receipt",
-                                              source
+                                              source,
+                                              kendra
                                             )
                                           }
                                         >
@@ -2953,7 +3075,6 @@ const VivranSummaryModal = ({
                   </Collapse>
                 </Card>
                 {/* Financial Summary Section */}
-               
               </Col>
             </Row>
           </Card.Body>
@@ -3219,40 +3340,40 @@ const VivranSummaryModal = ({
             </div>
           </Card.Body>
         </Card>
-<Card className="mb-2">
-  <Card.Body>
-    <h6 className="mb-3 fw-bold">वित्तीय सारांश</h6>
+        <Card className="mb-2">
+          <Card.Body>
+            <h6 className="mb-3 fw-bold">वित्तीय सारांश</h6>
 
-    <Row className="text-center g-2">
-      <Col md={4}>
-        <div className="p-2 border rounded amount-box">
-          <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
-          <p className="mb-0 fw-bold small">
-            {formatCurrency(totalAllocated)}
-          </p>
-        </div>
-      </Col>
+            <Row className="text-center g-2">
+              <Col md={4}>
+                <div className="p-2 border rounded amount-box">
+                  <h6 className="mb-1 small-fonts">आवंटित राशि</h6>
+                  <p className="mb-0 fw-bold small">
+                    {formatCurrency(totalAllocated)}
+                  </p>
+                </div>
+              </Col>
 
-      <Col md={4}>
-        <div className="p-2 border rounded amount-box">
-          <h6 className="mb-1 small-fonts">शेष राशि</h6>
-          <p className="mb-0 text-success fw-bold small">
-            {formatCurrency(totalRemaining)}
-          </p>
-        </div>
-      </Col>
+              <Col md={4}>
+                <div className="p-2 border rounded amount-box">
+                  <h6 className="mb-1 small-fonts">शेष राशि</h6>
+                  <p className="mb-0 text-success fw-bold small">
+                    {formatCurrency(totalRemaining)}
+                  </p>
+                </div>
+              </Col>
 
-      <Col md={4}>
-        <div className="p-2 border rounded amount-box">
-          <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
-          <p className="mb-0 text-warning fw-bold small">
-            {formatCurrency(totalUpdated)}
-          </p>
-        </div>
-      </Col>
-    </Row>
-  </Card.Body>
-</Card>
+              <Col md={4}>
+                <div className="p-2 border rounded amount-box">
+                  <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
+                  <p className="mb-0 text-warning fw-bold small">
+                    {formatCurrency(totalUpdated)}
+                  </p>
+                </div>
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
 
         {/* Graph Section */}
         <Card>
