@@ -1429,12 +1429,19 @@ const VivranSummaryModal = ({
   };
 
   // Handle table row click to show TableDetailsModal
-  const handleTableRowClick = (centerName) => {
-    const centerData = tableData.filter(
-      (item) => item.center_name === centerName
+  const handleTableRowClick = () => {
+    // Get all selected kendras from selectedCombinedKendra
+    const selectedKendras = selectedCombinedKendra.length > 0 
+      ? selectedCombinedKendra 
+      : (uniqueCenters.length > 0 ? uniqueCenters : allCenters);
+    
+    // Filter data for all selected kendras
+    const allSelectedKendrasData = filteredItems.filter((item) =>
+      selectedKendras.includes(item.center_name)
     );
-    setTableDetailsData(centerData);
-    setTableDetailsCenterName(centerName + " का विस्तृत विवरण");
+    
+    setTableDetailsData(allSelectedKendrasData);
+    setTableDetailsCenterName("चयनित केंद्रों का विस्तृत विवरण");
     setShowTableDetailsModal(true);
   };
 
@@ -3253,7 +3260,7 @@ const VivranSummaryModal = ({
                       <tr
                         key={index}
                         style={{ cursor: "pointer" }}
-                        onClick={() => handleTableRowClick(item.center_name)}
+                        onClick={() => handleTableRowClick()}
                       >
                         <td data-label="क्रम संख्या">{index + 1}</td>
                         {selectedColumns.includes("center_name") && (

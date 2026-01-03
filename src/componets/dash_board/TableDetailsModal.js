@@ -27,6 +27,70 @@ return "#333";
 
 const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
 
+  // Group data by center name to show individual summaries
+  const groupedByCenters = useMemo(() => {
+    if (!tableData || tableData.length === 0) return {};
+    
+    const grouped = {};
+    tableData.forEach(item => {
+      if (!grouped[item.center_name]) {
+        grouped[item.center_name] = [];
+      }
+      grouped[item.center_name].push(item);
+    });
+    
+    return grouped;
+  }, [tableData]);
+
+  // Calculate totals for each center
+  const centerSummaries = useMemo(() => {
+    const summaries = {};
+    
+    Object.entries(groupedByCenters).forEach(([kendraName, items]) => {
+      const totalAllocated = items.reduce(
+        (sum, item) => sum + parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0),
+        0
+      );
+      const totalUpdated = items.reduce(
+        (sum, item) => sum + parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0),
+        0
+      );
+      const totalRemaining = totalAllocated - totalUpdated;
+      
+      summaries[kendraName] = {
+        recordCount: items.length,
+        totalAllocated,
+        totalUpdated,
+        totalRemaining,
+        distributionPercentage: totalAllocated > 0 ? ((totalUpdated / totalAllocated) * 100).toFixed(2) : 0
+      };
+    });
+    
+    return summaries;
+  }, [groupedByCenters]);
+
+  // Calculate overall comparison summary
+  const comparisonSummary = useMemo(() => {
+    let totalAllocated = 0;
+    let totalUpdated = 0;
+    let totalRecords = 0;
+    
+    Object.values(centerSummaries).forEach(summary => {
+      totalAllocated += summary.totalAllocated;
+      totalUpdated += summary.totalUpdated;
+      totalRecords += summary.recordCount;
+    });
+    
+    return {
+      totalAllocated,
+      totalUpdated,
+      totalRemaining: totalAllocated - totalUpdated,
+      totalRecords,
+      totalCenters: Object.keys(centerSummaries).length,
+      overallDistributionPercentage: totalAllocated > 0 ? ((totalUpdated / totalAllocated) * 100).toFixed(2) : 0
+    };
+  }, [centerSummaries]);
+
 // Enhanced Export functions with comprehensive relational summaries
 // Export specific section data to Excel with detailed breakdown
 const exportSectionToExcel = (sectionType, breakdownData = null) => {
@@ -3230,6 +3294,133 @@ data-bs-placement="top"
 </Card.Body>
 </Collapse>
 </Card>
+
+        {/* Individual Kendra Summary Section */}
+        {Object.keys(centerSummaries).length > 0 && (
+          <Card className="mb-3">
+            <Card.Header className="fillter-heading">
+              <h6 className="mb-0"><FaBuilding className="me-2" /> केंद्र वार विस्तृत विवरण</h6>
+            </Card.Header>
+            <Card.Body>
+              <div className="kendra-summaries-container">
+                {Object.entries(centerSummaries).map(([kendraName, summary], index) => (
+                  <div key={kendraName} className="mb-4 p-3 border rounded bg-light">
+                    {/* Kendra Name Header */}
+                    <h5 className="mb-3" style={{ color: '#2c3e50', fontWeight: 'bold' }}>
+                      <FaBuilding className="me-2" style={{ color: '#007bff' }} />
+                      {kendraName}
+                    </h5>
+
+                    {/* Summary Grid for this Kendra */}
+                    <Row className="g-2 mb-3">
+                      <Col md={3}>
+                        <div className="p-2 border rounded" style={{ backgroundColor: '#e3f2fd' }}>
+                          <small className="text-muted d-block">रिकॉर्ड संख्या</small>
+                          <h6 style={{ color: '#1976d2', fontWeight: 'bold' }}>
+                            {summary.recordCount}
+                          </h6>
+                        </div>
+                      </Col>
+                      <Col md={3}>
+                        <div className="p-2 border rounded" style={{ backgroundColor: '#f3e5f5' }}>
+                          <small className="text-muted d-block">आवंटित राशि</small>
+                          <h6 style={{ color: '#7b1fa2', fontWeight: 'bold' }}>
+                            {formatCurrency(summary.totalAllocated)}
+                          </h6>
+                        </div>
+                      </Col>
+                      <Col md={3}>
+                        <div className="p-2 border rounded" style={{ backgroundColor: '#fff3e0' }}>
+                          <small className="text-muted d-block">वितरण राशि</small>
+                          <h6 style={{ color: '#f57c00', fontWeight: 'bold' }}>
+                            {formatCurrency(summary.totalUpdated)}
+                          </h6>
+                        </div>
+                      </Col>
+                      <Col md={3}>
+                        <div className="p-2 border rounded" style={{ backgroundColor: '#e8f5e9' }}>
+                          <small className="text-muted d-block">शेष राशि</small>
+                          <h6 style={{ color: '#388e3c', fontWeight: 'bold' }}>
+                            {formatCurrency(summary.totalRemaining)}
+                          </h6>
+                        </div>
+                      </Col>
+                      <Col md={3}>
+                        <div className="p-2 border rounded" style={{ backgroundColor: '#eceff1' }}>
+                          <small className="text-muted d-block">वितरण %</small>
+                          <h6 style={{ color: '#455a64', fontWeight: 'bold' }}>
+                            {summary.distributionPercentage}%
+                          </h6>
+                        </div>
+                      </Col>
+                    </Row>
+                  </div>
+                ))}
+              </div>
+            </Card.Body>
+          </Card>
+        )}
+
+        {/* Comparison Summary Section */}
+        {Object.keys(centerSummaries).length > 1 && (
+          <Card className="mb-3" style={{ backgroundColor: '#f5f5f5', borderTop: '3px solid #2c3e50' }}>
+            <Card.Header className="fillter-heading" style={{ backgroundColor: '#2c3e50', color: 'white' }}>
+              <h6 className="mb-0"><FaChartBar className="me-2" /> तुलनात्मक सारांश</h6>
+            </Card.Header>
+            <Card.Body>
+              <Row className="g-3">
+                <Col md={4}>
+                  <div className="p-3 border rounded" style={{ backgroundColor: '#e3f2fd', borderLeft: '4px solid #1976d2' }}>
+                    <small className="text-muted d-block">कुल केंद्र</small>
+                    <h4 style={{ color: '#1976d2', fontWeight: 'bold', margin: '10px 0' }}>
+                      {comparisonSummary.totalCenters}
+                    </h4>
+                  </div>
+                </Col>
+                <Col md={4}>
+                  <div className="p-3 border rounded" style={{ backgroundColor: '#f3e5f5', borderLeft: '4px solid #7b1fa2' }}>
+                    <small className="text-muted d-block">कुल रिकॉर्ड</small>
+                    <h4 style={{ color: '#7b1fa2', fontWeight: 'bold', margin: '10px 0' }}>
+                      {comparisonSummary.totalRecords}
+                    </h4>
+                  </div>
+                </Col>
+                <Col md={4}>
+                  <div className="p-3 border rounded" style={{ backgroundColor: '#eceff1', borderLeft: '4px solid #455a64' }}>
+                    <small className="text-muted d-block">कुल वितरण %</small>
+                    <h4 style={{ color: '#455a64', fontWeight: 'bold', margin: '10px 0' }}>
+                      {comparisonSummary.overallDistributionPercentage}%
+                    </h4>
+                  </div>
+                </Col>
+                <Col md={6}>
+                  <div className="p-3 border rounded" style={{ backgroundColor: '#fff3e0', borderLeft: '4px solid #f57c00' }}>
+                    <small className="text-muted d-block">कुल आवंटित राशि</small>
+                    <h5 style={{ color: '#f57c00', fontWeight: 'bold', margin: '10px 0' }}>
+                      {formatCurrency(comparisonSummary.totalAllocated)}
+                    </h5>
+                  </div>
+                </Col>
+                <Col md={6}>
+                  <div className="p-3 border rounded" style={{ backgroundColor: '#e8f5e9', borderLeft: '4px solid #388e3c' }}>
+                    <small className="text-muted d-block">कुल वितरण राशि</small>
+                    <h5 style={{ color: '#388e3c', fontWeight: 'bold', margin: '10px 0' }}>
+                      {formatCurrency(comparisonSummary.totalUpdated)}
+                    </h5>
+                  </div>
+                </Col>
+                <Col md={12}>
+                  <div className="p-3 border rounded" style={{ backgroundColor: '#ffebee', borderLeft: '4px solid #c62828' }}>
+                    <small className="text-muted d-block">कुल शेष राशि</small>
+                    <h5 style={{ color: '#c62828', fontWeight: 'bold', margin: '10px 0' }}>
+                      {formatCurrency(comparisonSummary.totalRemaining)}
+                    </h5>
+                  </div>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+        )}
 </Modal.Body>
 </Modal>
 );
