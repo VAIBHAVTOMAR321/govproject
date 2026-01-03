@@ -2311,14 +2311,16 @@ const VivranSummaryModal = ({
               th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
               th { background-color: #f2f2f2; font-weight: bold; }
               body { margin: 20px; display: flex; flex-direction: column; }
-              h2 { text-align: center; }
-              .print-btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; margin-bottom: 20px; align-self: flex-end; }
+              h2 { text-align: center;font-size:16px; }
+              .print-btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 10px; cursor: pointer; margin-bottom: 20px; align-self: flex-end; }
               .print-btn:hover { background-color: #0056b3; }
             </style>
           </head>
           <body>
-            <button class="print-btn" onclick="window.print()">Filtered विवरण प्रिंट करें</button>
-            <h2>${key} विवरण</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="margin: 0;">${key} विवरण</h2>
+              <button class="print-btn" onclick="window.print()">Filtered विवरण प्रिंट करें</button>
+            </div>
             <table>
               <tr>${headers}</tr>
               ${rows}
