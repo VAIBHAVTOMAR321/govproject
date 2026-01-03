@@ -1406,7 +1406,7 @@ const VivranSummaryModal = ({
   const pieChartData = useMemo(() => {
     return [
       { name: "आवंटित", value: totalAllocated, color: "#2C3E50" },
-      { name: "बेचा गया", value: totalUpdated, color: "#E74C3C" },
+      { name: "वितरण", value: totalUpdated, color: "#E74C3C" },
       { name: "शेष", value: totalRemaining, color: "#27AE60" },
     ];
   }, [totalAllocated, totalUpdated, totalRemaining]);
@@ -1419,7 +1419,7 @@ const VivranSummaryModal = ({
     setShowOnlyRemaining(false);
 
     // Set specific filter based on pie slice clicked
-    if (item.name === "बेचा गया") {
+    if (item.name === "वितरण") {
       setShowOnlySold(true);
     } else if (item.name === "आवंटित") {
       setShowOnlyAllocated(true);
@@ -1561,7 +1561,7 @@ const VivranSummaryModal = ({
             <strong>{tooltip.data.name}</strong>
           </div>
           <div>आवंटित: {tooltip.data.allocated.toFixed(0)}</div>
-          <div>बेचा गया: {tooltip.data.sold.toFixed(0)}</div>
+          <div>वितरण: {tooltip.data.sold.toFixed(0)}</div>
           <div>शेष: {tooltip.data.remaining.toFixed(0)}</div>
         </div>
       );
@@ -1875,7 +1875,7 @@ const VivranSummaryModal = ({
 
                 <rect x={0} y={15} width={12} height={12} fill={colors.sold} />
                 <text x={15} y={25} fontSize="12">
-                  बेचा गया
+                  वितरण
                 </text>
 
                 <rect
@@ -2191,7 +2191,7 @@ const VivranSummaryModal = ({
               case "updated_amount":
                 return "<th>अपडेट की गई राशि</th>";
               case "source_of_receipt":
-                return "<th>स्रोत</th>";
+                return "<th>सप्लायर</th>";
               case "scheme_name":
                 return "<th>योजना</th>";
               default:
@@ -2903,7 +2903,7 @@ const VivranSummaryModal = ({
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
                   >
-                    <span>स्रोत ({uniqueSources.length})</span>
+                    <span>सप्लायर ({uniqueSources.length})</span>
                     {collapsedSections.source_of_receipt ? (
                       <FaChevronDown />
                     ) : (
@@ -3224,7 +3224,7 @@ const VivranSummaryModal = ({
                       <th>अपडेट की गई राशि</th>
                     )}
                     {selectedColumns.includes("source_of_receipt") && (
-                      <th>स्रोत</th>
+                      <th>सप्लायर</th>
                     )}
                     {selectedColumns.includes("scheme_name") && <th>योजना</th>}
                   </tr>
@@ -3286,7 +3286,7 @@ const VivranSummaryModal = ({
                           <td data-label="अपडेट की गई राशि">{updatedAmount}</td>
                         )}
                         {selectedColumns.includes("source_of_receipt") && (
-                          <td data-label="स्रोत">{item.source_of_receipt}</td>
+                          <td data-label="सप्लायर">{item.source_of_receipt}</td>
                         )}
                         {selectedColumns.includes("scheme_name") && (
                           <td data-label="योजना">{item.scheme_name}</td>
@@ -3365,7 +3365,7 @@ const VivranSummaryModal = ({
 
               <Col md={4}>
                 <div className="p-2 border rounded amount-box">
-                  <h6 className="mb-1 small-fonts">बेची गई राशि</h6>
+                  <h6 className="mb-1 small-fonts">वितरण राशि</h6>
                   <p className="mb-0 text-warning fw-bold small">
                     {formatCurrency(totalUpdated)}
                   </p>
@@ -3393,7 +3393,7 @@ const VivranSummaryModal = ({
                 <div style={{ overflowX: "auto" }}>
                   <ComparisonBarChart
                     data={chartData}
-                    title="आवंटित बनाम बेचा गया"
+                    title="आवंटित बनाम वितरण"
                     onBarClick={handleBarClick}
                   />
                 </div>

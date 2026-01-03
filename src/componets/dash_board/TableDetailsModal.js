@@ -136,7 +136,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           'बीज वितरण': 'उन्नत किस्म के बीजों का वितरण किसानों को',
           'उपकरण सब्सिडी': 'कृषि उपकरणों पर सब्सिडी या अनुदान',
           'सिंचाई सुविधा': 'सिंचाई के लिए पाइपलाइन, बोरवेल आदि',
-          'मार्केटिंग सपोर्ट': 'फसल की बिक्री के लिए बाजार सहायता',
+          'मार्केटिंग सपोर्ट': 'फसल की वितरण के लिए बाजार सहायता',
           'पशुपालन सहायता': 'पशुपालन के लिए अनुदान और सहायता',
           'मशीनरी': 'कृषि मशीनरी और उपकरण',
           'केंचुवीकम्पोस्ट': 'जैविक खाद बनाने के लिए केंचुआ',
@@ -183,7 +183,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             'शामिल केंद्र': centers.join(', '),
             'केंद्रों की संख्या': centers.length,
             'आवंटित राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)),
-            'बेची गई राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'वितरण राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
             'शेष राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
             'प्रभावशीलता प्रतिशत': ((schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 1)) * 100).toFixed(2),
             'भौगोलिक कवरेज': vidhanSabhas.length > 0 ? 'व्यापक' : 'सीमित'
@@ -220,7 +220,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             'शामिल विकासखंड': vikasKhands.join(', '),
             'विकासखंडों की संख्या': vikasKhands.length,
             'आवंटित राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)),
-            'बेची गई राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'वितरण राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
             'शेष राशि': formatCurrency(componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
             'प्रभावशीलता प्रतिशत': ((componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 1)) * 100).toFixed(2)
           });
@@ -250,9 +250,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             'विधानसभाएं': schemeVidhanSabhas.join(', '),
             'विकासखंड': schemeVikasKhands.join(', '),
             'कुल मात्रा': schemeItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0).toFixed(2),
-            'बेची गई मात्रा': schemeItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2),
+            'वितरण मात्रा': schemeItems.reduce((sum, item) => sum + parseFloat(item.updated_quantity || 0), 0).toFixed(2),
             'कुल राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)),
-            'बेची गई राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
+            'वितरण राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0)),
             'शेष राशि': formatCurrency(schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))
           });
         });
@@ -265,7 +265,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         'क्र.सं.': '', // Will be filled by Excel
         'विधानसभा': item.vidhan_sabha_name || '',
         'विकासखंड': item.vikas_khand_name || '',
-        'केंद्र': centerName || '',
+        'केंद्र': item.center_name || '',
         'योजना': item.scheme_name || '',
         'योजना विवरण': getSchemeDescription(item.scheme_name || ''),
         'स्रोत': item.source_of_receipt || '',
@@ -275,11 +275,11 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         'आवंटित मात्रा': parseFloat(item.allocated_quantity || 0),
         'दर': parseFloat(item.rate || 0),
         'आवंटित राशि': parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0),
-        'बेची गई मात्रा': parseFloat(item.updated_quantity || 0),
-        'बेची गई राशि': parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0),
+        'वितरण मात्रा': parseFloat(item.updated_quantity || 0),
+        'वितरण राशि': parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0),
         'शेष मात्रा': parseFloat(item.allocated_quantity || 0) - parseFloat(item.updated_quantity || 0),
         'शेष राशि': (parseFloat(item.allocated_quantity || 0) - parseFloat(item.updated_quantity || 0)) * parseFloat(item.rate || 0),
-        'बिक्री प्रतिशत': ((parseFloat(item.updated_quantity || 0) / parseFloat(item.allocated_quantity || 1)) * 100).toFixed(2),
+        'वितरण प्रतिशत': ((parseFloat(item.updated_quantity || 0) / parseFloat(item.allocated_quantity || 1)) * 100).toFixed(2),
         'स्थिति': parseFloat(item.allocated_quantity || 0) - parseFloat(item.updated_quantity || 0) > 0 ? 'सक्रिय' : 'पूर्ण'
       }));
 
@@ -306,9 +306,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         ['', ''],
         ['वित्तीय सारांश (रुपयों में)', ''],
         ['कुल आवंटित राशि', formatCurrency(totals.totalAllocated)],
-        ['कुल बेची गई राशि', formatCurrency(totals.totalUpdated)],
+        ['कुल वितरण राशि', formatCurrency(totals.totalUpdated)],
         ['कुल शेष राशि', formatCurrency(totals.totalRemaining)],
-        ['बिक्री प्रतिशत', `${((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2)}%`],
+        ['वितरण प्रतिशत', `${((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2)}%`],
         ['बची हुई राशि प्रतिशत', `${((totals.totalRemaining / totals.totalAllocated) * 100).toFixed(2)}%`]
       ];
       
@@ -338,9 +338,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         ['', ''],
         ['वित्तीय विवरण (रुपयों में)', ''],
         ['कुल आवंटित राशि', formatCurrency(totals.totalAllocated)],
-        ['कुल बेची गई राशि', formatCurrency(totals.totalUpdated)],
+        ['कुल वितरण राशि', formatCurrency(totals.totalUpdated)],
         ['कुल शेष राशि', formatCurrency(totals.totalRemaining)],
-        ['बिक्री दर', `${((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2)}%`],
+        ['वितरण दर', `${((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2)}%`],
         ['प्रभावशीलता', totals.totalAllocated > 0 ? 'उत्कृष्ट' : 'मूल्यांकन आवश्यक']
       ];
       
@@ -361,9 +361,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           'योजना': scheme,
           'रिकॉर्ड संख्या': schemeItems.length,
           'आवंटित राशि': formatCurrency(allocated),
-          'बेची गई राशि': formatCurrency(sold),
+          'वितरण राशि': formatCurrency(sold),
           'शेष राशि': formatCurrency(remaining),
-          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+          'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
           'शामिल विधानसभाएं': vidhanSabhas.join(', '),
           'शामिल विकासखंड': vikasKhands.join(', '),
           'शामिल घटक': components.join(', ')
@@ -386,9 +386,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           'घटक': component,
           'रिकॉर्ड संख्या': componentItems.length,
           'आवंटित राशि': formatCurrency(allocated),
-          'बेची गई राशि': formatCurrency(sold),
+          'वितरण राशि': formatCurrency(sold),
           'शेष राशि': formatCurrency(remaining),
-          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+          'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
           'शामिल योजनाएं': schemes.join(', '),
           'शामिल निवेश': investments.join(', ')
         };
@@ -413,9 +413,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           'शामिल केंद्र': centers.join(', '),
           'रिकॉर्ड संख्या': locationItems.length,
           'आवंटित राशि': formatCurrency(allocated),
-          'बेची गई राशि': formatCurrency(sold),
+          'वितरण राशि': formatCurrency(sold),
           'शेष राशि': formatCurrency(remaining),
-          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+          'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
           'शामिल योजनाएं': schemes.join(', ')
         };
       });
@@ -434,9 +434,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           'स्रोत': source,
           'रिकॉर्ड संख्या': sourceItems.length,
           'आवंटित राशि': formatCurrency(allocated),
-          'बेची गई राशि': formatCurrency(sold),
+          'वितरण राशि': formatCurrency(sold),
           'शेष राशि': formatCurrency(remaining),
-          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`
+          'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`
         };
       });
       
@@ -454,9 +454,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           'निवेश': investment,
           'रिकॉर्ड संख्या': investmentItems.length,
           'आवंटित राशि': formatCurrency(allocated),
-          'बेची गई राशि': formatCurrency(sold),
+          'वितरण राशि': formatCurrency(sold),
           'शेष राशि': formatCurrency(remaining),
-          'बिक्री प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`
+          'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`
         };
       });
       
@@ -695,7 +695,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               </div>
               <div class="financial-item">
                 <h3>${formatCurrency(totals.totalUpdated)}</h3>
-                <p>कुल बेची गई राशि</p>
+                <p>कुल वितरण राशि</p>
               </div>
               <div class="financial-item">
                 <h3>${formatCurrency(totals.totalRemaining)}</h3>
@@ -803,7 +803,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                           <span class="value">${formatCurrency(allocated)}</span>
                         </div>
                         <div class="detail-row">
-                          <span class="label">बेची गई राशि:</span>
+                          <span class="label">वितरण राशि:</span>
                           <span class="value">${formatCurrency(sold)}</span>
                         </div>
                         <div class="detail-row">
@@ -825,9 +825,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   <th>संबंधित घटक</th>
                   <th>संबंधित निवेश</th>
                   <th>आवंटित राशि</th>
-                  <th>बेची गई राशि</th>
+                  <th>वितरण राशि</th>
                   <th>शेष राशि</th>
-                  <th>बिक्री प्रतिशत</th>
+                  <th>वितरण प्रतिशत</th>
                 </tr>
               </thead>
               <tbody>
@@ -945,7 +945,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                           <span class="value">${formatCurrency(allocated)}</span>
                         </div>
                         <div class="detail-row">
-                          <span class="label">बेची गई राशि:</span>
+                          <span class="label">वितरण राशि:</span>
                           <span class="value">${formatCurrency(sold)}</span>
                         </div>
                         <div class="detail-row">
@@ -965,9 +965,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   <th>घटक</th>
                   <th>रिकॉर्ड संख्या</th>
                   <th>आवंटित राशि</th>
-                  <th>बेची गई राशि</th>
+                  <th>वितरण राशि</th>
                   <th>शेष राशि</th>
-                  <th>बिक्री प्रतिशत</th>
+                  <th>वितरण प्रतिशत</th>
                 </tr>
               </thead>
               <tbody>
@@ -1003,9 +1003,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   <th>विधानसभा</th>
                   <th>रिकॉर्ड संख्या</th>
                   <th>आवंटित राशि</th>
-                  <th>बेची गई राशि</th>
+                  <th>वितरण राशि</th>
                   <th>शेष राशि</th>
-                  <th>बिक्री प्रतिशत</th>
+                  <th>वितरण प्रतिशत</th>
                 </tr>
               </thead>
               <tbody>
@@ -1088,7 +1088,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                           <span class="value">${formatCurrency(allocated)}</span>
                         </div>
                         <div class="detail-row">
-                          <span class="label">बेची गई राशि:</span>
+                          <span class="label">वितरण राशि:</span>
                           <span class="value">${formatCurrency(sold)}</span>
                         </div>
                         <div class="detail-row">
@@ -1118,7 +1118,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 </tr>
                 <tr>
                   <th>आवंटित राशि</th>
-                  <th>बेची गई राशि</th>
+                  <th>वितरण राशि</th>
                   <th>योजनाएं</th>
                   <th>घटक</th>
                   <th>स्रोत</th>
@@ -1204,7 +1204,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                         <li>उपस्थित विधानसभाएं: ${vidhanSabhas.join(', ')}</li>
                         <li>शामिल विकासखंड: ${vikasKhands.join(', ')}</li>
                         <li>आवंटित राशि: ${formatCurrency(allocated)}</li>
-                        <li>बेची गई राशि: ${formatCurrency(sold)}</li>
+                        <li>वितरण राशि: ${formatCurrency(sold)}</li>
                         <li>शेष राशि: ${formatCurrency(remaining)}</li>
                       </ul>
                     </li>
@@ -1219,9 +1219,9 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   <th>स्रोत</th>
                   <th>रिकॉर्ड संख्या</th>
                   <th>आवंटित राशि</th>
-                  <th>बेची गई राशि</th>
+                  <th>वितरण राशि</th>
                   <th>शेष राशि</th>
-                  <th>बिक्री प्रतिशत</th>
+                  <th>वितरण प्रतिशत</th>
                   <th>योजनाओं की संख्या</th>
                   <th>घटकों की संख्या</th>
                 </tr>
@@ -1266,8 +1266,8 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   <th>आवंटित मात्रा</th>
                   <th>दर</th>
                   <th>आवंटित राशि</th>
-                  <th>बेची गई मात्रा</th>
-                  <th>बेची गई राशि</th>
+                  <th>वितरण मात्रा</th>
+                  <th>वितरण राशि</th>
                   <th>शेष राशि</th>
                 </tr>
               </thead>
@@ -1461,7 +1461,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     return `${itemValue} (${itemType.toUpperCase()})
 रिकॉर्ड: ${tooltipData.count}
 आवंटित मात्रा: ${formatQuantity(tooltipData.allocatedQuantity)}
-बेची गई मात्रा: ${formatQuantity(tooltipData.updatedQuantity)}
+वितरण मात्रा: ${formatQuantity(tooltipData.updatedQuantity)}
 दर: ${formatCurrency(tooltipData.rate)}
 आवंटित: ${formatCurrency(tooltipData.totalAllocated)}
 बेचा गया: ${formatCurrency(tooltipData.totalUpdated)}
@@ -1733,7 +1733,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
       const typeLabel = details.itemType === 'scheme' ? 'योजना' : 'घटक';
       switch(sectionType) {
         case 'allocation': return `${typeLabel} आवंटन विवरण: ${itemName}`;
-        case 'sales': return `${typeLabel} बिक्री विवरण: ${itemName}`;
+        case 'sales': return `${typeLabel}वितरण: ${itemName}`;
         case 'remaining': return `${typeLabel} शेष राशि विवरण: ${itemName}`;
         default: return `${itemName} विवरण`;
       }
@@ -2028,7 +2028,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   </span>
                   <span
                     className="badge bg-light text-dark mb-1 clickable-badge"
-                    title={`कुल बेची गई राशि: ${formatCurrency(totals.totalUpdated)} - अब तक बेची गई धनराशि | क्लिक करें विवरण देखने के लिए`}
+                    title={`कुल वितरण राशि: ${formatCurrency(totals.totalUpdated)} - अब तक वितरण धनराशि | क्लिक करें विवरण देखने के लिए`}
                     data-bs-toggle="tooltip"
                     data-bs-placement="left"
                     onClick={() => toggleCollapse('sales')}
@@ -2309,7 +2309,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             style={{ cursor: "pointer" }}
             className="d-flex justify-content-between align-items-center accordin-header"
           >
-            <span><FaChartBar className="me-2" /> बिक्री विवरण</span>
+            <span><FaChartBar className="me-2" />वितरण</span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.sales ? <FaChevronDown /> : <FaChevronUp />}
               <Button className="exel-file"
@@ -2334,17 +2334,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                           'स्रोत': record.source_of_receipt,
                           'निवेश': record.investment_name,
                           'घटक': record.component,
-                          'बेची गई मात्रा': record.updated_quantity,
+                          'वितरण मात्रा': record.updated_quantity,
                           'दर': record.rate,
-                          'बेची गई राशि': formatCurrency(parseFloat(record.updated_quantity) * parseFloat(record.rate))
+                          'वितरण राशि': formatCurrency(parseFloat(record.updated_quantity) * parseFloat(record.rate))
                         });
                       });
                     }
                   });
                   
-                  exportSectionToExcel('बिक्री_विवरण', breakdownData);
+                  exportSectionToExcel('वितरण_विवरण', breakdownData);
                 }}
-                title="बिक्री Excel में निर्यात (विस्तृत विवरण)"
+                title="वितरण Excel में निर्यात (विस्तृत विवरण)"
               >
                 <FaFileExcel />
               </Button>
@@ -2370,17 +2370,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                           'स्रोत': record.source_of_receipt,
                           'निवेश': record.investment_name,
                           'घटक': record.component,
-                          'बेची गई मात्रा': record.updated_quantity,
+                          'वितरण मात्रा': record.updated_quantity,
                           'दर': record.rate,
-                          'बेची गई राशि': formatCurrency(parseFloat(record.updated_quantity) * parseFloat(record.rate))
+                          'वितरण राशि': formatCurrency(parseFloat(record.updated_quantity) * parseFloat(record.rate))
                         });
                       });
                     }
                   });
                   
-                  exportSectionToPDF('बिक्री_विवरण', breakdownData);
+                  exportSectionToPDF('वितरण_विवरण', breakdownData);
                 }}
-                title="बिक्री PDF में निर्यात (विस्तृत विवरण)"
+                title="वितरण PDF में निर्यात (विस्तृत विवरण)"
               >
                 <FaFilePdf />
               </Button>
@@ -2390,13 +2390,13 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <Card.Body>
               <div className="text-center mb-2">
                 <div className="alert alert-warning">
-                  <h6>कुल बेची गई राशि: {formatCurrency(totals.totalUpdated)}</h6>
-                  <p className="mb-0">वर्तमान में कोई बिक्री रिकॉर्ड नहीं है</p>
+                  <h6>कुल वितरण राशि: {formatCurrency(totals.totalUpdated)}</h6>
+                  <p className="mb-0">वर्तमान में कोई वितरण रिकॉर्ड नहीं है</p>
                 </div>
               </div>
               <Row>
                 <Col md={6}>
-                  <h6 className="text-secondary fw-bold mb-2">योजना अनुसार बिक्री</h6>
+                  <h6 className="text-secondary fw-bold mb-2">योजना अनुसार वितरण</h6>
                   {uniqueSchemes.map((scheme, index) => {
                     const schemeData = tableData.filter(item => item.scheme_name === scheme);
                     const totalSold = schemeData.reduce((sum, item) =>
@@ -2408,7 +2408,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                         className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showSalesDetails(scheme, 'scheme')}
                         style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
+                        title="क्लिक करें विस्तृत वितरणदेखने के लिए"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{scheme}</span>
@@ -2422,7 +2422,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                   })}
                 </Col>
                 <Col md={6}>
-                  <h6 className="text-dark fw-bold mb-2">घटक अनुसार बिक्री</h6>
+                  <h6 className="text-dark fw-bold mb-2">घटक अनुसार वितरण</h6>
                   {uniqueComponents.map((component, index) => {
                     const componentData = tableData.filter(item => item.component === component);
                     const totalSold = componentData.reduce((sum, item) =>
@@ -2434,7 +2434,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                         className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${isSelected ? 'selected-detail' : ''}`}
                         onClick={() => showSalesDetails(component, 'component')}
                         style={{ cursor: 'pointer' }}
-                        title="क्लिक करें विस्तृत बिक्री विवरण देखने के लिए"
+                        title="क्लिक करें विस्तृत वितरण देखने के लिए"
                       >
                         <div className="d-flex justify-content-between align-items-center mb-1">
                           <span className="fw-bold">{component}</span>
