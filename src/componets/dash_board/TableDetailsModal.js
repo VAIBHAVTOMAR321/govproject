@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Modal, Row, Col, Card, Button, Table, Badge, Collapse, Container, Form } from "react-bootstrap";
-import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList, FaFileExcel, FaFilePdf, FaDownload } from "react-icons/fa";
+import { FaTimes, FaChevronDown, FaChevronUp, FaBuilding, FaGavel, FaMapMarkerAlt, FaPuzzlePiece, FaPiggyBank, FaLayerGroup, FaTags, FaChartBar, FaEye, FaList, FaFileExcel, FaFilePdf, FaDownload, FaPrint } from "react-icons/fa";
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
@@ -124,6 +124,1853 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     } catch (error) {
       console.error('Error exporting section to PDF:', error);
       alert('सेक्शन पीडीएफ निर्यात में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // New function to open PDF view in a new tab
+  const openPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate comprehensive HTML content for PDF view
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - PDF व्यू</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .executive-summary {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 20px;
+              border-radius: 10px;
+              margin: 20px 0;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+              margin: 20px 0;
+            }
+            .summary-card {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              text-align: center;
+              border-left: 4px solid #007bff;
+            }
+            .summary-number {
+              font-size: 20px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 5px;
+            }
+            .summary-label {
+              font-size: 11px;
+              color: #7f8c8d;
+              text-transform: uppercase;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .financial-summary {
+              background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+              color: white;
+              padding: 20px;
+              border-radius: 10px;
+              margin: 20px 0;
+            }
+            .financial-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+              text-align: center;
+            }
+            .financial-item h3 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .financial-item p {
+              margin: 5px 0 0 0;
+              font-size: 12px;
+              opacity: 0.9;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            .scheme-location {
+              background: #fff3cd;
+              border: 1px solid #ffeaa7;
+              border-radius: 5px;
+              padding: 15px;
+              margin: 15px 0;
+            }
+            .component-breakdown {
+              background: #d1ecf1;
+              border: 1px solid #bee5eb;
+              border-radius: 5px;
+              padding: 15px;
+              margin: 15px 0;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">संपूर्ण विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <!-- Executive Summary -->
+          <div class="executive-summary">
+            <h2 style="margin-top: 0; text-align: center;">कार्यकारी सारांश</h2>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-number">${tableData.length}</div>
+                <div class="summary-label">कुल रिकॉर्ड</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueVidhanSabhas.length}</div>
+                <div class="summary-label">विधानसभा</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueVikasKhands.length}</div>
+                <div class="summary-label">विकासखंड</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueSchemes.length}</div>
+                <div class="summary-label">योजनाएं</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueComponents.length}</div>
+                <div class="summary-label">घटक</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-number">${uniqueSources.length}</div>
+                <div class="summary-label">स्रोत</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial Summary -->
+          <div class="financial-summary">
+            <h2 style="margin-top: 0; text-align: center;">वित्तीय सारांश</h2>
+            <div class="financial-grid">
+              <div class="financial-item">
+                <h3>${formatCurrency(totals.totalAllocated)}</h3>
+                <p>कुल आवंटित राशि</p>
+              </div>
+              <div class="financial-item">
+                <h3>${formatCurrency(totals.totalUpdated)}</h3>
+                <p>कुल वितरण राशि</p>
+              </div>
+              <div class="financial-item">
+                <h3>${formatCurrency(totals.totalRemaining)}</h3>
+                <p>कुल शेष राशि</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Data Table -->
+          <div class="section">
+            <div class="section-title">मुख्य डेटा तालिका</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>विधानसभा</th>
+                  <th>विकासखंड</th>
+                  <th>योजना</th>
+                  <th>घटक</th>
+                  <th>आवंटित मात्रा</th>
+                  <th>दर</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण मात्रा</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableData.map(item => {
+                  const allocated = parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0);
+                  const sold = parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0);
+                  const remaining = allocated - sold;
+                  return `
+                    <tr>
+                      <td>${item.vidhan_sabha_name || ''}</td>
+                      <td>${item.vikas_khand_name || ''}</td>
+                      <td>${item.scheme_name || ''}</td>
+                      <td>${item.component || ''}</td>
+                      <td>${parseFloat(item.allocated_quantity || 0).toFixed(2)}</td>
+                      <td>${formatCurrency(parseFloat(item.rate || 0))}</td>
+                      <td>${formatCurrency(allocated)}</td>
+                      <td>${parseFloat(item.updated_quantity || 0).toFixed(2)}</td>
+                      <td>${formatCurrency(sold)}</td>
+                      <td class="highlight">${formatCurrency(remaining)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr class="total-row">
+                  <td colspan="6"><strong>कुल योग</strong></td>
+                  <td><strong>${formatCurrency(totals.totalAllocated)}</strong></td>
+                  <td></td>
+                  <td><strong>${formatCurrency(totals.totalUpdated)}</strong></td>
+                  <td class="highlight"><strong>${formatCurrency(totals.totalRemaining)}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${tableData.length} रिकॉर्ड का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening PDF view:', error);
+      alert('PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Places section
+  const openPlacesPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Places section
+      const placesData = uniqueVikasKhands.map(location => {
+        const locationItems = tableData.filter(item => item.vikas_khand_name === location);
+        const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        const vidhanSabha = locationItems[0]?.vidhan_sabha_name || '';
+        
+        return {
+          'विकासखंड': location,
+          'विधानसभा': vidhanSabha,
+          'रिकॉर्ड संख्या': locationItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        };
+      });
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - विकासखंड विवरण</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">विकासखंड विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">विकासखंड विवरण</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>विकासखंड</th>
+                  <th>विधानसभा</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                  <th>वितरण प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${placesData.map(item => `
+                  <tr>
+                    <td>${item['विकासखंड']}</td>
+                    <td>${item['विधानसभा']}</td>
+                    <td>${item['रिकॉर्ड संख्या']}</td>
+                    <td>${item['आवंटित राशि']}</td>
+                    <td>${item['वितरण राशि']}</td>
+                    <td class="highlight">${item['शेष राशि']}</td>
+                    <td>${item['वितरण प्रतिशत']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${placesData.length} विकासखंड का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Places PDF view:', error);
+      alert('विकासखंड PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Allocation section
+  const openAllocationPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Allocation section
+      const allocationData = [];
+      
+      // Add scheme-wise allocation data
+      uniqueSchemes.forEach(scheme => {
+        const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+        const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        allocationData.push({
+          'प्रकार': 'योजना',
+          'नाम': scheme,
+          'रिकॉर्ड संख्या': schemeItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      });
+      
+      // Add component-wise allocation data
+      uniqueComponents.forEach(component => {
+        const componentItems = tableData.filter(item => item.component === component);
+        const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        allocationData.push({
+          'प्रकार': 'घटक',
+          'नाम': component,
+          'रिकॉर्ड संख्या': componentItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      });
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - आवंटन विवरण</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">आवंटन विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">आवंटन विवरण</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>प्रकार</th>
+                  <th>नाम</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                  <th>वितरण प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allocationData.map(item => `
+                  <tr>
+                    <td>${item['प्रकार']}</td>
+                    <td>${item['नाम']}</td>
+                    <td>${item['रिकॉर्ड संख्या']}</td>
+                    <td>${item['आवंटित राशि']}</td>
+                    <td>${item['वितरण राशि']}</td>
+                    <td class="highlight">${item['शेष राशि']}</td>
+                    <td>${item['वितरण प्रतिशत']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${allocationData.length} आइटम का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Allocation PDF view:', error);
+      alert('आवंटन PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Sales section
+  const openSalesPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Sales section
+      const salesData = [];
+      
+      // Add scheme-wise sales data
+      uniqueSchemes.forEach(scheme => {
+        const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+        const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        salesData.push({
+          'प्रकार': 'योजना',
+          'नाम': scheme,
+          'रिकॉर्ड संख्या': schemeItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      });
+      
+      // Add component-wise sales data
+      uniqueComponents.forEach(component => {
+        const componentItems = tableData.filter(item => item.component === component);
+        const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        salesData.push({
+          'प्रकार': 'घटक',
+          'नाम': component,
+          'रिकॉर्ड संख्या': componentItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      });
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - वितरण विवरण</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">वितरण विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">वितरण विवरण</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>प्रकार</th>
+                  <th>नाम</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                  <th>वितरण प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${salesData.map(item => `
+                  <tr>
+                    <td>${item['प्रकार']}</td>
+                    <td>${item['नाम']}</td>
+                    <td>${item['रिकॉर्ड संख्या']}</td>
+                    <td>${item['आवंटित राशि']}</td>
+                    <td>${item['वितरण राशि']}</td>
+                    <td class="highlight">${item['शेष राशि']}</td>
+                    <td>${item['वितरण प्रतिशत']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${salesData.length} आइटम का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Sales PDF view:', error);
+      alert('वितरण PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Remaining section
+  const openRemainingPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Remaining section
+      const remainingData = [];
+      
+      // Add scheme-wise remaining data
+      uniqueSchemes.forEach(scheme => {
+        const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+        const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        remainingData.push({
+          'प्रकार': 'योजना',
+          'नाम': scheme,
+          'रिकॉर्ड संख्या': schemeItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      });
+      
+      // Add component-wise remaining data
+      uniqueComponents.forEach(component => {
+        const componentItems = tableData.filter(item => item.component === component);
+        const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+        const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+        const remaining = allocated - sold;
+        
+        remainingData.push({
+          'प्रकार': 'घटक',
+          'नाम': component,
+          'रिकॉर्ड संख्या': componentItems.length,
+          'आवंटित राशि': formatCurrency(allocated),
+          'वितरण राशि': formatCurrency(sold),
+          'शेष राशि': formatCurrency(remaining),
+          'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      });
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - शेष राशि विवरण</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">शेष राशि विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">शेष राशि विवरण</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>प्रकार</th>
+                  <th>नाम</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                  <th>वितरण प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${remainingData.map(item => `
+                  <tr>
+                    <td>${item['प्रकार']}</td>
+                    <td>${item['नाम']}</td>
+                    <td>${item['रिकॉर्ड संख्या']}</td>
+                    <td>${item['आवंटित राशि']}</td>
+                    <td>${item['वितरण राशि']}</td>
+                    <td class="highlight">${item['शेष राशि']}</td>
+                    <td>${item['वितरण प्रतिशत']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${remainingData.length} आइटम का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Remaining PDF view:', error);
+      alert('शेष राशि PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Hierarchy section
+  const openHierarchyPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Hierarchy section
+      const hierarchyData = [];
+      
+      // Add Vidhan Sabha to Vikas Khand mapping
+      Object.entries(hierarchicalData).forEach(([vidhanSabha, data]) => {
+        data.vikasKhands.forEach(vikasKhand => {
+          hierarchyData.push({
+            'विधानसभा': vidhanSabha,
+            'विकासखंड': vikasKhand,
+            'प्रकार': 'स्थान'
+          });
+        });
+        
+        // Add Scheme to Investment mapping
+        data.schemes.forEach(scheme => {
+          const schemeInvestments = data.schemeInvestments[scheme] || [];
+          schemeInvestments.forEach(investment => {
+            hierarchyData.push({
+              'विधानसभा': vidhanSabha,
+              'योजना': scheme,
+              'निवेश': investment,
+              'प्रकार': 'योजना'
+            });
+          });
+        });
+      });
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - पदानुक्रमिक संरचना</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">पदानुक्रमिक संरचना रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">पदानुक्रमिक संरचना</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>विधानसभा</th>
+                  <th>विकासखंड</th>
+                  <th>योजना</th>
+                  <th>निवेश</th>
+                  <th>प्रकार</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hierarchyData.map(item => `
+                  <tr>
+                    <td>${item['विधानसभा']}</td>
+                    <td>${item['विकासखंड'] || ''}</td>
+                    <td>${item['योजना'] || ''}</td>
+                    <td>${item['निवेश'] || ''}</td>
+                    <td>${item['प्रकार']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${hierarchyData.length} रिकॉर्ड का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Hierarchy PDF view:', error);
+      alert('पदानुक्रमिक संरचना PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Filter section
+  const openFilterPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Filter section
+      const filterData = [];
+      
+      // Add filtered schemes data
+      if (selectedSchemes.size > 0) {
+        selectedSchemes.forEach(scheme => {
+          const schemeItems = tableData.filter(item => selectedSchemes.has(item.scheme_name));
+          const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+          const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+          const remaining = allocated - sold;
+          
+          filterData.push({
+            'प्रकार': 'योजना',
+            'नाम': scheme,
+            'रिकॉर्ड संख्या': schemeItems.length,
+            'आवंटित राशि': formatCurrency(allocated),
+            'वितरण राशि': formatCurrency(sold),
+            'शेष राशि': formatCurrency(remaining),
+            'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+          });
+        });
+      }
+      
+      // Add filtered components data
+      if (selectedComponents.size > 0) {
+        selectedComponents.forEach(component => {
+          const componentItems = tableData.filter(item => selectedComponents.has(item.component));
+          const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+          const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+          const remaining = allocated - sold;
+          
+          filterData.push({
+            'प्रकार': 'घटक',
+            'नाम': component,
+            'रिकॉर्ड संख्या': componentItems.length,
+            'आवंटित राशि': formatCurrency(allocated),
+            'वितरण राशि': formatCurrency(sold),
+            'शेष राशि': formatCurrency(remaining),
+            'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+          });
+        });
+      }
+      
+      // If no filters selected, show all data
+      if (filterData.length === 0) {
+        filterData.push({
+          'प्रकार': 'सूचना',
+          'नाम': 'कोई फ़िल्टर नहीं चुना गया',
+          'रिकॉर्ड संख्या': tableData.length,
+          'आवंटित राशि': formatCurrency(totals.totalAllocated),
+          'वितरण राशि': formatCurrency(totals.totalUpdated),
+          'शेष राशि': formatCurrency(totals.totalRemaining),
+          'वितरण प्रतिशत': totals.totalAllocated > 0 ? ((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2) + '%' : '0%'
+        });
+      }
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - फ़िल्टर विवरण</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">फ़िल्टर विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">फ़िल्टर विवरण</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>प्रकार</th>
+                  <th>नाम</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                  <th>वितरण प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filterData.map(item => `
+                  <tr>
+                    <td>${item['प्रकार']}</td>
+                    <td>${item['नाम']}</td>
+                    <td>${item['रिकॉर्ड संख्या']}</td>
+                    <td>${item['आवंटित राशि']}</td>
+                    <td>${item['वितरण राशि']}</td>
+                    <td class="highlight">${item['शेष राशि']}</td>
+                    <td>${item['वितरण प्रतिशत']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${filterData.length} आइटम का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Filter PDF view:', error);
+      alert('फ़िल्टर PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
+    }
+  };
+
+  // PDF view for Sources section
+  const openSourcesPDFView = () => {
+    try {
+      // Create a new window for the PDF view
+      const pdfViewWindow = window.open('', '_blank');
+      
+      // Generate HTML content for the Sources section
+      const sourcesData = [];
+      
+      // Add sources data
+      if (selectedSources.size > 0) {
+        selectedSources.forEach(source => {
+          const sourceItems = tableData.filter(item => selectedSources.has(item.source_of_receipt));
+          const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+          const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+          const remaining = allocated - sold;
+          
+          sourcesData.push({
+            'स्रोत': source,
+            'रिकॉर्ड संख्या': sourceItems.length,
+            'आवंटित राशि': formatCurrency(allocated),
+            'वितरण राशि': formatCurrency(sold),
+            'शेष राशि': formatCurrency(remaining),
+            'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+          });
+        });
+      } else {
+        // If no sources selected, show all sources data
+        uniqueSources.forEach(source => {
+          const sourceItems = tableData.filter(item => item.source_of_receipt === source);
+          const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+          const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+          const remaining = allocated - sold;
+          
+          sourcesData.push({
+            'स्रोत': source,
+            'रिकॉर्ड संख्या': sourceItems.length,
+            'आवंटित राशि': formatCurrency(allocated),
+            'वितरण राशि': formatCurrency(sold),
+            'शेष राशि': formatCurrency(remaining),
+            'वितरण प्रतिशत': allocated > 0 ? ((sold / allocated) * 100).toFixed(2) + '%' : '0%'
+          });
+        });
+      }
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${centerName} - स्रोत विवरण</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              line-height: 1.4;
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #2c3e50;
+              padding-bottom: 20px;
+            }
+            .center-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .date {
+              color: #7f8c8d;
+              font-size: 14px;
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+              z-index: 1000;
+            }
+            .print-button:hover {
+              background-color: #0056b3;
+            }
+            .section {
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              border-bottom: 2px solid #bdc3c7;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              display: flex;
+              align-items: center;
+            }
+            .section-title::before {
+              content: '▶';
+              margin-right: 10px;
+              color: #3498db;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 10px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .data-table th {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 8px;
+              text-align: left;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .data-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            .data-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .data-table tr:hover {
+              background-color: #e3f2fd;
+            }
+            .highlight {
+              background-color: #e8f5e8;
+              font-weight: bold;
+            }
+            .total-row {
+              background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
+              color: white;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #7f8c8d;
+              border-top: 2px solid #bdc3c7;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .section { page-break-inside: avoid; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <button class="print-button no-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+          </button>
+          
+          <div class="header">
+            <div class="center-name">${centerName}</div>
+            <div class="date">स्रोत विवरण रिपोर्ट - ${new Date().toLocaleDateString('hi-IN')}</div>
+          </div>
+          
+          <div class="section">
+            <div class="section-title">स्रोत विवरण</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>स्रोत</th>
+                  <th>रिकॉर्ड संख्या</th>
+                  <th>आवंटित राशि</th>
+                  <th>वितरण राशि</th>
+                  <th>शेष राशि</th>
+                  <th>वितरण प्रतिशत</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sourcesData.map(item => `
+                  <tr>
+                    <td>${item['स्रोत']}</td>
+                    <td>${item['रिकॉर्ड संख्या']}</td>
+                    <td>${item['आवंटित राशि']}</td>
+                    <td>${item['वितरण राशि']}</td>
+                    <td class="highlight">${item['शेष राशि']}</td>
+                    <td>${item['वितरण प्रतिशत']}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+            <p><strong>कुल ${sourcesData.length} स्रोत का विश्लेषण</strong></p>
+            <p>यह रिपोर्ट ${centerName} के लिए तैयार की गई है</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      pdfViewWindow.document.write(htmlContent);
+      pdfViewWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error opening Sources PDF view:', error);
+      alert('स्रोत PDF व्यू खोलने में त्रुटि हुई। कृपया फिर से प्रयास करें।');
     }
   };
 
@@ -702,555 +2549,6 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 <p>कुल शेष राशि</p>
               </div>
             </div>
-          </div>
-
-          <!-- Scheme-wise Summary -->
-          <div class="section">
-            <div class="section-title">योजना वार विस्तृत सारांश</div>
-            <div class="scheme-location">
-              <h4>योजनाओं की उपस्थिति और उनके संबंधित घटक:</h4>
-              <ul>
-                ${uniqueSchemes.map(scheme => {
-                  const schemeItems = tableData.filter(item => item.scheme_name === scheme);
-                  const vidhanSabhas = [...new Set(schemeItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
-                  const vikasKhands = [...new Set(schemeItems.map(item => item.vikas_khand_name))].filter(Boolean);
-                  const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
-                  const investments = [...new Set(schemeItems.map(item => item.investment_name))].filter(Boolean);
-                  const sources = [...new Set(schemeItems.map(item => item.source_of_receipt))].filter(Boolean);
-                  const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  
-                  // Create geographical mapping
-                  const geoMapping = schemeItems.reduce((acc, item) => {
-                    const vidhanSabha = item.vidhan_sabha_name;
-                    const vikasKhand = item.vikas_khand_name;
-                    if (!acc[vidhanSabha]) {
-                      acc[vidhanSabha] = new Set();
-                    }
-                    if (vikasKhand) {
-                      acc[vidhanSabha].add(vikasKhand);
-                    }
-                    return acc;
-                  }, {});
-                  
-                  const geoDistribution = Object.entries(geoMapping).map(([vidhanSabha, vikasKhandSet]) => 
-                    `${vidhanSabha} → ${Array.from(vikasKhandSet).join(', ')}`
-                  ).join('; ');
-                  
-                  // Create component mapping with detailed relationships
-                  const componentMapping = schemeItems.reduce((acc, item) => {
-                    const component = item.component;
-                    const investment = item.investment_name;
-                    const source = item.source_of_receipt;
-                    const location = `${item.vidhan_sabha_name} → ${item.vikas_khand_name}`;
-                    
-                    if (!acc[component]) {
-                      acc[component] = {
-                        investments: new Set(),
-                        sources: new Set(),
-                        locations: new Set()
-                      };
-                    }
-                    if (investment) acc[component].investments.add(investment);
-                    if (source) acc[component].sources.add(source);
-                    if (location && location !== ' → ') acc[component].locations.add(location);
-                    
-                    return acc;
-                  }, {});
-                  
-                  const componentDetails = Object.entries(componentMapping).map(([component, data]) => 
-                    `${component} → निवेश: ${Array.from(data.investments).join(', ') || 'कोई नहीं'}, स्रोत: ${Array.from(data.sources).join(', ') || 'कोई नहीं'}, स्थान: ${Array.from(data.locations).join(', ') || 'कोई नहीं'}`
-                  ).join('; ');
-                  
-                  return `
-                    <li><strong>${scheme}</strong>
-                      <div class="scheme-details">
-                        <div class="detail-row">
-                          <span class="label">भौगोलिक वितरण:</span>
-                          <span class="value">${geoDistribution || 'स्थान डेटा उपलब्ध नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">घटक-वार विवरण:</span>
-                          <span class="value">${componentDetails || 'घटक विवरण उपलब्ध नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">संबंधित घटक:</span>
-                          <span class="value">${components.length > 0 ? components.join(', ') : 'कोई घटक नहीं'} (${components.length} घटक)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">संबंधित निवेश:</span>
-                          <span class="value">${investments.length > 0 ? investments.join(', ') : 'कोई निवेश नहीं'} (${investments.length} निवेश)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">स्रोत:</span>
-                          <span class="value">${sources.length > 0 ? sources.join(', ') : 'कोई स्रोत नहीं'} (${sources.length} स्रोत)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">उपस्थित विधानसभाएं:</span>
-                          <span class="value">${vidhanSabhas.length > 0 ? vidhanSabhas.join(', ') : 'कोई विधानसभा नहीं'} (${vidhanSabhas.length} विधानसभाएं)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">शामिल विकासखंड:</span>
-                          <span class="value">${vikasKhands.length > 0 ? vikasKhands.join(', ') : 'कोई विकासखंड नहीं'} (${vikasKhands.length} विकासखंड)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">कुल स्थानों की संख्या:</span>
-                          <span class="value highlight">${vidhanSabhas.length + vikasKhands.length} स्थान</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">आवंटित राशि:</span>
-                          <span class="value">${formatCurrency(allocated)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">वितरण राशि:</span>
-                          <span class="value">${formatCurrency(sold)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">शेष राशि:</span>
-                          <span class="value highlight">${formatCurrency(remaining)}</span>
-                        </div>
-                      </div>
-                    </li>
-                  `;
-                }).join('')}
-              </ul>
-            </div>
-            
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>योजना</th>
-                  <th>रिकॉर्ड संख्या</th>
-                  <th>संबंधित घटक</th>
-                  <th>संबंधित निवेश</th>
-                  <th>आवंटित राशि</th>
-                  <th>वितरण राशि</th>
-                  <th>शेष राशि</th>
-                  <th>वितरण प्रतिशत</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${uniqueSchemes.map(scheme => {
-                  const schemeItems = tableData.filter(item => item.scheme_name === scheme);
-                  const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
-                  const investments = [...new Set(schemeItems.map(item => item.investment_name))].filter(Boolean);
-                  const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
-                  
-                  return `
-                    <tr>
-                      <td class="fw-bold">${scheme}</td>
-                      <td>${schemeItems.length}</td>
-                      <td>${components.length} (${components.join(', ')})</td>
-                      <td>${investments.length} (${investments.join(', ')})</td>
-                      <td>${formatCurrency(allocated)}</td>
-                      <td>${formatCurrency(sold)}</td>
-                      <td class="highlight">${formatCurrency(remaining)}</td>
-                      <td>${percentage}%</td>
-                    </tr>
-                  `;
-                }).join('')}
-                <tr class="total-row">
-                  <td><strong>कुल योग</strong></td>
-                  <td><strong>${tableData.length}</strong></td>
-                  <td><strong>${uniqueComponents.length}</strong></td>
-                  <td><strong>${uniqueInvestments.length}</strong></td>
-                  <td><strong>${formatCurrency(totals.totalAllocated)}</strong></td>
-                  <td><strong>${formatCurrency(totals.totalUpdated)}</strong></td>
-                  <td class="highlight"><strong>${formatCurrency(totals.totalRemaining)}</strong></td>
-                  <td><strong>${totals.totalAllocated > 0 ? ((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2) : '0.00'}%</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Component-wise Summary -->
-          <div class="section">
-            <div class="section-title">घटक वार विस्तृत सारांश</div>
-            <div class="component-breakdown">
-              <h4>घटकों का विवरण और उनकी संबंधित योजनाएं:</h4>
-              <ul>
-                ${uniqueComponents.map(component => {
-                  const componentItems = tableData.filter(item => item.component === component);
-                  const schemes = [...new Set(componentItems.map(item => item.scheme_name))].filter(Boolean);
-                  const investments = [...new Set(componentItems.map(item => item.investment_name))].filter(Boolean);
-                  const sources = [...new Set(componentItems.map(item => item.source_of_receipt))].filter(Boolean);
-                  const vidhanSabhas = [...new Set(componentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
-                  const vikasKhands = [...new Set(componentItems.map(item => item.vikas_khand_name))].filter(Boolean);
-                  const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  
-                  // Create detailed relationship mapping
-                  const schemeMapping = componentItems.reduce((acc, item) => {
-                    const scheme = item.scheme_name;
-                    const investment = item.investment_name;
-                    const source = item.source_of_receipt;
-                    const location = `${item.vidhan_sabha_name} → ${item.vikas_khand_name}`;
-                    
-                    if (!acc[scheme]) {
-                      acc[scheme] = {
-                        investments: new Set(),
-                        sources: new Set(),
-                        locations: new Set()
-                      };
-                    }
-                    if (investment) acc[scheme].investments.add(investment);
-                    if (source) acc[scheme].sources.add(source);
-                    if (location && location !== ' → ') acc[scheme].locations.add(location);
-                    
-                    return acc;
-                  }, {});
-                  
-                  const relationshipDetails = Object.entries(schemeMapping).map(([scheme, data]) => 
-                    `${scheme} → निवेश: ${Array.from(data.investments).join(', ') || 'कोई नहीं'}, स्रोत: ${Array.from(data.sources).join(', ') || 'कोई नहीं'}, स्थान: ${Array.from(data.locations).join(', ') || 'कोई नहीं'}`
-                  ).join('; ');
-                  
-                  return `
-                    <li><strong>${component}</strong>
-                      <div class="component-details">
-                        <div class="detail-row">
-                          <span class="label">संबंधित योजनाएं:</span>
-                          <span class="value">${schemes.length > 0 ? schemes.join(', ') : 'कोई योजना नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">योजना-वार विवरण:</span>
-                          <span class="value">${relationshipDetails || 'विवरण उपलब्ध नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">संबंधित निवेश:</span>
-                          <span class="value">${investments.length > 0 ? investments.join(', ') : 'कोई निवेश नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">संबंधित स्रोत:</span>
-                          <span class="value">${sources.length > 0 ? sources.join(', ') : 'कोई स्रोत नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">उपस्थित विधानसभाएं:</span>
-                          <span class="value">${vidhanSabhas.length > 0 ? vidhanSabhas.join(', ') : 'कोई विधानसभा नहीं'} (${vidhanSabhas.length} विधानसभाएं)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">शामिल विकासखंड:</span>
-                          <span class="value">${vikasKhands.length > 0 ? vikasKhands.join(', ') : 'कोई विकासखंड नहीं'} (${vikasKhands.length} विकासखंड)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">कुल स्थानों की संख्या:</span>
-                          <span class="value highlight">${vidhanSabhas.length + vikasKhands.length} स्थान</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">आवंटित राशि:</span>
-                          <span class="value">${formatCurrency(allocated)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">वितरण राशि:</span>
-                          <span class="value">${formatCurrency(sold)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">शेष राशि:</span>
-                          <span class="value highlight">${formatCurrency(remaining)}</span>
-                        </div>
-                      </div>
-                    </li>
-                  `;
-                }).join('')}
-              </ul>
-            </div>
-            
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>घटक</th>
-                  <th>रिकॉर्ड संख्या</th>
-                  <th>आवंटित राशि</th>
-                  <th>वितरण राशि</th>
-                  <th>शेष राशि</th>
-                  <th>वितरण प्रतिशत</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${uniqueComponents.map(component => {
-                  const componentItems = tableData.filter(item => item.component === component);
-                  const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
-                  
-                  return `
-                    <tr>
-                      <td>${component}</td>
-                      <td>${componentItems.length}</td>
-                      <td>${formatCurrency(allocated)}</td>
-                      <td>${formatCurrency(sold)}</td>
-                      <td class="highlight">${formatCurrency(remaining)}</td>
-                      <td>${percentage}%</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Location-wise Summary -->
-          <div class="section">
-            <div class="section-title">स्थान वार विस्तृत सारांश</div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>विकासखंड</th>
-                  <th>विधानसभा</th>
-                  <th>रिकॉर्ड संख्या</th>
-                  <th>आवंटित राशि</th>
-                  <th>वितरण राशि</th>
-                  <th>शेष राशि</th>
-                  <th>वितरण प्रतिशत</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${uniqueVikasKhands.map(location => {
-                  const locationItems = tableData.filter(item => item.vikas_khand_name === location);
-                  const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
-                  const vidhanSabha = locationItems[0]?.vidhan_sabha_name || '';
-                  
-                  return `
-                    <tr>
-                      <td>${location}</td>
-                      <td>${vidhanSabha}</td>
-                      <td>${locationItems.length}</td>
-                      <td>${formatCurrency(allocated)}</td>
-                      <td>${formatCurrency(sold)}</td>
-                      <td class="highlight">${formatCurrency(remaining)}</td>
-                      <td>${percentage}%</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Investment-wise Comprehensive Summary -->
-          <div class="section">
-            <div class="section-title">निवेश वार संबंधात्मक विस्तृत सारांश</div>
-            <div class="investment-comprehensive">
-              <h4>निवेशों का संबंधात्मक विवरण और उनकी उपस्थिति:</h4>
-              <ul>
-                ${uniqueInvestments.map(investment => {
-                  const investmentItems = tableData.filter(item => item.investment_name === investment);
-                  const schemes = [...new Set(investmentItems.map(item => item.scheme_name))].filter(Boolean);
-                  const components = [...new Set(investmentItems.map(item => item.component))].filter(Boolean);
-                  const sources = [...new Set(investmentItems.map(item => item.source_of_receipt))].filter(Boolean);
-                  const vidhanSabhas = [...new Set(investmentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
-                  const vikasKhands = [...new Set(investmentItems.map(item => item.vikas_khand_name))].filter(Boolean);
-                  const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  const utilizationRate = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
-                  
-                  // Location presence analysis
-                  const vidhanSabhaCount = vidhanSabhas.length;
-                  const vikasKhandCount = vikasKhands.length;
-                  const totalLocations = vidhanSabhaCount + vikasKhandCount;
-                  
-                  return `
-                    <li><strong>${investment}</strong>
-                      <div class="investment-details">
-                        <div class="detail-row">
-                          <span class="label">संबंधित योजनाएं:</span>
-                          <span class="value">${schemes.length > 0 ? schemes.join(', ') : 'कोई योजना नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">संबंधित घटक:</span>
-                          <span class="value">${components.length > 0 ? components.join(', ') : 'कोई घटक नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">संबंधित स्रोत:</span>
-                          <span class="value">${sources.length > 0 ? sources.join(', ') : 'कोई स्रोत नहीं'}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">उपस्थित विधानसभाएं:</span>
-                          <span class="value">${vidhanSabhas.length > 0 ? vidhanSabhas.join(', ') : 'कोई विधानसभा नहीं'} (${vidhanSabhaCount} विधानसभाएं)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">शामिल विकासखंड:</span>
-                          <span class="value">${vikasKhands.length > 0 ? vikasKhands.join(', ') : 'कोई विकासखंड नहीं'} (${vikasKhandCount} विकासखंड)</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">कुल स्थानों की संख्या:</span>
-                          <span class="value highlight">${totalLocations} स्थान</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">आवंटित राशि:</span>
-                          <span class="value">${formatCurrency(allocated)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">वितरण राशि:</span>
-                          <span class="value">${formatCurrency(sold)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">शेष राशि:</span>
-                          <span class="value highlight">${formatCurrency(remaining)}</span>
-                        </div>
-                        <div class="detail-row">
-                          <span class="label">उपयोग दर:</span>
-                          <span class="value">${utilizationRate}%</span>
-                        </div>
-                      </div>
-                    </li>
-                  `;
-                }).join('')}
-              </ul>
-            </div>
-            
-            <table class="data-table investment-summary-table">
-              <thead>
-                <tr>
-                  <th rowspan="2">निवेश</th>
-                  <th rowspan="2">रिकॉर्ड<br>संख्या</th>
-                  <th rowspan="2">कुल<br>स्थान</th>
-                  <th colspan="2">वित्तीय विवरण</th>
-                  <th colspan="4">संबंधित डेटा</th>
-                  <th rowspan="2">उपयोग<br>दर</th>
-                </tr>
-                <tr>
-                  <th>आवंटित राशि</th>
-                  <th>वितरण राशि</th>
-                  <th>योजनाएं</th>
-                  <th>घटक</th>
-                  <th>स्रोत</th>
-                  <th>विधानसभाएं</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${uniqueInvestments.map(investment => {
-                  const investmentItems = tableData.filter(item => item.investment_name === investment);
-                  const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
-                  const schemes = [...new Set(investmentItems.map(item => item.scheme_name))].filter(Boolean);
-                  const components = [...new Set(investmentItems.map(item => item.component))].filter(Boolean);
-                  const sources = [...new Set(investmentItems.map(item => item.source_of_receipt))].filter(Boolean);
-                  const vidhanSabhas = [...new Set(investmentItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
-                  const vikasKhands = [...new Set(investmentItems.map(item => item.vikas_khand_name))].filter(Boolean);
-                  const totalLocations = vidhanSabhas.length + vikasKhands.length;
-                  
-                  return `
-                    <tr>
-                      <td class="investment-name">${investment}</td>
-                      <td>${investmentItems.length}</td>
-                      <td class="highlight">${totalLocations}</td>
-                      <td>${formatCurrency(allocated)}</td>
-                      <td>${formatCurrency(sold)}</td>
-                      <td>${schemes.length}</td>
-                      <td>${components.length}</td>
-                      <td>${sources.length}</td>
-                      <td>${vidhanSabhas.length}</td>
-                      <td class="highlight">${percentage}%</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th>कुल योग</th>
-                  <th>${tableData.length}</th>
-                  <th>${uniqueInvestments.reduce((sum, investment) => {
-                    const items = tableData.filter(item => item.investment_name === investment);
-                    const vidhanSabhas = [...new Set(items.map(item => item.vidhan_sabha_name))].filter(Boolean);
-                    const vikasKhands = [...new Set(items.map(item => item.vikas_khand_name))].filter(Boolean);
-                    return sum + vidhanSabhas.length + vikasKhands.length;
-                  }, 0)}</th>
-                  <th>${formatCurrency(tableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0))}</th>
-                  <th>${formatCurrency(tableData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</th>
-                  <th>${[...new Set(tableData.map(item => item.scheme_name))].filter(Boolean).length}</th>
-                  <th>${[...new Set(tableData.map(item => item.component))].filter(Boolean).length}</th>
-                  <th>${[...new Set(tableData.map(item => item.source_of_receipt))].filter(Boolean).length}</th>
-                  <th>${[...new Set(tableData.map(item => item.vidhan_sabha_name))].filter(Boolean).length}</th>
-                  <th>${((tableData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / 
-                         tableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)) * 100).toFixed(2)}%</th>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <!-- Source-wise Summary -->
-          <div class="section">
-            <div class="section-title">स्रोत वार विस्तृत सारांश</div>
-            <div class="source-breakdown">
-              <h4>स्रोतों का विवरण और वितरण:</h4>
-              <ul>
-                ${uniqueSources.map(source => {
-                  const sourceItems = tableData.filter(item => item.source_of_receipt === source);
-                  const schemes = [...new Set(sourceItems.map(item => item.scheme_name))].filter(Boolean);
-                  const components = [...new Set(sourceItems.map(item => item.component))].filter(Boolean);
-                  const investments = [...new Set(sourceItems.map(item => item.investment_name))].filter(Boolean);
-                  const vidhanSabhas = [...new Set(sourceItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
-                  const vikasKhands = [...new Set(sourceItems.map(item => item.vikas_khand_name))].filter(Boolean);
-                  const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  
-                  return `
-                    <li><strong>${source}</strong>
-                      <ul>
-                        <li>संबंधित योजनाएं: ${schemes.join(', ')}</li>
-                        <li>संबंधित घटक: ${components.join(', ')}</li>
-                        <li>संबंधित निवेश: ${investments.join(', ')}</li>
-                        <li>उपस्थित विधानसभाएं: ${vidhanSabhas.join(', ')}</li>
-                        <li>शामिल विकासखंड: ${vikasKhands.join(', ')}</li>
-                        <li>आवंटित राशि: ${formatCurrency(allocated)}</li>
-                        <li>वितरण राशि: ${formatCurrency(sold)}</li>
-                        <li>शेष राशि: ${formatCurrency(remaining)}</li>
-                      </ul>
-                    </li>
-                  `;
-                }).join('')}
-              </ul>
-            </div>
-            
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>स्रोत</th>
-                  <th>रिकॉर्ड संख्या</th>
-                  <th>आवंटित राशि</th>
-                  <th>वितरण राशि</th>
-                  <th>शेष राशि</th>
-                  <th>वितरण प्रतिशत</th>
-                  <th>योजनाओं की संख्या</th>
-                  <th>घटकों की संख्या</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${uniqueSources.map(source => {
-                  const sourceItems = tableData.filter(item => item.source_of_receipt === source);
-                  const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-                  const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-                  const remaining = allocated - sold;
-                  const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
-                  const schemes = [...new Set(sourceItems.map(item => item.scheme_name))].filter(Boolean);
-                  const components = [...new Set(sourceItems.map(item => item.component))].filter(Boolean);
-                  
-                  return `
-                    <tr>
-                      <td>${source}</td>
-                      <td>${sourceItems.length}</td>
-                      <td>${formatCurrency(allocated)}</td>
-                      <td>${formatCurrency(sold)}</td>
-                      <td class="highlight">${formatCurrency(remaining)}</td>
-                      <td>${percentage}%</td>
-                      <td>${schemes.length}</td>
-                      <td>${components.length}</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
           </div>
 
           <!-- Main Data Table -->
@@ -1904,11 +3202,11 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             <Button className="pdf-file"
               variant="outline-danger"
               size="sm"
-              onClick={exportToPDF}
-              title="PDF के रूप में सहेजें"
+              onClick={openPDFView}
+              title="PDF व्यू खोलें"
             >
               <FaFilePdf className="me-1 pdf-file" />
-              PDF
+              PDF View
             </Button>
           </div>
         </div>
@@ -2077,7 +3375,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFileExcel className="exel-file"/>
               </Button>
-              <Button className="exel-file"
+              <Button className="pdf-file"
                 variant="outline-danger"
                 size="sm"
                 onClick={(e) => {
@@ -2091,6 +3389,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 title="स्थान PDF में निर्यात"
               >
                 <FaFilePdf  />
+              </Button>
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openPlacesPDFView();
+                }}
+                title="स्थान PDF व्यू खोलें"
+              >
+                <FaEye  />
               </Button>
             </div>
           </Card.Header>
@@ -2239,6 +3548,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFilePdf />
               </Button>
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAllocationPDFView();
+                }}
+                title="आवंटन PDF व्यू खोलें"
+              >
+                <FaEye  />
+              </Button>
             </div>
           </Card.Header>
           <Collapse in={!collapsedSections.allocation}>
@@ -2383,6 +3703,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
                 title="वितरण PDF में निर्यात (विस्तृत विवरण)"
               >
                 <FaFilePdf />
+              </Button>
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openSalesPDFView();
+                }}
+                title="वितरण PDF व्यू खोलें"
+              >
+                <FaEye  />
               </Button>
             </div>
           </Card.Header>
@@ -2543,6 +3874,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFilePdf />
               </Button>
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openRemainingPDFView();
+                }}
+                title="शेष राशि PDF व्यू खोलें"
+              >
+                <FaEye  />
+              </Button>
             </div>
           </Card.Header>
           <Collapse in={!collapsedSections.remaining}>
@@ -2685,6 +4027,17 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
               >
                 <FaFilePdf />
               </Button>
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openHierarchyPDFView();
+                }}
+                title="पदानुक्रमिक संरचना PDF व्यू खोलें"
+              >
+                <FaEye  />
+              </Button>
             </div>
           </Card.Header>
           <Collapse in={!collapsedSections.hierarchy}>
@@ -2792,7 +4145,20 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaPiggyBank className="me-2" /> योजनाएं और निवेश फ़िल्टर</span>
-            {collapsedSections.filter ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.filter ? <FaChevronDown /> : <FaChevronUp />}
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openFilterPDFView();
+                }}
+                title="फ़िल्टर PDF व्यू खोलें"
+              >
+                <FaEye  />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.filter}>
             <Card.Body>
@@ -3044,7 +4410,20 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span><FaTags className="me-2" /> स्रोत फ़िल्टर</span>
-            {collapsedSections.sources ? <FaChevronDown /> : <FaChevronUp />}
+            <div className="d-flex align-items-center gap-2">
+              {collapsedSections.sources ? <FaChevronDown /> : <FaChevronUp />}
+              <Button className="pdf-file"
+                variant="outline-info"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openSourcesPDFView();
+                }}
+                title="स्रोत PDF व्यू खोलें"
+              >
+                <FaEye  />
+              </Button>
+            </div>
           </Card.Header>
           <Collapse in={!collapsedSections.sources}>
             <Card.Body>
