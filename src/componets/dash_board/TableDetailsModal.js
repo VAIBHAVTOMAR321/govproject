@@ -154,7 +154,7 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 <table>
 <thead>
 <tr>
-${Object.keys(sectionData[0] || {}).map(key => `<th>${key}</th>`).join('')}
+${Object.keys(sectionData[0] || {}).map(key => `<th>${key === 'vidhan_sabha_name' ? 'विधानसभा' : key === 'vikas_khand_name' ? 'विकासखंड' : key}</th>`).join('')}
 </tr>
 </thead>
 <tbody>
@@ -463,25 +463,27 @@ XLSX.utils.book_append_sheet(wb, componentSheet, "घटक विवरण");
 
 // 6. Location-wise breakdown
 const locationDetails = uniqueVikasKhands.map(location => {
-const locationItems = tableData.filter(item => item.vikas_khand_name === location);
-const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
-const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
-const remaining = allocated - sold;
-const vidhanSabha = locationItems[0]?.vidhan_sabha_name || '';
-const centers = [...new Set(locationItems.map(item => item.center_name))].filter(Boolean);
-const schemes = [...new Set(locationItems.map(item => item.scheme_name))].filter(Boolean);
+  const locationItems = tableData.filter(item => item.vikas_khand_name === location);
+  const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+  const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+  const remaining = allocated - sold;
+  const vidhanSabha = locationItems[0]?.vidhan_sabha_name || '';
+  const centers = [...new Set(locationItems.map(item => item.center_name))].filter(Boolean);
+  const schemes = [...new Set(locationItems.map(item => item.scheme_name))].filter(Boolean);
+  const totalAllocatedQuantity = locationItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0);
 
-return {
-'विकासखंड': location,
-'विधानसभा': vidhanSabha,
-'शामिल केंद्र': centers.join(', '),
-'रिकॉर्ड संख्या': locationItems.length,
-'आवंटित राशि': formatCurrency(allocated),
-'वितरण राशि': formatCurrency(sold),
-'शेष राशि': formatCurrency(remaining),
-'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
-'शामिल योजनाएं': schemes.join(', ')
-};
+  return {
+    'विकासखंड': location,
+    'विधानसभा': vidhanSabha,
+    'शामिल केंद्र': centers.join(', '),
+    'रिकॉर्ड संख्या': locationItems.length,
+    'आवंटित मात्रा': totalAllocatedQuantity.toFixed(2),
+    'आवंटित राशि': formatCurrency(allocated),
+    'वितरण राशि': formatCurrency(sold),
+    'शेष राशि': formatCurrency(remaining),
+    'वितरण प्रतिशत': `${((sold / allocated) * 100).toFixed(2)}%`,
+    'शामिल योजनाएं': schemes.join(', ')
+  };
 });
 
 const locationSheet = XLSX.utils.json_to_sheet(locationDetails);
@@ -768,14 +770,369 @@ body { margin: 0; }
 </div>
 </div>
 
-<!-- Scheme-wise Summary -->
+<!-- Kendra-wise Summary -->
 <div class="section">
-<div class="section-title">योजना वार विस्तृत सारांश</div>
-<div class="scheme-location">
-<h4>योजनाओं की उपस्थिति और उनके संबंधित घटक:</h4>
-<ul>
+<div class="section-title">केंद्र वार सारांश</div>
+${Object.entries(centerSummaries).map(([kendraName, summary]) => `
+<div class="kendra-summary-card">
+<h4 style="color: #2c3e50; border-bottom: 2px solid #007bff; padding-bottom: 5px;">${kendraName} - सारांश</h4>
+<div class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0;">
+<div class="summary-card" style="background: #e3f2fd; padding: 10px; border-radius: 5px; text-align: center;">
+<div class="summary-number">${summary.recordCount}</div>
+<div class="summary-label">रिकॉर्ड संख्या</div>
+</div>
+<div class="summary-card" style="background: #f3e5f5; padding: 10px; border-radius: 5px; text-align: center;">
+<div class="summary-number">${formatCurrency(summary.totalAllocated)}</div>
+<div class="summary-label">आवंटित राशि</div>
+</div>
+<div class="summary-card" style="background: #fff3e0; padding: 10px; border-radius: 5px; text-align: center;">
+<div class="summary-number">${formatCurrency(summary.totalUpdated)}</div>
+<div class="summary-label">वितरण राशि</div>
+</div>
+<div class="summary-card" style="background: #e8f5e9; padding: 10px; border-radius: 5px; text-align: center;">
+<div class="summary-number">${formatCurrency(summary.totalRemaining)}</div>
+<div class="summary-label">शेष राशि</div>
+</div>
+<div class="summary-card" style="background: #eceff1; padding: 10px; border-radius: 5px; text-align: center;">
+<div class="summary-number">${summary.distributionPercentage}%</div>
+<div class="summary-label">वितरण प्रतिशत</div>
+</div>
+</div>
+</div>
+`).join('')}
+</div>
+
+<!-- Kendra Comparison Summary Table -->
+${Object.keys(centerSummaries).length > 1 ? `
+<div class="section">
+<div class="section-title">केंद्र तुलनात्मक सारांश तालिका</div>
+<table class="data-table">
+<thead>
+<tr>
+<th rowspan="2">केंद्र नाम</th>
+<th rowspan="2">रिकॉर्ड संख्या</th>
+<th colspan="3">वित्तीय विवरण (रुपयों में)</th>
+<th rowspan="2">वितरण %</th>
+</tr>
+<tr>
+<th>आवंटित राशि</th>
+<th>वितरण राशि</th>
+<th>शेष राशि</th>
+</tr>
+</thead>
+<tbody>
+${Object.entries(centerSummaries).map(([kendraName, summary]) => `
+<tr>
+<td><strong>${kendraName}</strong></td>
+<td>${summary.recordCount}</td>
+<td>${formatCurrency(summary.totalAllocated)}</td>
+<td>${formatCurrency(summary.totalUpdated)}</td>
+<td>${formatCurrency(summary.totalRemaining)}</td>
+<td>${summary.distributionPercentage}%</td>
+</tr>
+`).join('')}
+<tr class="total-row">
+<td><strong>कुल तुलना</strong></td>
+<td><strong>${comparisonSummary.totalRecords}</strong></td>
+<td><strong>${formatCurrency(comparisonSummary.totalAllocated)}</strong></td>
+<td><strong>${formatCurrency(comparisonSummary.totalUpdated)}</strong></td>
+<td><strong>${formatCurrency(comparisonSummary.totalRemaining)}</strong></td>
+<td><strong>${comparisonSummary.overallDistributionPercentage}%</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+` : ''}
+
+<!-- Scheme-wise Comparison Tables -->
+${Object.keys(centerSummaries).length > 1 ? `
+<div class="section">
+<div class="section-title">योजना-वार तुलनात्मक विश्लेषण</div>
+
 ${uniqueSchemes.map(scheme => {
-const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+const schemeComparisonData = [];
+
+Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+const schemeItems = kendraData.filter(item => item.scheme_name === scheme);
+if (schemeItems.length > 0) {
+const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+const remaining = allocated - sold;
+const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+const allocatedQuantity = schemeItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0);
+
+schemeComparisonData.push({
+kendraName,
+recordCount: schemeItems.length,
+allocatedQuantity,
+allocated,
+sold,
+remaining,
+percentage
+});
+}
+});
+
+if (schemeComparisonData.length > 1) {
+return `
+<div class="scheme-comparison-section">
+<h4 style="color: #2c3e50; margin: 15px 0;">${scheme} - केंद्र तुलना</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>केंद्र</th>
+<th>रिकॉर्ड</th>
+<th>आवंटित मात्रा</th>
+<th>आवंटित राशि</th>
+<th>वितरण राशि</th>
+<th>शेष राशि</th>
+<th>वितरण %</th>
+</tr>
+</thead>
+<tbody>
+${schemeComparisonData.map(data => `
+<tr>
+<td>${data.kendraName}</td>
+<td>${data.recordCount}</td>
+<td>${data.allocatedQuantity.toFixed(2)}</td>
+<td>${formatCurrency(data.allocated)}</td>
+<td>${formatCurrency(data.sold)}</td>
+<td>${formatCurrency(data.remaining)}</td>
+<td>${data.percentage}%</td>
+</tr>
+`).join('')}
+</tbody>
+</table>
+</div>
+`;
+}
+return '';
+}).join('')}
+
+</div>
+` : ''}
+
+<!-- Component-wise Comparison Tables -->
+${Object.keys(centerSummaries).length > 1 ? `
+<div class="section">
+<div class="section-title">घटक-वार तुलनात्मक विश्लेषण</div>
+
+${uniqueComponents.map(component => {
+const componentComparisonData = [];
+
+Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+const componentItems = kendraData.filter(item => item.component === component);
+if (componentItems.length > 0) {
+const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+const remaining = allocated - sold;
+const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+const allocatedQuantity = componentItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0);
+
+componentComparisonData.push({
+kendraName,
+recordCount: componentItems.length,
+allocatedQuantity,
+allocated,
+sold,
+remaining,
+percentage
+});
+}
+});
+
+if (componentComparisonData.length > 1) {
+return `
+<div class="component-comparison-section">
+<h4 style="color: #2c3e50; margin: 15px 0;">${component} - केंद्र तुलना</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>केंद्र</th>
+<th>रिकॉर्ड</th>
+<th>आवंटित मात्रा</th>
+<th>आवंटित राशि</th>
+<th>वितरण राशि</th>
+<th>शेष राशि</th>
+<th>वितरण %</th>
+</tr>
+</thead>
+<tbody>
+${componentComparisonData.map(data => `
+<tr>
+<td>${data.kendraName}</td>
+<td>${data.recordCount}</td>
+<td>${data.allocatedQuantity.toFixed(2)}</td>
+<td>${formatCurrency(data.allocated)}</td>
+<td>${formatCurrency(data.sold)}</td>
+<td>${formatCurrency(data.remaining)}</td>
+<td>${data.percentage}%</td>
+</tr>
+`).join('')}
+</tbody>
+</table>
+</div>
+`;
+}
+return '';
+}).join('')}
+
+</div>
+` : ''}
+
+<!-- Investment-wise Comparison Tables -->
+${Object.keys(centerSummaries).length > 1 ? `
+<div class="section">
+<div class="section-title">निवेश-वार तुलनात्मक विश्लेषण</div>
+
+${uniqueInvestments.map(investment => {
+const investmentComparisonData = [];
+
+Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+const investmentItems = kendraData.filter(item => item.investment_name === investment);
+if (investmentItems.length > 0) {
+const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+const remaining = allocated - sold;
+const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+const allocatedQuantity = investmentItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0);
+
+investmentComparisonData.push({
+kendraName,
+recordCount: investmentItems.length,
+allocatedQuantity,
+allocated,
+sold,
+remaining,
+percentage
+});
+}
+});
+
+if (investmentComparisonData.length > 1) {
+return `
+<div class="investment-comparison-section">
+<h4 style="color: #2c3e50; margin: 15px 0;">${investment} - केंद्र तुलना</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>केंद्र</th>
+<th>रिकॉर्ड</th>
+<th>आवंटित मात्रा</th>
+<th>आवंटित राशि</th>
+<th>वितरण राशि</th>
+<th>शेष राशि</th>
+<th>वितरण %</th>
+</tr>
+</thead>
+<tbody>
+${investmentComparisonData.map(data => `
+<tr>
+<td>${data.kendraName}</td>
+<td>${data.recordCount}</td>
+<td>${data.allocatedQuantity.toFixed(2)}</td>
+<td>${formatCurrency(data.allocated)}</td>
+<td>${formatCurrency(data.sold)}</td>
+<td>${formatCurrency(data.remaining)}</td>
+<td>${data.percentage}%</td>
+</tr>
+`).join('')}
+</tbody>
+</table>
+</div>
+`;
+}
+return '';
+}).join('')}
+
+</div>
+` : ''}
+
+<!-- Source-wise Comparison Tables -->
+${Object.keys(centerSummaries).length > 1 ? `
+<div class="section">
+<div class="section-title">स्रोत-वार तुलनात्मक विश्लेषण</div>
+
+${uniqueSources.map(source => {
+const sourceComparisonData = [];
+
+Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+const sourceItems = kendraData.filter(item => item.source_of_receipt === source);
+if (sourceItems.length > 0) {
+const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
+const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
+const remaining = allocated - sold;
+const percentage = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
+const allocatedQuantity = sourceItems.reduce((sum, item) => sum + parseFloat(item.allocated_quantity || 0), 0);
+
+sourceComparisonData.push({
+kendraName,
+recordCount: sourceItems.length,
+allocatedQuantity,
+allocated,
+sold,
+remaining,
+percentage
+});
+}
+});
+
+if (sourceComparisonData.length > 1) {
+return `
+<div class="source-comparison-section">
+<h4 style="color: #2c3e50; margin: 15px 0;">${source} - केंद्र तुलना</h4>
+<table class="data-table">
+<thead>
+<tr>
+<th>केंद्र</th>
+<th>रिकॉर्ड</th>
+<th>आवंटित मात्रा</th>
+<th>आवंटित राशि</th>
+<th>वितरण राशि</th>
+<th>शेष राशि</th>
+<th>वितरण %</th>
+</tr>
+</thead>
+<tbody>
+${sourceComparisonData.map(data => `
+<tr>
+<td>${data.kendraName}</td>
+<td>${data.recordCount}</td>
+<td>${data.allocatedQuantity.toFixed(2)}</td>
+<td>${formatCurrency(data.allocated)}</td>
+<td>${formatCurrency(data.sold)}</td>
+<td>${formatCurrency(data.remaining)}</td>
+<td>${data.percentage}%</td>
+</tr>
+`).join('')}
+</tbody>
+</table>
+</div>
+`;
+}
+return '';
+}).join('')}
+
+</div>
+` : ''}
+
+<!-- Kendra-wise Detailed Breakdowns -->
+${Object.entries(groupedByCenters).map(([kendraName, kendraData]) => {
+const kendraSchemes = [...new Set(kendraData.map(item => item.scheme_name))].filter(Boolean);
+const kendraComponents = [...new Set(kendraData.map(item => item.component))].filter(Boolean);
+const kendraInvestments = [...new Set(kendraData.map(item => item.investment_name))].filter(Boolean);
+const kendraSources = [...new Set(kendraData.map(item => item.source_of_receipt))].filter(Boolean);
+const kendraVidhanSabhas = [...new Set(kendraData.map(item => item.vidhan_sabha_name))].filter(Boolean);
+const kendraVikasKhands = [...new Set(kendraData.map(item => item.vikas_khand_name))].filter(Boolean);
+
+return `
+<div class="section">
+<div class="section-title">${kendraName} - योजना वार विस्तृत सारांश</div>
+<div class="scheme-location">
+<h4>${kendraName} में योजनाओं की उपस्थिति और उनके संबंधित घटक:</h4>
+<ul>
+${kendraSchemes.map(scheme => {
+const schemeItems = kendraData.filter(item => item.scheme_name === scheme);
 const vidhanSabhas = [...new Set(schemeItems.map(item => item.vidhan_sabha_name))].filter(Boolean);
 const vikasKhands = [...new Set(schemeItems.map(item => item.vikas_khand_name))].filter(Boolean);
 const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
@@ -785,7 +1142,6 @@ const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.alloc
 const sold = schemeItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
 const remaining = allocated - sold;
 
-// Create geographical mapping
 const geoMapping = schemeItems.reduce((acc, item) => {
 const vidhanSabha = item.vidhan_sabha_name;
 const vikasKhand = item.vikas_khand_name;
@@ -802,7 +1158,6 @@ const geoDistribution = Object.entries(geoMapping).map(([vidhanSabha, vikasKhand
 `${vidhanSabha} → ${Array.from(vikasKhandSet).join(', ')}`
 ).join('; ');
 
-// Create component mapping with detailed relationships
 const componentMapping = schemeItems.reduce((acc, item) => {
 const component = item.component;
 const investment = item.investment_name;
@@ -895,8 +1250,8 @@ return `
 </tr>
 </thead>
 <tbody>
-${uniqueSchemes.map(scheme => {
-const schemeItems = tableData.filter(item => item.scheme_name === scheme);
+${kendraSchemes.map(scheme => {
+const schemeItems = kendraData.filter(item => item.scheme_name === scheme);
 const components = [...new Set(schemeItems.map(item => item.component))].filter(Boolean);
 const investments = [...new Set(schemeItems.map(item => item.investment_name))].filter(Boolean);
 const allocated = schemeItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
@@ -918,27 +1273,33 @@ return `
 `;
 }).join('')}
 <tr class="total-row">
-<td><strong>कुल योग</strong></td>
-<td><strong>${tableData.length}</strong></td>
-<td><strong>${uniqueComponents.length}</strong></td>
-<td><strong>${uniqueInvestments.length}</strong></td>
-<td><strong>${formatCurrency(totals.totalAllocated)}</strong></td>
-<td><strong>${formatCurrency(totals.totalUpdated)}</strong></td>
-<td class="highlight"><strong>${formatCurrency(totals.totalRemaining)}</strong></td>
-<td><strong>${totals.totalAllocated > 0 ? ((totals.totalUpdated / totals.totalAllocated) * 100).toFixed(2) : '0.00'}%</strong></td>
+<td><strong>${kendraName} कुल</strong></td>
+<td><strong>${kendraData.length}</strong></td>
+<td><strong>${kendraComponents.length}</strong></td>
+<td><strong>${kendraInvestments.length}</strong></td>
+<td><strong>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0))}</strong></td>
+<td><strong>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</strong></td>
+<td class="highlight"><strong>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</strong></td>
+<td><strong>${kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) > 0 ? ((kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) / kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)) * 100).toFixed(2) : '0.00'}%</strong></td>
 </tr>
 </tbody>
 </table>
 </div>
+`;
+}).join('')}
 
-<!-- Component-wise Summary -->
+<!-- Kendra-wise Component Breakdowns -->
+${Object.entries(groupedByCenters).map(([kendraName, kendraData]) => {
+const kendraComponents = [...new Set(kendraData.map(item => item.component))].filter(Boolean);
+
+return `
 <div class="section">
-<div class="section-title">घटक वार विस्तृत सारांश</div>
+<div class="section-title">${kendraName} - घटक वार विस्तृत सारांश</div>
 <div class="component-breakdown">
-<h4>घटकों का विवरण और उनकी संबंधित योजनाएं:</h4>
+<h4>${kendraName} में घटकों का विवरण और उनकी संबंधित योजनाएं:</h4>
 <ul>
-${uniqueComponents.map(component => {
-const componentItems = tableData.filter(item => item.component === component);
+${kendraComponents.map(component => {
+const componentItems = kendraData.filter(item => item.component === component);
 const schemes = [...new Set(componentItems.map(item => item.scheme_name))].filter(Boolean);
 const investments = [...new Set(componentItems.map(item => item.investment_name))].filter(Boolean);
 const sources = [...new Set(componentItems.map(item => item.source_of_receipt))].filter(Boolean);
@@ -948,7 +1309,6 @@ const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.al
 const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
 const remaining = allocated - sold;
 
-// Create detailed relationship mapping
 const schemeMapping = componentItems.reduce((acc, item) => {
 const scheme = item.scheme_name;
 const investment = item.investment_name;
@@ -1035,8 +1395,8 @@ return `
 </tr>
 </thead>
 <tbody>
-${uniqueComponents.map(component => {
-const componentItems = tableData.filter(item => item.component === component);
+${kendraComponents.map(component => {
+const componentItems = kendraData.filter(item => item.component === component);
 const allocated = componentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
 const sold = componentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
 const remaining = allocated - sold;
@@ -1056,10 +1416,16 @@ return `
 </tbody>
 </table>
 </div>
+`;
+}).join('')}
 
-<!-- Location-wise Summary -->
+<!-- Kendra-wise Location Breakdowns -->
+${Object.entries(groupedByCenters).map(([kendraName, kendraData]) => {
+const kendraVikasKhands = [...new Set(kendraData.map(item => item.vikas_khand_name))].filter(Boolean);
+
+return `
 <div class="section">
-<div class="section-title">स्थान वार विस्तृत सारांश</div>
+<div class="section-title">${kendraName} - स्थान वार विस्तृत सारांश</div>
 <table class="data-table">
 <thead>
 <tr>
@@ -1073,8 +1439,8 @@ return `
 </tr>
 </thead>
 <tbody>
-${uniqueVikasKhands.map(location => {
-const locationItems = tableData.filter(item => item.vikas_khand_name === location);
+${kendraVikasKhands.map(location => {
+const locationItems = kendraData.filter(item => item.vikas_khand_name === location);
 const allocated = locationItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
 const sold = locationItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
 const remaining = allocated - sold;
@@ -1096,15 +1462,21 @@ return `
 </tbody>
 </table>
 </div>
+`;
+}).join('')}
 
-<!-- Investment-wise Comprehensive Summary -->
+<!-- Kendra-wise Investment Breakdowns -->
+${Object.entries(groupedByCenters).map(([kendraName, kendraData]) => {
+const kendraInvestments = [...new Set(kendraData.map(item => item.investment_name))].filter(Boolean);
+
+return `
 <div class="section">
-<div class="section-title">निवेश वार संबंधात्मक विस्तृत सारांश</div>
+<div class="section-title">${kendraName} - निवेश वार संबंधात्मक विस्तृत सारांश</div>
 <div class="investment-comprehensive">
-<h4>निवेशों का संबंधात्मक विवरण और उनकी उपस्थिति:</h4>
+<h4>${kendraName} में निवेशों का संबंधात्मक विवरण और उनकी उपस्थिति:</h4>
 <ul>
-${uniqueInvestments.map(investment => {
-const investmentItems = tableData.filter(item => item.investment_name === investment);
+${kendraInvestments.map(investment => {
+const investmentItems = kendraData.filter(item => item.investment_name === investment);
 const schemes = [...new Set(investmentItems.map(item => item.scheme_name))].filter(Boolean);
 const components = [...new Set(investmentItems.map(item => item.component))].filter(Boolean);
 const sources = [...new Set(investmentItems.map(item => item.source_of_receipt))].filter(Boolean);
@@ -1115,7 +1487,6 @@ const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.update
 const remaining = allocated - sold;
 const utilizationRate = allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : '0.00';
 
-// Location presence analysis
 const vidhanSabhaCount = vidhanSabhas.length;
 const vikasKhandCount = vikasKhands.length;
 const totalLocations = vidhanSabhaCount + vikasKhandCount;
@@ -1190,8 +1561,8 @@ return `
 </tr>
 </thead>
 <tbody>
-${uniqueInvestments.map(investment => {
-const investmentItems = tableData.filter(item => item.investment_name === investment);
+${kendraInvestments.map(investment => {
+const investmentItems = kendraData.filter(item => item.investment_name === investment);
 const allocated = investmentItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
 const sold = investmentItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
 const remaining = allocated - sold;
@@ -1221,35 +1592,41 @@ return `
 </tbody>
 <tfoot>
 <tr>
-<th>कुल योग</th>
-<th>${tableData.length}</th>
-<th>${uniqueInvestments.reduce((sum, investment) => {
-const items = tableData.filter(item => item.investment_name === investment);
+<th>${kendraName} कुल</th>
+<th>${kendraData.length}</th>
+<th>${kendraInvestments.reduce((sum, investment) => {
+const items = kendraData.filter(item => item.investment_name === investment);
 const vidhanSabhas = [...new Set(items.map(item => item.vidhan_sabha_name))].filter(Boolean);
 const vikasKhands = [...new Set(items.map(item => item.vikas_khand_name))].filter(Boolean);
 return sum + vidhanSabhas.length + vikasKhands.length;
 }, 0)}</th>
-<th>${formatCurrency(tableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0))}</th>
-<th>${formatCurrency(tableData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</th>
-<th>${[...new Set(tableData.map(item => item.scheme_name))].filter(Boolean).length}</th>
-<th>${[...new Set(tableData.map(item => item.component))].filter(Boolean).length}</th>
-<th>${[...new Set(tableData.map(item => item.source_of_receipt))].filter(Boolean).length}</th>
-<th>${[...new Set(tableData.map(item => item.vidhan_sabha_name))].filter(Boolean).length}</th>
-<th>${((tableData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) /
-tableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)) * 100).toFixed(2)}%</th>
+<th>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0))}</th>
+<th>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</th>
+<th>${[...new Set(kendraData.map(item => item.scheme_name))].filter(Boolean).length}</th>
+<th>${[...new Set(kendraData.map(item => item.component))].filter(Boolean).length}</th>
+<th>${[...new Set(kendraData.map(item => item.source_of_receipt))].filter(Boolean).length}</th>
+<th>${[...new Set(kendraData.map(item => item.vidhan_sabha_name))].filter(Boolean).length}</th>
+<th>${((kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0) /
+kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0)) * 100).toFixed(2)}%</th>
 </tr>
 </tfoot>
 </table>
 </div>
+`;
+}).join('')}
 
-<!-- Source-wise Summary -->
+<!-- Kendra-wise Source Breakdowns -->
+${Object.entries(groupedByCenters).map(([kendraName, kendraData]) => {
+const kendraSources = [...new Set(kendraData.map(item => item.source_of_receipt))].filter(Boolean);
+
+return `
 <div class="section">
-<div class="section-title">स्रोत वार विस्तृत सारांश</div>
+<div class="section-title">${kendraName} - स्रोत वार विस्तृत सारांश</div>
 <div class="source-breakdown">
-<h4>स्रोतों का विवरण और वितरण:</h4>
+<h4>${kendraName} में स्रोतों का विवरण और वितरण:</h4>
 <ul>
-${uniqueSources.map(source => {
-const sourceItems = tableData.filter(item => item.source_of_receipt === source);
+${kendraSources.map(source => {
+const sourceItems = kendraData.filter(item => item.source_of_receipt === source);
 const schemes = [...new Set(sourceItems.map(item => item.scheme_name))].filter(Boolean);
 const components = [...new Set(sourceItems.map(item => item.component))].filter(Boolean);
 const investments = [...new Set(sourceItems.map(item => item.investment_name))].filter(Boolean);
@@ -1291,8 +1668,8 @@ return `
 </tr>
 </thead>
 <tbody>
-${uniqueSources.map(source => {
-const sourceItems = tableData.filter(item => item.source_of_receipt === source);
+${kendraSources.map(source => {
+const sourceItems = kendraData.filter(item => item.source_of_receipt === source);
 const allocated = sourceItems.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0);
 const sold = sourceItems.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0);
 const remaining = allocated - sold;
@@ -1316,10 +1693,13 @@ return `
 </tbody>
 </table>
 </div>
+`;
+}).join('')}
 
-<!-- Main Data Table -->
+<!-- Kendra-wise Main Data Tables -->
+${Object.entries(groupedByCenters).map(([kendraName, kendraData]) => `
 <div class="section">
-<div class="section-title">मुख्य डेटा तालिका</div>
+<div class="section-title">${kendraName} - मुख्य डेटा तालिका</div>
 <table class="data-table">
 <thead>
 <tr>
@@ -1336,7 +1716,7 @@ return `
 </tr>
 </thead>
 <tbody>
-${tableData.map(item => {
+${kendraData.map(item => {
 const allocated = parseFloat(item.allocated_quantity || 0) * parseFloat(item.rate || 0);
 const sold = parseFloat(item.updated_quantity || 0) * parseFloat(item.rate || 0);
 const remaining = allocated - sold;
@@ -1356,15 +1736,16 @@ return `
 `;
 }).join('')}
 <tr class="total-row">
-<td colspan="6"><strong>कुल योग</strong></td>
-<td><strong>${formatCurrency(totals.totalAllocated)}</strong></td>
+<td colspan="6"><strong>${kendraName} कुल</strong></td>
+<td><strong>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0))}</strong></td>
 <td></td>
-<td><strong>${formatCurrency(totals.totalUpdated)}</strong></td>
-<td class="highlight"><strong>${formatCurrency(totals.totalRemaining)}</strong></td>
+<td><strong>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</strong></td>
+<td class="highlight"><strong>${formatCurrency(kendraData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) * parseFloat(item.rate)), 0) - kendraData.reduce((sum, item) => sum + (parseFloat(item.updated_quantity) * parseFloat(item.rate)), 0))}</strong></td>
 </tr>
 </tbody>
 </table>
 </div>
+`).join('')}
 
 <div class="footer">
 <p><strong>रिपोर्ट तैयार की गई:</strong> ${new Date().toLocaleString('hi-IN')}</p>
@@ -2123,7 +2504,7 @@ onClick={() => toggleCollapse('places')}
 style={{ cursor: "pointer" }}
 className="d-flex justify-content-between align-items-center accordin-header"
 >
-<span><FaBuilding className="me-2" /> विकासखंड</span>
+<span><FaBuilding className="me-2" /> विधानसभा और विकासखंड</span>
 <div className="d-flex align-items-center gap-2">
 {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
 <Button className="pdf-file"
