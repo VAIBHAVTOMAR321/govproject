@@ -2310,9 +2310,14 @@ const VivranSummaryModal = ({
               table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
               th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
               th { background-color: #f2f2f2; font-weight: bold; }
+              body { margin: 20px; display: flex; flex-direction: column; }
+              h2 { text-align: center; }
+              .print-btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; margin-bottom: 20px; align-self: flex-end; }
+              .print-btn:hover { background-color: #0056b3; }
             </style>
           </head>
           <body>
+            <button class="print-btn" onclick="window.print()">Filtered विवरण प्रिंट करें</button>
             <h2>${key} विवरण</h2>
             <table>
               <tr>${headers}</tr>
@@ -2323,13 +2328,17 @@ const VivranSummaryModal = ({
         </html>
       `;
 
-      const printWindow = window.open("", "_blank");
-      printWindow.document.write(tableHtml);
-      printWindow.document.close();
+      // Create a blob from the HTML string
+      const blob = new Blob([tableHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+
+      // Open the blob URL in a new tab
+      const newTab = window.open(url, "_blank");
+
+      // Optionally, revoke the URL after some time to free memory
       setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+        URL.revokeObjectURL(url);
+      }, 10000); // Revoke after 10 seconds
     } catch (e) {
       // Error generating PDF
     }
@@ -3174,7 +3183,7 @@ const VivranSummaryModal = ({
                   {" "}
                   <FaFilePdf />
                 </i>{" "}
-                PDF
+                View
               </Button>
             </div>
           </Card.Header>
