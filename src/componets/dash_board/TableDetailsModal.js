@@ -651,6 +651,7 @@ ${kendraData
         घटक: item.component || "",
         "घटक विवरण": getComponentDescription(item.component || ""),
         निवेश: item.investment_name || "",
+        "उप-निवेश": item.sub_investment_name || "",
         "आवंटित मात्रा": parseFloat(item.allocated_quantity || 0),
         दर: parseFloat(item.rate || 0),
         "आवंटित राशि":
@@ -998,6 +999,40 @@ ${kendraData
       const investmentSheet = XLSX.utils.json_to_sheet(investmentDetails);
       XLSX.utils.book_append_sheet(wb, investmentSheet, "निवेश विवरण");
 
+      // 8.5. Sub-Investment-wise breakdown
+      const uniqueSubInvestments = [
+        ...new Set(tableData.map((item) => item.sub_investment_name)),
+      ].filter(Boolean);
+
+      const subInvestmentDetails = uniqueSubInvestments.map((subInvestment) => {
+        const subInvestmentItems = tableData.filter(
+          (item) => item.sub_investment_name === subInvestment
+        );
+        const allocated = subInvestmentItems.reduce(
+          (sum, item) =>
+            sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+          0
+        );
+        const sold = subInvestmentItems.reduce(
+          (sum, item) =>
+            sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+          0
+        );
+        const remaining = allocated - sold;
+
+        return {
+          "उप-निवेश": subInvestment,
+          "रिकॉर्ड संख्या": subInvestmentItems.length,
+          "आवंटित राशि": formatCurrency(allocated),
+          "वितरण राशि": formatCurrency(sold),
+          "शेष राशि": formatCurrency(remaining),
+          "वितरण प्रतिशत": `${((sold / allocated) * 100).toFixed(2)}%`,
+        };
+      });
+
+      const subInvestmentSheet = XLSX.utils.json_to_sheet(subInvestmentDetails);
+      XLSX.utils.book_append_sheet(wb, subInvestmentSheet, "उप-निवेश विवरण");
+
       // 9. Kendra-wise Summary Sheet
       if (Object.keys(centerSummaries).length > 0) {
         const kendraSummaryData = Object.entries(centerSummaries).map(
@@ -1213,7 +1248,91 @@ ${kendraData
         XLSX.utils.book_append_sheet(wb, componentComparisonSheet, "घटक तुलना");
       }
 
-      // 13. Investment-wise Comparison Sheet
+      // 13.5. Sub-Investment-wise Comparison Sheet
+      if (Object.keys(centerSummaries).length > 1) {
+        const subInvestmentComparisonData = [
+          [
+            "उप-निवेश",
+            "केंद्र",
+            "रिकॉर्ड",
+            "आवंटित मात्रा",
+            "आवंटित राशि",
+            "वितरण राशि",
+            "शेष राशि",
+            "वितरण %",
+          ],
+        ];
+
+        uniqueSubInvestments.forEach((subInvestment) => {
+          const subInvestmentComparison = [];
+
+          Object.entries(groupedByCenters).forEach(
+            ([kendraName, kendraData]) => {
+              const subInvestmentItems = kendraData.filter(
+                (item) => item.sub_investment_name === subInvestment
+              );
+              if (subInvestmentItems.length > 0) {
+                const allocated = subInvestmentItems.reduce(
+                  (sum, item) =>
+                    sum +
+                    parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                  0
+                );
+                const sold = subInvestmentItems.reduce(
+                  (sum, item) =>
+                    sum +
+                    parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                  0
+                );
+                const remaining = allocated - sold;
+                const percentage =
+                  allocated > 0
+                    ? ((sold / allocated) * 100).toFixed(2)
+                    : "0.00";
+                const allocatedQuantity = subInvestmentItems.reduce(
+                  (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+                  0
+                );
+
+                subInvestmentComparison.push({
+                  subInvestment,
+                  kendraName,
+                  recordCount: subInvestmentItems.length,
+                  allocatedQuantity,
+                  allocated,
+                  sold,
+                  remaining,
+                  percentage,
+                });
+              }
+            }
+          );
+
+          subInvestmentComparison.forEach((data) => {
+            subInvestmentComparisonData.push([
+              data.subInvestment,
+              data.kendraName,
+              data.recordCount,
+              data.allocatedQuantity.toFixed(2),
+              formatCurrency(data.allocated),
+              formatCurrency(data.sold),
+              formatCurrency(data.remaining),
+              `${data.percentage}%`,
+            ]);
+          });
+        });
+
+        const subInvestmentComparisonSheet = XLSX.utils.aoa_to_sheet(
+          subInvestmentComparisonData
+        );
+        XLSX.utils.book_append_sheet(
+          wb,
+          subInvestmentComparisonSheet,
+          "उप-निवेश तुलना"
+        );
+      }
+
+      // 14. Investment-wise Comparison Sheet
       if (Object.keys(centerSummaries).length > 1) {
         const investmentComparisonData = [
           [
@@ -2952,6 +3071,279 @@ ${kendraInvestments
   })
   .join("")}
 
+<!-- Kendra-wise Sub-Investment Breakdowns -->
+${Object.entries(groupedByCenters)
+  .map(([kendraName, kendraData]) => {
+    const kendraSubInvestments = [
+      ...new Set(kendraData.map((item) => item.sub_investment_name)),
+    ].filter(Boolean);
+
+    if (kendraSubInvestments.length === 0) return "";
+
+    return `
+<div class="section">
+<div class="section-title">${kendraName} - उप-निवेश अनुसार संबंधात्मक विस्तृत सारांश</div>
+<div class="sub-investment-comprehensive">
+<h4>${kendraName} में उप-निवेशों का संबंधात्मक विवरण और उनकी उपस्थिति:</h4>
+<ul>
+${kendraSubInvestments
+  .map((subInvestment) => {
+    const subInvestmentItems = kendraData.filter(
+      (item) => item.sub_investment_name === subInvestment
+    );
+    const schemes = [
+      ...new Set(subInvestmentItems.map((item) => item.scheme_name)),
+    ].filter(Boolean);
+    const components = [
+      ...new Set(subInvestmentItems.map((item) => item.component)),
+    ].filter(Boolean);
+    const investments = [
+      ...new Set(subInvestmentItems.map((item) => item.investment_name)),
+    ].filter(Boolean);
+    const sources = [
+      ...new Set(subInvestmentItems.map((item) => item.source_of_receipt)),
+    ].filter(Boolean);
+    const vidhanSabhas = [
+      ...new Set(subInvestmentItems.map((item) => item.vidhan_sabha_name)),
+    ].filter(Boolean);
+    const vikasKhands = [
+      ...new Set(subInvestmentItems.map((item) => item.vikas_khand_name)),
+    ].filter(Boolean);
+    const allocated = subInvestmentItems.reduce(
+      (sum, item) =>
+        sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const sold = subInvestmentItems.reduce(
+      (sum, item) =>
+        sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const remaining = allocated - sold;
+    const utilizationRate =
+      allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : "0.00";
+
+    const vidhanSabhaCount = vidhanSabhas.length;
+    const vikasKhandCount = vikasKhands.length;
+    const totalLocations = vidhanSabhaCount + vikasKhandCount;
+
+    return `
+<li><strong>${subInvestment}</strong>
+<div class="sub-investment-details">
+<div class="detail-row">
+<span class="label">संबंधित निवेश:</span>
+<span class="value">${
+      investments.length > 0 ? investments.join(", ") : "कोई निवेश नहीं"
+    }</span>
+</div>
+<div class="detail-row">
+<span class="label">संबंधित योजनाएं:</span>
+<span class="value">${
+      schemes.length > 0 ? schemes.join(", ") : "कोई योजना नहीं"
+    }</span>
+</div>
+<div class="detail-row">
+<span class="label">संबंधित घटक:</span>
+<span class="value">${
+      components.length > 0 ? components.join(", ") : "कोई घटक नहीं"
+    }</span>
+</div>
+<div class="detail-row">
+<span class="label">संबंधित सप्लायर:</span>
+<span class="value">${
+      sources.length > 0 ? sources.join(", ") : "कोई सप्लायर नहीं"
+    }</span>
+</div>
+<div class="detail-row">
+<span class="label">उपस्थित विधानसभाएं:</span>
+<span class="value">${
+      vidhanSabhas.length > 0 ? vidhanSabhas.join(", ") : "कोई विधानसभा नहीं"
+    } (${vidhanSabhaCount} विधानसभाएं)</span>
+</div>
+<div class="detail-row">
+<span class="label">शामिल विकासखंड:</span>
+<span class="value">${
+      vikasKhands.length > 0 ? vikasKhands.join(", ") : "कोई विकासखंड नहीं"
+    } (${vikasKhandCount} विकासखंड)</span>
+</div>
+<div class="detail-row">
+<span class="label">कुल स्थानों की संख्या:</span>
+<span class="value highlight">${totalLocations} स्थान</span>
+</div>
+<div class="detail-row">
+<span class="label">आवंटित राशि:</span>
+<span class="value">${formatCurrency(allocated)}</span>
+</div>
+<div class="detail-row">
+<span class="label">वितरण राशि:</span>
+<span class="value">${formatCurrency(sold)}</span>
+</div>
+<div class="detail-row">
+<span class="label">शेष राशि:</span>
+<span class="value highlight">${formatCurrency(remaining)}</span>
+</div>
+<div class="detail-row">
+<span class="label">उपयोग दर:</span>
+<span class="value">${utilizationRate}%</span>
+</div>
+</div>
+</li>
+`;
+  })
+  .join("")}
+</ul>
+</div>
+
+<table class="data-table sub-investment-summary-table">
+<thead>
+<tr>
+<th rowspan="2">उप-निवेश</th>
+<th rowspan="2">रिकॉर्ड<br>संख्या</th>
+<th rowspan="2">कुल<br>स्थान</th>
+<th colspan="2">वित्तीय विवरण</th>
+<th colspan="5">संबंधित डेटा</th>
+<th rowspan="2">उपयोग<br>दर</th>
+</tr>
+<tr>
+<th>आवंटित राशि</th>
+<th>वितरण राशि</th>
+<th>निवेश</th>
+<th>योजनाएं</th>
+<th>घटक</th>
+<th>सप्लायर</th>
+<th>विधानसभाएं</th>
+</tr>
+</thead>
+<tbody>
+${kendraSubInvestments
+  .map((subInvestment) => {
+    const subInvestmentItems = kendraData.filter(
+      (item) => item.sub_investment_name === subInvestment
+    );
+    const allocated = subInvestmentItems.reduce(
+      (sum, item) =>
+        sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const sold = subInvestmentItems.reduce(
+      (sum, item) =>
+        sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const remaining = allocated - sold;
+    const percentage =
+      allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : "0.00";
+    const schemes = [
+      ...new Set(subInvestmentItems.map((item) => item.scheme_name)),
+    ].filter(Boolean);
+    const components = [
+      ...new Set(subInvestmentItems.map((item) => item.component)),
+    ].filter(Boolean);
+    const investments = [
+      ...new Set(subInvestmentItems.map((item) => item.investment_name)),
+    ].filter(Boolean);
+    const sources = [
+      ...new Set(subInvestmentItems.map((item) => item.source_of_receipt)),
+    ].filter(Boolean);
+    const vidhanSabhas = [
+      ...new Set(subInvestmentItems.map((item) => item.vidhan_sabha_name)),
+    ].filter(Boolean);
+    const vikasKhands = [
+      ...new Set(subInvestmentItems.map((item) => item.vikas_khand_name)),
+    ].filter(Boolean);
+    const totalLocations = vidhanSabhas.length + vikasKhands.length;
+
+    return `
+<tr>
+<td class="sub-investment-name">${subInvestment}</td>
+<td>${subInvestmentItems.length}</td>
+<td class="highlight">${totalLocations}</td>
+<td>${formatCurrency(allocated)}</td>
+<td>${formatCurrency(sold)}</td>
+<td>${investments.length}</td>
+<td>${schemes.length}</td>
+<td>${components.length}</td>
+<td>${sources.length}</td>
+<td>${vidhanSabhas.length}</td>
+<td class="highlight">${percentage}%</td>
+</tr>
+`;
+  })
+  .join("")}
+</tbody>
+<tfoot>
+<tr>
+<th>${kendraName} कुल</th>
+<th>${kendraData.length}</th>
+<th>${kendraSubInvestments.reduce((sum, subInvestment) => {
+      const items = kendraData.filter(
+        (item) => item.sub_investment_name === subInvestment
+      );
+      const vidhanSabhas = [
+        ...new Set(items.map((item) => item.vidhan_sabha_name)),
+      ].filter(Boolean);
+      const vikasKhands = [
+        ...new Set(items.map((item) => item.vikas_khand_name)),
+      ].filter(Boolean);
+      return sum + vidhanSabhas.length + vikasKhands.length;
+    }, 0)}</th>
+<th>${formatCurrency(
+      kendraData.reduce(
+        (sum, item) =>
+          sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+        0
+      )
+    )}</th>
+<th>${formatCurrency(
+      kendraData.reduce(
+        (sum, item) =>
+          sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+        0
+      )
+    )}</th>
+<th>${
+      [...new Set(kendraData.map((item) => item.investment_name))].filter(Boolean)
+        .length
+    }</th>
+<th>${
+      [...new Set(kendraData.map((item) => item.scheme_name))].filter(Boolean)
+        .length
+    }</th>
+<th>${
+      [...new Set(kendraData.map((item) => item.component))].filter(Boolean)
+        .length
+    }</th>
+<th>${
+      [...new Set(kendraData.map((item) => item.source_of_receipt))].filter(
+        Boolean
+      ).length
+    }</th>
+<th>${
+      [...new Set(kendraData.map((item) => item.vidhan_sabha_name))].filter(
+        Boolean
+      ).length
+    }</th>
+<th>${(
+      (kendraData.reduce(
+        (sum, item) =>
+          sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+        0
+      ) /
+        kendraData.reduce(
+          (sum, item) =>
+            sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+          0
+        )) *
+      100
+    ).toFixed(2)}%</th>
+</tr>
+</tfoot>
+</table>
+</div>
+`;
+  })
+  .join("")}
+
 <!-- Kendra-wise Source Breakdowns -->
 ${Object.entries(groupedByCenters)
   .map(([kendraName, kendraData]) => {
@@ -3089,6 +3481,8 @@ ${Object.entries(groupedByCenters)
 <th>विकासखंड</th>
 <th>योजना</th>
 <th>घटक</th>
+<th>निवेश</th>
+<th>उप-निवेश</th>
 <th>आवंटित मात्रा</th>
 <th>दर</th>
 <th>आवंटित राशि</th>
@@ -3111,6 +3505,8 @@ ${kendraData
 <td>${item.vikas_khand_name || ""}</td>
 <td>${item.scheme_name || ""}</td>
 <td>${item.component || ""}</td>
+<td>${item.investment_name || ""}</td>
+<td>${item.sub_investment_name || ""}</td>
 <td>${parseFloat(item.allocated_quantity || 0).toFixed(2)}</td>
 <td>${formatCurrency(parseFloat(item.rate || 0))}</td>
 <td>${formatCurrency(allocated)}</td>
@@ -3183,6 +3579,7 @@ ${kendraData
     hierarchy: true, // All accordions - closed by default
     schemes: true,
     investments: true,
+    subInvestments: true,
     filter: true, // All accordions - closed by default
     sources: true,
     places: true,

@@ -132,12 +132,13 @@ const modalTableColumns = [
   { key: "vikas_khand_name", label: "विकासखंड का नाम" },
   { key: "component", label: "घटक" },
   { key: "investment_name", label: "निवेश का नाम" },
+  { key: "sub_investment_name", label: "उप-निवेश का नाम" },
   { key: "allocated_quantity", label: "आवंटित मात्रा" },
   { key: "rate", label: "दर" },
   { key: "allocated_amount", label: "आवंटित राशि" },
   { key: "updated_quantity", label: "अपडेट की गई मात्रा" },
   { key: "updated_amount", label: "अपडेट की गई राशि" },
-  { key: "source_of_receipt", label: "स्रोत" },
+  { key: "source_of_receipt", label: "सप्लायर" },
   { key: "scheme_name", label: "योजना" },
 ];
 
@@ -730,6 +731,7 @@ const VivranSummaryModal = ({
     vidhan_sabha_name: true,
     vikas_khand_name: true,
     investment_name: true,
+    sub_investment_name: true,
     component: true,
     source_of_receipt: true,
     scheme_name: true,
@@ -759,6 +761,7 @@ const VivranSummaryModal = ({
         "scheme_name",
         "component",
         "investment_name",
+        "sub_investment_name",
         "source_of_receipt",
       ];
       if (perKendraCategories.includes(category)) {
@@ -1173,6 +1176,38 @@ const VivranSummaryModal = ({
     return Array.from(allInvestments).filter(Boolean).sort();
   }, [kendraToInvestments, allCenters, activeFilters.center_name]);
 
+  const kendraToSubInvestments = useMemo(() => {
+    const mapping = {};
+    (groupData?.items || []).forEach((item) => {
+      if (item.center_name && item.sub_investment_name) {
+        if (!mapping[item.center_name]) {
+          mapping[item.center_name] = new Set();
+        }
+        mapping[item.center_name].add(item.sub_investment_name);
+      }
+    });
+    // Convert Sets to sorted arrays
+    Object.keys(mapping).forEach((key) => {
+      mapping[key] = Array.from(mapping[key]).sort();
+    });
+    return mapping;
+  }, [groupData]);
+
+  const uniqueSubInvestments = useMemo(() => {
+    const allSubInvestments = new Set();
+    // If centers are selected, only include sub investments from selected centers
+    const centersToShow =
+      activeFilters.center_name && activeFilters.center_name.length > 0
+        ? activeFilters.center_name
+        : allCenters;
+
+    centersToShow.forEach((kendra) => {
+      const subInvestments = kendraToSubInvestments[kendra] || [];
+      subInvestments.forEach((subInv) => allSubInvestments.add(subInv));
+    });
+    return Array.from(allSubInvestments).filter(Boolean).sort();
+  }, [kendraToSubInvestments, allCenters, activeFilters.center_name]);
+
   const allComponents = useMemo(() => {
     return [...new Set((groupData?.items || []).map((item) => item.component))]
       .filter(Boolean)
@@ -1335,6 +1370,7 @@ const VivranSummaryModal = ({
           vidhan_sabha_name: true,
           vikas_khand_name: true,
           investment_name: true,
+          sub_investment_name: true,
           component: true,
           source_of_receipt: true,
           scheme_name: true,
@@ -1350,6 +1386,8 @@ const VivranSummaryModal = ({
           newState.vikas_khand_name = false;
         } else if (groupData.group_field === "investment_name") {
           newState.investment_name = false;
+        } else if (groupData.group_field === "sub_investment_name") {
+          newState.sub_investment_name = false;
         } else if (groupData.group_field === "component") {
           newState.component = false;
         } else if (groupData.group_field === "source_of_receipt") {
@@ -1376,6 +1414,7 @@ const VivranSummaryModal = ({
         vidhan_sabha_name: true,
         vikas_khand_name: true,
         investment_name: true,
+        sub_investment_name: true,
         component: true,
         source_of_receipt: true,
         scheme_name: true,
@@ -1454,11 +1493,12 @@ const VivranSummaryModal = ({
       currentFilters: activeFilters,
     });
 
-    // Categories that are per-kendra: scheme_name, component, investment_name, source_of_receipt
+    // Categories that are per-kendra: scheme_name, component, investment_name, sub_investment_name, source_of_receipt
     const perKendraCategories = [
       "scheme_name",
       "component",
       "investment_name",
+      "sub_investment_name",
       "source_of_receipt",
     ];
 
@@ -2070,6 +2110,9 @@ const VivranSummaryModal = ({
             case "investment_name":
               row["निवेश का नाम"] = item.investment_name;
               break;
+            case "sub_investment_name":
+              row["उप-निवेश का नाम"] = item.sub_investment_name;
+              break;
             case "allocated_quantity":
               row["आवंटित मात्रा"] = item.allocated_quantity;
               break;
@@ -2108,6 +2151,7 @@ const VivranSummaryModal = ({
           col === "center_name" ||
           col === "component" ||
           col === "investment_name" ||
+          col === "sub_investment_name" ||
           col === "source_of_receipt" ||
           col === "scheme_name"
         ) {
@@ -2118,6 +2162,8 @@ const VivranSummaryModal = ({
               ? "घटक"
               : col === "investment_name"
               ? "निवेश का नाम"
+              : col === "sub_investment_name"
+              ? "उप-निवेश का नाम"
               : col === "unit"
               ? "इकाई"
               : col === "source_of_receipt"
@@ -2187,6 +2233,8 @@ const VivranSummaryModal = ({
                 return "<th>घटक</th>";
               case "investment_name":
                 return "<th>निवेश का नाम</th>";
+              case "sub_investment_name":
+                return "<th>उप-निवेश का नाम</th>";
               case "allocated_quantity":
                 return "<th>आवंटित मात्रा</th>";
               case "rate":
@@ -2225,6 +2273,8 @@ const VivranSummaryModal = ({
                     return `<td>${item.component || ""}</td>`;
                   case "investment_name":
                     return `<td>${item.investment_name || ""}</td>`;
+                  case "sub_investment_name":
+                    return `<td>${item.sub_investment_name || ""}</td>`;
                   case "allocated_quantity":
                     return `<td>${item.allocated_quantity || ""}</td>`;
                   case "rate":
@@ -2917,6 +2967,195 @@ const VivranSummaryModal = ({
                 </Card>
                 <Card className="mb-2">
                   <Card.Header
+                    onClick={() => toggleCollapse("sub_investment_name")}
+                    style={{ cursor: "pointer" }}
+                    className="d-flex justify-content-between align-items-center accordin-header"
+                  >
+                    <span>उप-निवेश का नाम ({uniqueSubInvestments.length})</span>
+                    {collapsedSections.sub_investment_name ? (
+                      <FaChevronDown />
+                    ) : (
+                      <FaChevronUp />
+                    )}
+                  </Card.Header>
+                  <Collapse in={!collapsedSections.sub_investment_name}>
+                    <Card.Body>
+                      {Object.entries(kendraToSubInvestments)
+                        .filter(([kendra]) => {
+                          if (
+                            activeFilters.center_name &&
+                            activeFilters.center_name.length > 0
+                          ) {
+                            return activeFilters.center_name.includes(kendra);
+                          }
+                          if (
+                            activeFilters.scheme_name &&
+                            activeFilters.scheme_name[kendra] &&
+                            activeFilters.scheme_name[kendra].length > 0
+                          ) {
+                            const kendraSchemes = kendraToSchemes[kendra] || [];
+                            if (
+                              !kendraSchemes.some((scheme) =>
+                                activeFilters.scheme_name[kendra].includes(
+                                  scheme
+                                )
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.component &&
+                            activeFilters.component[kendra] &&
+                            activeFilters.component[kendra].length > 0
+                          ) {
+                            const kendraComponents =
+                              kendraToComponents[kendra] || [];
+                            if (
+                              !kendraComponents.some((component) =>
+                                activeFilters.component[kendra].includes(
+                                  component
+                                )
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          if (
+                            activeFilters.investment_name &&
+                            activeFilters.investment_name[kendra] &&
+                            activeFilters.investment_name[kendra].length > 0
+                          ) {
+                            const kendraInvestments =
+                              kendraToInvestments[kendra] || [];
+                            if (
+                              !kendraInvestments.some((investment) =>
+                                activeFilters.investment_name[kendra].includes(
+                                  investment
+                                )
+                              )
+                            ) {
+                              return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map(
+                          ([kendra, subInvestments]) =>
+                            subInvestments.length > 0 && (
+                              <div key={kendra} className="mb-3">
+                                <h6 className="small-fonts">{kendra}</h6>
+                                <Row className="g-1 align-items-center">
+                                  {subInvestments
+                                    .filter((subInvestment) => {
+                                      let valid = true;
+                                      if (
+                                        activeFilters.component &&
+                                        activeFilters.component[kendra]
+                                      ) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.sub_investment_name ===
+                                                subInvestment &&
+                                              activeFilters.component[
+                                                kendra
+                                              ].includes(item.component)
+                                          );
+                                      }
+                                      if (
+                                        activeFilters.scheme_name &&
+                                        activeFilters.scheme_name[kendra]
+                                      ) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.sub_investment_name ===
+                                                subInvestment &&
+                                              activeFilters.scheme_name[
+                                                kendra
+                                              ].includes(item.scheme_name)
+                                          );
+                                      }
+                                      if (
+                                        activeFilters.investment_name &&
+                                        activeFilters.investment_name[kendra]
+                                      ) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.sub_investment_name ===
+                                                subInvestment &&
+                                              activeFilters.investment_name[
+                                                kendra
+                                              ].includes(item.investment_name)
+                                          );
+                                      }
+                                      if (
+                                        activeFilters.source_of_receipt &&
+                                        activeFilters.source_of_receipt[kendra]
+                                      ) {
+                                        valid =
+                                          valid &&
+                                          groupData.items.some(
+                                            (item) =>
+                                              item.center_name === kendra &&
+                                              item.sub_investment_name ===
+                                                subInvestment &&
+                                              activeFilters.source_of_receipt[
+                                                kendra
+                                              ].includes(item.source_of_receipt)
+                                          );
+                                      }
+                                      return valid;
+                                    })
+                                    .map((subInvestment) => (
+                                      <Col
+                                        key={subInvestment}
+                                        xs="auto"
+                                        className="mb-2"
+                                      >
+                                        <Button
+                                          variant={
+                                            activeFilters.sub_investment_name &&
+                                            activeFilters.sub_investment_name[
+                                              kendra
+                                            ] &&
+                                            activeFilters.sub_investment_name[
+                                              kendra
+                                            ].includes(subInvestment)
+                                              ? "primary"
+                                              : "outline-secondary"
+                                          }
+                                          size="sm"
+                                          className="filter-button"
+                                          onClick={() =>
+                                            handleFilterChange(
+                                              "sub_investment_name",
+                                              subInvestment,
+                                              kendra
+                                            )
+                                          }
+                                        >
+                                          {subInvestment}
+                                        </Button>
+                                      </Col>
+                                    ))}
+                                </Row>
+                              </div>
+                            )
+                        )}
+                    </Card.Body>
+                  </Collapse>
+                </Card>
+                <Card className="mb-2">
+                  <Card.Header
                     onClick={() => toggleCollapse("source_of_receipt")}
                     style={{ cursor: "pointer" }}
                     className="d-flex justify-content-between align-items-center accordin-header"
@@ -3228,6 +3467,9 @@ const VivranSummaryModal = ({
                     {selectedColumns.includes("investment_name") && (
                       <th>निवेश का नाम</th>
                     )}
+                    {selectedColumns.includes("sub_investment_name") && (
+                      <th>उप-निवेश का नाम</th>
+                    )}
                     {selectedColumns.includes("allocated_quantity") && (
                       <th>आवंटित मात्रा</th>
                     )}
@@ -3282,6 +3524,11 @@ const VivranSummaryModal = ({
                         {selectedColumns.includes("investment_name") && (
                           <td data-label="निवेश का नाम">
                             {item.investment_name}
+                          </td>
+                        )}
+                        {selectedColumns.includes("sub_investment_name") && (
+                          <td data-label="उप-निवेश का नाम">
+                            {item.sub_investment_name}
                           </td>
                         )}
                         {selectedColumns.includes("allocated_quantity") && (
