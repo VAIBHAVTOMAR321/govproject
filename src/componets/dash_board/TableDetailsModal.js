@@ -1573,6 +1573,8 @@ font-size: 20px;
 font-weight: bold;
 color: #2c3e50;
 margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
 }
 .date {
 color: #7f8c8d;
@@ -1646,8 +1648,8 @@ margin: 8px 0;
 font-size: 9px;
 }
 .data-table th {
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: white;
+background-color:#f2f2f2;
+color: #000;
 padding: 6px 4px;
 text-align: left;
 font-weight: 600;
@@ -1731,15 +1733,15 @@ body { margin: 5px; }
 </head>
 <body>
 <div class="header">
-<div class="center-name">${centerName} </div>
-<div class="print-button-container">
-<button class="print-button" onclick="window.print()" title="प्रिंट करें" style="font-size: 10px; padding: 5px 10px;">
+<div class="center-name d-flex justify-content-between"><div>${centerName}</div><div><button class="print-button" onclick="window.print()" title="प्रिंट करें" style="font-size: 10px; padding: 5px 10px;">
 <svg class="me-1" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
 <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zM4 5v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V5H4z"/>
 <path d="M2 7v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H2z"/>
 </svg>
 Print
-</button>
+</button> </div></div>
+<div class="print-button-container">
+
 </div>
 <div class="date">संपूर्ण विवरण रिपोर्ट - ${new Date().toLocaleDateString(
         "hi-IN"
