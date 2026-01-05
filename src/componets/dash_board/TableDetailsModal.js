@@ -214,6 +214,34 @@ ${Object.keys(sectionData[0] || {})
           ? "विधानसभा"
           : key === "vikas_khand_name"
           ? "विकासखंड"
+          : key === "scheme_name"
+          ? "योजना"
+          : key === "component"
+          ? "घटक"
+          : key === "investment_name"
+          ? "निवेश"
+          : key === "sub_investment_name"
+          ? "उप-निवेश"
+          : key === "source_of_receipt"
+          ? "सप्लायर"
+          : key === "allocated_quantity"
+          ? "आवंटित मात्रा"
+          : key === "rate"
+          ? "दर"
+          : key === "updated_quantity"
+          ? "वितरण मात्रा"
+          : key === "केंद्र"
+          ? "केंद्र"
+          : key === "रिकॉर्ड"
+          ? "रिकॉर्ड"
+          : key === "आवंटित"
+          ? "आवंटित"
+          : key === "वितरण"
+          ? "वितरण"
+          : key === "शेष"
+          ? "शेष"
+          : key === "प्रतिशत"
+          ? "प्रतिशत"
           : key
       }</th>`
   )
@@ -300,6 +328,7 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 <th>विकासखंड</th>
 <th>योजना</th>
 <th>घटक</th>
+<th>निवेश</th>
 <th>आवंटित मात्रा</th>
 <th>दर</th>
 <th>आवंटित राशि</th>
@@ -1742,15 +1771,21 @@ Print
 <h3 style="margin-top: 0; text-align: center; font-size: 14px;">वित्तीय सारांश</h3>
 <div class="financial-grid">
 <div class="financial-item">
-<h4 style="font-size: 14px; margin: 0;">${formatCurrency(totals.totalAllocated)}</h4>
+<h4 style="font-size: 14px; margin: 0;">${formatCurrency(
+        totals.totalAllocated
+      )}</h4>
 <p style="font-size: 9px; margin: 2px 0 0 0;">कुल आवंटित</p>
 </div>
 <div class="financial-item">
-<h4 style="font-size: 14px; margin: 0;">${formatCurrency(totals.totalUpdated)}</h4>
+<h4 style="font-size: 14px; margin: 0;">${formatCurrency(
+        totals.totalUpdated
+      )}</h4>
 <p style="font-size: 9px; margin: 2px 0 0 0;">कुल वितरण</p>
 </div>
 <div class="financial-item">
-<h4 style="font-size: 14px; margin: 0;">${formatCurrency(totals.totalRemaining)}</h4>
+<h4 style="font-size: 14px; margin: 0;">${formatCurrency(
+        totals.totalRemaining
+      )}</h4>
 <p style="font-size: 9px; margin: 2px 0 0 0;">कुल शेष</p>
 </div>
 </div>
@@ -1766,23 +1801,33 @@ ${Object.entries(centerSummaries)
 <h5 style="color: #2c3e50; border-bottom: 1px solid #007bff; padding-bottom: 3px; margin-bottom: 5px; font-size: 12px;">${kendraName} - सारांश</h5>
 <div class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 5px 0;">
 <div class="summary-card" style="background: #e3f2fd; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${summary.recordCount}</div>
+<div class="summary-number" style="font-size: 10px;">${
+      summary.recordCount
+    }</div>
 <div class="summary-label">रिकॉर्ड</div>
 </div>
 <div class="summary-card" style="background: #f3e5f5; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${formatCurrency(summary.totalAllocated)}</div>
+<div class="summary-number" style="font-size: 10px;">${formatCurrency(
+      summary.totalAllocated
+    )}</div>
 <div class="summary-label">आवंटित</div>
 </div>
 <div class="summary-card" style="background: #fff3e0; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${formatCurrency(summary.totalUpdated)}</div>
+<div class="summary-number" style="font-size: 10px;">${formatCurrency(
+      summary.totalUpdated
+    )}</div>
 <div class="summary-label">वितरण</div>
 </div>
 <div class="summary-card" style="background: #e8f5e9; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${formatCurrency(summary.totalRemaining)}</div>
+<div class="summary-number" style="font-size: 10px;">${formatCurrency(
+      summary.totalRemaining
+    )}</div>
 <div class="summary-label">शेष</div>
 </div>
 <div class="summary-card" style="background: #eceff1; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${summary.distributionPercentage}%</div>
+<div class="summary-number" style="font-size: 10px;">${
+      summary.distributionPercentage
+    }%</div>
 <div class="summary-label">वितरण %</div>
 </div>
 </div>
@@ -1843,24 +1888,24 @@ ${Object.entries(centerSummaries)
 }
 
 <!-- Scheme-wise Comparison Tables -->
-${
-  (() => {
-    // Check if there's actual scheme comparison data across centers
-    const schemesWithComparisonData = uniqueSchemes.filter((scheme) => {
-      const schemeComparisonData = [];
-      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
-        const schemeItems = kendraData.filter(
-          (item) => item.scheme_name === scheme
-        );
-        if (schemeItems.length > 0) {
-          schemeComparisonData.push({ kendraName, count: schemeItems.length });
-        }
-      });
-      return schemeComparisonData.length > 1; // More than one center has data for this scheme
+${(() => {
+  // Check if there's actual scheme comparison data across centers
+  const schemesWithComparisonData = uniqueSchemes.filter((scheme) => {
+    const schemeComparisonData = [];
+    Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+      const schemeItems = kendraData.filter(
+        (item) => item.scheme_name === scheme
+      );
+      if (schemeItems.length > 0) {
+        schemeComparisonData.push({ kendraName, count: schemeItems.length });
+      }
     });
+    return schemeComparisonData.length > 1; // More than one center has data for this scheme
+  });
 
-    return schemesWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
-      ? `
+  return schemesWithComparisonData.length > 0 &&
+    Object.keys(centerSummaries).length > 1
+    ? `
 <div class="section">
 <div class="section-title">योजना-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -1946,29 +1991,31 @@ ${schemeComparisonData
 
 </div>
 `
-      : "";
-  })()
-}
+    : "";
+})()}
 
 <!-- Component-wise Comparison Tables -->
-${
-  (() => {
-    // Check if there's actual component comparison data across centers
-    const componentsWithComparisonData = uniqueComponents.filter((component) => {
-      const componentComparisonData = [];
-      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
-        const componentItems = kendraData.filter(
-          (item) => item.component === component
-        );
-        if (componentItems.length > 0) {
-          componentComparisonData.push({ kendraName, count: componentItems.length });
-        }
-      });
-      return componentComparisonData.length > 1; // More than one center has data for this component
+${(() => {
+  // Check if there's actual component comparison data across centers
+  const componentsWithComparisonData = uniqueComponents.filter((component) => {
+    const componentComparisonData = [];
+    Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+      const componentItems = kendraData.filter(
+        (item) => item.component === component
+      );
+      if (componentItems.length > 0) {
+        componentComparisonData.push({
+          kendraName,
+          count: componentItems.length,
+        });
+      }
     });
+    return componentComparisonData.length > 1; // More than one center has data for this component
+  });
 
-    return componentsWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
-      ? `
+  return componentsWithComparisonData.length > 0 &&
+    Object.keys(centerSummaries).length > 1
+    ? `
 <div class="section">
 <div class="section-title">घटक-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -2054,29 +2101,33 @@ ${componentComparisonData
 
 </div>
 `
-      : "";
-  })()
-}
+    : "";
+})()}
 
 <!-- Investment-wise Comparison Tables -->
-${
-  (() => {
-    // Check if there's actual investment comparison data across centers
-    const investmentsWithComparisonData = uniqueInvestments.filter((investment) => {
+${(() => {
+  // Check if there's actual investment comparison data across centers
+  const investmentsWithComparisonData = uniqueInvestments.filter(
+    (investment) => {
       const investmentComparisonData = [];
       Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
         const investmentItems = kendraData.filter(
           (item) => item.investment_name === investment
         );
         if (investmentItems.length > 0) {
-          investmentComparisonData.push({ kendraName, count: investmentItems.length });
+          investmentComparisonData.push({
+            kendraName,
+            count: investmentItems.length,
+          });
         }
       });
       return investmentComparisonData.length > 1; // More than one center has data for this investment
-    });
+    }
+  );
 
-    return investmentsWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
-      ? `
+  return investmentsWithComparisonData.length > 0 &&
+    Object.keys(centerSummaries).length > 1
+    ? `
 <div class="section">
 <div class="section-title">निवेश-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -2162,29 +2213,28 @@ ${investmentComparisonData
 
 </div>
 `
-      : "";
-  })()
-}
+    : "";
+})()}
 
 <!-- Source-wise Comparison Tables -->
-${
-  (() => {
-    // Check if there's actual source comparison data across centers
-    const sourcesWithComparisonData = uniqueSources.filter((source) => {
-      const sourceComparisonData = [];
-      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
-        const sourceItems = kendraData.filter(
-          (item) => item.source_of_receipt === source
-        );
-        if (sourceItems.length > 0) {
-          sourceComparisonData.push({ kendraName, count: sourceItems.length });
-        }
-      });
-      return sourceComparisonData.length > 1; // More than one center has data for this source
+${(() => {
+  // Check if there's actual source comparison data across centers
+  const sourcesWithComparisonData = uniqueSources.filter((source) => {
+    const sourceComparisonData = [];
+    Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+      const sourceItems = kendraData.filter(
+        (item) => item.source_of_receipt === source
+      );
+      if (sourceItems.length > 0) {
+        sourceComparisonData.push({ kendraName, count: sourceItems.length });
+      }
     });
+    return sourceComparisonData.length > 1; // More than one center has data for this source
+  });
 
-    return sourcesWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
-      ? `
+  return sourcesWithComparisonData.length > 0 &&
+    Object.keys(centerSummaries).length > 1
+    ? `
 <div class="section">
 <div class="section-title">सप्लायर-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -2270,9 +2320,8 @@ ${sourceComparisonData
 
 </div>
 `
-      : "";
-  })()
-}
+    : "";
+})()}
 
 <!-- Kendra-wise Detailed Breakdowns -->
 ${Object.entries(groupedByCenters)
@@ -3302,8 +3351,9 @@ ${kendraSubInvestments
       )
     )}</th>
 <th>${
-      [...new Set(kendraData.map((item) => item.investment_name))].filter(Boolean)
-        .length
+      [...new Set(kendraData.map((item) => item.investment_name))].filter(
+        Boolean
+      ).length
     }</th>
 <th>${
       [...new Set(kendraData.map((item) => item.scheme_name))].filter(Boolean)
@@ -3905,12 +3955,16 @@ ${relatedInfo}
         hierarchy[vidhanSabha].investments.add(investment);
         // Map investment to its specific sub-investments
         if (!hierarchy[vidhanSabha].investmentSubInvestments[investment]) {
-          hierarchy[vidhanSabha].investmentSubInvestments[investment] = new Set();
+          hierarchy[vidhanSabha].investmentSubInvestments[investment] =
+            new Set();
         }
         if (subInvestment)
-          hierarchy[vidhanSabha].investmentSubInvestments[investment].add(subInvestment);
+          hierarchy[vidhanSabha].investmentSubInvestments[investment].add(
+            subInvestment
+          );
       }
-      if (subInvestment) hierarchy[vidhanSabha].subInvestments.add(subInvestment);
+      if (subInvestment)
+        hierarchy[vidhanSabha].subInvestments.add(subInvestment);
       if (component) hierarchy[vidhanSabha].components.add(component);
       if (source) hierarchy[vidhanSabha].sources.add(source);
     });
@@ -3931,7 +3985,10 @@ ${relatedInfo}
         ),
         investmentSubInvestments: Object.fromEntries(
           Object.entries(hierarchy[key].investmentSubInvestments).map(
-            ([investment, subInvestments]) => [investment, Array.from(subInvestments).sort()]
+            ([investment, subInvestments]) => [
+              investment,
+              Array.from(subInvestments).sort(),
+            ]
           )
         ),
       };
@@ -4209,6 +4266,18 @@ ${relatedInfo}
   const getSourceFilteredData = () => {
     let filteredData = tableData;
 
+    if (selectedSchemes.size > 0) {
+      filteredData = filteredData.filter((item) =>
+        selectedSchemes.has(item.scheme_name)
+      );
+    }
+
+    if (selectedComponents.size > 0) {
+      filteredData = filteredData.filter((item) =>
+        selectedComponents.has(item.component)
+      );
+    }
+
     if (selectedSources.size > 0) {
       filteredData = filteredData.filter((item) =>
         selectedSources.has(item.source_of_receipt)
@@ -4257,7 +4326,7 @@ ${relatedInfo}
   // Get unique values for source filtered data
   const sourceFilteredData = useMemo(
     () => getSourceFilteredData(),
-    [tableData, selectedSources]
+    [tableData, selectedSchemes, selectedComponents, selectedSources]
   );
 
   const sourceFilteredUniqueSchemes = useMemo(() => {
@@ -4279,7 +4348,9 @@ ${relatedInfo}
   }, [sourceFilteredData]);
 
   const sourceFilteredUniqueSubInvestments = useMemo(() => {
-    return [...new Set(sourceFilteredData.map((item) => item.sub_investment_name))]
+    return [
+      ...new Set(sourceFilteredData.map((item) => item.sub_investment_name)),
+    ]
       .filter(Boolean)
       .sort();
   }, [sourceFilteredData]);
@@ -4756,6 +4827,7 @@ ${relatedInfo}
                           विकासखंड: record.vikas_khand_name,
                           सप्लायर: record.source_of_receipt,
                           निवेश: record.investment_name,
+                          "उप-निवेश": record.sub_investment_name,
                           घटक: record.component,
                           मात्रा: record.allocated_quantity,
                           दर: record.rate,
@@ -4963,6 +5035,7 @@ ${relatedInfo}
                           विकासखंड: record.vikas_khand_name,
                           सप्लायर: record.source_of_receipt,
                           निवेश: record.investment_name,
+                          "उप-निवेश": record.sub_investment_name,
                           घटक: record.component,
                           "वितरण मात्रा": record.updated_quantity,
                           दर: record.rate,
@@ -5185,6 +5258,7 @@ ${relatedInfo}
                           विकासखंड: record.vikas_khand_name,
                           सप्लायर: record.source_of_receipt,
                           निवेश: record.investment_name,
+                          "उप-निवेश": record.sub_investment_name,
                           घटक: record.component,
                           आवंटित: formatCurrency(allocated),
                           "बेचा गया": formatCurrency(sold),
@@ -5383,7 +5457,9 @@ ${relatedInfo}
               </Row>
               <Row>
                 <Col md={12}>
-                  <h6 className="text-warning fw-bold mb-2">उप-निवेश अनुसार शेष</h6>
+                  <h6 className="text-warning fw-bold mb-2">
+                    उप-निवेश अनुसार शेष
+                  </h6>
                   {uniqueSubInvestments.map((subInvestment, index) => {
                     const subInvestmentData = tableData.filter(
                       (item) => item.sub_investment_name === subInvestment
@@ -5443,8 +5519,7 @@ ${relatedInfo}
                   })}
                 </Col>
               </Row>
-              <Row>
-              </Row>
+              <Row></Row>
               {remainingDetails.map((detail) =>
                 renderSectionBreakdown(detail, "remaining", () =>
                   closeRemainingDetails(detail.selectedItem, detail.itemType)
@@ -5636,10 +5711,13 @@ ${relatedInfo}
                                           .filter(
                                             (item) =>
                                               item.scheme_name === scheme &&
-                                              item.investment_name === investment &&
+                                              item.investment_name ===
+                                                investment &&
                                               item.sub_investment_name
                                           )
-                                          .map((item) => item.sub_investment_name)
+                                          .map(
+                                            (item) => item.sub_investment_name
+                                          )
                                           .filter(
                                             (value, index, self) =>
                                               self.indexOf(value) === index
@@ -5659,7 +5737,10 @@ ${relatedInfo}
                                           );
 
                                         return (
-                                          <div key={invIndex} className="investment-item">
+                                          <div
+                                            key={invIndex}
+                                            className="investment-item"
+                                          >
                                             <Badge
                                               bg="light"
                                               text="dark"
@@ -5734,6 +5815,7 @@ ${relatedInfo}
                       "योजना",
                       "घटक",
                       "निवेश",
+                      "उप-निवेश",
                       "सप्लायर",
                       "आवंटित राशि",
                       "वितरण राशि",
@@ -5747,6 +5829,7 @@ ${relatedInfo}
                       item.scheme_name || "",
                       item.component || "",
                       item.investment_name || "",
+                      item.sub_investment_name || "",
                       item.source_of_receipt || "",
                       formatCurrency(
                         parseFloat(item.allocated_quantity) *
@@ -6055,17 +6138,19 @@ ${relatedInfo}
                                     </span>
                                     {subInvestments.length > 0 && (
                                       <div className="sub-category-content">
-                                        {subInvestments.map((subInv, subIndex) => (
-                                          <span
-                                            key={subIndex}
-                                            className="sub-category-badge bg-secondary text-light"
-                                            title={`उप-निवेश: ${subInv}`}
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="top"
-                                          >
-                                            {subInv}
-                                          </span>
-                                        ))}
+                                        {subInvestments.map(
+                                          (subInv, subIndex) => (
+                                            <span
+                                              key={subIndex}
+                                              className="sub-category-badge bg-secondary text-light"
+                                              title={`उप-निवेश: ${subInv}`}
+                                              data-bs-toggle="tooltip"
+                                              data-bs-placement="top"
+                                            >
+                                              {subInv}
+                                            </span>
+                                          )
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -6245,6 +6330,7 @@ ${relatedInfo}
                       "योजना",
                       "घटक",
                       "निवेश",
+                      "उप-निवेश",
                       "सप्लायर",
                       "आवंटित राशि",
                       "वितरण राशि",
@@ -6258,6 +6344,7 @@ ${relatedInfo}
                       item.scheme_name || "",
                       item.component || "",
                       item.investment_name || "",
+                      item.sub_investment_name || "",
                       item.source_of_receipt || "",
                       formatCurrency(
                         parseFloat(item.allocated_quantity) *
@@ -6296,6 +6383,7 @@ ${relatedInfo}
                     योजना: item.scheme_name,
                     घटक: item.component,
                     निवेश: item.investment_name,
+                    "उप-निवेश": item.sub_investment_name,
                     सप्लायर: item.source_of_receipt,
                     आवंटित: formatCurrency(
                       parseFloat(item.allocated_quantity) *
@@ -6556,7 +6644,8 @@ ${relatedInfo}
                           <div className="category-header">
                             <FaPuzzlePiece className="me-1 text-info" />
                             <h6 className="fw-bold mb-1 text-info">
-                              उप-निवेश ({sourceFilteredUniqueSubInvestments.length})
+                              उप-निवेश (
+                              {sourceFilteredUniqueSubInvestments.length})
                             </h6>
                           </div>
                           <div className="category-content">
@@ -6963,32 +7052,33 @@ ${relatedInfo}
               {/* Comparative Table */}
               <div className="table-responsive">
                 <Table striped bordered hover className="comparison-table">
-                  {Object.keys(centerSummaries).length > 0 && comparisonSummary.totalRecords > 0 && (
-                    <thead className="table-dark">
-                      <tr>
-                        <th rowspan="2" className="text-center align-middle">
-                          केंद्र नाम
-                        </th>
-                        <th rowspan="2" className="text-center align-middle">
-                          रिकॉर्ड संख्या
-                        </th>
-                        <th colspan="3" className="text-center">
-                          वित्तीय विवरण (रुपयों में)
-                        </th>
-                        <th rowspan="2" className="text-center align-middle">
-                          वितरण प्रतिशत
-                        </th>
-                        <th rowspan="2" className="text-center align-middle">
-                          स्थिति
-                        </th>
-                      </tr>
-                      <tr>
-                        <th className="text-center">आवंटित राशि</th>
-                        <th className="text-center">वितरण राशि</th>
-                        <th className="text-center">शेष राशि</th>
-                      </tr>
-                    </thead>
-                  )}
+                  {Object.keys(centerSummaries).length > 0 &&
+                    comparisonSummary.totalRecords > 0 && (
+                      <thead className="table-dark">
+                        <tr>
+                          <th rowspan="2" className="text-center align-middle">
+                            केंद्र नाम
+                          </th>
+                          <th rowspan="2" className="text-center align-middle">
+                            रिकॉर्ड संख्या
+                          </th>
+                          <th colspan="3" className="text-center">
+                            वित्तीय विवरण (रुपयों में)
+                          </th>
+                          <th rowspan="2" className="text-center align-middle">
+                            वितरण प्रतिशत
+                          </th>
+                          <th rowspan="2" className="text-center align-middle">
+                            स्थिति
+                          </th>
+                        </tr>
+                        <tr>
+                          <th className="text-center">आवंटित राशि</th>
+                          <th className="text-center">वितरण राशि</th>
+                          <th className="text-center">शेष राशि</th>
+                        </tr>
+                      </thead>
+                    )}
                   <tbody>
                     {Object.entries(centerSummaries).map(
                       ([kendraName, summary]) => (
