@@ -1400,7 +1400,7 @@ ${kendraData
       setPdfWindow(printWindow);
       setShowPrintButton(true);
 
-      // Generate comprehensive HTML content for PDF
+      // Generate comprehensive HTML content for PDF with space optimization
       const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -1410,104 +1410,100 @@ ${kendraData
 <style>
 body {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-margin: 20px;
-line-height: 1.4;
-font-size: 12px;
+margin: 10px;
+line-height: 1.2;
+font-size: 10px;
 }
 .header {
 text-align: center;
-margin-bottom: 30px;
-border-bottom: 3px solid #2c3e50;
-padding-bottom: 20px;
+margin-bottom: 15px;
+border-bottom: 2px solid #2c3e50;
+padding-bottom: 10px;
 }
 .center-name {
-font-size: 28px;
-font-weight: bold;
-color: #2c3e50;
-margin-bottom: 10px;
-}
-.date {
-color: #7f8c8d;
-font-size: 14px;
-}
-.executive-summary {
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: white;
-padding: 20px;
-border-radius: 10px;
-margin: 20px 0;
-}
-.summary-grid {
-display: grid;
-grid-template-columns: repeat(3, 1fr);
-gap: 15px;
-margin: 20px 0;
-}
-.summary-card {
-background: #f8f9fa;
-padding: 15px;
-border-radius: 8px;
-text-align: center;
-border-left: 4px solid #007bff;
-}
-.summary-number {
 font-size: 20px;
 font-weight: bold;
 color: #2c3e50;
 margin-bottom: 5px;
 }
+.date {
+color: #7f8c8d;
+font-size: 10px;
+}
+.executive-summary {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+padding: 10px;
+border-radius: 5px;
+margin: 10px 0;
+}
+.summary-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+margin: 10px 0;
+}
+.summary-card {
+background: #f8f9fa;
+padding: 8px;
+border-radius: 4px;
+text-align: center;
+border-left: 2px solid #007bff;
+}
+.summary-number {
+font-size: 14px;
+font-weight: bold;
+color: #2c3e50;
+margin-bottom: 3px;
+}
 .summary-label {
-font-size: 11px;
+font-size: 9px;
 color: #000;
 text-transform: uppercase;
 }
 .section {
-margin: 30px 0;
+margin: 15px 0;
 page-break-inside: avoid;
 }
 .section-title {
-font-size: 18px;
+font-size: 14px;
 font-weight: bold;
 color: #2c3e50;
-border-bottom: 2px solid #bdc3c7;
-padding-bottom: 8px;
-margin-bottom: 20px;
+border-bottom: 1px solid #bdc3c7;
+padding-bottom: 5px;
+margin-bottom: 10px;
 display: flex;
 align-items: center;
 }
 .section-title::before {
 content: '▶';
-margin-right: 10px;
+margin-right: 5px;
 color: #3498db;
+font-size: 12px;
 }
 .data-table {
 width: 100%;
 border-collapse: collapse;
-margin: 15px 0;
-font-size: 10px;
-box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+margin: 8px 0;
+font-size: 9px;
 }
 .data-table th {
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 color: white;
-padding: 12px 8px;
+padding: 6px 4px;
 text-align: left;
 font-weight: 600;
-font-size: 14px;
+font-size: 10px;
 border: 1px solid #ddd;
 }
 .data-table td {
-padding: 10px 8px;
+padding: 4px 3px;
 border: 1px solid #ddd;
 text-align: left;
-font-size: 10px;
-
+font-size: 9px;
 }
 .data-table tr:nth-child(even) {
 background-color: #f9f9f9;
-}
-.data-table tr:hover {
-background-color: #e3f2fd;
 }
 .highlight {
 background-color: #e8f5e8;
@@ -1521,54 +1517,56 @@ font-weight: bold;
 .financial-summary {
 background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
 color: white;
-padding: 20px;
-border-radius: 10px;
-margin: 20px 0;
+padding: 10px;
+border-radius: 5px;
+margin: 10px 0;
 }
 .financial-grid {
 display: grid;
 grid-template-columns: repeat(3, 1fr);
-gap: 20px;
+gap: 10px;
 text-align: center;
 }
 .financial-item h3 {
 margin: 0;
-font-size: 24px;
+font-size: 16px;
 }
 .financial-item p {
-margin: 5px 0 0 0;
-font-size: 12px;
+margin: 3px 0 0 0;
+font-size: 10px;
 opacity: 0.9;
 }
 .footer {
-margin-top: 40px;
+margin-top: 20px;
 text-align: center;
-font-size: 12px;
+font-size: 10px;
 color: #7f8c8d;
-border-top: 2px solid #bdc3c7;
-padding-top: 20px;
+border-top: 1px solid #bdc3c7;
+padding-top: 10px;
 }
 .scheme-location {
 background: #fff3cd;
 border: 1px solid #ffeaa7;
-border-radius: 5px;
-padding: 15px;
-margin: 15px 0;
+border-radius: 3px;
+padding: 8px;
+margin: 8px 0;
 }
 .component-breakdown {
 background: #d1ecf1;
 border: 1px solid #bee5eb;
-border-radius: 5px;
-padding: 15px;
-margin: 15px 0;
+border-radius: 3px;
+padding: 8px;
+margin: 8px 0;
 }
 .page-break {
 page-break-before: always;
 }
 @media print {
-body { margin: 0; }
+body { margin: 5px; }
 .no-print { display: none; }
 .section { page-break-inside: avoid; }
+.data-table { font-size: 8px; }
+.data-table th, .data-table td { padding: 3px 2px; }
 }
 </style>
 </head>
@@ -1576,8 +1574,8 @@ body { margin: 0; }
 <div class="header">
 <div class="center-name">${centerName} </div>
 <div class="print-button-container">
-<button class="print-button" onclick="window.print()" title="प्रिंट करें">
-<svg class="me-1" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+<button class="print-button" onclick="window.print()" title="प्रिंट करें" style="font-size: 10px; padding: 5px 10px;">
+<svg class="me-1" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
 <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zM4 5v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V5H4z"/>
 <path d="M2 7v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H2z"/>
 </svg>
@@ -1622,19 +1620,19 @@ Print
 
 <!-- Financial Summary -->
 <div class="financial-summary">
-<h2 style="margin-top: 0; text-align: center;">वित्तीय सारांश</h2>
+<h3 style="margin-top: 0; text-align: center; font-size: 14px;">वित्तीय सारांश</h3>
 <div class="financial-grid">
 <div class="financial-item">
-<h3>${formatCurrency(totals.totalAllocated)}</h3>
-<p>कुल आवंटित राशि</p>
+<h4 style="font-size: 14px; margin: 0;">${formatCurrency(totals.totalAllocated)}</h4>
+<p style="font-size: 9px; margin: 2px 0 0 0;">कुल आवंटित</p>
 </div>
 <div class="financial-item">
-<h3>${formatCurrency(totals.totalUpdated)}</h3>
-<p>कुल वितरण राशि</p>
+<h4 style="font-size: 14px; margin: 0;">${formatCurrency(totals.totalUpdated)}</h4>
+<p style="font-size: 9px; margin: 2px 0 0 0;">कुल वितरण</p>
 </div>
 <div class="financial-item">
-<h3>${formatCurrency(totals.totalRemaining)}</h3>
-<p>कुल शेष राशि</p>
+<h4 style="font-size: 14px; margin: 0;">${formatCurrency(totals.totalRemaining)}</h4>
+<p style="font-size: 9px; margin: 2px 0 0 0;">कुल शेष</p>
 </div>
 </div>
 </div>
@@ -1646,27 +1644,27 @@ ${Object.entries(centerSummaries)
   .map(
     ([kendraName, summary]) => `
 <div class="kendra-summary-card">
-<h4 style="color: #2c3e50; border-bottom: 2px solid #007bff; padding-bottom: 5px;">${kendraName} - सारांश</h4>
-<div class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0;">
-<div class="summary-card" style="background: #e3f2fd; padding: 10px; border-radius: 5px; text-align: center;">
-<div class="summary-number">${summary.recordCount}</div>
-<div class="summary-label">रिकॉर्ड संख्या</div>
+<h5 style="color: #2c3e50; border-bottom: 1px solid #007bff; padding-bottom: 3px; margin-bottom: 5px; font-size: 12px;">${kendraName} - सारांश</h5>
+<div class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 5px 0;">
+<div class="summary-card" style="background: #e3f2fd; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
+<div class="summary-number" style="font-size: 10px;">${summary.recordCount}</div>
+<div class="summary-label">रिकॉर्ड</div>
 </div>
-<div class="summary-card" style="background: #f3e5f5; padding: 10px; border-radius: 5px; text-align: center;">
-<div class="summary-number">${formatCurrency(summary.totalAllocated)}</div>
-<div class="summary-label">आवंटित राशि</div>
+<div class="summary-card" style="background: #f3e5f5; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
+<div class="summary-number" style="font-size: 10px;">${formatCurrency(summary.totalAllocated)}</div>
+<div class="summary-label">आवंटित</div>
 </div>
-<div class="summary-card" style="background: #fff3e0; padding: 10px; border-radius: 5px; text-align: center;">
-<div class="summary-number">${formatCurrency(summary.totalUpdated)}</div>
-<div class="summary-label">वितरण राशि</div>
+<div class="summary-card" style="background: #fff3e0; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
+<div class="summary-number" style="font-size: 10px;">${formatCurrency(summary.totalUpdated)}</div>
+<div class="summary-label">वितरण</div>
 </div>
-<div class="summary-card" style="background: #e8f5e9; padding: 10px; border-radius: 5px; text-align: center;">
-<div class="summary-number">${formatCurrency(summary.totalRemaining)}</div>
-<div class="summary-label">शेष राशि</div>
+<div class="summary-card" style="background: #e8f5e9; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
+<div class="summary-number" style="font-size: 10px;">${formatCurrency(summary.totalRemaining)}</div>
+<div class="summary-label">शेष</div>
 </div>
-<div class="summary-card" style="background: #eceff1; padding: 10px; border-radius: 5px; text-align: center;">
-<div class="summary-number">${summary.distributionPercentage}%</div>
-<div class="summary-label">वितरण प्रतिशत</div>
+<div class="summary-card" style="background: #eceff1; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
+<div class="summary-number" style="font-size: 10px;">${summary.distributionPercentage}%</div>
+<div class="summary-label">वितरण %</div>
 </div>
 </div>
 </div>
@@ -1727,8 +1725,23 @@ ${Object.entries(centerSummaries)
 
 <!-- Scheme-wise Comparison Tables -->
 ${
-  Object.keys(centerSummaries).length > 1
-    ? `
+  (() => {
+    // Check if there's actual scheme comparison data across centers
+    const schemesWithComparisonData = uniqueSchemes.filter((scheme) => {
+      const schemeComparisonData = [];
+      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+        const schemeItems = kendraData.filter(
+          (item) => item.scheme_name === scheme
+        );
+        if (schemeItems.length > 0) {
+          schemeComparisonData.push({ kendraName, count: schemeItems.length });
+        }
+      });
+      return schemeComparisonData.length > 1; // More than one center has data for this scheme
+    });
+
+    return schemesWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
+      ? `
 <div class="section">
 <div class="section-title">योजना-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -1814,13 +1827,29 @@ ${schemeComparisonData
 
 </div>
 `
-    : ""
+      : "";
+  })()
 }
 
 <!-- Component-wise Comparison Tables -->
 ${
-  Object.keys(centerSummaries).length > 1
-    ? `
+  (() => {
+    // Check if there's actual component comparison data across centers
+    const componentsWithComparisonData = uniqueComponents.filter((component) => {
+      const componentComparisonData = [];
+      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+        const componentItems = kendraData.filter(
+          (item) => item.component === component
+        );
+        if (componentItems.length > 0) {
+          componentComparisonData.push({ kendraName, count: componentItems.length });
+        }
+      });
+      return componentComparisonData.length > 1; // More than one center has data for this component
+    });
+
+    return componentsWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
+      ? `
 <div class="section">
 <div class="section-title">घटक-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -1906,13 +1935,29 @@ ${componentComparisonData
 
 </div>
 `
-    : ""
+      : "";
+  })()
 }
 
 <!-- Investment-wise Comparison Tables -->
 ${
-  Object.keys(centerSummaries).length > 1
-    ? `
+  (() => {
+    // Check if there's actual investment comparison data across centers
+    const investmentsWithComparisonData = uniqueInvestments.filter((investment) => {
+      const investmentComparisonData = [];
+      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+        const investmentItems = kendraData.filter(
+          (item) => item.investment_name === investment
+        );
+        if (investmentItems.length > 0) {
+          investmentComparisonData.push({ kendraName, count: investmentItems.length });
+        }
+      });
+      return investmentComparisonData.length > 1; // More than one center has data for this investment
+    });
+
+    return investmentsWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
+      ? `
 <div class="section">
 <div class="section-title">निवेश-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -1998,13 +2043,29 @@ ${investmentComparisonData
 
 </div>
 `
-    : ""
+      : "";
+  })()
 }
 
 <!-- Source-wise Comparison Tables -->
 ${
-  Object.keys(centerSummaries).length > 1
-    ? `
+  (() => {
+    // Check if there's actual source comparison data across centers
+    const sourcesWithComparisonData = uniqueSources.filter((source) => {
+      const sourceComparisonData = [];
+      Object.entries(groupedByCenters).forEach(([kendraName, kendraData]) => {
+        const sourceItems = kendraData.filter(
+          (item) => item.source_of_receipt === source
+        );
+        if (sourceItems.length > 0) {
+          sourceComparisonData.push({ kendraName, count: sourceItems.length });
+        }
+      });
+      return sourceComparisonData.length > 1; // More than one center has data for this source
+    });
+
+    return sourcesWithComparisonData.length > 0 && Object.keys(centerSummaries).length > 1
+      ? `
 <div class="section">
 <div class="section-title">सप्लायर-अनुसार तुलनात्मक विश्लेषण</div>
 
@@ -2090,7 +2151,8 @@ ${sourceComparisonData
 
 </div>
 `
-    : ""
+      : "";
+  })()
 }
 
 <!-- Kendra-wise Detailed Breakdowns -->
@@ -6258,30 +6320,32 @@ ${relatedInfo}
               {/* Comparative Table */}
               <div className="table-responsive">
                 <Table striped bordered hover className="comparison-table">
-                  <thead className="table-dark">
-                    <tr>
-                      <th rowspan="2" className="text-center align-middle">
-                        केंद्र नाम
-                      </th>
-                      <th rowspan="2" className="text-center align-middle">
-                        रिकॉर्ड संख्या
-                      </th>
-                      <th colspan="3" className="text-center">
-                        वित्तीय विवरण (रुपयों में)
-                      </th>
-                      <th rowspan="2" className="text-center align-middle">
-                        वितरण प्रतिशत
-                      </th>
-                      <th rowspan="2" className="text-center align-middle">
-                        स्थिति
-                      </th>
-                    </tr>
-                    <tr>
-                      <th className="text-center">आवंटित राशि</th>
-                      <th className="text-center">वितरण राशि</th>
-                      <th className="text-center">शेष राशि</th>
-                    </tr>
-                  </thead>
+                  {Object.keys(centerSummaries).length > 0 && comparisonSummary.totalRecords > 0 && (
+                    <thead className="table-dark">
+                      <tr>
+                        <th rowspan="2" className="text-center align-middle">
+                          केंद्र नाम
+                        </th>
+                        <th rowspan="2" className="text-center align-middle">
+                          रिकॉर्ड संख्या
+                        </th>
+                        <th colspan="3" className="text-center">
+                          वित्तीय विवरण (रुपयों में)
+                        </th>
+                        <th rowspan="2" className="text-center align-middle">
+                          वितरण प्रतिशत
+                        </th>
+                        <th rowspan="2" className="text-center align-middle">
+                          स्थिति
+                        </th>
+                      </tr>
+                      <tr>
+                        <th className="text-center">आवंटित राशि</th>
+                        <th className="text-center">वितरण राशि</th>
+                        <th className="text-center">शेष राशि</th>
+                      </tr>
+                    </thead>
+                  )}
                   <tbody>
                     {Object.entries(centerSummaries).map(
                       ([kendraName, summary]) => (
@@ -6324,27 +6388,29 @@ ${relatedInfo}
                         </tr>
                       )
                     )}
-                    <tr className="table-primary fw-bold">
-                      <td>कुल तुलना</td>
-                      <td className="text-center">
-                        {comparisonSummary.totalRecords}
-                      </td>
-                      <td className="text-end">
-                        {formatCurrency(comparisonSummary.totalAllocated)}
-                      </td>
-                      <td className="text-end">
-                        {formatCurrency(comparisonSummary.totalUpdated)}
-                      </td>
-                      <td className="text-end">
-                        {formatCurrency(comparisonSummary.totalRemaining)}
-                      </td>
-                      <td className="text-center">
-                        {comparisonSummary.overallDistributionPercentage}%
-                      </td>
-                      <td className="text-center">
-                        <Badge bg="primary">संपूर्ण</Badge>
-                      </td>
-                    </tr>
+                    {Object.keys(centerSummaries).length > 0 && (
+                      <tr className="table-primary fw-bold">
+                        <td>कुल तुलना</td>
+                        <td className="text-center">
+                          {comparisonSummary.totalRecords}
+                        </td>
+                        <td className="text-end">
+                          {formatCurrency(comparisonSummary.totalAllocated)}
+                        </td>
+                        <td className="text-end">
+                          {formatCurrency(comparisonSummary.totalUpdated)}
+                        </td>
+                        <td className="text-end">
+                          {formatCurrency(comparisonSummary.totalRemaining)}
+                        </td>
+                        <td className="text-center">
+                          {comparisonSummary.overallDistributionPercentage}%
+                        </td>
+                        <td className="text-center">
+                          <Badge bg="primary">संपूर्ण</Badge>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </Table>
               </div>
