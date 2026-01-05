@@ -3847,6 +3847,12 @@ ${relatedInfo}
       .sort();
   }, [tableData]);
 
+  const uniqueSubInvestments = useMemo(() => {
+    return [...new Set(tableData.map((item) => item.sub_investment_name))]
+      .filter(Boolean)
+      .sort();
+  }, [tableData]);
+
   const uniqueComponents = useMemo(() => {
     return [...new Set(tableData.map((item) => item.component))]
       .filter(Boolean)
@@ -3868,6 +3874,7 @@ ${relatedInfo}
       const vikasKhand = item.vikas_khand_name;
       const scheme = item.scheme_name;
       const investment = item.investment_name;
+      const subInvestment = item.sub_investment_name;
       const component = item.component;
       const source = item.source_of_receipt;
 
@@ -3876,9 +3883,11 @@ ${relatedInfo}
           vikasKhands: new Set(),
           schemes: new Set(),
           investments: new Set(),
+          subInvestments: new Set(),
           components: new Set(),
           sources: new Set(),
-          schemeInvestments: {}, // New: Map schemes to their specific investments
+          schemeInvestments: {}, // Map schemes to their specific investments
+          investmentSubInvestments: {}, // Map investments to their specific sub-investments
         };
       }
 
@@ -3892,7 +3901,16 @@ ${relatedInfo}
         if (investment)
           hierarchy[vidhanSabha].schemeInvestments[scheme].add(investment);
       }
-      if (investment) hierarchy[vidhanSabha].investments.add(investment);
+      if (investment) {
+        hierarchy[vidhanSabha].investments.add(investment);
+        // Map investment to its specific sub-investments
+        if (!hierarchy[vidhanSabha].investmentSubInvestments[investment]) {
+          hierarchy[vidhanSabha].investmentSubInvestments[investment] = new Set();
+        }
+        if (subInvestment)
+          hierarchy[vidhanSabha].investmentSubInvestments[investment].add(subInvestment);
+      }
+      if (subInvestment) hierarchy[vidhanSabha].subInvestments.add(subInvestment);
       if (component) hierarchy[vidhanSabha].components.add(component);
       if (source) hierarchy[vidhanSabha].sources.add(source);
     });
@@ -3903,11 +3921,17 @@ ${relatedInfo}
         vikasKhands: Array.from(hierarchy[key].vikasKhands).sort(),
         schemes: Array.from(hierarchy[key].schemes).sort(),
         investments: Array.from(hierarchy[key].investments).sort(),
+        subInvestments: Array.from(hierarchy[key].subInvestments).sort(),
         components: Array.from(hierarchy[key].components).sort(),
         sources: Array.from(hierarchy[key].sources).sort(),
         schemeInvestments: Object.fromEntries(
           Object.entries(hierarchy[key].schemeInvestments).map(
             ([scheme, investments]) => [scheme, Array.from(investments).sort()]
+          )
+        ),
+        investmentSubInvestments: Object.fromEntries(
+          Object.entries(hierarchy[key].investmentSubInvestments).map(
+            ([investment, subInvestments]) => [investment, Array.from(subInvestments).sort()]
           )
         ),
       };
@@ -4224,6 +4248,12 @@ ${relatedInfo}
       .sort();
   }, [filteredData]);
 
+  const filteredUniqueSubInvestments = useMemo(() => {
+    return [...new Set(filteredData.map((item) => item.sub_investment_name))]
+      .filter(Boolean)
+      .sort();
+  }, [filteredData]);
+
   // Get unique values for source filtered data
   const sourceFilteredData = useMemo(
     () => getSourceFilteredData(),
@@ -4244,6 +4274,12 @@ ${relatedInfo}
 
   const sourceFilteredUniqueComponents = useMemo(() => {
     return [...new Set(sourceFilteredData.map((item) => item.component))]
+      .filter(Boolean)
+      .sort();
+  }, [sourceFilteredData]);
+
+  const sourceFilteredUniqueSubInvestments = useMemo(() => {
+    return [...new Set(sourceFilteredData.map((item) => item.sub_investment_name))]
       .filter(Boolean)
       .sort();
   }, [sourceFilteredData]);
@@ -5345,6 +5381,70 @@ ${relatedInfo}
                   })}
                 </Col>
               </Row>
+              <Row>
+                <Col md={12}>
+                  <h6 className="text-warning fw-bold mb-2">उप-निवेश अनुसार शेष</h6>
+                  {uniqueSubInvestments.map((subInvestment, index) => {
+                    const subInvestmentData = tableData.filter(
+                      (item) => item.sub_investment_name === subInvestment
+                    );
+                    const totalAllocated = subInvestmentData.reduce(
+                      (sum, item) =>
+                        sum +
+                        parseFloat(item.allocated_quantity) *
+                          parseFloat(item.rate),
+                      0
+                    );
+                    const totalSold = subInvestmentData.reduce(
+                      (sum, item) =>
+                        sum +
+                        parseFloat(item.updated_quantity) *
+                          parseFloat(item.rate),
+                      0
+                    );
+                    const remaining = totalAllocated - totalSold;
+                    const isSelected = remainingDetails.some(
+                      (d) =>
+                        d.selectedItem === subInvestment &&
+                        d.itemType === "subInvestment"
+                    );
+                    return (
+                      <div
+                        key={index}
+                        className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${
+                          isSelected ? "selected-detail" : ""
+                        }`}
+                        onClick={() =>
+                          showRemainingDetails(subInvestment, "subInvestment")
+                        }
+                        style={{ cursor: "pointer" }}
+                        title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
+                      >
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                          <span className="fw-bold">{subInvestment}</span>
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="badge bg-warning">
+                              {formatCurrency(remaining)}
+                            </span>
+                          </div>
+                        </div>
+                        <small className="text-muted single-line-data">
+                          <span className="data-item">
+                            आवंटित:{" "}
+                            <strong>{formatCurrency(totalAllocated)}</strong>
+                          </span>
+                          <span className="separator">|</span>
+                          <span className="data-item">
+                            बेचा: <strong>{formatCurrency(totalSold)}</strong>
+                          </span>
+                        </small>
+                      </div>
+                    );
+                  })}
+                </Col>
+              </Row>
+              <Row>
+              </Row>
               {remainingDetails.map((detail) =>
                 renderSectionBreakdown(detail, "remaining", () =>
                   closeRemainingDetails(detail.selectedItem, detail.itemType)
@@ -5486,7 +5586,7 @@ ${relatedInfo}
                 <Col md={6}>
                   <div className="hierarchy-section">
                     <h6 className="text-success fw-bold mb-2">
-                      योजनाएं → निवेश
+                      योजनाएं → निवेश → उप-निवेश
                     </h6>
                     {Object.entries(hierarchicalData).map(
                       ([vidhanSabha, data]) => (
@@ -5531,6 +5631,20 @@ ${relatedInfo}
                                   >
                                     {schemeInvestments.map(
                                       (investment, invIndex) => {
+                                        // Get sub-investments for this investment
+                                        const subInvestments = tableData
+                                          .filter(
+                                            (item) =>
+                                              item.scheme_name === scheme &&
+                                              item.investment_name === investment &&
+                                              item.sub_investment_name
+                                          )
+                                          .map((item) => item.sub_investment_name)
+                                          .filter(
+                                            (value, index, self) =>
+                                              self.indexOf(value) === index
+                                          );
+
                                         const tooltipData = getTooltipData(
                                           "investment",
                                           investment,
@@ -5545,17 +5659,37 @@ ${relatedInfo}
                                           );
 
                                         return (
-                                          <Badge
-                                            key={invIndex}
-                                            bg="light"
-                                            text="dark"
-                                            className="me-1 small"
-                                            title={tooltipContent}
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="top"
-                                          >
-                                            {investment}
-                                          </Badge>
+                                          <div key={invIndex} className="investment-item">
+                                            <Badge
+                                              bg="light"
+                                              text="dark"
+                                              className="me-1 small investment-badge"
+                                              title={tooltipContent}
+                                              data-bs-toggle="tooltip"
+                                              data-bs-placement="top"
+                                            >
+                                              {investment}
+                                            </Badge>
+                                            {subInvestments.length > 0 && (
+                                              <div className="sub-investment-badges">
+                                                {subInvestments.map(
+                                                  (subInv, subIndex) => (
+                                                    <Badge
+                                                      key={subIndex}
+                                                      bg="secondary"
+                                                      text="light"
+                                                      className="me-1 small sub-investment-badge"
+                                                      title={`उप-निवेश: ${subInv}`}
+                                                      data-bs-toggle="tooltip"
+                                                      data-bs-placement="top"
+                                                    >
+                                                      {subInv}
+                                                    </Badge>
+                                                  )
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
                                         );
                                       }
                                     )}
@@ -5896,6 +6030,19 @@ ${relatedInfo}
                                   filteredData
                                 );
 
+                                // Get sub-investments for this investment
+                                const subInvestments = filteredData
+                                  .filter(
+                                    (item) =>
+                                      item.investment_name === investment &&
+                                      item.sub_investment_name
+                                  )
+                                  .map((item) => item.sub_investment_name)
+                                  .filter(
+                                    (value, index, self) =>
+                                      self.indexOf(value) === index
+                                  );
+
                                 return (
                                   <div key={index} className="category-item">
                                     <span
@@ -5905,6 +6052,63 @@ ${relatedInfo}
                                       data-bs-placement="top"
                                     >
                                       {investment}
+                                    </span>
+                                    {subInvestments.length > 0 && (
+                                      <div className="sub-category-content">
+                                        {subInvestments.map((subInv, subIndex) => (
+                                          <span
+                                            key={subIndex}
+                                            className="sub-category-badge bg-secondary text-light"
+                                            title={`उप-निवेश: ${subInv}`}
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                          >
+                                            {subInv}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Filtered Sub-Investments */}
+                      {filteredUniqueSubInvestments.length > 0 && (
+                        <div className="category-section">
+                          <div className="category-header">
+                            <FaLayerGroup className="me-1 text-info" />
+                            <h6 className="fw-bold mb-1 text-info">
+                              उप-निवेश ({filteredUniqueSubInvestments.length})
+                            </h6>
+                          </div>
+                          <div className="category-content">
+                            {filteredUniqueSubInvestments.map(
+                              (subInvestment, index) => {
+                                const tooltipData = getTooltipData(
+                                  "subInvestment",
+                                  subInvestment,
+                                  filteredData
+                                );
+                                const tooltipContent = getTooltipContent(
+                                  "subInvestment",
+                                  subInvestment,
+                                  tooltipData,
+                                  filteredData
+                                );
+
+                                return (
+                                  <div key={index} className="category-item">
+                                    <span
+                                      className="category-badge bg-info text-white"
+                                      title={tooltipContent}
+                                      data-bs-toggle="tooltip"
+                                      data-bs-placement="top"
+                                    >
+                                      {subInvestment}
                                     </span>
                                   </div>
                                 );
@@ -6337,6 +6541,48 @@ ${relatedInfo}
                                       data-bs-placement="top"
                                     >
                                       {component}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Filtered Sub-Investments */}
+                      {sourceFilteredUniqueSubInvestments.length > 0 && (
+                        <div className="category-section">
+                          <div className="category-header">
+                            <FaPuzzlePiece className="me-1 text-info" />
+                            <h6 className="fw-bold mb-1 text-info">
+                              उप-निवेश ({sourceFilteredUniqueSubInvestments.length})
+                            </h6>
+                          </div>
+                          <div className="category-content">
+                            {sourceFilteredUniqueSubInvestments.map(
+                              (subInvestment, index) => {
+                                const tooltipData = getTooltipData(
+                                  "subInvestment",
+                                  subInvestment,
+                                  sourceFilteredData
+                                );
+                                const tooltipContent = getTooltipContent(
+                                  "subInvestment",
+                                  subInvestment,
+                                  tooltipData,
+                                  sourceFilteredData
+                                );
+
+                                return (
+                                  <div key={index} className="category-item">
+                                    <span
+                                      className="category-badge bg-info text-white"
+                                      title={tooltipContent}
+                                      data-bs-toggle="tooltip"
+                                      data-bs-placement="top"
+                                    >
+                                      {subInvestment}
                                     </span>
                                   </div>
                                 );

@@ -222,13 +222,12 @@ const MainDashboard = () => {
   const [showVivranModal, setShowVivranModal] = useState(false);
   const [vivranGroupData, setVivranGroupData] = useState(null);
   const [selectedColumns, setSelectedColumns] = useState([
-    "sno",
     "center_name",
     "vidhan_sabha_name",
     "vikas_khand_name",
     "component",
     "investment_name",
-    "unit",
+    "sub_investment_name",
     "allocated_quantity",
     "rate",
     "allocated_amount",

@@ -59,18 +59,26 @@ const ColumnSelection = ({
   title,
 }) => {
   const handleColumnToggle = (columnKey) => {
-    if (selectedColumns.includes(columnKey)) {
-      setSelectedColumns(selectedColumns.filter((col) => col !== columnKey));
-    } else {
-      setSelectedColumns([...selectedColumns, columnKey]);
-    }
+    console.log('Column toggle:', columnKey, 'Current selected:', selectedColumns);
+    
+    setSelectedColumns(prevColumns => {
+      const newColumns = prevColumns.includes(columnKey)
+        ? prevColumns.filter((col) => col !== columnKey)
+        : [...prevColumns, columnKey];
+      
+      console.log('New columns:', newColumns);
+      return newColumns;
+    });
   };
 
   const handleSelectAll = () => {
-    setSelectedColumns(columns.map((col) => col.key));
+    const allKeys = columns.map((col) => col.key);
+    console.log('Select all columns:', allKeys);
+    setSelectedColumns(allKeys);
   };
 
   const handleDeselectAll = () => {
+    console.log('Deselect all columns');
     setSelectedColumns([]);
   };
 
@@ -109,11 +117,14 @@ const ColumnSelection = ({
           <div className="d-flex flex-wrap">
             {columns.map((col) => (
               <Form.Check
-                key={col.key}
+                key={`column-${col.key}`}
                 type="checkbox"
                 id={`col-${col.key}`}
                 checked={selectedColumns.includes(col.key)}
-                onChange={() => handleColumnToggle(col.key)}
+                onChange={(e) => {
+                  e.preventDefault();
+                  handleColumnToggle(col.key);
+                }}
                 className="me-3 mb-2"
                 label={<span className="small-fonts">{col.label}</span>}
               />
@@ -2146,30 +2157,58 @@ const VivranSummaryModal = ({
       // Add totals row
       const totalsRow = {};
       totalsRow["क्रम संख्या"] = "";
+      
+      // Find the first selected data column (non-numeric) to place "कुल"
+      const firstDataColumn = selectedColumns.find(col => 
+        !["allocated_quantity", "rate", "allocated_amount", "updated_quantity", "updated_amount"].includes(col)
+      );
+      
       selectedColumns.forEach((col) => {
-        if (
+        // Place "कुल" in the first data column
+        if (col === firstDataColumn) {
+          const columnLabel = col === "center_name"
+            ? "केंद्र का नाम"
+            : col === "component"
+            ? "घटक"
+            : col === "investment_name"
+            ? "निवेश का नाम"
+            : col === "sub_investment_name"
+            ? "उप-निवेश का नाम"
+            : col === "vidhan_sabha_name"
+            ? "विधानसभा का नाम"
+            : col === "vikas_khand_name"
+            ? "विकासखंड का नाम"
+            : col === "source_of_receipt"
+            ? "स्रोत"
+            : "योजना";
+          totalsRow[columnLabel] = "कुल";
+        } else if (
           col === "center_name" ||
           col === "component" ||
           col === "investment_name" ||
           col === "sub_investment_name" ||
           col === "source_of_receipt" ||
-          col === "scheme_name"
+          col === "scheme_name" ||
+          col === "vidhan_sabha_name" ||
+          col === "vikas_khand_name"
         ) {
-          totalsRow[
-            col === "center_name"
-              ? "केंद्र का नाम"
-              : col === "component"
-              ? "घटक"
-              : col === "investment_name"
-              ? "निवेश का नाम"
-              : col === "sub_investment_name"
-              ? "उप-निवेश का नाम"
-              : col === "unit"
-              ? "इकाई"
-              : col === "source_of_receipt"
-              ? "स्रोत"
-              : "योजना"
-          ] = "";
+          // Other non-numeric columns remain empty
+          const columnLabel = col === "center_name"
+            ? "केंद्र का नाम"
+            : col === "component"
+            ? "घटक"
+            : col === "investment_name"
+            ? "निवेश का नाम"
+            : col === "sub_investment_name"
+            ? "उप-निवेश का नाम"
+            : col === "vidhan_sabha_name"
+            ? "विधानसभा का नाम"
+            : col === "vikas_khand_name"
+            ? "विकासखंड का नाम"
+            : col === "source_of_receipt"
+            ? "स्रोत"
+            : "योजना";
+          totalsRow[columnLabel] = "";
         } else if (col === "rate") {
           totalsRow["दर"] = "-";
         } else if (col === "allocated_quantity") {
@@ -3563,42 +3602,54 @@ const VivranSummaryModal = ({
                 <tfoot>
                   <tr className="font-weight-bold">
                     <td></td>
-                    {selectedColumns.includes("center_name") && <td>कुल</td>}
-                    {selectedColumns.includes("vidhan_sabha_name") && <td></td>}
-                    {selectedColumns.includes("vikas_khand_name") && <td></td>}
-                    {selectedColumns.includes("component") && <td></td>}
-                    {selectedColumns.includes("investment_name") && <td></td>}
-                    {selectedColumns.includes("allocated_quantity") && (
-                      <td>
-                        {tableData
-                          .reduce(
-                            (sum, item) =>
-                              sum + parseFloat(item.allocated_quantity || 0),
-                            0
-                          )
-                          .toFixed(2)}
-                      </td>
-                    )}
-                    {selectedColumns.includes("rate") && <td></td>}
-                    {selectedColumns.includes("allocated_amount") && (
-                      <td>{formatCurrency(tableTotalAllocated)}</td>
-                    )}
-                    {selectedColumns.includes("updated_quantity") && (
-                      <td>
-                        {tableData
-                          .reduce(
-                            (sum, item) =>
-                              sum + parseFloat(item.updated_quantity || 0),
-                            0
-                          )
-                          .toFixed(2)}
-                      </td>
-                    )}
-                    {selectedColumns.includes("updated_amount") && (
-                      <td>{formatCurrency(tableTotalUpdated)}</td>
-                    )}
-                    {selectedColumns.includes("source_of_receipt") && <td></td>}
-                    {selectedColumns.includes("scheme_name") && <td></td>}
+                    {(() => {
+                      // Find the first selected column that should show the total text
+                      const firstDataColumn = selectedColumns.find(col => 
+                        !['allocated_quantity', 'rate', 'allocated_amount', 'updated_quantity', 'updated_amount'].includes(col)
+                      );
+                      
+                      return selectedColumns.map((col, index) => {
+                        if (col === firstDataColumn) {
+                          return <td key={col}>कुल</td>;
+                        } else if (['allocated_quantity', 'rate', 'allocated_amount', 'updated_quantity', 'updated_amount'].includes(col)) {
+                          // Show totals for numeric columns
+                          if (col === 'allocated_quantity') {
+                            return (
+                              <td key={col}>
+                                {tableData
+                                  .reduce(
+                                    (sum, item) =>
+                                      sum + parseFloat(item.allocated_quantity || 0),
+                                    0
+                                  )
+                                  .toFixed(2)}
+                              </td>
+                            );
+                          } else if (col === 'allocated_amount') {
+                            return <td key={col}>{formatCurrency(tableTotalAllocated)}</td>;
+                          } else if (col === 'updated_quantity') {
+                            return (
+                              <td key={col}>
+                                {tableData
+                                  .reduce(
+                                    (sum, item) =>
+                                      sum + parseFloat(item.updated_quantity || 0),
+                                    0
+                                  )
+                                  .toFixed(2)}
+                              </td>
+                            );
+                          } else if (col === 'updated_amount') {
+                            return <td key={col}>{formatCurrency(tableTotalUpdated)}</td>;
+                          } else if (col === 'rate') {
+                            return <td key={col}></td>;
+                          }
+                        } else {
+                          // Show empty cells for non-numeric, non-first columns
+                          return <td key={col}></td>;
+                        }
+                      });
+                    })()}
                   </tr>
                 </tfoot>
               </table>
