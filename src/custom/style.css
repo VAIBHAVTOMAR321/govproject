@@ -169,6 +169,22 @@ body {
 .component-details{
   margin-bottom: 12px;
 }
+.scheme-details{
+  margin-bottom: 12px;
+
+}
+.investment-details{
+  margin-bottom: 12px !important;
+}
+.investment-details{
+  margin-bottom: 12px;
+}
+.investment-details{
+   margin-bottom: 12px;
+}
+.component-details{
+  margin-bottom: 12px;
+}
 .responsive-table .tbody{
   overflow-y: auto !important;
   max-height: 200px;

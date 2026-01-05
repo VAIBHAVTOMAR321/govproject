@@ -187,7 +187,7 @@ th { background-color: #f2f2f2; font-size: 14px; font-weight: 600; }
 tr:nth-child(even) { background-color: #f9f9f9; }
 .header { text-align: center; margin-bottom: 20px; }
 .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #7f8c8d; }
-.print-button-container { text-align: center; margin: 20px 0; }
+.print-button-container { text-align:end; margin: 20px 0; }
 .print-button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
 .print-button:hover { background: #0056b3; }
 </style>
@@ -1604,6 +1604,9 @@ font-weight: bold;
 color: #2c3e50;
 margin-bottom: 3px;
 }
+.component-details{
+margin-bottom: 12px;
+}
 .summary-label {
 font-size: 14px;
 color: #000;
@@ -1611,8 +1614,15 @@ text-transform: uppercase;
 }
 .section {
 margin: 15px 0;
+font-size:12px;
 page-break-inside: avoid;
 }
+.scheme-details{
+    margin-bottom: 12px;
+}
+    .investment-details{
+    margin-bottom: 12px;
+    }
 .section-title {
 font-size: 14px;
 font-weight: bold;
@@ -1641,14 +1651,15 @@ color: white;
 padding: 6px 4px;
 text-align: left;
 font-weight: 600;
-font-size: 10px;
+font-size: 14px;
+
 border: 1px solid #ddd;
 }
 .data-table td {
 padding: 4px 3px;
 border: 1px solid #ddd;
 text-align: left;
-font-size: 9px;
+font-size: 12px;
 }
 .data-table tr:nth-child(even) {
 background-color: #f9f9f9;
