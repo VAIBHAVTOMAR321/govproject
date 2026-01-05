@@ -166,6 +166,9 @@ body {
   background-color: #194e8b !important;
   color: #fff;
 }
+.component-details{
+  margin-bottom: 12px;
+}
 .responsive-table .tbody{
   overflow-y: auto !important;
   max-height: 200px;

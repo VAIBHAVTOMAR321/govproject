@@ -1599,13 +1599,13 @@ text-align: center;
 border-left: 2px solid #007bff;
 }
 .summary-number {
-font-size: 14px;
+font-size: 24px;
 font-weight: bold;
 color: #2c3e50;
 margin-bottom: 3px;
 }
 .summary-label {
-font-size: 9px;
+font-size: 14px;
 color: #000;
 text-transform: uppercase;
 }
@@ -6147,7 +6147,7 @@ ${relatedInfo}
                                               data-bs-toggle="tooltip"
                                               data-bs-placement="top"
                                             >
-                                              {subInv}
+                                              {/* {subInv} */}
                                             </span>
                                           )
                                         )}
