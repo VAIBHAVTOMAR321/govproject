@@ -12,7 +12,7 @@ function DashBoardHeader() {
         <Navbar.Brand href="#home">
           <div className='dash-img d-flex justify-content-between mx-2'>
           <img src={UKSasan} className='img-fluid'></img>
-          <p>horticulture</p>
+          <p>DHO Kotdwar</p>
           </div>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
