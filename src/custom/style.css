@@ -68,40 +68,46 @@ body {
   --gov-space-1200: 48px;
 }
 
-.change-password p{
+.change-password p {
   color: #0B488F;
   cursor: pointer;
 
 }
-.table-regi tr th{
+
+.table-regi tr th {
   background-color: #13539d;
   color: #fff;
 }
-.form-control-lg{
+
+.form-control-lg {
   font-size: 10px !important;
 
 }
-.forget-btn p{
+
+.forget-btn p {
   font-size: 12px !important;
 }
+
 .dashboard-title-container {
   white-space: normal;
   overflow: hidden;
 }
 
 
-.sidebar-title-container{
+.sidebar-title-container {
   white-space: normal;
-  overflow: hidden; 
+  overflow: hidden;
   font-size: 12px;
   line-height: 16px;
 }
-.govt-text{
+
+.govt-text {
   font-weight: 500;
   font-size: 16px;
   line-height: 18px;
 
 }
+
 .copyright-footer {
   background-color: #fff;
   padding: 20px 0;
@@ -118,17 +124,19 @@ body {
 .copyright-footer {
   border-top: 1px solid #fff;
 }
+
 @media only screen and (max-width: 568px) {
   .br-login {
     margin: var(--gov-space-200) var(--gov-space-0) var(--gov-space-0) var(--gov-space-0) !important;
   }
-.govt-text{
-  font-weight: 400 !important;
-  font-size: 8px !important;
-  line-height: 12px !important;
 
+  .govt-text {
+    font-weight: 400 !important;
+    font-size: 8px !important;
+    line-height: 12px !important;
+
+  }
 }
- }
 
 /* Chart Tooltip Styles */
 .chart-tooltip {
@@ -141,7 +149,7 @@ body {
   pointer-events: none;
   z-index: 1000;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .chart-tooltip.tooltip-above {
@@ -153,47 +161,62 @@ body {
   transform: translate(-50%, 0%);
   margin-top: 10px;
 }
- .exel-file{
-  color: #fff !important;
-  border-color: #dfdfdfff !important;
-}
- .pdf-file{
+
+.exel-file {
   color: #fff !important;
   border-color: #dfdfdfff !important;
 }
 
-.modal-title{
+.pdf-file {
+  color: #fff !important;
+  border-color: #dfdfdfff !important;
+}
+
+.modal-title {
   background-color: #194e8b !important;
   color: #fff;
 }
-.component-details{
+
+.component-details {
   margin-bottom: 12px;
 }
-.scheme-details{
+
+.scheme-details {
   margin-bottom: 12px;
 
 }
-.investment-details{
+
+.investment-details {
   margin-bottom: 12px !important;
 }
-.investment-details{
+
+.investment-details {
   margin-bottom: 12px;
 }
-.dash-img p{
+
+.dash-img p {
   margin-left: 12px;
   color: #fff;
 }
-.investment-details{
-   margin-bottom: 12px;
-}
-.component-details{
+
+.investment-details {
   margin-bottom: 12px;
 }
-.responsive-table .tbody{
+
+.component-details {
+  margin-bottom: 12px;
+}
+
+.responsive-table .tbody {
   overflow-y: auto !important;
   max-height: 200px;
 }
-.t-h th{
+
+.t-h th {
   color: black !important;
   font-weight: 600 !important;
+}
+
+.source-breakdown ul li {
+  margin-bottom: 12px;
 }

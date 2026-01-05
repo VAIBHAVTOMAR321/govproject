@@ -1577,8 +1577,11 @@ margin-bottom: 5px;
     justify-content: space-between;
 }
 .date {
-color: #7f8c8d;
-font-size: 10px;
+color: #000;
+font-size: 12px;
+    text-align: justify;
+
+
 }
 .executive-summary {
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -3453,7 +3456,7 @@ ${kendraSources
     const remaining = allocated - sold;
 
     return `
-<li><strong>${source}</strong>
+<li ><strong style="margin-top: 12px; display: inline-block;">${source}</strong>
 <ul>
 <li>संबंधित योजनाएं: ${schemes.join(", ")}</li>
 <li>संबंधित घटक: ${components.join(", ")}</li>
