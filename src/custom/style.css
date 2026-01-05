@@ -170,3 +170,7 @@ body {
   overflow-y: auto !important;
   max-height: 200px;
 }
+.t-h th{
+  color: black !important;
+  font-weight: 600 !important;
+}
