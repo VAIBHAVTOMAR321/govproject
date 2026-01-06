@@ -725,35 +725,49 @@ const MainDashboard = () => {
                             ) : selectedFilter ? (
                               <div className="multiselect-container">
                               <Row>
-  <Col md={6} className="unselected-details">
-    <div className="d-flex justify-content-between align-items-center mb-3">
-      <h6 className="mb-0">
-        उपलब्ध{" "}
-        {selectedFilter === "kendra"
-          ? "Centers"
-          : selectedFilter === "vidhanSabha"
-          ? "Vidhan Sabhas"
-          : "Vikas Khands"}
-      </h6>
-      <Badge pill bg="transparent" text="primary" className="border border-primary">
-        {availableCenters.length}
-      </Badge>
-    </div>
-    <div className="multiselect-grid">
-      {availableCenters.map((center, index) => (
-        <div
-          key={index}
-          className="multiselect-item-grid"
-          onClick={() => toggleCenterSelection(center)}
-          style={{ cursor: "pointer" }}
+  {availableCenters.length > 0 && (
+    <Col md={6} className="unselected-details">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h6 className="mb-0">
+          उपलब्ध{" "}
+          {selectedFilter === "kendra"
+            ? "Centers"
+            : selectedFilter === "vidhanSabha"
+            ? "Vidhan Sabhas"
+            : "Vikas Khands"}
+        </h6>
+        <Badge pill bg="transparent" text="primary" className="border border-primary">
+          {availableCenters.length}
+        </Badge>
+      </div>
+      <div className="mb-2">
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={() => {
+            setSelectedCenters([...selectedCenters, ...availableCenters]);
+            setAvailableCenters([]);
+          }}
         >
-          {center}
-        </div>
-      ))}
-    </div>
-  </Col>
-  
-  <Col md={6} className="selected-details">
+          सभी चुनें
+        </Button>
+      </div>
+      <div className="multiselect-grid">
+        {availableCenters.map((center, index) => (
+          <div
+            key={index}
+            className="multiselect-item-grid"
+            onClick={() => toggleCenterSelection(center)}
+            style={{ cursor: "pointer" }}
+          >
+            {center}
+          </div>
+        ))}
+      </div>
+    </Col>
+  )}
+
+  <Col md={availableCenters.length > 0 ? 6 : 12} className="selected-details">
     <div className="d-flex justify-content-between align-items-center mb-3">
       <h6 className="mb-0">
         चयनित{" "}
@@ -767,6 +781,20 @@ const MainDashboard = () => {
         {selectedCenters.length}
       </Badge>
     </div>
+    {selectedCenters.length > 0 && (
+      <div className="mb-2">
+        <Button
+          variant="outline-danger"
+          size="sm"
+          onClick={() => {
+            setAvailableCenters([...availableCenters, ...selectedCenters].sort());
+            setSelectedCenters([]);
+          }}
+        >
+          सभी हटाएं
+        </Button>
+      </div>
+    )}
     <div className="multiselect-grid">
       {selectedCenters.map((center, index) => (
         <div
