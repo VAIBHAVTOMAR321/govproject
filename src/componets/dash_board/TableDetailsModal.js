@@ -5629,9 +5629,9 @@ ${relatedInfo}
                         className={`mb-2 p-2 border rounded clickable-detail-item compact-detail-item ${
                           isSelected ? "selected-detail" : ""
                         }`}
-                        onClick={() =>
-                          showRemainingDetails(subInvestment, "subInvestment")
-                        }
+                        // onClick={() =>
+                        //   showRemainingDetails(subInvestment, "subInvestment")
+                        // }
                         style={{ cursor: "pointer" }}
                         title="क्लिक करें विस्तृत शेष राशि विवरण देखने के लिए"
                       >
