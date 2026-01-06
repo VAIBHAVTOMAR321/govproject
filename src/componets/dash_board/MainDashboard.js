@@ -741,8 +741,8 @@ const MainDashboard = () => {
         </Badge>
       </div>
       <div className="mb-2">
-        <Button
-          variant="outline-primary"
+        <Button className="add-btn-filter"
+          variant="outline-primary "
           size="sm"
           onClick={() => {
             setSelectedCenters([...selectedCenters, ...availableCenters]);
@@ -782,9 +782,9 @@ const MainDashboard = () => {
       </Badge>
     </div>
     {selectedCenters.length > 0 && (
-      <div className="mb-2">
-        <Button
-          variant="outline-danger"
+      <div className="mb-2 ">
+        <Button className="remove-btn-filter"
+          variant="outline-danger" 
           size="sm"
           onClick={() => {
             setAvailableCenters([...availableCenters, ...selectedCenters].sort());
@@ -898,7 +898,9 @@ const MainDashboard = () => {
           border-radius: 4px;
         }
 
-      
+      .remove-btn-filter{
+      font-size:12px;
+      }
 
         .multiselect-item-grid:hover {
           background-color: #e9ecef;
