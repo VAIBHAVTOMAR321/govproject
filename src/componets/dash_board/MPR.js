@@ -1138,11 +1138,24 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
 
   return (
     <>
-      <div className="dashboard-container">
-        <LeftNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} isTablet={isTablet} />
-        <div className="main-content">
-          <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-          <Container fluid className="dashboard-body">
+    <div>
+     
+        <Row>
+           <Col lg={12} md={12} sm={12}>
+                      <DashBoardHeader
+                        sidebarOpen={sidebarOpen}
+                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                      />
+                    </Col>
+        </Row>
+         <Row className="left-top">
+                  {/* <Col lg={2} md={2} sm={12}>
+                    <LeftNav />
+                  </Col> */}
+        
+                  <Col lg={12} md={12} sm={12}>
+                   <div className="dashboard-container">
+  <Container fluid className="dashboard-body">
             <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
             
             {statusUpdateSuccess && (
@@ -1685,7 +1698,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
             </Card>
           </Container>
         </div>
-      </div>
+    
       
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
@@ -1716,6 +1729,15 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
           </div>
         </div>
       )}
+
+
+       
+                 
+    
+      </Col>
+      </Row>
+    </div>
+     
     </>
   );
 };

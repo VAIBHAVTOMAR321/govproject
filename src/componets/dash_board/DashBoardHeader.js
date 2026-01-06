@@ -36,8 +36,8 @@ function DashBoardHeader() {
               </NavDropdown.Item>
               
             </NavDropdown>
-            <Nav.Link href="/MPR">एमपीआर</Nav.Link>
-             <Nav.Link href="/AddEditComponent">घटक जोड़ें/संपादित करें</Nav.Link>
+            <Nav.Link href="MPR">एमपीआर</Nav.Link>
+           
           </Nav>
         </Navbar.Collapse>
       </Container>
