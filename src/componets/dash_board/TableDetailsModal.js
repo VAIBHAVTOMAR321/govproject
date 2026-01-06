@@ -4732,11 +4732,11 @@ ${relatedInfo}
                     }
                     className="me-2 mb-2 p-2 clickable-badge"
                     style={{ fontSize: "14px", cursor: "pointer" }}
-                    onClick={() =>
-                      setSelectedVikasKhand(
-                        selectedVikasKhand === vikasKhand ? null : vikasKhand
-                      )
-                    }
+                    // onClick={() =>
+                    //   setSelectedVikasKhand(
+                    //     selectedVikasKhand === vikasKhand ? null : vikasKhand
+                    //   )
+                    // }
                     title={
                       selectedVikasKhand === vikasKhand
                         ? "क्लिक करें तालिका बंद करने के लिए"
@@ -7021,7 +7021,7 @@ ${relatedInfo}
         {/* Comparative Summary Section */}
         {Object.keys(centerSummaries).length > 1 && (
           <Card className="mb-3">
-            <Card.Header className="fillter-heading d-flex justify-content-between align-items-center">
+            <Card.Header className="d-flex justify-content-between align-items-center">
               <h6 className="mb-0">
                 <FaChartBar className="me-2" /> तुलनात्मक सारांश
               </h6>
