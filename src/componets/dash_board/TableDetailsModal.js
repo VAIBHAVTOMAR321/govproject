@@ -91,12 +91,23 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         0
       );
       const totalRemaining = totalAllocated - totalUpdated;
+      // Quantities (not amounts)
+      const allocatedQuantity = items.reduce(
+        (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+        0
+      );
+      const updatedQuantity = items.reduce(
+        (sum, item) => sum + parseFloat(item.updated_quantity || 0),
+        0
+      );
 
       summaries[kendraName] = {
         recordCount: items.length,
         totalAllocated,
         totalUpdated,
         totalRemaining,
+        allocatedQuantity,
+        updatedQuantity,
         distributionPercentage:
           totalAllocated > 0
             ? ((totalUpdated / totalAllocated) * 100).toFixed(2)
@@ -112,17 +123,24 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     let totalAllocated = 0;
     let totalUpdated = 0;
     let totalRecords = 0;
+    let totalAllocatedQuantity = 0;
+    let totalUpdatedQuantity = 0;
 
     Object.values(centerSummaries).forEach((summary) => {
       totalAllocated += summary.totalAllocated;
       totalUpdated += summary.totalUpdated;
       totalRecords += summary.recordCount;
+      totalAllocatedQuantity += summary.allocatedQuantity || 0;
+      totalUpdatedQuantity += summary.updatedQuantity || 0;
     });
 
     return {
       totalAllocated,
       totalUpdated,
       totalRemaining: totalAllocated - totalUpdated,
+      totalAllocatedQuantity,
+      totalUpdatedQuantity,
+      totalRemainingQuantity: totalAllocatedQuantity - totalUpdatedQuantity,
       totalRecords,
       totalCenters: Object.keys(centerSummaries).length,
       overallDistributionPercentage:
@@ -839,6 +857,8 @@ ${kendraData
         ["सप्लायरों की कुल संख्या", uniqueSources.length],
         ["", ""],
         ["वित्तीय सारांश (रुपयों में)", ""],
+        ["कुल आवंटित मात्रा", (totals.totalAllocatedQuantity || 0).toFixed(2)],
+        ["कुल वितरित मात्रा", (totals.totalUpdatedQuantity || 0).toFixed(2)],
         ["कुल आवंटित राशि", formatCurrency(totals.totalAllocated)],
         ["कुल वितरण राशि", formatCurrency(totals.totalUpdated)],
         ["कुल शेष राशि", formatCurrency(totals.totalRemaining)],
@@ -935,6 +955,8 @@ ${kendraData
         ["सप्लायरों की संख्या", uniqueSources.length],
         ["", ""],
         ["वित्तीय विवरण (रुपयों में)", ""],
+        ["कुल आवंटित मात्रा", (totals.totalAllocatedQuantity || 0).toFixed(2)],
+        ["कुल वितरित मात्रा", (totals.totalUpdatedQuantity || 0).toFixed(2)],
         ["कुल आवंटित राशि", formatCurrency(totals.totalAllocated)],
         ["कुल वितरण राशि", formatCurrency(totals.totalUpdated)],
         ["कुल शेष राशि", formatCurrency(totals.totalRemaining)],
@@ -978,10 +1000,15 @@ ${kendraData
         const components = [
           ...new Set(schemeItems.map((item) => item.component)),
         ].filter(Boolean);
+        const totalAllocatedQuantity = schemeItems.reduce(
+          (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+          0
+        );
 
         return {
           योजना: scheme,
           "रिकॉर्ड संख्या": schemeItems.length,
+          "आवंटित मात्रा": totalAllocatedQuantity.toFixed(2),
           "आवंटित राशि": formatCurrency(allocated),
           "वितरण राशि": formatCurrency(sold),
           "शेष राशि": formatCurrency(remaining),
@@ -1017,10 +1044,15 @@ ${kendraData
         const investments = [
           ...new Set(componentItems.map((item) => item.investment_name)),
         ].filter(Boolean);
+        const totalAllocatedQuantity = componentItems.reduce(
+          (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+          0
+        );
 
         return {
           घटक: component,
           "रिकॉर्ड संख्या": componentItems.length,
+          "आवंटित मात्रा": totalAllocatedQuantity.toFixed(2),
           "आवंटित राशि": formatCurrency(allocated),
           "वितरण राशि": formatCurrency(sold),
           "शेष राशि": formatCurrency(remaining),
@@ -1094,10 +1126,15 @@ ${kendraData
           0
         );
         const remaining = allocated - sold;
+        const totalAllocatedQuantity = sourceItems.reduce(
+          (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+          0
+        );
 
         return {
           सप्लायर: source,
           "रिकॉर्ड संख्या": sourceItems.length,
+          "आवंटित मात्रा": totalAllocatedQuantity.toFixed(2),
           "आवंटित राशि": formatCurrency(allocated),
           "वितरण राशि": formatCurrency(sold),
           "शेष राशि": formatCurrency(remaining),
@@ -1124,10 +1161,15 @@ ${kendraData
           0
         );
         const remaining = allocated - sold;
+        const totalAllocatedQuantity = investmentItems.reduce(
+          (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+          0
+        );
 
         return {
           निवेश: investment,
           "रिकॉर्ड संख्या": investmentItems.length,
+          "आवंटित मात्रा": totalAllocatedQuantity.toFixed(2),
           "आवंटित राशि": formatCurrency(allocated),
           "वितरण राशि": formatCurrency(sold),
           "शेष राशि": formatCurrency(remaining),
@@ -1158,10 +1200,15 @@ ${kendraData
           0
         );
         const remaining = allocated - sold;
+        const totalAllocatedQuantity = subInvestmentItems.reduce(
+          (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+          0
+        );
 
         return {
           "उप-निवेश": subInvestment,
           "रिकॉर्ड संख्या": subInvestmentItems.length,
+          "आवंटित मात्रा": totalAllocatedQuantity.toFixed(2),
           "आवंटित राशि": formatCurrency(allocated),
           "वितरण राशि": formatCurrency(sold),
           "शेष राशि": formatCurrency(remaining),
@@ -1178,6 +1225,7 @@ ${kendraData
           ([kendraName, summary]) => ({
             "केंद्र नाम": kendraName,
             "रिकॉर्ड संख्या": summary.recordCount,
+            "आवंटित मात्रा": (summary.allocatedQuantity || 0).toFixed(2),
             "आवंटित राशि": formatCurrency(summary.totalAllocated),
             "वितरण राशि": formatCurrency(summary.totalUpdated),
             "शेष राशि": formatCurrency(summary.totalRemaining),
@@ -1194,6 +1242,8 @@ ${kendraData
           ["तुलनात्मक सारांश", ""],
           ["कुल केंद्र", comparisonSummary.totalCenters],
           ["कुल रिकॉर्ड", comparisonSummary.totalRecords],
+          ["कुल आवंटित मात्रा", (comparisonSummary.totalAllocatedQuantity || 0).toFixed(2)],
+          ["कुल वितरित मात्रा", (comparisonSummary.totalUpdatedQuantity || 0).toFixed(2)],
           ["कुल आवंटित राशि", formatCurrency(comparisonSummary.totalAllocated)],
           ["कुल वितरण राशि", formatCurrency(comparisonSummary.totalUpdated)],
           ["कुल शेष राशि", formatCurrency(comparisonSummary.totalRemaining)],
@@ -1206,6 +1256,7 @@ ${kendraData
           [
             "केंद्र नाम",
             "रिकॉर्ड",
+            "आवंटित मात्रा",
             "आवंटित राशि",
             "वितरण राशि",
             "शेष राशि",
@@ -1217,6 +1268,7 @@ ${kendraData
           comparisonData.push([
             kendraName,
             summary.recordCount,
+            (summary.allocatedQuantity || 0).toFixed(2),
             formatCurrency(summary.totalAllocated),
             formatCurrency(summary.totalUpdated),
             formatCurrency(summary.totalRemaining),
@@ -1796,7 +1848,7 @@ margin: 10px 0;
 }
 .financial-grid {
 display: grid;
-grid-template-columns: repeat(3, 1fr);
+grid-template-columns: repeat(4, 1fr);
 gap: 10px;
 text-align: center;
 }
@@ -1913,6 +1965,10 @@ Print
       )}</h4>
 <p style="font-size: 9px; margin: 2px 0 0 0;">कुल शेष</p>
 </div>
+<div class="financial-item">
+<h4 style="font-size: 14px; margin: 0;">${(totals.totalAllocatedQuantity || 0).toFixed(2)}</h4>
+<p style="font-size: 9px; margin: 2px 0 0 0;">कुल आवंटित मात्रा</p>
+</div>
 </div>
 </div>
 
@@ -1924,7 +1980,7 @@ ${Object.entries(centerSummaries)
     ([kendraName, summary]) => `
 <div class="kendra-summary-card">
 <h5 style="color: #2c3e50; border-bottom: 1px solid #007bff; padding-bottom: 3px; margin-bottom: 5px; font-size: 12px;">${kendraName} - सारांश</h5>
-<div class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 5px 0;">
+<div class="summary-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin: 5px 0;">
 <div class="summary-card" style="background: #e3f2fd; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
 <div class="summary-number" style="font-size: 20px;">${
       summary.recordCount
@@ -1942,6 +1998,12 @@ ${Object.entries(centerSummaries)
       summary.totalUpdated
     )}</div>
 <div class="summary-label">वितरण</div>
+</div>
+<div class="summary-card" style="background: #fbe9e7; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
+<div class="summary-number" style="font-size: 20px;">${(
+      summary.allocatedQuantity || 0
+    ).toFixed(2)}</div>
+<div class="summary-label">आवंटित मात्रा</div>
 </div>
 <div class="summary-card" style="background: #e8f5e9; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
 <div class="summary-number" style="font-size: 20px;">${formatCurrency(
@@ -1973,6 +2035,7 @@ ${
 <tr>
 <th rowspan="2">केंद्र नाम</th>
 <th rowspan="2">रिकॉर्ड संख्या</th>
+<th rowspan="2">आवंटित मात्रा</th>
 <th colspan="3">वित्तीय विवरण (रुपयों में)</th>
 <th rowspan="2">वितरण %</th>
 </tr>
@@ -1989,6 +2052,7 @@ ${Object.entries(centerSummaries)
 <tr>
 <td><strong>${kendraName}</strong></td>
 <td>${summary.recordCount}</td>
+<td>${(summary.allocatedQuantity || 0).toFixed(2)}</td>
 <td>${formatCurrency(summary.totalAllocated)}</td>
 <td>${formatCurrency(summary.totalUpdated)}</td>
 <td>${formatCurrency(summary.totalRemaining)}</td>
@@ -2000,6 +2064,7 @@ ${Object.entries(centerSummaries)
 <tr class="total-row">
 <td><strong>कुल तुलना</strong></td>
 <td><strong>${comparisonSummary.totalRecords}</strong></td>
+<td><strong>${(comparisonSummary.totalAllocatedQuantity || 0).toFixed(2)}</strong></td>
 <td><strong>${formatCurrency(comparisonSummary.totalAllocated)}</strong></td>
 <td><strong>${formatCurrency(comparisonSummary.totalUpdated)}</strong></td>
 <td><strong>${formatCurrency(comparisonSummary.totalRemaining)}</strong></td>
@@ -2473,6 +2538,7 @@ ${Object.entries(groupedByCenters)
     return `
 <div class="section">
 <div class="section-title">${kendraName} - योजना अनुसार विस्तृत सारांश</div>
+${kendraSchemes.length > 0 ? `
 <div class="scheme-location">
 <h4>${kendraName} में योजनाओं की उपस्थिति और उनके संबंधित घटक:</h4>
 <ul>
@@ -2499,6 +2565,10 @@ ${kendraSchemes
     const allocated = schemeItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const totalAllocatedQuantity = schemeItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
       0
     );
     const sold = schemeItems.reduce(
@@ -2555,7 +2625,7 @@ ${kendraSchemes
             Array.from(data.investments).join(", ") || "कोई नहीं"
           }, सप्लायर: ${
             Array.from(data.sources).join(", ") || "कोई नहीं"
-          }, विकासखंड: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
+          }, स्थान: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
       )
       .join("; ");
 
@@ -2564,7 +2634,7 @@ ${kendraSchemes
 <div class="scheme-details">
 <div class="detail-row">
 <span class="label">भौगोलिक वितरण:</span>
-<span class="value">${geoDistribution || "विकासखंड डेटा उपलब्ध नहीं"}</span>
+<span class="value">${geoDistribution || "विकासखंडडेटा उपलब्ध नहीं"}</span>
 </div>
 <div class="detail-row">
 <span class="label">घटक-अनुसार विवरण:</span>
@@ -2604,7 +2674,11 @@ ${kendraSchemes
 <span class="label">कुल स्थानों की संख्या:</span>
 <span class="value highlight">${
       vidhanSabhas.length + vikasKhands.length
-    } विकासखंड</span>
+    } स्थान</span>
+</div>
+<div class="detail-row">
+<span class="label">आवंटित मात्रा:</span>
+<span class="value">${totalAllocatedQuantity.toFixed(2)}</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -2633,6 +2707,7 @@ ${kendraSchemes
 <th>रिकॉर्ड संख्या</th>
 <th>संबंधित घटक</th>
 <th>संबंधित निवेश</th>
+<th>आवंटित मात्रा</th>
 <th>आवंटित राशि</th>
 <th>वितरण राशि</th>
 <th>शेष राशि</th>
@@ -2656,6 +2731,10 @@ ${kendraSchemes
         sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
       0
     );
+    const allocatedQty = schemeItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
     const sold = schemeItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
@@ -2671,6 +2750,7 @@ ${kendraSchemes
 <td>${schemeItems.length}</td>
 <td>${components.length} (${components.join(", ")})</td>
 <td>${investments.length} (${investments.join(", ")})</td>
+<td>${allocatedQty.toFixed(2)}</td>
 <td>${formatCurrency(allocated)}</td>
 <td>${formatCurrency(sold)}</td>
 <td class="highlight">${formatCurrency(remaining)}</td>
@@ -2684,6 +2764,7 @@ ${kendraSchemes
 <td><strong>${kendraData.length}</strong></td>
 <td><strong>${kendraComponents.length}</strong></td>
 <td><strong>${kendraInvestments.length}</strong></td>
+<td><strong>${kendraData.reduce((sum,item)=> sum+ parseFloat(item.allocated_quantity||0),0).toFixed(2)}</strong></td>
 <td><strong>${formatCurrency(
       kendraData.reduce(
         (sum, item) =>
@@ -2736,6 +2817,7 @@ ${kendraSchemes
 </tbody>
 </table>
 </div>
+` : ``}
 `;
   })
   .join("")}
@@ -2747,7 +2829,7 @@ ${Object.entries(groupedByCenters)
       ...new Set(kendraData.map((item) => item.component)),
     ].filter(Boolean);
 
-    return `
+    return kendraComponents.length > 0 ? `
 <div class="section">
 <div class="section-title">${kendraName} - घटक अनुसार विस्तृत सारांश</div>
 <div class="component-breakdown">
@@ -2776,6 +2858,10 @@ ${kendraComponents
     const allocated = componentItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const allocatedQty = componentItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
       0
     );
     const sold = componentItems.reduce(
@@ -2812,7 +2898,7 @@ ${kendraComponents
             Array.from(data.investments).join(", ") || "कोई नहीं"
           }, सप्लायर: ${
             Array.from(data.sources).join(", ") || "कोई नहीं"
-          }, विकासखंड: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
+          }, स्थान: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
       )
       .join("; ");
 
@@ -2857,7 +2943,11 @@ ${kendraComponents
 <span class="label">कुल स्थानों की संख्या:</span>
 <span class="value highlight">${
       vidhanSabhas.length + vikasKhands.length
-    } विकासखंड</span>
+    } स्थान</span>
+</div>
+<div class="detail-row">
+<span class="label">आवंटित मात्रा:</span>
+<span class="value">${allocatedQty.toFixed(2)}</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -2884,6 +2974,7 @@ ${kendraComponents
 <tr>
 <th>घटक</th>
 <th>रिकॉर्ड संख्या</th>
+<th>आवंटित मात्रा</th>
 <th>आवंटित राशि</th>
 <th>वितरण राशि</th>
 <th>शेष राशि</th>
@@ -2901,6 +2992,10 @@ ${kendraComponents
         sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
       0
     );
+    const allocatedQty = componentItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
     const sold = componentItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
@@ -2914,6 +3009,7 @@ ${kendraComponents
 <tr>
 <td>${component}</td>
 <td>${componentItems.length}</td>
+<td>${allocatedQty.toFixed(2)}</td>
 <td>${formatCurrency(allocated)}</td>
 <td>${formatCurrency(sold)}</td>
 <td class="highlight">${formatCurrency(remaining)}</td>
@@ -2925,7 +3021,7 @@ ${kendraComponents
 </tbody>
 </table>
 </div>
-`;
+` : ``;
   })
   .join("")}
 
@@ -2937,14 +3033,16 @@ ${Object.entries(groupedByCenters)
     ].filter(Boolean);
 
     return `
+${kendraVikasKhands.length > 0 ? `
 <div class="section">
-<div class="section-title">${kendraName} - विकासखंड अनुसार विस्तृत सारांश</div>
+<div class="section-title">${kendraName} - विकासखंडअनुसार विस्तृत सारांश</div>
 <table class="data-table">
 <thead>
 <tr>
 <th>विकासखंड</th>
 <th>विधानसभा</th>
 <th>रिकॉर्ड संख्या</th>
+<th>आवंटित मात्रा</th>
 <th>आवंटित राशि</th>
 <th>वितरण राशि</th>
 <th>शेष राशि</th>
@@ -2962,6 +3060,10 @@ ${kendraVikasKhands
         sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
       0
     );
+    const allocatedQty = locationItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
     const sold = locationItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
@@ -2977,6 +3079,7 @@ ${kendraVikasKhands
 <td>${location}</td>
 <td>${vidhanSabha}</td>
 <td>${locationItems.length}</td>
+<td>${allocatedQty.toFixed(2)}</td>
 <td>${formatCurrency(allocated)}</td>
 <td>${formatCurrency(sold)}</td>
 <td class="highlight">${formatCurrency(remaining)}</td>
@@ -2988,6 +3091,7 @@ ${kendraVikasKhands
 </tbody>
 </table>
 </div>
+` : ``}
 `;
   })
   .join("")}
@@ -2998,6 +3102,8 @@ ${Object.entries(groupedByCenters)
     const kendraInvestments = [
       ...new Set(kendraData.map((item) => item.investment_name)),
     ].filter(Boolean);
+
+    if (kendraInvestments.length === 0) return "";
 
     return `
 <div class="section">
@@ -3041,6 +3147,10 @@ ${kendraInvestments
 
     const vidhanSabhaCount = vidhanSabhas.length;
     const vikasKhandCount = vikasKhands.length;
+    const allocatedQty = investmentItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
     const totalLocations = vidhanSabhaCount + vikasKhandCount;
 
     return `
@@ -3078,7 +3188,11 @@ ${kendraInvestments
 </div>
 <div class="detail-row">
 <span class="label">कुल स्थानों की संख्या:</span>
-<span class="value highlight">${totalLocations} विकासखंड</span>
+<span class="value highlight">${totalLocations} स्थान</span>
+</div>
+<div class="detail-row">
+<span class="label">आवंटित मात्रा:</span>
+<span class="value">${allocatedQty.toFixed(2)}</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -3109,12 +3223,13 @@ ${kendraInvestments
 <tr>
 <th rowspan="2">निवेश</th>
 <th rowspan="2">रिकॉर्ड<br>संख्या</th>
-<th rowspan="2">कुल<br>विकासखंड</th>
-<th colspan="2">वित्तीय विवरण</th>
+<th rowspan="2">कुल<br>स्थान</th>
+<th colspan="3">वित्तीय विवरण</th>
 <th colspan="4">संबंधित डेटा</th>
 <th rowspan="2">उपयोग<br>दर</th>
 </tr>
 <tr>
+<th>आवंटित मात्रा</th>
 <th>आवंटित राशि</th>
 <th>वितरण राशि</th>
 <th>योजनाएं</th>
@@ -3132,6 +3247,10 @@ ${kendraInvestments
     const allocated = investmentItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const allocatedQty = investmentItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
       0
     );
     const sold = investmentItems.reduce(
@@ -3164,6 +3283,7 @@ ${kendraInvestments
 <td class="investment-name">${investment}</td>
 <td>${investmentItems.length}</td>
 <td class="highlight">${totalLocations}</td>
+<td>${allocatedQty.toFixed(2)}</td>
 <td>${formatCurrency(allocated)}</td>
 <td>${formatCurrency(sold)}</td>
 <td>${schemes.length}</td>
@@ -3297,6 +3417,11 @@ ${kendraSubInvestments
     const utilizationRate =
       allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : "0.00";
 
+    const allocatedQty = subInvestmentItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
+
     const vidhanSabhaCount = vidhanSabhas.length;
     const vikasKhandCount = vikasKhands.length;
     const totalLocations = vidhanSabhaCount + vikasKhandCount;
@@ -3342,7 +3467,11 @@ ${kendraSubInvestments
 </div>
 <div class="detail-row">
 <span class="label">कुल स्थानों की संख्या:</span>
-<span class="value highlight">${totalLocations} विकासखंड</span>
+<span class="value highlight">${totalLocations} स्थान</span>
+</div>
+<div class="detail-row">
+<span class="label">आवंटित मात्रा:</span>
+<span class="value">${allocatedQty.toFixed(2)}</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -3373,12 +3502,13 @@ ${kendraSubInvestments
 <tr>
 <th rowspan="2">उप-निवेश</th>
 <th rowspan="2">रिकॉर्ड<br>संख्या</th>
-<th rowspan="2">कुल<br>विकासखंड</th>
-<th colspan="2">वित्तीय विवरण</th>
+<th rowspan="2">कुल<br>स्थान</th>
+<th colspan="3">वित्तीय विवरण</th>
 <th colspan="5">संबंधित डेटा</th>
 <th rowspan="2">उपयोग<br>दर</th>
 </tr>
 <tr>
+<th>आवंटित मात्रा</th>
 <th>आवंटित राशि</th>
 <th>वितरण राशि</th>
 <th>निवेश</th>
@@ -3402,6 +3532,10 @@ ${kendraSubInvestments
     const sold = subInvestmentItems.reduce(
       (sum, item) =>
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
+      0
+    );
+    const allocatedQty = subInvestmentItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
       0
     );
     const remaining = allocated - sold;
@@ -3432,6 +3566,7 @@ ${kendraSubInvestments
 <td class="sub-investment-name">${subInvestment}</td>
 <td>${subInvestmentItems.length}</td>
 <td class="highlight">${totalLocations}</td>
+<td>${allocatedQty.toFixed(2)}</td>
 <td>${formatCurrency(allocated)}</td>
 <td>${formatCurrency(sold)}</td>
 <td>${investments.length}</td>
@@ -3526,6 +3661,8 @@ ${Object.entries(groupedByCenters)
       ...new Set(kendraData.map((item) => item.source_of_receipt)),
     ].filter(Boolean);
 
+    if (kendraSources.length === 0) return "";
+
     return `
 <div class="section">
 <div class="section-title">${kendraName} - सप्लायर अनुसार विस्तृत सारांश</div>
@@ -3562,6 +3699,10 @@ ${kendraSources
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
       0
     );
+    const allocatedQty = sourceItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
     const remaining = allocated - sold;
 
     return `
@@ -3572,6 +3713,7 @@ ${kendraSources
 <li>संबंधित निवेश: ${investments.join(", ")}</li>
 <li>उपस्थित विधानसभाएं: ${vidhanSabhas.join(", ")}</li>
 <li>शामिल विकासखंड: ${vikasKhands.join(", ")}</li>
+<li>आवंटित मात्रा: ${allocatedQty.toFixed(2)}</li>
 <li>आवंटित राशि: ${formatCurrency(allocated)}</li>
 <li>वितरण राशि: ${formatCurrency(sold)}</li>
 <li>शेष राशि: ${formatCurrency(remaining)}</li>
@@ -3588,6 +3730,7 @@ ${kendraSources
 <tr>
 <th>सप्लायर</th>
 <th>रिकॉर्ड संख्या</th>
+<th>आवंटित मात्रा</th>
 <th>आवंटित राशि</th>
 <th>वितरण राशि</th>
 <th>शेष राशि</th>
@@ -3612,6 +3755,10 @@ ${kendraSources
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
       0
     );
+    const allocatedQty = sourceItems.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
     const remaining = allocated - sold;
     const percentage =
       allocated > 0 ? ((sold / allocated) * 100).toFixed(2) : "0.00";
@@ -3626,6 +3773,7 @@ ${kendraSources
 <tr>
 <td>${source}</td>
 <td>${sourceItems.length}</td>
+<td>${allocatedQty.toFixed(2)}</td>
 <td>${formatCurrency(allocated)}</td>
 <td>${formatCurrency(sold)}</td>
 <td class="highlight">${formatCurrency(remaining)}</td>
@@ -4139,11 +4287,21 @@ ${relatedInfo}
         sum + parseFloat(item.updated_quantity) * parseFloat(item.rate),
       0
     );
+    const totalAllocatedQuantity = tableData.reduce(
+      (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+      0
+    );
+    const totalUpdatedQuantity = tableData.reduce(
+      (sum, item) => sum + parseFloat(item.updated_quantity || 0),
+      0
+    );
     const totalRemaining = totalAllocated - totalUpdated;
 
     return {
       totalAllocated,
       totalUpdated,
+      totalAllocatedQuantity,
+      totalUpdatedQuantity,
       totalRemaining,
       placesCount: uniqueVikasKhands.length, // Use unique places count instead of total records
       recordsCount: tableData.length, // Keep total records for reference
@@ -4795,7 +4953,7 @@ ${relatedInfo}
                   }));
                   exportSectionToExcel("स्थान_विवरण", placesData);
                 }}
-                title="विकासखंड Excel में निर्यात"
+                title="विकासखंडExcel में निर्यात"
               >
                 <FaFileExcel className="exel-file" />
               </Button>
@@ -4813,7 +4971,7 @@ ${relatedInfo}
                   }));
                   exportSectionToPDF("स्थान_विवरण", placesData);
                 }}
-                title="विकासखंड PDF में निर्यात"
+                title="विकासखंडPDF में निर्यात"
               >
                 <FaFilePdf />
               </Button>
