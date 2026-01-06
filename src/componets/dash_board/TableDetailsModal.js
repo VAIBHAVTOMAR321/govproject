@@ -1636,12 +1636,13 @@ page-break-inside: avoid;
     margin-bottom: 12px;
     }
 .section-title {
-font-size: 14px;
+font-size: 16px;
 font-weight: bold;
 color: #2c3e50;
 border-bottom: 1px solid #bdc3c7;
 padding-bottom: 5px;
 margin-bottom: 10px;
+padding-top:14px;
 display: flex;
 align-items: center;
 }
@@ -1676,10 +1677,8 @@ font-size: 12px;
 .data-table tr:nth-child(even) {
 background-color: #f9f9f9;
 }
-.highlight {
-background-color: #e8f5e8;
-font-weight: bold;
-}
+
+
 .total-row {
 background: linear-gradient(135deg, #ff7b7b 0%, #ff6b6b 100%) !important;
 color: white;
@@ -1824,31 +1823,31 @@ ${Object.entries(centerSummaries)
 <h5 style="color: #2c3e50; border-bottom: 1px solid #007bff; padding-bottom: 3px; margin-bottom: 5px; font-size: 12px;">${kendraName} - सारांश</h5>
 <div class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 5px 0;">
 <div class="summary-card" style="background: #e3f2fd; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${
+<div class="summary-number" style="font-size: 20px;">${
       summary.recordCount
     }</div>
 <div class="summary-label">रिकॉर्ड</div>
 </div>
 <div class="summary-card" style="background: #f3e5f5; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${formatCurrency(
+<div class="summary-number" style="font-size: 20px;">${formatCurrency(
       summary.totalAllocated
     )}</div>
 <div class="summary-label">आवंटित</div>
 </div>
 <div class="summary-card" style="background: #fff3e0; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${formatCurrency(
+<div class="summary-number" style="font-size: 20px;">${formatCurrency(
       summary.totalUpdated
     )}</div>
 <div class="summary-label">वितरण</div>
 </div>
 <div class="summary-card" style="background: #e8f5e9; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${formatCurrency(
+<div class="summary-number" style="font-size: 20px;">${formatCurrency(
       summary.totalRemaining
     )}</div>
 <div class="summary-label">शेष</div>
 </div>
 <div class="summary-card" style="background: #eceff1; padding: 5px; border-radius: 3px; text-align: center; font-size: 9px;">
-<div class="summary-number" style="font-size: 10px;">${
+<div class="summary-number" style="font-size: 20px;">${
       summary.distributionPercentage
     }%</div>
 <div class="summary-label">वितरण %</div>
@@ -3585,13 +3584,17 @@ ${kendraData
 <td>${formatCurrency(allocated)}</td>
 <td>${parseFloat(item.updated_quantity || 0).toFixed(2)}</td>
 <td>${formatCurrency(sold)}</td>
+
 <td class="highlight">${formatCurrency(remaining)}</td>
 </tr>
 `;
   })
   .join("")}
 <tr class="total-row">
+
 <td colspan="6"><strong>${kendraName} कुल</strong></td>
+<td></td>
+  <td></td>
 <td><strong>${formatCurrency(
       kendraData.reduce(
         (sum, item) =>
@@ -3599,6 +3602,7 @@ ${kendraData
         0
       )
     )}</strong></td>
+  
 <td></td>
 <td><strong>${formatCurrency(
       kendraData.reduce(
@@ -4512,7 +4516,7 @@ ${relatedInfo}
                   style={{ cursor: "pointer" }}
                   title="क्लिक करें: विधानसभा और विकासखंड देखें"
                 >
-                  <FaGavel size={16} className="text-primary mb-1" />
+                  <FaGavel size={24} className="text-primary mb-1" />
                   <h5 className="text-primary mb-1">
                     {uniqueVidhanSabhas.length}
                   </h5>
@@ -4526,7 +4530,7 @@ ${relatedInfo}
                   style={{ cursor: "pointer" }}
                   title="क्लिक करें: विकासखंड और विधानसभा देखें"
                 >
-                  <FaMapMarkerAlt size={16} className="text-success mb-1" />
+                  <FaMapMarkerAlt size={24} className="text-success mb-1" />
                   <h5 className="text-success mb-1">
                     {uniqueVikasKhands.length}
                   </h5>
@@ -4540,7 +4544,7 @@ ${relatedInfo}
                   style={{ cursor: "pointer" }}
                   title="क्लिक करें: योजनाएं और निवेश देखें"
                 >
-                  <FaPiggyBank size={16} className="text-info mb-1" />
+                  <FaPiggyBank size={24} className="text-info mb-1" />
                   <h5 className="text-info mb-1">{uniqueSchemes.length}</h5>
                   <small className="text-muted">योजनाएं</small>
                 </div>
@@ -4552,7 +4556,7 @@ ${relatedInfo}
                   style={{ cursor: "pointer" }}
                   title="क्लिक करें: निवेश और योजनाएं देखें"
                 >
-                  <FaPuzzlePiece size={16} className="text-warning mb-1" />
+                  <FaPuzzlePiece size={24} className="text-warning mb-1" />
                   <h5 className="text-warning mb-1">
                     {uniqueInvestments.length}
                   </h5>
@@ -4566,7 +4570,7 @@ ${relatedInfo}
                   style={{ cursor: "pointer" }}
                   title="क्लिक करें: घटक और योजनाएं देखें"
                 >
-                  <FaLayerGroup size={16} className="text-secondary mb-1" />
+                  <FaLayerGroup size={24} className="text-secondary mb-1" />
                   <h5 className="text-secondary mb-1">
                     {uniqueComponents.length}
                   </h5>
@@ -4580,7 +4584,7 @@ ${relatedInfo}
                   style={{ cursor: "pointer" }}
                   title="क्लिक करें: सप्लायर और योजनाएं देखें"
                 >
-                  <FaTags size={16} className="text-dark mb-1" />
+                  <FaTags size={24} className="text-dark mb-1" />
                   <h5 className="text-dark mb-1">{uniqueSources.length}</h5>
                   <small className="text-muted">सप्लायर</small>
                 </div>
@@ -5495,8 +5499,8 @@ ${relatedInfo}
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const subInvestmentData = uniqueSubInvestments.flatMap(
-                            (subInvestment) => {
+                          const subInvestmentData =
+                            uniqueSubInvestments.flatMap((subInvestment) => {
                               const subInvestmentItems = tableData.filter(
                                 (item) =>
                                   item.sub_investment_name === subInvestment
@@ -5526,8 +5530,7 @@ ${relatedInfo}
                                     parseFloat(item.rate)
                                 ),
                               }));
-                            }
-                          );
+                            });
                           const wb = XLSX.utils.book_new();
                           const ws =
                             XLSX.utils.json_to_sheet(subInvestmentData);
@@ -5553,8 +5556,8 @@ ${relatedInfo}
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const subInvestmentData = uniqueSubInvestments.flatMap(
-                            (subInvestment) => {
+                          const subInvestmentData =
+                            uniqueSubInvestments.flatMap((subInvestment) => {
                               const subInvestmentItems = tableData.filter(
                                 (item) =>
                                   item.sub_investment_name === subInvestment
@@ -5584,8 +5587,7 @@ ${relatedInfo}
                                     parseFloat(item.rate)
                                 ),
                               }));
-                            }
-                          );
+                            });
                           exportSectionToPDF(
                             "उप-निवेश विवरण",
                             subInvestmentData

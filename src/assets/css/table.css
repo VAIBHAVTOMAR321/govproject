@@ -12,10 +12,10 @@
 }
 
 .success-txt {
-    --bs-bg-opacity: 1;
-    background-color: rgb(44 104 141) !important;
-    font-size: 10px;
-    padding: 6px;
+  --bs-bg-opacity: 1;
+  background-color: rgb(44 104 141) !important;
+  font-size: 10px;
+  padding: 6px;
 }
 
 .confirmation-dialog {
@@ -144,10 +144,12 @@
   background-color: #f8f9fa;
   border-radius: 4px;
 }
-.total-card{
+
+.total-card {
   font-size: 14px !important;
   font-weight: 600 !important;
 }
+
 /* Small font styles */
 .small-fonts {
   font-size: 0.75rem !important;
@@ -169,10 +171,12 @@
 .small-fonts .page-title {
   font-size: 1.1rem !important;
 }
-.section-title{
+
+.section-title {
   color: #008cff !important;
   font-weight: 600 !important;
 }
+
 .small-fonts .section-title {
   font-size: 0.9rem !important;
 }
@@ -870,7 +874,7 @@
 
 .text-info {
   color: #0dcaf0 !important;
-      font-size: 15px;
+  font-size: 15px;
 }
 
 .text-white {
@@ -927,6 +931,7 @@
   background-color: #0551b5;
   color: #ffffff;
 }
+
 /* Filter Buttons */
 .filter-button {
   background-color: #eef7ff;
@@ -1195,7 +1200,7 @@
 }
 
 .compact-modal-cards .summary-card h5 {
-  font-size: 0.9rem !important;
+  font-size: 18px !important;
   margin-bottom: 0.25rem !important;
 }
 
@@ -1401,7 +1406,7 @@
   margin: 0 1px !important;
 }
 
-.compact-breakdown .btn-group .btn + .btn {
+.compact-breakdown .btn-group .btn+.btn {
   margin-left: 1px !important;
 }
 
@@ -1446,11 +1451,11 @@
     align-items: flex-start !important;
     gap: 0.125rem !important;
   }
-  
+
   .compact-breakdown .data-item {
     width: 100% !important;
   }
-  
+
   .compact-breakdown .separator {
     display: none !important;
   }
@@ -1460,11 +1465,11 @@
   .compact-breakdown .compact-source-card {
     padding: 0.375rem !important;
   }
-  
+
   .compact-breakdown .single-line-data {
     font-size: 0.65rem !important;
   }
-  
+
   .compact-breakdown .btn-group-sm {
     transform: scale(0.9) !important;
   }
@@ -1569,18 +1574,18 @@
     margin: 10px 0;
     page-break-inside: avoid;
   }
-  
+
   .detailed-breakdown .section-title {
     background-color: #0d6efd !important;
     -webkit-print-color-adjust: exact;
     color: white !important;
   }
-  
+
   .detailed-breakdown .breakdown-section {
     border: 1px solid #ddd !important;
     page-break-inside: avoid;
   }
-  
+
   .detailed-breakdown .breakdown-header {
     background-color: #f8f9fa !important;
     -webkit-print-color-adjust: exact;
@@ -1594,12 +1599,12 @@
     align-items: flex-start;
     gap: 5px;
   }
-  
+
   .detailed-breakdown .breakdown-value {
     text-align: left;
     min-width: auto;
   }
-  
+
   .detailed-breakdown .breakdown-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1612,16 +1617,16 @@
     font-size: 0.9rem;
     padding: 6px 12px;
   }
-  
+
   .detailed-breakdown .breakdown-header {
     padding: 10px 12px;
     font-size: 0.85rem;
   }
-  
+
   .detailed-breakdown .breakdown-content {
     padding: 12px;
   }
-  
+
   .detailed-breakdown .breakdown-item {
     padding: 6px 0;
   }
@@ -1632,23 +1637,23 @@
   .compact-modal-cards .card-body {
     padding: 0.5rem !important;
   }
-  
+
   .compact-modal-cards .summary-card {
     padding: 0.375rem !important;
   }
-  
+
   .compact-modal-cards .summary-card h5 {
     font-size: 0.8rem !important;
   }
-  
+
   .compact-modal-cards .summary-card small {
     font-size: 0.6rem !important;
   }
-  
+
   .compact-modal-cards .clickable-card {
     padding: 0.375rem !important;
   }
-  
+
   .compact-modal-cards .clickable-detail-item {
     padding: 0.25rem !important;
     margin-bottom: 0.25rem !important;
