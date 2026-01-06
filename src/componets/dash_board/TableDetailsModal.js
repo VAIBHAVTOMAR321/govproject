@@ -145,7 +145,56 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
           केंद्र: centerName,
           ...record,
         }));
+
+        // Compute numeric-only column totals (exclude 'दर' column entirely)
+        const keys = Object.keys(enhancedData[0] || {});
+        const totals = {};
+        const isNumericString = (val) => {
+          if (val === null || val === undefined) return false;
+          const s = String(val).replace(/[₹,\s]/g, "");
+          if (s === "") return false;
+          // exclude if any letter characters present (handles Latin and Devanagari letters)
+          try {
+            if (/\p{L}/u.test(s)) return false;
+          } catch (e) {
+            // Fallback: basic Latin + Devanagari letter ranges
+            if (/[A-Za-z\u0904-\u097F]/.test(s)) return false;
+          }
+          return /^-?\d+(?:\.\d+)?$/.test(s);
+        };
+
+        keys.forEach((k) => {
+          if (k === "दर" || k === "केंद्र") return;
+          // If every non-empty value for this key is numeric (after stripping currency/commas), sum it
+          const allNumeric = enhancedData.every((rec) => {
+            const v = rec[k];
+            if (v === null || v === undefined || v === "") return true;
+            return isNumericString(v);
+          });
+
+          if (allNumeric) {
+            totals[k] = enhancedData.reduce((s, rec) => {
+              const v = rec[k];
+              if (v === null || v === undefined || v === "") return s;
+              const cleaned = String(v).replace(/[₹,\s]/g, "");
+              return s + parseFloat(cleaned || 0);
+            }, 0);
+          }
+        });
+
         const detailWs = XLSX.utils.json_to_sheet(enhancedData);
+
+        // If totals were computed, append a totals row explicitly to the worksheet
+        if (Object.keys(totals).length > 0) {
+          const totalsArray = keys.map((k) => {
+            if (k === "केंद्र") return "कुल";
+            if (totals[k] !== undefined) return Number(totals[k].toFixed(2));
+            return "";
+          });
+          // Append as an array-of-arrays at the end of sheet
+          XLSX.utils.sheet_add_aoa(detailWs, [totalsArray], { origin: -1 });
+        }
+
         XLSX.utils.book_append_sheet(wb, detailWs, "विस्तृत विवरण");
       } else {
         // If no breakdown data, show message
@@ -178,6 +227,47 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
       // Get all keys except "केंद्र" to avoid duplication
       const allKeys = sectionData.length > 0 ? Object.keys(sectionData[0]) : [];
       const keysToDisplay = allKeys.filter(key => key !== "केंद्र");
+
+      // Compute numeric-only totals for PDF table (exclude 'दर')
+      const totals = {};
+      const isNumericString = (val) => {
+        if (val === null || val === undefined) return false;
+        const s = String(val).replace(/[₹,\s]/g, "");
+        if (s === "") return false;
+        try {
+          if (/\p{L}/u.test(s)) return false;
+        } catch (e) {
+          if (/[A-Za-z\u0904-\u097F]/.test(s)) return false;
+        }
+        return /^-?\d+(?:\.\d+)?$/.test(s);
+      };
+
+      keysToDisplay.forEach((k) => {
+        if (k === "दर") return;
+        const allNumeric = sectionData.every((rec) => {
+          const v = rec[k];
+          if (v === null || v === undefined || v === "") return true;
+          return isNumericString(v);
+        });
+        if (allNumeric) {
+          totals[k] = sectionData.reduce((s, rec) => {
+            const v = rec[k];
+            if (v === null || v === undefined || v === "") return s;
+            const cleaned = String(v).replace(/[₹,\s]/g, "");
+            return s + parseFloat(cleaned || 0);
+          }, 0);
+        }
+      });
+
+      const totalsRowHtml = Object.keys(totals).length > 0
+        ? `<tr class="total-row"><td><strong>कुल</strong></td>${keysToDisplay
+            .map((key) =>
+              totals[key] !== undefined
+                ? `<td><strong>${Number(totals[key].toFixed(2))}</strong></td>`
+                : `<td></td>`
+            )
+            .join("")}</tr>`
+        : "";
 
       // Generate HTML content for the specific section
       const htmlContent = `
@@ -271,6 +361,7 @@ ${keysToDisplay
 `
   )
   .join("")}
+${totalsRowHtml}
 </tbody>
 </table>
 
