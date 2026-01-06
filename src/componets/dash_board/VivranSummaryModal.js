@@ -2356,58 +2356,65 @@ const VivranSummaryModal = ({
         })
         .join("");
 
+      // Find the first selected data column (non-numeric) to place "कुल"
+      const firstDataColumn = selectedColumns.find(col =>
+        !["allocated_quantity", "rate", "allocated_amount", "updated_quantity", "updated_amount"].includes(col)
+      );
+
       // Totals row
-      const totalsCells =
-        "<td></td>" +
-        selectedColumns
-          .map((col) => {
-            if (col === "center_name") return "<td><strong>कुल</strong></td>";
-            else if (
-              col === "vidhan_sabha_name" ||
-              col === "vikas_khand_name" ||
-              col === "component" ||
-              col === "investment_name" ||
-              col === "source_of_receipt" ||
-              col === "scheme_name"
-            )
-              return "";
-            else if (col === "rate") return "<td>-</td>";
-            else if (col === "allocated_quantity")
-              return `<td><strong>${data
-                .reduce(
-                  (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
-                  0
-                )
-                .toFixed(2)}</strong></td>`;
-            else if (col === "allocated_amount")
-              return `<td><strong>${formatCurrency(
-                data.reduce(
-                  (sum, item) =>
-                    sum +
-                    parseFloat(item.allocated_quantity) * parseFloat(item.rate),
-                  0
-                )
-              )}</strong></td>`;
-            else if (col === "updated_quantity")
-              return `<td><strong>${data
-                .reduce(
-                  (sum, item) => sum + parseFloat(item.updated_quantity || 0),
-                  0
-                )
-                .toFixed(2)}</strong></td>`;
-            else if (col === "updated_amount")
-              return `<td><strong>${formatCurrency(
-                data.reduce(
-                  (sum, item) =>
-                    sum +
-                    parseFloat(item.updated_quantity) * parseFloat(item.rate),
-                  0
-                )
-              )}</strong></td>`;
-            return "";
-          })
-          .filter((cell) => cell !== "")
-          .join("");
+       const totalsCells =
+         "<td></td>" +
+         selectedColumns
+           .map((col) => {
+             if (col === firstDataColumn) return "<td><strong>कुल</strong></td>";
+             else if (
+               col === "vidhan_sabha_name" ||
+               col === "vikas_khand_name" ||
+               col === "component" ||
+               col === "investment_name" ||
+               col === "sub_investment_name" ||
+               col === "source_of_receipt" ||
+               col === "scheme_name" ||
+               col === "center_name"
+             )
+               return "<td></td>";
+             else if (col === "rate") return "<td>-</td>";
+             else if (col === "allocated_quantity")
+               return `<td><strong>${data
+                 .reduce(
+                   (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+                   0
+                 )
+                 .toFixed(2)}</strong></td>`;
+             else if (col === "allocated_amount")
+               return `<td><strong>${formatCurrency(
+                 data.reduce(
+                   (sum, item) =>
+                     sum +
+                     parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                   0
+                 )
+               )}</strong></td>`;
+             else if (col === "updated_quantity")
+               return `<td><strong>${data
+                 .reduce(
+                   (sum, item) => sum + parseFloat(item.updated_quantity || 0),
+                   0
+                 )
+                 .toFixed(2)}</strong></td>`;
+             else if (col === "updated_amount")
+               return `<td><strong>${formatCurrency(
+                 data.reduce(
+                   (sum, item) =>
+                     sum +
+                     parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                   0
+                 )
+               )}</strong></td>`;
+             return "";
+           })
+           .filter((cell) => cell !== "")
+           .join("");
       const totalsRow = `<tr>${totalsCells}</tr>`;
 
       const tableHtml = `
