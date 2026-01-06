@@ -40,34 +40,34 @@ const LeftNav = ({
   const [hasFilters, setHasFilters] = useState(false);
 
   // Fetch data from API
-  const fetchApiData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get(
-        "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/"
-      );
-      setApiData(response.data);
+  // const fetchApiData = async () => {
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const response = await axios.get(
+  //       "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/"
+  //     );
+  //     setApiData(response.data);
       
-      // Extract unique values for each filter from API data
-      const uniqueValues = {
-        vidhanSabha: [...new Set(response.data.map(item => item.vidhan_sabha_name).filter(Boolean))],
-        vikasKhand: [...new Set(response.data.map(item => item.vikas_khand_name).filter(Boolean))],
-        center: [...new Set(response.data.map(item => item.center_name).filter(Boolean))],
-        scheme: [...new Set(response.data.map(item => item.scheme_name).filter(Boolean))],
-        source: [...new Set(response.data.map(item => item.source_of_receipt).filter(Boolean))],
-        component: [...new Set(response.data.map(item => item.component).filter(Boolean))],
-        investment: [...new Set(response.data.map(item => item.investment_name).filter(Boolean))],
-      };
+  //     // Extract unique values for each filter from API data
+  //     const uniqueValues = {
+  //       vidhanSabha: [...new Set(response.data.map(item => item.vidhan_sabha_name).filter(Boolean))],
+  //       vikasKhand: [...new Set(response.data.map(item => item.vikas_khand_name).filter(Boolean))],
+  //       center: [...new Set(response.data.map(item => item.center_name).filter(Boolean))],
+  //       scheme: [...new Set(response.data.map(item => item.scheme_name).filter(Boolean))],
+  //       source: [...new Set(response.data.map(item => item.source_of_receipt).filter(Boolean))],
+  //       component: [...new Set(response.data.map(item => item.component).filter(Boolean))],
+  //       investment: [...new Set(response.data.map(item => item.investment_name).filter(Boolean))],
+  //     };
       
-      setFilterOptions(uniqueValues);
-    } catch (err) {
-      setError("Failed to fetch data from API");
-      console.error("Error fetching API data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     setFilterOptions(uniqueValues);
+  //   } catch (err) {
+  //     setError("Failed to fetch data from API");
+  //     console.error("Error fetching API data:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // State for filter options populated from API
   const [filterOptions, setFilterOptions] = useState({
@@ -81,9 +81,9 @@ const LeftNav = ({
   });
 
   // Load data on component mount
-  useEffect(() => {
-    fetchApiData();
-  }, []);
+  // useEffect(() => {
+  //   fetchApiData();
+  // }, []);
 
   const handleChange = (e) => {
     const { name } = e.target;
@@ -218,7 +218,7 @@ const LeftNav = ({
               variant="outline-danger" 
               size="sm" 
               className="ms-2"
-              onClick={fetchApiData}
+              // onClick={fetchApiData}
             >
               Retry
             </Button>
@@ -229,236 +229,237 @@ const LeftNav = ({
   }
 
   return (
-    <Card className="filter-sidebar shadow-sm">
-      <Card.Body>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h5 className="filter-title mb-0">Filters</h5>
-          {hasFilters && (
-            <Button
-              variant="outline-danger"
-              size="sm"
-              onClick={clearAllFilters}
-            >
-              Clear All
-            </Button>
-          )}
-        </div>
+    <div></div>
+    // <Card className="filter-sidebar shadow-sm">
+    //   <Card.Body>
+    //     {/* <div className="d-flex justify-content-between align-items-center mb-4">
+    //       <h5 className="filter-title mb-0">Filters</h5>
+    //       {hasFilters && (
+    //         <Button
+    //           variant="outline-danger"
+    //           size="sm"
+    //           onClick={clearAllFilters}
+    //         >
+    //           Clear All
+    //         </Button>
+    //       )}
+    //     </div> */}
 
-        {/* VIDHAN SABHA COLLAPSIBLE SECTION */}
-        <Card className="mb-3 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('vidhanSabha')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">विधानसभा (Vidhan Sabha)</Form.Label>
-            <span>{openSections.vidhanSabha ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.vidhanSabha}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="vidhanSabha"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.vidhanSabha}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.vidhanSabha.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* VIDHAN SABHA COLLAPSIBLE SECTION */}
+    //     <Card className="mb-3 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('vidhanSabha')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">विधानसभा (Vidhan Sabha)</Form.Label>
+    //         <span>{openSections.vidhanSabha ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.vidhanSabha}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="vidhanSabha"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.vidhanSabha}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.vidhanSabha.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
-        {/* VIKAS KHAND COLLAPSIBLE SECTION */}
-        <Card className="mb-3 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('vikasKhand')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">विकासखंड (Vikas Khand)</Form.Label>
-            <span>{openSections.vikasKhand ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.vikasKhand}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="vikasKhand"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.vikasKhand}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.vikasKhand.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* VIKAS KHAND COLLAPSIBLE SECTION */}
+    //     <Card className="mb-3 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('vikasKhand')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">विकासखंड (Vikas Khand)</Form.Label>
+    //         <span>{openSections.vikasKhand ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.vikasKhand}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="vikasKhand"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.vikasKhand}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.vikasKhand.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
-        {/* CENTER COLLAPSIBLE SECTION */}
-        <Card className="mb-3 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('center')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">केंद्र (Center)</Form.Label>
-            <span>{openSections.center ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.center}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="center"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.center}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.center.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* CENTER COLLAPSIBLE SECTION */}
+    //     <Card className="mb-3 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('center')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">केंद्र (Center)</Form.Label>
+    //         <span>{openSections.center ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.center}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="center"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.center}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.center.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
-        {/* SCHEME COLLAPSIBLE SECTION */}
-        <Card className="mb-3 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('scheme')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">योजना (Scheme)</Form.Label>
-            <span>{openSections.scheme ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.scheme}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="scheme"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.scheme}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.scheme.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* SCHEME COLLAPSIBLE SECTION */}
+    //     <Card className="mb-3 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('scheme')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">योजना (Scheme)</Form.Label>
+    //         <span>{openSections.scheme ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.scheme}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="scheme"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.scheme}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.scheme.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
-        {/* SOURCE COLLAPSIBLE SECTION */}
-        <Card className="mb-3 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('source')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">प्राप्ति का सप्लायर (Source of Receipt)</Form.Label>
-            <span>{openSections.source ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.source}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="source"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.source}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.source.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* SOURCE COLLAPSIBLE SECTION */}
+    //     <Card className="mb-3 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('source')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">प्राप्ति का सप्लायर (Source of Receipt)</Form.Label>
+    //         <span>{openSections.source ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.source}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="source"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.source}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.source.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
-        {/* COMPONENT COLLAPSIBLE SECTION */}
-        <Card className="mb-3 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('component')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">घटक (Component)</Form.Label>
-            <span>{openSections.component ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.component}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="component"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.component}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.component.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* COMPONENT COLLAPSIBLE SECTION */}
+    //     <Card className="mb-3 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('component')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">घटक (Component)</Form.Label>
+    //         <span>{openSections.component ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.component}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="component"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.component}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.component.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
-        {/* INVESTMENT COLLAPSIBLE SECTION */}
-        <Card className="mb-4 filter-section-card">
-          <Card.Header 
-            className="d-flex justify-content-between align-items-center card-header-main"
-            onClick={() => toggleSection('investment')}
-            style={{ cursor: 'pointer' }}
-          >
-            <Form.Label className="mb-0 fw-bold gov-form-label">निवेश (Investment)</Form.Label>
-            <span>{openSections.investment ? <FaAngleUp /> : <FaAngleDown />}</span>
-          </Card.Header>
-          <Collapse in={openSections.investment}>
-            <Card.Body className="pt-0">
-              <Form.Select
-                name="investment"
-                multiple
-                className="filter-select"
-                onChange={handleChange}
-                value={filters.investment}
-                size="4"
-                style={{ minHeight: '100px' }}
-              >
-                {filterOptions.investment.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </Form.Select>
-            </Card.Body>
-          </Collapse>
-        </Card>
+    //     {/* INVESTMENT COLLAPSIBLE SECTION */}
+    //     <Card className="mb-4 filter-section-card">
+    //       <Card.Header 
+    //         className="d-flex justify-content-between align-items-center card-header-main"
+    //         onClick={() => toggleSection('investment')}
+    //         style={{ cursor: 'pointer' }}
+    //       >
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">निवेश (Investment)</Form.Label>
+    //         <span>{openSections.investment ? <FaAngleUp /> : <FaAngleDown />}</span>
+    //       </Card.Header>
+    //       <Collapse in={openSections.investment}>
+    //         <Card.Body className="pt-0">
+    //           <Form.Select
+    //             name="investment"
+    //             multiple
+    //             className="filter-select"
+    //             onChange={handleChange}
+    //             value={filters.investment}
+    //             size="4"
+    //             style={{ minHeight: '100px' }}
+    //           >
+    //             {filterOptions.investment.map(option => (
+    //               <option key={option} value={option}>{option}</option>
+    //             ))}
+    //           </Form.Select>
+    //         </Card.Body>
+    //       </Collapse>
+    //     </Card>
 
 
 
-        <Button
-          variant="primary"
-          className="w-100 mt-3"
-          onClick={handleApply}
-          disabled={!hasFilters}
-        >
-          Apply Filters {hasFilters && `(${Object.values(filters).flat().length} selected)`}
-        </Button>
-      </Card.Body>
-    </Card>
+    //     <Button
+    //       variant="primary"
+    //       className="w-100 mt-3"
+    //       onClick={handleApply}
+    //       disabled={!hasFilters}
+    //     >
+    //       Apply Filters {hasFilters && `(${Object.values(filters).flat().length} selected)`}
+    //     </Button>
+    //   </Card.Body>
+    // </Card>
   );
 };
 

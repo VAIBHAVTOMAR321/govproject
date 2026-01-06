@@ -4,6 +4,7 @@ import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import UKSasan from "../../assets/images/UkSasan.png"
 import "../../assets/css/topnavbar.css"
+import { Link } from 'react-router-dom';
 
 function DashBoardHeader() {
   return (
@@ -11,7 +12,7 @@ function DashBoardHeader() {
       <Container fluid className=''>
         <Navbar.Brand href="#home">
           <div className='dash-img d-flex justify-content-between mx-2'>
-          <img src={UKSasan} className='img-fluid'></img>
+         <Link to="/MainDashboard" ><img src={UKSasan} className='img-fluid'></img></Link>
           <p>DHO Kotdwar</p>
           </div>
         </Navbar.Brand>
@@ -27,11 +28,11 @@ function DashBoardHeader() {
                 
             </NavDropdown>
             <NavDropdown title="बिल" id="basic-nav-dropdown">
-              <NavDropdown.Item href="#action/3.1">बिलिंग</NavDropdown.Item>
-              <NavDropdown.Item href="#action/3.2">
+             
+              <NavDropdown.Item href="Billing">
               Billing
               </NavDropdown.Item>
-               <NavDropdown.Item href="#action/3.2">
+               <NavDropdown.Item href="AllBills">
               AllBills
               </NavDropdown.Item>
               

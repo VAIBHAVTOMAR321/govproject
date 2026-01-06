@@ -26,7 +26,7 @@ import TableDetailsModal from "./TableDetailsModal";
 import * as XLSX from "xlsx";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
-
+import { IoIosRefresh } from "react-icons/io";
 // Function to generate distinct colors for centers
 const generateCenterColors = (count) => {
   const colors = [];
@@ -2488,7 +2488,7 @@ const VivranSummaryModal = ({
                 onClick={clearAllFilters}
               >
                 <i className="delete-icon">
-                  <RiDeleteBin6Line />
+                  <IoIosRefresh />
                 </i>{" "}
                 सभी फिल्टर हटाएं
               </Button>
@@ -3503,8 +3503,8 @@ const VivranSummaryModal = ({
               title="कॉलम चुनें"
             />
             <div
-              className="table-responsive"
-              style={{ maxHeight: "200px", overflowY: "auto" }}
+              className="table-responsive table-scroll"
+            
             >
               <table className="responsive-table small-fonts">
                 <thead
@@ -3548,7 +3548,9 @@ const VivranSummaryModal = ({
                     {selectedColumns.includes("scheme_name") && <th>योजना</th>}
                   </tr>
                 </thead>
+                
                 <tbody>
+             
                   {tableData.map((item, index) => {
                     const allocatedAmount = (
                       parseFloat(item.allocated_quantity) *
@@ -3618,6 +3620,7 @@ const VivranSummaryModal = ({
                       </tr>
                     );
                   })}
+                
                 </tbody>
                 <tfoot>
                   <tr className="font-weight-bold">

@@ -171,6 +171,10 @@ body {
   color: #fff !important;
   border-color: #dfdfdfff !important;
 }
+.table-scroll{
+max-height: 200px;
+overflow-y: auto !important;
+}
 
 .modal-title {
   /* background-color: #194e8b !important; */

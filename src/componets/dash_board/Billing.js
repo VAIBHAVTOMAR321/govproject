@@ -888,19 +888,24 @@ const Billing = () => {
 
   return (
     <>
-      <div className="dashboard-container">
-        <LeftNav
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          isMobile={isMobile}
-          isTablet={isTablet}
-        />
-        <div className="main-content">
-          <DashBoardHeader
-            sidebarOpen={sidebarOpen}
-            toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          />
-          <Container fluid className="dashboard-body">
+   <div>
+        <Container fluid className="p-4">
+          <Row>
+            <Col lg={12} md={12} sm={12}>
+              <DashBoardHeader />
+            </Col>
+          </Row>
+
+          <Row className="left-top">
+            {/* <Col lg={2} md={2} sm={12}>
+              <LeftNav />
+            </Col> */}
+
+            <Col lg={12} md={12} sm={10}>
+              <Container fluid className="dashboard-body-main">
+                
+       
+      
             <h1 className="page-title small-fonts">{translations.billing}</h1>
 
             {submitSuccess && (
@@ -1375,8 +1380,12 @@ const Billing = () => {
               </Form>
             </div>
           </Container>
-        </div>
-      </div>
+       
+              </Col>
+              </Row>
+</Container>
+</div>
+     
     </>
   );
 };
