@@ -596,11 +596,11 @@ const MainDashboard = () => {
         </Row>
 
         <Row className="left-top">
-          <Col lg={2} md={2} sm={12}>
+          {/* <Col lg={2} md={2} sm={12}>
             <LeftNav />
-          </Col>
+          </Col> */}
 
-          <Col lg={10} md={12} sm={10}>
+          <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
               {/* TABS SECTION */}
               <Tabs
