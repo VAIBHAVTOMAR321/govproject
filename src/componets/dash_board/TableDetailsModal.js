@@ -329,6 +329,7 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 <th>योजना</th>
 <th>घटक</th>
 <th>निवेश</th>
+<th>उप-निवेश</th>
 <th>आवंटित मात्रा</th>
 <th>दर</th>
 <th>आवंटित राशि</th>
@@ -351,6 +352,8 @@ ${kendraData
 <td>${item.vikas_khand_name || ""}</td>
 <td>${item.scheme_name || ""}</td>
 <td>${item.component || ""}</td>
+<td>${item.investment_name || ""}</td>
+<td>${item.sub_investment_name || ""}</td>
 <td>${parseFloat(item.allocated_quantity || 0).toFixed(2)}</td>
 <td>₹${parseFloat(item.rate || 0).toFixed(2)}</td>
 <td>₹${allocated.toFixed(2)}</td>
@@ -772,6 +775,8 @@ ${kendraData
             "विकासखंड",
             "योजना",
             "घटक",
+            "निवेश",
+            "उप-निवेश",
             "आवंटित मात्रा",
             "दर",
             "आवंटित राशि",
@@ -795,6 +800,8 @@ ${kendraData
             item.vikas_khand_name || "",
             item.scheme_name || "",
             item.component || "",
+            item.investment_name || "",
+            item.sub_investment_name || "",
             parseFloat(item.allocated_quantity || 0).toFixed(2),
             `₹${parseFloat(item.rate || 0).toFixed(2)}`,
             `₹${allocated.toFixed(2)}`,
@@ -4231,6 +4238,7 @@ ${relatedInfo}
             <tr>
               <th>घटक</th>
               <th>निवेश</th>
+              <th>उप-निवेश</th>
               <th>मात्रा</th>
               <th>दर</th>
               <th>आवंटित</th>
@@ -4245,6 +4253,7 @@ ${relatedInfo}
                 <tr key={index}>
                   <td>{record.component || "N/A"}</td>
                   <td>{record.investment_name || "N/A"}</td>
+                  <td>{record.sub_investment_name || "N/A"}</td>
                   <td>
                     {parseFloat(record.allocated_quantity || 0).toFixed(2)}
                   </td>
@@ -4764,6 +4773,7 @@ ${relatedInfo}
                       <tr>
                         <th>घटक</th>
                         <th>निवेश</th>
+                        <th>उप-निवेश</th>
                         <th>मात्रा</th>
                         <th>दर</th>
                         <th>आवंटित</th>
@@ -4782,6 +4792,7 @@ ${relatedInfo}
                             <tr key={index}>
                               <td>{item.component || "N/A"}</td>
                               <td>{item.investment_name || "N/A"}</td>
+                              <td>{item.sub_investment_name || "N/A"}</td>
                               <td>
                                 {parseFloat(
                                   item.allocated_quantity || 0
@@ -5473,9 +5484,119 @@ ${relatedInfo}
               </Row>
               <Row>
                 <Col md={12}>
-                  <h6 className="text-warning fw-bold mb-2">
-                    उप-निवेश अनुसार शेष
-                  </h6>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="text-warning fw-bold mb-0">
+                      उप-निवेश अनुसार शेष
+                    </h6>
+                    <div className="d-flex gap-2">
+                      <Button
+                        className="exel-file"
+                        variant="outline-success"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const subInvestmentData = uniqueSubInvestments.flatMap(
+                            (subInvestment) => {
+                              const subInvestmentItems = tableData.filter(
+                                (item) =>
+                                  item.sub_investment_name === subInvestment
+                              );
+                              return subInvestmentItems.map((item) => ({
+                                "उप-निवेश": subInvestment,
+                                विधानसभा: item.vidhan_sabha_name,
+                                विकासखंड: item.vikas_khand_name,
+                                योजना: item.scheme_name,
+                                घटक: item.component,
+                                निवेश: item.investment_name,
+                                "उप-निवेश": item.sub_investment_name,
+                                "आवंटित मात्रा": item.allocated_quantity,
+                                दर: item.rate,
+                                "आवंटित राशि": formatCurrency(
+                                  parseFloat(item.allocated_quantity) *
+                                    parseFloat(item.rate)
+                                ),
+                                "वितरण मात्रा": item.updated_quantity,
+                                "वितरण राशि": formatCurrency(
+                                  parseFloat(item.updated_quantity) *
+                                    parseFloat(item.rate)
+                                ),
+                                "शेष राशि": formatCurrency(
+                                  (parseFloat(item.allocated_quantity) -
+                                    parseFloat(item.updated_quantity)) *
+                                    parseFloat(item.rate)
+                                ),
+                              }));
+                            }
+                          );
+                          const wb = XLSX.utils.book_new();
+                          const ws =
+                            XLSX.utils.json_to_sheet(subInvestmentData);
+                          XLSX.utils.book_append_sheet(
+                            wb,
+                            ws,
+                            "उप-निवेश विवरण"
+                          );
+                          XLSX.writeFile(
+                            wb,
+                            `उप-निवेश_विवरण_${
+                              new Date().toISOString().split("T")[0]
+                            }.xlsx`
+                          );
+                        }}
+                        title="उप-निवेश Excel में निर्यात"
+                      >
+                        <FaFileExcel />
+                      </Button>
+                      <Button
+                        className="pdf-file"
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const subInvestmentData = uniqueSubInvestments.flatMap(
+                            (subInvestment) => {
+                              const subInvestmentItems = tableData.filter(
+                                (item) =>
+                                  item.sub_investment_name === subInvestment
+                              );
+                              return subInvestmentItems.map((item) => ({
+                                "उप-निवेश": subInvestment,
+                                विधानसभा: item.vidhan_sabha_name,
+                                विकासखंड: item.vikas_khand_name,
+                                योजना: item.scheme_name,
+                                घटक: item.component,
+                                निवेश: item.investment_name,
+                                "उप-निवेश": item.sub_investment_name,
+                                "आवंटित मात्रा": item.allocated_quantity,
+                                दर: item.rate,
+                                "आवंटित राशि": formatCurrency(
+                                  parseFloat(item.allocated_quantity) *
+                                    parseFloat(item.rate)
+                                ),
+                                "वितरण मात्रा": item.updated_quantity,
+                                "वितरण राशि": formatCurrency(
+                                  parseFloat(item.updated_quantity) *
+                                    parseFloat(item.rate)
+                                ),
+                                "शेष राशि": formatCurrency(
+                                  (parseFloat(item.allocated_quantity) -
+                                    parseFloat(item.updated_quantity)) *
+                                    parseFloat(item.rate)
+                                ),
+                              }));
+                            }
+                          );
+                          exportSectionToPDF(
+                            "उप-निवेश विवरण",
+                            subInvestmentData
+                          );
+                        }}
+                        title="उप-निवेश PDF में निर्यात"
+                      >
+                        <FaFilePdf />
+                      </Button>
+                    </div>
+                  </div>
                   {uniqueSubInvestments.map((subInvestment, index) => {
                     const subInvestmentData = tableData.filter(
                       (item) => item.sub_investment_name === subInvestment
@@ -5884,6 +6005,7 @@ ${relatedInfo}
                     योजना: item.scheme_name,
                     घटक: item.component,
                     निवेश: item.investment_name,
+                    "उप-निवेश": item.sub_investment_name || "",
                     सप्लायर: item.source_of_receipt,
                     आवंटित: formatCurrency(
                       parseFloat(item.allocated_quantity) *
@@ -6399,7 +6521,7 @@ ${relatedInfo}
                     योजना: item.scheme_name,
                     घटक: item.component,
                     निवेश: item.investment_name,
-                    "उप-निवेश": item.sub_investment_name,
+                    "उप-निवेश": item.sub_investment_name || "",
                     सप्लायर: item.source_of_receipt,
                     आवंटित: formatCurrency(
                       parseFloat(item.allocated_quantity) *
