@@ -6840,7 +6840,7 @@ ${relatedInfo}
         {/* Individual Kendra Summary Section */}
         {Object.keys(centerSummaries).length > 0 && (
           <Card className="mb-3">
-            <Card.Header className="fillter-heading d-flex justify-content-between align-items-center">
+            <Card.Header className=" d-flex justify-content-between align-items-center">
               <h6 className="mb-0">
                 <FaBuilding className="me-2" /> केंद्र अनुसार विस्तृत विवरण
               </h6>
