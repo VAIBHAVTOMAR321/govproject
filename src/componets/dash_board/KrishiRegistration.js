@@ -1448,7 +1448,8 @@ const KrishiRegistration = () => {
     return newErrors;
   };
   return (
-    <div className="dashboard-container">
+    <div>
+          <Container fluid className="p-4">
       <Row>
         <Col lg={12} md={12} sm={12}>
           <DashBoardHeader />
@@ -1456,17 +1457,17 @@ const KrishiRegistration = () => {
       </Row>
 
       <Row className="left-top">
-        <Col lg={2} md={2} sm={12}>
+        {/* <Col lg={2} md={2} sm={12}>
           <LeftNav />
-        </Col>
+        </Col> */}
 
-        <Col lg={10} md={12} sm={10}>
+        <Col lg={12} md={12} sm={12}>
           <Container fluid className="dashboard-body-main">
             <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
 
             {/* Bulk Upload Section */}
             <Row className="mb-3">
-              <Col xs={12} md={6} lg={6}>
+              <Col xs={12} md={6} lg={12}>
                 <Form.Group controlId="excelFile">
                   <Form.Label className="small-fonts fw-bold">
                     {translations.bulkUpload}
@@ -2975,6 +2976,7 @@ const KrishiRegistration = () => {
                                 </>
                               ) : (
                                 <>
+                                <div className="d-flex justify-content-between">
                                   <Button
                                     variant="outline-primary"
                                     size="sm"
@@ -2991,6 +2993,7 @@ const KrishiRegistration = () => {
                                   >
                                     हटाएं
                                   </Button>
+                                  </div>
                                 </>
                               )}
                             </td>
@@ -3025,6 +3028,7 @@ const KrishiRegistration = () => {
           </Container>
         </Col>
       </Row>
+      </Container>
     </div>
   );
 };

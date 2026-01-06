@@ -1328,7 +1328,8 @@ const Registration = () => {
   };
 
   return (
-    <div className="dashboard-container">
+     <div>
+              <Container fluid className="p-4">
       <Row>
         <Col lg={12} md={12} sm={12}>
           <DashBoardHeader />
@@ -1336,11 +1337,11 @@ const Registration = () => {
       </Row>
 
       <Row className="left-top">
-        <Col lg={2} md={2} sm={12}>
+        {/* <Col lg={2} md={2} sm={12}>
           <LeftNav />
-        </Col>
+        </Col> */}
 
-        <Col lg={10} md={12} sm={10}>
+        <Col lg={12} md={12} sm={10}>
           <Container fluid className="dashboard-body-main">
             <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
 
@@ -2532,6 +2533,7 @@ const Registration = () => {
           </Container>
         </Col>
       </Row>
+      </Container>
     </div>
   );
 };
