@@ -164,7 +164,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
         };
 
         keys.forEach((k) => {
-          if (k === "दर" || k === "केंद्र") return;
+          if (k === "दर" || k === "केंद्र" || k === "उप-निवेश") return;
           // If every non-empty value for this key is numeric (after stripping currency/commas), sum it
           const allNumeric = enhancedData.every((rec) => {
             const v = rec[k];
@@ -243,7 +243,7 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
       };
 
       keysToDisplay.forEach((k) => {
-        if (k === "दर") return;
+        if (k === "दर" || k === "उप-निवेश") return;
         const allNumeric = sectionData.every((rec) => {
           const v = rec[k];
           if (v === null || v === undefined || v === "") return true;
