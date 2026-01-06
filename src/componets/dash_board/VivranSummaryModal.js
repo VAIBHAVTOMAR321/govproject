@@ -1352,65 +1352,78 @@ const VivranSummaryModal = ({
   };
 
   // Set initial filters and collapsed sections based on groupData if from badge click
-  useEffect(() => {
-    if (
-      groupData &&
-      groupData.group_field &&
-      groupData.selectedItems &&
-      groupData.selectedItems.length > 0
-    ) {
-      let newActiveFilters = {};
+   useEffect(() => {
+     if (
+       groupData &&
+       groupData.group_field &&
+       groupData.selectedItems &&
+       groupData.selectedItems.length > 0 &&
+       groupData.items
+     ) {
+       let newActiveFilters = {};
 
-      if (groupData.group_field === "center_name") {
-        // For center_name, use simple array format
-        newActiveFilters = {
-          center_name: groupData.selectedItems,
-        };
-      } else {
-        // For all other types, use simple array format
-        newActiveFilters[groupData.group_field] = groupData.selectedItems;
-      }
+       // Compute related items
+       const selectedCenters = [];
+       const selectedVidhanSabhas = [];
+       const selectedVikasKhands = [];
 
-      setActiveFilters(newActiveFilters);
+       if (groupData.group_field === "center_name") {
+         selectedCenters.push(...groupData.selectedItems);
+         // Find related vidhan sabhas and vikas khands
+         groupData.selectedItems.forEach(center => {
+           const vidhanSabhas = centerToVidhanSabha[center] || [];
+           const vikasKhands = centerToVikasKhand[center] || [];
+           selectedVidhanSabhas.push(...vidhanSabhas);
+           selectedVikasKhands.push(...vikasKhands);
+         });
+       } else if (groupData.group_field === "vidhan_sabha_name") {
+         selectedVidhanSabhas.push(...groupData.selectedItems);
+         // Find related centers and vikas khands
+         groupData.selectedItems.forEach(vidhanSabha => {
+           const centers = vidhanSabhaToCenters[vidhanSabha] || [];
+           const vikasKhands = vidhanSabhaToVikasKhand[vidhanSabha] || [];
+           selectedCenters.push(...centers);
+           selectedVikasKhands.push(...vikasKhands);
+         });
+       } else if (groupData.group_field === "vikas_khand_name") {
+         selectedVikasKhands.push(...groupData.selectedItems);
+         // Find related centers and vidhan sabhas
+         groupData.selectedItems.forEach(vikasKhand => {
+           const centers = vikasKhandToCenters[vikasKhand] || [];
+           const vidhanSabhas = vikasKhandToVidhanSabha[vikasKhand] || [];
+           selectedCenters.push(...centers);
+           selectedVidhanSabhas.push(...vidhanSabhas);
+         });
+       }
 
-      // Close all filter sections and open only the relevant one
-      setCollapsedSections((prev) => {
-        const newState = {
-          ...prev,
-          center_name: true,
-          vidhan_sabha_name: true,
-          vikas_khand_name: true,
-          investment_name: true,
-          sub_investment_name: true,
-          component: true,
-          source_of_receipt: true,
-          scheme_name: true,
-          financial_summary: false, // Keep financial summary open
-        };
+       // Remove duplicates
+       const uniqueCenters = [...new Set(selectedCenters)];
+       const uniqueVidhanSabhas = [...new Set(selectedVidhanSabhas)];
+       const uniqueVikasKhands = [...new Set(selectedVikasKhands)];
 
-        // Open only the section for the selected group type
-        if (groupData.group_field === "center_name") {
-          newState.center_name = false;
-        } else if (groupData.group_field === "vidhan_sabha_name") {
-          newState.vidhan_sabha_name = false;
-        } else if (groupData.group_field === "vikas_khand_name") {
-          newState.vikas_khand_name = false;
-        } else if (groupData.group_field === "investment_name") {
-          newState.investment_name = false;
-        } else if (groupData.group_field === "sub_investment_name") {
-          newState.sub_investment_name = false;
-        } else if (groupData.group_field === "component") {
-          newState.component = false;
-        } else if (groupData.group_field === "source_of_receipt") {
-          newState.source_of_receipt = false;
-        } else if (groupData.group_field === "scheme_name") {
-          newState.scheme_name = false;
-        }
+       newActiveFilters = {
+         center_name: uniqueCenters,
+         vidhan_sabha_name: uniqueVidhanSabhas,
+         vikas_khand_name: uniqueVikasKhands,
+       };
 
-        return newState;
-      });
-    }
-  }, [groupData, centerToVidhanSabha, centerToVikasKhand]);
+       setActiveFilters(newActiveFilters);
+
+       // Open all three main sections
+       setCollapsedSections((prev) => ({
+         ...prev,
+         center_name: false,
+         vidhan_sabha_name: false,
+         vikas_khand_name: false,
+         investment_name: true,
+         sub_investment_name: true,
+         component: true,
+         source_of_receipt: true,
+         scheme_name: true,
+         financial_summary: false,
+       }));
+     }
+   }, [groupData, centerToVidhanSabha, centerToVikasKhand, vidhanSabhaToCenters, vidhanSabhaToVikasKhand, vikasKhandToCenters, vikasKhandToVidhanSabha]);
 
   // Reset filters and collapsed sections when modal is closed
   useEffect(() => {
@@ -2343,58 +2356,65 @@ const VivranSummaryModal = ({
         })
         .join("");
 
+      // Find the first selected data column (non-numeric) to place "कुल"
+      const firstDataColumn = selectedColumns.find(col =>
+        !["allocated_quantity", "rate", "allocated_amount", "updated_quantity", "updated_amount"].includes(col)
+      );
+
       // Totals row
-      const totalsCells =
-        "<td></td>" +
-        selectedColumns
-          .map((col) => {
-            if (col === "center_name") return "<td><strong>कुल</strong></td>";
-            else if (
-              col === "vidhan_sabha_name" ||
-              col === "vikas_khand_name" ||
-              col === "component" ||
-              col === "investment_name" ||
-              col === "source_of_receipt" ||
-              col === "scheme_name"
-            )
-              return "";
-            else if (col === "rate") return "<td>-</td>";
-            else if (col === "allocated_quantity")
-              return `<td><strong>${data
-                .reduce(
-                  (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
-                  0
-                )
-                .toFixed(2)}</strong></td>`;
-            else if (col === "allocated_amount")
-              return `<td><strong>${formatCurrency(
-                data.reduce(
-                  (sum, item) =>
-                    sum +
-                    parseFloat(item.allocated_quantity) * parseFloat(item.rate),
-                  0
-                )
-              )}</strong></td>`;
-            else if (col === "updated_quantity")
-              return `<td><strong>${data
-                .reduce(
-                  (sum, item) => sum + parseFloat(item.updated_quantity || 0),
-                  0
-                )
-                .toFixed(2)}</strong></td>`;
-            else if (col === "updated_amount")
-              return `<td><strong>${formatCurrency(
-                data.reduce(
-                  (sum, item) =>
-                    sum +
-                    parseFloat(item.updated_quantity) * parseFloat(item.rate),
-                  0
-                )
-              )}</strong></td>`;
-            return "";
-          })
-          .filter((cell) => cell !== "")
-          .join("");
+       const totalsCells =
+         "<td></td>" +
+         selectedColumns
+           .map((col) => {
+             if (col === firstDataColumn) return "<td><strong>कुल</strong></td>";
+             else if (
+               col === "vidhan_sabha_name" ||
+               col === "vikas_khand_name" ||
+               col === "component" ||
+               col === "investment_name" ||
+               col === "sub_investment_name" ||
+               col === "source_of_receipt" ||
+               col === "scheme_name" ||
+               col === "center_name"
+             )
+               return "<td></td>";
+             else if (col === "rate") return "<td>-</td>";
+             else if (col === "allocated_quantity")
+               return `<td><strong>${data
+                 .reduce(
+                   (sum, item) => sum + parseFloat(item.allocated_quantity || 0),
+                   0
+                 )
+                 .toFixed(2)}</strong></td>`;
+             else if (col === "allocated_amount")
+               return `<td><strong>${formatCurrency(
+                 data.reduce(
+                   (sum, item) =>
+                     sum +
+                     parseFloat(item.allocated_quantity) * parseFloat(item.rate),
+                   0
+                 )
+               )}</strong></td>`;
+             else if (col === "updated_quantity")
+               return `<td><strong>${data
+                 .reduce(
+                   (sum, item) => sum + parseFloat(item.updated_quantity || 0),
+                   0
+                 )
+                 .toFixed(2)}</strong></td>`;
+             else if (col === "updated_amount")
+               return `<td><strong>${formatCurrency(
+                 data.reduce(
+                   (sum, item) =>
+                     sum +
+                     parseFloat(item.updated_quantity) * parseFloat(item.rate),
+                   0
+                 )
+               )}</strong></td>`;
+             return "";
+           })
+           .filter((cell) => cell !== "")
+           .join("");
       const totalsRow = `<tr>${totalsCells}</tr>`;
 
       const tableHtml = `
