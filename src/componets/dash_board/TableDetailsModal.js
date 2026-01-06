@@ -140,19 +140,24 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
 
       // Only export detailed breakdown data (vivran) if available
       if (breakdownData && breakdownData.length > 0) {
-        const detailWs = XLSX.utils.json_to_sheet(breakdownData);
-        XLSX.utils.book_append_sheet(wb, detailWs, "Detailed Breakdown");
+        // Enhance data with केंद्र (Kendra) name for each record
+        const enhancedData = breakdownData.map((record) => ({
+          केंद्र: centerName,
+          ...record,
+        }));
+        const detailWs = XLSX.utils.json_to_sheet(enhancedData);
+        XLSX.utils.book_append_sheet(wb, detailWs, "विस्तृत विवरण");
       } else {
         // If no breakdown data, show message
         const emptyData = [
           { Message: "कोई विस्तृत विवरण उपलब्ध नहीं - कृपया कार्ड खोलें" },
         ];
         const emptyWs = XLSX.utils.json_to_sheet(emptyData);
-        XLSX.utils.book_append_sheet(wb, emptyWs, "Information");
+        XLSX.utils.book_append_sheet(wb, emptyWs, "जानकारी");
       }
 
       // Export file
-      const fileName = `${centerName || "data"}_${sectionType}_${
+      const fileName = `${centerName || "डेटा"}_${sectionType}_${
         new Date().toISOString().split("T")[0]
       }.xlsx`;
       XLSX.writeFile(wb, fileName);
@@ -169,6 +174,10 @@ const TableDetailsModal = ({ show, onHide, tableData, centerName }) => {
     try {
       // Create a new window for preview
       const printWindow = window.open("", "_blank");
+
+      // Get all keys except "केंद्र" to avoid duplication
+      const allKeys = sectionData.length > 0 ? Object.keys(sectionData[0]) : [];
+      const keysToDisplay = allKeys.filter(key => key !== "केंद्र");
 
       // Generate HTML content for the specific section
       const htmlContent = `
@@ -190,12 +199,12 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 .print-button-container { text-align:end; margin: 20px 0; }
 .print-button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
 .print-button:hover { background: #0056b3; }
+.kendra-name { color: #d9534f; font-weight: bold; }
 </style>
 </head>
 <body>
 <div class="header">
-<h1>${centerName}</h1>
-<h2>${sectionType} रिपोर्ट</h2>
+<h1>${sectionType} रिपोर्ट</h1>
 <p>${new Date().toLocaleDateString("hi-IN")}</p>
 </div>
 
@@ -206,7 +215,8 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 <table>
 <thead>
 <tr>
-${Object.keys(sectionData[0] || {})
+<th>केंद्र</th>
+${keysToDisplay
   .map(
     (key) =>
       `<th>${
@@ -230,8 +240,6 @@ ${Object.keys(sectionData[0] || {})
           ? "दर"
           : key === "updated_quantity"
           ? "वितरण मात्रा"
-          : key === "केंद्र"
-          ? "केंद्र"
           : key === "रिकॉर्ड"
           ? "रिकॉर्ड"
           : key === "आवंटित"
@@ -242,6 +250,8 @@ ${Object.keys(sectionData[0] || {})
           ? "शेष"
           : key === "प्रतिशत"
           ? "प्रतिशत"
+          : key === "योजना/घटक"
+          ? "योजना/घटक"
           : key
       }</th>`
   )
@@ -253,8 +263,9 @@ ${sectionData
   .map(
     (item) => `
 <tr>
-${Object.values(item)
-  .map((value) => `<td>${value}</td>`)
+<td><strong>${item.केंद्र || centerName}</strong></td>
+${keysToDisplay
+  .map((key) => `<td>${item[key] || ""}</td>`)
   .join("")}
 </tr>
 `
@@ -265,6 +276,7 @@ ${Object.values(item)
 
 <div class="footer">
 <p>रिपोर्ट तैयार की गई: ${new Date().toLocaleString("hi-IN")}</p>
+<p>केंद्र: <strong>${centerName}</strong></p>
 <p>कुल ${sectionData.length} रिकॉर्ड का विश्लेषण</p>
 </div>
 </body>
@@ -4853,6 +4865,7 @@ ${relatedInfo}
 
                       itemData.forEach((record) => {
                         breakdownData.push({
+                          केंद्र: record.center_name || centerName,
                           "योजना/घटक": itemName,
                           विधानसभा: record.vidhan_sabha_name,
                           विकासखंड: record.vikas_khand_name,
@@ -4899,11 +4912,13 @@ ${relatedInfo}
 
                       itemData.forEach((record) => {
                         breakdownData.push({
+                          केंद्र: record.center_name || centerName,
                           "योजना/घटक": itemName,
                           विधानसभा: record.vidhan_sabha_name,
                           विकासखंड: record.vikas_khand_name,
                           सप्लायर: record.source_of_receipt,
                           निवेश: record.investment_name,
+                          "उप-निवेश": record.sub_investment_name,
                           घटक: record.component,
                           मात्रा: record.allocated_quantity,
                           दर: record.rate,
@@ -5061,6 +5076,7 @@ ${relatedInfo}
 
                       itemData.forEach((record) => {
                         breakdownData.push({
+                          केंद्र: record.center_name || centerName,
                           "योजना/घटक": itemName,
                           विधानसभा: record.vidhan_sabha_name,
                           विकासखंड: record.vikas_khand_name,
@@ -5107,11 +5123,13 @@ ${relatedInfo}
 
                       itemData.forEach((record) => {
                         breakdownData.push({
+                          केंद्र: record.center_name || centerName,
                           "योजना/घटक": itemName,
                           विधानसभा: record.vidhan_sabha_name,
                           विकासखंड: record.vikas_khand_name,
                           सप्लायर: record.source_of_receipt,
                           निवेश: record.investment_name,
+                          "उप-निवेश": record.sub_investment_name,
                           घटक: record.component,
                           "वितरण मात्रा": record.updated_quantity,
                           दर: record.rate,
@@ -5284,6 +5302,7 @@ ${relatedInfo}
                         const remaining = allocated - sold;
 
                         breakdownData.push({
+                          केंद्र: record.center_name || centerName,
                           "योजना/घटक": itemName,
                           विधानसभा: record.vidhan_sabha_name,
                           विकासखंड: record.vikas_khand_name,
@@ -5335,11 +5354,13 @@ ${relatedInfo}
                         const remaining = allocated - sold;
 
                         breakdownData.push({
+                          केंद्र: record.center_name || centerName,
                           "योजना/घटक": itemName,
                           विधानसभा: record.vidhan_sabha_name,
                           विकासखंड: record.vikas_khand_name,
                           सप्लायर: record.source_of_receipt,
                           निवेश: record.investment_name,
+                          "उप-निवेश": record.sub_investment_name,
                           घटक: record.component,
                           आवंटित: formatCurrency(allocated),
                           "बेचा गया": formatCurrency(sold),
