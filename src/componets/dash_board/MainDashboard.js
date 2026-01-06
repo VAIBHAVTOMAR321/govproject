@@ -447,6 +447,8 @@ const MainDashboard = () => {
       items: billingData, // Pass all billing data to allow filtering across all
       allOptions: allOptions,
       selectedItems: centers, // Pass selected items (centers, vidhan sabhas, or vikas khands)
+      availableCenters: availableCenters,
+      selectedCenters: centers,
     };
 
     setVivranGroupData(groupData);

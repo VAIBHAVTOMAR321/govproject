@@ -2462,6 +2462,43 @@ const VivranSummaryModal = ({
     }
   };
 
+  // Define sections for dynamic rendering
+  const sections = useMemo(() => {
+    const allSections = [
+      {
+        key: "center_name",
+        title: "केंद्र का नाम",
+        items: groupData?.group_field === "center_name" 
+          ? [...new Set([...(groupData.availableCenters || []), ...(groupData.selectedCenters || [])])].sort()
+          : uniqueCenters,
+        hierarchyType: "center_name"
+      },
+      {
+        key: "vikas_khand_name",
+        title: "विकासखंड का नाम",
+        items: groupData?.group_field === "vikas_khand_name" 
+          ? [...new Set([...(groupData.availableCenters || []), ...(groupData.selectedCenters || [])])].sort()
+          : uniqueVikasKhand,
+        hierarchyType: "vikas_khand_name"
+      },
+      {
+        key: "vidhan_sabha_name",
+        title: "विधानसभा का नाम",
+        items: groupData?.group_field === "vidhan_sabha_name" 
+          ? [...new Set([...(groupData.availableCenters || []), ...(groupData.selectedCenters || [])])].sort()
+          : uniqueVidhanSabha,
+        hierarchyType: "vidhan_sabha_name"
+      }
+    ];
+
+    // Sort sections so that the one matching group_field comes first
+    return allSections.sort((a, b) => {
+      if (a.key === groupData?.group_field) return -1;
+      if (b.key === groupData?.group_field) return 1;
+      return 0;
+    });
+  }, [groupData, uniqueCenters, allVikasKhand, allVidhanSabha]);
+
   // Return null if groupData is not available
   if (!groupData) return null;
 
@@ -2498,81 +2535,30 @@ const VivranSummaryModal = ({
             <Row>
               <Col md={6}>
                 {/* Left Column: Center, Vikas Khand, Vidhan Sabha */}
-                <HierarchicalFilter
-                  title="केंद्र का नाम"
-                  items={
-                    groupData?.group_field === "center_name"
-                      ? groupData.allOptions || allCenters
-                      : uniqueCenters
-                  }
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  hierarchyData={{
-                    centerToVidhanSabha,
-                    centerToVikasKhand,
-                    vidhanSabhaToVikasKhand,
-                    vikasKhandToCenters,
-                    vikasKhandToVidhanSabha,
-                    vidhanSabhaToCenters,
-                    schemeToCenters,
-                    investmentToCenters,
-                    componentToCenters,
-                    sourceToCenters,
-                  }}
-                  hierarchyType="center_name"
-                  collapsed={collapsedSections.center_name}
-                  onToggleCollapse={() => toggleCollapse("center_name")}
-                />
-                <HierarchicalFilter
-                  title="विकासखंड का नाम"
-                  items={
-                    groupData?.group_field === "vikas_khand_name"
-                      ? groupData.allOptions || allVikasKhand
-                      : uniqueVikasKhand
-                  }
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  hierarchyData={{
-                    centerToVidhanSabha,
-                    centerToVikasKhand,
-                    vidhanSabhaToVikasKhand,
-                    vikasKhandToCenters,
-                    vikasKhandToVidhanSabha,
-                    vidhanSabhaToCenters,
-                    schemeToCenters,
-                    investmentToCenters,
-                    componentToCenters,
-                    sourceToCenters,
-                  }}
-                  hierarchyType="vikas_khand_name"
-                  collapsed={collapsedSections.vikas_khand_name}
-                  onToggleCollapse={() => toggleCollapse("vikas_khand_name")}
-                />
-                <HierarchicalFilter
-                  title="विधानसभा का नाम"
-                  items={
-                    groupData?.group_field === "vidhan_sabha_name"
-                      ? groupData.allOptions || allVidhanSabha
-                      : uniqueVidhanSabha
-                  }
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  hierarchyData={{
-                    centerToVidhanSabha,
-                    centerToVikasKhand,
-                    vidhanSabhaToVikasKhand,
-                    vikasKhandToCenters,
-                    vikasKhandToVidhanSabha,
-                    vidhanSabhaToCenters,
-                    schemeToCenters,
-                    investmentToCenters,
-                    componentToCenters,
-                    sourceToCenters,
-                  }}
-                  hierarchyType="vidhan_sabha_name"
-                  collapsed={collapsedSections.vidhan_sabha_name}
-                  onToggleCollapse={() => toggleCollapse("vidhan_sabha_name")}
-                />
+                {sections.map((section) => (
+                  <HierarchicalFilter
+                    key={section.key}
+                    title={section.title}
+                    items={section.items}
+                    activeFilters={activeFilters}
+                    onFilterChange={handleFilterChange}
+                    hierarchyData={{
+                      centerToVidhanSabha,
+                      centerToVikasKhand,
+                      vidhanSabhaToVikasKhand,
+                      vikasKhandToCenters,
+                      vikasKhandToVidhanSabha,
+                      vidhanSabhaToCenters,
+                      schemeToCenters,
+                      investmentToCenters,
+                      componentToCenters,
+                      sourceToCenters,
+                    }}
+                    hierarchyType={section.hierarchyType}
+                    collapsed={collapsedSections[section.key]}
+                    onToggleCollapse={() => toggleCollapse(section.key)}
+                  />
+                ))}
               </Col>
               <Col md={6}>
                 {/* Right Column: Yojana, Ghatak, Nivesh, Sarut, Financial Summary */}
