@@ -1076,7 +1076,7 @@ ${kendraData
       });
 
       const locationSheet = XLSX.utils.json_to_sheet(locationDetails);
-      XLSX.utils.book_append_sheet(wb, locationSheet, "स्थान विवरण");
+      XLSX.utils.book_append_sheet(wb, locationSheet, "विकासखंड विवरण");
 
       // 7. Source-wise breakdown
       const sourceDetails = uniqueSources.map((source) => {
@@ -2555,7 +2555,7 @@ ${kendraSchemes
             Array.from(data.investments).join(", ") || "कोई नहीं"
           }, सप्लायर: ${
             Array.from(data.sources).join(", ") || "कोई नहीं"
-          }, स्थान: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
+          }, विकासखंड: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
       )
       .join("; ");
 
@@ -2564,7 +2564,7 @@ ${kendraSchemes
 <div class="scheme-details">
 <div class="detail-row">
 <span class="label">भौगोलिक वितरण:</span>
-<span class="value">${geoDistribution || "स्थान डेटा उपलब्ध नहीं"}</span>
+<span class="value">${geoDistribution || "विकासखंड डेटा उपलब्ध नहीं"}</span>
 </div>
 <div class="detail-row">
 <span class="label">घटक-अनुसार विवरण:</span>
@@ -2604,7 +2604,7 @@ ${kendraSchemes
 <span class="label">कुल स्थानों की संख्या:</span>
 <span class="value highlight">${
       vidhanSabhas.length + vikasKhands.length
-    } स्थान</span>
+    } विकासखंड</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -2812,7 +2812,7 @@ ${kendraComponents
             Array.from(data.investments).join(", ") || "कोई नहीं"
           }, सप्लायर: ${
             Array.from(data.sources).join(", ") || "कोई नहीं"
-          }, स्थान: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
+          }, विकासखंड: ${Array.from(data.locations).join(", ") || "कोई नहीं"}`
       )
       .join("; ");
 
@@ -2857,7 +2857,7 @@ ${kendraComponents
 <span class="label">कुल स्थानों की संख्या:</span>
 <span class="value highlight">${
       vidhanSabhas.length + vikasKhands.length
-    } स्थान</span>
+    } विकासखंड</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -2938,7 +2938,7 @@ ${Object.entries(groupedByCenters)
 
     return `
 <div class="section">
-<div class="section-title">${kendraName} - स्थान अनुसार विस्तृत सारांश</div>
+<div class="section-title">${kendraName} - विकासखंड अनुसार विस्तृत सारांश</div>
 <table class="data-table">
 <thead>
 <tr>
@@ -3078,7 +3078,7 @@ ${kendraInvestments
 </div>
 <div class="detail-row">
 <span class="label">कुल स्थानों की संख्या:</span>
-<span class="value highlight">${totalLocations} स्थान</span>
+<span class="value highlight">${totalLocations} विकासखंड</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -3109,7 +3109,7 @@ ${kendraInvestments
 <tr>
 <th rowspan="2">निवेश</th>
 <th rowspan="2">रिकॉर्ड<br>संख्या</th>
-<th rowspan="2">कुल<br>स्थान</th>
+<th rowspan="2">कुल<br>विकासखंड</th>
 <th colspan="2">वित्तीय विवरण</th>
 <th colspan="4">संबंधित डेटा</th>
 <th rowspan="2">उपयोग<br>दर</th>
@@ -3342,7 +3342,7 @@ ${kendraSubInvestments
 </div>
 <div class="detail-row">
 <span class="label">कुल स्थानों की संख्या:</span>
-<span class="value highlight">${totalLocations} स्थान</span>
+<span class="value highlight">${totalLocations} विकासखंड</span>
 </div>
 <div class="detail-row">
 <span class="label">आवंटित राशि:</span>
@@ -3373,7 +3373,7 @@ ${kendraSubInvestments
 <tr>
 <th rowspan="2">उप-निवेश</th>
 <th rowspan="2">रिकॉर्ड<br>संख्या</th>
-<th rowspan="2">कुल<br>स्थान</th>
+<th rowspan="2">कुल<br>विकासखंड</th>
 <th colspan="2">वित्तीय विवरण</th>
 <th colspan="5">संबंधित डेटा</th>
 <th rowspan="2">उपयोग<br>दर</th>
@@ -4795,7 +4795,7 @@ ${relatedInfo}
                   }));
                   exportSectionToExcel("स्थान_विवरण", placesData);
                 }}
-                title="स्थान Excel में निर्यात"
+                title="विकासखंड Excel में निर्यात"
               >
                 <FaFileExcel className="exel-file" />
               </Button>
@@ -4813,7 +4813,7 @@ ${relatedInfo}
                   }));
                   exportSectionToPDF("स्थान_विवरण", placesData);
                 }}
-                title="स्थान PDF में निर्यात"
+                title="विकासखंड PDF में निर्यात"
               >
                 <FaFilePdf />
               </Button>
