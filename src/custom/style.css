@@ -224,3 +224,11 @@ overflow-y: auto !important;
 .source-breakdown ul li {
   margin-bottom: 12px;
 }
+.add-btn-filter{
+  font-size: 12px;
+
+}
+.remove-btn-filter{
+  font-size: 12px;
+
+}
