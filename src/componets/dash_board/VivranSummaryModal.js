@@ -369,7 +369,13 @@ const HierarchicalFilter = ({
               style={{ userSelect: "none" }}
             >
               <Row className="g-1 align-items-center">
-                {items.map((value) => (
+                {[...items].sort((a, b) => {
+                  const aSelected = (activeFilters.center_name || []).includes(a);
+                  const bSelected = (activeFilters.center_name || []).includes(b);
+                  if (aSelected && !bSelected) return -1;
+                  if (!aSelected && bSelected) return 1;
+                  return 0;
+                }).map((value) => (
                   <Col key={value} xs="auto" className="mb-2">
                     <Button
                       ref={(el) => (buttonRefs.current[value] = el)}
@@ -425,91 +431,60 @@ const HierarchicalFilter = ({
       </Card.Header>
       <Collapse in={!collapsed}>
         <Card.Body>
-          {/* For vidhan_sabha_name, show vidhan_sabhas with their kendras */}
+          {/* For vidhan_sabha_name, show all vidhan_sabhas */}
           {hierarchyType === "vidhan_sabha_name" ? (
-            (() => {
-              // Get selected kendras
-              const selectedKendras = Object.entries(
-                hierarchyData.centerToVidhanSabha || {}
-              )
-                .filter(([kendra]) => {
-                  // If centers are selected, only show kendras that are selected
-                  if (
-                    activeFilters.center_name &&
-                    activeFilters.center_name.length > 0
-                  ) {
-                    return activeFilters.center_name.includes(kendra);
-                  }
-                  return true;
-                })
-                .map(([kendra]) => kendra);
+            <div
+              className="position-relative mb-3"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{ userSelect: "none" }}
+            >
+              {[...items].sort((a, b) => {
+                const aSelected = (activeFilters[hierarchyType] || []).includes(a);
+                const bSelected = (activeFilters[hierarchyType] || []).includes(b);
+                if (aSelected && !bSelected) return -1;
+                if (!aSelected && bSelected) return 1;
+                return 0;
+              }).map((vidhanSabha) => {
+                const isSelected =
+                  activeFilters[hierarchyType] &&
+                  activeFilters[hierarchyType].includes(vidhanSabha);
 
-              if (selectedKendras.length === 0) return null;
+                // Get kendras for this vidhan sabha
+                const kendrasForThisVidhanSabha = hierarchyData.vidhanSabhaToCenters
+                  ? hierarchyData.vidhanSabhaToCenters[vidhanSabha] || []
+                  : [];
 
-              // Create mapping of vidhan_sabha to kendras
-              const vidhanSabhaToKendras = {};
-              selectedKendras.forEach((kendra) => {
-                const kendrasVidhanSabhas =
-                  hierarchyData.centerToVidhanSabha[kendra] || [];
-                kendrasVidhanSabhas.forEach((vidhanSabha) => {
-                  if (!vidhanSabhaToKendras[vidhanSabha]) {
-                    vidhanSabhaToKendras[vidhanSabha] = [];
-                  }
-                  vidhanSabhaToKendras[vidhanSabha].push(kendra);
-                });
-              });
-
-              // Get unique vidhan_sabhas sorted by name
-              const uniqueVidhanSabhas =
-                Object.keys(vidhanSabhaToKendras).sort();
-
-              if (uniqueVidhanSabhas.length === 0) return null;
-
-              return (
-                <div
-                  className="position-relative mb-3"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  style={{ userSelect: "none" }}
-                >
-                  {uniqueVidhanSabhas.map((vidhanSabha) => {
-                    const isSelected =
-                      activeFilters[hierarchyType] &&
-                      activeFilters[hierarchyType].includes(vidhanSabha);
-
-                    const kendrasForThisVidhanSabha =
-                      vidhanSabhaToKendras[vidhanSabha];
-
-                    return (
-                      <div key={vidhanSabha} className="mb-3">
-                        <h6 className="small-fonts">
-                          {kendrasForThisVidhanSabha.join(", ")}
-                        </h6>
-                        <Row className="g-1 align-items-center">
-                          <Col xs="auto" className="mb-2">
-                            <Button
-                              ref={(el) =>
-                                (buttonRefs.current[vidhanSabha] = el)
-                              }
-                              variant={
-                                isSelected ? "primary" : "outline-secondary"
-                              }
-                              size="sm"
-                              className="filter-button"
-                              onClick={() =>
-                                onFilterChange(hierarchyType, vidhanSabha)
-                              }
-                            >
-                              {vidhanSabha}
-                            </Button>
-                          </Col>
-                        </Row>
-                      </div>
-                    );
-                  })}
-                  {/* Selection rectangle overlay */}
+                return (
+                  <div key={vidhanSabha} className="mb-3">
+                    <h6 className="small-fonts">
+                      {kendrasForThisVidhanSabha.join(", ")}
+                    </h6>
+                    <Row className="g-1 align-items-center">
+                      <Col xs="auto" className="mb-2">
+                        <Button
+                          ref={(el) =>
+                            (buttonRefs.current[vidhanSabha] = el)
+                          }
+                          variant={
+                            isSelected ? "primary" : "outline-secondary"
+                          }
+                          size="sm"
+                          className="filter-button"
+                          onClick={() =>
+                            onFilterChange(hierarchyType, vidhanSabha)
+                          }
+                        >
+                          {vidhanSabha}
+                        </Button>
+                      </Col>
+                    </Row>
+                  </div>
+                );
+              })}
+              {/* Selection rectangle overlay */}
                   {isDragging && dragStart && dragEnd && (
                     <div
                       style={{
@@ -526,93 +501,37 @@ const HierarchicalFilter = ({
                     />
                   )}
                 </div>
-              );
-            })()
           ) : hierarchyType === "vikas_khand_name" ? (
-            // For vikas_khand_name, show vikas_khonds with their kendras
-            (() => {
-              // Get selected kendras based on center_name OR vidhan_sabha_name filters
-              const selectedKendras = Object.entries(
-                hierarchyData.centerToVidhanSabha || {}
-              )
-                .filter(([kendra]) => {
-                  // If centers are selected, only show kendras that are selected
-                  if (
-                    activeFilters.center_name &&
-                    activeFilters.center_name.length > 0
-                  ) {
-                    if (!activeFilters.center_name.includes(kendra)) {
-                      return false;
-                    }
-                  }
-
-                  // If vidhan_sabha filters are active, only show kendras that belong to selected vidhan_sabhas
-                  if (
-                    activeFilters.vidhan_sabha_name &&
-                    Object.keys(activeFilters.vidhan_sabha_name).length > 0
-                  ) {
-                    const kendraVidhanSabhas =
-                      hierarchyData.centerToVidhanSabha[kendra] || [];
-                    return kendraVidhanSabhas.some((vidhanSabha) => {
-                      // Check if this vidhanSabha is selected for this kendra or any other kendra
-                      return Object.entries(
-                        activeFilters.vidhan_sabha_name
-                      ).some(([filterKendra, filterValues]) => {
-                        if (filterKendra === kendra) {
-                          return filterValues.includes(vidhanSabha);
-                        }
-                        // Also check if this vidhanSabha is selected for any kendra that belongs to it
-                        return filterValues.includes(vidhanSabha);
-                      });
-                    });
-                  }
-
-                  return true;
-                })
-                .map(([kendra]) => kendra);
-
-              if (selectedKendras.length === 0) return null;
-
-              // Create mapping of vikas_khand to kendras
-              const vikasKhandToKendras = {};
-              selectedKendras.forEach((kendra) => {
-                const kendrasVikasKhands =
-                  hierarchyData.centerToVikasKhand[kendra] || [];
-                kendrasVikasKhands.forEach((vikasKhand) => {
-                  if (!vikasKhandToKendras[vikasKhand]) {
-                    vikasKhandToKendras[vikasKhand] = [];
-                  }
-                  vikasKhandToKendras[vikasKhand].push(kendra);
-                });
-              });
-
-              // Get unique vikas_khonds sorted by name
-              const uniqueVikasKhands = Object.keys(vikasKhandToKendras).sort();
-
-              if (uniqueVikasKhands.length === 0) return null;
-
-              return (
-                <div
-                  className="position-relative mb-3"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  style={{ userSelect: "none" }}
-                >
-                  {uniqueVikasKhands.map((vikasKhand) => {
-                    const isSelected =
-                      activeFilters[hierarchyType] &&
-                      activeFilters[hierarchyType].includes(vikasKhand);
-
-                    const kendrasForThisVikasKhand =
-                      vikasKhandToKendras[vikasKhand];
-
-                    return (
-                      <div key={vikasKhand} className="mb-3">
-                        <h6 className="small-fonts">
-                          {kendrasForThisVikasKhand.join(", ")}
-                        </h6>
+            // For vikas_khand_name, show all vikas_khands
+            <div
+              className="position-relative mb-3"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{ userSelect: "none" }}
+            >
+              {[...items].sort((a, b) => {
+                const aSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(a);
+                const bSelected = activeFilters[hierarchyType] && activeFilters[hierarchyType].includes(b);
+                if (aSelected && !bSelected) return -1;
+                if (!aSelected && bSelected) return 1;
+                return 0;
+              }).map((vikasKhand) => {
+                const isSelected =
+                  activeFilters[hierarchyType] &&
+                  activeFilters[hierarchyType].includes(vikasKhand);
+  
+                // Get kendras for this vikas khand
+                const kendrasForThisVikasKhand = hierarchyData.vikasKhandToCenters
+                  ? hierarchyData.vikasKhandToCenters[vikasKhand] || []
+                  : [];
+  
+                return (
+                  <div key={vikasKhand} className="mb-3">
+                    <h6 className="small-fonts">
+                      {kendrasForThisVikasKhand.join(", ")}
+                    </h6>
                         <Row className="g-1 align-items-center">
                           <Col xs="auto" className="mb-2">
                             <Button
@@ -652,8 +571,6 @@ const HierarchicalFilter = ({
                     />
                   )}
                 </div>
-              );
-            })()
           ) : (
             <Row className="g-2">
               {items.map((item) => {
@@ -1551,12 +1468,133 @@ const VivranSummaryModal = ({
         return { ...prev, [category]: newCategory };
       });
     } else {
-      // For other categories (center_name, vidhan_sabha_name, vikas_khand_name), keep as array
+      // For hierarchical categories (center_name, vidhan_sabha_name, vikas_khand_name), handle cascading selection
       setActiveFilters((prev) => {
         const currentValues = prev[category] || [];
-        const newValues = currentValues.includes(value)
-          ? currentValues.filter((v) => v !== value)
-          : [...currentValues, value];
+        const isCurrentlySelected = currentValues.includes(value);
+        
+        let newValues;
+        if (isCurrentlySelected) {
+          // If deselecting, remove the value and automatically deselect related items
+          newValues = currentValues.filter((v) => v !== value);
+          
+          // Remove related items based on hierarchy
+          if (category === "center_name") {
+            // When deselecting a center, also deselect its vidhan sabha and vikas khand
+            const vidhanSabhas = centerToVidhanSabha?.[value] || [];
+            const vikasKhands = centerToVikasKhand?.[value] || [];
+            
+            // Remove vidhan sabhas
+            const currentVidhanSabhas = prev.vidhan_sabha_name || [];
+            const newVidhanSabhas = currentVidhanSabhas.filter(v => !vidhanSabhas.includes(v));
+            if (newVidhanSabhas.length !== currentVidhanSabhas.length) {
+              prev = { ...prev, vidhan_sabha_name: newVidhanSabhas };
+            }
+            
+            // Remove vikas khands
+            const currentVikasKhands = prev.vikas_khand_name || [];
+            const newVikasKhands = currentVikasKhands.filter(v => !vikasKhands.includes(v));
+            if (newVikasKhands.length !== currentVikasKhands.length) {
+              prev = { ...prev, vikas_khand_name: newVikasKhands };
+            }
+          } else if (category === "vidhan_sabha_name") {
+            // When deselecting a vidhan sabha, also deselect its centers and vikas khands
+            const centers = vidhanSabhaToCenters?.[value] || [];
+            const vikasKhands = vidhanSabhaToVikasKhand?.[value] || [];
+            
+            // Remove centers
+            const currentCenters = prev.center_name || [];
+            const newCenters = currentCenters.filter(v => !centers.includes(v));
+            if (newCenters.length !== currentCenters.length) {
+              prev = { ...prev, center_name: newCenters };
+            }
+            
+            // Remove vikas khands
+            const currentVikasKhands = prev.vikas_khand_name || [];
+            const newVikasKhands = currentVikasKhands.filter(v => !vikasKhands.includes(v));
+            if (newVikasKhands.length !== currentVikasKhands.length) {
+              prev = { ...prev, vikas_khand_name: newVikasKhands };
+            }
+          } else if (category === "vikas_khand_name") {
+            // When deselecting a vikas khand, also deselect its centers and vidhan sabhas
+            const centers = vikasKhandToCenters?.[value] || [];
+            const vidhanSabhas = vikasKhandToVidhanSabha?.[value] || [];
+            
+            // Remove centers
+            const currentCenters = prev.center_name || [];
+            const newCenters = currentCenters.filter(v => !centers.includes(v));
+            if (newCenters.length !== currentCenters.length) {
+              prev = { ...prev, center_name: newCenters };
+            }
+            
+            // Remove vidhan sabhas
+            const currentVidhanSabhas = prev.vidhan_sabha_name || [];
+            const newVidhanSabhas = currentVidhanSabhas.filter(v => !vidhanSabhas.includes(v));
+            if (newVidhanSabhas.length !== currentVidhanSabhas.length) {
+              prev = { ...prev, vidhan_sabha_name: newVidhanSabhas };
+            }
+          }
+        } else {
+          // If selecting, add the value and automatically select related items
+          newValues = [...currentValues, value];
+          
+          // Add related items based on hierarchy
+          if (category === "center_name") {
+            // When selecting a center, also select its vidhan sabha and vikas khand
+            const vidhanSabhas = centerToVidhanSabha?.[value] || [];
+            const vikasKhands = centerToVikasKhand?.[value] || [];
+            
+            // Add vidhan sabhas
+            const currentVidhanSabhas = prev.vidhan_sabha_name || [];
+            const newVidhanSabhas = [...new Set([...currentVidhanSabhas, ...vidhanSabhas])];
+            if (newVidhanSabhas.length > 0) {
+              prev = { ...prev, vidhan_sabha_name: newVidhanSabhas };
+            }
+            
+            // Add vikas khands
+            const currentVikasKhands = prev.vikas_khand_name || [];
+            const newVikasKhands = [...new Set([...currentVikasKhands, ...vikasKhands])];
+            if (newVikasKhands.length > 0) {
+              prev = { ...prev, vikas_khand_name: newVikasKhands };
+            }
+          } else if (category === "vidhan_sabha_name") {
+            // When selecting a vidhan sabha, also select its centers and vikas khands
+            const centers = vidhanSabhaToCenters?.[value] || [];
+            const vikasKhands = vidhanSabhaToVikasKhand?.[value] || [];
+            
+            // Add centers
+            const currentCenters = prev.center_name || [];
+            const newCenters = [...new Set([...currentCenters, ...centers])];
+            if (newCenters.length > 0) {
+              prev = { ...prev, center_name: newCenters };
+            }
+            
+            // Add vikas khands
+            const currentVikasKhands = prev.vikas_khand_name || [];
+            const newVikasKhands = [...new Set([...currentVikasKhands, ...vikasKhands])];
+            if (newVikasKhands.length > 0) {
+              prev = { ...prev, vikas_khand_name: newVikasKhands };
+            }
+          } else if (category === "vikas_khand_name") {
+            // When selecting a vikas khand, also select its centers and vidhan sabhas
+            const centers = vikasKhandToCenters?.[value] || [];
+            const vidhanSabhas = vikasKhandToVidhanSabha?.[value] || [];
+            
+            // Add centers
+            const currentCenters = prev.center_name || [];
+            const newCenters = [...new Set([...currentCenters, ...centers])];
+            if (newCenters.length > 0) {
+              prev = { ...prev, center_name: newCenters };
+            }
+            
+            // Add vidhan sabhas
+            const currentVidhanSabhas = prev.vidhan_sabha_name || [];
+            const newVidhanSabhas = [...new Set([...currentVidhanSabhas, ...vidhanSabhas])];
+            if (newVidhanSabhas.length > 0) {
+              prev = { ...prev, vidhan_sabha_name: newVidhanSabhas };
+            }
+          }
+        }
 
         if (newValues.length === 0) {
           const newFilters = { ...prev };
