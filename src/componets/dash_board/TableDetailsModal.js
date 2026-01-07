@@ -4720,7 +4720,7 @@ ${relatedInfo}
       className="table-details-modal compact-modal-cards"
       dialogClassName="modal-90w"
     >
-      <Modal.Header closeButton onClick={onHide} className="modal-title">
+      <Modal.Header closeButton onClick={onHide} className="">
         <div className="d-flex justify-content-between align-items-center w-100">
           <Modal.Title>{centerName}</Modal.Title>
           <div className="d-flex gap-2">

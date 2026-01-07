@@ -2468,12 +2468,19 @@ const VivranSummaryModal = ({
               h2 { text-align: center;font-size:16px; }
               .print-btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 10px; cursor: pointer; margin-bottom: 20px; align-self: flex-end; }
               .print-btn:hover { background-color: #0056b3; }
+               @media print {
+                  .no-print,
+                  .no-print * {
+                    display: none !important;
+                    visibility: hidden !important;
+                  }
+                }
             </style>
           </head>
           <body>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
               <h2 style="margin: 0;">${key} विवरण</h2>
-              <button class="print-btn" onclick="window.print()">Filtered विवरण प्रिंट करें</button>
+              <button class="print-btn no-print" onclick="window.print()">प्रिंट करें</button>
             </div>
             <table>
               <tr>${headers}</tr>
