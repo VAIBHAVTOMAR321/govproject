@@ -319,7 +319,7 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 </head>
 <body>
 <div class="header">
-<h1>${sectionType} रिपोर्ट</h1>
+<h1>${centerName || sectionType} रिपोर्ट</h1>
 <p>${new Date().toLocaleDateString("hi-IN")}</p>
 </div>
 
@@ -6279,6 +6279,7 @@ ${relatedInfo}
                 onClick={(e) => {
                   e.stopPropagation();
                   const filterData = filteredData.map((item) => ({
+                    केंद्र: item.center_name || centerName,
                     विधानसभा: item.vidhan_sabha_name,
                     विकासखंड: item.vikas_khand_name,
                     योजना: item.scheme_name,
@@ -6729,7 +6730,7 @@ ${relatedInfo}
             className="d-flex justify-content-between align-items-center accordin-header"
           >
             <span>
-              <FaTags className="me-2" /> सप्लायर फ़िल्टर
+              <FaTags className="me-2" /> सप्लायर फ़िल्टर 
             </span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.sources ? <FaChevronDown /> : <FaChevronUp />}
@@ -6742,6 +6743,7 @@ ${relatedInfo}
                   const sourceFilterData = [
                     ["सप्लायर फ़िल्टर डेटा", ""],
                     [
+                      "केंद्र",
                       "विधानसभा",
                       "विकासखंड",
                       "योजना",
@@ -6756,6 +6758,7 @@ ${relatedInfo}
 
                   sourceFilteredData.forEach((item) => {
                     sourceFilterData.push([
+                      item.center_name || centerName,
                       item.vidhan_sabha_name || "",
                       item.vikas_khand_name || "",
                       item.scheme_name || "",
@@ -6776,7 +6779,7 @@ ${relatedInfo}
 
                   const wb = XLSX.utils.book_new();
                   const ws = XLSX.utils.aoa_to_sheet(sourceFilterData);
-                  XLSX.utils.book_append_sheet(wb, ws, "सप्लायर फ़िल्टर डेटा");
+                  XLSX.utils.book_append_sheet(wb, ws, "सप्लायर_फ़िल्टर_डेटा");
                   XLSX.writeFile(
                     wb,
                     `सप्लायर_फ़िल्टर_डेटा_${
@@ -6795,6 +6798,7 @@ ${relatedInfo}
                 onClick={(e) => {
                   e.stopPropagation();
                   const sourceFilterData = sourceFilteredData.map((item) => ({
+                    केंद्र: item.center_name || centerName,
                     विधानसभा: item.vidhan_sabha_name,
                     विकासखंड: item.vikas_khand_name,
                     योजना: item.scheme_name,
@@ -7119,7 +7123,8 @@ ${relatedInfo}
           <Card className="mb-3">
             <Card.Header className=" d-flex justify-content-between align-items-center">
               <h6 className="mb-0">
-                <FaBuilding className="me-2" /> केंद्र अनुसार विस्तृत विवरण
+                <FaBuilding className="me-2" /> केंद्रों का विस्तृत विवरण
+               
               </h6>
               <div className="d-flex gap-2">
                 <Button
