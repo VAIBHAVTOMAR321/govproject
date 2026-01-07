@@ -304,9 +304,16 @@ th { background-color: #f2f2f2; font-size: 14px; font-weight: 600; }
 tr:nth-child(even) { background-color: #f9f9f9; }
 .header { text-align: center; margin-bottom: 20px; }
 .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #7f8c8d; }
-.print-button-container { text-align:end; margin: 20px 0; }
-.print-button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-.print-button:hover { background: #0056b3; }
+.no-print-container { text-align:end; margin: 20px 0; }
+.no-print { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+.no-print:hover { background: #0056b3; }
+ @media print {
+                  .no-print,
+                  .no-print * {
+                    display: none !important;
+                    visibility: hidden !important;
+                  }
+                }
 .kendra-name { color: #d9534f; font-weight: bold; }
 </style>
 </head>
@@ -316,8 +323,8 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 <p>${new Date().toLocaleDateString("hi-IN")}</p>
 </div>
 
-<div class="print-button-container">
-<button class="print-button" onclick="window.print()">प्रिंट करें</button>
+<div class="no-print-container">
+<button class="no-print" onclick="window.print()">प्रिंट करें</button>
 </div>
 
 <table>
@@ -425,9 +432,9 @@ th { background-color: #f2f2f2; font-size: 14px; font-weight: 600; }
 tr:nth-child(even) { background-color: #f9f9f9; }
 .header { text-align: center; margin-bottom: 20px; }
 .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #7f8c8d; }
-.print-button-container { text-align: center; margin: 20px 0; }
-.print-button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-.print-button:hover { background: #0056b3; }
+.no-print-container { text-align: center; margin: 20px 0; }
+.no-print { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+.no-print:hover { background: #0056b3; }
 </style>
 </head>
 <body>
@@ -438,8 +445,8 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 <p>${new Date().toLocaleDateString("hi-IN")}</p>
 </div>
 
-<div class="print-button-container">
-<button class="print-button" onclick="window.print()">प्रिंट करें</button>
+<div class="no-print-container">
+<button class="no-print" onclick="window.print()">प्रिंट करें</button>
 </div>
 
 <table>
@@ -1897,14 +1904,14 @@ body { margin: 5px; }
 </head>
 <body>
 <div class="header">
-<div class="center-name d-flex justify-content-between"><div>${centerName}</div><div><button class="print-button" onclick="window.print()" title="प्रिंट करें" style="font-size: 10px; padding: 5px 10px;">
+<div class="center-name d-flex justify-content-between"><div>${centerName}</div><div><button class="no-print" onclick="window.print()" title="प्रिंट करें" style="font-size: 10px; padding: 5px 10px;">
 <svg class="me-1" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
 <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zM4 5v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V5H4z"/>
 <path d="M2 7v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H2z"/>
 </svg>
 Print
 </button> </div></div>
-<div class="print-button-container">
+<div class="no-print-container">
 
 </div>
 <div class="date">संपूर्ण विवरण रिपोर्ट - ${new Date().toLocaleDateString(
