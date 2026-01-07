@@ -5974,10 +5974,43 @@ ${relatedInfo}
                         const schemeInvestments =
                           data.schemeInvestments[scheme] || [];
                         schemeInvestments.forEach((investment) => {
+                          // Find related items for this combination
+                          const relatedItems = tableData.filter(
+                            (item) =>
+                              item.vidhan_sabha_name === vidhanSabha &&
+                              item.scheme_name === scheme &&
+                              item.investment_name === investment
+                          );
+                          const uniqueVikasKhands = [
+                            ...new Set(
+                              relatedItems.map((item) => item.vikas_khand_name)
+                            ),
+                          ].filter(Boolean);
+                          const uniqueComponents = [
+                            ...new Set(
+                              relatedItems.map((item) => item.component)
+                            ),
+                          ].filter(Boolean);
+                          const uniqueSubInvestments = [
+                            ...new Set(
+                              relatedItems.map((item) => item.sub_investment_name)
+                            ),
+                          ].filter(Boolean);
+                          const uniqueSources = [
+                            ...new Set(
+                              relatedItems.map((item) => item.source_of_receipt)
+                            ),
+                          ].filter(Boolean);
+
                           hierarchyData.push({
+                            केंद्र: tableData[0]?.center_name || centerName,
                             विधानसभा: vidhanSabha,
+                            विकासखंड: uniqueVikasKhands.join(", "),
                             योजना: scheme,
+                            घटक: uniqueComponents.join(", "),
                             निवेश: investment,
+                            "उप-निवेश": uniqueSubInvestments.join(", "),
+                            सप्लायर: uniqueSources.join(", "),
                           });
                         });
                       });
@@ -6002,10 +6035,43 @@ ${relatedInfo}
                         const schemeInvestments =
                           data.schemeInvestments[scheme] || [];
                         schemeInvestments.forEach((investment) => {
+                          // Find related items for this combination
+                          const relatedItems = tableData.filter(
+                            (item) =>
+                              item.vidhan_sabha_name === vidhanSabha &&
+                              item.scheme_name === scheme &&
+                              item.investment_name === investment
+                          );
+                          const uniqueVikasKhands = [
+                            ...new Set(
+                              relatedItems.map((item) => item.vikas_khand_name)
+                            ),
+                          ].filter(Boolean);
+                          const uniqueComponents = [
+                            ...new Set(
+                              relatedItems.map((item) => item.component)
+                            ),
+                          ].filter(Boolean);
+                          const uniqueSubInvestments = [
+                            ...new Set(
+                              relatedItems.map((item) => item.sub_investment_name)
+                            ),
+                          ].filter(Boolean);
+                          const uniqueSources = [
+                            ...new Set(
+                              relatedItems.map((item) => item.source_of_receipt)
+                            ),
+                          ].filter(Boolean);
+
                           hierarchyData.push({
+                            केंद्र: tableData[0]?.center_name || centerName,
                             विधानसभा: vidhanSabha,
+                            विकासखंड: uniqueVikasKhands.join(", "),
                             योजना: scheme,
+                            घटक: uniqueComponents.join(", "),
                             निवेश: investment,
+                            "उप-निवेश": uniqueSubInvestments.join(", "),
+                            सप्लायर: uniqueSources.join(", "),
                           });
                         });
                       });
