@@ -4946,42 +4946,7 @@ ${relatedInfo}
             </span>
             <div className="d-flex align-items-center gap-2">
               {collapsedSections.places ? <FaChevronDown /> : <FaChevronUp />}
-              <Button
-                className="pdf-file"
-                variant="outline-success"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const placesData = uniqueVikasKhands.map((location) => ({
-                    विकासखंड: location,
-                    "कुल रिकॉर्ड": tableData.filter(
-                      (item) => item.vikas_khand_name === location
-                    ).length,
-                  }));
-                  exportSectionToExcel("स्थान_विवरण", placesData);
-                }}
-                title="विकासखंडExcel में निर्यात"
-              >
-                <FaFileExcel className="exel-file" />
-              </Button>
-              <Button
-                className="exel-file"
-                variant="outline-danger"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const placesData = uniqueVikasKhands.map((location) => ({
-                    विकासखंड: location,
-                    "कुल रिकॉर्ड": tableData.filter(
-                      (item) => item.vikas_khand_name === location
-                    ).length,
-                  }));
-                  exportSectionToPDF("स्थान_विवरण", placesData);
-                }}
-                title="विकासखंडPDF में निर्यात"
-              >
-                <FaFilePdf />
-              </Button>
+          
             </div>
           </Card.Header>
           <Collapse in={!collapsedSections.places}>
