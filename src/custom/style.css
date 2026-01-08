@@ -266,7 +266,18 @@ overflow-y: auto !important;
 .compact-detail-item:not(.selected-detail) {
   opacity: 0.85;
 }
- 
+ .small-fonts {
+  font-size: 12px;
+  font-weight: 600;
+ }
+ .table-thead th{
+  background-color: #0B488F !important;
+  color: #fff !important;
+  font-size: 12px;
+ }
+ .table-thead-style tr td{
+  font-size: 10px;
+ }
 /* Print-safe: keep selection visible in print */
 @media print {
   .compact-detail-item {
