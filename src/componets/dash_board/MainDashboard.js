@@ -145,6 +145,7 @@ const MainDashboard = () => {
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <h6 className="form-label mb-0">फिल्टर</h6>
                   <Button
+                    className="btn-primary"
                     variant="outline-secondary"
                     size="sm"
                     onClick={clearFilters}
