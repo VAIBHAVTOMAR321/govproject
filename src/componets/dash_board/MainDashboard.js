@@ -136,7 +136,7 @@ const MainDashboard = () => {
                   </Button>
                 </div>
                 <Row>
-                  <Col xs={12} sm={6} md={3}>
+                  <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.centerName}
@@ -165,7 +165,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                    <Col xs={12} sm={6} md={3}>
+                    <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.vikasKhandName}
@@ -193,7 +193,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={3}>
+                  <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.vidhanSabhaName}
@@ -221,7 +221,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={3}>
+                  <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.component}
@@ -250,7 +250,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={3}>
+                  <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.investmentName}
@@ -278,7 +278,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                      <Col xs={12} sm={6} md={3}>
+                      <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.subInvestmentName}
@@ -306,7 +306,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={3}>
+                  <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.sourceOfReceipt}
@@ -335,7 +335,7 @@ const MainDashboard = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={3}>
+                  <Col>
                     <Form.Group className="mb-2">
                       <Form.Label className="form-label fw-bold">
                         {translations.schemeName}
