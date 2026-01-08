@@ -1,253 +1,358 @@
-import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Tabs,
-  Tab,
-  Badge,
-  Card,
-  Button,
-  Spinner,
-  Modal,
-  Table,
-} from "react-bootstrap";
-import axios from "axios";
+import React, { useState } from "react";
+import { Container, Row, Col, Button, Form } from "react-bootstrap";
+import Select from "react-select";
 import "../../assets/css/registration.css";
 import DashBoardHeader from "./DashBoardHeader";
-import LeftNav from "./LeftNav";
 import "../../assets/css/MainDashBoard.css";
 
+// Static options for form fields
+const centerOptions = [
+  "किनगोड़िखाल",
+  "हल्दूखाल",
+  "धुमाकोट",
+  "सिसल्ड़ी",
+  "सेंधीखाल",
+  "जयहरीखाल",
+  "जेठागांव",
+  "देवियोंखाल",
+  "किल्वोंखाल",
+  "बीरोंखाल",
+  "वेदीखाल",
+  "पोखड़ा",
+  "संगलाकोटी",
+  "देवराजखाल",
+  "चौखाल",
+  "गंगाभोगपुर",
+  "दिउली",
+  "दुगड्डा",
+  "बिथ्याणी",
+  "चैलूसैंण",
+  "सिलोगी",
+  "कोटद्वार",
+  "सतपुली",
+  "पौखाल",
+];
+const componentOptions = ["सीमेंट", "स्टील", "बालू", "पत्थर", "ईंट"];
+const investmentOptions = [
+  "भवन निर्माण",
+  "सड़क निर्माण",
+  "पुल निर्माण",
+  "कुआँ निर्माण",
+];
+const sourceOptions = ["PWD", "PMGSY", "NREGA"];
+const schemeOptions = ["MGNREGA", "PMKSY", "DDUGJY"];
+const vikasKhandOptions = [
+  "नैनीडांडा",
+  "बीरोंखाल",
+  "यमकेश्वर",
+  "दुगड्डा",
+  "पौड़ी",
+  "द्वारीखाल",
+  "जयहरीखाल",
+  "रिखणीखाल",
+  "नगर निगम कोटद्वार",
+];
+const vidhanSabhaOptions = [
+  "लैन्सडाउन",
+  "यमकेश्वर",
+  "चौबट्टाखाल",
+  "कोटद्वार",
+  "श्रीनगर",
+];
 
-// BarChart Component
-const BarChart = ({ data }) => {
-  const [tooltip, setTooltip] = React.useState({
-    show: false,
-    x: 0,
-    y: 0,
-    name: "",
-    value: 0,
-  });
-
-  if (!data || data.length === 0) return null;
-
-  // Calculate maximum value for scaling
-  const maxValue = Math.max(...data.map((d) => d.value));
-  const minValue = Math.min(...data.map((d) => d.value));
-
-  // SVG dimensions
-  const width = 300;
-  const height = 150;
-  const margin = { top: 20, right: 20, bottom: 40, left: 50 };
-  const chartWidth = width - margin.left - margin.right;
-  const chartHeight = height - margin.top - margin.bottom;
-
-  // Bar spacing - improved calculation
-  const totalBarSpace = chartWidth;
-  const numBars = data.length;
-  const barWidth = Math.min(40, Math.max(15, totalBarSpace / (numBars * 1.5))); // Max 40px, min 15px
-  const barPadding = (totalBarSpace - numBars * barWidth) / (numBars - 1) || 10;
-
-  // Colors for bars
-  const colors = [
-    "#007bff",
-    "#28a745",
-    "#ffc107",
-    "#dc3545",
-    "#6f42c1",
-    "#17a2b8",
-    "#e83e8c",
-    "#fd7e14",
-  ];
-
-  // Generate bars with tooltips
-  const bars = data.map((item, index) => {
-    const x = numBars === 1
-      ? margin.left + (totalBarSpace - barWidth) / 2
-      : margin.left + index * (barWidth + barPadding);
-    const y = margin.top + chartHeight - (item.value / maxValue) * chartHeight;
-    const height = (item.value / maxValue) * chartHeight;
-    const color = colors[index % colors.length];
-
-    return (
-      <g key={index}>
-        {/* Invisible hover area for tooltip */}
-        <rect
-          x={x - 5}
-          y={margin.top}
-          width={barWidth + 10}
-          height={chartHeight}
-          fill="transparent"
-          onMouseEnter={(e) => {
-            const containerRect = e.currentTarget
-              .closest(".bar-chart-container")
-              .getBoundingClientRect();
-            const svgRect = e.currentTarget
-              .closest("svg")
-              .getBoundingClientRect();
-
-            // Position tooltip in center of graph section
-            const tooltipX = containerRect.width / 2 - 60; // Center horizontally (120px width / 2)
-            const tooltipY = containerRect.height / 2 - 30; // Center vertically (60px height / 2)
-
-            setTooltip({
-              show: true,
-              x: tooltipX,
-              y: tooltipY,
-              name: item.name,
-              value: item.value,
-            });
-          }}
-          onMouseLeave={() => setTooltip({ ...tooltip, show: false })}
-        />
-        {/* Actual bar */}
-        <rect
-          x={x}
-          y={y}
-          width={barWidth}
-          height={Math.max(2, height)} // Minimum height of 2px
-          fill={color}
-          rx="2"
-          onMouseEnter={(e) => {
-            const containerRect = e.currentTarget
-              .closest(".bar-chart-container")
-              .getBoundingClientRect();
-            const svgRect = e.currentTarget
-              .closest("svg")
-              .getBoundingClientRect();
-
-            // Position tooltip in center of graph section
-            const tooltipX = containerRect.width / 2 - 60; // Center horizontally (120px width / 2)
-            const tooltipY = containerRect.height / 2 - 30; // Center vertically (60px height / 2)
-
-            setTooltip({
-              show: true,
-              x: tooltipX,
-              y: tooltipY,
-              name: item.name,
-              value: item.value,
-            });
-          }}
-          onMouseLeave={() => setTooltip({ ...tooltip, show: false })}
-        />
-      </g>
-    );
-  });
-
-  return (
-    <div className="bar-chart-container">
-      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-        {/* Background */}
-        <rect width="100%" height="100%" fill="#f8f9fa" rx="4" />
-
-        {/* Axes */}
-        <line
-          x1={margin.left}
-          y1={margin.top}
-          x2={margin.left}
-          y2={height - margin.bottom}
-          stroke="#6c757d"
-          strokeWidth="2"
-        />
-        <line
-          x1={margin.left}
-          y1={height - margin.bottom}
-          x2={width - margin.right}
-          y2={height - margin.bottom}
-          stroke="#6c757d"
-          strokeWidth="2"
-        />
-
-        {/* Y-axis labels */}
-        <text
-          x={15}
-          y={margin.top}
-          textAnchor="start"
-          fontSize="10"
-          fill="#6c757d"
-        >
-          Max: {maxValue}
-        </text>
-        <text
-          x={15}
-          y={height - margin.bottom}
-          textAnchor="start"
-          fontSize="10"
-          fill="#6c757d"
-        >
-          Min: {minValue}
-        </text>
-
-        {/* Bars */}
-        {bars}
-      </svg>
-
-      {/* Tooltip */}
-      {tooltip.show && (
-        <div className="bar-chart-tooltip">
-          <div>
-            <strong>{tooltip.name}</strong>
-          </div>
-          <div>मात्रा: {tooltip.value}</div>
-        </div>
-      )}
-    </div>
-  );
+// Hindi translations for form
+const translations = {
+  pageTitle: "डैशबोर्ड",
+  centerName: "केंद्र का नाम",
+  component: "घटक",
+  investmentName: "निवेश का नाम",
+  sourceOfReceipt: "प्राप्ति का स्रोत",
+  schemeName: "योजना का नाम",
+  vikasKhandName: "विकास खंड का नाम",
+  vidhanSabhaName: "विधानसभा का नाम",
+  selectOption: "चुनें",
 };
 
 const MainDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // State for filters
+  const [filters, setFilters] = useState({
+    center_name: [],
+    component: [],
+    investment_name: [],
+    source_of_receipt: [],
+    scheme_name: [],
+    vikas_khand_name: [],
+    vidhan_sabha_name: [],
+  });
 
-  // State to control the active tab
-  
+  // State for filter options (using static options)
+  const [filterOptions, setFilterOptions] = useState({
+    center_name: centerOptions,
+    component: componentOptions,
+    investment_name: investmentOptions,
+    source_of_receipt: sourceOptions,
+    scheme_name: schemeOptions,
+    vikas_khand_name: vikasKhandOptions,
+    vidhan_sabha_name: vidhanSabhaOptions,
+  });
 
-  // API data state
-
-
-  // Filtered data state
-
-
-  // State for VivranSummaryModal
-
- 
-
-  // State for multiselect centers
- 
-
-
-
-
-
-
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      center_name: [],
+      component: [],
+      investment_name: [],
+      source_of_receipt: [],
+      scheme_name: [],
+      vikas_khand_name: [],
+      vidhan_sabha_name: [],
+    });
+  };
 
   return (
     <div>
       <Container fluid className="p-4">
         <Row>
           <Col lg={12} md={12} sm={12}>
-            <DashBoardHeader
-           
-            />
+            <DashBoardHeader />
           </Col>
         </Row>
 
         <Row className="left-top">
-         
-
           <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
-             main dashboard
-             
+              <h1 className="page-title small-fonts">
+                {translations.pageTitle}
+              </h1>
+
+              {/* Multi-Filter Section */}
+              <div className="filter-section mb-3 p-3 border rounded bg-light">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="small-fonts mb-0">फिल्टर</h6>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={clearFilters}
+                  >
+                    सभी फिल्टर हटाएं
+                  </Button>
+                </div>
+                <Row>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.centerName}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="center_name"
+                        value={filters.center_name.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            center_name: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={filterOptions.center_name.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.component}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="component"
+                        value={filters.component.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            component: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={filterOptions.component.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.investmentName}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="investment_name"
+                        value={filters.investment_name.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            investment_name: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={filterOptions.investment_name.map(
+                          (option) => ({ value: option, label: option })
+                        )}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.sourceOfReceipt}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="source_of_receipt"
+                        value={filters.source_of_receipt.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            source_of_receipt: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={[
+                          ...new Set([
+                            ...filterOptions.source_of_receipt,
+                            ...sourceOptions,
+                          ]),
+                        ].map((option) => ({ value: option, label: option }))}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.schemeName}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="scheme_name"
+                        value={filters.scheme_name.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            scheme_name: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={[
+                          ...new Set([
+                            ...filterOptions.scheme_name,
+                            ...schemeOptions,
+                          ]),
+                        ].map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.vikasKhandName}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="vikas_khand_name"
+                        value={filters.vikas_khand_name.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            vikas_khand_name: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={filterOptions.vikas_khand_name.map(
+                          (option) => ({ value: option, label: option })
+                        )}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={3}>
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.vidhanSabhaName}
+                      </Form.Label>
+                      <Select
+                        isMulti
+                        name="vidhan_sabha_name"
+                        value={filters.vidhan_sabha_name.map((val) => ({
+                          value: val,
+                          label: val,
+                        }))}
+                        onChange={(selected) => {
+                          setFilters((prev) => ({
+                            ...prev,
+                            vidhan_sabha_name: selected
+                              ? selected.map((s) => s.value)
+                              : [],
+                          }));
+                        }}
+                        options={filterOptions.vidhan_sabha_name.map(
+                          (option) => ({ value: option, label: option })
+                        )}
+                        className="compact-input"
+                        placeholder="चुनें"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
             </Container>
           </Col>
         </Row>
-
-       
       </Container>
-
-      {/* Add custom styles for the grid layout */}
-    
     </div>
   );
 };
