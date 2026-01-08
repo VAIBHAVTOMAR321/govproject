@@ -26,6 +26,8 @@ const MainDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tableData, setTableData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -107,6 +109,19 @@ const MainDashboard = () => {
       vikas_khand_name: [],
       vidhan_sabha_name: [],
     });
+    setCurrentPage(1);
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(tableData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageData = tableData.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   return (
@@ -382,8 +397,7 @@ const MainDashboard = () => {
             <Table striped bordered hover className="table-thead-style">
       <thead className="table-thead">
         <tr>
-          <th>क्रमांक</th>
-          <th>बिल आईडी</th>
+          <th>S.No.</th>
           <th>केंद्र का नाम</th>
           <th>विधानसभा</th>
           <th>विकास खंड</th>
@@ -391,16 +405,15 @@ const MainDashboard = () => {
           <th>स्रोत</th>
           <th>घटक</th>
           <th>निवेश</th>
+          <th>उप-निवेश</th>
           <th>आवंटित मात्रा</th>
           <th>दर</th>
-          <th>अद्यतन मात्रा</th>
         </tr>
       </thead>
       <tbody>
-        {tableData.map((item, index) => (
+        {currentPageData.map((item, index) => (
           <tr key={item.id || index}>
-            <td>{index + 1}</td>
-            <td>{item.bill_id}</td>
+            <td>{startIndex + index + 1}</td>
             <td>{item.center_name}</td>
             <td>{item.vidhan_sabha_name}</td>
             <td>{item.vikas_khand_name}</td>
@@ -408,13 +421,63 @@ const MainDashboard = () => {
             <td>{item.source_of_receipt}</td>
             <td>{item.component}</td>
             <td>{item.investment_name}</td>
+            <td>{item.sub_investment_name || '-'}</td>
             <td>{item.allocated_quantity}</td>
             <td>{item.rate}</td>
-            <td>{item.updated_quantity}</td>
           </tr>
         ))}
       </tbody>
     </Table>
+    
+    {/* Pagination */}
+    <div className="d-flex justify-content-between align-items-center mt-3">
+      <span className="text-muted">
+        Page {currentPage} / {totalPages} (Total {tableData.length} items)
+      </span>
+      <div>
+        <Button
+          variant="outline-secondary"
+          size="sm"
+          className="me-2"
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          {'<'}
+        </Button>
+        {[...Array(Math.min(5, totalPages))].map((_, i) => {
+          let pageNum;
+          if (totalPages <= 5) {
+            pageNum = i + 1;
+          } else if (currentPage <= 3) {
+            pageNum = i + 1;
+          } else if (currentPage >= totalPages - 2) {
+            pageNum = totalPages - 4 + i;
+          } else {
+            pageNum = currentPage - 2 + i;
+          }
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? "primary" : "outline-secondary"}
+              size="sm"
+              className="me-1"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button
+          variant="outline-secondary"
+          size="sm"
+          className="ms-2"
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          {'>'}
+        </Button>
+      </div>
+    </div>
             </div>
           </Col>
           </Row>
