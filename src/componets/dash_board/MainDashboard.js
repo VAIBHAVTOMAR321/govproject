@@ -1,64 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Form } from "react-bootstrap";
 import Select from "react-select";
 import "../../assets/css/registration.css";
 import DashBoardHeader from "./DashBoardHeader";
 import "../../assets/css/MainDashBoard.css";
 
-// Static options for form fields
-const centerOptions = [
-  "किनगोड़िखाल",
-  "हल्दूखाल",
-  "धुमाकोट",
-  "सिसल्ड़ी",
-  "सेंधीखाल",
-  "जयहरीखाल",
-  "जेठागांव",
-  "देवियोंखाल",
-  "किल्वोंखाल",
-  "बीरोंखाल",
-  "वेदीखाल",
-  "पोखड़ा",
-  "संगलाकोटी",
-  "देवराजखाल",
-  "चौखाल",
-  "गंगाभोगपुर",
-  "दिउली",
-  "दुगड्डा",
-  "बिथ्याणी",
-  "चैलूसैंण",
-  "सिलोगी",
-  "कोटद्वार",
-  "सतपुली",
-  "पौखाल",
-];
-const componentOptions = ["सीमेंट", "स्टील", "बालू", "पत्थर", "ईंट"];
-const investmentOptions = [
-  "भवन निर्माण",
-  "सड़क निर्माण",
-  "पुल निर्माण",
-  "कुआँ निर्माण",
-];
-const sourceOptions = ["PWD", "PMGSY", "NREGA"];
-const schemeOptions = ["MGNREGA", "PMKSY", "DDUGJY"];
-const vikasKhandOptions = [
-  "नैनीडांडा",
-  "बीरोंखाल",
-  "यमकेश्वर",
-  "दुगड्डा",
-  "पौड़ी",
-  "द्वारीखाल",
-  "जयहरीखाल",
-  "रिखणीखाल",
-  "नगर निगम कोटद्वार",
-];
-const vidhanSabhaOptions = [
-  "लैन्सडाउन",
-  "यमकेश्वर",
-  "चौबट्टाखाल",
-  "कोटद्वार",
-  "श्रीनगर",
-];
+const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 
 // Hindi translations for form
 const translations = {
@@ -75,6 +22,8 @@ const translations = {
 
 const MainDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -87,16 +36,57 @@ const MainDashboard = () => {
     vidhan_sabha_name: [],
   });
 
-  // State for filter options (using static options)
+  // State for filter options (populated from API)
   const [filterOptions, setFilterOptions] = useState({
-    center_name: centerOptions,
-    component: componentOptions,
-    investment_name: investmentOptions,
-    source_of_receipt: sourceOptions,
-    scheme_name: schemeOptions,
-    vikas_khand_name: vikasKhandOptions,
-    vidhan_sabha_name: vidhanSabhaOptions,
+    center_name: [],
+    component: [],
+    investment_name: [],
+    source_of_receipt: [],
+    scheme_name: [],
+    vikas_khand_name: [],
+    vidhan_sabha_name: [],
   });
+
+  // Fetch data from API and populate filter options
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Extract unique values for each filter field
+        const uniqueOptions = {
+          center_name: [...new Set(data.map(item => item.center_name).filter(Boolean))],
+          component: [...new Set(data.map(item => item.component).filter(Boolean))],
+          investment_name: [...new Set(data.map(item => item.investment_name).filter(Boolean))],
+          source_of_receipt: [...new Set(data.map(item => item.source_of_receipt).filter(Boolean))],
+          scheme_name: [...new Set(data.map(item => item.scheme_name).filter(Boolean))],
+          vikas_khand_name: [...new Set(data.map(item => item.vikas_khand_name).filter(Boolean))],
+          vidhan_sabha_name: [...new Set(data.map(item => item.vidhan_sabha_name).filter(Boolean))],
+        };
+
+        setFilterOptions(prev => ({
+          ...prev,
+          ...uniqueOptions,
+        }));
+        
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching filter options:", err);
+        setError("फ़िल्टर विकल्प लोड करने में विफल।");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
 
   // Clear all filters
   const clearFilters = () => {
@@ -246,12 +236,10 @@ const MainDashboard = () => {
                               : [],
                           }));
                         }}
-                        options={[
-                          ...new Set([
-                            ...filterOptions.source_of_receipt,
-                            ...sourceOptions,
-                          ]),
-                        ].map((option) => ({ value: option, label: option }))}
+                        options={filterOptions.source_of_receipt.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -277,12 +265,7 @@ const MainDashboard = () => {
                               : [],
                           }));
                         }}
-                        options={[
-                          ...new Set([
-                            ...filterOptions.scheme_name,
-                            ...schemeOptions,
-                          ]),
-                        ].map((option) => ({
+                        options={filterOptions.scheme_name.map((option) => ({
                           value: option,
                           label: option,
                         }))}
