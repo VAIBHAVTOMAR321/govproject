@@ -293,7 +293,40 @@ body {
   border-color: #2196f3;
   font-size: 12px;
 }
-
+.drop-option {
+  background-color: #fff !important;
+  color: #000 !important;
+  font-size: 12px !important;
+}
+.drop-option::after {
+  color: black !important;
+}
+.fltr-icon
+{
+  font-size: 18px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.btn-filter-submit{
+  font-size: 12px !important;
+  background-color: #822431;
+  border: 1px solid #822431;
+}
+.btn-filter-submit:hover{
+  font-size: 12px !important;
+  background-color: #0B488F;
+  border: 1px solid #0B488F;  
+}
+.form-check .form-check-input{
+  border: 1px solid #000 !important;
+  cursor: pointer;
+}
+.form-check-label{
+  cursor: pointer;  
+}
+.dropdown-menu{
+  font-size: 10px !important;
+}
 .clear-btn-primary:hover {
   color: #fff;
   background-color: #0c83e2;
