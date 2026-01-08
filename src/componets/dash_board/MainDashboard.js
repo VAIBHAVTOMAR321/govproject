@@ -124,6 +124,28 @@ const MainDashboard = () => {
     }
   };
 
+  // Helper to add "सभी चुनें" option to select
+  const getOptionsWithAll = (options) => [
+    { value: "ALL", label: "सभी चुनें" },
+    ...options.map((option) => ({ value: option, label: option }))
+  ];
+
+  // Handle select change with "सभी चुनें" option
+  const handleSelectChange = (name, selected) => {
+    if (selected && selected.some((s) => s.value === "ALL")) {
+      // If "सभी चुनें" is selected, set filter to all options
+      setFilters((prev) => ({
+        ...prev,
+        [name]: filterOptions[name] || [],
+      }));
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        [name]: selected ? selected.map((s) => s.value) : [],
+      }));
+    }
+  };
+
   return (
     <div>
       <Container fluid className="p-4">
@@ -145,7 +167,7 @@ const MainDashboard = () => {
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <h6 className="form-label mb-0">फिल्टर</h6>
                   <Button
-                    className="btn-primary"
+                    className="clear-btn-primary"
                     variant="outline-secondary"
                     size="sm"
                     onClick={clearFilters}
@@ -166,18 +188,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            center_name: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.center_name.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
+                        onChange={(selected) => handleSelectChange("center_name", selected)}
+                        options={getOptionsWithAll(filterOptions.center_name)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -195,17 +207,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            vikas_khand_name: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.vikas_khand_name.map(
-                          (option) => ({ value: option, label: option })
-                        )}
+                        onChange={(selected) => handleSelectChange("vikas_khand_name", selected)}
+                        options={getOptionsWithAll(filterOptions.vikas_khand_name)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -223,17 +226,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            vidhan_sabha_name: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.vidhan_sabha_name.map(
-                          (option) => ({ value: option, label: option })
-                        )}
+                        onChange={(selected) => handleSelectChange("vidhan_sabha_name", selected)}
+                        options={getOptionsWithAll(filterOptions.vidhan_sabha_name)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -251,18 +245,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            component: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.component.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
+                        onChange={(selected) => handleSelectChange("component", selected)}
+                        options={getOptionsWithAll(filterOptions.component)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -280,17 +264,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            investment_name: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.investment_name.map(
-                          (option) => ({ value: option, label: option })
-                        )}
+                        onChange={(selected) => handleSelectChange("investment_name", selected)}
+                        options={getOptionsWithAll(filterOptions.investment_name)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -308,17 +283,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            sub_investment_name: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.sub_investment_name.map(
-                          (option) => ({ value: option, label: option })
-                        )}
+                        onChange={(selected) => handleSelectChange("sub_investment_name", selected)}
+                        options={getOptionsWithAll(filterOptions.sub_investment_name)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -336,18 +302,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            source_of_receipt: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.source_of_receipt.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
+                        onChange={(selected) => handleSelectChange("source_of_receipt", selected)}
+                        options={getOptionsWithAll(filterOptions.source_of_receipt)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
@@ -365,18 +321,8 @@ const MainDashboard = () => {
                           value: val,
                           label: val,
                         }))}
-                        onChange={(selected) => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            scheme_name: selected
-                              ? selected.map((s) => s.value)
-                              : [],
-                          }));
-                        }}
-                        options={filterOptions.scheme_name.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
+                        onChange={(selected) => handleSelectChange("scheme_name", selected)}
+                        options={getOptionsWithAll(filterOptions.scheme_name)}
                         className="compact-input"
                         placeholder="चुनें"
                       />
