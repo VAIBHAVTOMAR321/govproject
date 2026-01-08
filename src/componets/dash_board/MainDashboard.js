@@ -25,6 +25,7 @@ const MainDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [tableData, setTableData] = useState([]);
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -76,6 +77,7 @@ const MainDashboard = () => {
           vidhan_sabha_name: [...new Set(data.map(item => item.vidhan_sabha_name).filter(Boolean))],
         };
 
+        setTableData(data);
         setFilterOptions(prev => ({
           ...prev,
           ...uniqueOptions,
@@ -380,30 +382,37 @@ const MainDashboard = () => {
             <Table striped bordered hover className="table-thead-style">
       <thead className="table-thead">
         <tr>
-          <th>#</th>
-          <th>First Name</th>
-          <th>Last Name</th>
-          <th>Username</th>
+          <th>क्रमांक</th>
+          <th>बिल आईडी</th>
+          <th>केंद्र का नाम</th>
+          <th>विधानसभा</th>
+          <th>विकास खंड</th>
+          <th>योजना</th>
+          <th>स्रोत</th>
+          <th>घटक</th>
+          <th>निवेश</th>
+          <th>आवंटित मात्रा</th>
+          <th>दर</th>
+          <th>अद्यतन मात्रा</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>1</td>
-          <td>Mark</td>
-          <td>Otto</td>
-          <td>@mdo</td>
-        </tr>
-        <tr>
-          <td>2</td>
-          <td>Jacob</td>
-          <td>Thornton</td>
-          <td>@fat</td>
-        </tr>
-        <tr>
-          <td>3</td>
-          <td colSpan={2}>Larry the Bird</td>
-          <td>@twitter</td>
-        </tr>
+        {tableData.map((item, index) => (
+          <tr key={item.id || index}>
+            <td>{index + 1}</td>
+            <td>{item.bill_id}</td>
+            <td>{item.center_name}</td>
+            <td>{item.vidhan_sabha_name}</td>
+            <td>{item.vikas_khand_name}</td>
+            <td>{item.scheme_name}</td>
+            <td>{item.source_of_receipt}</td>
+            <td>{item.component}</td>
+            <td>{item.investment_name}</td>
+            <td>{item.allocated_quantity}</td>
+            <td>{item.rate}</td>
+            <td>{item.updated_quantity}</td>
+          </tr>
+        ))}
       </tbody>
     </Table>
             </div>
