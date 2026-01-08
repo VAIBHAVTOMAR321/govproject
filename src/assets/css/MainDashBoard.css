@@ -1,23 +1,17 @@
 /* Custom Dashboard Styles */
 .dashboard-body-main {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 15px 18px;
+
   margin: 0px;
-  min-height: calc(100vh - 120px);
-
-  /* subtle elevation */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-
-  /* smooth UI */
-  transition: all 0.3s ease;
 }
-.gov-edit-btn{
+
+.gov-edit-btn {
   font-size: 10px;
 }
-.gov-delete-btn{
-   font-size: 10px;
+
+.gov-delete-btn {
+  font-size: 10px;
 }
+
 .dashboard-body-main h1,
 .dashboard-body-main h2,
 .dashboard-body-main h3 {
@@ -54,41 +48,49 @@
   color: #fff;
   background-color: #0a1a2d;
 }
-.dashborad-card-header{
+
+.dashborad-card-header {
   background-color: #194e8b;
   color: #fff;
 
 }
-.dashborad-card-header h5{
+
+.dashborad-card-header h5 {
   font-size: 16px;
 }
-.unselected-details h6{
+
+.unselected-details h6 {
   font-size: 14px;
   color: #022147;
-   font-weight: 600;
+  font-weight: 600;
 }
-.view-details-btn{
+
+.view-details-btn {
   background-color: #fff;
   color: #000;
   font-weight: 600;
   font-size: 12px;
 }
-.selected-details{
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+.selected-details {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border-radius: 8px;
 
 }
-.selected-details h6{
+
+.selected-details h6 {
   font-size: 14px;
   font-weight: 600;
   color: #022147;
 }
 
-.view-details-btn:hover{
+.view-details-btn:hover {
   background-color: #0a1a2d;
   color: #fff;
-  border: 1px solid #0a1a2d;;
+  border: 1px solid #0a1a2d;
+  ;
 }
+
 .custom-tabs .nav-link.active {
   color: #fff;
   background-color: #764ba2;
@@ -238,25 +240,52 @@
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
 }
 
+
+
+.dashboard-graphs {
+  box-shadow: 0 0 0 0 rgba(90, 113, 208, 0.11), 0 4px 16px 0 rgba(167, 175, 183, 0.33);
+  border: solid 1px #dde4eb;
+  border-radius: 0px;
+}
+
+.dashboard-graphs h6 {
+  font-size: 16px;
+  font-weight: 600;
+
+  color: #2196f3 !important;
+  margin-bottom: 15px;
+}
+/* Hide selected tags/chips in react-select */
+.government-select .css-1rhbuit-MultiValue {
+  display: none !important;
+}
+ 
+.government-select .css-12jo7m5 {
+  display: none !important;
+}
+ 
+.government-select .MultiValue {
+  display: none !important;
+}
 /* Responsive Design */
 @media (max-width: 768px) {
   .gov-card-inner {
     padding: 12px;
   }
-  
+
   .gov-icon i {
     font-size: 1.3rem;
   }
-  
+
   .gov-text h2 {
     font-size: 1.3rem;
   }
-  
+
   .custom-tabs .nav-link {
     padding: 8px 12px;
     font-size: 13px;
   }
-  
+
   .custom-tabs .tab-content {
     padding: 12px;
   }
@@ -266,23 +295,23 @@
   .dashboard-body-main {
     padding: 10px;
   }
-  
+
   .gov-card-inner {
     padding: 10px;
   }
-  
+
   .gov-icon {
     margin-bottom: 8px;
   }
-  
+
   .gov-icon p {
     font-size: 0.75rem;
   }
-  
+
   .gov-text h2 {
     font-size: 1.2rem;
   }
-  
+
   .card-trend {
     font-size: 0.65rem;
     padding: 2px 5px;
@@ -295,6 +324,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -310,9 +340,11 @@
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.05);
   }
+
   100% {
     transform: scale(1);
   }
@@ -374,7 +406,7 @@
   pointer-events: none;
   transform: translate(-50%, -100%);
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
   left: 0;
   top: 0;
@@ -387,7 +419,7 @@
 
 .clickable-badge:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   opacity: 0.9;
 }
 
@@ -406,7 +438,7 @@
   background-color: #e7f3ff;
   color: #007bff;
   font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .accordion-button:focus {
@@ -429,17 +461,19 @@
 .accordion-header {
   margin-bottom: 0;
 }
-  .multiselect-item-grid {
-          padding: 8px 10px;
-          background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 4px;
-          text-align: center;
-          font-size: 10px;
-          transition: all 0.2s ease;
-          border-radius: 22px;
-          border: 1px solid #4facfe;
-        }
+
+.multiselect-item-grid {
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 10px;
+  transition: all 0.2s ease;
+  border-radius: 22px;
+  border: 1px solid #4facfe;
+}
+
 /* Multiselect Styles */
 .multiselect-container {
   padding: 8px;
