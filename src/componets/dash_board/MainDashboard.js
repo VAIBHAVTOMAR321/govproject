@@ -14,7 +14,7 @@ const translations = {
   component: "घटक",
   investmentName: "निवेश का नाम",
   subInvestmentName: "उप-निवेश का नाम",
-  sourceOfReceipt: "प्राप्ति का स्रोत",
+  sourceOfReceipt: "सप्लायर",
   schemeName: "योजना का नाम",
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
@@ -402,7 +402,7 @@ const MainDashboard = () => {
           <th>विधानसभा</th>
           <th>विकास खंड</th>
           <th>योजना</th>
-          <th>स्रोत</th>
+          <th>सप्लायर</th>
           <th>घटक</th>
           <th>निवेश</th>
           <th>उप-निवेश</th>
