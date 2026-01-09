@@ -723,6 +723,21 @@ const MainDashboard = () => {
          </tr>
        ))}
      </tbody>
+     <tfoot>
+       <tr>
+         <td style={{fontWeight: 'bold'}}>कुल:</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.center_name)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.vidhan_sabha_name)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.vikas_khand_name)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.scheme_name)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.source_of_receipt)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.component)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.investment_name)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{new Set(filteredTableData.map(item => item.sub_investment_name)).size}</td>
+         <td style={{fontWeight: 'bold'}}>{filteredTableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}</td>
+         <td style={{fontWeight: 'bold'}}>{filteredTableData.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}</td>
+       </tr>
+     </tfoot>
    </Table>
 
    {/* Pagination */}
@@ -861,20 +876,21 @@ const MainDashboard = () => {
                            </tr>
                          ))}
                        </tbody>
+                       <tfoot>
+                         <tr>
+                           <td style={{fontWeight: 'bold'}}>कुल:</td>
+                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
+                             <td key={col} style={{fontWeight: 'bold'}}>
+                               {col === 'allocated_quantity' || col === 'rate' ? (
+                                 filteredData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2)
+                               ) : (
+                                 new Set(filteredData.map(item => item[col])).size
+                               )}
+                             </td>
+                           ))}
+                         </tr>
+                       </tfoot>
                      </Table>
-                     <div className="d-flex justify-content-between align-items-center mt-3">
-                       <span className="text-muted">
-                         Total Items: {filteredData.length}
-                       </span>
-                       <div>
-                         <span className="me-3">
-                           कुल आवंटित मात्रा: {filteredData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}
-                         </span>
-                         <span>
-                           कुल दर: {filteredData.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}
-                         </span>
-                       </div>
-                     </div>
                    </div>
                  );
                } else {
@@ -933,31 +949,36 @@ const MainDashboard = () => {
                            );
                          })}
                        </tbody>
+                       <tfoot>
+                         <tr>
+                           <td style={{fontWeight: 'bold'}}>कुल:</td>
+                           <td style={{fontWeight: 'bold'}}>{checkedValues.reduce((sum, checkedValue) => {
+                             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                             return sum + tableDataForValue.length;
+                           }, 0)}</td>
+                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                             <td key={col} style={{fontWeight: 'bold'}}>
+                               {checkedValues.reduce((sum, checkedValue) => {
+                                 const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                                 return sum + new Set(tableDataForValue.map(item => item[col])).size;
+                               }, 0)}
+                             </td>
+                           ))}
+                           <td style={{fontWeight: 'bold'}}>
+                             {checkedValues.reduce((sum, checkedValue) => {
+                               const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                               return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
+                             }, 0).toFixed(2)}
+                           </td>
+                           <td style={{fontWeight: 'bold'}}>
+                             {checkedValues.reduce((sum, checkedValue) => {
+                               const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                               return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
+                             }, 0).toFixed(2)}
+                           </td>
+                         </tr>
+                       </tfoot>
                      </Table>
-                     <div className="d-flex justify-content-between align-items-center mt-3">
-                       <span className="text-muted">
-                         Total Values: {checkedValues.length}
-                       </span>
-                       <div>
-                         {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
-                           <span key={col} className="me-3">
-                             कुल {columnDefs[col].label}: <span style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => setSelectedTotalColumn(col)}>{new Set(filteredData.map(item => item[col])).size}</span>
-                           </span>
-                         ))}
-                         <span className="me-3">
-                           कुल आवंटित मात्रा: <span style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => setSelectedTotalColumn('allocated_quantity')}>{checkedValues.reduce((sum, checkedValue) => {
-                             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                             return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
-                           }, 0).toFixed(2)}</span>
-                         </span>
-                         <span>
-                           कुल दर: <span style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => setSelectedTotalColumn('rate')}>{checkedValues.reduce((sum, checkedValue) => {
-                             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                             return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
-                           }, 0).toFixed(2)}</span>
-                         </span>
-                       </div>
-                     </div>
                      {selectedTotalColumn && (
                        <div className="mt-4">
                          <h6>Summary for {columnDefs[selectedTotalColumn].label}</h6>
