@@ -326,7 +326,20 @@ body {
 }
 
 /* Adjust the table container to ensure it's scrollable if needed */
-
+.back-btn h5{
+  font-size: 12px !important;
+}
+.back-btn-style{
+  font-size: 12px !important;
+  background-color: rgba(128, 128, 128, 0.934);
+}
+.back-btn-style:hover{
+background-color:#0B488F;
+border: 1px solid #0B488F;
+}
+.total-style{
+  font-size: 12px !important;
+}
 .form-check-label{
   cursor: pointer;  
 }

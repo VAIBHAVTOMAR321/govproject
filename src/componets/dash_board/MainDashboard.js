@@ -150,7 +150,7 @@ const MainDashboard = () => {
     });
     setCurrentPage(1);
   };
-
+const [isFilterApplied, setIsFilterApplied] = useState(false);
   // Handle cell click for detailed view
   const handleCellClick = (column, value) => {
     setSelectedItem({ column, value });
@@ -732,13 +732,10 @@ const MainDashboard = () => {
               </div>
               {view === 'main' ? (
                 <Row>
-          <Col lg={3} md={3} sm={12}>
-           {/* Placeholder for Dashboard Graphs/Charts */}
-           <div className="dashboard-graphs p-3 border rounded bg-white">
-        check box
-           </div>
-        </Col>
-        <Col lg={9} md={9} sm={12}>
+         
+        <Col  lg={isFilterApplied ? 9 : 12}
+  md={12}
+  sm={12}>
           {/* Placeholder for Dashboard Graphs/Charts */}
           <div className="dashboard-graphs p-3 border rounded bg-white">
           <Table striped bordered hover className="table-thead-style">
