@@ -213,14 +213,23 @@ const MainDashboard = () => {
   // Handle detailed checkbox change
   const handleDetailedCheckboxChange = (filterIndex, val) => {
     setFilterStack(prev => {
-      const newStack = [...prev];
-      const filter = newStack[filterIndex];
-      if (val === "SELECT_ALL") {
-        const allValues = Object.keys(filter.checked);
-        allValues.forEach(k => filter.checked[k] = true);
-      } else {
-        filter.checked[val] = !filter.checked[val];
-      }
+      const newStack = prev.map((filter, idx) => {
+        if (idx !== filterIndex) return filter;
+         
+        // Create a proper copy of the filter object
+        const newFilter = { ...filter, checked: { ...filter.checked } };
+        
+        if (val === "SELECT_ALL") {
+          const allValues = Object.keys(newFilter.checked);
+          const currentlyAllSelected = allValues.every(k => newFilter.checked[k]);
+          // Toggle: if all are selected, deselect all; otherwise select all
+          allValues.forEach(k => newFilter.checked[k] = !currentlyAllSelected);
+        } else {
+          newFilter.checked[val] = !newFilter.checked[val];
+        }
+         
+        return newFilter;
+      });
       return newStack;
     });
   };
@@ -791,7 +800,7 @@ const MainDashboard = () => {
                            <FormCheck className="check-box"
                              type="checkbox"
                              id={`select_all_${filterIndex}`}
-                             label="सभी चुनें"
+                             label={Object.values(filter.checked).every(Boolean) ? "सभी हटाएं" : "सभी चुनें"}
                              checked={Object.values(filter.checked).every(Boolean)}
                              onChange={() => handleDetailedCheckboxChange(filterIndex, "SELECT_ALL")}
                            />
