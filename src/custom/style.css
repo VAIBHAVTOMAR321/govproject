@@ -321,10 +321,36 @@ body {
   border: 1px solid #000 !important;
   cursor: pointer;
 }
-.page-text{
+.i{
   font-size: 12px !important;
 }
+.selected-tables-card {
+  min-height: 100px;
+}
 
+.table-list {
+  max-height: 120px;
+  overflow-y: auto;
+}
+.pdf-add-btn{
+  font-size: 10px;
+}
+.exel-add-btn{
+  font-size: 10px;
+}
+.modal-header-style{
+  background-color: #0B488F;
+  color: #fff;
+}
+.remove-btn{
+  font-size: 10px !important;
+}
+.add-btn{
+  font-size: 10px !important;
+}
+.small-table{
+  font-size: 10px !important;
+}
 /* Adjust the table container to ensure it's scrollable if needed */
 .back-btn h5{
   font-size: 12px !important;

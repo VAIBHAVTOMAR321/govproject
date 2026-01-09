@@ -49,6 +49,8 @@ const MainDashboard = () => {
   const [filteredTableData, setFilteredTableData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
+const isTableFiltered =
+  filteredTableData.length !== tableData.length;
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -308,7 +310,9 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
       applyFilters();
     }
   };
-
+const isSingleCard =
+  (tablesForExport.pdf.length > 0 && tablesForExport.excel.length === 0) ||
+  (tablesForExport.excel.length > 0 && tablesForExport.pdf.length === 0);
   // Apply filters
   const applyFilters = () => {
     const filteredData = tableData.filter((item) => {
@@ -586,18 +590,20 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
 
   // Export Section Component
   const ExportSection = () => (
-    <div className="export-section mb-3 p-3 border rounded bg-light">
+    
+    <div  className={`export-section mb-3 mt-2 p-3 border rounded bg-light ${
+    isFilterApplied ? "mt-2" : ""
+  }`}>
       <div className="d-flex justify-content-between align-items-center mb-2">
         <h6 className="mb-0">
           <RiFilePdfLine /> निर्यात विकल्प
         </h6>
-      </div>
-      <div className="d-flex gap-2 flex-wrap">
+          <div className="d-flex gap-2 flex-wrap">
         <Button
-          variant="danger"
+          variant="danger" 
           size="sm"
           onClick={() => addTableToExport('pdf')}
-          className="d-flex align-items-center gap-1"
+          className="d-flex align-items-center pdf-add-btn gap-1"
         >
           <RiFilePdfLine /> इस टेबल को PDF में जोड़ें
         </Button>
@@ -605,81 +611,126 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
           variant="success"
           size="sm"
           onClick={() => addTableToExport('excel')}
-          className="d-flex align-items-center gap-1"
+          className="d-flex align-items-center exel-add-btn gap-1"
         >
           <RiFileExcelLine /> इस टेबल को Excel में जोड़ें
         </Button>
       </div>
+      </div>
+    
       
       {/* Selected Tables Display */}
-      {(tablesForExport.pdf.length > 0 || tablesForExport.excel.length > 0) && (
-        <div className="mt-2">
-          <h6 className="mb-2">चयनित टेबल:</h6>
-          <div className="d-flex gap-3 flex-wrap">
-            {tablesForExport.pdf.length > 0 && (
-              <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '180px'}}>
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="fw-bold text-danger small"><RiFilePdfLine /> PDF ({tablesForExport.pdf.length})</span>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={generatePDF}
-                    disabled={tablesForExport.pdf.length === 0}
-                  >
-                    डाउनलोड
-                  </Button>
-                </div>
-                <div className="table-list" style={{maxHeight: '100px', overflowY: 'auto'}}>
-                  {tablesForExport.pdf.map((table, idx) => (
-                    <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
-                      <span className="small text-truncate" style={{maxWidth: '100px'}}>{idx + 1}. {table.name}</span>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="text-danger p-0"
-                        onClick={() => removeTableFromExport('pdf', table.id)}
-                      >
-                        <RiDeleteBinLine />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {tablesForExport.excel.length > 0 && (
-              <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '180px'}}>
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="fw-bold text-success small"><RiFileExcelLine /> Excel ({tablesForExport.excel.length})</span>
-                  <Button
-                    variant="outline-success"
-                    size="sm"
-                    onClick={generateExcel}
-                    disabled={tablesForExport.excel.length === 0}
-                  >
-                    डाउनलोड
-                  </Button>
-                </div>
-                <div className="table-list" style={{maxHeight: '100px', overflowY: 'auto'}}>
-                  {tablesForExport.excel.map((table, idx) => (
-                    <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
-                      <span className="small text-truncate" style={{maxWidth: '100px'}}>{idx + 1}. {table.name}</span>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="text-danger p-0"
-                        onClick={() => removeTableFromExport('excel', table.id)}
-                      >
-                        <RiDeleteBinLine />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+    {(tablesForExport.pdf.length > 0 || tablesForExport.excel.length > 0) && (
+  <div className="mt-3">
+    {/* <h6 className="mb-2">चयनित टेबल:</h6> */}
+
+   <Row className="g-3">
+  {/* PDF COLUMN */}
+  {tablesForExport.pdf.length > 0 && (
+    <Col
+      lg={
+        tablesForExport.excel.length > 0
+          ? 6
+          : 12
+      }
+      md={12}
+      sm={12}
+    >
+      <div className="selected-tables-card p-3 border rounded bg-white h-100 shadow-sm">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <span className="fw-bold text-danger small">
+            <RiFilePdfLine /> PDF ({tablesForExport.pdf.length})
+          </span>
+          <Button className="pdf-add-btn"
+            variant="outline-danger"
+            size="sm"
+            onClick={generatePDF}
+          >
+            डाउनलोड
+          </Button>
         </div>
-      )}
+
+        <div className="table-list">
+          {tablesForExport.pdf.map((table, idx) => (
+            <div
+              key={table.id}
+              className="d-flex justify-content-between align-items-center py-1 border-bottom"
+            >
+              <span className="small text-truncate">
+                {idx + 1}. {table.name}
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-danger p-0"
+                onClick={() =>
+                  removeTableFromExport("pdf", table.id)
+                }
+              >
+                <RiDeleteBinLine />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Col>
+  )}
+
+  {/* EXCEL COLUMN */}
+  {tablesForExport.excel.length > 0 && (
+    <Col
+      lg={
+        tablesForExport.pdf.length > 0
+          ? 6
+          : 12
+      }
+      md={12}
+      sm={12}
+    >
+      <div className="selected-tables-card p-3 border rounded bg-white h-100 shadow-sm">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <span className="fw-bold text-success small">
+            <RiFileExcelLine /> Excel ({tablesForExport.excel.length})
+          </span>
+          <Button
+            variant="outline-success" className="pdf-add-btn"
+            size="sm"
+            onClick={generateExcel}
+          >
+            डाउनलोड
+          </Button>
+        </div>
+
+        <div className="table-list">
+          {tablesForExport.excel.map((table, idx) => (
+            <div
+              key={table.id}
+              className="d-flex justify-content-between align-items-center py-1 border-bottom"
+            >
+              <span className="small text-truncate">
+                {idx + 1}. {table.name}
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-danger p-0"
+                onClick={() =>
+                  removeTableFromExport("excel", table.id)
+                }
+              >
+                <RiDeleteBinLine />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Col>
+  )}
+</Row>
+
+  </div>
+)}
+
     </div>
   );
 
@@ -1188,7 +1239,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
             {/* Selected Tables Display */}
             {(tablesForExport.pdf.length > 0 || tablesForExport.excel.length > 0) && (
               <div className="mt-3">
-                <h6 className="mb-2">चयनित टेबल:</h6>
+                {/* <h6 className="mb-2">चयनित टेबल:</h6> */}
                 <div className="d-flex gap-3 flex-wrap">
                   {tablesForExport.pdf.length > 0 && (
                     <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '200px'}}>
@@ -1206,7 +1257,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
                       <div className="table-list" style={{maxHeight: '150px', overflowY: 'auto'}}>
                         {tablesForExport.pdf.map((table, idx) => (
                           <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
-                            <span className="small">{idx + 1}. {table.name}</span>
+                            <span className="small-table">{idx + 1}. {table.name}</span>
                             <Button
                               variant="link"
                               size="sm"
@@ -1237,7 +1288,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
                       <div className="table-list" style={{maxHeight: '150px', overflowY: 'auto'}}>
                         {tablesForExport.excel.map((table, idx) => (
                           <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
-                            <span className="small">{idx + 1}. {table.name}</span>
+                            <span className="small-table">{idx + 1}. {table.name}</span>
                             <Button
                               variant="link"
                               size="sm"
@@ -1312,7 +1363,10 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
         </Col>
         <Col lg={9} md={9} sm={12}>
           <div className="dashboard-graphs p-3 border rounded bg-white">
-            <Button variant="secondary" size="sm" onClick={goBack}>वापस जाएं</Button>
+            <div className="back-btn d-flex justify-content-between">
+            <Button variant="secondary" className="back-btn-style" size="sm" onClick={goBack}>वापस जाएं</Button>
+               <h5>{selectedItem.value}</h5>
+            </div>
             {(() => {
               const filteredData = tableData.filter(item => {
                 for (let filter of filterStack) {
@@ -1325,7 +1379,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
               if (checkedValues.length === 1) {
                 return (
                   <div>
-                    <h5>{selectedItem.value}</h5>
+                 
                     <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
                       <thead className="table-thead">
@@ -1368,7 +1422,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
               } else {
                 const dynamicSummaryHeading = `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items selected)`;
                 return (
-                  <div>
+                  <div className="back-btn mt-1">
                     <h5>{dynamicSummaryHeading}</h5>
                     <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
@@ -1506,10 +1560,10 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
       
       {/* Export Modal */}
       <Modal show={showExportModal} onHide={() => setShowExportModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>
+        <Modal.Header closeButton className="modal-header-style">
+          <div>
             {exportType === 'pdf' ? 'PDF में जोड़ें' : 'Excel में जोड़ें'}
-          </Modal.Title>
+          </div>
         </Modal.Header>
         <Modal.Body>
           <Form.Group>
@@ -1523,11 +1577,11 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowExportModal(false)}>
+          <Button variant="secondary" onClick={() => setShowExportModal(false)} className="remove-btn">
             रद्द करें
           </Button>
           <Button 
-            variant={exportType === 'pdf' ? 'danger' : 'success'} 
+            variant={exportType === 'pdf' ? 'danger' : 'success'}  className="add-btn"
             onClick={confirmAddTable}
           >
             जोड़ें
