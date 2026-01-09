@@ -324,15 +324,9 @@ body {
 .page-text{
   font-size: 12px !important;
 }
-.dashboard-container {
-  height: calc(100vh - 60px); /* Full height minus footer height */
-  overflow-y: auto;
-}
 
 /* Adjust the table container to ensure it's scrollable if needed */
-.dashboard-graphs {
-  overflow-x: auto;
-}
+
 .form-check-label{
   cursor: pointer;  
 }

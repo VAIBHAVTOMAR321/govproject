@@ -309,17 +309,29 @@ const MainDashboard = () => {
 
               {/* Multi-Filter Section */}
               <div className="filter-section mb-3 p-3 border rounded bg-light dashboard-graphs">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h6 className=" mb-0"><i className="fltr-icon"><RiFilter2Line /></i>फिल्टर</h6>
-                  <Button
-                    className="clear-btn-primary"
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={clearFilters}
-                  >
-                   <i className="fltr-icon"><IoMdRefresh /></i> सभी फिल्टर हटाएं
-                  </Button>
-                </div>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+<h6 className="mb-0">
+<i className="fltr-icon"><RiFilter2Line /></i>फिल्टर
+</h6>
+<div className="d-flex gap-2">
+<Button
+      variant="primary"
+      className="btn-filter-submit"
+      size="sm"
+      onClick={applyFilters}
+>
+<i className="fltr-icon"><BiFilter /></i> फिल्टर लागू करें
+</Button>
+<Button
+      className="clear-btn-primary"
+      variant="outline-secondary"
+      size="sm"
+      onClick={clearFilters}
+>
+<i className="fltr-icon"><IoMdRefresh /></i> सभी फिल्टर हटाएं
+</Button>
+</div>
+</div>
                 <Row>
                   <Col>
                     <Form.Group className="mb-2">
@@ -634,15 +646,7 @@ const MainDashboard = () => {
                   </Col>
                 
                 </Row>
-                <div className="d-flex justify-content-end mt-2">
-                  <Button
-                    variant="primary" className="btn-filter-submit"
-                    size="sm"
-                    onClick={applyFilters}
-                  >
-                   <i className="fltr-icon"><BiFilter  /></i> फिल्टर लागू करें
-                  </Button>
-                </div>
+               
               </div>
               {view === 'main' ? (
                 <Row>
