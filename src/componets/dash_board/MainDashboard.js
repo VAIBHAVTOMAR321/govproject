@@ -302,6 +302,32 @@ const MainDashboard = () => {
     setCurrentPage(1);
   };
 
+  // Generate dynamic summary heading based on applied filters
+  const getSummaryHeading = () => {
+    const activeFilters = Object.entries(filters).filter(([key, values]) => values.length > 0);
+    
+    if (activeFilters.length === 0) {
+      return translations.pageTitle;
+    }
+    
+    const filterLabels = {
+      center_name: translations.centerName,
+      component: translations.component,
+      investment_name: translations.investmentName,
+      sub_investment_name: translations.subInvestmentName,
+      source_of_receipt: translations.sourceOfReceipt,
+      scheme_name: translations.schemeName,
+      vikas_khand_name: translations.vikasKhandName,
+      vidhan_sabha_name: translations.vidhanSabhaName,
+    };
+    
+    const filterText = activeFilters
+      .map(([key, values]) => `${filterLabels[key]}: ${values.length === 1 ? values[0] : `${values.length} selected`}`)
+      .join(' | ');
+    
+    return `${translations.pageTitle} (${filterText})`;
+  };
+
   // Go back one step in filter stack
   const goBack = () => {
     if (filterStack.length > 1) {
@@ -326,7 +352,7 @@ const MainDashboard = () => {
           <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
               <h1 className="page-title form-label">
-                {translations.pageTitle}
+                {getSummaryHeading()}
               </h1>
 
               {/* Multi-Filter Section */}
@@ -894,13 +920,14 @@ const MainDashboard = () => {
                    </div>
                  );
                } else {
+                 const dynamicSummaryHeading = `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items selected)`;
                  return (
                    <div>
-                     <h5>Summary</h5>
+                     <h5>{dynamicSummaryHeading}</h5>
                      <Table striped bordered hover className="table-thead-style">
                        <thead className="table-thead">
                          <tr>
-                           <th>Value</th>
+                           <th>{columnDefs[currentFilter.column]?.label || 'Value'}</th>
                            <th>Total Items</th>
                            {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
                              <th key={col}>{columnDefs[col].label}</th>
