@@ -13,7 +13,7 @@ const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-it
 
 // Hindi translations for form
 const translations = {
- 
+  pageTitle: "मुख्य डैशबोर्ड",
   centerName: "केंद्र का नाम",
   component: "घटक",
   investmentName: "निवेश का नाम",
@@ -23,6 +23,20 @@ const translations = {
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
   selectOption: "चुनें",
+};
+
+// Column definitions
+const columnDefs = {
+  center_name: { label: translations.centerName, key: 'center_name' },
+  vidhan_sabha_name: { label: translations.vidhanSabhaName, key: 'vidhan_sabha_name' },
+  vikas_khand_name: { label: translations.vikasKhandName, key: 'vikas_khand_name' },
+  scheme_name: { label: translations.schemeName, key: 'scheme_name' },
+  source_of_receipt: { label: translations.sourceOfReceipt, key: 'source_of_receipt' },
+  component: { label: translations.component, key: 'component' },
+  investment_name: { label: translations.investmentName, key: 'investment_name' },
+  sub_investment_name: { label: translations.subInvestmentName, key: 'sub_investment_name' },
+  allocated_quantity: { label: 'आवंटित मात्रा', key: 'allocated_quantity' },
+  rate: { label: 'दर', key: 'rate' },
 };
 
 const MainDashboard = () => {
@@ -70,6 +84,13 @@ const MainDashboard = () => {
     vikas_khand_name: [],
     vidhan_sabha_name: [],
   });
+
+  // State for detailed view
+  const [view, setView] = useState('main');
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const [detailedDropdownOpen, setDetailedDropdownOpen] = useState(false);
+  const [filterStack, setFilterStack] = useState([]);
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -130,6 +151,18 @@ const MainDashboard = () => {
     setCurrentPage(1);
   };
 
+  // Handle cell click for detailed view
+  const handleCellClick = (column, value) => {
+    setSelectedItem({ column, value });
+    setView('detail');
+    // Create new filter
+    let uniqueValues = [...new Set(tableData.map(item => item[column]).filter(Boolean))];
+    let checked = {};
+    uniqueValues.forEach(val => checked[val] = val === value);
+    const newFilter = { column, checked };
+    setFilterStack(prev => [...prev, newFilter]);
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(filteredTableData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -170,6 +203,26 @@ const MainDashboard = () => {
       ...prev,
       [name]: !prev[name],
     }));
+  };
+
+  // Toggle detailed dropdown
+  const toggleDetailedDropdown = () => {
+    setDetailedDropdownOpen(!detailedDropdownOpen);
+  };
+
+  // Handle detailed checkbox change
+  const handleDetailedCheckboxChange = (filterIndex, val) => {
+    setFilterStack(prev => {
+      const newStack = [...prev];
+      const filter = newStack[filterIndex];
+      if (val === "SELECT_ALL") {
+        const allValues = Object.keys(filter.checked);
+        allValues.forEach(k => filter.checked[k] = true);
+      } else {
+        filter.checked[val] = !filter.checked[val];
+      }
+      return newStack;
+    });
   };
 
   // Close dropdown when clicking outside
@@ -591,103 +644,276 @@ const MainDashboard = () => {
                   </Button>
                 </div>
               </div>
-               <Row>
-           <Col lg={3} md={3} sm={12}>
-            {/* Placeholder for Dashboard Graphs/Charts */}
-            <div className="dashboard-graphs p-3 border rounded bg-white">
-         check box 
-            </div>
-          </Col>
-          <Col lg={9} md={9} sm={12}>
-            {/* Placeholder for Dashboard Graphs/Charts */}
-            <div className="dashboard-graphs p-3 border rounded bg-white">
-            <Table striped bordered hover className="table-thead-style">
-      <thead className="table-thead">
-        <tr>
-          <th>S.No.</th>
-          <th>केंद्र का नाम</th>
-          <th>विधानसभा</th>
-          <th>विकास खंड</th>
-          <th>योजना</th>
-          <th>सप्लायर</th>
-          <th>घटक</th>
-          <th>निवेश</th>
-          <th>उप-निवेश</th>
-          <th>आवंटित मात्रा</th>
-          <th>दर</th>
-        </tr>
-      </thead>
-      <tbody>
-        {currentPageData.map((item, index) => (
-          <tr key={item.id || index}>
-            <td>{startIndex + index + 1}</td>
-            <td>{item.center_name}</td>
-            <td>{item.vidhan_sabha_name}</td>
-            <td>{item.vikas_khand_name}</td>
-            <td>{item.scheme_name}</td>
-            <td>{item.source_of_receipt}</td>
-            <td>{item.component}</td>
-            <td>{item.investment_name}</td>
-            <td>{item.sub_investment_name || '-'}</td>
-            <td>{item.allocated_quantity}</td>
-            <td>{item.rate}</td>
-          </tr>
-        ))}
-      </tbody>
-    </Table>
-    
-    {/* Pagination */}
-    <div className="d-flex justify-content-between align-items-center mt-3">
-      <span className="text-muted">
-        Page {currentPage} / {totalPages} (Total {tableData.length} items)
-      </span>
-      <div>
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          className="me-2"
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          {'<'}
-        </Button>
-        {[...Array(Math.min(5, totalPages))].map((_, i) => {
-          let pageNum;
-          if (totalPages <= 5) {
-            pageNum = i + 1;
-          } else if (currentPage <= 3) {
-            pageNum = i + 1;
-          } else if (currentPage >= totalPages - 2) {
-            pageNum = totalPages - 4 + i;
-          } else {
-            pageNum = currentPage - 2 + i;
-          }
-          return (
-            <Button
-              key={pageNum}
-              variant={currentPage === pageNum ? "primary" : "outline-secondary"}
-              size="sm"
-              className="me-1"
-              onClick={() => goToPage(pageNum)}
-            >
-              {pageNum}
-            </Button>
-          );
-        })}
-        <Button
-          variant="outline-secondary"
-          size="sm"
-          className="ms-2"
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          {'>'}
-        </Button>
-      </div>
-    </div>
-            </div>
-          </Col>
-          </Row>
+              {view === 'main' ? (
+                <Row>
+          <Col lg={3} md={3} sm={12}>
+           {/* Placeholder for Dashboard Graphs/Charts */}
+           <div className="dashboard-graphs p-3 border rounded bg-white">
+        check box
+           </div>
+         </Col>
+         <Col lg={9} md={9} sm={12}>
+           {/* Placeholder for Dashboard Graphs/Charts */}
+           <div className="dashboard-graphs p-3 border rounded bg-white">
+           <Table striped bordered hover className="table-thead-style">
+     <thead className="table-thead">
+       <tr>
+         <th>S.No.</th>
+         <th>केंद्र का नाम</th>
+         <th>विधानसभा</th>
+         <th>विकास खंड</th>
+         <th>योजना</th>
+         <th>सप्लायर</th>
+         <th>घटक</th>
+         <th>निवेश</th>
+         <th>उप-निवेश</th>
+         <th>आवंटित मात्रा</th>
+         <th>दर</th>
+       </tr>
+     </thead>
+     <tbody>
+       {currentPageData.map((item, index) => (
+         <tr key={item.id || index}>
+           <td>{startIndex + index + 1}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('center_name', item.center_name)}>{item.center_name}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('vidhan_sabha_name', item.vidhan_sabha_name)}>{item.vidhan_sabha_name}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('vikas_khand_name', item.vikas_khand_name)}>{item.vikas_khand_name}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('scheme_name', item.scheme_name)}>{item.scheme_name}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('source_of_receipt', item.source_of_receipt)}>{item.source_of_receipt}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('component', item.component)}>{item.component}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('investment_name', item.investment_name)}>{item.investment_name}</td>
+           <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => handleCellClick('sub_investment_name', item.sub_investment_name || '-')} >{item.sub_investment_name || '-'}</td>
+           <td>{item.allocated_quantity}</td>
+           <td>{item.rate}</td>
+         </tr>
+       ))}
+     </tbody>
+   </Table>
+
+   {/* Pagination */}
+   <div className="d-flex justify-content-between align-items-center mt-3">
+     <span className="text-muted">
+       Page {currentPage} / {totalPages} (Total {tableData.length} items)
+     </span>
+     <div>
+       <Button
+         variant="outline-secondary"
+         size="sm"
+         className="me-2"
+         onClick={() => goToPage(currentPage - 1)}
+         disabled={currentPage === 1}
+       >
+         {'<'}
+       </Button>
+       {[...Array(Math.min(5, totalPages))].map((_, i) => {
+         let pageNum;
+         if (totalPages <= 5) {
+           pageNum = i + 1;
+         } else if (currentPage <= 3) {
+           pageNum = i + 1;
+         } else if (currentPage >= totalPages - 2) {
+           pageNum = totalPages - 4 + i;
+         } else {
+           pageNum = currentPage - 2 + i;
+         }
+         return (
+           <Button
+             key={pageNum}
+             variant={currentPage === pageNum ? "primary" : "outline-secondary"}
+             size="sm"
+             className="me-1"
+             onClick={() => goToPage(pageNum)}
+           >
+             {pageNum}
+           </Button>
+         );
+       })}
+       <Button
+         variant="outline-secondary"
+         size="sm"
+         className="ms-2"
+         onClick={() => goToPage(currentPage + 1)}
+         disabled={currentPage === totalPages}
+       >
+         {'>'}
+       </Button>
+     </div>
+   </div>
+           </div>
+         </Col>
+         </Row>
+              ) : (
+                <Row>
+          <Col lg={3} md={3} sm={12}>
+           <div className="dashboard-graphs p-3 border rounded bg-white">
+             {filterStack.slice().reverse().map((filter, index) => {
+               const filterIndex = filterStack.length - 1 - index;
+               return (
+                 <Form.Group key={filterIndex} className="mb-2">
+                   <Form.Label className="form-label fw-bold">{columnDefs[filter.column]?.label} चुनें</Form.Label>
+                   <div className="dropdown">
+                     <button
+                       className="btn btn-secondary dropdown-toggle drop-option"
+                       type="button"
+                       onClick={() => setDetailedDropdownOpen(prev => ({ ...prev, [filterIndex]: !prev[filterIndex] }))}
+                     >
+                       {Object.values(filter.checked).filter(Boolean).length} selected
+                     </button>
+                     {detailedDropdownOpen[filterIndex] && (
+                       <div className="dropdown-menu show">
+                         <div key="select_all" className="dropdown-item">
+                           <FormCheck className="check-box"
+                             type="checkbox"
+                             id={`select_all_${filterIndex}`}
+                             label="सभी चुनें"
+                             checked={Object.values(filter.checked).every(Boolean)}
+                             onChange={() => handleDetailedCheckboxChange(filterIndex, "SELECT_ALL")}
+                           />
+                         </div>
+                         {Object.keys(filter.checked).map((val) => (
+                           <div key={val} className="dropdown-item">
+                             <FormCheck className="check-box"
+                               type="checkbox"
+                               id={`${filterIndex}_${val}`}
+                               label={val}
+                               checked={filter.checked[val]}
+                               onChange={() => handleDetailedCheckboxChange(filterIndex, val)}
+                             />
+                           </div>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                 </Form.Group>
+               );
+             })}
+           </div>
+         </Col>
+         <Col lg={9} md={9} sm={12}>
+           <div className="dashboard-graphs p-3 border rounded bg-white">
+             <Button variant="secondary" size="sm" onClick={() => { setView('main'); setFilterStack([]); }}>वापस जाएं</Button>
+             {(() => {
+               const filteredData = tableData.filter(item => {
+                 for (let filter of filterStack) {
+                   if (!filter.checked[item[filter.column]]) return false;
+                 }
+                 return true;
+               });
+               const currentFilter = filterStack[filterStack.length - 1];
+               const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
+               if (checkedValues.length === 1) {
+                 return (
+                   <div>
+                     <h5>{selectedItem.value}</h5>
+                     <Table striped bordered hover className="table-thead-style">
+                       <thead className="table-thead">
+                         <tr>
+                           <th>S.No.</th>
+                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
+                             <th key={col}>{columnDefs[col].label}</th>
+                           ))}
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {filteredData.map((item, index) => (
+                           <tr key={item.id || index}>
+                             <td>{index + 1}</td>
+                             {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
+                               <td key={col} style={{cursor: col !== 'allocated_quantity' && col !== 'rate' ? 'pointer' : 'default', color: col !== 'allocated_quantity' && col !== 'rate' ? 'blue' : 'black'}} onClick={col !== 'allocated_quantity' && col !== 'rate' ? () => handleCellClick(col, item[col]) : undefined}>
+                                 {col === 'allocated_quantity' || col === 'rate' ? (parseFloat(item[col]) || 0).toFixed(2) : item[col] || '-'}
+                               </td>
+                             ))}
+                           </tr>
+                         ))}
+                       </tbody>
+                     </Table>
+                     <div className="d-flex justify-content-between align-items-center mt-3">
+                       <span className="text-muted">
+                         Total Items: {filteredData.length}
+                       </span>
+                       <div>
+                         <span className="me-3">
+                           कुल आवंटित मात्रा: {filteredData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}
+                         </span>
+                         <span>
+                           कुल दर: {filteredData.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}
+                         </span>
+                       </div>
+                     </div>
+                   </div>
+                 );
+               } else {
+                 return (
+                   <div>
+                     <h5>Summary</h5>
+                     <Table striped bordered hover className="table-thead-style">
+                       <thead className="table-thead">
+                         <tr>
+                           <th>Value</th>
+                           <th>Total Items</th>
+                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                             <th key={col}>{columnDefs[col].label}</th>
+                           ))}
+                           <th>कुल आवंटित मात्रा</th>
+                           <th>कुल दर</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {checkedValues.map(checkedValue => {
+                           const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                           return (
+                             <tr key={checkedValue}>
+                               <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => {
+                                 // Simulate clicking on single value
+                                 setFilterStack(prev => {
+                                   const newStack = [...prev];
+                                   newStack[newStack.length - 1].checked = { [checkedValue]: true };
+                                   return newStack;
+                                 });
+                               }}>{checkedValue}</td>
+                               <td>{tableDataForValue.length}</td>
+                               {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                                 <td key={col}>{new Set(tableDataForValue.map(item => item[col])).size}</td>
+                               ))}
+                               <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}</td>
+                               <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}</td>
+                             </tr>
+                           );
+                         })}
+                       </tbody>
+                     </Table>
+                     <div className="d-flex justify-content-between align-items-center mt-3">
+                       <span className="text-muted">
+                         Total Values: {checkedValues.length}
+                       </span>
+                       <div>
+                         {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                           <span key={col} className="me-3">
+                             कुल {columnDefs[col].label}: {new Set(filteredData.map(item => item[col])).size}
+                           </span>
+                         ))}
+                         <span className="me-3">
+                           कुल आवंटित मात्रा: {checkedValues.reduce((sum, checkedValue) => {
+                             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                             return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
+                           }, 0).toFixed(2)}
+                         </span>
+                         <span>
+                           कुल दर: {checkedValues.reduce((sum, checkedValue) => {
+                             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                             return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
+                           }, 0).toFixed(2)}
+                         </span>
+                       </div>
+                     </div>
+                   </div>
+                 );
+               }
+             })()}
+           </div>
+         </Col>
+         </Row>
+              )}
             </Container>
           </Col>
         </Row>
