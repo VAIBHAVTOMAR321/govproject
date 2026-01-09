@@ -850,7 +850,11 @@ const MainDashboard = () => {
             {filterStack.slice().reverse().map((filter, index) => {
               const filterIndex = filterStack.length - 1 - index;
               // Get all unique values from filtered data for this column
-              const allValues = [...new Set(filteredTableData.map(item => item[filter.column]).filter(Boolean))].sort();
+              // Sort: selected values first, then unselected
+              const allValues = [...new Set(filteredTableData.map(item => item[filter.column]).filter(Boolean))];
+              const selectedValues = allValues.filter(val => filter.checked[val]).sort();
+              const unselectedValues = allValues.filter(val => !filter.checked[val]).sort();
+              const sortedValues = [...selectedValues, ...unselectedValues];
               return (
                 <Form.Group key={filterIndex} className="mb-2">
                   <Form.Label className="form-label fw-bold">{columnDefs[filter.column]?.label} चुनें</Form.Label>
@@ -873,7 +877,7 @@ const MainDashboard = () => {
                             onChange={() => handleDetailedCheckboxChange(filterIndex, "SELECT_ALL")}
                           />
                         </div>
-                        {allValues.map((val) => (
+                        {sortedValues.map((val) => (
                           <div key={val} className="dropdown-item">
                             <FormCheck className="check-box"
                               type="checkbox"
