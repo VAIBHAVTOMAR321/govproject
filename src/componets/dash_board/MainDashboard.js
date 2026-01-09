@@ -52,8 +52,7 @@ const MainDashboard = () => {
   const [filters, setFilters] = useState({
     center_name: [],
     component: [],
-        sub_investment_name: [],
-
+    sub_investment_name: [],
     investment_name: [],
     source_of_receipt: [],
     scheme_name: [],
@@ -91,6 +90,7 @@ const MainDashboard = () => {
 
   const [detailedDropdownOpen, setDetailedDropdownOpen] = useState(false);
   const [filterStack, setFilterStack] = useState([]);
+  const [selectedTotalColumn, setSelectedTotalColumn] = useState(null);
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -270,6 +270,8 @@ const MainDashboard = () => {
           : [...currentValues, value];
         return { ...prev, [name]: newValues };
       });
+      // Apply filters immediately after checkbox change
+      applyFilters();
     }
   };
 
@@ -289,6 +291,17 @@ const MainDashboard = () => {
     });
     setFilteredTableData(filteredData);
     setCurrentPage(1);
+  };
+
+  // Go back one step in filter stack
+  const goBack = () => {
+    if (filterStack.length > 1) {
+      setFilterStack(prev => prev.slice(0, -1));
+    } else {
+      setView('main');
+      setFilterStack([]);
+      setSelectedItem(null);
+    }
   };
 
   return (
@@ -353,7 +366,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`center_name_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.center_name.every(option => filters.center_name.includes(option))}
+                                checked={filterOptions.center_name.length > 0 && filters.center_name.length === filterOptions.center_name.length}
                                 onChange={() => handleCheckboxChange("center_name", "SELECT_ALL")}
                               />
                             </div>
@@ -393,7 +406,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`vikas_khand_name_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.vikas_khand_name.every(option => filters.vikas_khand_name.includes(option))}
+                                checked={filterOptions.vikas_khand_name.length > 0 && filters.vikas_khand_name.length === filterOptions.vikas_khand_name.length}
                                 onChange={() => handleCheckboxChange("vikas_khand_name", "SELECT_ALL")}
                               />
                             </div>
@@ -433,7 +446,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`vidhan_sabha_name_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.vidhan_sabha_name.every(option => filters.vidhan_sabha_name.includes(option))}
+                                checked={filterOptions.vidhan_sabha_name.length > 0 && filters.vidhan_sabha_name.length === filterOptions.vidhan_sabha_name.length}
                                 onChange={() => handleCheckboxChange("vidhan_sabha_name", "SELECT_ALL")}
                               />
                             </div>
@@ -473,7 +486,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`component_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.component.every(option => filters.component.includes(option))}
+                                checked={filterOptions.component.length > 0 && filters.component.length === filterOptions.component.length}
                                 onChange={() => handleCheckboxChange("component", "SELECT_ALL")}
                               />
                             </div>
@@ -513,7 +526,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`investment_name_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.investment_name.every(option => filters.investment_name.includes(option))}
+                                checked={filterOptions.investment_name.length > 0 && filters.investment_name.length === filterOptions.investment_name.length}
                                 onChange={() => handleCheckboxChange("investment_name", "SELECT_ALL")}
                               />
                             </div>
@@ -553,7 +566,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`sub_investment_name_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.sub_investment_name.every(option => filters.sub_investment_name.includes(option))}
+                                checked={filterOptions.sub_investment_name.length > 0 && filters.sub_investment_name.length === filterOptions.sub_investment_name.length}
                                 onChange={() => handleCheckboxChange("sub_investment_name", "SELECT_ALL")}
                               />
                             </div>
@@ -593,7 +606,7 @@ const MainDashboard = () => {
                                 type="checkbox"
                                 id={`source_of_receipt_SELECT_ALL`}
                                 label="सभी चुनें"
-                                checked={filterOptions.source_of_receipt.every(option => filters.source_of_receipt.includes(option))}
+                                checked={filterOptions.source_of_receipt.length > 0 && filters.source_of_receipt.length === filterOptions.source_of_receipt.length}
                                 onChange={() => handleCheckboxChange("source_of_receipt", "SELECT_ALL")}
                               />
                             </div>
@@ -628,6 +641,15 @@ const MainDashboard = () => {
                         </button>
                         {dropdownOpen.scheme_name && (
                           <div className="dropdown-menu show">
+                            <div key="select_all_scheme" className="dropdown-item">
+                              <FormCheck className="check-box"
+                                type="checkbox"
+                                id={`scheme_name_SELECT_ALL`}
+                                label="सभी चुनें"
+                                checked={filterOptions.scheme_name.length > 0 && filters.scheme_name.length === filterOptions.scheme_name.length}
+                                onChange={() => handleCheckboxChange("scheme_name", "SELECT_ALL")}
+                              />
+                            </div>
                             {filterOptions.scheme_name.map((option) => (
                               <div key={option} className="dropdown-item">
                                 <FormCheck className="check-box"
@@ -795,7 +817,7 @@ const MainDashboard = () => {
          </Col>
          <Col lg={9} md={9} sm={12}>
            <div className="dashboard-graphs p-3 border rounded bg-white">
-             <Button variant="secondary" size="sm" onClick={() => { setView('main'); setFilterStack([]); }}>वापस जाएं</Button>
+             <Button variant="secondary" size="sm" onClick={goBack}>वापस जाएं</Button>
              {(() => {
                const filteredData = tableData.filter(item => {
                  for (let filter of filterStack) {
@@ -867,7 +889,7 @@ const MainDashboard = () => {
                            const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
                            return (
                              <tr key={checkedValue}>
-                               <td style={{cursor: 'pointer', color: 'blue'}} onClick={() => {
+                               <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
                                  // Simulate clicking on single value
                                  setFilterStack(prev => {
                                    const newStack = [...prev];
@@ -875,9 +897,26 @@ const MainDashboard = () => {
                                    return newStack;
                                  });
                                }}>{checkedValue}</td>
-                               <td>{tableDataForValue.length}</td>
+                               <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
+                                 // Drill down to show items for this value
+                                 setFilterStack(prev => {
+                                   const newStack = [...prev];
+                                   newStack[newStack.length - 1].checked = { [checkedValue]: true };
+                                   return newStack;
+                                 });
+                               }}>{tableDataForValue.length}</td>
                                {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
-                                 <td key={col}>{new Set(tableDataForValue.map(item => item[col])).size}</td>
+                                 <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
+                                   // Filter by this column value
+                                   const uniqueValues = [...new Set(tableDataForValue.map(item => item[col]))].filter(Boolean);
+                                   setFilterStack(prev => {
+                                     const newStack = [...prev];
+                                     const checked = {};
+                                     uniqueValues.forEach(val => checked[val] = true);
+                                     newStack.push({ column: col, checked });
+                                     return newStack;
+                                   });
+                                 }}>{new Set(tableDataForValue.map(item => item[col])).size}</td>
                                ))}
                                <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}</td>
                                <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}</td>
@@ -893,23 +932,48 @@ const MainDashboard = () => {
                        <div>
                          {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
                            <span key={col} className="me-3">
-                             कुल {columnDefs[col].label}: {new Set(filteredData.map(item => item[col])).size}
+                             कुल {columnDefs[col].label}: <span style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => setSelectedTotalColumn(col)}>{new Set(filteredData.map(item => item[col])).size}</span>
                            </span>
                          ))}
                          <span className="me-3">
-                           कुल आवंटित मात्रा: {checkedValues.reduce((sum, checkedValue) => {
+                           कुल आवंटित मात्रा: <span style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => setSelectedTotalColumn('allocated_quantity')}>{checkedValues.reduce((sum, checkedValue) => {
                              const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
                              return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
-                           }, 0).toFixed(2)}
+                           }, 0).toFixed(2)}</span>
                          </span>
                          <span>
-                           कुल दर: {checkedValues.reduce((sum, checkedValue) => {
+                           कुल दर: <span style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => setSelectedTotalColumn('rate')}>{checkedValues.reduce((sum, checkedValue) => {
                              const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
                              return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
-                           }, 0).toFixed(2)}
+                           }, 0).toFixed(2)}</span>
                          </span>
                        </div>
                      </div>
+                     {selectedTotalColumn && (
+                       <div className="mt-4">
+                         <h6>Summary for {columnDefs[selectedTotalColumn].label}</h6>
+                         <Button variant="secondary" size="sm" onClick={() => setSelectedTotalColumn(null)}>Close</Button>
+                         <Table striped bordered hover className="table-thead-style mt-2">
+                           <thead className="table-thead">
+                             <tr>
+                               <th>{columnDefs[selectedTotalColumn].label}</th>
+                               <th>Number of Records</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {[...new Set(filteredData.map(item => item[selectedTotalColumn]))].map(value => {
+                               const count = filteredData.filter(item => item[selectedTotalColumn] === value).length;
+                               return (
+                                 <tr key={value}>
+                                   <td>{value || '-'}</td>
+                                   <td>{count}</td>
+                                 </tr>
+                               );
+                             })}
+                           </tbody>
+                         </Table>
+                       </div>
+                     )}
                    </div>
                  );
                }
@@ -927,4 +991,3 @@ const MainDashboard = () => {
 };
 
 export default MainDashboard;
-
