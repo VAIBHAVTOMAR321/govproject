@@ -123,7 +123,7 @@ const MainDashboard = () => {
           ...prev,
           ...uniqueOptions,
         }));
-         
+          
         setError(null);
       } catch (err) {
         console.error("Error fetching filter options:", err);
@@ -155,12 +155,37 @@ const MainDashboard = () => {
   const handleCellClick = (column, value) => {
     setSelectedItem({ column, value });
     setView('detail');
-    // Create new filter
-    let uniqueValues = [...new Set(tableData.map(item => item[column]).filter(Boolean))];
-    let checked = {};
-    uniqueValues.forEach(val => checked[val] = val === value);
-    const newFilter = { column, checked };
-    setFilterStack(prev => [...prev, newFilter]);
+    
+    // Check if a filter for this column already exists
+    const existingFilterIndex = filterStack.findIndex(filter => filter.column === column);
+    
+    if (existingFilterIndex >= 0) {
+      // Filter for this column already exists, add to it
+      setFilterStack(prev => {
+        const newStack = [...prev];
+        const existingFilter = newStack[existingFilterIndex];
+        
+        // Get all unique values for this column from current filtered data
+        const uniqueValues = [...new Set(filteredTableData.map(item => item[column]).filter(Boolean))];
+        
+        // Create a proper copy of the filter with all values
+        const checked = {};
+        uniqueValues.forEach(val => {
+          // Keep existing checked state, or set to true if this is the clicked value
+          checked[val] = existingFilter.checked[val] || val === value;
+        });
+        
+        newStack[existingFilterIndex] = { ...existingFilter, checked };
+        return newStack;
+      });
+    } else {
+      // No filter for this column exists, create new one
+      let uniqueValues = [...new Set(tableData.map(item => item[column]).filter(Boolean))];
+      let checked = {};
+      uniqueValues.forEach(val => checked[val] = val === value);
+      const newFilter = { column, checked };
+      setFilterStack(prev => [...prev, newFilter]);
+    }
   };
 
   // Pagination logic
@@ -215,7 +240,7 @@ const MainDashboard = () => {
     setFilterStack(prev => {
       const newStack = prev.map((filter, idx) => {
         if (idx !== filterIndex) return filter;
-         
+          
         // Create a proper copy of the filter object
         const newFilter = { ...filter, checked: { ...filter.checked } };
         
@@ -227,7 +252,7 @@ const MainDashboard = () => {
         } else {
           newFilter.checked[val] = !newFilter.checked[val];
         }
-         
+          
         return newFilter;
       });
       return newStack;
@@ -712,11 +737,11 @@ const MainDashboard = () => {
            <div className="dashboard-graphs p-3 border rounded bg-white">
         check box
            </div>
-         </Col>
-         <Col lg={9} md={9} sm={12}>
-           {/* Placeholder for Dashboard Graphs/Charts */}
-           <div className="dashboard-graphs p-3 border rounded bg-white">
-           <Table striped bordered hover className="table-thead-style">
+        </Col>
+        <Col lg={9} md={9} sm={12}>
+          {/* Placeholder for Dashboard Graphs/Charts */}
+          <div className="dashboard-graphs p-3 border rounded bg-white">
+          <Table striped bordered hover className="table-thead-style">
      <thead className="table-thead">
        <tr>
          <th>S.No.</th>
@@ -815,236 +840,252 @@ const MainDashboard = () => {
        </Button>
      </div>
    </div>
-           </div>
-         </Col>
-         </Row>
-              ) : (
-                <Row>
-          <Col lg={3} md={3} sm={12}>
-           <div className="dashboard-graphs p-3 border rounded bg-white">
-             {filterStack.slice().reverse().map((filter, index) => {
-               const filterIndex = filterStack.length - 1 - index;
-               return (
-                 <Form.Group key={filterIndex} className="mb-2">
-                   <Form.Label className="form-label fw-bold">{columnDefs[filter.column]?.label} चुनें</Form.Label>
-                   <div className="dropdown">
-                     <button
-                       className="btn btn-secondary dropdown-toggle drop-option"
-                       type="button"
-                       onClick={() => setDetailedDropdownOpen(prev => ({ ...prev, [filterIndex]: !prev[filterIndex] }))}
-                     >
-                       {Object.values(filter.checked).filter(Boolean).length} selected
-                     </button>
-                     {detailedDropdownOpen[filterIndex] && (
-                       <div className="dropdown-menu show">
-                         <div key="select_all" className="dropdown-item">
-                           <FormCheck className="check-box"
-                             type="checkbox"
-                             id={`select_all_${filterIndex}`}
-                             label={Object.values(filter.checked).every(Boolean) ? "सभी हटाएं" : "सभी चुनें"}
-                             checked={Object.values(filter.checked).every(Boolean)}
-                             onChange={() => handleDetailedCheckboxChange(filterIndex, "SELECT_ALL")}
-                           />
-                         </div>
-                         {Object.keys(filter.checked).map((val) => (
-                           <div key={val} className="dropdown-item">
-                             <FormCheck className="check-box"
-                               type="checkbox"
-                               id={`${filterIndex}_${val}`}
-                               label={val}
-                               checked={filter.checked[val]}
-                               onChange={() => handleDetailedCheckboxChange(filterIndex, val)}
-                             />
-                           </div>
-                         ))}
-                       </div>
-                     )}
-                   </div>
-                 </Form.Group>
-               );
-             })}
-           </div>
-         </Col>
-         <Col lg={9} md={9} sm={12}>
-           <div className="dashboard-graphs p-3 border rounded bg-white">
-             <Button variant="secondary" size="sm" onClick={goBack}>वापस जाएं</Button>
-             {(() => {
-               const filteredData = tableData.filter(item => {
-                 for (let filter of filterStack) {
-                   if (!filter.checked[item[filter.column]]) return false;
-                 }
-                 return true;
-               });
-               const currentFilter = filterStack[filterStack.length - 1];
-               const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
-               if (checkedValues.length === 1) {
-                 return (
-                   <div>
-                     <h5>{selectedItem.value}</h5>
-                     <Table striped bordered hover className="table-thead-style">
-                       <thead className="table-thead">
-                         <tr>
-                           <th>S.No.</th>
-                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
-                             <th key={col}>{columnDefs[col].label}</th>
-                           ))}
-                         </tr>
-                       </thead>
-                       <tbody>
-                         {filteredData.map((item, index) => (
-                           <tr key={item.id || index}>
-                             <td>{index + 1}</td>
-                             {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
-                               <td key={col} style={{cursor: col !== 'allocated_quantity' && col !== 'rate' ? 'pointer' : 'default', color: col !== 'allocated_quantity' && col !== 'rate' ? 'blue' : 'black'}} onClick={col !== 'allocated_quantity' && col !== 'rate' ? () => handleCellClick(col, item[col]) : undefined}>
-                                 {col === 'allocated_quantity' || col === 'rate' ? (parseFloat(item[col]) || 0).toFixed(2) : item[col] || '-'}
-                               </td>
-                             ))}
-                           </tr>
-                         ))}
-                       </tbody>
-                       <tfoot>
-                         <tr>
-                           <td style={{fontWeight: 'bold'}}>कुल:</td>
-                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
-                             <td key={col} style={{fontWeight: 'bold'}}>
-                               {col === 'allocated_quantity' || col === 'rate' ? (
-                                 filteredData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2)
-                               ) : (
-                                 new Set(filteredData.map(item => item[col])).size
-                               )}
-                             </td>
-                           ))}
-                         </tr>
-                       </tfoot>
-                     </Table>
-                   </div>
-                 );
-               } else {
-                 const dynamicSummaryHeading = `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items selected)`;
-                 return (
-                   <div>
-                     <h5>{dynamicSummaryHeading}</h5>
-                     <Table striped bordered hover className="table-thead-style">
-                       <thead className="table-thead">
-                         <tr>
-                           <th>{columnDefs[currentFilter.column]?.label || 'Value'}</th>
-                           <th>Total Items</th>
-                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
-                             <th key={col}>{columnDefs[col].label}</th>
-                           ))}
-                           <th>कुल आवंटित मात्रा</th>
-                           <th>कुल दर</th>
-                         </tr>
-                       </thead>
-                       <tbody>
-                         {checkedValues.map(checkedValue => {
-                           const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                           return (
-                             <tr key={checkedValue}>
-                               <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
-                                 // Simulate clicking on single value
-                                 setFilterStack(prev => {
-                                   const newStack = [...prev];
-                                   newStack[newStack.length - 1].checked = { [checkedValue]: true };
-                                   return newStack;
-                                 });
-                               }}>{checkedValue}</td>
-                               <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
-                                 // Drill down to show items for this value
-                                 setFilterStack(prev => {
-                                   const newStack = [...prev];
-                                   newStack[newStack.length - 1].checked = { [checkedValue]: true };
-                                   return newStack;
-                                 });
-                               }}>{tableDataForValue.length}</td>
-                               {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
-                                 <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
-                                   // Filter by this column value
-                                   const uniqueValues = [...new Set(tableDataForValue.map(item => item[col]))].filter(Boolean);
-                                   setFilterStack(prev => {
-                                     const newStack = [...prev];
-                                     const checked = {};
-                                     uniqueValues.forEach(val => checked[val] = true);
-                                     newStack.push({ column: col, checked });
-                                     return newStack;
-                                   });
-                                 }}>{new Set(tableDataForValue.map(item => item[col])).size}</td>
-                               ))}
-                               <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}</td>
-                               <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}</td>
-                             </tr>
-                           );
-                         })}
-                       </tbody>
-                       <tfoot>
-                         <tr>
-                           <td style={{fontWeight: 'bold'}}>कुल:</td>
-                           <td style={{fontWeight: 'bold'}}>{checkedValues.reduce((sum, checkedValue) => {
-                             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                             return sum + tableDataForValue.length;
-                           }, 0)}</td>
-                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
-                             <td key={col} style={{fontWeight: 'bold'}}>
-                               {checkedValues.reduce((sum, checkedValue) => {
-                                 const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                                 return sum + new Set(tableDataForValue.map(item => item[col])).size;
-                               }, 0)}
-                             </td>
-                           ))}
-                           <td style={{fontWeight: 'bold'}}>
-                             {checkedValues.reduce((sum, checkedValue) => {
-                               const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                               return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
-                             }, 0).toFixed(2)}
-                           </td>
-                           <td style={{fontWeight: 'bold'}}>
-                             {checkedValues.reduce((sum, checkedValue) => {
-                               const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                               return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
-                             }, 0).toFixed(2)}
-                           </td>
-                         </tr>
-                       </tfoot>
-                     </Table>
-                     {selectedTotalColumn && (
-                       <div className="mt-4">
-                         <h6>Summary for {columnDefs[selectedTotalColumn].label}</h6>
-                         <Button variant="secondary" size="sm" onClick={() => setSelectedTotalColumn(null)}>Close</Button>
-                         <Table striped bordered hover className="table-thead-style mt-2">
-                           <thead className="table-thead">
-                             <tr>
-                               <th>{columnDefs[selectedTotalColumn].label}</th>
-                               <th>Number of Records</th>
-                             </tr>
-                           </thead>
-                           <tbody>
-                             {[...new Set(filteredData.map(item => item[selectedTotalColumn]))].map(value => {
-                               const count = filteredData.filter(item => item[selectedTotalColumn] === value).length;
-                               return (
-                                 <tr key={value}>
-                                   <td>{value || '-'}</td>
-                                   <td>{count}</td>
-                                 </tr>
-                               );
-                             })}
-                           </tbody>
-                         </Table>
-                       </div>
-                     )}
-                   </div>
-                 );
-               }
-             })()}
-           </div>
-         </Col>
-         </Row>
-              )}
-            </Container>
-          </Col>
+          </div>
+        </Col>
         </Row>
-      </Container>
-    </div>
-  );
+             ) : (
+               <Row>
+         <Col lg={3} md={3} sm={12}>
+          <div className="dashboard-graphs p-3 border rounded bg-white">
+            {filterStack.slice().reverse().map((filter, index) => {
+              const filterIndex = filterStack.length - 1 - index;
+              // Get all unique values from filtered data for this column
+              const allValues = [...new Set(filteredTableData.map(item => item[filter.column]).filter(Boolean))].sort();
+              return (
+                <Form.Group key={filterIndex} className="mb-2">
+                  <Form.Label className="form-label fw-bold">{columnDefs[filter.column]?.label} चुनें</Form.Label>
+                  <div className="dropdown">
+                    <button
+                      className="btn btn-secondary dropdown-toggle drop-option"
+                      type="button"
+                      onClick={() => setDetailedDropdownOpen(prev => ({ ...prev, [filterIndex]: !prev[filterIndex] }))}
+                    >
+                      {Object.values(filter.checked).filter(Boolean).length} selected
+                    </button>
+                    {detailedDropdownOpen[filterIndex] && (
+                      <div className="dropdown-menu show">
+                        <div key="select_all" className="dropdown-item">
+                          <FormCheck className="check-box"
+                            type="checkbox"
+                            id={`select_all_${filterIndex}`}
+                            label={Object.values(filter.checked).every(Boolean) ? "सभी हटाएं" : "सभी चुनें"}
+                            checked={Object.values(filter.checked).every(Boolean)}
+                            onChange={() => handleDetailedCheckboxChange(filterIndex, "SELECT_ALL")}
+                          />
+                        </div>
+                        {allValues.map((val) => (
+                          <div key={val} className="dropdown-item">
+                            <FormCheck className="check-box"
+                              type="checkbox"
+                              id={`${filterIndex}_${val}`}
+                              label={val}
+                              checked={filter.checked[val] || false}
+                              onChange={() => handleDetailedCheckboxChange(filterIndex, val)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Form.Group>
+              );
+            })}
+          </div>
+        </Col>
+        <Col lg={9} md={9} sm={12}>
+          <div className="dashboard-graphs p-3 border rounded bg-white">
+            <Button variant="secondary" size="sm" onClick={goBack}>वापस जाएं</Button>
+            {(() => {
+              const filteredData = tableData.filter(item => {
+                for (let filter of filterStack) {
+                  if (!filter.checked[item[filter.column]]) return false;
+                }
+                return true;
+              });
+              const currentFilter = filterStack[filterStack.length - 1];
+              const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
+              if (checkedValues.length === 1) {
+                return (
+                  <div>
+                    <h5>{selectedItem.value}</h5>
+                    <Table striped bordered hover className="table-thead-style">
+                      <thead className="table-thead">
+                        <tr>
+                          <th>S.No.</th>
+                          {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
+                            <th key={col}>{columnDefs[col].label}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredData.map((item, index) => (
+                          <tr key={item.id || index}>
+                            <td>{index + 1}</td>
+                            {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
+                              <td key={col} style={{cursor: col !== 'allocated_quantity' && col !== 'rate' ? 'pointer' : 'default', color: col !== 'allocated_quantity' && col !== 'rate' ? 'blue' : 'black'}} onClick={col !== 'allocated_quantity' && col !== 'rate' ? () => handleCellClick(col, item[col]) : undefined}>
+                                {col === 'allocated_quantity' || col === 'rate' ? (parseFloat(item[col]) || 0).toFixed(2) : item[col] || '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td style={{fontWeight: 'bold'}}>कुल:</td>
+                          {Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(col => (
+                            <td key={col} style={{fontWeight: 'bold'}}>
+                              {col === 'allocated_quantity' || col === 'rate' ? (
+                                filteredData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2)
+                              ) : (
+                                new Set(filteredData.map(item => item[col])).size
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      </tfoot>
+                    </Table>
+                  </div>
+                );
+              } else {
+                const dynamicSummaryHeading = `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items selected)`;
+                return (
+                  <div>
+                    <h5>{dynamicSummaryHeading}</h5>
+                    <Table striped bordered hover className="table-thead-style">
+                      <thead className="table-thead">
+                        <tr>
+                          <th>{columnDefs[currentFilter.column]?.label || 'Value'}</th>
+                          <th>Total Items</th>
+                          {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                            <th key={col}>{columnDefs[col].label}</th>
+                          ))}
+                          <th>कुल आवंटित मात्रा</th>
+                          <th>कुल दर</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {checkedValues.map(checkedValue => {
+                          const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                          return (
+                            <tr key={checkedValue}>
+                              <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
+                                // Simulate clicking on single value
+                                setFilterStack(prev => {
+                                  const newStack = [...prev];
+                                  newStack[newStack.length - 1].checked = { [checkedValue]: true };
+                                  return newStack;
+                                });
+                              }}>{checkedValue}</td>
+                              <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
+                                // Drill down to show items for this value
+                                setFilterStack(prev => {
+                                  const newStack = [...prev];
+                                  newStack[newStack.length - 1].checked = { [checkedValue]: true };
+                                  return newStack;
+                                });
+                              }}>{tableDataForValue.length}</td>
+                              {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                                <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
+                                  // Filter by this column value
+                                  const uniqueValues = [...new Set(tableDataForValue.map(item => item[col]))].filter(Boolean);
+                                  setFilterStack(prev => {
+                                    const newStack = [...prev];
+                                    const existingFilterIndex = newStack.findIndex(f => f.column === col);
+                                    if (existingFilterIndex >= 0) {
+                                      // Add to existing filter
+                                      const checked = {};
+                                      uniqueValues.forEach(val => {
+                                        checked[val] = true;
+                                      });
+                                      newStack[existingFilterIndex] = { ...newStack[existingFilterIndex], checked };
+                                    } else {
+                                      // Create new filter
+                                      const checked = {};
+                                      uniqueValues.forEach(val => {
+                                        checked[val] = true;
+                                      });
+                                      newStack.push({ column: col, checked });
+                                    }
+                                    return newStack;
+                                  });
+                                }}>{new Set(tableDataForValue.map(item => item[col])).size}</td>
+                              ))}
+                              <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2)}</td>
+                              <td>{tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td style={{fontWeight: 'bold'}}>कुल:</td>
+                          <td style={{fontWeight: 'bold'}}>{checkedValues.reduce((sum, checkedValue) => {
+                            const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                            return sum + tableDataForValue.length;
+                          }, 0)}</td>
+                          {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
+                            <td key={col} style={{fontWeight: 'bold'}}>
+                              {checkedValues.reduce((sum, checkedValue) => {
+                                const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                                return sum + new Set(tableDataForValue.map(item => item[col])).size;
+                              }, 0)}
+                            </td>
+                          ))}
+                          <td style={{fontWeight: 'bold'}}>
+                            {checkedValues.reduce((sum, checkedValue) => {
+                              const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                              return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
+                            }, 0).toFixed(2)}
+                          </td>
+                          <td style={{fontWeight: 'bold'}}>
+                            {checkedValues.reduce((sum, checkedValue) => {
+                              const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+                              return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
+                            }, 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </Table>
+                    {selectedTotalColumn && (
+                      <div className="mt-4">
+                        <h6>Summary for {columnDefs[selectedTotalColumn].label}</h6>
+                        <Button variant="secondary" size="sm" onClick={() => setSelectedTotalColumn(null)}>Close</Button>
+                        <Table striped bordered hover className="table-thead-style mt-2">
+                          <thead className="table-thead">
+                            <tr>
+                              <th>{columnDefs[selectedTotalColumn].label}</th>
+                              <th>Number of Records</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[...new Set(filteredData.map(item => item[selectedTotalColumn]))].map(value => {
+                              const count = filteredData.filter(item => item[selectedTotalColumn] === value).length;
+                              return (
+                                <tr key={value}>
+                                  <td>{value || '-'}</td>
+                                  <td>{count}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+            })()}
+          </div>
+        </Col>
+        </Row>
+             )}
+           </Container>
+         </Col>
+       </Row>
+     </Container>
+   </div>
+ );
+
 };
 
 export default MainDashboard;
