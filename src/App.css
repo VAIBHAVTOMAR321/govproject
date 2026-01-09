@@ -1,7 +1,50 @@
 .App {
   text-align: center;
 }
+/* App container takes full viewport height */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
 
+/* Main content area that will scroll */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 60px; /* Space for the footer */
+}
+
+/* Footer styling */
+.copyright-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #f8f9fa;
+  padding: 10px 0;
+  text-align: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+}
+
+/* Ensure body and html take full height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Adjust the MainDashboard container to work with the new layout */
+.dashboard-body-main {
+  padding-bottom: 80px; /* Extra padding to account for the fixed footer */
+}
+
+/* For pages with hidden navbar, adjust the main content */
+.navbar-hidden .main-content {
+  padding-top: 20px;
+}
 .App-logo {
   height: 40vmin;
   pointer-events: none;
