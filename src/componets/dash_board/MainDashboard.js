@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, Form, Table, FormCheck } from "react-bootstrap";
+import { Container, Row, Col, Button, Form, Table, FormCheck, Modal } from "react-bootstrap";
 import Select from "react-select";
 import "../../assets/css/registration.css";
 import DashBoardHeader from "./DashBoardHeader";
 import { BiFilter } from "react-icons/bi";
-import { RiFilter2Line } from "react-icons/ri";
+import { RiFilter2Line, RiFileExcelLine, RiFilePdfLine, RiAddLine, RiDeleteBinLine, RiEyeLine } from "react-icons/ri";
 import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
-
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 
@@ -91,6 +93,13 @@ const MainDashboard = () => {
   const [detailedDropdownOpen, setDetailedDropdownOpen] = useState(false);
   const [filterStack, setFilterStack] = useState([]);
   const [selectedTotalColumn, setSelectedTotalColumn] = useState(null);
+  const [tablesForExport, setTablesForExport] = useState({
+    pdf: [],
+    excel: []
+  });
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState('pdf');
+  const [tableName, setTableName] = useState('');
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -154,38 +163,29 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
   // Handle cell click for detailed view
   const handleCellClick = (column, value) => {
     setSelectedItem({ column, value });
-    setView('detail');
     
+    // Create a new filter with ONLY the clicked value selected
+    // This will show detailed data for that specific value first
+    const checked = { [value]: true };
+    
+    // Set up filter stack with this column's filter
     // Check if a filter for this column already exists
     const existingFilterIndex = filterStack.findIndex(filter => filter.column === column);
     
     if (existingFilterIndex >= 0) {
-      // Filter for this column already exists, add to it
+      // Filter for this column already exists, update it
       setFilterStack(prev => {
         const newStack = [...prev];
-        const existingFilter = newStack[existingFilterIndex];
-        
-        // Get all unique values for this column from current filtered data
-        const uniqueValues = [...new Set(filteredTableData.map(item => item[column]).filter(Boolean))];
-        
-        // Create a proper copy of the filter with all values
-        const checked = {};
-        uniqueValues.forEach(val => {
-          // Keep existing checked state, or set to true if this is the clicked value
-          checked[val] = existingFilter.checked[val] || val === value;
-        });
-        
-        newStack[existingFilterIndex] = { ...existingFilter, checked };
+        newStack[existingFilterIndex] = { column, checked };
         return newStack;
       });
     } else {
       // No filter for this column exists, create new one
-      let uniqueValues = [...new Set(tableData.map(item => item[column]).filter(Boolean))];
-      let checked = {};
-      uniqueValues.forEach(val => checked[val] = val === value);
       const newFilter = { column, checked };
       setFilterStack(prev => [...prev, newFilter]);
     }
+    
+    setView('detail');
   };
 
   // Pagination logic
@@ -363,6 +363,325 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
       setSelectedItem(null);
     }
   };
+
+  // Get current table data based on view
+  const getCurrentTableData = () => {
+    if (view === 'main') {
+      return {
+        heading: getSummaryHeading(),
+        data: filteredTableData,
+        columns: Object.keys(columnDefs)
+      };
+    } else {
+      const filteredData = tableData.filter(item => {
+        for (let filter of filterStack) {
+          if (!filter.checked[item[filter.column]]) return false;
+        }
+        return true;
+      });
+      const currentFilter = filterStack[filterStack.length - 1];
+      const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
+      
+      if (checkedValues.length === 1) {
+        return {
+          heading: selectedItem?.value || 'Detail View',
+          data: filteredData,
+          columns: Object.keys(columnDefs).filter(col => col !== currentFilter.column)
+        };
+      } else {
+        // Summary table
+        const summaryData = checkedValues.map(checkedValue => {
+          const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+          return {
+            [columnDefs[currentFilter.column]?.label]: checkedValue,
+            'Total Items': tableDataForValue.length,
+            'कुल आवंटित मात्रा': tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2),
+            'कुल दर': tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)
+          };
+        });
+        return {
+          heading: `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items)`,
+          data: summaryData,
+          columns: [columnDefs[currentFilter.column]?.label, 'Total Items', 'कुल आवंटित मात्रा', 'कुल दर']
+        };
+      }
+    }
+  };
+
+  // Add current table to export list
+  const addTableToExport = (type) => {
+    const currentTable = getCurrentTableData();
+    const defaultName = `Table ${tablesForExport[type].length + 1}`;
+    setTableName(defaultName);
+    setExportType(type);
+    setShowExportModal(true);
+  };
+
+  // Confirm add table
+  const confirmAddTable = () => {
+    const currentTable = getCurrentTableData();
+    const newTable = {
+      id: Date.now(),
+      name: tableName || `Table ${tablesForExport[exportType].length + 1}`,
+      heading: currentTable.heading,
+      data: currentTable.data,
+      columns: currentTable.columns,
+      addedAt: new Date().toLocaleString()
+    };
+    setTablesForExport(prev => ({
+      ...prev,
+      [exportType]: [...prev[exportType], newTable]
+    }));
+    setShowExportModal(false);
+    setTableName('');
+  };
+
+  // Remove table from export list
+  const removeTableFromExport = (type, tableId) => {
+    setTablesForExport(prev => ({
+      ...prev,
+      [type]: prev[type].filter(table => table.id !== tableId)
+    }));
+  };
+
+  // Generate PDF
+  const generatePDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Check if autoTable is available
+      if (typeof doc.autoTable !== 'function') {
+        console.error('jspdf-autotable plugin not loaded. Trying to load...');
+        // Try to load jspdf-autotable dynamically
+        import('jspdf-autotable').then(() => {
+          console.log('jspdf-autotable loaded dynamically');
+          // Retry PDF generation after loading
+          setTimeout(() => generatePDF(), 100);
+        }).catch(err => {
+          console.error('Failed to load jspdf-autotable:', err);
+          alert('Failed to load PDF functionality. Please restart the application.');
+        });
+        return;
+      }
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.text('Exported Tables Report', 14, 22);
+      
+      let yPos = 30;
+      
+      tablesForExport.pdf.forEach((table, index) => {
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        // Table heading
+        doc.setFontSize(14);
+        doc.text(`${index + 1}. ${table.heading}`, 14, yPos);
+        yPos += 8;
+        
+        // Prepare data for autoTable
+        const tableData = table.data.map((row, idx) => {
+          return table.columns.map(col => {
+            if (typeof row === 'object' && row !== null) {
+              return row[col] || '';
+            }
+            return row;
+          });
+        });
+        
+        // Add table
+        doc.autoTable({
+          startY: yPos,
+          head: [table.columns],
+          body: tableData,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [41, 128, 185] },
+          margin: { top: 20 }
+        });
+        
+        yPos = doc.lastAutoTable.finalY + 15;
+      });
+      
+      doc.save('exported-tables.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF: ' + error.message);
+    }
+  };
+
+  // Generate Excel
+  const generateExcel = () => {
+    const workbook = XLSX.utils.book_new();
+    
+    tablesForExport.excel.forEach((table, index) => {
+      // Prepare data for this table
+      const tableDataArray = [
+        [table.heading], // Title
+        [], // Empty row
+        table.columns, // Headers
+        ...table.data.map(row => table.columns.map(col => {
+          if (typeof row === 'object' && row !== null) {
+            return row[col] || '';
+          }
+          return row;
+        }))
+      ];
+      
+      const sheetName = table.name.substring(0, 31); // Excel sheet name limit
+      
+      // Check if sheet already exists in workbook
+      if (workbook.SheetNames.includes(sheetName)) {
+        // Append data to existing sheet
+        const existingSheet = workbook.Sheets[sheetName];
+        
+        // Get the range of the existing sheet to find where to append
+        const existingRange = XLSX.utils.decode_range(existingSheet['!ref'] || 'A1');
+        const startRow = existingRange.e.r + 2; // Add 2 rows gap (1 for empty row, 1 for new data)
+        
+        // Add empty row before new data
+        const emptyRow = {};
+        for (let col = 0; col < table.columns.length; col++) {
+          emptyRow[XLSX.utils.encode_col(col) + (startRow + 1)] = { t: 's', v: '' };
+        }
+        
+        // Add new data starting from the row after empty row
+        tableDataArray.forEach((rowData, rowIndex) => {
+          const currentRow = startRow + 2 + rowIndex;
+          rowData.forEach((cellData, colIndex) => {
+            const cellRef = XLSX.utils.encode_col(colIndex) + currentRow;
+            existingSheet[cellRef] = { t: typeof cellData === 'number' ? 'n' : 's', v: cellData };
+          });
+        });
+        
+        // Update the sheet range
+        const newEndRow = startRow + 2 + tableDataArray.length - 1;
+        existingSheet['!ref'] = XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: table.columns.length - 1, r: newEndRow }
+        });
+        
+        // Update column widths if needed
+        if (!existingSheet['!cols']) {
+          const colWidths = table.columns.map(() => ({ wch: 15 }));
+          existingSheet['!cols'] = colWidths;
+        }
+      } else {
+        // Create new sheet
+        const worksheet = XLSX.utils.aoa_to_sheet(tableDataArray);
+        
+        // Set column widths
+        const colWidths = table.columns.map(() => ({ wch: 15 }));
+        worksheet['!cols'] = colWidths;
+        
+        // Add sheet to workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      }
+    });
+    
+    XLSX.writeFile(workbook, 'exported-tables.xlsx');
+  };
+
+  // Export Section Component
+  const ExportSection = () => (
+    <div className="export-section mb-3 p-3 border rounded bg-light">
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h6 className="mb-0">
+          <RiFilePdfLine /> निर्यात विकल्प
+        </h6>
+      </div>
+      <div className="d-flex gap-2 flex-wrap">
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => addTableToExport('pdf')}
+          className="d-flex align-items-center gap-1"
+        >
+          <RiFilePdfLine /> इस टेबल को PDF में जोड़ें
+        </Button>
+        <Button
+          variant="success"
+          size="sm"
+          onClick={() => addTableToExport('excel')}
+          className="d-flex align-items-center gap-1"
+        >
+          <RiFileExcelLine /> इस टेबल को Excel में जोड़ें
+        </Button>
+      </div>
+      
+      {/* Selected Tables Display */}
+      {(tablesForExport.pdf.length > 0 || tablesForExport.excel.length > 0) && (
+        <div className="mt-2">
+          <h6 className="mb-2">चयनित टेबल:</h6>
+          <div className="d-flex gap-3 flex-wrap">
+            {tablesForExport.pdf.length > 0 && (
+              <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '180px'}}>
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="fw-bold text-danger small"><RiFilePdfLine /> PDF ({tablesForExport.pdf.length})</span>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={generatePDF}
+                    disabled={tablesForExport.pdf.length === 0}
+                  >
+                    डाउनलोड
+                  </Button>
+                </div>
+                <div className="table-list" style={{maxHeight: '100px', overflowY: 'auto'}}>
+                  {tablesForExport.pdf.map((table, idx) => (
+                    <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                      <span className="small text-truncate" style={{maxWidth: '100px'}}>{idx + 1}. {table.name}</span>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-danger p-0"
+                        onClick={() => removeTableFromExport('pdf', table.id)}
+                      >
+                        <RiDeleteBinLine />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {tablesForExport.excel.length > 0 && (
+              <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '180px'}}>
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="fw-bold text-success small"><RiFileExcelLine /> Excel ({tablesForExport.excel.length})</span>
+                  <Button
+                    variant="outline-success"
+                    size="sm"
+                    onClick={generateExcel}
+                    disabled={tablesForExport.excel.length === 0}
+                  >
+                    डाउनलोड
+                  </Button>
+                </div>
+                <div className="table-list" style={{maxHeight: '100px', overflowY: 'auto'}}>
+                  {tablesForExport.excel.map((table, idx) => (
+                    <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                      <span className="small text-truncate" style={{maxWidth: '100px'}}>{idx + 1}. {table.name}</span>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-danger p-0"
+                        onClick={() => removeTableFromExport('excel', table.id)}
+                      >
+                        <RiDeleteBinLine />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div>
@@ -732,13 +1051,14 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
               </div>
               {view === 'main' ? (
                 <Row>
-         
+          
         <Col  lg={isFilterApplied ? 9 : 12}
   md={12}
   sm={12}>
           {/* Placeholder for Dashboard Graphs/Charts */}
           <div className="dashboard-graphs p-3 border rounded bg-white">
-          <Table striped bordered hover className="table-thead-style">
+            <ExportSection />
+            <Table striped bordered hover className="table-thead-style">
      <thead className="table-thead">
        <tr>
          <th>S.No.</th>
@@ -838,6 +1158,103 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
      </div>
    </div>
           </div>
+          
+          {/* Export Section */}
+          <div className="export-section mt-4 p-3 border rounded bg-light">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="mb-0">
+                <i className="fltr-icon"><RiFilePdfLine /></i> निर्यात विकल्प
+              </h6>
+            </div>
+            <div className="d-flex gap-2 flex-wrap">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => addTableToExport('pdf')}
+                className="d-flex align-items-center gap-1"
+              >
+                <RiFilePdfLine /> इस टेबल को PDF में जोड़ें
+              </Button>
+              <Button
+                variant="success"
+                size="sm"
+                onClick={() => addTableToExport('excel')}
+                className="d-flex align-items-center gap-1"
+              >
+                <RiFileExcelLine /> इस टेबल को Excel में जोड़ें
+              </Button>
+            </div>
+            
+            {/* Selected Tables Display */}
+            {(tablesForExport.pdf.length > 0 || tablesForExport.excel.length > 0) && (
+              <div className="mt-3">
+                <h6 className="mb-2">चयनित टेबल:</h6>
+                <div className="d-flex gap-3 flex-wrap">
+                  {tablesForExport.pdf.length > 0 && (
+                    <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '200px'}}>
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="fw-bold text-danger"><RiFilePdfLine /> PDF ({tablesForExport.pdf.length})</span>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={generatePDF}
+                          disabled={tablesForExport.pdf.length === 0}
+                        >
+                          डाउनलोड PDF
+                        </Button>
+                      </div>
+                      <div className="table-list" style={{maxHeight: '150px', overflowY: 'auto'}}>
+                        {tablesForExport.pdf.map((table, idx) => (
+                          <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span className="small">{idx + 1}. {table.name}</span>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-danger p-0"
+                              onClick={() => removeTableFromExport('pdf', table.id)}
+                            >
+                              <RiDeleteBinLine />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {tablesForExport.excel.length > 0 && (
+                    <div className="selected-tables-card p-2 border rounded bg-white" style={{minWidth: '200px'}}>
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="fw-bold text-success"><RiFileExcelLine /> Excel ({tablesForExport.excel.length})</span>
+                        <Button
+                          variant="outline-success"
+                          size="sm"
+                          onClick={generateExcel}
+                          disabled={tablesForExport.excel.length === 0}
+                        >
+                          डाउनलोड Excel
+                        </Button>
+                      </div>
+                      <div className="table-list" style={{maxHeight: '150px', overflowY: 'auto'}}>
+                        {tablesForExport.excel.map((table, idx) => (
+                          <div key={table.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span className="small">{idx + 1}. {table.name}</span>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-danger p-0"
+                              onClick={() => removeTableFromExport('excel', table.id)}
+                            >
+                              <RiDeleteBinLine />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </Col>
         </Row>
              ) : (
@@ -909,6 +1326,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
                 return (
                   <div>
                     <h5>{selectedItem.value}</h5>
+                    <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
                       <thead className="table-thead">
                         <tr>
@@ -952,6 +1370,7 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
                 return (
                   <div>
                     <h5>{dynamicSummaryHeading}</h5>
+                    <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
                       <thead className="table-thead">
                         <tr>
@@ -1080,12 +1499,43 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
         </Col>
         </Row>
              )}
-           </Container>
-         </Col>
-       </Row>
-     </Container>
-   </div>
- );
+            </Container>
+          </Col>
+        </Row>
+      </Container>
+      
+      {/* Export Modal */}
+      <Modal show={showExportModal} onHide={() => setShowExportModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {exportType === 'pdf' ? 'PDF में जोड़ें' : 'Excel में जोड़ें'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group>
+            <Form.Label>टेबल का नाम</Form.Label>
+            <Form.Control
+              type="text"
+              value={tableName}
+              onChange={(e) => setTableName(e.target.value)}
+              placeholder="टेबल का नाम दर्ज करें"
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowExportModal(false)}>
+            रद्द करें
+          </Button>
+          <Button 
+            variant={exportType === 'pdf' ? 'danger' : 'success'} 
+            onClick={confirmAddTable}
+          >
+            जोड़ें
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
 
 };
 
