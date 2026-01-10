@@ -166,9 +166,16 @@ const [isFilterApplied, setIsFilterApplied] = useState(false);
   const handleCellClick = (column, value) => {
     setSelectedItem({ column, value });
     
-    // Create a new filter with ONLY the clicked value selected
-    // This will show detailed data for that specific value first
-    const checked = { [value]: true };
+    // Get all unique values for this column from filtered data
+    const allValues = [...new Set(filteredTableData.map(item => item[column]).filter(Boolean))];
+    
+    // Create checked object with all values initialized to false
+    // Then set the clicked value to true
+    const checked = {};
+    allValues.forEach(val => {
+      checked[val] = false;
+    });
+    checked[value] = true;
     
     // Set up filter stack with this column's filter
     // Check if a filter for this column already exists
