@@ -219,11 +219,18 @@ const MainDashboard = () => {
     };
     setFilters(clearedFilters);
     setCurrentPage(1);
+    setIsFilterApplied(false);
 
     // Refresh table with all data
     setFilteredTableData(tableData);
   };
   const [isFilterApplied, setIsFilterApplied] = useState(false);
+  
+    // Check if filters are applied from top filtering
+    const checkIfTopFiltersApplied = () => {
+      const hasFilters = Object.values(filters).some(filter => filter.length > 0);
+      setIsFilterApplied(hasFilters);
+    };
   // Handle cell click for detailed view
   const handleCellClick = (column, value) => {
     setSelectedItem({ column, value });
@@ -416,6 +423,7 @@ const MainDashboard = () => {
     });
     setFilteredTableData(filteredData);
     setCurrentPage(1);
+    checkIfTopFiltersApplied();
   };
 
   // Generate dynamic summary heading based on applied filters
@@ -1468,7 +1476,7 @@ const MainDashboard = () => {
               )}
               {view === "main" ? (
                 <Row>
-                  <Col lg={isFilterApplied ? 9 : 12} md={12} sm={12}>
+                  <Col lg={isFilterApplied ? 12 : 12} md={12} sm={12}>
                     {/* Placeholder for Dashboard Graphs/Charts */}
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       <ExportSection />
@@ -1498,87 +1506,127 @@ const MainDashboard = () => {
                             <tr key={item.id || index}>
                               <td>{startIndex + index + 1}</td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "center_name",
-                                    item.center_name
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "center_name",
+                                      item.center_name
+                                    );
+                                  }
+                                }}
                               >
                                 {item.center_name}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "vidhan_sabha_name",
-                                    item.vidhan_sabha_name
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "vidhan_sabha_name",
+                                      item.vidhan_sabha_name
+                                    );
+                                  }
+                                }}
                               >
                                 {item.vidhan_sabha_name}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "vikas_khand_name",
-                                    item.vikas_khand_name
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "vikas_khand_name",
+                                      item.vikas_khand_name
+                                    );
+                                  }
+                                }}
                               >
                                 {item.vikas_khand_name}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "scheme_name",
-                                    item.scheme_name
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "scheme_name",
+                                      item.scheme_name
+                                    );
+                                  }
+                                }}
                               >
                                 {item.scheme_name}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "source_of_receipt",
-                                    item.source_of_receipt
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "source_of_receipt",
+                                      item.source_of_receipt
+                                    );
+                                  }
+                                }}
                               >
                                 {item.source_of_receipt}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick("component", item.component)
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick("component", item.component);
+                                  }
+                                }}
                               >
                                 {item.component}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "investment_name",
-                                    item.investment_name
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "investment_name",
+                                      item.investment_name
+                                    );
+                                  }
+                                }}
                               >
                                 {item.investment_name}
                               </td>
                               <td
-                                style={{ cursor: "pointer", color: "blue" }}
-                                onClick={() =>
-                                  handleCellClick(
-                                    "sub_investment_name",
-                                    item.sub_investment_name || "-"
-                                  )
-                                }
+                                style={{
+                                  cursor: isFilterApplied ? "default" : "pointer",
+                                  color: isFilterApplied ? "black" : "blue"
+                                }}
+                                onClick={() => {
+                                  if (!isFilterApplied) {
+                                    handleCellClick(
+                                      "sub_investment_name",
+                                      item.sub_investment_name || "-"
+                                    );
+                                  }
+                                }}
                               >
                                 {item.sub_investment_name || "-"}
                               </td>
@@ -1744,108 +1792,110 @@ const MainDashboard = () => {
                 </Row>
               ) : (
                 <Row>
-                  <Col lg={3} md={3} sm={12}>
-                    <div className="dashboard-graphs p-3 border rounded bg-white">
-                      {filterStack
-                        .slice()
-                        .reverse()
-                        .map((filter, index) => {
-                          const filterIndex = filterStack.length - 1 - index;
-                          // Get all unique values from filtered data for this column
-                          // Sort: selected values first, then unselected
-                          const allValues = [
-                            ...new Set(
-                              filteredTableData
-                                .map((item) => item[filter.column])
-                                .filter(Boolean)
-                            ),
-                          ];
-                          const selectedValues = allValues
-                            .filter((val) => filter.checked[val])
-                            .sort();
-                          const unselectedValues = allValues
-                            .filter((val) => !filter.checked[val])
-                            .sort();
-                          const sortedValues = [
-                            ...selectedValues,
-                            ...unselectedValues,
-                          ];
-                          return (
-                            <Form.Group key={filterIndex} className="mb-2">
-                              <Form.Label className="form-label fw-bold">
-                                {columnDefs[filter.column]?.label} चुनें
-                              </Form.Label>
-                              <div className="dropdown">
-                                <button
-                                  className="btn btn-secondary dropdown-toggle drop-option"
-                                  type="button"
-                                  onClick={() =>
-                                    setDetailedDropdownOpen((prev) => ({
-                                      ...prev,
-                                      [filterIndex]: !prev[filterIndex],
-                                    }))
-                                  }
-                                >
-                                  {
-                                    Object.values(filter.checked).filter(
-                                      Boolean
-                                    ).length
-                                  }{" "}
-                                  selected
-                                </button>
-                                {detailedDropdownOpen[filterIndex] && (
-                                  <div className="dropdown-menu show">
-                                    <div
-                                      key="select_all"
-                                      className="dropdown-item"
-                                    >
-                                      <FormCheck
-                                        className="check-box"
-                                        type="checkbox"
-                                        id={`select_all_${filterIndex}`}
-                                        label={
-                                          Object.values(filter.checked).every(
-                                            Boolean
-                                          )
-                                            ? "सभी हटाएं"
-                                            : "सभी चुनें"
-                                        }
-                                        checked={Object.values(
-                                          filter.checked
-                                        ).every(Boolean)}
-                                        onChange={() =>
-                                          handleDetailedCheckboxChange(
-                                            filterIndex,
-                                            "SELECT_ALL"
-                                          )
-                                        }
-                                      />
-                                    </div>
-                                    {sortedValues.map((val) => (
-                                      <div key={val} className="dropdown-item">
+                  {!isFilterApplied && (
+                    <Col lg={3} md={3} sm={12}>
+                      <div className="dashboard-graphs p-3 border rounded bg-white">
+                        {filterStack
+                          .slice()
+                          .reverse()
+                          .map((filter, index) => {
+                            const filterIndex = filterStack.length - 1 - index;
+                            // Get all unique values from filtered data for this column
+                            // Sort: selected values first, then unselected
+                            const allValues = [
+                              ...new Set(
+                                filteredTableData
+                                  .map((item) => item[filter.column])
+                                  .filter(Boolean)
+                              ),
+                            ];
+                            const selectedValues = allValues
+                              .filter((val) => filter.checked[val])
+                              .sort();
+                            const unselectedValues = allValues
+                              .filter((val) => !filter.checked[val])
+                              .sort();
+                            const sortedValues = [
+                              ...selectedValues,
+                              ...unselectedValues,
+                            ];
+                            return (
+                              <Form.Group key={filterIndex} className="mb-2">
+                                <Form.Label className="form-label fw-bold">
+                                  {columnDefs[filter.column]?.label} चुनें
+                                </Form.Label>
+                                <div className="dropdown">
+                                  <button
+                                    className="btn btn-secondary dropdown-toggle drop-option"
+                                    type="button"
+                                    onClick={() =>
+                                      setDetailedDropdownOpen((prev) => ({
+                                        ...prev,
+                                        [filterIndex]: !prev[filterIndex],
+                                      }))
+                                    }
+                                  >
+                                    {
+                                      Object.values(filter.checked).filter(
+                                        Boolean
+                                      ).length
+                                    }{" "}
+                                    selected
+                                  </button>
+                                  {detailedDropdownOpen[filterIndex] && (
+                                    <div className="dropdown-menu show">
+                                      <div
+                                        key="select_all"
+                                        className="dropdown-item"
+                                      >
                                         <FormCheck
                                           className="check-box"
                                           type="checkbox"
-                                          id={`${filterIndex}_${val}`}
-                                          label={val}
-                                          checked={filter.checked[val] || false}
+                                          id={`select_all_${filterIndex}`}
+                                          label={
+                                            Object.values(filter.checked).every(
+                                              Boolean
+                                            )
+                                              ? "सभी हटाएं"
+                                              : "सभी चुनें"
+                                          }
+                                          checked={Object.values(
+                                            filter.checked
+                                          ).every(Boolean)}
                                           onChange={() =>
                                             handleDetailedCheckboxChange(
                                               filterIndex,
-                                              val
+                                              "SELECT_ALL"
                                             )
                                           }
                                         />
                                       </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </Form.Group>
-                          );
-                        })}
-                    </div>
-                  </Col>
+                                      {sortedValues.map((val) => (
+                                        <div key={val} className="dropdown-item">
+                                          <FormCheck
+                                            className="check-box"
+                                            type="checkbox"
+                                            id={`${filterIndex}_${val}`}
+                                            label={val}
+                                            checked={filter.checked[val] || false}
+                                            onChange={() =>
+                                              handleDetailedCheckboxChange(
+                                                filterIndex,
+                                                val
+                                              )
+                                            }
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </Form.Group>
+                            );
+                          })}
+                      </div>
+                    </Col>
+                  )}
                   <Col lg={9} md={9} sm={12}>
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       {(() => {
