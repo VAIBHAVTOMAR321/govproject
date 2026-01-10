@@ -102,6 +102,7 @@ const isTableFiltered =
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState('pdf');
   const [tableName, setTableName] = useState('');
+  const [showDetailed, setShowDetailed] = useState(false);
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -373,6 +374,7 @@ const isSingleCard =
       setFilterStack([]);
       setSelectedItem(null);
     }
+    setShowDetailed(false);
   };
 
   // Get current table data based on view
@@ -392,8 +394,8 @@ const isSingleCard =
       });
       const currentFilter = filterStack[filterStack.length - 1];
       const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
-      
-      if (checkedValues.length === 1) {
+
+      if (showDetailed && checkedValues.length === 1) {
         return {
           heading: selectedItem?.value || 'Detail View',
           data: filteredData,
@@ -1286,10 +1288,11 @@ const isSingleCard =
               });
               const currentFilter = filterStack[filterStack.length - 1];
               const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
-              if (checkedValues.length === 1) {
+
+              if (showDetailed && checkedValues.length === 1) {
                 return (
                   <div>
-                 
+
                     <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
                       <thead className="table-thead">
@@ -1353,7 +1356,7 @@ const isSingleCard =
                           return (
                             <tr key={checkedValue}>
                               <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
-                                // Simulate clicking on single value
+                                setShowDetailed(false);
                                 setFilterStack(prev => {
                                   const newStack = [...prev];
                                   newStack[newStack.length - 1].checked = { [checkedValue]: true };
@@ -1361,7 +1364,7 @@ const isSingleCard =
                                 });
                               }}>{checkedValue}</td>
                               <td style={{cursor: 'pointer', color: 'blue', fontWeight: 'bold'}} onClick={() => {
-                                // Drill down to show items for this value
+                                setShowDetailed(true);
                                 setFilterStack(prev => {
                                   const newStack = [...prev];
                                   newStack[newStack.length - 1].checked = { [checkedValue]: true };
