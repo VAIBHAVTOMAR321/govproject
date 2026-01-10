@@ -383,7 +383,7 @@ const isSingleCard =
       return {
         heading: getSummaryHeading(),
         data: filteredTableData,
-        columns: Object.keys(columnDefs)
+        columns: Object.keys(columnDefs).map(key => columnDefs[key].label)
       };
     } else {
       const filteredData = tableData.filter(item => {
@@ -399,7 +399,7 @@ const isSingleCard =
         return {
           heading: selectedItem?.value || 'Detail View',
           data: filteredData,
-          columns: Object.keys(columnDefs).filter(col => col !== currentFilter.column)
+          columns: Object.keys(columnDefs).filter(col => col !== currentFilter.column).map(key => columnDefs[key].label)
         };
       } else {
         // Summary table
@@ -408,6 +408,12 @@ const isSingleCard =
           return {
             [columnDefs[currentFilter.column]?.label]: checkedValue,
             'Total Items': tableDataForValue.length,
+            ...Object.fromEntries(
+              Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => [
+                columnDefs[col].label,
+                new Set(tableDataForValue.map(item => item[col])).size
+              ])
+            ),
             'कुल आवंटित मात्रा': tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2),
             'कुल दर': tableDataForValue.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)
           };
@@ -415,7 +421,7 @@ const isSingleCard =
         return {
           heading: `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items)`,
           data: summaryData,
-          columns: [columnDefs[currentFilter.column]?.label, 'Total Items', 'कुल आवंटित मात्रा', 'कुल दर']
+          columns: [columnDefs[currentFilter.column]?.label, 'Total Items', ...Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(key => columnDefs[key].label), 'कुल आवंटित मात्रा', 'कुल दर']
         };
       }
     }
@@ -499,7 +505,14 @@ const isSingleCard =
         const tableData = table.data.map((row, idx) => {
           return table.columns.map(col => {
             if (typeof row === 'object' && row !== null) {
-              return row[col] || '';
+              // Find the key for this label
+              const key = Object.keys(columnDefs).find(k => columnDefs[k].label === col);
+              if (key) {
+                return row[key] || '';
+              } else {
+                // For summary columns like 'Total Items'
+                return row[col] || '';
+              }
             }
             return row;
           });
@@ -537,7 +550,14 @@ const isSingleCard =
         table.columns, // Headers
         ...table.data.map(row => table.columns.map(col => {
           if (typeof row === 'object' && row !== null) {
-            return row[col] || '';
+            // Find the key for this label
+            const key = Object.keys(columnDefs).find(k => columnDefs[k].label === col);
+            if (key) {
+              return row[key] || '';
+            } else {
+              // For summary columns like 'Total Items'
+              return row[col] || '';
+            }
           }
           return row;
         }))
@@ -1275,10 +1295,6 @@ const isSingleCard =
         </Col>
         <Col lg={9} md={9} sm={12}>
           <div className="dashboard-graphs p-3 border rounded bg-white">
-            <div className="back-btn d-flex justify-content-between">
-            <Button variant="secondary" className="back-btn-style" size="sm" onClick={goBack}>वापस जाएं</Button>
-               <h5>{selectedItem.value}</h5>
-            </div>
             {(() => {
               const filteredData = tableData.filter(item => {
                 for (let filter of filterStack) {
@@ -1289,10 +1305,37 @@ const isSingleCard =
               const currentFilter = filterStack[filterStack.length - 1];
               const checkedValues = Object.keys(currentFilter.checked).filter(val => currentFilter.checked[val]);
 
+              const appliedFilters = filterStack.map(filter => {
+                const selected = Object.keys(filter.checked).filter(val => filter.checked[val]);
+                return `${columnDefs[filter.column]?.label}: ${selected.join(', ')}`;
+              }).join(' | ');
+
+              return (
+                <div>
+                  <div className="back-btn d-flex justify-content-between align-items-center">
+                    <div className="d-flex gap-2">
+                      <Button variant="secondary" className="back-btn-style" size="sm" onClick={goBack}>वापस जाएं</Button>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => {
+                          setView('main');
+                          setFilterStack([]);
+                          setSelectedItem(null);
+                          setShowDetailed(false);
+                          clearFilters();
+                        }}
+                      >
+                        सभी फिल्टर रीसेट करें
+                      </Button>
+                    </div>
+                    <h5 className="mb-0">{appliedFilters || selectedItem.value}</h5>
+                  </div>
+                  {(() => {
+
               if (showDetailed && checkedValues.length === 1) {
                 return (
                   <div>
-
                     <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
                       <thead className="table-thead">
@@ -1333,10 +1376,8 @@ const isSingleCard =
                   </div>
                 );
               } else {
-                const dynamicSummaryHeading = `${columnDefs[currentFilter.column]?.label || 'Summary'} (${checkedValues.length} items selected)`;
                 return (
-                  <div className="back-btn mt-1">
-                    <h5>{dynamicSummaryHeading}</h5>
+                  <div>
                     <ExportSection />
                     <Table striped bordered hover className="table-thead-style">
                       <thead className="table-thead">
@@ -1458,6 +1499,9 @@ const isSingleCard =
                   </div>
                 );
               }
+            })()}
+                </div>
+              );
             })()}
           </div>
         </Col>
