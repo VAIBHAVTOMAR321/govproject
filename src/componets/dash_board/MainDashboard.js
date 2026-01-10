@@ -1412,10 +1412,7 @@ const isSingleCard =
                           }, 0)}</td>
                           {Object.keys(columnDefs).filter(col => col !== currentFilter.column && col !== 'allocated_quantity' && col !== 'rate').map(col => (
                             <td key={col} style={{fontWeight: 'bold'}}>
-                              {checkedValues.reduce((sum, checkedValue) => {
-                                const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-                                return sum + new Set(tableDataForValue.map(item => item[col])).size;
-                              }, 0)}
+                              {new Set(filteredData.map(item => item[col])).size}
                             </td>
                           ))}
                           <td style={{fontWeight: 'bold'}}>
