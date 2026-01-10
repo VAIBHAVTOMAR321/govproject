@@ -122,17 +122,23 @@ const MainDashboard = () => {
   const [view, setView] = useState("main");
   const [selectedItem, setSelectedItem] = useState(null);
 
-  const [detailedDropdownOpen, setDetailedDropdownOpen] = useState(false);
+  const [detailedDropdownOpen, setDetailedDropdownOpen] = useState({});
   const [filterStack, setFilterStack] = useState([]);
   const [selectedTotalColumn, setSelectedTotalColumn] = useState(null);
   const [tablesForExport, setTablesForExport] = useState({
     pdf: [],
     excel: [],
   });
+  const [showDetailed, setShowDetailed] = useState(false);
+  const [additionalTables, setAdditionalTables] = useState([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState("pdf");
   const [tableName, setTableName] = useState("");
-  const [showDetailed, setShowDetailed] = useState(false);
+  const [isFilterApplied, setIsFilterApplied] = useState(false);
+  const [currentTableForExport, setCurrentTableForExport] = useState(null);
+  const [showTableSelectionModal, setShowTableSelectionModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewType, setPreviewType] = useState("pdf");
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -219,17 +225,22 @@ const MainDashboard = () => {
     setFilters(clearedFilters);
     setCurrentPage(1);
     setIsFilterApplied(false);
+    setView("main");
+    setFilterStack([]);
+    setSelectedItem(null);
+    setShowDetailed(false);
+    setAdditionalTables([]);
 
     // Refresh table with all data
     setFilteredTableData(tableData);
   };
-  const [isFilterApplied, setIsFilterApplied] = useState(false);
-  
-    // Check if filters are applied from top filtering
-    const checkIfTopFiltersApplied = () => {
-      const hasFilters = Object.values(filters).some(filter => filter.length > 0);
-      setIsFilterApplied(hasFilters);
-    };
+
+  // Check if filters are applied from top filtering
+  const checkIfTopFiltersApplied = () => {
+    const hasFilters = Object.values(filters).some(filter => filter.length > 0);
+    setIsFilterApplied(hasFilters);
+  };
+
   // Handle cell click for detailed view
   const handleCellClick = (column, value) => {
     setSelectedItem({ column, value });
@@ -267,6 +278,7 @@ const MainDashboard = () => {
     }
 
     setView("detail");
+    setShowDetailed(false);
   };
 
   // Pagination logic
@@ -312,8 +324,11 @@ const MainDashboard = () => {
   };
 
   // Toggle detailed dropdown
-  const toggleDetailedDropdown = () => {
-    setDetailedDropdownOpen(!detailedDropdownOpen);
+  const toggleDetailedDropdown = (filterIndex) => {
+    setDetailedDropdownOpen((prev) => ({
+      ...prev,
+      [filterIndex]: !prev[filterIndex],
+    }));
   };
 
   // Handle detailed checkbox change
@@ -391,13 +406,9 @@ const MainDashboard = () => {
           : [...currentValues, value];
         return { ...prev, [name]: newValues };
       });
-      // Apply filters immediately after checkbox change
-      applyFilters();
     }
   };
-  const isSingleCard =
-    (tablesForExport.pdf.length > 0 && tablesForExport.excel.length === 0) ||
-    (tablesForExport.excel.length > 0 && tablesForExport.pdf.length === 0);
+
   // Apply filters
   const applyFilters = () => {
     const filteredData = tableData.filter((item) => {
@@ -423,6 +434,55 @@ const MainDashboard = () => {
     setFilteredTableData(filteredData);
     setCurrentPage(1);
     checkIfTopFiltersApplied();
+  };
+
+  // Generate summary data for a given data and column
+  const generateSummary = (data, column) => {
+    const uniqueValues = [...new Set(data.map(item => item[column]).filter(Boolean))];
+    const summaryData = uniqueValues.map(value => {
+      const dataForValue = data.filter(item => item[column] === value);
+      return {
+        [columnDefs[column]?.label]: value,
+        "कुल रिकॉर्ड": dataForValue.length,
+        ...Object.fromEntries(
+          Object.keys(columnDefs)
+            .filter(
+              (col) =>
+                col !== column &&
+                col !== "allocated_quantity" &&
+                col !== "rate"
+            )
+            .map((col) => [
+              columnDefs[col].label,
+              new Set(dataForValue.map((item) => item[col])).size,
+            ])
+        ),
+        "कुल आवंटित मात्रा": dataForValue
+          .reduce(
+            (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
+            0
+          )
+          .toFixed(2),
+        "कुल दर": dataForValue
+          .reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0)
+          .toFixed(2),
+      };
+    });
+    const columns = [
+      columnDefs[column]?.label,
+      "कुल रिकॉर्ड",
+      ...Object.keys(columnDefs)
+        .filter(
+          (col) =>
+            col !== column &&
+            col !== "allocated_quantity" &&
+            col !== "rate"
+        )
+        .map((key) => columnDefs[key].label),
+      "कुल आवंटित मात्रा",
+      "कुल दर",
+    ];
+    return { data: summaryData, columns, columnKey: column };
   };
 
   // Generate dynamic summary heading based on applied filters
@@ -468,6 +528,7 @@ const MainDashboard = () => {
       setSelectedItem(null);
     }
     setShowDetailed(false);
+    setAdditionalTables([]);
   };
 
   // Get current table data based on view
@@ -506,7 +567,7 @@ const MainDashboard = () => {
           );
           return {
             [columnDefs[currentFilter.column]?.label]: checkedValue,
-            "Total Items": tableDataForValue.length,
+            "कुल रिकॉर्ड": tableDataForValue.length,
             ...Object.fromEntries(
               Object.keys(columnDefs)
                 .filter(
@@ -538,7 +599,7 @@ const MainDashboard = () => {
           data: summaryData,
           columns: [
             columnDefs[currentFilter.column]?.label,
-            "Total Items",
+            "कुल रिकॉर्ड",
             ...Object.keys(columnDefs)
               .filter(
                 (col) =>
@@ -561,18 +622,29 @@ const MainDashboard = () => {
     const defaultName = `Table ${tablesForExport[type].length + 1}`;
     setTableName(defaultName);
     setExportType(type);
+    setCurrentTableForExport(currentTable);
+    setShowExportModal(true);
+  };
+
+  // Add additional table to export list
+  const addAdditionalTableToExport = (table, type) => {
+    const defaultName = `Table ${tablesForExport[type].length + 1}`;
+    setTableName(defaultName);
+    setExportType(type);
+    setCurrentTableForExport(table);
     setShowExportModal(true);
   };
 
   // Confirm add table
   const confirmAddTable = () => {
-    const currentTable = getCurrentTableData();
+    if (!currentTableForExport) return;
+    
     const newTable = {
       id: Date.now(),
       name: tableName || `Table ${tablesForExport[exportType].length + 1}`,
-      heading: currentTable.heading,
-      data: currentTable.data,
-      columns: currentTable.columns,
+      heading: currentTableForExport.heading,
+      data: currentTableForExport.data,
+      columns: currentTableForExport.columns,
       addedAt: new Date().toLocaleString(),
     };
     setTablesForExport((prev) => ({
@@ -581,6 +653,7 @@ const MainDashboard = () => {
     }));
     setShowExportModal(false);
     setTableName("");
+    setCurrentTableForExport(null);
   };
 
   // Remove table from export list
@@ -591,172 +664,432 @@ const MainDashboard = () => {
     }));
   };
 
-  // Generate PDF
-  const generatePDF = () => {
-    try {
-      // Create HTML content
-      let htmlContent = `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h1 style="text-align: center; margin-bottom: 20px;">निर्यातित टेबल रिपोर्ट</h1>
-      `;
-
-      tablesForExport.pdf.forEach((table, index) => {
-        htmlContent += `
-          <h2 style="margin-top: 20px; margin-bottom: 10px;">${index + 1}. ${table.heading}</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+  // Generate PDF preview
+  const generatePDFPreview = () => {
+  return (
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>निर्यातित टेबल रिपोर्ट</h1>
+      {tablesForExport.pdf.map((table, index) => (
+        <div key={table.id} style={{ marginBottom: '30px', pageBreakInside: 'avoid' }}>
+          <h2 style={{ marginBottom: '10px', fontSize: '14px' }}>{index + 1}. {table.heading}</h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '11px' }}>
             <thead>
-              <tr style="background-color: #2980b9; color: white;">
-                ${table.columns.map(col => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${col}</th>`).join('')}
+              <tr style={{ backgroundColor: '#2980b9', color: 'white' }}>
+                {table.columns.map(col => (
+                  <th key={col} style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '11px' }}>{col}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-        `;
-
-        table.data.forEach((row) => {
-          htmlContent += '<tr>';
-          table.columns.forEach((col) => {
-            let cellValue = '';
-            if (typeof row === "object" && row !== null) {
-              if (row.hasOwnProperty(col)) {
-                cellValue = row[col] || "";
-              } else {
-                // Find the key for this label
-                const key = Object.keys(columnDefs).find(
-                  (k) => columnDefs[k].label === col
-                );
-                if (key) {
-                  cellValue = row[key] || "";
-                }
-              }
-            } else {
-              cellValue = row;
-            }
-            htmlContent += `<td style="border: 1px solid #ddd; padding: 8px;">${cellValue}</td>`;
-          });
-          htmlContent += '</tr>';
-        });
-
-        htmlContent += `
+              {table.data.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {table.columns.map((col) => {
+                    let cellValue = '';
+                    if (typeof row === "object" && row !== null) {
+                      if (row.hasOwnProperty(col)) {
+                        cellValue = row[col] || "";
+                      } else {
+                        // Find the key for this label
+                        const key = Object.keys(columnDefs).find(
+                          (k) => columnDefs[k].label === col
+                        );
+                        if (key) {
+                          cellValue = row[key] || "";
+                        }
+                      }
+                    } else {
+                      cellValue = row;
+                    }
+                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{cellValue}</td>;
+                  })}
+                </tr>
+              ))}
             </tbody>
+            <tfoot>
+              <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
+                {table.columns.slice(1).map((col, colIndex) => {
+                  // Calculate total for this column
+                  let totalValue = '';
+                  
+                  if (col === 'कुल रिकॉर्ड') {
+                    totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
+                  } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
+                    totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
+                  } else {
+                    // For other columns, count unique values
+                    const uniqueValues = new Set();
+                    table.data.forEach(row => {
+                      let value = '';
+                      if (row.hasOwnProperty(col)) {
+                        value = row[col];
+                      } else {
+                        // Find the key for this label
+                        const key = Object.keys(columnDefs).find(
+                          (k) => columnDefs[k].label === col
+                        );
+                        if (key) {
+                          value = row[key];
+                        }
+                      }
+                      if (value) uniqueValues.add(value);
+                    });
+                    totalValue = uniqueValues.size;
+                  }
+                  
+                  return <td key={colIndex} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
+                })}
+              </tr>
+            </tfoot>
           </table>
-        `;
+        </div>
+      ))}
+    </div>
+  );
+};
+
+
+  // Generate Excel preview
+  const generateExcelPreview = () => {
+  return (
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
+      <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>Excel शीट्स पूर्वालोकन</h3>
+      {tablesForExport.excel.map((table, index) => (
+        <div key={table.id} style={{ marginBottom: '30px', border: '1px solid #ddd', padding: '15px', pageBreakInside: 'avoid' }}>
+          <h4 style={{ marginBottom: '10px', color: '#2980b9', fontSize: '14px' }}>शीट {index + 1}: {table.name}</h4>
+          <h5 style={{ marginBottom: '10px', fontSize: '13px' }}>{table.heading}</h5>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '11px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f2f2f2' }}>
+                {table.columns.map(col => (
+                  <th key={col} style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontWeight: 'bold', fontSize: '11px' }}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.data.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {table.columns.map((col) => {
+                    let cellValue = '';
+                    if (typeof row === "object" && row !== null) {
+                      if (row.hasOwnProperty(col)) {
+                        cellValue = row[col] || "";
+                      } else {
+                        // Find the key for this label
+                        const key = Object.keys(columnDefs).find(
+                          (k) => columnDefs[k].label === col
+                        );
+                        if (key) {
+                          cellValue = row[key] || "";
+                        }
+                      }
+                    } else {
+                      cellValue = row;
+                    }
+                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{cellValue}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
+                {table.columns.slice(1).map((col, colIndex) => {
+                  // Calculate total for this column
+                  let totalValue = '';
+                  
+                  if (col === 'कुल रिकॉर्ड') {
+                    totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
+                  } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
+                    totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
+                  } else {
+                    // For other columns, count unique values
+                    const uniqueValues = new Set();
+                    table.data.forEach(row => {
+                      let value = '';
+                      if (row.hasOwnProperty(col)) {
+                        value = row[col];
+                      } else {
+                        // Find the key for this label
+                        const key = Object.keys(columnDefs).find(
+                          (k) => columnDefs[k].label === col
+                        );
+                        if (key) {
+                          value = row[key];
+                        }
+                      }
+                      if (value) uniqueValues.add(value);
+                    });
+                    totalValue = uniqueValues.size;
+                  }
+                  
+                  return <td key={colIndex} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
+                })}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+
+  // Generate PDF
+  const generatePDF = () => {
+  try {
+    // Create HTML content
+    let htmlContent = `
+      <div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">
+        <h1 style="text-align: center; margin-bottom: 15px; font-size: 14px;">निर्यातित टेबल रिपोर्ट</h1>
+    `;
+
+    tablesForExport.pdf.forEach((table, index) => {
+      htmlContent += `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="margin-top: 15px; margin-bottom: 8px; font-size: 12px;">${index + 1}. ${table.heading}</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9px;">
+            <thead>
+              <tr style="background-color: #2980b9; color: white;">
+                ${table.columns.map(col => `<th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      table.data.forEach((row) => {
+        htmlContent += '<tr>';
+        table.columns.forEach((col) => {
+          let cellValue = '';
+          if (typeof row === "object" && row !== null) {
+            if (row.hasOwnProperty(col)) {
+              cellValue = row[col] || "";
+            } else {
+              // Find the key for this label
+              const key = Object.keys(columnDefs).find(
+                (k) => columnDefs[k].label === col
+              );
+              if (key) {
+                cellValue = row[key] || "";
+              }
+            }
+          } else {
+            cellValue = row;
+          }
+          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${cellValue}</td>`;
+        });
+        htmlContent += '</tr>';
       });
 
-      htmlContent += '</div>';
+      // Add footer row with totals
+      htmlContent += `
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #f2f2f2; font-weight: bold;">
+                <td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">कुल:</td>
+      `;
 
-      // Configure html2pdf options
-      const options = {
-        margin: [10, 10, 10, 10],
-        filename: 'exported-tables.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 1.5, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-      };
-
-      // Generate and download PDF from HTML string
-      html2pdf().set(options).from(htmlContent).save().catch((error) => {
-        console.error("Error generating PDF:", error);
-        alert("Error generating PDF: " + error.message);
+      table.columns.slice(1).forEach((col) => {
+        let totalValue = '';
+        
+        if (col === 'कुल रिकॉर्ड') {
+          totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
+        } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
+          totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
+        } else {
+          // For other columns, count unique values
+          const uniqueValues = new Set();
+          table.data.forEach(row => {
+            let value = '';
+            if (row.hasOwnProperty(col)) {
+              value = row[col];
+            } else {
+              // Find the key for this label
+              const key = Object.keys(columnDefs).find(
+                (k) => columnDefs[k].label === col
+              );
+              if (key) {
+                value = row[key];
+              }
+            }
+            if (value) uniqueValues.add(value);
+          });
+          totalValue = uniqueValues.size;
+        }
+        
+        htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
       });
-    } catch (error) {
+
+      htmlContent += `
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    });
+
+    htmlContent += '</div>';
+
+    // Configure html2pdf options
+    const options = {
+      margin: [8, 8, 8, 8],
+      filename: 'exported-tables.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 1.8, 
+        useCORS: true, 
+        letterRendering: true,
+        logging: false,
+        windowWidth: 1200
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'landscape',
+        compress: true
+      }
+    };
+
+    // Generate and download PDF from HTML string
+    html2pdf().set(options).from(htmlContent).save().catch((error) => {
       console.error("Error generating PDF:", error);
       alert("Error generating PDF: " + error.message);
-    }
-  };
+    });
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("Error generating PDF: " + error.message);
+  }
+};
 
   // Generate Excel
   const generateExcel = () => {
-    const workbook = XLSX.utils.book_new();
+  const workbook = XLSX.utils.book_new();
 
-    tablesForExport.excel.forEach((table, index) => {
-      // Prepare data for this table
-      const tableDataArray = [
-        [table.heading], // Title
-        [], // Empty row
-        table.columns, // Headers
-        ...table.data.map((row) =>
-          table.columns.map((col) => {
-            if (typeof row === "object" && row !== null) {
-              if (row.hasOwnProperty(col)) {
-                return row[col] || "";
+  tablesForExport.excel.forEach((table, index) => {
+    // Prepare data for this table
+    let tableDataArray = [
+      [table.heading], // Title
+      [], // Empty row
+      table.columns, // Headers
+      ...table.data.map((row) =>
+        table.columns.map((col) => {
+          if (typeof row === "object" && row !== null) {
+            if (row.hasOwnProperty(col)) {
+              return row[col] || "";
+            } else {
+              // Find the key for this label
+              const key = Object.keys(columnDefs).find(
+                (k) => columnDefs[k].label === col
+              );
+              if (key) {
+                return row[key] || "";
               } else {
-                // Find the key for this label
-                const key = Object.keys(columnDefs).find(
-                  (k) => columnDefs[k].label === col
-                );
-                if (key) {
-                  return row[key] || "";
-                } else {
-                  return "";
-                }
+                return "";
               }
             }
-            return row;
-          })
-        ),
-      ];
+          }
+          return row;
+        })
+      ),
+    ];
 
-      const sheetName = table.name.substring(0, 31); // Excel sheet name limit
-
-      // Check if sheet already exists in workbook
-      if (workbook.SheetNames.includes(sheetName)) {
-        // Append data to existing sheet
-        const existingSheet = workbook.Sheets[sheetName];
-
-        // Get the range of the existing sheet to find where to append
-        const existingRange = XLSX.utils.decode_range(
-          existingSheet["!ref"] || "A1"
-        );
-        const startRow = existingRange.e.r + 2; // Add 2 rows gap (1 for empty row, 1 for new data)
-
-        // Add empty row before new data
-        const emptyRow = {};
-        for (let col = 0; col < table.columns.length; col++) {
-          emptyRow[XLSX.utils.encode_col(col) + (startRow + 1)] = {
-            t: "s",
-            v: "",
-          };
-        }
-
-        // Add new data starting from the row after empty row
-        tableDataArray.forEach((rowData, rowIndex) => {
-          const currentRow = startRow + 2 + rowIndex;
-          rowData.forEach((cellData, colIndex) => {
-            const cellRef = XLSX.utils.encode_col(colIndex) + currentRow;
-            existingSheet[cellRef] = {
-              t: typeof cellData === "number" ? "n" : "s",
-              v: cellData,
-            };
-          });
-        });
-
-        // Update the sheet range
-        const newEndRow = startRow + 2 + tableDataArray.length - 1;
-        existingSheet["!ref"] = XLSX.utils.encode_range({
-          s: { c: 0, r: 0 },
-          e: { c: table.columns.length - 1, r: newEndRow },
-        });
-
-        // Update column widths if needed
-        if (!existingSheet["!cols"]) {
-          const colWidths = table.columns.map(() => ({ wch: 15 }));
-          existingSheet["!cols"] = colWidths;
-        }
+    // Calculate totals for each column
+    const totalsRow = ["कुल:"];
+    table.columns.slice(1).forEach((col) => {
+      let totalValue = '';
+      
+      if (col === 'कुल रिकॉर्ड') {
+        totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
+      } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
+        totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
       } else {
-        // Create new sheet
-        const worksheet = XLSX.utils.aoa_to_sheet(tableDataArray);
-
-        // Set column widths
-        const colWidths = table.columns.map(() => ({ wch: 15 }));
-        worksheet["!cols"] = colWidths;
-
-        // Add sheet to workbook
-        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+        // For other columns, count unique values
+        const uniqueValues = new Set();
+        table.data.forEach(row => {
+          let value = '';
+          if (row.hasOwnProperty(col)) {
+            value = row[col];
+          } else {
+            // Find the key for this label
+            const key = Object.keys(columnDefs).find(
+              (k) => columnDefs[k].label === col
+            );
+            if (key) {
+              value = row[key];
+            }
+          }
+          if (value) uniqueValues.add(value);
+        });
+        totalValue = uniqueValues.size;
       }
+      
+      totalsRow.push(totalValue);
     });
 
-    XLSX.writeFile(workbook, "exported-tables.xlsx");
-  };
+    // Add empty row and totals row
+    tableDataArray.push([], totalsRow);
+
+    const sheetName = table.name.substring(0, 31); // Excel sheet name limit
+
+    // Check if sheet already exists in workbook
+    if (workbook.SheetNames.includes(sheetName)) {
+      // Append data to existing sheet
+      const existingSheet = workbook.Sheets[sheetName];
+
+      // Get the range of the existing sheet to find where to append
+      const existingRange = XLSX.utils.decode_range(
+        existingSheet["!ref"] || "A1"
+      );
+      const startRow = existingRange.e.r + 2; // Add 2 rows gap (1 for empty row, 1 for new data)
+
+      // Add empty row before new data
+      const emptyRow = {};
+      for (let col = 0; col < table.columns.length; col++) {
+        emptyRow[XLSX.utils.encode_col(col) + (startRow + 1)] = {
+          t: "s",
+          v: "",
+        };
+      }
+
+      // Add new data starting from the row after empty row
+      tableDataArray.forEach((rowData, rowIndex) => {
+        const currentRow = startRow + 2 + rowIndex;
+        rowData.forEach((cellData, colIndex) => {
+          const cellRef = XLSX.utils.encode_col(colIndex) + currentRow;
+          existingSheet[cellRef] = {
+            t: typeof cellData === "number" ? "n" : "s",
+            v: cellData,
+          };
+        });
+      });
+
+      // Update the sheet range
+      const newEndRow = startRow + 2 + tableDataArray.length - 1;
+      existingSheet["!ref"] = XLSX.utils.encode_range({
+        s: { c: 0, r: 0 },
+        e: { c: table.columns.length - 1, r: newEndRow },
+      });
+
+      // Update column widths if needed
+      if (!existingSheet["!cols"]) {
+        const colWidths = table.columns.map(() => ({ wch: 15 }));
+        existingSheet["!cols"] = colWidths;
+      }
+    } else {
+      // Create new sheet
+      const worksheet = XLSX.utils.aoa_to_sheet(tableDataArray);
+
+      // Set column widths
+      const colWidths = table.columns.map(() => ({ wch: 15 }));
+      worksheet["!cols"] = colWidths;
+
+      // Add sheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    }
+  });
+
+  XLSX.writeFile(workbook, "exported-tables.xlsx");
+};
 
   // Export Section Component
   const ExportSection = () => (
@@ -792,8 +1125,6 @@ const MainDashboard = () => {
       {/* Selected Tables Display */}
       {(tablesForExport.pdf.length > 0 || tablesForExport.excel.length > 0) && (
         <div className="mt-3">
-          {/* <h6 className="mb-2">चयनित टेबल:</h6> */}
-
           <Row className="g-3">
             {/* PDF COLUMN */}
             {tablesForExport.pdf.length > 0 && (
@@ -807,14 +1138,27 @@ const MainDashboard = () => {
                     <span className="fw-bold text-danger small">
                       <RiFilePdfLine /> PDF ({tablesForExport.pdf.length})
                     </span>
-                    <Button
-                      className="pdf-add-btn"
-                      variant="outline-danger"
-                      size="sm"
-                      onClick={generatePDF}
-                    >
-                      डाउनलोड
-                    </Button>
+                    <div className="d-flex gap-2">
+                      <Button
+                        className="pdf-add-btn"
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => {
+                          setPreviewType("pdf");
+                          setShowPreviewModal(true);
+                        }}
+                      >
+                        <RiEyeLine /> पूर्वावलोकन
+                      </Button>
+                      <Button
+                        className="pdf-add-btn"
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={generatePDF}
+                      >
+                        डाउनलोड
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="table-list">
@@ -849,14 +1193,27 @@ const MainDashboard = () => {
                     <span className="fw-bold text-success small">
                       <RiFileExcelLine /> Excel ({tablesForExport.excel.length})
                     </span>
-                    <Button
-                      variant="outline-success"
-                      className="pdf-add-btn"
-                      size="sm"
-                      onClick={generateExcel}
-                    >
-                      डाउनलोड
-                    </Button>
+                    <div className="d-flex gap-2">
+                      <Button
+                        variant="outline-success"
+                        className="pdf-add-btn"
+                        size="sm"
+                        onClick={() => {
+                          setPreviewType("excel");
+                          setShowPreviewModal(true);
+                        }}
+                      >
+                        <RiEyeLine /> पूर्वावलोकन
+                      </Button>
+                      <Button
+                        variant="outline-success"
+                        className="pdf-add-btn"
+                        size="sm"
+                        onClick={generateExcel}
+                      >
+                        डाउनलोड
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="table-list">
@@ -888,6 +1245,146 @@ const MainDashboard = () => {
         </div>
       )}
     </div>
+  );
+
+  // Handle clicking on a value in the summary table to add a new filter
+  const handleSummaryValueClick = (column, value) => {
+    // Get all unique values for this column from the currently filtered data
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+    
+    const allValues = [
+      ...new Set(currentFilteredData.map((item) => item[column]).filter(Boolean)),
+    ];
+
+    // Create checked object with all values initialized to false
+    // Then set the clicked value to true
+    const checked = {};
+    allValues.forEach((val) => {
+      checked[val] = false;
+    });
+    checked[value] = true;
+
+    // Add this filter to the stack
+    setFilterStack((prev) => [...prev, { column, checked }]);
+    setShowDetailed(false);
+  };
+
+  // Handle adding a table to an existing sheet
+  const handleAddToExistingSheet = (type, existingTableId) => {
+    if (!currentTableForExport) return;
+    
+    // Find the existing table
+    const existingTable = tablesForExport[type].find(t => t.id === existingTableId);
+    if (!existingTable) return;
+    
+    // Create a new table with the same name as the existing table
+    const newTable = {
+      id: Date.now(),
+      name: existingTable.name,
+      heading: currentTableForExport.heading,
+      data: currentTableForExport.data,
+      columns: currentTableForExport.columns,
+      addedAt: new Date().toLocaleString(),
+      addToExistingSheet: true,
+      existingSheetId: existingTableId,
+    };
+    
+    setTablesForExport((prev) => ({
+      ...prev,
+      [type]: [...prev[type], newTable],
+    }));
+    
+    setShowTableSelectionModal(false);
+    setCurrentTableForExport(null);
+  };
+
+  // Table Selection Modal Component
+  const TableSelectionModal = () => (
+    <Modal show={showTableSelectionModal} onHide={() => setShowTableSelectionModal(false)}>
+      <Modal.Header closeButton className="modal-header-style">
+        <div>
+          {exportType === "pdf" ? "PDF में जोड़ें" : "Excel में जोड़ें"}
+        </div>
+      </Modal.Header>
+      <Modal.Body>
+        <p>कृपया चुनें कि आप इस टेबल को किस शीट में जोड़ना चाहते हैं:</p>
+        <div className="d-grid gap-2">
+          <Button 
+            variant="primary" 
+            onClick={() => {
+              setTableName(`Table ${tablesForExport[exportType].length + 1}`);
+              confirmAddTable();
+            }}
+          >
+            नई शीट बनाएं
+          </Button>
+          {tablesForExport[exportType].length > 0 && (
+            <>
+              <p className="mt-3 mb-2">या मौजूदा शीट में जोड़ें:</p>
+              {tablesForExport[exportType].map((table) => (
+                <Button 
+                  key={table.id}
+                  variant="outline-primary" 
+                  onClick={() => handleAddToExistingSheet(exportType, table.id)}
+                >
+                  {table.name}
+                </Button>
+              ))}
+            </>
+          )}
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowTableSelectionModal(false)}
+          className="remove-btn"
+        >
+          रद्द करें
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
+  // Preview Modal Component
+  const PreviewModal = () => (
+    <Modal 
+      show={showPreviewModal} 
+      onHide={() => setShowPreviewModal(false)}
+      size="xl"
+      centered
+    >
+      <Modal.Header closeButton className="modal-header-style">
+        <div>
+          {previewType === "pdf" ? "PDF पूर्वावलोकन" : "Excel पूर्वावलोकन"}
+        </div>
+      </Modal.Header>
+      <Modal.Body style={{ maxHeight: '70vh', overflow: 'auto' }}>
+        {previewType === "pdf" ? generatePDFPreview() : generateExcelPreview()}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button
+          variant="secondary"
+          onClick={() => setShowPreviewModal(false)}
+        >
+          बंद करें
+        </Button>
+        <Button
+          variant={previewType === "pdf" ? "danger" : "success"}
+          onClick={() => {
+            setShowPreviewModal(false);
+            previewType === "pdf" ? generatePDF() : generateExcel();
+          }}
+        >
+          डाउनलोड करें
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 
   return (
@@ -1786,110 +2283,115 @@ const MainDashboard = () => {
                 </Row>
               ) : (
                 <Row>
-                  {!isFilterApplied && (
-                    <Col lg={3} md={3} sm={12}>
-                      <div className="dashboard-graphs p-3 border rounded bg-white">
-                        {filterStack
-                          .slice()
-                          .reverse()
-                          .map((filter, index) => {
-                            const filterIndex = filterStack.length - 1 - index;
-                            // Get all unique values from filtered data for this column
-                            // Sort: selected values first, then unselected
-                            const allValues = [
-                              ...new Set(
-                                filteredTableData
-                                  .map((item) => item[filter.column])
-                                  .filter(Boolean)
-                              ),
-                            ];
-                            const selectedValues = allValues
-                              .filter((val) => filter.checked[val])
-                              .sort();
-                            const unselectedValues = allValues
-                              .filter((val) => !filter.checked[val])
-                              .sort();
-                            const sortedValues = [
-                              ...selectedValues,
-                              ...unselectedValues,
-                            ];
-                            return (
-                              <Form.Group key={filterIndex} className="mb-2">
-                                <Form.Label className="form-label fw-bold">
-                                  {columnDefs[filter.column]?.label} चुनें
-                                </Form.Label>
-                                <div className="dropdown">
-                                  <button
-                                    className="btn btn-secondary dropdown-toggle drop-option"
-                                    type="button"
-                                    onClick={() =>
-                                      setDetailedDropdownOpen((prev) => ({
-                                        ...prev,
-                                        [filterIndex]: !prev[filterIndex],
-                                      }))
-                                    }
-                                  >
-                                    {
-                                      Object.values(filter.checked).filter(
-                                        Boolean
-                                      ).length
-                                    }{" "}
-                                    selected
-                                  </button>
-                                  {detailedDropdownOpen[filterIndex] && (
-                                    <div className="dropdown-menu show">
-                                      <div
-                                        key="select_all"
-                                        className="dropdown-item"
-                                      >
+                  <Col lg={3} md={3} sm={12}>
+                    <div className="dashboard-graphs p-3 border rounded bg-white">
+                      {filterStack
+                        .slice()
+                        .reverse()
+                        .map((filter, index) => {
+                          const filterIndex = filterStack.length - 1 - index;
+                          // Get all unique values from filtered data for this column
+                          // Sort: selected values first, then unselected
+                          const currentFilteredData = tableData.filter((item) => {
+                            // Apply all filters except the current one
+                            for (let i = 0; i < filterStack.length; i++) {
+                              if (i === filterIndex) continue;
+                              const f = filterStack[i];
+                              if (!f.checked[item[f.column]]) return false;
+                            }
+                            return true;
+                          });
+                          
+                          const allValues = [
+                            ...new Set(
+                              currentFilteredData
+                                .map((item) => item[filter.column])
+                                .filter(Boolean)
+                            ),
+                          ];
+                          const selectedValues = allValues
+                            .filter((val) => filter.checked[val])
+                            .sort();
+                          const unselectedValues = allValues
+                            .filter((val) => !filter.checked[val])
+                            .sort();
+                          const sortedValues = [
+                            ...selectedValues,
+                            ...unselectedValues,
+                          ];
+                          return (
+                            <Form.Group key={filterIndex} className="mb-2">
+                              <Form.Label className="form-label fw-bold">
+                                {columnDefs[filter.column]?.label} चुनें
+                              </Form.Label>
+                              <div className="dropdown">
+                                <button
+                                  className="btn btn-secondary dropdown-toggle drop-option"
+                                  type="button"
+                                  onClick={() =>
+                                    toggleDetailedDropdown(filterIndex)
+                                  }
+                                >
+                                  {
+                                    Object.values(filter.checked).filter(
+                                      Boolean
+                                    ).length
+                                  }{" "}
+                                  selected
+                                </button>
+                                {detailedDropdownOpen[filterIndex] && (
+                                  <div className="dropdown-menu show">
+                                    <div
+                                      key="select_all"
+                                      className="dropdown-item"
+                                    >
+                                      <FormCheck
+                                        className="check-box"
+                                        type="checkbox"
+                                        id={`select_all_${filterIndex}`}
+                                        label={
+                                          Object.values(filter.checked).every(
+                                            Boolean
+                                          )
+                                            ? "सभी हटाएं"
+                                            : "सभी चुनें"
+                                        }
+                                        checked={Object.values(
+                                          filter.checked
+                                        ).every(Boolean)}
+                                        onChange={() =>
+                                          handleDetailedCheckboxChange(
+                                            filterIndex,
+                                            "SELECT_ALL"
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                    {sortedValues.map((val) => (
+                                      <div key={val} className="dropdown-item">
                                         <FormCheck
                                           className="check-box"
                                           type="checkbox"
-                                          id={`select_all_${filterIndex}`}
-                                          label={
-                                            Object.values(filter.checked).every(
-                                              Boolean
-                                            )
-                                              ? "सभी हटाएं"
-                                              : "सभी चुनें"
-                                          }
-                                          checked={Object.values(
-                                            filter.checked
-                                          ).every(Boolean)}
+                                          id={`${filterIndex}_${val}`}
+                                          label={val}
+                                          checked={filter.checked[val] || false}
                                           onChange={() =>
                                             handleDetailedCheckboxChange(
                                               filterIndex,
-                                              "SELECT_ALL"
+                                              val
                                             )
                                           }
                                         />
                                       </div>
-                                      {sortedValues.map((val) => (
-                                        <div key={val} className="dropdown-item">
-                                          <FormCheck
-                                            className="check-box"
-                                            type="checkbox"
-                                            id={`${filterIndex}_${val}`}
-                                            label={val}
-                                            checked={filter.checked[val] || false}
-                                            onChange={() =>
-                                              handleDetailedCheckboxChange(
-                                                filterIndex,
-                                                val
-                                              )
-                                            }
-                                          />
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </Form.Group>
-                            );
-                          })}
-                      </div>
-                    </Col>
-                  )}
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </Form.Group>
+                          );
+                        })}
+                    </div>
+                  </Col>
                   <Col lg={9} md={9} sm={12}>
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       {(() => {
@@ -1938,6 +2440,7 @@ const MainDashboard = () => {
                                     setSelectedItem(null);
                                     setShowDetailed(false);
                                     clearFilters();
+                                    setAdditionalTables([]);
                                   }}
                                 >
                                   सभी फिल्टर रीसेट करें
@@ -2004,7 +2507,7 @@ const MainDashboard = () => {
                                                       "allocated_quantity" &&
                                                     col !== "rate"
                                                       ? () =>
-                                                          handleCellClick(
+                                                          handleSummaryValueClick(
                                                             col,
                                                             item[col]
                                                           )
@@ -2079,7 +2582,7 @@ const MainDashboard = () => {
                                             {columnDefs[currentFilter.column]
                                               ?.label || "Value"}
                                           </th>
-                                          <th>Total Items</th>
+                                          <th>कुल रिकॉर्ड</th>
                                           {Object.keys(columnDefs)
                                             .filter(
                                               (col) =>
@@ -2113,16 +2616,16 @@ const MainDashboard = () => {
                                                   fontWeight: "bold",
                                                 }}
                                                 onClick={() => {
-                                                  setShowDetailed(false);
-                                                  setFilterStack((prev) => {
-                                                    const newStack = [...prev];
-                                                    newStack[
-                                                      newStack.length - 1
-                                                    ].checked = {
-                                                      [checkedValue]: true,
-                                                    };
-                                                    return newStack;
+                                                  // Create a new filter stack with only this value selected
+                                                  const newFilterStack = filterStack.slice(0, -1);
+                                                  const newChecked = {};
+                                                  newChecked[checkedValue] = true;
+                                                  newFilterStack.push({
+                                                    column: currentFilter.column,
+                                                    checked: newChecked
                                                   });
+                                                  setFilterStack(newFilterStack);
+                                                  setShowDetailed(false);
                                                 }}
                                               >
                                                 {checkedValue}
@@ -2134,16 +2637,16 @@ const MainDashboard = () => {
                                                   fontWeight: "bold",
                                                 }}
                                                 onClick={() => {
-                                                  setShowDetailed(true);
-                                                  setFilterStack((prev) => {
-                                                    const newStack = [...prev];
-                                                    newStack[
-                                                      newStack.length - 1
-                                                    ].checked = {
-                                                      [checkedValue]: true,
-                                                    };
-                                                    return newStack;
+                                                  // Create a new filter stack with only this value selected
+                                                  const newFilterStack = filterStack.slice(0, -1);
+                                                  const newChecked = {};
+                                                  newChecked[checkedValue] = true;
+                                                  newFilterStack.push({
+                                                    column: currentFilter.column,
+                                                    checked: newChecked
                                                   });
+                                                  setFilterStack(newFilterStack);
+                                                  setShowDetailed(true);
                                                 }}
                                               >
                                                 {tableDataForValue.length}
@@ -2165,61 +2668,8 @@ const MainDashboard = () => {
                                                       fontWeight: "bold",
                                                     }}
                                                     onClick={() => {
-                                                      // Filter by this column value
-                                                      const uniqueValues = [
-                                                        ...new Set(
-                                                          tableDataForValue.map(
-                                                            (item) => item[col]
-                                                          )
-                                                        ),
-                                                      ].filter(Boolean);
-                                                      setFilterStack((prev) => {
-                                                        const newStack = [
-                                                          ...prev,
-                                                        ];
-                                                        const existingFilterIndex =
-                                                          newStack.findIndex(
-                                                            (f) =>
-                                                              f.column === col
-                                                          );
-                                                        if (
-                                                          existingFilterIndex >=
-                                                          0
-                                                        ) {
-                                                          // Add to existing filter
-                                                          const checked = {};
-                                                          uniqueValues.forEach(
-                                                            (val) => {
-                                                              checked[
-                                                                val
-                                                              ] = true;
-                                                            }
-                                                          );
-                                                          newStack[
-                                                            existingFilterIndex
-                                                          ] = {
-                                                            ...newStack[
-                                                              existingFilterIndex
-                                                            ],
-                                                            checked,
-                                                          };
-                                                        } else {
-                                                          // Create new filter
-                                                          const checked = {};
-                                                          uniqueValues.forEach(
-                                                            (val) => {
-                                                              checked[
-                                                                val
-                                                              ] = true;
-                                                            }
-                                                          );
-                                                          newStack.push({
-                                                            column: col,
-                                                            checked,
-                                                          });
-                                                        }
-                                                        return newStack;
-                                                      });
+                                                      const summary = generateSummary(tableDataForValue, col);
+                                                      setAdditionalTables(prev => [{ heading: checkedValue, data: summary.data, columns: summary.columns, columnKey: col }, ...prev]);
                                                     }}
                                                   >
                                                     {
@@ -2351,6 +2801,158 @@ const MainDashboard = () => {
                                         </tr>
                                       </tfoot>
                                     </Table>
+                                    {additionalTables.map((table, index) => (
+                                      <div key={index} className="mt-4">
+                                        <div className="d-flex justify-content-between align-items-center">
+                                          <h5 className="mb-0">{table.heading}</h5>
+                                          <div className="d-flex gap-2">
+                                            <Button
+                                              variant="danger"
+                                              size="sm"
+                                              onClick={() => {
+                                                setCurrentTableForExport(table);
+                                                setExportType("pdf");
+                                                setShowTableSelectionModal(true);
+                                              }}
+                                              className="d-flex align-items-center pdf-add-btn gap-1"
+                                            >
+                                              <RiFilePdfLine /> PDF में जोड़ें
+                                            </Button>
+                                            <Button
+                                              variant="success"
+                                              size="sm"
+                                              onClick={() => {
+                                                setCurrentTableForExport(table);
+                                                setExportType("excel");
+                                                setShowTableSelectionModal(true);
+                                              }}
+                                              className="d-flex align-items-center exel-add-btn gap-1"
+                                            >
+                                              <RiFileExcelLine /> Excel में जोड़ें
+                                            </Button>
+                                            <Button
+                                              variant="link"
+                                              size="sm"
+                                              className="text-danger p-0"
+                                              onClick={() => setAdditionalTables(prev => prev.filter((_, i) => i !== index))}
+                                            >
+                                              <RiDeleteBinLine />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        <Table
+                                          striped
+                                          bordered
+                                          hover
+                                          className="table-thead-style"
+                                        >
+                                          <thead className="table-thead">
+                                            <tr>
+                                              <th>{table.columns[0]}</th>
+                                              <th>कुल रिकॉर्ड</th>
+                                              {table.columns.slice(2, -2).map((col, idx) => (
+                                                <th key={idx}>{col}</th>
+                                              ))}
+                                              <th>कुल आवंटित मात्रा</th>
+                                              <th>कुल दर</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {table.data.map((row) => {
+                                              const value = row[table.columns[0]];
+                                              return (
+                                                <tr key={value}>
+                                                  <td
+                                                    style={{
+                                                      cursor: "pointer",
+                                                      color: "blue",
+                                                      fontWeight: "bold",
+                                                    }}
+                                                    onClick={() => {
+                                                      // Add a new filter to the stack with this value
+                                                      handleSummaryValueClick(table.columnKey, value);
+                                                    }}
+                                                  >
+                                                    {value}
+                                                  </td>
+                                                  <td
+                                                    style={{
+                                                      cursor: "pointer",
+                                                      color: "blue",
+                                                      fontWeight: "bold",
+                                                    }}
+                                                    onClick={() => {
+                                                      // Add a new filter to the stack with this value and show detailed view
+                                                      handleSummaryValueClick(table.columnKey, value);
+                                                      setShowDetailed(true);
+                                                    }}
+                                                  >
+                                                    {row["कुल रिकॉर्ड"]}
+                                                  </td>
+                                                  {table.columns.slice(2, -2).map((col) => (
+                                                    <td
+                                                      key={col}
+                                                      style={{
+                                                        cursor: "pointer",
+                                                        color: "blue",
+                                                        fontWeight: "bold",
+                                                      }}
+                                                      onClick={() => {
+                                                        // Find the column key for this label
+                                                        const colKey = Object.keys(columnDefs).find(
+                                                          (k) => columnDefs[k].label === col
+                                                        );
+                                                        if (colKey) {
+                                                          // Get the data for this value
+                                                          const currentFilteredData = tableData.filter((item) => {
+                                                            for (let filter of filterStack) {
+                                                              if (!filter.checked[item[filter.column]]) return false;
+                                                            }
+                                                            return item[table.columnKey] === value;
+                                                          });
+                                                          
+                                                          // Generate a new summary table
+                                                          const summary = generateSummary(currentFilteredData, colKey);
+                                                          setAdditionalTables(prev => [{ 
+                                                            heading: `${value} - ${col}`, 
+                                                            data: summary.data, 
+                                                            columns: summary.columns, 
+                                                            columnKey: colKey 
+                                                          }, ...prev]);
+                                                        }
+                                                      }}
+                                                    >
+                                                      {row[col]}
+                                                    </td>
+                                                  ))}
+                                                  <td>{row["कुल आवंटित मात्रा"]}</td>
+                                                  <td>{row["कुल दर"]}</td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr>
+                                              <td style={{ fontWeight: "bold" }}>कुल:</td>
+                                              <td style={{ fontWeight: "bold" }}>
+                                                {table.data.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
+                                              </td>
+                                              {table.columns.slice(2, -2).map((col) => (
+                                                <td key={col} style={{ fontWeight: "bold" }}>
+                                                  {new Set(table.data.flatMap(row => tableData.filter(item => item[table.columnKey] === row[table.columns[0]]).map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)]))).size}
+                                                </td>
+                                              ))}
+                                              <td style={{ fontWeight: "bold" }}>
+                                                {table.data.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
+                                              </td>
+                                              <td style={{ fontWeight: "bold" }}>
+                                                {table.data.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2)}
+                                              </td>
+                                            </tr>
+                                          </tfoot>
+                                        </Table>
+                                      </div>
+                                    ))}
                                     {selectedTotalColumn && (
                                       <div className="mt-4">
                                         <h6>
@@ -2463,6 +3065,12 @@ const MainDashboard = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Table Selection Modal */}
+      <TableSelectionModal />
+      
+      {/* Preview Modal */}
+      <PreviewModal />
     </div>
   );
 };
