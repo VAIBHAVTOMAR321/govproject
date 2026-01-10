@@ -24,8 +24,7 @@ import {
 import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import html2pdf from "html2pdf.js";
 
 const API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
@@ -595,78 +594,70 @@ const MainDashboard = () => {
   // Generate PDF
   const generatePDF = () => {
     try {
-      const doc = new jsPDF();
-
-      // Check if autoTable is available
-      if (typeof doc.autoTable !== "function") {
-        console.error("jspdf-autotable plugin not loaded. Trying to load...");
-        // Try to load jspdf-autotable dynamically
-        import("jspdf-autotable")
-          .then(() => {
-            console.log("jspdf-autotable loaded dynamically");
-            // Retry PDF generation after loading
-            setTimeout(() => generatePDF(), 100);
-          })
-          .catch((err) => {
-            console.error("Failed to load jspdf-autotable:", err);
-            alert(
-              "Failed to load PDF functionality. Please restart the application."
-            );
-          });
-        return;
-      }
-
-      // Add title
-      doc.setFontSize(18);
-      doc.text("Exported Tables Report", 14, 22);
-
-      let yPos = 30;
+      // Create HTML content
+      let htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h1 style="text-align: center; margin-bottom: 20px;">निर्यातित टेबल रिपोर्ट</h1>
+      `;
 
       tablesForExport.pdf.forEach((table, index) => {
-        // Check if we need a new page
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
+        htmlContent += `
+          <h2 style="margin-top: 20px; margin-bottom: 10px;">${index + 1}. ${table.heading}</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+              <tr style="background-color: #2980b9; color: white;">
+                ${table.columns.map(col => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+        `;
 
-        // Table heading
-        doc.setFontSize(14);
-        doc.text(`${index + 1}. ${table.heading}`, 14, yPos);
-        yPos += 8;
-
-        // Prepare data for autoTable
-        const tableData = table.data.map((row, idx) => {
-          return table.columns.map((col) => {
+        table.data.forEach((row) => {
+          htmlContent += '<tr>';
+          table.columns.forEach((col) => {
+            let cellValue = '';
             if (typeof row === "object" && row !== null) {
-              // Find the key for this label
-              const key = Object.keys(columnDefs).find(
-                (k) => columnDefs[k].label === col
-              );
-              if (key) {
-                return row[key] || "";
+              if (row.hasOwnProperty(col)) {
+                cellValue = row[col] || "";
               } else {
-                // For summary columns like 'Total Items'
-                return row[col] || "";
+                // Find the key for this label
+                const key = Object.keys(columnDefs).find(
+                  (k) => columnDefs[k].label === col
+                );
+                if (key) {
+                  cellValue = row[key] || "";
+                }
               }
+            } else {
+              cellValue = row;
             }
-            return row;
+            htmlContent += `<td style="border: 1px solid #ddd; padding: 8px;">${cellValue}</td>`;
           });
+          htmlContent += '</tr>';
         });
 
-        // Add table
-        doc.autoTable({
-          startY: yPos,
-          head: [table.columns],
-          body: tableData,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [41, 128, 185] },
-          margin: { top: 20 },
-        });
-
-        yPos = doc.lastAutoTable.finalY + 15;
+        htmlContent += `
+            </tbody>
+          </table>
+        `;
       });
 
-      doc.save("exported-tables.pdf");
+      htmlContent += '</div>';
+
+      // Configure html2pdf options
+      const options = {
+        margin: [10, 10, 10, 10],
+        filename: 'exported-tables.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 1.5, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      // Generate and download PDF from HTML string
+      html2pdf().set(options).from(htmlContent).save().catch((error) => {
+        console.error("Error generating PDF:", error);
+        alert("Error generating PDF: " + error.message);
+      });
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Error generating PDF: " + error.message);
@@ -686,15 +677,18 @@ const MainDashboard = () => {
         ...table.data.map((row) =>
           table.columns.map((col) => {
             if (typeof row === "object" && row !== null) {
-              // Find the key for this label
-              const key = Object.keys(columnDefs).find(
-                (k) => columnDefs[k].label === col
-              );
-              if (key) {
-                return row[key] || "";
-              } else {
-                // For summary columns like 'Total Items'
+              if (row.hasOwnProperty(col)) {
                 return row[col] || "";
+              } else {
+                // Find the key for this label
+                const key = Object.keys(columnDefs).find(
+                  (k) => columnDefs[k].label === col
+                );
+                if (key) {
+                  return row[key] || "";
+                } else {
+                  return "";
+                }
               }
             }
             return row;
