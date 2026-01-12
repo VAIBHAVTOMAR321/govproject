@@ -1418,6 +1418,180 @@ const MainDashboard = () => {
     }
   }, [additionalTables]);
 
+  // Generate detailed breakdown table for clicked entries
+  const generateDetailedBreakdownTable = (clickedValues, columnKey) => {
+    // Get the current filtered data based on the filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    // Get all unique values for the first column (same as summary table)
+    const firstColumnValues = [...new Set(currentFilteredData.map(item => item[columnKey]).filter(Boolean))];
+
+    // Create the new table structure
+    const newTableData = [];
+
+    // For each value in the first column, create a row with allocation data for each clicked value
+    firstColumnValues.forEach(firstColValue => {
+      const rowData = {
+        [columnDefs[columnKey]?.label]: firstColValue,
+      };
+
+      // Add allocation data for each clicked value
+      clickedValues.forEach(clickedValue => {
+        // Filter data for this specific combination
+        const filteredForCombination = currentFilteredData.filter(item => {
+          return item[columnKey] === firstColValue &&
+                 item[filterStack[filterStack.length - 1].column] === clickedValue;
+        });
+
+        // Calculate total allocated quantity for this combination
+        const totalAllocated = filteredForCombination.reduce(
+          (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
+          0
+        ).toFixed(2);
+
+        rowData[clickedValue] = totalAllocated;
+      });
+
+      newTableData.push(rowData);
+    });
+
+    // Create columns for the new table
+    const newColumns = [
+      columnDefs[columnKey]?.label,
+      ...clickedValues,
+    ];
+
+    return {
+      heading: `विस्तृत आवंटन - ${columnDefs[columnKey]?.label}`,
+      data: newTableData,
+      columns: newColumns,
+      columnKey: columnKey,
+      isBreakdownTable: true
+    };
+  };
+
+  // Generate additional table showing allocation data for clicked entries
+  const generateAdditionalAllocationTable = (clickedValues, columnKey) => {
+    // Get the current filtered data based on the filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    // Get all unique values for the first column (same as summary table)
+    const firstColumnValues = [...new Set(currentFilteredData.map(item => item[columnKey]).filter(Boolean))];
+
+    // Create the new table structure
+    const newTableData = [];
+
+    // For each value in the first column, create a row with allocation data for each clicked value
+    firstColumnValues.forEach(firstColValue => {
+      const rowData = {
+        [columnDefs[columnKey]?.label]: firstColValue,
+      };
+
+      // Add allocation data for each clicked value
+      clickedValues.forEach(clickedValue => {
+        // Filter data for this specific combination
+        const filteredForCombination = currentFilteredData.filter(item => {
+          return item[columnKey] === firstColValue &&
+                 item[filterStack[filterStack.length - 1].column] === clickedValue;
+        });
+
+        // Calculate total allocated quantity for this combination
+        const totalAllocated = filteredForCombination.reduce(
+          (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
+          0
+        ).toFixed(2);
+
+        rowData[clickedValue] = totalAllocated;
+      });
+
+      newTableData.push(rowData);
+    });
+
+    // Create columns for the new table
+    const newColumns = [
+      columnDefs[columnKey]?.label,
+      ...clickedValues,
+    ];
+
+    return {
+      heading: `अतिरिक्त आवंटन विवरण - ${columnDefs[columnKey]?.label}`,
+      data: newTableData,
+      columns: newColumns,
+      columnKey: columnKey,
+      isBreakdownTable: true
+    };
+  };
+
+  // Generate allocation table for clicked column entries
+  const generateAllocationTable = (clickedColumn, checkedValue, columnKey) => {
+    // Get the current filtered data based on the filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    // Get unique values for the first column (yojna/scheme)
+    const firstColumnValues = [...new Set(currentFilteredData.map(item => item[columnKey]).filter(Boolean))];
+
+    // Get unique values for the clicked column (entries)
+    const clickedColumnValues = [...new Set(currentFilteredData.map(item => item[clickedColumn]).filter(Boolean))];
+
+    // Create the new table structure
+    const newTableData = [];
+
+    // For each value in the first column (yojna), create a row with allocation data for each clicked column value
+    firstColumnValues.forEach(firstColValue => {
+      const rowData = {
+        [columnDefs[columnKey]?.label]: firstColValue,
+      };
+
+      // Add allocation data for each clicked column value
+      clickedColumnValues.forEach(clickedColValue => {
+        // Filter data for this specific combination
+        const filteredForCombination = currentFilteredData.filter(item => {
+          return item[columnKey] === firstColValue &&
+                 item[clickedColumn] === clickedColValue;
+        });
+
+        // Calculate total allocated quantity for this combination
+        const totalAllocated = filteredForCombination.reduce(
+          (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
+          0
+        ).toFixed(2);
+
+        rowData[clickedColValue] = totalAllocated;
+      });
+
+      newTableData.push(rowData);
+    });
+
+    // Create columns for the new table
+    const newColumns = [
+      columnDefs[columnKey]?.label,
+      ...clickedColumnValues,
+    ];
+
+    return {
+      heading: `आवंटन विवरण - ${columnDefs[columnKey]?.label} द्वारा ${columnDefs[clickedColumn]?.label}`,
+      data: newTableData,
+      columns: newColumns,
+      columnKey: columnKey,
+      isAllocationTable: true
+    };
+  };
+
   // Handle adding a table to an existing sheet
   const handleAddToExistingSheet = (type, existingTableId) => {
     if (!currentTableForExport) return;
@@ -2977,16 +3151,14 @@ const MainDashboard = () => {
                                                   fontWeight: "bold",
                                                 }}
                                                 onClick={() => {
-                                                  // Create a new filter stack with only this value selected
-                                                  const newFilterStack = filterStack.slice(0, -1);
-                                                  const newChecked = {};
-                                                  newChecked[checkedValue] = true;
-                                                  newFilterStack.push({
-                                                    column: currentFilter.column,
-                                                    checked: newChecked
-                                                  });
-                                                  setFilterStack(newFilterStack);
-                                                  setShowDetailed(false);
+                                                  // Generate detailed breakdown table for this clicked value
+                                                  const breakdownTable = generateDetailedBreakdownTable(
+                                                    [checkedValue],
+                                                    currentFilter.column
+                                                  );
+                                                  // Generate allocation table showing scheme-wise allocation for selected entries
+                                                  const allocationTable = generateAllocationTable(currentFilter.column, checkedValue, 'scheme_name');
+                                                  setAdditionalTables(prev => [allocationTable, breakdownTable, ...prev]);
                                                 }}
                                               >
                                                 {checkedValue}
@@ -3030,7 +3202,8 @@ const MainDashboard = () => {
                                                     }}
                                                     onClick={() => {
                                                       const summary = generateSummary(tableDataForValue, col);
-                                                      setAdditionalTables(prev => [{ heading: checkedValue, data: summary.data, columns: summary.columns, columnKey: col }, ...prev]);
+                                                      const allocationTable = generateAllocationTable(col, checkedValue, 'scheme_name');
+                                                      setAdditionalTables(prev => [allocationTable, { heading: checkedValue, data: summary.data, columns: summary.columns, columnKey: col }, ...prev]);
                                                     }}
                                                   >
                                                     {
@@ -3268,12 +3441,20 @@ const MainDashboard = () => {
                                           <thead className="table-thead">
                                             <tr>
                                               <th>{table.columns[0]}</th>
-                                              <th>कुल रिकॉर्ड</th>
-                                              {table.columns.slice(2, -2).map((col, idx) => (
-                                                <th key={idx}>{col}</th>
-                                              ))}
-                                              <th>कुल आवंटित मात्रा</th>
-                                              <th>कुल दर</th>
+                                              {table.isBreakdownTable ? (
+                                                table.columns.slice(1).map((col, idx) => (
+                                                  <th key={idx}>{col}</th>
+                                                ))
+                                              ) : (
+                                                <>
+                                                  <th>कुल रिकॉर्ड</th>
+                                                  {table.columns.slice(2, -2).map((col, idx) => (
+                                                    <th key={idx}>{col}</th>
+                                                  ))}
+                                                  <th>कुल आवंटित मात्रा</th>
+                                                  <th>कुल दर</th>
+                                                </>
+                                              )}
                                             </tr>
                                           </thead>
                                           <tbody>
@@ -3305,58 +3486,66 @@ const MainDashboard = () => {
                                                     >
                                                       {value}
                                                     </td>
-                                                    <td
-                                                      style={{
-                                                        cursor: "pointer",
-                                                        color: "blue",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      onClick={() => {
-                                                        // Add a new filter to the stack with this value and show detailed view
-                                                        handleSummaryValueClick(table.columnKey, value);
-                                                        setShowDetailed(true);
-                                                      }}
-                                                    >
-                                                      {row["कुल रिकॉर्ड"]}
-                                                    </td>
-                                                    {table.columns.slice(2, -2).map((col) => (
-                                                      <td
-                                                        key={col}
-                                                        style={{
-                                                          cursor: "pointer",
-                                                          color: "blue",
-                                                          fontWeight: "bold",
-                                                        }}
-                                                        onClick={() => {
-                                                          // Find the column key for this label
-                                                          const colKey = Object.keys(columnDefs).find(
-                                                            (k) => columnDefs[k].label === col
-                                                          );
-                                                          if (colKey) {
-                                                            // Get the data for this value
-                                                            const currentFilteredData = tableData.filter((item) => {
-                                                              for (let filter of filterStack) {
-                                                                if (!filter.checked[item[filter.column]]) return false;
-                                                              }
-                                                              return item[table.columnKey] === value;
-                                                            });
+                                                    {table.isBreakdownTable ? (
+                                                      table.columns.slice(1).map((col) => (
+                                                        <td key={col}>{row[col] || "0"}</td>
+                                                      ))
+                                                    ) : (
+                                                      <>
+                                                        <td
+                                                          style={{
+                                                            cursor: "pointer",
+                                                            color: "blue",
+                                                            fontWeight: "bold",
+                                                          }}
+                                                          onClick={() => {
+                                                            // Add a new filter to the stack with this value and show detailed view
+                                                            handleSummaryValueClick(table.columnKey, value);
+                                                            setShowDetailed(true);
+                                                          }}
+                                                        >
+                                                          {row["कुल रिकॉर्ड"]}
+                                                        </td>
+                                                        {table.columns.slice(2, -2).map((col) => (
+                                                          <td
+                                                            key={col}
+                                                            style={{
+                                                              cursor: "pointer",
+                                                              color: "blue",
+                                                              fontWeight: "bold",
+                                                            }}
+                                                            onClick={() => {
+                                                              // Find the column key for this label
+                                                              const colKey = Object.keys(columnDefs).find(
+                                                                (k) => columnDefs[k].label === col
+                                                              );
+                                                              if (colKey) {
+                                                                // Get the data for this value
+                                                                const currentFilteredData = tableData.filter((item) => {
+                                                                  for (let filter of filterStack) {
+                                                                    if (!filter.checked[item[filter.column]]) return false;
+                                                                  }
+                                                                  return item[table.columnKey] === value;
+                                                                });
 
-                                                            // Generate a new summary table
-                                                            const summary = generateSummary(currentFilteredData, colKey);
-                                                            setAdditionalTables(prev => [{
-                                                              heading: `${value} - ${col}`,
-                                                              data: summary.data,
-                                                              columns: summary.columns,
-                                                              columnKey: colKey
-                                                            }, ...prev]);
-                                                          }
-                                                        }}
-                                                      >
-                                                        {row[col]}
-                                                      </td>
-                                                    ))}
-                                                    <td>{row["कुल आवंटित मात्रा"]}</td>
-                                                    <td>{row["कुल दर"]}</td>
+                                                                // Generate a new summary table
+                                                                const summary = generateSummary(currentFilteredData, colKey);
+                                                                setAdditionalTables(prev => [{
+                                                                  heading: `${value} - ${col}`,
+                                                                  data: summary.data,
+                                                                  columns: summary.columns,
+                                                                  columnKey: colKey
+                                                                }, ...prev]);
+                                                              }
+                                                            }}
+                                                          >
+                                                            {row[col]}
+                                                          </td>
+                                                        ))}
+                                                        <td>{row["कुल आवंटित मात्रा"]}</td>
+                                                        <td>{row["कुल दर"]}</td>
+                                                      </>
+                                                    )}
                                                   </tr>
                                                 );
                                               });
