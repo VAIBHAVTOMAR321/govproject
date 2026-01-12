@@ -79,6 +79,7 @@ const MainDashboard = () => {
   const [tableData, setTableData] = useState([]);
   const [filteredTableData, setFilteredTableData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const itemsPerPage = 50;
   const isTableFiltered = filteredTableData.length !== tableData.length;
 
@@ -131,6 +132,7 @@ const MainDashboard = () => {
   });
   const [showDetailed, setShowDetailed] = useState(false);
   const [additionalTables, setAdditionalTables] = useState([]);
+  const [additionalTableFilters, setAdditionalTableFilters] = useState({});
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState("pdf");
   const [tableName, setTableName] = useState("");
@@ -233,6 +235,8 @@ const MainDashboard = () => {
 
     // Refresh table with all data
     setFilteredTableData(tableData);
+    // Ensure the summary heading updates immediately
+    checkIfTopFiltersApplied();
   };
 
   // Check if filters are applied from top filtering
@@ -303,15 +307,25 @@ const MainDashboard = () => {
   const handleSelectChange = (name, selected) => {
     if (selected && selected.some((s) => s.value === "ALL")) {
       // If "सभी चुनें" is selected, set filter to all options
-      setFilters((prev) => ({
-        ...prev,
-        [name]: filterOptions[name] || [],
-      }));
+      setFilters((prev) => {
+        const newFilters = {
+          ...prev,
+          [name]: filterOptions[name] || [],
+        };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
+      });
     } else {
-      setFilters((prev) => ({
-        ...prev,
-        [name]: selected ? selected.map((s) => s.value) : [],
-      }));
+      setFilters((prev) => {
+        const newFilters = {
+          ...prev,
+          [name]: selected ? selected.map((s) => s.value) : [],
+        };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
+      });
     }
   };
 
@@ -333,30 +347,97 @@ const MainDashboard = () => {
 
   // Handle detailed checkbox change
   const handleDetailedCheckboxChange = (filterIndex, val) => {
-    setFilterStack((prev) => {
-      const newStack = prev.map((filter, idx) => {
-        if (idx !== filterIndex) return filter;
+    // Ensure filterIndex is treated as a string
+    const filterIndexStr = String(filterIndex);
 
-        // Create a proper copy of the filter object
-        const newFilter = { ...filter, checked: { ...filter.checked } };
+    if (filterIndexStr.startsWith("additional_")) {
+      // Handle additional table filters
+      const tableIndex = parseInt(filterIndexStr.split("_")[1]);
+      setAdditionalTables((prev) => {
+        const newTables = [...prev];
+        const table = newTables[tableIndex];
+        const columnKey = Object.keys(columnDefs).find(
+          (k) => columnDefs[k].label === table.columns[0]
+        );
+        if (!columnKey) return prev;
+
+        // Get all unique values for this column from the currently filtered data
+        const currentFilteredData = tableData.filter((item) => {
+          for (let filter of filterStack) {
+            if (!filter.checked[item[filter.column]]) return false;
+          }
+          return true;
+        });
+
+        const allValues = [
+          ...new Set(
+            currentFilteredData.map((item) => item[columnKey]).filter(Boolean)
+          ),
+        ];
+
+        // Create a checked object with all values initialized to false
+        const checked = {};
+        allValues.forEach((val) => {
+          checked[val] = table.data.some(row => row[table.columns[0]] === val);
+        });
 
         if (val === "SELECT_ALL") {
-          const allValues = Object.keys(newFilter.checked);
-          const currentlyAllSelected = allValues.every(
-            (k) => newFilter.checked[k]
-          );
+          const allSelected = Object.values(checked).every(Boolean);
           // Toggle: if all are selected, deselect all; otherwise select all
-          allValues.forEach(
-            (k) => (newFilter.checked[k] = !currentlyAllSelected)
-          );
+          allValues.forEach((v) => (checked[v] = !allSelected));
         } else {
-          newFilter.checked[val] = !newFilter.checked[val];
+          checked[val] = !checked[val];
         }
 
-        return newFilter;
+        // Update the table data based on the new checked values
+        const newData = currentFilteredData.filter((item) => checked[item[columnKey]]);
+        const summary = generateSummary(newData, columnKey);
+        newTables[tableIndex] = {
+          ...table,
+          data: summary.data,
+          columns: summary.columns,
+          columnKey: summary.columnKey,
+        };
+
+        return newTables;
       });
-      return newStack;
-    });
+    } else {
+      // Handle filter stack changes
+      setFilterStack((prev) => {
+        const newStack = prev.map((filter, idx) => {
+          if (idx !== filterIndex) return filter;
+
+          // Calculate currentFilteredData for this filter
+          const currentFilteredData = tableData.filter((item) => {
+            for (let i = 0; i < prev.length; i++) {
+              if (i === filterIndex) continue;
+              const f = prev[i];
+              if (!f.checked[item[f.column]]) return false;
+            }
+            return true;
+          });
+
+          const allValues = [...new Set(currentFilteredData.map((item) => item[filter.column]).filter(Boolean))];
+
+          // Create newChecked with only current allValues, preserving previous selections if available
+          const newChecked = {};
+          allValues.forEach((v) => {
+            newChecked[v] = filter.checked[v] || false;
+          });
+
+          if (val === "SELECT_ALL") {
+            const currentlyAllSelected = allValues.every((k) => newChecked[k]);
+            // Toggle: if all are selected, deselect all; otherwise select all
+            allValues.forEach((k) => (newChecked[k] = !currentlyAllSelected));
+          } else {
+            newChecked[val] = !newChecked[val];
+          }
+
+          return { ...filter, checked: newChecked };
+        });
+        return newStack;
+      });
+    }
   };
 
   // Close dropdown when clicking outside
@@ -393,10 +474,13 @@ const MainDashboard = () => {
         const areAllSelected = allOptions.every((option) =>
           currentValues.includes(option)
         );
-        return {
+        const newFilters = {
           ...prev,
           [name]: areAllSelected ? [] : allOptions,
         };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
       });
     } else {
       setFilters((prev) => {
@@ -404,13 +488,17 @@ const MainDashboard = () => {
         const newValues = currentValues.includes(value)
           ? currentValues.filter((v) => v !== value)
           : [...currentValues, value];
-        return { ...prev, [name]: newValues };
+        const newFilters = { ...prev, [name]: newValues };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
       });
     }
   };
 
   // Apply filters
   const applyFilters = () => {
+    setIsApplyingFilters(true);
     const filteredData = tableData.filter((item) => {
       return (
         (filters.center_name.length === 0 ||
@@ -434,7 +522,25 @@ const MainDashboard = () => {
     setFilteredTableData(filteredData);
     setCurrentPage(1);
     checkIfTopFiltersApplied();
+    setIsApplyingFilters(false);
   };
+
+  // Apply filters whenever the filters state changes
+  useEffect(() => {
+    applyFilters();
+  }, [filters]);
+
+  // Real-time filter update effect - ensures immediate response to filter changes
+  useEffect(() => {
+    // This effect will trigger immediately when any filter changes
+    const timeoutId = setTimeout(() => {
+      applyFilters();
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
+  }, [filters.center_name, filters.component, filters.sub_investment_name,
+      filters.investment_name, filters.source_of_receipt, filters.scheme_name,
+      filters.vikas_khand_name, filters.vidhan_sabha_name]);
 
   // Generate summary data for a given data and column
   const generateSummary = (data, column) => {
@@ -531,13 +637,28 @@ const MainDashboard = () => {
     setAdditionalTables([]);
   };
 
-  // Get current table data based on view
+  // Get current table data with totals for export
   const getCurrentTableData = () => {
     if (view === "main") {
+      // Calculate totals for the main table
+      const totals = {
+        "केंद्र का नाम": new Set(filteredTableData.map(item => item.center_name)).size,
+        "विधानसभा": new Set(filteredTableData.map(item => item.vidhan_sabha_name)).size,
+        "विकास खंड": new Set(filteredTableData.map(item => item.vikas_khand_name)).size,
+        "योजना": new Set(filteredTableData.map(item => item.scheme_name)).size,
+        "सप्लायर": new Set(filteredTableData.map(item => item.source_of_receipt)).size,
+        "घटक": new Set(filteredTableData.map(item => item.component)).size,
+        "निवेश": new Set(filteredTableData.map(item => item.investment_name)).size,
+        "उप-निवेश": new Set(filteredTableData.map(item => item.sub_investment_name)).size,
+        "आवंटित मात्रा": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2),
+        "दर": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)
+      };
+
       return {
         heading: getSummaryHeading(),
         data: filteredTableData,
         columns: Object.keys(columnDefs).map((key) => columnDefs[key].label),
+        totals: totals
       };
     } else {
       const filteredData = tableData.filter((item) => {
@@ -552,12 +673,25 @@ const MainDashboard = () => {
       );
 
       if (showDetailed && checkedValues.length === 1) {
+        // Calculate totals for detailed view
+        const totals = {};
+        Object.keys(columnDefs).forEach(col => {
+          if (col !== currentFilter.column) {
+            if (col === "allocated_quantity" || col === "rate") {
+              totals[columnDefs[col].label] = filteredData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2);
+            } else {
+              totals[columnDefs[col].label] = new Set(filteredData.map(item => item[col])).size;
+            }
+          }
+        });
+
         return {
           heading: selectedItem?.value || "Detail View",
           data: filteredData,
           columns: Object.keys(columnDefs)
             .filter((col) => col !== currentFilter.column)
             .map((key) => columnDefs[key].label),
+          totals: totals
         };
       } else {
         // Summary table
@@ -592,6 +726,35 @@ const MainDashboard = () => {
               .toFixed(2),
           };
         });
+
+        // Calculate totals for summary view
+        const totals = {};
+        totals[columnDefs[currentFilter.column]?.label] = checkedValues.length;
+        totals["कुल रिकॉर्ड"] = checkedValues.reduce((sum, checkedValue) => {
+          const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+          return sum + tableDataForValue.length;
+        }, 0);
+
+        Object.keys(columnDefs)
+          .filter(col => col !== currentFilter.column && col !== "allocated_quantity" && col !== "rate")
+          .forEach(col => {
+            totals[columnDefs[col].label] = new Set(filteredData.map(item => item[col])).size;
+          });
+
+        totals["कुल आवंटित मात्रा"] = checkedValues
+          .reduce((sum, checkedValue) => {
+            const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+            return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.allocated_quantity) || 0), 0);
+          }, 0)
+          .toFixed(2);
+
+        totals["कुल दर"] = checkedValues
+          .reduce((sum, checkedValue) => {
+            const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+            return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
+          }, 0)
+          .toFixed(2);
+
         return {
           heading: `${columnDefs[currentFilter.column]?.label || "Summary"} (${
             checkedValues.length
@@ -611,6 +774,7 @@ const MainDashboard = () => {
             "कुल आवंटित मात्रा",
             "कुल दर",
           ],
+          totals: totals
         };
       }
     }
@@ -628,10 +792,35 @@ const MainDashboard = () => {
 
   // Add additional table to export list
   const addAdditionalTableToExport = (table, type) => {
+    // Calculate totals for additional table
+    const filteredTableData = table.data.filter((row) => {
+      const rowValue = row[table.columns[0]];
+      // Apply filters if they exist
+      return true; // Assuming additional tables are already filtered
+    });
+
+    const totals = {
+      [table.columns[0]]: filteredTableData.length,
+      "कुल रिकॉर्ड": filteredTableData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)
+    };
+
+    table.columns.slice(2, -2).forEach(col => {
+      totals[col] = new Set(filteredTableData.flatMap(row => 
+        tableData.filter(item => item[table.columnKey] === row[table.columns[0]])
+          .map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)])
+      )).size;
+    });
+
+    totals["कुल आवंटित मात्रा"] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2);
+    totals["कुल दर"] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2);
+
     const defaultName = `Table ${tablesForExport[type].length + 1}`;
     setTableName(defaultName);
     setExportType(type);
-    setCurrentTableForExport(table);
+    setCurrentTableForExport({
+      ...table,
+      totals: totals
+    });
     setShowExportModal(true);
   };
 
@@ -645,6 +834,7 @@ const MainDashboard = () => {
       heading: currentTableForExport.heading,
       data: currentTableForExport.data,
       columns: currentTableForExport.columns,
+      totals: currentTableForExport.totals || {},
       addedAt: new Date().toLocaleString(),
     };
     setTablesForExport((prev) => ({
@@ -666,430 +856,370 @@ const MainDashboard = () => {
 
   // Generate PDF preview
   const generatePDFPreview = () => {
-  return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>निर्यातित टेबल रिपोर्ट</h1>
-      {tablesForExport.pdf.map((table, index) => (
-        <div key={table.id} style={{ marginBottom: '30px', pageBreakInside: 'avoid' }}>
-          <h2 style={{ marginBottom: '10px', fontSize: '14px' }}>{index + 1}. {table.heading}</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '11px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#2980b9', color: 'white' }}>
-                {table.columns.map(col => (
-                  <th key={col} style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '11px' }}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.data.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {table.columns.map((col) => {
-                    let cellValue = '';
-                    if (typeof row === "object" && row !== null) {
-                      if (row.hasOwnProperty(col)) {
-                        cellValue = row[col] || "";
-                      } else {
-                        // Find the key for this label
-                        const key = Object.keys(columnDefs).find(
-                          (k) => columnDefs[k].label === col
-                        );
-                        if (key) {
-                          cellValue = row[key] || "";
+    return (
+      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
+        <h1 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>निर्यातित टेबल रिपोर्ट</h1>
+        {tablesForExport.pdf.map((table, index) => (
+          <div key={table.id} style={{ marginBottom: '30px', pageBreakInside: 'avoid' }}>
+            <h2 style={{ marginBottom: '10px', fontSize: '14px' }}>{index + 1}. {table.heading}</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#2980b9', color: 'white' }}>
+                  <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '11px' }}>S.No.</th>
+                  {table.columns.map(col => (
+                    <th key={col} style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '11px' }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {table.data.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{rowIndex + 1}</td>
+                    {table.columns.map((col) => {
+                      let cellValue = '';
+                      if (typeof row === "object" && row !== null) {
+                        if (row.hasOwnProperty(col)) {
+                          cellValue = row[col] || "";
+                        } else {
+                          // Find the key for this label
+                          const key = Object.keys(columnDefs).find(
+                            (k) => columnDefs[k].label === col
+                          );
+                          if (key) {
+                            cellValue = row[key] || "";
+                          }
                         }
+                      } else {
+                        cellValue = row;
                       }
-                    } else {
-                      cellValue = row;
-                    }
-                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{cellValue}</td>;
+                      return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{cellValue}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
+                  {table.columns.map((col) => {
+                    // Use pre-calculated totals if available
+                    const totalValue = table.totals && table.totals[col] !== undefined 
+                      ? table.totals[col] 
+                      : calculateColumnTotal(table.data, col);
+                    
+                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
                   })}
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
-                <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
-                {table.columns.slice(1).map((col, colIndex) => {
-                  // Calculate total for this column
-                  let totalValue = '';
-                  
-                  if (col === 'कुल रिकॉर्ड') {
-                    totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
-                  } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
-                    totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
-                  } else {
-                    // For other columns, count unique values
-                    const uniqueValues = new Set();
-                    table.data.forEach(row => {
-                      let value = '';
-                      if (row.hasOwnProperty(col)) {
-                        value = row[col];
-                      } else {
-                        // Find the key for this label
-                        const key = Object.keys(columnDefs).find(
-                          (k) => columnDefs[k].label === col
-                        );
-                        if (key) {
-                          value = row[key];
-                        }
-                      }
-                      if (value) uniqueValues.add(value);
-                    });
-                    totalValue = uniqueValues.size;
-                  }
-                  
-                  return <td key={colIndex} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
-                })}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      ))}
-    </div>
-  );
-};
-
+              </tfoot>
+            </table>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   // Generate Excel preview
   const generateExcelPreview = () => {
-  return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
-      <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>Excel शीट्स पूर्वालोकन</h3>
-      {tablesForExport.excel.map((table, index) => (
-        <div key={table.id} style={{ marginBottom: '30px', border: '1px solid #ddd', padding: '15px', pageBreakInside: 'avoid' }}>
-          <h4 style={{ marginBottom: '10px', color: '#2980b9', fontSize: '14px' }}>शीट {index + 1}: {table.name}</h4>
-          <h5 style={{ marginBottom: '10px', fontSize: '13px' }}>{table.heading}</h5>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '11px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f2f2f2' }}>
-                {table.columns.map(col => (
-                  <th key={col} style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontWeight: 'bold', fontSize: '11px' }}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.data.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {table.columns.map((col) => {
-                    let cellValue = '';
-                    if (typeof row === "object" && row !== null) {
-                      if (row.hasOwnProperty(col)) {
-                        cellValue = row[col] || "";
-                      } else {
-                        // Find the key for this label
-                        const key = Object.keys(columnDefs).find(
-                          (k) => columnDefs[k].label === col
-                        );
-                        if (key) {
-                          cellValue = row[key] || "";
+    return (
+      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>Excel शीट्स पूर्वालोकन</h3>
+        {tablesForExport.excel.map((table, index) => (
+          <div key={table.id} style={{ marginBottom: '30px', border: '1px solid #ddd', padding: '15px', pageBreakInside: 'avoid' }}>
+            <h4 style={{ marginBottom: '10px', color: '#2980b9', fontSize: '14px' }}>शीट {index + 1}: {table.name}</h4>
+            <h5 style={{ marginBottom: '10px', fontSize: '13px' }}>{table.heading}</h5>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f2f2f2' }}>
+                  <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontWeight: 'bold', fontSize: '11px' }}>S.No.</th>
+                  {table.columns.map(col => (
+                    <th key={col} style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontWeight: 'bold', fontSize: '11px' }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {table.data.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{rowIndex + 1}</td>
+                    {table.columns.map((col) => {
+                      let cellValue = '';
+                      if (typeof row === "object" && row !== null) {
+                        if (row.hasOwnProperty(col)) {
+                          cellValue = row[col] || "";
+                        } else {
+                          // Find the key for this label
+                          const key = Object.keys(columnDefs).find(
+                            (k) => columnDefs[k].label === col
+                          );
+                          if (key) {
+                            cellValue = row[key] || "";
+                          }
                         }
+                      } else {
+                        cellValue = row;
                       }
-                    } else {
-                      cellValue = row;
-                    }
-                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{cellValue}</td>;
+                      return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{cellValue}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
+                  {table.columns.map((col) => {
+                    // Use pre-calculated totals if available
+                    const totalValue = table.totals && table.totals[col] !== undefined 
+                      ? table.totals[col] 
+                      : calculateColumnTotal(table.data, col);
+                    
+                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
                   })}
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
-                <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
-                {table.columns.slice(1).map((col, colIndex) => {
-                  // Calculate total for this column
-                  let totalValue = '';
-                  
-                  if (col === 'कुल रिकॉर्ड') {
-                    totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
-                  } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
-                    totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
-                  } else {
-                    // For other columns, count unique values
-                    const uniqueValues = new Set();
-                    table.data.forEach(row => {
-                      let value = '';
-                      if (row.hasOwnProperty(col)) {
-                        value = row[col];
-                      } else {
-                        // Find the key for this label
-                        const key = Object.keys(columnDefs).find(
-                          (k) => columnDefs[k].label === col
-                        );
-                        if (key) {
-                          value = row[key];
-                        }
-                      }
-                      if (value) uniqueValues.add(value);
-                    });
-                    totalValue = uniqueValues.size;
-                  }
-                  
-                  return <td key={colIndex} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
-                })}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      ))}
-    </div>
-  );
-};
+              </tfoot>
+            </table>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
+  // Helper function to calculate column totals (fallback)
+  const calculateColumnTotal = (tableData, column) => {
+    if (column === 'कुल रिकॉर्ड') {
+      return tableData.reduce((sum, row) => sum + (row[column] || 0), 0);
+    } else if (column === 'कुल आवंटित मात्रा' || column === 'कुल दर') {
+      return tableData.reduce((sum, row) => sum + parseFloat(row[column] || 0), 0).toFixed(2);
+    } else {
+      // For other columns, count unique values
+      const uniqueValues = new Set();
+      tableData.forEach(row => {
+        let value = '';
+        if (row.hasOwnProperty(column)) {
+          value = row[column];
+        } else {
+          // Find the key for this label
+          const key = Object.keys(columnDefs).find(
+            (k) => columnDefs[k].label === column
+          );
+          if (key) {
+            value = row[key];
+          }
+        }
+        if (value) uniqueValues.add(value);
+      });
+      return uniqueValues.size;
+    }
+  };
 
   // Generate PDF
   const generatePDF = () => {
-  try {
-    // Create HTML content
-    let htmlContent = `
-      <div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">
-        <h1 style="text-align: center; margin-bottom: 15px; font-size: 14px;">निर्यातित टेबल रिपोर्ट</h1>
-    `;
-
-    tablesForExport.pdf.forEach((table, index) => {
-      htmlContent += `
-        <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <h2 style="margin-top: 15px; margin-bottom: 8px; font-size: 12px;">${index + 1}. ${table.heading}</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9px;">
-            <thead>
-              <tr style="background-color: #2980b9; color: white;">
-                ${table.columns.map(col => `<th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">${col}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
+    try {
+      // Create HTML content
+      let htmlContent = `
+        <div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">
+          <h1 style="text-align: center; margin-bottom: 15px; font-size: 14px;">निर्यातित टेबल रिपोर्ट</h1>
       `;
 
-      table.data.forEach((row) => {
-        htmlContent += '<tr>';
-        table.columns.forEach((col) => {
-          let cellValue = '';
-          if (typeof row === "object" && row !== null) {
-            if (row.hasOwnProperty(col)) {
-              cellValue = row[col] || "";
-            } else {
-              // Find the key for this label
-              const key = Object.keys(columnDefs).find(
-                (k) => columnDefs[k].label === col
-              );
-              if (key) {
-                cellValue = row[key] || "";
-              }
-            }
-          } else {
-            cellValue = row;
-          }
-          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${cellValue}</td>`;
-        });
-        htmlContent += '</tr>';
-      });
+      tablesForExport.pdf.forEach((table, index) => {
+        htmlContent += `
+          <div style="margin-bottom: 20px; page-break-inside: avoid;">
+            <h2 style="margin-top: 15px; margin-bottom: 8px; font-size: 12px;">${index + 1}. ${table.heading}</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9px;">
+              <thead>
+                <tr style="background-color: #2980b9; color: white;">
+                  <th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">S.No.</th>
+                  ${table.columns.map(col => `<th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">${col}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+        `;
 
-      // Add footer row with totals
-      htmlContent += `
-            </tbody>
-            <tfoot>
-              <tr style="background-color: #f2f2f2; font-weight: bold;">
-                <td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">कुल:</td>
-      `;
-
-      table.columns.slice(1).forEach((col) => {
-        let totalValue = '';
-        
-        if (col === 'कुल रिकॉर्ड') {
-          totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
-        } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
-          totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
-        } else {
-          // For other columns, count unique values
-          const uniqueValues = new Set();
-          table.data.forEach(row => {
-            let value = '';
-            if (row.hasOwnProperty(col)) {
-              value = row[col];
-            } else {
-              // Find the key for this label
-              const key = Object.keys(columnDefs).find(
-                (k) => columnDefs[k].label === col
-              );
-              if (key) {
-                value = row[key];
+        table.data.forEach((row, rowIndex) => {
+          htmlContent += '<tr>';
+          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${rowIndex + 1}</td>`;
+          table.columns.forEach((col) => {
+            let cellValue = '';
+            if (typeof row === "object" && row !== null) {
+              if (row.hasOwnProperty(col)) {
+                cellValue = row[col] || "";
+              } else {
+                // Find the key for this label
+                const key = Object.keys(columnDefs).find(
+                  (k) => columnDefs[k].label === col
+                );
+                if (key) {
+                  cellValue = row[key] || "";
+                }
               }
+            } else {
+              cellValue = row;
             }
-            if (value) uniqueValues.add(value);
+            htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${cellValue}</td>`;
           });
-          totalValue = uniqueValues.size;
-        }
-        
-        htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
+          htmlContent += '</tr>';
+        });
+
+        // Add footer row with totals using pre-calculated values
+        htmlContent += `
+              </tbody>
+              <tfoot>
+                <tr style="background-color: #f2f2f2; font-weight: bold;">
+                  <td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">कुल:</td>
+        `;
+
+        table.columns.forEach((col) => {
+          // Use pre-calculated totals if available
+          const totalValue = table.totals && table.totals[col] !== undefined 
+            ? table.totals[col] 
+            : calculateColumnTotal(table.data, col);
+          
+          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
+        });
+
+        htmlContent += `
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `;
       });
 
-      htmlContent += `
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `;
-    });
+      htmlContent += '</div>';
 
-    htmlContent += '</div>';
+      // Configure html2pdf options
+      const options = {
+        margin: [8, 8, 8, 8],
+        filename: 'exported-tables.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 1.8, 
+          useCORS: true, 
+          letterRendering: true,
+          logging: false,
+          windowWidth: 1200
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'landscape',
+          compress: true
+        }
+      };
 
-    // Configure html2pdf options
-    const options = {
-      margin: [8, 8, 8, 8],
-      filename: 'exported-tables.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 1.8, 
-        useCORS: true, 
-        letterRendering: true,
-        logging: false,
-        windowWidth: 1200
-      },
-      jsPDF: { 
-        unit: 'mm', 
-        format: 'a4', 
-        orientation: 'landscape',
-        compress: true
-      }
-    };
-
-    // Generate and download PDF from HTML string
-    html2pdf().set(options).from(htmlContent).save().catch((error) => {
+      // Generate and download PDF from HTML string
+      html2pdf().set(options).from(htmlContent).save().catch((error) => {
+        console.error("Error generating PDF:", error);
+        alert("Error generating PDF: " + error.message);
+      });
+    } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Error generating PDF: " + error.message);
-    });
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    alert("Error generating PDF: " + error.message);
-  }
-};
+    }
+  };
 
   // Generate Excel
   const generateExcel = () => {
-  const workbook = XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
 
-  tablesForExport.excel.forEach((table, index) => {
-    // Prepare data for this table
-    let tableDataArray = [
-      [table.heading], // Title
-      [], // Empty row
-      table.columns, // Headers
-      ...table.data.map((row) =>
-        table.columns.map((col) => {
-          if (typeof row === "object" && row !== null) {
-            if (row.hasOwnProperty(col)) {
-              return row[col] || "";
-            } else {
-              // Find the key for this label
-              const key = Object.keys(columnDefs).find(
-                (k) => columnDefs[k].label === col
-              );
-              if (key) {
-                return row[key] || "";
+    tablesForExport.excel.forEach((table, index) => {
+      // Prepare data for this table
+      let tableDataArray = [
+        [table.heading], // Title
+        [], // Empty row
+        ["S.No.", ...table.columns], // Headers
+        ...table.data.map((row, rowIndex) =>
+          [rowIndex + 1, ...table.columns.map((col) => {
+            if (typeof row === "object" && row !== null) {
+              if (row.hasOwnProperty(col)) {
+                return row[col] || "";
               } else {
-                return "";
+                // Find the key for this label
+                const key = Object.keys(columnDefs).find(
+                  (k) => columnDefs[k].label === col
+                );
+                if (key) {
+                  return row[key] || "";
+                } else {
+                  return "";
+                }
               }
             }
-          }
-          return row;
-        })
-      ),
-    ];
+            return row;
+          })]
+        ),
+      ];
 
-    // Calculate totals for each column
-    const totalsRow = ["कुल:"];
-    table.columns.slice(1).forEach((col) => {
-      let totalValue = '';
-      
-      if (col === 'कुल रिकॉर्ड') {
-        totalValue = table.data.reduce((sum, row) => sum + (row[col] || 0), 0);
-      } else if (col === 'कुल आवंटित मात्रा' || col === 'कुल दर') {
-        totalValue = table.data.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2);
-      } else {
-        // For other columns, count unique values
-        const uniqueValues = new Set();
-        table.data.forEach(row => {
-          let value = '';
-          if (row.hasOwnProperty(col)) {
-            value = row[col];
-          } else {
-            // Find the key for this label
-            const key = Object.keys(columnDefs).find(
-              (k) => columnDefs[k].label === col
-            );
-            if (key) {
-              value = row[key];
-            }
-          }
-          if (value) uniqueValues.add(value);
+      // Calculate totals for each column using pre-calculated values
+      const totalsRow = ["कुल:"];
+      table.columns.forEach((col) => {
+        const totalValue = table.totals && table.totals[col] !== undefined 
+          ? table.totals[col] 
+          : calculateColumnTotal(table.data, col);
+        totalsRow.push(totalValue);
+      });
+
+      // Add empty row and totals row
+      tableDataArray.push([], totalsRow);
+
+      const sheetName = table.name.substring(0, 31); // Excel sheet name limit
+
+      // Check if sheet already exists in workbook
+      if (workbook.SheetNames.includes(sheetName)) {
+        // Append data to existing sheet
+        const existingSheet = workbook.Sheets[sheetName];
+
+        // Get the range of the existing sheet to find where to append
+        const existingRange = XLSX.utils.decode_range(
+          existingSheet["!ref"] || "A1"
+        );
+        const startRow = existingRange.e.r + 2; // Add 2 rows gap (1 for empty row, 1 for new data)
+
+        // Add empty row before new data
+        const emptyRow = {};
+        for (let col = 0; col < table.columns.length + 1; col++) {
+          emptyRow[XLSX.utils.encode_col(col) + (startRow + 1)] = {
+            t: "s",
+            v: "",
+          };
+        }
+
+        // Add new data starting from the row after empty row
+        tableDataArray.forEach((rowData, rowIndex) => {
+          const currentRow = startRow + 2 + rowIndex;
+          rowData.forEach((cellData, colIndex) => {
+            const cellRef = XLSX.utils.encode_col(colIndex) + currentRow;
+            existingSheet[cellRef] = {
+              t: typeof cellData === "number" ? "n" : "s",
+              v: cellData,
+            };
+          });
         });
-        totalValue = uniqueValues.size;
+
+        // Update the sheet range
+        const newEndRow = startRow + 2 + tableDataArray.length - 1;
+        existingSheet["!ref"] = XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: table.columns.length, r: newEndRow },
+        });
+
+        // Update column widths if needed
+        if (!existingSheet["!cols"]) {
+          const colWidths = table.columns.map(() => ({ wch: 15 }));
+          existingSheet["!cols"] = colWidths;
+        }
+      } else {
+        // Create new sheet
+        const worksheet = XLSX.utils.aoa_to_sheet(tableDataArray);
+
+        // Set column widths
+        const colWidths = table.columns.map(() => ({ wch: 15 }));
+        worksheet["!cols"] = colWidths;
+
+        // Add sheet to workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
       }
-      
-      totalsRow.push(totalValue);
     });
 
-    // Add empty row and totals row
-    tableDataArray.push([], totalsRow);
-
-    const sheetName = table.name.substring(0, 31); // Excel sheet name limit
-
-    // Check if sheet already exists in workbook
-    if (workbook.SheetNames.includes(sheetName)) {
-      // Append data to existing sheet
-      const existingSheet = workbook.Sheets[sheetName];
-
-      // Get the range of the existing sheet to find where to append
-      const existingRange = XLSX.utils.decode_range(
-        existingSheet["!ref"] || "A1"
-      );
-      const startRow = existingRange.e.r + 2; // Add 2 rows gap (1 for empty row, 1 for new data)
-
-      // Add empty row before new data
-      const emptyRow = {};
-      for (let col = 0; col < table.columns.length; col++) {
-        emptyRow[XLSX.utils.encode_col(col) + (startRow + 1)] = {
-          t: "s",
-          v: "",
-        };
-      }
-
-      // Add new data starting from the row after empty row
-      tableDataArray.forEach((rowData, rowIndex) => {
-        const currentRow = startRow + 2 + rowIndex;
-        rowData.forEach((cellData, colIndex) => {
-          const cellRef = XLSX.utils.encode_col(colIndex) + currentRow;
-          existingSheet[cellRef] = {
-            t: typeof cellData === "number" ? "n" : "s",
-            v: cellData,
-          };
-        });
-      });
-
-      // Update the sheet range
-      const newEndRow = startRow + 2 + tableDataArray.length - 1;
-      existingSheet["!ref"] = XLSX.utils.encode_range({
-        s: { c: 0, r: 0 },
-        e: { c: table.columns.length - 1, r: newEndRow },
-      });
-
-      // Update column widths if needed
-      if (!existingSheet["!cols"]) {
-        const colWidths = table.columns.map(() => ({ wch: 15 }));
-        existingSheet["!cols"] = colWidths;
-      }
-    } else {
-      // Create new sheet
-      const worksheet = XLSX.utils.aoa_to_sheet(tableDataArray);
-
-      // Set column widths
-      const colWidths = table.columns.map(() => ({ wch: 15 }));
-      worksheet["!cols"] = colWidths;
-
-      // Add sheet to workbook
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-    }
-  });
-
-  XLSX.writeFile(workbook, "exported-tables.xlsx");
-};
+    XLSX.writeFile(workbook, "exported-tables.xlsx");
+  };
 
   // Export Section Component
   const ExportSection = () => (
@@ -1260,7 +1390,7 @@ const MainDashboard = () => {
     const allValues = [
       ...new Set(currentFilteredData.map((item) => item[column]).filter(Boolean)),
     ];
-
+  
     // Create checked object with all values initialized to false
     // Then set the clicked value to true
     const checked = {};
@@ -1268,11 +1398,25 @@ const MainDashboard = () => {
       checked[val] = false;
     });
     checked[value] = true;
-
+  
     // Add this filter to the stack
     setFilterStack((prev) => [...prev, { column, checked }]);
     setShowDetailed(false);
   };
+
+  // Initialize filters for additional tables
+  useEffect(() => {
+    if (additionalTables.length > 0) {
+      const initialFilters = {};
+      additionalTables.forEach((table, index) => {
+        initialFilters[index] = {
+          allSelected: true,
+          selectedValues: table.data.map((row) => row[table.columns[0]]),
+        };
+      });
+      setAdditionalTableFilters(initialFilters);
+    }
+  }, [additionalTables]);
 
   // Handle adding a table to an existing sheet
   const handleAddToExistingSheet = (type, existingTableId) => {
@@ -1289,6 +1433,7 @@ const MainDashboard = () => {
       heading: currentTableForExport.heading,
       data: currentTableForExport.data,
       columns: currentTableForExport.columns,
+      totals: currentTableForExport.totals || {},
       addedAt: new Date().toLocaleString(),
       addToExistingSheet: true,
       existingSheetId: existingTableId,
@@ -1361,7 +1506,7 @@ const MainDashboard = () => {
     >
       <Modal.Header closeButton className="modal-header-style">
         <div>
-          {previewType === "pdf" ? "PDF पूर्वावलोकन" : "Excel पूर्वावलोकन"}
+          {previewType === "pdf" ? "PDF पूर्वावलोकन" : "Excel पूर्वालोकन"}
         </div>
       </Modal.Header>
       <Modal.Body style={{ maxHeight: '70vh', overflow: 'auto' }}>
@@ -1387,6 +1532,98 @@ const MainDashboard = () => {
     </Modal>
   );
 
+  // Handle additional table filter change
+  const handleAdditionalTableFilterChange = (tableIndex, value) => {
+    setAdditionalTableFilters((prev) => {
+      const currentFilter = prev[tableIndex] || { allSelected: true, selectedValues: [] };
+      
+      if (value === "SELECT_ALL") {
+        // Toggle select all
+        const allValues = additionalTables[tableIndex].data.map((row) => row[additionalTables[tableIndex].columns[0]]);
+        const newSelectedValues = currentFilter.allSelected ? [] : allValues;
+        
+        return {
+          ...prev,
+          [tableIndex]: {
+            allSelected: !currentFilter.allSelected,
+            selectedValues: newSelectedValues,
+          },
+        };
+      } else {
+        // Toggle individual value
+        const newSelectedValues = currentFilter.selectedValues.includes(value)
+          ? currentFilter.selectedValues.filter((v) => v !== value)
+          : [...currentFilter.selectedValues, value];
+        
+        return {
+          ...prev,
+          [tableIndex]: {
+            ...currentFilter,
+            selectedValues: newSelectedValues,
+            allSelected: false,
+          },
+        };
+      }
+    });
+  };
+
+  // Handle clicking on "कुल" (Total) to generate a table with unique values
+  const handleTotalClick = (columnKey) => {
+    // Get the current filtered data based on the filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+    
+    // Generate unique values for the selected column
+    const uniqueValues = [...new Set(currentFilteredData.map(item => item[columnKey]).filter(Boolean))];
+    
+    // Create summary data for each unique value
+    const summaryData = uniqueValues.map(value => {
+      const dataForValue = currentFilteredData.filter(item => item[columnKey] === value);
+      return {
+        [columnDefs[columnKey]?.label]: value,
+        "कुल रिकॉर्ड": dataForValue.length,
+        ...Object.fromEntries(
+          Object.keys(columnDefs)
+            .filter(col => col !== columnKey && col !== "allocated_quantity" && col !== "rate")
+            .map(col => [
+              columnDefs[col].label,
+              new Set(dataForValue.map(item => item[col])).size
+            ])
+        ),
+        "कुल आवंटित मात्रा": dataForValue
+          .reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0)
+          .toFixed(2),
+        "कुल दर": dataForValue
+          .reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0)
+          .toFixed(2),
+      };
+    });
+    
+    const columns = [
+      columnDefs[columnKey]?.label,
+      "कुल रिकॉर्ड",
+      ...Object.keys(columnDefs)
+        .filter(col => col !== columnKey && col !== "allocated_quantity" && col !== "rate")
+        .map(key => columnDefs[key].label),
+      "कुल आवंटित मात्रा",
+      "कुल दर",
+    ];
+    
+    // Add this table to additional tables
+    const newTable = {
+      heading: `${columnDefs[columnKey]?.label} - विस्तृत विवरण`,
+      data: summaryData,
+      columns: columns,
+      columnKey: columnKey,
+    };
+    
+    setAdditionalTables(prev => [newTable, ...prev]);
+  };
+
   return (
     <div>
       <Container fluid className="p-4">
@@ -1410,6 +1647,11 @@ const MainDashboard = () => {
                         <RiFilter2Line />
                       </i>
                       फिल्टर
+                      {isApplyingFilters && (
+                        <span className="ms-2 text-muted small">
+                          <i className="fas fa-spinner fa-spin"></i> अपडेट हो रहा है...
+                        </span>
+                      )}
                     </h6>
                     <div className="d-flex gap-2">
                       <Button
@@ -1417,6 +1659,7 @@ const MainDashboard = () => {
                         className="btn-filter-submit"
                         size="sm"
                         onClick={applyFilters}
+                        disabled={isApplyingFilters}
                       >
                         <i className="fltr-icon">
                           <BiFilter />
@@ -1428,6 +1671,7 @@ const MainDashboard = () => {
                         variant="outline-secondary"
                         size="sm"
                         onClick={clearFilters}
+                        disabled={isApplyingFilters}
                       >
                         <i className="fltr-icon">
                           <IoMdRefresh />
@@ -1436,6 +1680,25 @@ const MainDashboard = () => {
                       </Button>
                     </div>
                   </div>
+                  {/* Filter Summary */}
+                  {isFilterApplied && (
+                    <div className="filter-summary mb-2 p-2 bg-white border rounded">
+                      <small className="text-muted">
+                        <strong>फ़िल्टर लागू:</strong>{" "}
+                        {Object.entries(filters)
+                          .filter(([key, values]) => values.length > 0)
+                          .map(([key, values]) =>
+                            `${columnDefs[key]?.label}: ${values.length} selected`
+                          )
+                          .join(" | ")}
+                        <span className="ms-3">
+                          <strong>परिणाम:</strong>{" "}
+                          <span className="badge bg-primary">{filteredTableData.length}</span>{" "}
+                          रिकॉर्ड
+                        </span>
+                      </small>
+                    </div>
+                  )}
                   <Row>
                     <Col>
                       <Form.Group className="mb-2">
@@ -1455,28 +1718,30 @@ const MainDashboard = () => {
                               : `${filters.center_name.length} selected`}
                           </button>
                           {dropdownOpen.center_name && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_center"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`center_name_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.center_name.length > 0 &&
-                                    filters.center_name.length ===
-                                      filterOptions.center_name.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "center_name",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.center_name.length > 0 &&
+                                    filters.center_name.length === filterOptions.center_name.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`center_name_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "center_name",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.center_name.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1521,28 +1786,30 @@ const MainDashboard = () => {
                               : `${filters.vikas_khand_name.length} selected`}
                           </button>
                           {dropdownOpen.vikas_khand_name && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_vikas"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`vikas_khand_name_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.vikas_khand_name.length > 0 &&
-                                    filters.vikas_khand_name.length ===
-                                      filterOptions.vikas_khand_name.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "vikas_khand_name",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.vikas_khand_name.length > 0 &&
+                                    filters.vikas_khand_name.length === filterOptions.vikas_khand_name.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`vikas_khand_name_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "vikas_khand_name",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.vikas_khand_name.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1587,29 +1854,30 @@ const MainDashboard = () => {
                               : `${filters.vidhan_sabha_name.length} selected`}
                           </button>
                           {dropdownOpen.vidhan_sabha_name && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_vidhan"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`vidhan_sabha_name_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.vidhan_sabha_name.length >
-                                      0 &&
-                                    filters.vidhan_sabha_name.length ===
-                                      filterOptions.vidhan_sabha_name.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "vidhan_sabha_name",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.vidhan_sabha_name.length > 0 &&
+                                    filters.vidhan_sabha_name.length === filterOptions.vidhan_sabha_name.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`vidhan_sabha_name_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "vidhan_sabha_name",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.vidhan_sabha_name.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1653,28 +1921,30 @@ const MainDashboard = () => {
                               : `${filters.component.length} selected`}
                           </button>
                           {dropdownOpen.component && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_component"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`component_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.component.length > 0 &&
-                                    filters.component.length ===
-                                      filterOptions.component.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "component",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.component.length > 0 &&
+                                    filters.component.length === filterOptions.component.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`component_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "component",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.component.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1714,28 +1984,30 @@ const MainDashboard = () => {
                               : `${filters.investment_name.length} selected`}
                           </button>
                           {dropdownOpen.investment_name && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_investment"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`investment_name_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.investment_name.length > 0 &&
-                                    filters.investment_name.length ===
-                                      filterOptions.investment_name.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "investment_name",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.investment_name.length > 0 &&
+                                    filters.investment_name.length === filterOptions.investment_name.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`investment_name_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "investment_name",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.investment_name.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1780,29 +2052,30 @@ const MainDashboard = () => {
                               : `${filters.sub_investment_name.length} selected`}
                           </button>
                           {dropdownOpen.sub_investment_name && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_sub_investment"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`sub_investment_name_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.sub_investment_name.length >
-                                      0 &&
-                                    filters.sub_investment_name.length ===
-                                      filterOptions.sub_investment_name.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "sub_investment_name",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.sub_investment_name.length > 0 &&
+                                    filters.sub_investment_name.length === filterOptions.sub_investment_name.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`sub_investment_name_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "sub_investment_name",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.sub_investment_name.map(
                                 (option) => (
@@ -1849,29 +2122,30 @@ const MainDashboard = () => {
                               : `${filters.source_of_receipt.length} selected`}
                           </button>
                           {dropdownOpen.source_of_receipt && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_source"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`source_of_receipt_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.source_of_receipt.length >
-                                      0 &&
-                                    filters.source_of_receipt.length ===
-                                      filterOptions.source_of_receipt.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "source_of_receipt",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.source_of_receipt.length > 0 &&
+                                    filters.source_of_receipt.length === filterOptions.source_of_receipt.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`source_of_receipt_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "source_of_receipt",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.source_of_receipt.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1915,28 +2189,30 @@ const MainDashboard = () => {
                               : `${filters.scheme_name.length} selected`}
                           </button>
                           {dropdownOpen.scheme_name && (
-                            <div className="dropdown-menu show">
+                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                               <div
                                 key="select_all_scheme"
                                 className="dropdown-item"
                               >
-                                <FormCheck
-                                  className="check-box"
-                                  type="checkbox"
-                                  id={`scheme_name_SELECT_ALL`}
-                                  label="सभी चुनें"
-                                  checked={
-                                    filterOptions.scheme_name.length > 0 &&
-                                    filters.scheme_name.length ===
-                                      filterOptions.scheme_name.length
-                                  }
-                                  onChange={() =>
-                                    handleCheckboxChange(
-                                      "scheme_name",
-                                      "SELECT_ALL"
-                                    )
-                                  }
-                                />
+                                {(() => {
+                                  const allSelected = filterOptions.scheme_name.length > 0 &&
+                                    filters.scheme_name.length === filterOptions.scheme_name.length;
+                                  return (
+                                    <FormCheck
+                                      className="check-box"
+                                      type="checkbox"
+                                      id={`scheme_name_SELECT_ALL`}
+                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                      checked={allSelected}
+                                      onChange={() =>
+                                        handleCheckboxChange(
+                                          "scheme_name",
+                                          "SELECT_ALL"
+                                        )
+                                      }
+                                    />
+                                  );
+                                })()}
                               </div>
                               {filterOptions.scheme_name.map((option) => (
                                 <div key={option} className="dropdown-item">
@@ -1971,317 +2247,392 @@ const MainDashboard = () => {
                     {/* Placeholder for Dashboard Graphs/Charts */}
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       <ExportSection />
-                      <Table
-                        striped
-                        bordered
-                        hover
-                        className="table-thead-style"
-                      >
-                        <thead className="table-thead">
-                          <tr>
-                            <th>S.No.</th>
-                            <th>केंद्र का नाम</th>
-                            <th>विधानसभा</th>
-                            <th>विकास खंड</th>
-                            <th>योजना</th>
-                            <th>सप्लायर</th>
-                            <th>घटक</th>
-                            <th>निवेश</th>
-                            <th>उप-निवेश</th>
-                            <th>आवंटित मात्रा</th>
-                            <th>दर</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentPageData.map((item, index) => (
-                            <tr key={item.id || index}>
-                              <td>{startIndex + index + 1}</td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "center_name",
-                                      item.center_name
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.center_name}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "vidhan_sabha_name",
-                                      item.vidhan_sabha_name
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.vidhan_sabha_name}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "vikas_khand_name",
-                                      item.vikas_khand_name
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.vikas_khand_name}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "scheme_name",
-                                      item.scheme_name
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.scheme_name}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "source_of_receipt",
-                                      item.source_of_receipt
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.source_of_receipt}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick("component", item.component);
-                                  }
-                                }}
-                              >
-                                {item.component}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "investment_name",
-                                      item.investment_name
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.investment_name}
-                              </td>
-                              <td
-                                style={{
-                                  cursor: isFilterApplied ? "default" : "pointer",
-                                  color: isFilterApplied ? "black" : "blue"
-                                }}
-                                onClick={() => {
-                                  if (!isFilterApplied) {
-                                    handleCellClick(
-                                      "sub_investment_name",
-                                      item.sub_investment_name || "-"
-                                    );
-                                  }
-                                }}
-                              >
-                                {item.sub_investment_name || "-"}
-                              </td>
-                              <td>{item.allocated_quantity}</td>
-                              <td>{item.rate}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr>
-                            <td style={{ fontWeight: "bold" }}>कुल:</td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.center_name
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.vidhan_sabha_name
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.vikas_khand_name
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.scheme_name
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.source_of_receipt
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.component
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.investment_name
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {
-                                new Set(
-                                  filteredTableData.map(
-                                    (item) => item.sub_investment_name
-                                  )
-                                ).size
-                              }
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {filteredTableData
-                                .reduce(
-                                  (sum, item) =>
-                                    sum +
-                                    (parseFloat(item.allocated_quantity) || 0),
-                                  0
-                                )
-                                .toFixed(2)}
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>
-                              {filteredTableData
-                                .reduce(
-                                  (sum, item) =>
-                                    sum + (parseFloat(item.rate) || 0),
-                                  0
-                                )
-                                .toFixed(2)}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </Table>
-
-                      {/* Pagination */}
-                      <div className="d-flex justify-content-between align-items-center mt-3">
-                        <span className="text-muted">
-                          Page {currentPage} / {totalPages} (Total{" "}
-                          {tableData.length} items)
-                        </span>
-                        <div>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="me-2"
-                            onClick={() => goToPage(currentPage - 1)}
-                            disabled={currentPage === 1}
-                          >
-                            {"<"}
-                          </Button>
-                          {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                            let pageNum;
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={
-                                  currentPage === pageNum
-                                    ? "primary"
-                                    : "outline-secondary"
-                                }
-                                size="sm"
-                                className="me-1"
-                                onClick={() => goToPage(pageNum)}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="ms-2"
-                            onClick={() => goToPage(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                          >
-                            {">"}
-                          </Button>
+                      {isApplyingFilters && (
+                        <div className="text-center py-3">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                          <p className="mt-2 text-muted">डेटा अपडेट हो रहा है...</p>
                         </div>
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              ) : (
+                      )}
+                      {!isApplyingFilters && (
+                        <Table
+                          striped
+                          bordered
+                          hover
+                          className="table-thead-style"
+                        >
+                          <thead className="table-thead">
+                            <tr>
+                              <th>S.No.</th>
+                              <th>केंद्र का नाम</th>
+                              <th>विधानसभा</th>
+                              <th>विकास खंड</th>
+                              <th>योजना</th>
+                              <th>सप्लायर</th>
+                              <th>घटक</th>
+                              <th>निवेश</th>
+                              <th>उप-निवेश</th>
+                              <th>आवंटित मात्रा</th>
+                              <th>दर</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {currentPageData.map((item, index) => (
+                              <tr key={item.id || index}>
+                                <td>{startIndex + index + 1}</td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "center_name",
+                                        item.center_name
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.center_name}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "vidhan_sabha_name",
+                                        item.vidhan_sabha_name
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.vidhan_sabha_name}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "vikas_khand_name",
+                                        item.vikas_khand_name
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.vikas_khand_name}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "scheme_name",
+                                        item.scheme_name
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.scheme_name}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "source_of_receipt",
+                                        item.source_of_receipt
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.source_of_receipt}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick("component", item.component);
+                                    }
+                                  }}
+                                >
+                                  {item.component}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "investment_name",
+                                        item.investment_name
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.investment_name}
+                                </td>
+                                <td
+                                  style={{
+                                    cursor: isFilterApplied ? "default" : "pointer",
+                                    color: isFilterApplied ? "black" : "blue"
+                                  }}
+                                  onClick={() => {
+                                    if (!isFilterApplied) {
+                                      handleCellClick(
+                                        "sub_investment_name",
+                                        item.sub_investment_name || "-"
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {item.sub_investment_name || "-"}
+                                </td>
+                                <td>{item.allocated_quantity}</td>
+                                <td>{item.rate}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr>
+                              <td style={{ fontWeight: "bold" }}>कुल:</td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("center_name")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.center_name
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("vidhan_sabha_name")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.vidhan_sabha_name
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("vikas_khand_name")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.vikas_khand_name
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("scheme_name")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.scheme_name
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("source_of_receipt")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.source_of_receipt
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("component")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.component
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("investment_name")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.investment_name
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td
+                                style={{
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  color: "blue",
+                                  textDecoration: "underline"
+                                }}
+                                onClick={() => handleTotalClick("sub_investment_name")}
+                              >
+                                {
+                                  new Set(
+                                    filteredTableData.map(
+                                      (item) => item.sub_investment_name
+                                    )
+                                  ).size
+                                }
+                              </td>
+                              <td style={{ fontWeight: "bold" }}>
+                                {filteredTableData
+                                  .reduce(
+                                    (sum, item) =>
+                                      sum +
+                                      (parseFloat(item.allocated_quantity) || 0),
+                                    0
+                                  )
+                                  .toFixed(2)}
+                              </td>
+                              <td style={{ fontWeight: "bold" }}>
+                                {filteredTableData
+                                  .reduce(
+                                    (sum, item) =>
+                                      sum + (parseFloat(item.rate) || 0),
+                                    0
+                                  )
+                                  .toFixed(2)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </Table>
+                        
+                        )}
+                        {!isApplyingFilters && (
+                        <div className="d-flex justify-content-between align-items-center mt-3">
+                          <span className="text-muted">
+                            Page {currentPage} / {totalPages} (Total{" "}
+                            {tableData.length} items)
+                          </span>
+                          <div>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="me-2"
+                              onClick={() => goToPage(currentPage - 1)}
+                              disabled={currentPage === 1}
+                            >
+                              {"<"}
+                            </Button>
+                            {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                              let pageNum;
+                              if (totalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (currentPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (currentPage >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                              } else {
+                                pageNum = currentPage - 2 + i;
+                              }
+                              return (
+                                <Button
+                                  key={pageNum}
+                                  variant={
+                                    currentPage === pageNum
+                                      ? "primary"
+                                      : "outline-secondary"
+                                  }
+                                  size="sm"
+                                  className="me-1"
+                                  onClick={() => goToPage(pageNum)}
+                                >
+                                  {pageNum}
+                                </Button>
+                              );
+                            })}
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="ms-2"
+                              onClick={() => goToPage(currentPage + 1)}
+                              disabled={currentPage === totalPages}
+                            >
+                              {">"}
+                            </Button>
+                          </div>
+                        </div>
+                        )}
+                  </div>
+                </Col>
+              </Row>
+            ) : (
                 <Row>
                   <Col lg={3} md={3} sm={12}>
                     <div className="dashboard-graphs p-3 border rounded bg-white">
@@ -2340,7 +2691,7 @@ const MainDashboard = () => {
                                   selected
                                 </button>
                                 {detailedDropdownOpen[filterIndex] && (
-                                  <div className="dropdown-menu show">
+                                  <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
                                     <div
                                       key="select_all"
                                       className="dropdown-item"
@@ -2540,7 +2891,17 @@ const MainDashboard = () => {
                                             .map((col) => (
                                               <td
                                                 key={col}
-                                                style={{ fontWeight: "bold" }}
+                                                style={{ 
+                                                  fontWeight: "bold",
+                                                  cursor: col !== "allocated_quantity" && col !== "rate" ? "pointer" : "default",
+                                                  color: col !== "allocated_quantity" && col !== "rate" ? "blue" : "black",
+                                                  textDecoration: col !== "allocated_quantity" && col !== "rate" ? "underline" : "none"
+                                                }}
+                                                onClick={
+                                                  col !== "allocated_quantity" && col !== "rate"
+                                                    ? () => handleTotalClick(col)
+                                                    : undefined
+                                                }
                                               >
                                                 {col === "allocated_quantity" ||
                                                 col === "rate"
@@ -2740,7 +3101,13 @@ const MainDashboard = () => {
                                             .map((col) => (
                                               <td
                                                 key={col}
-                                                style={{ fontWeight: "bold" }}
+                                                style={{ 
+                                                  fontWeight: "bold",
+                                                  cursor: "pointer",
+                                                  color: "blue",
+                                                  textDecoration: "underline"
+                                                }}
+                                                onClick={() => handleTotalClick(col)}
                                               >
                                                 {
                                                   new Set(
@@ -2804,7 +3171,59 @@ const MainDashboard = () => {
                                     {additionalTables.map((table, index) => (
                                       <div key={index} className="mt-4">
                                         <div className="d-flex justify-content-between align-items-center">
-                                          <h5 className="mb-0">{table.heading}</h5>
+                                          <div className="d-flex align-items-center gap-2">
+                                            <h5 className="mb-0">{table.heading}</h5>
+                                            <div className="dropdown">
+                                              <button
+                                                className="btn btn-secondary dropdown-toggle drop-option"
+                                                type="button"
+                                                onClick={() => {
+                                                  const filterIndex = `additional_${index}`;
+                                                  toggleDetailedDropdown(filterIndex);
+                                                }}
+                                              >
+                                                <BiFilter /> Filter
+                                              </button>
+                                              {detailedDropdownOpen[`additional_${index}`] && (
+                                                <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
+                                                  <div className="dropdown-item">
+                                                    <FormCheck
+                                                      className="check-box"
+                                                      type="checkbox"
+                                                      id={`select_all_additional_${index}`}
+                                                      label={
+                                                        additionalTableFilters[index]?.allSelected
+                                                          ? "सभी हटाएं"
+                                                          : "सभी चुनें"
+                                                      }
+                                                      checked={additionalTableFilters[index]?.allSelected || false}
+                                                      onChange={() =>
+                                                        handleAdditionalTableFilterChange(index, "SELECT_ALL")
+                                                      }
+                                                    />
+                                                  </div>
+                                                  {table.data.map((row) => {
+                                                    const rowValue = row[table.columns[0]];
+                                                    const isChecked = additionalTableFilters[index]?.selectedValues?.includes(rowValue) || false;
+                                                    return (
+                                                      <div key={rowValue} className="dropdown-item">
+                                                        <FormCheck
+                                                          className="check-box"
+                                                          type="checkbox"
+                                                          id={`additional_${index}_${rowValue}`}
+                                                          label={rowValue}
+                                                          checked={isChecked}
+                                                          onChange={() =>
+                                                            handleAdditionalTableFilterChange(index, rowValue)
+                                                          }
+                                                        />
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
                                           <div className="d-flex gap-2">
                                             <Button
                                               variant="danger"
@@ -2858,95 +3277,172 @@ const MainDashboard = () => {
                                             </tr>
                                           </thead>
                                           <tbody>
-                                            {table.data.map((row) => {
-                                              const value = row[table.columns[0]];
-                                              return (
-                                                <tr key={value}>
-                                                  <td
-                                                    style={{
-                                                      cursor: "pointer",
-                                                      color: "blue",
-                                                      fontWeight: "bold",
-                                                    }}
-                                                    onClick={() => {
-                                                      // Add a new filter to the stack with this value
-                                                      handleSummaryValueClick(table.columnKey, value);
-                                                    }}
-                                                  >
-                                                    {value}
-                                                  </td>
-                                                  <td
-                                                    style={{
-                                                      cursor: "pointer",
-                                                      color: "blue",
-                                                      fontWeight: "bold",
-                                                    }}
-                                                    onClick={() => {
-                                                      // Add a new filter to the stack with this value and show detailed view
-                                                      handleSummaryValueClick(table.columnKey, value);
-                                                      setShowDetailed(true);
-                                                    }}
-                                                  >
-                                                    {row["कुल रिकॉर्ड"]}
-                                                  </td>
-                                                  {table.columns.slice(2, -2).map((col) => (
+                                            {(() => {
+                                              const filteredTableData = table.data.filter((row) => {
+                                                const rowValue = row[table.columns[0]];
+                                                if (additionalTableFilters[index]?.allSelected) {
+                                                  return true;
+                                                }
+                                                if (additionalTableFilters[index]?.selectedValues?.length === 0) {
+                                                  return true;
+                                                }
+                                                return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
+                                              });
+                                              return filteredTableData.map((row) => {
+                                                const value = row[table.columns[0]];
+                                                return (
+                                                  <tr key={value}>
                                                     <td
-                                                      key={col}
                                                       style={{
                                                         cursor: "pointer",
                                                         color: "blue",
                                                         fontWeight: "bold",
                                                       }}
                                                       onClick={() => {
-                                                        // Find the column key for this label
-                                                        const colKey = Object.keys(columnDefs).find(
-                                                          (k) => columnDefs[k].label === col
-                                                        );
-                                                        if (colKey) {
-                                                          // Get the data for this value
-                                                          const currentFilteredData = tableData.filter((item) => {
-                                                            for (let filter of filterStack) {
-                                                              if (!filter.checked[item[filter.column]]) return false;
-                                                            }
-                                                            return item[table.columnKey] === value;
-                                                          });
-                                                          
-                                                          // Generate a new summary table
-                                                          const summary = generateSummary(currentFilteredData, colKey);
-                                                          setAdditionalTables(prev => [{ 
-                                                            heading: `${value} - ${col}`, 
-                                                            data: summary.data, 
-                                                            columns: summary.columns, 
-                                                            columnKey: colKey 
-                                                          }, ...prev]);
-                                                        }
+                                                        // Add a new filter to the stack with this value
+                                                        handleSummaryValueClick(table.columnKey, value);
                                                       }}
                                                     >
-                                                      {row[col]}
+                                                      {value}
                                                     </td>
-                                                  ))}
-                                                  <td>{row["कुल आवंटित मात्रा"]}</td>
-                                                  <td>{row["कुल दर"]}</td>
-                                                </tr>
-                                              );
-                                            })}
+                                                    <td
+                                                      style={{
+                                                        cursor: "pointer",
+                                                        color: "blue",
+                                                        fontWeight: "bold",
+                                                      }}
+                                                      onClick={() => {
+                                                        // Add a new filter to the stack with this value and show detailed view
+                                                        handleSummaryValueClick(table.columnKey, value);
+                                                        setShowDetailed(true);
+                                                      }}
+                                                    >
+                                                      {row["कुल रिकॉर्ड"]}
+                                                    </td>
+                                                    {table.columns.slice(2, -2).map((col) => (
+                                                      <td
+                                                        key={col}
+                                                        style={{
+                                                          cursor: "pointer",
+                                                          color: "blue",
+                                                          fontWeight: "bold",
+                                                        }}
+                                                        onClick={() => {
+                                                          // Find the column key for this label
+                                                          const colKey = Object.keys(columnDefs).find(
+                                                            (k) => columnDefs[k].label === col
+                                                          );
+                                                          if (colKey) {
+                                                            // Get the data for this value
+                                                            const currentFilteredData = tableData.filter((item) => {
+                                                              for (let filter of filterStack) {
+                                                                if (!filter.checked[item[filter.column]]) return false;
+                                                              }
+                                                              return item[table.columnKey] === value;
+                                                            });
+
+                                                            // Generate a new summary table
+                                                            const summary = generateSummary(currentFilteredData, colKey);
+                                                            setAdditionalTables(prev => [{
+                                                              heading: `${value} - ${col}`,
+                                                              data: summary.data,
+                                                              columns: summary.columns,
+                                                              columnKey: colKey
+                                                            }, ...prev]);
+                                                          }
+                                                        }}
+                                                      >
+                                                        {row[col]}
+                                                      </td>
+                                                    ))}
+                                                    <td>{row["कुल आवंटित मात्रा"]}</td>
+                                                    <td>{row["कुल दर"]}</td>
+                                                  </tr>
+                                                );
+                                              });
+                                            })()}
                                           </tbody>
                                           <tfoot>
                                             <tr>
                                               <td style={{ fontWeight: "bold" }}>कुल:</td>
                                               <td style={{ fontWeight: "bold" }}>
-                                                {table.data.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
+                                                {(() => {
+                                                  const filteredTableData = table.data.filter((row) => {
+                                                    const rowValue = row[table.columns[0]];
+                                                    if (additionalTableFilters[index]?.allSelected) {
+                                                      return true;
+                                                    }
+                                                    if (additionalTableFilters[index]?.selectedValues?.length === 0) {
+                                                      return true;
+                                                    }
+                                                    return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
+                                                  });
+                                                  return filteredTableData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0);
+                                                })()}
                                               </td>
                                               {table.columns.slice(2, -2).map((col) => (
-                                                <td key={col} style={{ fontWeight: "bold" }}>
-                                                  {new Set(table.data.flatMap(row => tableData.filter(item => item[table.columnKey] === row[table.columns[0]]).map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)]))).size}
+                                                <td
+                                                  key={col}
+                                                  style={{
+                                                    fontWeight: "bold",
+                                                    cursor: "pointer",
+                                                    color: "blue",
+                                                    textDecoration: "underline"
+                                                  }}
+                                                  onClick={() => {
+                                                    // Find the column key for this label
+                                                    const colKey = Object.keys(columnDefs).find(
+                                                      (k) => columnDefs[k].label === col
+                                                    );
+                                                    if (colKey) {
+                                                      handleTotalClick(colKey);
+                                                    }
+                                                  }}
+                                                >
+                                                  {(() => {
+                                                    const filteredTableData = table.data.filter((row) => {
+                                                      const rowValue = row[table.columns[0]];
+                                                      if (additionalTableFilters[index]?.allSelected) {
+                                                        return true;
+                                                      }
+                                                      if (additionalTableFilters[index]?.selectedValues?.length === 0) {
+                                                        return true;
+                                                      }
+                                                      return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
+                                                    });
+                                                    return new Set(filteredTableData.flatMap(row => tableData.filter(item => item[table.columnKey] === row[table.columns[0]]).map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)]))).size;
+                                                  })()}
                                                 </td>
                                               ))}
                                               <td style={{ fontWeight: "bold" }}>
-                                                {table.data.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
+                                                {(() => {
+                                                  const filteredTableData = table.data.filter((row) => {
+                                                    const rowValue = row[table.columns[0]];
+                                                    if (additionalTableFilters[index]?.allSelected) {
+                                                      return true;
+                                                    }
+                                                    if (additionalTableFilters[index]?.selectedValues?.length === 0) {
+                                                      return true;
+                                                    }
+                                                    return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
+                                                  });
+                                                  return filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2);
+                                                })()}
                                               </td>
                                               <td style={{ fontWeight: "bold" }}>
-                                                {table.data.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2)}
+                                                {(() => {
+                                                  const filteredTableData = table.data.filter((row) => {
+                                                    const rowValue = row[table.columns[0]];
+                                                    if (additionalTableFilters[index]?.allSelected) {
+                                                      return true;
+                                                    }
+                                                    if (additionalTableFilters[index]?.selectedValues?.length === 0) {
+                                                      return true;
+                                                    }
+                                                    return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
+                                                  });
+                                                  return filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2);
+                                                })()}
                                               </td>
                                             </tr>
                                           </tfoot>
