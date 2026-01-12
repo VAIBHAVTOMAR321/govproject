@@ -133,6 +133,7 @@ const MainDashboard = () => {
   const [showDetailed, setShowDetailed] = useState(false);
   const [additionalTables, setAdditionalTables] = useState([]);
   const [additionalTableFilters, setAdditionalTableFilters] = useState({});
+  const [additionalTableColumnFilters, setAdditionalTableColumnFilters] = useState({});
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState("pdf");
   const [tableName, setTableName] = useState("");
@@ -874,7 +875,7 @@ const MainDashboard = () => {
               <tbody>
                 {table.data.map((row, rowIndex) => (
                   <tr key={rowIndex}>
-                    <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{rowIndex + 1}</td>
+                    <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{row[table.columns[0]] === "कुल" ? "" : rowIndex + 1}</td>
                     {table.columns.map((col) => {
                       let cellValue = '';
                       if (typeof row === "object" && row !== null) {
@@ -897,19 +898,24 @@ const MainDashboard = () => {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
-                  {table.columns.map((col) => {
-                    // Use pre-calculated totals if available
-                    const totalValue = table.totals && table.totals[col] !== undefined 
-                      ? table.totals[col] 
-                      : calculateColumnTotal(table.data, col);
-                    
-                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
-                  })}
-                </tr>
-              </tfoot>
+              {(() => {
+                const hasTotalRow = table.data.length > 0 && table.data[table.data.length - 1][table.columns[0]] === "कुल";
+                return !hasTotalRow && (
+                  <tfoot>
+                    <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                      <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
+                      {table.columns.map((col) => {
+                        // Use pre-calculated totals if available
+                        const totalValue = table.totals && table.totals[col] !== undefined
+                          ? table.totals[col]
+                          : calculateColumnTotal(table.data, col);
+
+                        return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
+                      })}
+                    </tr>
+                  </tfoot>
+                );
+              })()}
             </table>
           </div>
         ))}
@@ -938,7 +944,7 @@ const MainDashboard = () => {
               <tbody>
                 {table.data.map((row, rowIndex) => (
                   <tr key={rowIndex}>
-                    <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{rowIndex + 1}</td>
+                    <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{row[table.columns[0]] === "कुल" ? "" : rowIndex + 1}</td>
                     {table.columns.map((col) => {
                       let cellValue = '';
                       if (typeof row === "object" && row !== null) {
@@ -961,19 +967,24 @@ const MainDashboard = () => {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
-                  {table.columns.map((col) => {
-                    // Use pre-calculated totals if available
-                    const totalValue = table.totals && table.totals[col] !== undefined 
-                      ? table.totals[col] 
-                      : calculateColumnTotal(table.data, col);
-                    
-                    return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
-                  })}
-                </tr>
-              </tfoot>
+              {(() => {
+                const hasTotalRow = table.data.length > 0 && table.data[table.data.length - 1][table.columns[0]] === "कुल";
+                return !hasTotalRow && (
+                  <tfoot>
+                    <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                      <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>कुल:</td>
+                      {table.columns.map((col) => {
+                        // Use pre-calculated totals if available
+                        const totalValue = table.totals && table.totals[col] !== undefined
+                          ? table.totals[col]
+                          : calculateColumnTotal(table.data, col);
+
+                        return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
+                      })}
+                    </tr>
+                  </tfoot>
+                );
+              })()}
             </table>
           </div>
         ))}
@@ -1034,7 +1045,7 @@ const MainDashboard = () => {
 
         table.data.forEach((row, rowIndex) => {
           htmlContent += '<tr>';
-          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${rowIndex + 1}</td>`;
+          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${row[table.columns[0]] === "कुल" ? "" : rowIndex + 1}</td>`;
           table.columns.forEach((col) => {
             let cellValue = '';
             if (typeof row === "object" && row !== null) {
@@ -1057,29 +1068,38 @@ const MainDashboard = () => {
           htmlContent += '</tr>';
         });
 
-        // Add footer row with totals using pre-calculated values
-        htmlContent += `
+        // Add footer row with totals only if the table doesn't already have a total row
+        const hasTotalRow = table.data.length > 0 && table.data[table.data.length - 1][table.columns[0]] === "कुल";
+        if (!hasTotalRow) {
+          htmlContent += `
               </tbody>
               <tfoot>
                 <tr style="background-color: #f2f2f2; font-weight: bold;">
                   <td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">कुल:</td>
-        `;
+          `;
 
-        table.columns.forEach((col) => {
-          // Use pre-calculated totals if available
-          const totalValue = table.totals && table.totals[col] !== undefined 
-            ? table.totals[col] 
-            : calculateColumnTotal(table.data, col);
-          
-          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
-        });
+          table.columns.forEach((col) => {
+            // Use pre-calculated totals if available
+            const totalValue = table.totals && table.totals[col] !== undefined
+              ? table.totals[col]
+              : calculateColumnTotal(table.data, col);
 
-        htmlContent += `
+            htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
+          });
+
+          htmlContent += `
                 </tr>
               </tfoot>
             </table>
           </div>
         `;
+        } else {
+          htmlContent += `
+              </tbody>
+            </table>
+          </div>
+        `;
+        }
       });
 
       htmlContent += '</div>';
@@ -1126,7 +1146,7 @@ const MainDashboard = () => {
         [], // Empty row
         ["S.No.", ...table.columns], // Headers
         ...table.data.map((row, rowIndex) =>
-          [rowIndex + 1, ...table.columns.map((col) => {
+          [row[table.columns[0]] === "कुल" ? "" : rowIndex + 1, ...table.columns.map((col) => {
             if (typeof row === "object" && row !== null) {
               if (row.hasOwnProperty(col)) {
                 return row[col] || "";
@@ -1147,17 +1167,21 @@ const MainDashboard = () => {
         ),
       ];
 
-      // Calculate totals for each column using pre-calculated values
-      const totalsRow = ["कुल:"];
-      table.columns.forEach((col) => {
-        const totalValue = table.totals && table.totals[col] !== undefined 
-          ? table.totals[col] 
-          : calculateColumnTotal(table.data, col);
-        totalsRow.push(totalValue);
-      });
+      // Add totals row only if the table doesn't already have a total row
+      const hasTotalRow = table.data.length > 0 && table.data[table.data.length - 1][table.columns[0]] === "कुल";
+      if (!hasTotalRow) {
+        // Calculate totals for each column using pre-calculated values
+        const totalsRow = ["कुल:"];
+        table.columns.forEach((col) => {
+          const totalValue = table.totals && table.totals[col] !== undefined
+            ? table.totals[col]
+            : calculateColumnTotal(table.data, col);
+          totalsRow.push(totalValue);
+        });
 
-      // Add empty row and totals row
-      tableDataArray.push([], totalsRow);
+        // Add empty row and totals row
+        tableDataArray.push([], totalsRow);
+      }
 
       const sheetName = table.name.substring(0, 31); // Excel sheet name limit
 
@@ -1408,13 +1432,18 @@ const MainDashboard = () => {
   useEffect(() => {
     if (additionalTables.length > 0) {
       const initialFilters = {};
+      const initialColumnFilters = {};
       additionalTables.forEach((table, index) => {
         initialFilters[index] = {
           allSelected: true,
           selectedValues: table.data.map((row) => row[table.columns[0]]),
         };
+        // Initialize column filters - all columns visible except first and last for allocation, first/last two for summary
+        const filterableColumns = table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2);
+        initialColumnFilters[index] = filterableColumns;
       });
       setAdditionalTableFilters(initialFilters);
+      setAdditionalTableColumnFilters(initialColumnFilters);
     }
   }, [additionalTables]);
 
@@ -1675,36 +1704,86 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
 
   // Handle additional table filter change
   const handleAdditionalTableFilterChange = (tableIndex, value) => {
-    setAdditionalTableFilters((prev) => {
-      const currentFilter = prev[tableIndex] || { allSelected: true, selectedValues: [] };
-      
-      if (value === "SELECT_ALL") {
-        // Toggle select all
-        const allValues = additionalTables[tableIndex].data.map((row) => row[additionalTables[tableIndex].columns[0]]);
-        const newSelectedValues = currentFilter.allSelected ? [] : allValues;
-        
-        return {
-          ...prev,
-          [tableIndex]: {
-            allSelected: !currentFilter.allSelected,
-            selectedValues: newSelectedValues,
-          },
-        };
-      } else {
-        // Toggle individual value
-        const newSelectedValues = currentFilter.selectedValues.includes(value)
-          ? currentFilter.selectedValues.filter((v) => v !== value)
-          : [...currentFilter.selectedValues, value];
-        
-        return {
-          ...prev,
-          [tableIndex]: {
-            ...currentFilter,
-            selectedValues: newSelectedValues,
-            allSelected: false,
-          },
-        };
+  setAdditionalTableFilters((prev) => {
+    const currentFilter = prev[tableIndex] || { allSelected: true, selectedValues: [] };
+    const table = additionalTables[tableIndex];
+    const allValues = table.data.map((row) => row[table.columns[0]]);
+
+    let newSelectedValues;
+
+    if (value === "SELECT_ALL") {
+      // Toggle select all
+      newSelectedValues = currentFilter.allSelected ? [] : allValues;
+    } else {
+      // Toggle individual value
+      newSelectedValues = currentFilter.selectedValues.includes(value)
+        ? currentFilter.selectedValues.filter((v) => v !== value)
+        : [...currentFilter.selectedValues, value];
+    }
+
+    const newFilter = {
+      allSelected: newSelectedValues.length === allValues.length,
+      selectedValues: newSelectedValues,
+    };
+
+    // Update the table data based on the new filter
+    setAdditionalTables((prevTables) => {
+      const newTables = [...prevTables];
+      const tableData = newTables[tableIndex];
+
+      // Get the original data (before any filtering)
+      const originalData = tableData.originalData || tableData.data;
+
+      // Store the original data if not already stored
+      if (!tableData.originalData) {
+        tableData.originalData = [...tableData.data];
       }
+
+      // Filter the data based on the new selection
+      const filteredData = originalData.filter((row) => {
+        const rowValue = row[tableData.columns[0]];
+        return newFilter.allSelected || newFilter.selectedValues.includes(rowValue);
+      });
+
+      // Update the table with the filtered data
+      newTables[tableIndex] = {
+        ...tableData,
+        data: filteredData,
+      };
+
+      return newTables;
+    });
+
+    return {
+      ...prev,
+      [tableIndex]: newFilter,
+    };
+  });
+};
+
+  // Handle additional table column filter change
+  const handleAdditionalTableColumnFilterChange = (tableIndex, columnName) => {
+    setAdditionalTableColumnFilters((prev) => {
+      const table = additionalTables[tableIndex];
+      const allColumns = table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2);
+      const currentVisibleColumns = prev[tableIndex] || allColumns;
+      let newVisibleColumns;
+
+      if (columnName === "SELECT_ALL") {
+        newVisibleColumns = currentVisibleColumns.length === allColumns.length ? [] : allColumns;
+      } else {
+        if (currentVisibleColumns.includes(columnName)) {
+          newVisibleColumns = currentVisibleColumns.filter((col) => col !== columnName);
+        } else {
+          // Add in original order
+          newVisibleColumns = allColumns.filter((col) => col === columnName || currentVisibleColumns.includes(col));
+        }
+      }
+
+      return {
+        ...prev,
+        [tableIndex]: newVisibleColumns,
+      };
     });
   };
 
@@ -3311,62 +3390,109 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                         </tr>
                                       </tfoot>
                                     </Table>
-                                  {additionalTables.map((table, index) => (
+     {/* Replace the additional tables rendering section with this updated version: */}
+{additionalTables.map((table, index) => (
   <div key={index} className="mt-4">
-    <div className="d-flex justify-content-between align-items-center">
-      <div className="d-flex align-items-center gap-2">
-        <h5 className="mb-0">{table.heading}</h5>
-        <div className="dropdown">
-          <button
-            className="btn btn-secondary dropdown-toggle drop-option"
-            type="button"
-            onClick={() => {
-              const filterIndex = `additional_${index}`;
-              toggleDetailedDropdown(filterIndex);
-            }}
-          >
-            <BiFilter /> Filter
-          </button>
-          {detailedDropdownOpen[`additional_${index}`] && (
-            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
-              <div className="dropdown-item">
+  <div className="d-flex justify-content-between align-items-center">
+    <div className="d-flex align-items-center gap-2">
+      <h5 className="mb-0">{table.heading}</h5>
+      <div className="dropdown">
+        <button
+          className="btn btn-secondary dropdown-toggle drop-option"
+          type="button"
+          onClick={() => {
+            const filterIndex = `additional_${index}`;
+            toggleDetailedDropdown(filterIndex);
+          }}
+        >
+          <BiFilter /> Filter
+        </button>
+        {detailedDropdownOpen[`additional_${index}`] && (
+          <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
+            <div className="dropdown-item">
+              <FormCheck
+                className="check-box"
+                type="checkbox"
+                id={`select_all_additional_${index}`}
+                label={
+                  additionalTableFilters[index]?.allSelected
+                    ? "सभी हटाएं"
+                    : "सभी चुनें"
+                }
+                checked={additionalTableFilters[index]?.allSelected || false}
+                onChange={() =>
+                  handleAdditionalTableFilterChange(index, "SELECT_ALL")
+                }
+              />
+            </div>
+            {(table.originalData || table.data).map((row) => {
+              const rowValue = row[table.columns[0]];
+              const isChecked = additionalTableFilters[index]?.selectedValues?.includes(rowValue) || false;
+              return (
+                <div key={rowValue} className="dropdown-item">
+                  <FormCheck
+                    className="check-box"
+                    type="checkbox"
+                    id={`additional_${index}_${rowValue}`}
+                    label={rowValue}
+                    checked={isChecked}
+                    onChange={() =>
+                      handleAdditionalTableFilterChange(index, rowValue)
+                    }
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <div className="dropdown">
+        <button
+          className="btn btn-secondary dropdown-toggle drop-option"
+          type="button"
+          onClick={() => {
+            const filterIndex = `column_${index}`;
+            toggleDetailedDropdown(filterIndex);
+          }}
+        >
+          <BiFilter /> Column Filter
+        </button>
+        {detailedDropdownOpen[`column_${index}`] && (
+          <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
+            <div className="dropdown-item">
+              <FormCheck
+                className="check-box"
+                type="checkbox"
+                id={`select_all_columns_${index}`}
+                label={
+                  (additionalTableColumnFilters[index]?.length || 0) === (table.isAllocationTable ? table.columns.slice(1, -1).length : table.columns.slice(2, -2).length)
+                    ? "सभी हटाएं"
+                    : "सभी चुनें"
+                }
+                checked={(additionalTableColumnFilters[index]?.length || 0) === (table.isAllocationTable ? table.columns.slice(1, -1).length : table.columns.slice(2, -2).length)}
+                onChange={() =>
+                  handleAdditionalTableColumnFilterChange(index, "SELECT_ALL")
+                }
+              />
+            </div>
+            {(table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2)).map((col) => (
+              <div key={col} className="dropdown-item">
                 <FormCheck
                   className="check-box"
                   type="checkbox"
-                  id={`select_all_additional_${index}`}
-                  label={
-                    additionalTableFilters[index]?.allSelected
-                      ? "सभी हटाएं"
-                      : "सभी चुनें"
-                  }
-                  checked={additionalTableFilters[index]?.allSelected || false}
+                  id={`column_${index}_${col}`}
+                  label={col}
+                  checked={additionalTableColumnFilters[index]?.includes(col) || false}
                   onChange={() =>
-                    handleAdditionalTableFilterChange(index, "SELECT_ALL")
+                    handleAdditionalTableColumnFilterChange(index, col)
                   }
                 />
               </div>
-              {table.data.map((row) => {
-                const rowValue = row[table.columns[0]];
-                const isChecked = additionalTableFilters[index]?.selectedValues?.includes(rowValue) || false;
-                return (
-                  <div key={rowValue} className="dropdown-item">
-                    <FormCheck
-                      className="check-box"
-                      type="checkbox"
-                      id={`additional_${index}_${rowValue}`}
-                      label={rowValue}
-                      checked={isChecked}
-                      onChange={() =>
-                        handleAdditionalTableFilterChange(index, rowValue)
-                      }
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+    </div>
       <div className="d-flex gap-2">
         <Button
           variant="danger"
@@ -3411,131 +3537,151 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
       >
         <thead className="table-thead">
           <tr>
-            <th>{table.columns[0]}</th>
-            {table.isAllocationTable ? (
-              // For allocation tables, show all columns except the first one
-              table.columns.slice(1).map((col, idx) => (
+            {(() => {
+              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
+              const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल दर"];
+              return visibleColumns.map((col, idx) => (
                 <th key={idx}>{col}</th>
-              ))
-            ) : (
-              <>
-                <th>कुल रिकॉर्ड</th>
-                {table.columns.slice(2, -2).map((col, idx) => (
-                  <th key={idx}>{col}</th>
-                ))}
-                <th>कुल आवंटित मात्रा</th>
-                <th>कुल दर</th>
-              </>
-            )}
+              ));
+            })()}
           </tr>
         </thead>
         <tbody>
           {(() => {
-            const filteredTableData = table.data.filter((row) => {
-              const rowValue = row[table.columns[0]];
-              if (additionalTableFilters[index]?.allSelected) {
-                return true;
-              }
-              if (additionalTableFilters[index]?.selectedValues?.length === 0) {
-                return true;
-              }
-              return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
-            });
-            return filteredTableData.map((row, rowIndex) => {
-              const isLastRow = rowIndex === filteredTableData.length - 1;
-              return (
-                <tr key={rowIndex} className={isLastRow ? "table-total-row" : ""}>
-                  <td
-                    style={{
-                      cursor: !isLastRow ? "pointer" : "default",
-                      color: !isLastRow ? "blue" : "black",
-                      fontWeight: isLastRow ? "bold" : "normal"
-                    }}
-                    onClick={() => {
-                      if (!isLastRow) {
-                        // Add a new filter to the stack with this value
-                        handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                      }
-                    }}
-                  >
-                    {row[table.columns[0]]}
-                  </td>
-                  {table.isAllocationTable ? (
-                    // For allocation tables, show all columns except the first one
-                    table.columns.slice(1).map((col, colIdx) => (
-                      <td 
-                        key={colIdx} 
-                        style={{ 
-                          fontWeight: isLastRow ? "bold" : "normal",
-                          backgroundColor: isLastRow ? "#f2f2f2" : "transparent"
-                        }}
-                      >
+            const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
+            return table.data
+              .filter(row => row[table.columns[0]] !== "कुल") // Filter out any existing total row
+              .map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                <td
+                  style={{
+                    cursor: "pointer",
+                    color: "blue",
+                    fontWeight: "bold",
+                  }}
+                  onClick={() => {
+                    // Add a new filter to the stack with this value
+                    handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                  }}
+                >
+                  {row[table.columns[0]]}
+                </td>
+                {table.isAllocationTable ? (
+                  // For allocation tables, show visible dynamic columns
+                  <>
+                    {visibleDynamicColumns.map((col, colIdx) => (
+                      <td key={colIdx}>
                         {row[col] || "0"}
                       </td>
-                    ))
-                  ) : (
-                    <>
+                    ))}
+                    <td>{visibleDynamicColumns.reduce((sum, col) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td
+                      style={{
+                        cursor: "pointer",
+                        color: "blue",
+                        fontWeight: "bold",
+                      }}
+                      onClick={() => {
+                        // Add a new filter to the stack with this value and show detailed view
+                        handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                        setShowDetailed(true);
+                      }}
+                    >
+                      {row["कुल रिकॉर्ड"]}
+                    </td>
+                    {visibleDynamicColumns.map((col, colIdx) => (
                       <td
+                        key={colIdx}
                         style={{
                           cursor: "pointer",
                           color: "blue",
                           fontWeight: "bold",
                         }}
                         onClick={() => {
-                          // Add a new filter to the stack with this value and show detailed view
-                          handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                          setShowDetailed(true);
+                          // Find the column key for this label
+                          const colKey = Object.keys(columnDefs).find(
+                            (k) => columnDefs[k].label === col
+                          );
+                          if (colKey) {
+                            // Get the data for this value
+                            const currentFilteredData = tableData.filter((item) => {
+                              for (let filter of filterStack) {
+                                if (!filter.checked[item[filter.column]]) return false;
+                              }
+                              return item[table.columnKey] === row[table.columns[0]];
+                            });
+
+                            // Generate a new summary table
+                            const summary = generateSummary(currentFilteredData, colKey);
+                            // Generate allocation table with the clicked column as the first column
+                            const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
+                            setAdditionalTables(prev => [allocationTable, {
+                              heading: `${row[table.columns[0]]} - ${col}`,
+                              data: summary.data,
+                              columns: summary.columns,
+                              columnKey: colKey
+                            }, ...prev]);
+                          }
                         }}
                       >
-                        {row["कुल रिकॉर्ड"]}
+                        {row[col]}
                       </td>
-                      {table.columns.slice(2, -2).map((col, colIdx) => (
-                        <td
-                          key={colIdx}
-                          style={{
-                            cursor: "pointer",
-                            color: "blue",
-                            fontWeight: "bold",
-                          }}
-                          onClick={() => {
-                            // Find the column key for this label
-                            const colKey = Object.keys(columnDefs).find(
-                              (k) => columnDefs[k].label === col
-                            );
-                            if (colKey) {
-                              // Get the data for this value
-                              const currentFilteredData = tableData.filter((item) => {
-                                for (let filter of filterStack) {
-                                  if (!filter.checked[item[filter.column]]) return false;
-                                }
-                                return item[table.columnKey] === row[table.columns[0]];
-                              });
-
-                              // Generate a new summary table
-                              const summary = generateSummary(currentFilteredData, colKey);
-                              // Generate allocation table with the clicked column as the first column
-                              const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
-                              setAdditionalTables(prev => [allocationTable, {
-                                heading: `${row[table.columns[0]]} - ${col}`,
-                                data: summary.data,
-                                columns: summary.columns,
-                                columnKey: colKey
-                              }, ...prev]);
-                            }
-                          }}
-                        >
-                          {row[col]}
-                        </td>
-                      ))}
-                      <td>{row["कुल आवंटित मात्रा"]}</td>
-                      <td>{row["कुल दर"]}</td>
-                    </>
-                  )}
-                </tr>
-              );
-            });
+                    ))}
+                    <td>{row["कुल आवंटित मात्रा"]}</td>
+                    <td>{row["कुल दर"]}</td>
+                  </>
+                )}
+              </tr>
+            ));
           })()}
         </tbody>
+        <tfoot>
+          <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+            {(() => {
+              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
+              const filteredData = table.data.filter(row => row[table.columns[0]] !== "कुल");
+              return table.isAllocationTable ? (
+                <>
+                  <td>कुल:</td>
+                  {visibleDynamicColumns.map((col, idx) => (
+                    <td key={idx}>
+                      {filteredData.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}
+                    </td>
+                  ))}
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, col) => s + parseFloat(row[col] || 0), 0), 0).toFixed(2)}
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td>कुल:</td>
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
+                  </td>
+                  {visibleDynamicColumns.map((col, idx) => (
+                    <td key={idx}>
+                      {new Set(
+                        filteredData.flatMap(row =>
+                          tableData.filter(item => item[table.columnKey] === row[table.columns[0]])
+                            .map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)])
+                        )
+                      ).size}
+                    </td>
+                  ))}
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
+                  </td>
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2)}
+                  </td>
+                </>
+              );
+            })()}
+          </tr>
+        </tfoot>
       </Table>
     </div>
   </div>
