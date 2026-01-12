@@ -792,7 +792,11 @@ const MainDashboard = () => {
   };
 
   // Add additional table to export list
-  const addAdditionalTableToExport = (table, type) => {
+  const addAdditionalTableToExport = (table, type, index) => {
+    // Calculate visible columns
+    const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
+    const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल दर"];
+
     // Calculate totals for additional table
     const filteredTableData = table.data.filter((row) => {
       const rowValue = row[table.columns[0]];
@@ -800,29 +804,37 @@ const MainDashboard = () => {
       return true; // Assuming additional tables are already filtered
     });
 
-    const totals = {
-      [table.columns[0]]: filteredTableData.length,
-      "कुल रिकॉर्ड": filteredTableData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)
-    };
-
-    table.columns.slice(2, -2).forEach(col => {
-      totals[col] = new Set(filteredTableData.flatMap(row => 
-        tableData.filter(item => item[table.columnKey] === row[table.columns[0]])
-          .map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)])
-      )).size;
+    const totals = {};
+    visibleColumns.forEach(col => {
+      if (col === table.columns[0]) {
+        totals[col] = filteredTableData.length;
+      } else if (col === "कुल रिकॉर्ड") {
+        totals[col] = filteredTableData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0);
+      } else if (col === "कुल आवंटित मात्रा") {
+        totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2);
+      } else if (col === "कुल दर") {
+        totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2);
+      } else if (col === "कुल") {
+        // For allocation table total
+        totals[col] = filteredTableData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, c) => s + parseFloat(row[c] || 0), 0), 0).toFixed(2);
+      } else {
+        // Dynamic columns
+        totals[col] = new Set(filteredTableData.flatMap(row =>
+          tableData.filter(item => item[table.columnKey] === row[table.columns[0]])
+            .map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)])
+        )).size;
+      }
     });
-
-    totals["कुल आवंटित मात्रा"] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2);
-    totals["कुल दर"] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2);
 
     const defaultName = `Table ${tablesForExport[type].length + 1}`;
     setTableName(defaultName);
     setExportType(type);
     setCurrentTableForExport({
       ...table,
+      columns: visibleColumns,
       totals: totals
     });
-    setShowExportModal(true);
+    setShowTableSelectionModal(true);
   };
 
   // Confirm add table
@@ -3497,11 +3509,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         <Button
           variant="danger"
           size="sm"
-          onClick={() => {
-            setCurrentTableForExport(table);
-            setExportType("pdf");
-            setShowTableSelectionModal(true);
-          }}
+          onClick={() => addAdditionalTableToExport(table, "pdf", index)}
           className="d-flex align-items-center pdf-add-btn gap-1"
         >
           <RiFilePdfLine /> PDF में जोड़ें
@@ -3509,11 +3517,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         <Button
           variant="success"
           size="sm"
-          onClick={() => {
-            setCurrentTableForExport(table);
-            setExportType("excel");
-            setShowTableSelectionModal(true);
-          }}
+          onClick={() => addAdditionalTableToExport(table, "excel", index)}
           className="d-flex align-items-center exel-add-btn gap-1"
         >
           <RiFileExcelLine /> Excel में जोड़ें
