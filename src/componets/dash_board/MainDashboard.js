@@ -1333,7 +1333,7 @@ const MainDashboard = () => {
                           setShowPreviewModal(true);
                         }}
                       >
-                        <RiEyeLine /> पूर्वावलोकन
+                        <RiEyeLine /> पूर्वालोकन
                       </Button>
                       <Button
                         variant="outline-success"
@@ -1475,122 +1475,89 @@ const MainDashboard = () => {
     };
   };
 
-  // Generate additional table showing allocation data for clicked entries
-  const generateAdditionalAllocationTable = (clickedValues, columnKey) => {
-    // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
-      for (let filter of filterStack) {
-        if (!filter.checked[item[filter.column]]) return false;
-      }
-      return true;
-    });
+  // Generate allocation table for clicked column entries - MODIFIED TO REMOVE UNWANTED COLUMNS AND ADD TOTALS
+  const generateAllocationTable = (clickedColumn, checkedValue, firstColumnKey) => {
+  // Get the current filtered data based on the filter stack
+  const currentFilteredData = tableData.filter((item) => {
+    for (let filter of filterStack) {
+      if (!filter.checked[item[filter.column]]) return false;
+    }
+    return true;
+  });
 
-    // Get all unique values for the first column (same as summary table)
-    const firstColumnValues = [...new Set(currentFilteredData.map(item => item[columnKey]).filter(Boolean))];
-
-    // Create the new table structure
-    const newTableData = [];
-
-    // For each value in the first column, create a row with allocation data for each clicked value
-    firstColumnValues.forEach(firstColValue => {
-      const rowData = {
-        [columnDefs[columnKey]?.label]: firstColValue,
-      };
-
-      // Add allocation data for each clicked value
-      clickedValues.forEach(clickedValue => {
-        // Filter data for this specific combination
-        const filteredForCombination = currentFilteredData.filter(item => {
-          return item[columnKey] === firstColValue &&
-                 item[filterStack[filterStack.length - 1].column] === clickedValue;
-        });
-
-        // Calculate total allocated quantity for this combination
-        const totalAllocated = filteredForCombination.reduce(
-          (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
-          0
-        ).toFixed(2);
-
-        rowData[clickedValue] = totalAllocated;
-      });
-
-      newTableData.push(rowData);
-    });
-
-    // Create columns for the new table
-    const newColumns = [
-      columnDefs[columnKey]?.label,
-      ...clickedValues,
-    ];
-
-    return {
-      heading: `अतिरिक्त आवंटन विवरण - ${columnDefs[columnKey]?.label}`,
-      data: newTableData,
-      columns: newColumns,
-      columnKey: columnKey,
-      isBreakdownTable: true
-    };
-  };
-
-  // Generate allocation table for clicked column entries
-  const generateAllocationTable = (clickedColumn, checkedValue, columnKey) => {
-    // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
-      for (let filter of filterStack) {
-        if (!filter.checked[item[filter.column]]) return false;
-      }
-      return true;
-    });
-
-    // Get unique values for the first column (yojna/scheme)
-    const firstColumnValues = [...new Set(currentFilteredData.map(item => item[columnKey]).filter(Boolean))];
-
+    // Get unique values for the first column (dynamic based on the clicked column)
+const firstColumnValues = [...new Set(currentFilteredData.map(item => item[firstColumnKey]).filter(Boolean))];
     // Get unique values for the clicked column (entries)
-    const clickedColumnValues = [...new Set(currentFilteredData.map(item => item[clickedColumn]).filter(Boolean))];
+  const clickedColumnValues = [...new Set(currentFilteredData.map(item => item[clickedColumn]).filter(Boolean))];
 
     // Create the new table structure
-    const newTableData = [];
+     const newTableData = [];
+  const columnTotals = {}; // For calculating column totals
 
-    // For each value in the first column (yojna), create a row with allocation data for each clicked column value
-    firstColumnValues.forEach(firstColValue => {
-      const rowData = {
-        [columnDefs[columnKey]?.label]: firstColValue,
-      };
+    // For each value in the first column, create a row with allocation data for each clicked column value
+   firstColumnValues.forEach(firstColValue => {
+    const rowData = {
+      [columnDefs[firstColumnKey]?.label]: firstColValue,
+    };
+
+      let rowTotal = 0; // For calculating row total
 
       // Add allocation data for each clicked column value
       clickedColumnValues.forEach(clickedColValue => {
-        // Filter data for this specific combination
-        const filteredForCombination = currentFilteredData.filter(item => {
-          return item[columnKey] === firstColValue &&
-                 item[clickedColumn] === clickedColValue;
-        });
+      // Filter data for this specific combination
+      const filteredForCombination = currentFilteredData.filter(item => {
+        return item[firstColumnKey] === firstColValue &&
+               item[clickedColumn] === clickedColValue;
+      });
 
         // Calculate total allocated quantity for this combination
         const totalAllocated = filteredForCombination.reduce(
-          (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
-          0
-        ).toFixed(2);
+        (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
+        0
+      ).toFixed(2);
 
         rowData[clickedColValue] = totalAllocated;
-      });
+      rowTotal += parseFloat(totalAllocated);
 
-      newTableData.push(rowData);
+        // Calculate column total
+       if (!columnTotals[clickedColValue]) {
+        columnTotals[clickedColValue] = 0;
+      }
+      columnTotals[clickedColValue] += parseFloat(totalAllocated);
     });
+
+      // Add row total
+       rowData["कुल"] = rowTotal.toFixed(2);
+    newTableData.push(rowData);
+  });
+
+    // Add total row
+    const totalRow = { [columnDefs[firstColumnKey]?.label]: "कुल" };
+  let grandTotal = 0;
+
+  clickedColumnValues.forEach(clickedColValue => {
+    totalRow[clickedColValue] = (columnTotals[clickedColValue] || 0).toFixed(2);
+    grandTotal += columnTotals[clickedColValue] || 0;
+  });
+
+  totalRow["कुल"] = grandTotal.toFixed(2);
+  newTableData.push(totalRow);
 
     // Create columns for the new table
     const newColumns = [
-      columnDefs[columnKey]?.label,
-      ...clickedColumnValues,
-    ];
+    columnDefs[firstColumnKey]?.label,
+    ...clickedColumnValues,
+    "कुल"
+  ];
 
-    return {
-      heading: `आवंटन विवरण - ${columnDefs[columnKey]?.label} द्वारा ${columnDefs[clickedColumn]?.label}`,
-      data: newTableData,
-      columns: newColumns,
-      columnKey: columnKey,
-      isAllocationTable: true
-    };
+  return {
+    heading: `आवंटन विवरण - ${columnDefs[firstColumnKey]?.label} द्वारा ${columnDefs[clickedColumn]?.label}`,
+    data: newTableData,
+    columns: newColumns,
+    columnKey: firstColumnKey,
+    isAllocationTable: true
   };
+};
 
   // Handle adding a table to an existing sheet
   const handleAddToExistingSheet = (type, existingTableId) => {
@@ -1680,7 +1647,7 @@ const MainDashboard = () => {
     >
       <Modal.Header closeButton className="modal-header-style">
         <div>
-          {previewType === "pdf" ? "PDF पूर्वावलोकन" : "Excel पूर्वालोकन"}
+          {previewType === "pdf" ? "PDF पूर्वालोकन" : "Excel पूर्वालोकन"}
         </div>
       </Modal.Header>
       <Modal.Body style={{ maxHeight: '70vh', overflow: 'auto' }}>
@@ -3156,8 +3123,9 @@ const MainDashboard = () => {
                                                     [checkedValue],
                                                     currentFilter.column
                                                   );
-                                                  // Generate allocation table showing scheme-wise allocation for selected entries
-                                                  const allocationTable = generateAllocationTable(currentFilter.column, checkedValue, 'scheme_name');
+                                                  // Generate allocation table showing allocation for selected entries
+                                                  // Use the clicked column as the first column instead of hardcoded 'scheme_name'
+                                                  const allocationTable = generateAllocationTable(currentFilter.column, checkedValue, currentFilter.column);
                                                   setAdditionalTables(prev => [allocationTable, breakdownTable, ...prev]);
                                                 }}
                                               >
@@ -3195,6 +3163,7 @@ const MainDashboard = () => {
                                                 )
                                                 .map((col) => (
                                                   <td
+                                                    key={col}
                                                     style={{
                                                       cursor: "pointer",
                                                       color: "blue",
@@ -3202,7 +3171,8 @@ const MainDashboard = () => {
                                                     }}
                                                     onClick={() => {
                                                       const summary = generateSummary(tableDataForValue, col);
-                                                      const allocationTable = generateAllocationTable(col, checkedValue, 'scheme_name');
+                                                      // Generate allocation table with the clicked column as the first column
+                                                      const allocationTable = generateAllocationTable(col, checkedValue, currentFilter.column);
                                                       setAdditionalTables(prev => [allocationTable, { heading: checkedValue, data: summary.data, columns: summary.columns, columnKey: col }, ...prev]);
                                                     }}
                                                   >
@@ -3341,303 +3311,235 @@ const MainDashboard = () => {
                                         </tr>
                                       </tfoot>
                                     </Table>
-                                    {additionalTables.map((table, index) => (
-                                      <div key={index} className="mt-4">
-                                        <div className="d-flex justify-content-between align-items-center">
-                                          <div className="d-flex align-items-center gap-2">
-                                            <h5 className="mb-0">{table.heading}</h5>
-                                            <div className="dropdown">
-                                              <button
-                                                className="btn btn-secondary dropdown-toggle drop-option"
-                                                type="button"
-                                                onClick={() => {
-                                                  const filterIndex = `additional_${index}`;
-                                                  toggleDetailedDropdown(filterIndex);
-                                                }}
-                                              >
-                                                <BiFilter /> Filter
-                                              </button>
-                                              {detailedDropdownOpen[`additional_${index}`] && (
-                                                <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
-                                                  <div className="dropdown-item">
-                                                    <FormCheck
-                                                      className="check-box"
-                                                      type="checkbox"
-                                                      id={`select_all_additional_${index}`}
-                                                      label={
-                                                        additionalTableFilters[index]?.allSelected
-                                                          ? "सभी हटाएं"
-                                                          : "सभी चुनें"
-                                                      }
-                                                      checked={additionalTableFilters[index]?.allSelected || false}
-                                                      onChange={() =>
-                                                        handleAdditionalTableFilterChange(index, "SELECT_ALL")
-                                                      }
-                                                    />
-                                                  </div>
-                                                  {table.data.map((row) => {
-                                                    const rowValue = row[table.columns[0]];
-                                                    const isChecked = additionalTableFilters[index]?.selectedValues?.includes(rowValue) || false;
-                                                    return (
-                                                      <div key={rowValue} className="dropdown-item">
-                                                        <FormCheck
-                                                          className="check-box"
-                                                          type="checkbox"
-                                                          id={`additional_${index}_${rowValue}`}
-                                                          label={rowValue}
-                                                          checked={isChecked}
-                                                          onChange={() =>
-                                                            handleAdditionalTableFilterChange(index, rowValue)
-                                                          }
-                                                        />
-                                                      </div>
-                                                    );
-                                                  })}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="d-flex gap-2">
-                                            <Button
-                                              variant="danger"
-                                              size="sm"
-                                              onClick={() => {
-                                                setCurrentTableForExport(table);
-                                                setExportType("pdf");
-                                                setShowTableSelectionModal(true);
-                                              }}
-                                              className="d-flex align-items-center pdf-add-btn gap-1"
-                                            >
-                                              <RiFilePdfLine /> PDF में जोड़ें
-                                            </Button>
-                                            <Button
-                                              variant="success"
-                                              size="sm"
-                                              onClick={() => {
-                                                setCurrentTableForExport(table);
-                                                setExportType("excel");
-                                                setShowTableSelectionModal(true);
-                                              }}
-                                              className="d-flex align-items-center exel-add-btn gap-1"
-                                            >
-                                              <RiFileExcelLine /> Excel में जोड़ें
-                                            </Button>
-                                            <Button
-                                              variant="link"
-                                              size="sm"
-                                              className="text-danger p-0"
-                                              onClick={() => setAdditionalTables(prev => prev.filter((_, i) => i !== index))}
-                                            >
-                                              <RiDeleteBinLine />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                        <Table
-                                          striped
-                                          bordered
-                                          hover
-                                          className="table-thead-style"
-                                        >
-                                          <thead className="table-thead">
-                                            <tr>
-                                              <th>{table.columns[0]}</th>
-                                              {table.isBreakdownTable ? (
-                                                table.columns.slice(1).map((col, idx) => (
-                                                  <th key={idx}>{col}</th>
-                                                ))
-                                              ) : (
-                                                <>
-                                                  <th>कुल रिकॉर्ड</th>
-                                                  {table.columns.slice(2, -2).map((col, idx) => (
-                                                    <th key={idx}>{col}</th>
-                                                  ))}
-                                                  <th>कुल आवंटित मात्रा</th>
-                                                  <th>कुल दर</th>
-                                                </>
-                                              )}
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {(() => {
-                                              const filteredTableData = table.data.filter((row) => {
-                                                const rowValue = row[table.columns[0]];
-                                                if (additionalTableFilters[index]?.allSelected) {
-                                                  return true;
-                                                }
-                                                if (additionalTableFilters[index]?.selectedValues?.length === 0) {
-                                                  return true;
-                                                }
-                                                return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
-                                              });
-                                              return filteredTableData.map((row) => {
-                                                const value = row[table.columns[0]];
-                                                return (
-                                                  <tr key={value}>
-                                                    <td
-                                                      style={{
-                                                        cursor: "pointer",
-                                                        color: "blue",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      onClick={() => {
-                                                        // Add a new filter to the stack with this value
-                                                        handleSummaryValueClick(table.columnKey, value);
-                                                      }}
-                                                    >
-                                                      {value}
-                                                    </td>
-                                                    {table.isBreakdownTable ? (
-                                                      table.columns.slice(1).map((col) => (
-                                                        <td key={col}>{row[col] || "0"}</td>
-                                                      ))
-                                                    ) : (
-                                                      <>
-                                                        <td
-                                                          style={{
-                                                            cursor: "pointer",
-                                                            color: "blue",
-                                                            fontWeight: "bold",
-                                                          }}
-                                                          onClick={() => {
-                                                            // Add a new filter to the stack with this value and show detailed view
-                                                            handleSummaryValueClick(table.columnKey, value);
-                                                            setShowDetailed(true);
-                                                          }}
-                                                        >
-                                                          {row["कुल रिकॉर्ड"]}
-                                                        </td>
-                                                        {table.columns.slice(2, -2).map((col) => (
-                                                          <td
-                                                            key={col}
-                                                            style={{
-                                                              cursor: "pointer",
-                                                              color: "blue",
-                                                              fontWeight: "bold",
-                                                            }}
-                                                            onClick={() => {
-                                                              // Find the column key for this label
-                                                              const colKey = Object.keys(columnDefs).find(
-                                                                (k) => columnDefs[k].label === col
-                                                              );
-                                                              if (colKey) {
-                                                                // Get the data for this value
-                                                                const currentFilteredData = tableData.filter((item) => {
-                                                                  for (let filter of filterStack) {
-                                                                    if (!filter.checked[item[filter.column]]) return false;
-                                                                  }
-                                                                  return item[table.columnKey] === value;
-                                                                });
+                                  {additionalTables.map((table, index) => (
+  <div key={index} className="mt-4">
+    <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex align-items-center gap-2">
+        <h5 className="mb-0">{table.heading}</h5>
+        <div className="dropdown">
+          <button
+            className="btn btn-secondary dropdown-toggle drop-option"
+            type="button"
+            onClick={() => {
+              const filterIndex = `additional_${index}`;
+              toggleDetailedDropdown(filterIndex);
+            }}
+          >
+            <BiFilter /> Filter
+          </button>
+          {detailedDropdownOpen[`additional_${index}`] && (
+            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
+              <div className="dropdown-item">
+                <FormCheck
+                  className="check-box"
+                  type="checkbox"
+                  id={`select_all_additional_${index}`}
+                  label={
+                    additionalTableFilters[index]?.allSelected
+                      ? "सभी हटाएं"
+                      : "सभी चुनें"
+                  }
+                  checked={additionalTableFilters[index]?.allSelected || false}
+                  onChange={() =>
+                    handleAdditionalTableFilterChange(index, "SELECT_ALL")
+                  }
+                />
+              </div>
+              {table.data.map((row) => {
+                const rowValue = row[table.columns[0]];
+                const isChecked = additionalTableFilters[index]?.selectedValues?.includes(rowValue) || false;
+                return (
+                  <div key={rowValue} className="dropdown-item">
+                    <FormCheck
+                      className="check-box"
+                      type="checkbox"
+                      id={`additional_${index}_${rowValue}`}
+                      label={rowValue}
+                      checked={isChecked}
+                      onChange={() =>
+                        handleAdditionalTableFilterChange(index, rowValue)
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="d-flex gap-2">
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => {
+            setCurrentTableForExport(table);
+            setExportType("pdf");
+            setShowTableSelectionModal(true);
+          }}
+          className="d-flex align-items-center pdf-add-btn gap-1"
+        >
+          <RiFilePdfLine /> PDF में जोड़ें
+        </Button>
+        <Button
+          variant="success"
+          size="sm"
+          onClick={() => {
+            setCurrentTableForExport(table);
+            setExportType("excel");
+            setShowTableSelectionModal(true);
+          }}
+          className="d-flex align-items-center exel-add-btn gap-1"
+        >
+          <RiFileExcelLine /> Excel में जोड़ें
+        </Button>
+        <Button
+          variant="link"
+          size="sm"
+          className="text-danger p-0"
+          onClick={() => setAdditionalTables(prev => prev.filter((_, i) => i !== index))}
+        >
+          <RiDeleteBinLine />
+        </Button>
+      </div>
+    </div>
+    <div className="table-responsive" style={{ overflowX: 'auto' }}>
+      <Table
+        striped
+        bordered
+        hover
+        className="table-thead-style"
+      >
+        <thead className="table-thead">
+          <tr>
+            <th>{table.columns[0]}</th>
+            {table.isAllocationTable ? (
+              // For allocation tables, show all columns except the first one
+              table.columns.slice(1).map((col, idx) => (
+                <th key={idx}>{col}</th>
+              ))
+            ) : (
+              <>
+                <th>कुल रिकॉर्ड</th>
+                {table.columns.slice(2, -2).map((col, idx) => (
+                  <th key={idx}>{col}</th>
+                ))}
+                <th>कुल आवंटित मात्रा</th>
+                <th>कुल दर</th>
+              </>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {(() => {
+            const filteredTableData = table.data.filter((row) => {
+              const rowValue = row[table.columns[0]];
+              if (additionalTableFilters[index]?.allSelected) {
+                return true;
+              }
+              if (additionalTableFilters[index]?.selectedValues?.length === 0) {
+                return true;
+              }
+              return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
+            });
+            return filteredTableData.map((row, rowIndex) => {
+              const isLastRow = rowIndex === filteredTableData.length - 1;
+              return (
+                <tr key={rowIndex} className={isLastRow ? "table-total-row" : ""}>
+                  <td
+                    style={{
+                      cursor: !isLastRow ? "pointer" : "default",
+                      color: !isLastRow ? "blue" : "black",
+                      fontWeight: isLastRow ? "bold" : "normal"
+                    }}
+                    onClick={() => {
+                      if (!isLastRow) {
+                        // Add a new filter to the stack with this value
+                        handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                      }
+                    }}
+                  >
+                    {row[table.columns[0]]}
+                  </td>
+                  {table.isAllocationTable ? (
+                    // For allocation tables, show all columns except the first one
+                    table.columns.slice(1).map((col, colIdx) => (
+                      <td 
+                        key={colIdx} 
+                        style={{ 
+                          fontWeight: isLastRow ? "bold" : "normal",
+                          backgroundColor: isLastRow ? "#f2f2f2" : "transparent"
+                        }}
+                      >
+                        {row[col] || "0"}
+                      </td>
+                    ))
+                  ) : (
+                    <>
+                      <td
+                        style={{
+                          cursor: "pointer",
+                          color: "blue",
+                          fontWeight: "bold",
+                        }}
+                        onClick={() => {
+                          // Add a new filter to the stack with this value and show detailed view
+                          handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                          setShowDetailed(true);
+                        }}
+                      >
+                        {row["कुल रिकॉर्ड"]}
+                      </td>
+                      {table.columns.slice(2, -2).map((col, colIdx) => (
+                        <td
+                          key={colIdx}
+                          style={{
+                            cursor: "pointer",
+                            color: "blue",
+                            fontWeight: "bold",
+                          }}
+                          onClick={() => {
+                            // Find the column key for this label
+                            const colKey = Object.keys(columnDefs).find(
+                              (k) => columnDefs[k].label === col
+                            );
+                            if (colKey) {
+                              // Get the data for this value
+                              const currentFilteredData = tableData.filter((item) => {
+                                for (let filter of filterStack) {
+                                  if (!filter.checked[item[filter.column]]) return false;
+                                }
+                                return item[table.columnKey] === row[table.columns[0]];
+                              });
 
-                                                                // Generate a new summary table
-                                                                const summary = generateSummary(currentFilteredData, colKey);
-                                                                setAdditionalTables(prev => [{
-                                                                  heading: `${value} - ${col}`,
-                                                                  data: summary.data,
-                                                                  columns: summary.columns,
-                                                                  columnKey: colKey
-                                                                }, ...prev]);
-                                                              }
-                                                            }}
-                                                          >
-                                                            {row[col]}
-                                                          </td>
-                                                        ))}
-                                                        <td>{row["कुल आवंटित मात्रा"]}</td>
-                                                        <td>{row["कुल दर"]}</td>
-                                                      </>
-                                                    )}
-                                                  </tr>
-                                                );
-                                              });
-                                            })()}
-                                          </tbody>
-                                          <tfoot>
-                                            <tr>
-                                              <td style={{ fontWeight: "bold" }}>कुल:</td>
-                                              <td style={{ fontWeight: "bold" }}>
-                                                {(() => {
-                                                  const filteredTableData = table.data.filter((row) => {
-                                                    const rowValue = row[table.columns[0]];
-                                                    if (additionalTableFilters[index]?.allSelected) {
-                                                      return true;
-                                                    }
-                                                    if (additionalTableFilters[index]?.selectedValues?.length === 0) {
-                                                      return true;
-                                                    }
-                                                    return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
-                                                  });
-                                                  return filteredTableData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0);
-                                                })()}
-                                              </td>
-                                              {table.columns.slice(2, -2).map((col) => (
-                                                <td
-                                                  key={col}
-                                                  style={{
-                                                    fontWeight: "bold",
-                                                    cursor: "pointer",
-                                                    color: "blue",
-                                                    textDecoration: "underline"
-                                                  }}
-                                                  onClick={() => {
-                                                    // Find the column key for this label
-                                                    const colKey = Object.keys(columnDefs).find(
-                                                      (k) => columnDefs[k].label === col
-                                                    );
-                                                    if (colKey) {
-                                                      handleTotalClick(colKey);
-                                                    }
-                                                  }}
-                                                >
-                                                  {(() => {
-                                                    const filteredTableData = table.data.filter((row) => {
-                                                      const rowValue = row[table.columns[0]];
-                                                      if (additionalTableFilters[index]?.allSelected) {
-                                                        return true;
-                                                      }
-                                                      if (additionalTableFilters[index]?.selectedValues?.length === 0) {
-                                                        return true;
-                                                      }
-                                                      return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
-                                                    });
-                                                    return new Set(filteredTableData.flatMap(row => tableData.filter(item => item[table.columnKey] === row[table.columns[0]]).map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)]))).size;
-                                                  })()}
-                                                </td>
-                                              ))}
-                                              <td style={{ fontWeight: "bold" }}>
-                                                {(() => {
-                                                  const filteredTableData = table.data.filter((row) => {
-                                                    const rowValue = row[table.columns[0]];
-                                                    if (additionalTableFilters[index]?.allSelected) {
-                                                      return true;
-                                                    }
-                                                    if (additionalTableFilters[index]?.selectedValues?.length === 0) {
-                                                      return true;
-                                                    }
-                                                    return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
-                                                  });
-                                                  return filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2);
-                                                })()}
-                                              </td>
-                                              <td style={{ fontWeight: "bold" }}>
-                                                {(() => {
-                                                  const filteredTableData = table.data.filter((row) => {
-                                                    const rowValue = row[table.columns[0]];
-                                                    if (additionalTableFilters[index]?.allSelected) {
-                                                      return true;
-                                                    }
-                                                    if (additionalTableFilters[index]?.selectedValues?.length === 0) {
-                                                      return true;
-                                                    }
-                                                    return additionalTableFilters[index]?.selectedValues?.includes(rowValue);
-                                                  });
-                                                  return filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2);
-                                                })()}
-                                              </td>
-                                            </tr>
-                                          </tfoot>
-                                        </Table>
-                                      </div>
-                                    ))}
+                              // Generate a new summary table
+                              const summary = generateSummary(currentFilteredData, colKey);
+                              // Generate allocation table with the clicked column as the first column
+                              const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
+                              setAdditionalTables(prev => [allocationTable, {
+                                heading: `${row[table.columns[0]]} - ${col}`,
+                                data: summary.data,
+                                columns: summary.columns,
+                                columnKey: colKey
+                              }, ...prev]);
+                            }
+                          }}
+                        >
+                          {row[col]}
+                        </td>
+                      ))}
+                      <td>{row["कुल आवंटित मात्रा"]}</td>
+                      <td>{row["कुल दर"]}</td>
+                    </>
+                  )}
+                </tr>
+              );
+            });
+          })()}
+        </tbody>
+      </Table>
+    </div>
+  </div>
+))}
                                     {selectedTotalColumn && (
                                       <div className="mt-4">
                                         <h6>
