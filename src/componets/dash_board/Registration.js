@@ -11,10 +11,13 @@ import {
   Tooltip,
   Spinner,
   Pagination,
+  Modal,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaTimes, FaSync } from "react-icons/fa";
+import { RiFilePdfLine, RiFileExcelLine, RiEyeLine, RiDeleteBinLine } from "react-icons/ri";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import html2pdf from "html2pdf.js";
 import Select from "react-select";
 import "../../assets/css/registration.css";
 import DashBoardHeader from "./DashBoardHeader";
@@ -99,7 +102,7 @@ const billingTableColumns = [
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
   { key: "total_amount", label: "कुल राशि" },
-  { key: "created_at", label: "बनाने की तारीख" },
+ 
 ];
 
 // Column mapping for data access - Updated sequence
