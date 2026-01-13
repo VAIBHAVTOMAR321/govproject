@@ -3038,7 +3038,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                     setAdditionalTables([]);
                                   }}
                                 >
-                                  सभी फिल्टर रीसेट करें
+                                  होम पेज पर जाएँ
                                 </Button>
                               </div>
                               <h5 className="mb-0">
