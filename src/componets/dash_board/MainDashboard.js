@@ -1951,7 +1951,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" && toggleDropdown("center_name")
@@ -2018,7 +2018,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" &&
@@ -2086,7 +2086,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom "
                             type="button"
                             onClick={() =>
                               view === "main" &&
@@ -2154,7 +2154,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" && toggleDropdown("component")
@@ -2216,7 +2216,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" &&
@@ -2284,7 +2284,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" &&
@@ -2354,7 +2354,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" &&
@@ -2422,7 +2422,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         </Form.Label>
                         <div className="dropdown">
                           <button
-                            className="btn btn-secondary dropdown-toggle drop-option"
+                            className="btn btn-secondary dropdown-toggle drop-option-custom"
                             type="button"
                             onClick={() =>
                               view === "main" && toggleDropdown("scheme_name")

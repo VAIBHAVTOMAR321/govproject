@@ -300,6 +300,13 @@ body {
   font-size: 12px !important;
  
 }
+.drop-option-custom {
+  background-color: #fff !important;
+  color: #000 !important;
+  font-size: 10px !important;
+  width: 70% !important;
+ 
+}
 .table-heading h5{
   font-size: 16px ;
   font-weight: 600;
