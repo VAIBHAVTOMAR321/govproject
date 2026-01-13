@@ -654,6 +654,18 @@ const MainDashboard = () => {
         "आवंटित मात्रा": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2),
         "दर": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)
       };
+      
+      // Also include totals for all column labels to ensure consistency
+      Object.keys(columnDefs).forEach(col => {
+        const label = columnDefs[col].label;
+        if (!totals[label]) {
+          if (col === "allocated_quantity" || col === "rate") {
+            totals[label] = filteredTableData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2);
+          } else {
+            totals[label] = new Set(filteredTableData.map(item => item[col])).size;
+          }
+        }
+      });
 
       return {
         heading: getSummaryHeading(),
@@ -920,7 +932,7 @@ const MainDashboard = () => {
                         // Use pre-calculated totals if available
                         const totalValue = table.totals && table.totals[col] !== undefined
                           ? table.totals[col]
-                          : calculateColumnTotal(table.data, col);
+                          : calculateColumnTotal(table.data, col, columnDefs);
 
                         return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
                       })}
@@ -989,7 +1001,7 @@ const MainDashboard = () => {
                         // Use pre-calculated totals if available
                         const totalValue = table.totals && table.totals[col] !== undefined
                           ? table.totals[col]
-                          : calculateColumnTotal(table.data, col);
+                          : calculateColumnTotal(table.data, col, columnDefs);
 
                         return <td key={col} style={{ border: '1px solid #ddd', padding: '6px', fontSize: '10px' }}>{totalValue}</td>;
                       })}
@@ -1005,7 +1017,7 @@ const MainDashboard = () => {
   };
 
   // Helper function to calculate column totals (fallback)
-  const calculateColumnTotal = (tableData, column) => {
+  const calculateColumnTotal = (tableData, column, columnDefs) => {
     if (column === 'कुल रिकॉर्ड') {
       return tableData.reduce((sum, row) => sum + (row[column] || 0), 0);
     } else if (column === 'कुल आवंटित मात्रा' || column === 'कुल दर') {
@@ -1094,7 +1106,7 @@ const MainDashboard = () => {
             // Use pre-calculated totals if available
             const totalValue = table.totals && table.totals[col] !== undefined
               ? table.totals[col]
-              : calculateColumnTotal(table.data, col);
+              : calculateColumnTotal(table.data, col, columnDefs);
 
             htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
           });
@@ -1187,7 +1199,7 @@ const MainDashboard = () => {
         table.columns.forEach((col) => {
           const totalValue = table.totals && table.totals[col] !== undefined
             ? table.totals[col]
-            : calculateColumnTotal(table.data, col);
+            : calculateColumnTotal(table.data, col, columnDefs);
           totalsRow.push(totalValue);
         });
 
