@@ -307,6 +307,9 @@ body {
   width: 70% !important;
  
 }
+.compact-input{
+  font-size: 10px !important;
+}
 .table-heading h5{
   font-size: 16px ;
   font-weight: 600;
