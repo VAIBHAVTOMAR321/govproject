@@ -293,37 +293,51 @@ body {
   border-color: #2196f3;
   font-size: 12px;
 }
+
 .drop-option {
   background-color: #fff !important;
   color: #000 !important;
   font-size: 12px !important;
+ 
 }
+.table-heading h5{
+  font-size: 16px ;
+  font-weight: 600;
+}
+
 .drop-option::after {
   color: black !important;
 }
-.fltr-icon
-{
+
+.fltr-icon {
   font-size: 18px;
   margin-right: 4px;
   vertical-align: middle;
 }
-.btn-filter-submit{
+
+.btn-filter-submit {
   font-size: 10px !important;
   background-color: #822431;
   border: 1px solid #822431;
 }
-.btn-filter-submit:hover{
+
+.btn-filter-submit:hover {
   font-size: 10px !important;
   background-color: #0B488F;
-  border: 1px solid #0B488F;  
+  border: 1px solid #0B488F;
 }
-.form-check .form-check-input{
+.page-info{
+  font-size: 12px !important;
+}
+.form-check .form-check-input {
   border: 1px solid #000 !important;
   cursor: pointer;
 }
-.i{
+
+.i {
   font-size: 12px !important;
 }
+
 .disabled-filter {
   position: relative;
 }
@@ -338,6 +352,7 @@ body {
   background-color: rgba(255, 255, 255, 0.5);
   z-index: 1;
 }
+
 .selected-tables-card {
   min-height: 100px;
 }
@@ -346,49 +361,63 @@ body {
   max-height: 120px;
   overflow-y: auto;
 }
-.pdf-add-btn{
+
+.pdf-add-btn {
   font-size: 10px;
 }
-.exel-add-btn{
+
+.exel-add-btn {
   font-size: 10px;
 }
-.modal-header-style{
+
+.modal-header-style {
   background-color: #0B488F;
   color: #fff;
 }
-.remove-btn{
+
+.remove-btn {
   font-size: 10px !important;
 }
-.add-btn{
+
+.add-btn {
   font-size: 10px !important;
 }
-.small-table{
+
+.small-table {
   font-size: 10px !important;
 }
+
 /* Adjust the table container to ensure it's scrollable if needed */
-.back-btn h5{
+.back-btn h5 {
   font-size: 12px !important;
 }
-.back-btn-style{
+
+.back-btn-style {
   font-size: 12px !important;
   background-color: rgba(128, 128, 128, 0.934);
 }
-.back-btn-style:hover{
-background-color:#0B488F;
-border: 1px solid #0B488F;
+
+.back-btn-style:hover {
+  background-color: #0B488F;
+  border: 1px solid #0B488F;
 }
-.total-style{
+
+.total-style {
   font-size: 12px !important;
 }
-.form-check-label{
-  cursor: pointer;  
+
+.form-check-label {
+  cursor: pointer;
 }
-.dropdown-menu{
+
+.dropdown-menu {
   font-size: 10px !important;
 }
-.clear-btn-primary{
+
+.clear-btn-primary {
   font-size: 10px !important;
 }
+
 .clear-btn-primary:hover {
   color: #fff;
   background-color: #0c83e2;

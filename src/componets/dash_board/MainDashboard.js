@@ -1880,7 +1880,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         <Row className="left-top">
           <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
-              <h1 className="page-title form-label">{getSummaryHeading()}</h1>
+              {/* <h1 className="page-title form-label">{getSummaryHeading()}</h1> */}
 
               {/* Multi-Filter Section */}
               {view === "main" && (
@@ -2820,7 +2820,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         )}
                         {!isApplyingFilters && (
                         <div className="d-flex justify-content-between align-items-center mt-3">
-                          <span className="text-muted">
+                          <span className="text-muted page-info">
                             Page {currentPage} / {totalPages} (Total{" "}
                             {tableData.length} items)
                           </span>
@@ -3038,7 +3038,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                     setAdditionalTables([]);
                                   }}
                                 >
-                                  होम पेज पर जाएँ
+                                 डैशबोर्ड
                                 </Button>
                               </div>
                               <h5 className="mb-0">
@@ -3417,8 +3417,8 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
      {/* Replace the additional tables rendering section with this updated version: */}
 {additionalTables.map((table, index) => (
   <div key={index} className="mt-4">
-  <div className="d-flex justify-content-between align-items-center">
-    <div className="d-flex align-items-center gap-2">
+  <div className="d-flex justify-content-between align-items-center mb-3">
+    <div className="d-flex align-items-center gap-2 table-heading ">
       <h5 className="mb-0">{table.heading}</h5>
       <div className="dropdown">
         <button
