@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Form, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useCenter } from './all_login/CenterContext';
+import { useAuth } from '../context/AuthContext';
 
 const DemandGenerate = () => {
   const navigate = useNavigate();
-  const { centerData, clearCenter } = useCenter(); // Use CenterContext instead of localStorage
+  const { centerData, clearCenter } = useCenter(); // Use CenterContext
+  const { logout } = useAuth(); // Use AuthContext to logout
   const [demandData, setDemandData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,7 +99,9 @@ const DemandGenerate = () => {
   };
 
   const handleLogout = () => {
+    // Clear both center data and authentication state
     clearCenter(); // Clear context data
+    logout(); // Clear authentication state
     navigate('/', { replace: true });
   };
 
