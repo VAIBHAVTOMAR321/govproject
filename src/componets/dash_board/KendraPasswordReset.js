@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import DashBoardHeader from './DashBoardHeader';
 
 const KendraPasswordReset = () => {
   const navigate = useNavigate();
@@ -104,7 +105,9 @@ const KendraPasswordReset = () => {
   };
 
   return (
-    <Container className="py-4">
+    <>
+    <DashBoardHeader />
+    <Container className="py-4 container-view">
       <Row className="justify-content-center">
         <Col md={6}>
           <div className="card">
@@ -200,6 +203,7 @@ const KendraPasswordReset = () => {
         </Col>
       </Row>
     </Container>
+    </>
   );
 };
 
