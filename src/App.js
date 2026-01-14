@@ -26,6 +26,7 @@ import MPR from "./componets/dash_board/MPR";
 import AddEditComponent from "./componets/dash_board/AddEditComponent";
 import ForgotPassword from "./componets/all_login/ForgotPassword";
 import DemandGenerate from "./componets/DemandGenerate";
+import { CenterProvider } from "./componets/all_login/CenterContext";
 function App() {
   const location = useLocation();
 
@@ -34,6 +35,7 @@ function App() {
   const shouldHideNavbar = hiddenPaths.has(location.pathname);
   
   return (
+    <CenterProvider>
     <AuthProvider>
       <div className="app-container">
         {!shouldHideNavbar && <NavBar />}
@@ -98,6 +100,7 @@ function App() {
         <Footer />
       </div>
     </AuthProvider>
+    </CenterProvider>
   );
 }
 

@@ -4,10 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import "../../assets/css/login.css";
+import { useCenter } from "./CenterContext";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useAuth();
+  const { setCenter } = useCenter(); // Use CenterContext
 
   // Kenra names for demand generate login
   const kenraNames = [
@@ -212,6 +214,9 @@ export default function Login() {
         
         // Set the demand login flag before calling login
         setIsDemandLogin(true);
+        
+        // Use CenterContext instead of localStorage
+        setCenter(data.user_id, demandFormData.username);
         
         // Call login with user data including role and login type
         login({
