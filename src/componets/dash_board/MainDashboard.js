@@ -20,6 +20,7 @@ import {
   RiAddLine,
   RiDeleteBinLine,
   RiEyeLine,
+  RiRepeatLine,
 } from "react-icons/ri";
 import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
@@ -159,6 +160,7 @@ const MainDashboard = () => {
   const [showTableSelectionModal, setShowTableSelectionModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewType, setPreviewType] = useState("pdf");
+  const [isRotated, setIsRotated] = useState([]);
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -3376,6 +3378,13 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
           </div>
         )}
       </div>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => setIsRotated(prev => { const newArr = [...prev]; newArr[index] = !newArr[index]; return newArr; })}
+      >
+        <RiRepeatLine /> Rotate
+      </Button>
     </div>
       <div className="d-flex gap-2">
         <Button
@@ -3414,158 +3423,191 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         <thead className="table-thead">
           <tr>
             {(() => {
-              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
-              const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल किसान की हिस्सेदारी", "कुल सब्सिडी", "कुल राशि"];
-              return visibleColumns.map((col, idx) => (
-                <th key={idx}>{col}</th>
-              ));
+              const isTableRotated = isRotated[index] || false;
+              if (isTableRotated) {
+                const transposedColumns = table.data.map(row => row[table.columns[0]]);
+                const transposedTableColumns = [table.columns[0], ...transposedColumns];
+                return transposedTableColumns.map((col, idx) => (
+                  <th key={idx}>{col}</th>
+                ));
+              } else {
+                const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
+                const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल किसान की हिस्सेदारी", "कुल सब्सिडी", "कुल राशि"];
+                return visibleColumns.map((col, idx) => (
+                  <th key={idx}>{col}</th>
+                ));
+              }
             })()}
           </tr>
         </thead>
         <tbody>
           {(() => {
-            const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
-            return table.data
-              .filter(row => row[table.columns[0]] !== "कुल") // Filter out any existing total row
-              .map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                <td
-                  style={{
-                    cursor: "pointer",
-                    color: "blue",
-                    fontWeight: "bold",
-                  }}
-                  onClick={() => {
-                    // Add a new filter to the stack with this value
-                    handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                  }}
-                >
-                  {row[table.columns[0]]}
-                </td>
-                {table.isAllocationTable ? (
-                  // For allocation tables, show visible dynamic columns
-                  <>
-                    {visibleDynamicColumns.map((col, colIdx) => (
-                      <td key={colIdx}>
-                        {row[col] || "0"}
-                      </td>
-                    ))}
-                    <td>{visibleDynamicColumns.reduce((sum, col) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}</td>
-                  </>
-                ) : (
-                  <>
-                    <td
-                      style={{
-                        cursor: "pointer",
-                        color: "blue",
-                        fontWeight: "bold",
-                      }}
-                      onClick={() => {
-                        // Add a new filter to the stack with this value and show detailed view
-                        handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                        setShowDetailed(true);
-                      }}
-                    >
-                      {row["कुल रिकॉर्ड"]}
-                    </td>
-                    {visibleDynamicColumns.map((col, colIdx) => (
+            const isTableRotated = isRotated[index] || false;
+            if (isTableRotated) {
+              const transposedColumns = table.data.map(row => row[table.columns[0]]);
+              const transposedData = table.columns.slice(1).map((col, idx) => {
+                const row = { [table.columns[0]]: col };
+                transposedColumns.forEach((newCol, colIdx) => {
+                  row[newCol] = table.data[colIdx] ? table.data[colIdx][col] : '';
+                });
+                return row;
+              });
+              return transposedData.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {Object.keys(row).map((col, colIdx) => (
+                    <td key={colIdx}>{row[col] || ''}</td>
+                  ))}
+                </tr>
+              ));
+            } else {
+              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
+              return table.data
+                .filter(row => row[table.columns[0]] !== "कुल") // Filter out any existing total row
+                .map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  <td
+                    style={{
+                      cursor: "pointer",
+                      color: "blue",
+                      fontWeight: "bold",
+                    }}
+                    onClick={() => {
+                      // Add a new filter to the stack with this value
+                      handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                    }}
+                  >
+                    {row[table.columns[0]]}
+                  </td>
+                  {table.isAllocationTable ? (
+                    // For allocation tables, show visible dynamic columns
+                    <>
+                      {visibleDynamicColumns.map((col, colIdx) => (
+                        <td key={colIdx}>
+                          {row[col] || "0"}
+                        </td>
+                      ))}
+                      <td>{visibleDynamicColumns.reduce((sum, col) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}</td>
+                    </>
+                  ) : (
+                    <>
                       <td
-                        key={colIdx}
                         style={{
                           cursor: "pointer",
                           color: "blue",
                           fontWeight: "bold",
                         }}
                         onClick={() => {
-                          // Find the column key for this label
-                          const colKey = Object.keys(columnDefs).find(
-                            (k) => columnDefs[k].label === col
-                          );
-                          if (colKey) {
-                            // Get the data for this value
-                            const currentFilteredData = tableData.filter((item) => {
-                              for (let filter of filterStack) {
-                                if (!filter.checked[item[filter.column]]) return false;
-                              }
-                              return item[table.columnKey] === row[table.columns[0]];
-                            });
-
-                            // Generate a new summary table
-                            const summary = generateSummary(currentFilteredData, colKey);
-                            // Generate allocation table with the clicked column as the first column
-                            const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
-                            setAdditionalTables(prev => [allocationTable, {
-                              heading: `${row[table.columns[0]]} - ${col}`,
-                              data: summary.data,
-                              columns: summary.columns,
-                              columnKey: colKey
-                            }, ...prev]);
-                          }
+                          // Add a new filter to the stack with this value and show detailed view
+                          handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                          setShowDetailed(true);
                         }}
                       >
-                        {row[col]}
+                        {row["कुल रिकॉर्ड"]}
                       </td>
-                    ))}
-                    <td>{row["कुल आवंटित मात्रा"]}</td>
-                    <td>{row["कुल किसान की हिस्सेदारी"]}</td>
-                    <td>{row["कुल सब्सिडी"]}</td>
-                    <td>{row["कुल राशि"]}</td>
-                  </>
-                )}
-              </tr>
-            ));
+                      {visibleDynamicColumns.map((col, colIdx) => (
+                        <td
+                          key={colIdx}
+                          style={{
+                            cursor: "pointer",
+                            color: "blue",
+                            fontWeight: "bold",
+                          }}
+                          onClick={() => {
+                            // Find the column key for this label
+                            const colKey = Object.keys(columnDefs).find(
+                              (k) => columnDefs[k].label === col
+                            );
+                            if (colKey) {
+                              // Get the data for this value
+                              const currentFilteredData = tableData.filter((item) => {
+                                for (let filter of filterStack) {
+                                  if (!filter.checked[item[filter.column]]) return false;
+                                }
+                                return item[table.columnKey] === row[table.columns[0]];
+                              });
+
+                              // Generate a new summary table
+                              const summary = generateSummary(currentFilteredData, colKey);
+                              // Generate allocation table with the clicked column as the first column
+                              const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
+                              setAdditionalTables(prev => [allocationTable, {
+                                heading: `${row[table.columns[0]]} - ${col}`,
+                                data: summary.data,
+                                columns: summary.columns,
+                                columnKey: colKey
+                              }, ...prev]);
+                            }
+                          }}
+                        >
+                          {row[col]}
+                        </td>
+                      ))}
+                      <td>{row["कुल आवंटित मात्रा"]}</td>
+                      <td>{row["कुल किसान की हिस्सेदारी"]}</td>
+                      <td>{row["कुल सब्सिडी"]}</td>
+                      <td>{row["कुल राशि"]}</td>
+                    </>
+                  )}
+                </tr>
+              ));
+            }
           })()}
         </tbody>
-        <tfoot>
-          <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
-            {(() => {
-              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
-              const filteredData = table.data.filter(row => row[table.columns[0]] !== "कुल");
-              return table.isAllocationTable ? (
-                <>
-                  <td>कुल:</td>
-                  {visibleDynamicColumns.map((col, idx) => (
-                    <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}
-                    </td>
-                  ))}
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, col) => s + parseFloat(row[col] || 0), 0), 0).toFixed(2)}
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td>कुल:</td>
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
-                  </td>
-                  {visibleDynamicColumns.map((col, idx) => (
-                    <td key={idx}>
-                      {new Set(
-                        filteredData.flatMap(row =>
-                          tableData.filter(item => item[table.columnKey] === row[table.columns[0]])
-                            .map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)])
-                        )
-                      ).size}
-                    </td>
-                  ))}
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
-                  </td>
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0), 0).toFixed(2)}
-                  </td>
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0).toFixed(2)}
-                  </td>
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0).toFixed(2)}
-                  </td>
-                </>
-              );
-            })()}
-          </tr>
-        </tfoot>
+        {(() => {
+          const isTableRotated = isRotated[index] || false;
+          return !isTableRotated && (
+            <tfoot>
+              <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
+                {(() => {
+                  const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
+                  const filteredData = table.data.filter(row => row[table.columns[0]] !== "कुल");
+                  return table.isAllocationTable ? (
+                    <>
+                      <td>कुल:</td>
+                      {visibleDynamicColumns.map((col, idx) => (
+                        <td key={idx}>
+                          {filteredData.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}
+                        </td>
+                      ))}
+                      <td>
+                        {filteredData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, col) => s + parseFloat(row[col] || 0), 0), 0).toFixed(2)}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>कुल:</td>
+                      <td>
+                        {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
+                      </td>
+                      {visibleDynamicColumns.map((col, idx) => (
+                        <td key={idx}>
+                          {new Set(
+                            filteredData.flatMap(row =>
+                              tableData.filter(item => item[table.columnKey] === row[table.columns[0]])
+                                .map(item => item[Object.keys(columnDefs).find(k => columnDefs[k].label === col)])
+                            )
+                          ).size}
+                        </td>
+                      ))}
+                      <td>
+                        {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
+                      </td>
+                      <td>
+                        {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0), 0).toFixed(2)}
+                      </td>
+                      <td>
+                        {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0).toFixed(2)}
+                      </td>
+                      <td>
+                        {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0).toFixed(2)}
+                      </td>
+                    </>
+                  );
+                })()}
+              </tr>
+            </tfoot>
+          );
+        })()}
       </Table>
     </div>
   </div>
