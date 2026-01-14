@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Table, Button, Form, Alert, Spinner, Badge }
 import { useNavigate } from 'react-router-dom';
 import { useCenter } from '../all_login/CenterContext';
 import { useAuth } from '../../context/AuthContext';
+import DashBoardHeader from './DashBoardHeader';
 
 const DemandView = () => {
   const navigate = useNavigate();
@@ -74,6 +75,8 @@ const DemandView = () => {
   };
  
   return (
+    <>
+    <DashBoardHeader />
     <Container fluid className="py-4">
       <Row className="mb-4">
         <Col>
@@ -153,6 +156,7 @@ const DemandView = () => {
         </Col>
       </Row>
     </Container>
+    </>
   );
 };
 
