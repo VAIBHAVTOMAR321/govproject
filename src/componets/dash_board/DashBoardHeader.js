@@ -21,7 +21,6 @@ function DashBoardHeader() {
   };
 
   const handleDemandView = () => {
-    // Make sure this path matches exactly with your route definition
     navigate('/DemandView');
   };
 

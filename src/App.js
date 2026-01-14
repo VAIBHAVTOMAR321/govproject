@@ -100,7 +100,7 @@ function App() {
                 <KendraPasswordReset />
               </ProtectedRoute>
             } />
-            <Route path="DemandView" element={
+            <Route path="/DemandView" element={
               <ProtectedRoute>
                 <DemandView />
               </ProtectedRoute>
