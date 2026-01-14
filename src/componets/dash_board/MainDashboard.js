@@ -33,7 +33,6 @@ const API_URL =
 const translations = {
   pageTitle: "मुख्य डैशबोर्ड",
   centerName: "केंद्र का नाम",
-  component: "घटक",
   investmentName: "निवेश का नाम",
   subInvestmentName: "उप-निवेश का नाम",
   sourceOfReceipt: "सप्लायर",
@@ -42,6 +41,21 @@ const translations = {
   vidhanSabhaName: "विधानसभा का नाम",
   selectOption: "चुनें",
 };
+
+// Define the table column order
+const tableColumnOrder = [
+  "center_name",
+  "vidhan_sabha_name",
+  "vikas_khand_name",
+  "scheme_name",
+  "source_of_receipt",
+  "investment_name",
+  "sub_investment_name",
+  "allocated_quantity",
+  "amount_of_farmer_share",
+  "amount_of_subsidy",
+  "total_amount"
+];
 
 // Column definitions
 const columnDefs = {
@@ -59,7 +73,6 @@ const columnDefs = {
     label: translations.sourceOfReceipt,
     key: "source_of_receipt",
   },
-  component: { label: translations.component, key: "component" },
   investment_name: {
     label: translations.investmentName,
     key: "investment_name",
@@ -68,8 +81,12 @@ const columnDefs = {
     label: translations.subInvestmentName,
     key: "sub_investment_name",
   },
+  unit: { label: "इकाई", key: "unit", hidden: true },
   allocated_quantity: { label: "आवंटित मात्रा", key: "allocated_quantity" },
-  rate: { label: "दर", key: "rate" },
+  rate: { label: "दर", key: "rate", hidden: true },
+  amount_of_farmer_share: { label: "किसान की हिस्सेदारी की राशि", key: "amount_of_farmer_share" },
+  amount_of_subsidy: { label: "सब्सिडी की राशि", key: "amount_of_subsidy" },
+  total_amount: { label: "कुल राशि", key: "total_amount" },
 };
 
 const MainDashboard = () => {
@@ -86,37 +103,37 @@ const MainDashboard = () => {
   // State for filters
   const [filters, setFilters] = useState({
     center_name: [],
-    component: [],
     sub_investment_name: [],
     investment_name: [],
     source_of_receipt: [],
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
+    unit: [], // Keep for filtering but not display
   });
 
   // State for dropdown visibility
   const [dropdownOpen, setDropdownOpen] = useState({
     center_name: false,
-    component: false,
     sub_investment_name: false,
     investment_name: false,
     source_of_receipt: false,
     scheme_name: false,
     vikas_khand_name: false,
     vidhan_sabha_name: false,
+    unit: false, // Keep for filtering but not display
   });
 
   // State for filter options (populated from API)
   const [filterOptions, setFilterOptions] = useState({
     center_name: [],
-    component: [],
     sub_investment_name: [],
     investment_name: [],
     source_of_receipt: [],
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
+    unit: [], // Keep for filtering but not display
   });
 
   // State for detailed view
@@ -142,6 +159,9 @@ const MainDashboard = () => {
   const [showTableSelectionModal, setShowTableSelectionModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewType, setPreviewType] = useState("pdf");
+  
+  // New state for rotation of the Avantan table
+  const [rotatedTables, setRotatedTables] = useState({});
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -160,9 +180,6 @@ const MainDashboard = () => {
         const uniqueOptions = {
           center_name: [
             ...new Set(data.map((item) => item.center_name).filter(Boolean)),
-          ],
-          component: [
-            ...new Set(data.map((item) => item.component).filter(Boolean)),
           ],
           sub_investment_name: [
             ...new Set(
@@ -192,6 +209,11 @@ const MainDashboard = () => {
               data.map((item) => item.vidhan_sabha_name).filter(Boolean)
             ),
           ],
+          unit: [
+            ...new Set(
+              data.map((item) => item.unit).filter(Boolean)
+            ),
+          ],
         };
 
         setTableData(data);
@@ -217,13 +239,13 @@ const MainDashboard = () => {
   const clearFilters = () => {
     const clearedFilters = {
       center_name: [],
-      component: [],
       sub_investment_name: [],
       investment_name: [],
       source_of_receipt: [],
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
+      unit: [], // Keep for filtering but not display
     };
     setFilters(clearedFilters);
     setCurrentPage(1);
@@ -233,6 +255,7 @@ const MainDashboard = () => {
     setSelectedItem(null);
     setShowDetailed(false);
     setAdditionalTables([]);
+    setRotatedTables({}); // Reset rotated tables
 
     // Refresh table with all data
     setFilteredTableData(tableData);
@@ -446,13 +469,13 @@ const MainDashboard = () => {
     if (!event.target.closest(".dropdown")) {
       setDropdownOpen({
         center_name: false,
-        component: false,
         sub_investment_name: false,
         investment_name: false,
         source_of_receipt: false,
         scheme_name: false,
         vikas_khand_name: false,
         vidhan_sabha_name: false,
+        unit: false, // Keep for filtering but not display
       });
     }
   };
@@ -508,8 +531,6 @@ const MainDashboard = () => {
           filters.vikas_khand_name.includes(item.vikas_khand_name)) &&
         (filters.vidhan_sabha_name.length === 0 ||
           filters.vidhan_sabha_name.includes(item.vidhan_sabha_name)) &&
-        (filters.component.length === 0 ||
-          filters.component.includes(item.component)) &&
         (filters.investment_name.length === 0 ||
           filters.investment_name.includes(item.investment_name)) &&
         (filters.sub_investment_name.length === 0 ||
@@ -517,7 +538,9 @@ const MainDashboard = () => {
         (filters.source_of_receipt.length === 0 ||
           filters.source_of_receipt.includes(item.source_of_receipt)) &&
         (filters.scheme_name.length === 0 ||
-          filters.scheme_name.includes(item.scheme_name))
+          filters.scheme_name.includes(item.scheme_name)) &&
+        (filters.unit.length === 0 || // Keep for filtering but not display
+          filters.unit.includes(item.unit))
       );
     });
     setFilteredTableData(filteredData);
@@ -539,9 +562,50 @@ const MainDashboard = () => {
     }, 0);
     
     return () => clearTimeout(timeoutId);
-  }, [filters.center_name, filters.component, filters.sub_investment_name,
+  }, [filters.center_name, filters.sub_investment_name,
       filters.investment_name, filters.source_of_receipt, filters.scheme_name,
-      filters.vikas_khand_name, filters.vidhan_sabha_name]);
+      filters.vikas_khand_name, filters.vidhan_sabha_name, filters.unit]);
+
+  // Function to rotate a table (transpose rows to columns)
+  const rotateTable = (table, index) => {
+    // Check if this table is already rotated
+    if (rotatedTables[index]) {
+      // If already rotated, revert to original
+      setRotatedTables(prev => {
+        const newRotatedTables = { ...prev };
+        delete newRotatedTables[index];
+        return newRotatedTables;
+      });
+      return;
+    }
+
+    // Create a new rotated table
+    const originalData = table.data;
+    const originalColumns = table.columns;
+    
+    // Create new columns (first column becomes header, then each row becomes a column)
+    const newColumns = [originalColumns[0], ...originalData.map(row => row[originalColumns[0]])];
+    
+    // Create new data (each original column becomes a row)
+    const newData = originalColumns.slice(1).map(col => {
+      const newRow = { [originalColumns[0]]: col };
+      originalData.forEach(row => {
+        newRow[row[originalColumns[0]]] = row[col];
+      });
+      return newRow;
+    });
+
+    // Store the rotated table
+    setRotatedTables(prev => ({
+      ...prev,
+      [index]: {
+        ...table,
+        columns: newColumns,
+        data: newData,
+        isRotated: true
+      }
+    }));
+  };
 
   // Generate summary data for a given data and column
   const generateSummary = (data, column) => {
@@ -557,7 +621,11 @@ const MainDashboard = () => {
               (col) =>
                 col !== column &&
                 col !== "allocated_quantity" &&
-                col !== "rate"
+                col !== "rate" && // Keep for calculations but not display
+                col !== "amount_of_farmer_share" &&
+                col !== "amount_of_subsidy" &&
+                col !== "total_amount" &&
+                !columnDefs[col].hidden // Exclude hidden columns
             )
             .map((col) => [
               columnDefs[col].label,
@@ -570,25 +638,36 @@ const MainDashboard = () => {
             0
           )
           .toFixed(2),
-        "कुल दर": dataForValue
-          .reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0)
+        "कुल किसान की हिस्सेदारी": dataForValue
+          .reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0)
+          .toFixed(2),
+        "कुल सब्सिडी": dataForValue
+          .reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0)
+          .toFixed(2),
+        "कुल राशि": dataForValue
+          .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
           .toFixed(2),
       };
     });
+    
+    // Create columns in the specified order
+    const visibleColumns = Object.keys(columnDefs)
+      .filter(col => !columnDefs[col].hidden)
+      .filter(col => col !== column && col !== "allocated_quantity" && col !== "rate" && 
+              col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount")
+      .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
+      .map(key => columnDefs[key].label);
+    
     const columns = [
       columnDefs[column]?.label,
       "कुल रिकॉर्ड",
-      ...Object.keys(columnDefs)
-        .filter(
-          (col) =>
-            col !== column &&
-            col !== "allocated_quantity" &&
-            col !== "rate"
-        )
-        .map((key) => columnDefs[key].label),
+      ...visibleColumns,
       "कुल आवंटित मात्रा",
-      "कुल दर",
+      "कुल किसान की हिस्सेदारी",
+      "कुल सब्सिडी",
+      "कुल राशि",
     ];
+    
     return { data: summaryData, columns, columnKey: column };
   };
 
@@ -604,7 +683,6 @@ const MainDashboard = () => {
 
     const filterLabels = {
       center_name: translations.centerName,
-      component: translations.component,
       investment_name: translations.investmentName,
       sub_investment_name: translations.subInvestmentName,
       source_of_receipt: translations.sourceOfReceipt,
@@ -636,6 +714,7 @@ const MainDashboard = () => {
     }
     setShowDetailed(false);
     setAdditionalTables([]);
+    setRotatedTables({}); // Reset rotated tables when going back
   };
 
   // Get current table data with totals for export
@@ -648,18 +727,19 @@ const MainDashboard = () => {
         "विकास खंड": new Set(filteredTableData.map(item => item.vikas_khand_name)).size,
         "योजना": new Set(filteredTableData.map(item => item.scheme_name)).size,
         "सप्लायर": new Set(filteredTableData.map(item => item.source_of_receipt)).size,
-        "घटक": new Set(filteredTableData.map(item => item.component)).size,
         "निवेश": new Set(filteredTableData.map(item => item.investment_name)).size,
         "उप-निवेश": new Set(filteredTableData.map(item => item.sub_investment_name)).size,
         "आवंटित मात्रा": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2),
-        "दर": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0).toFixed(2)
+        "किसान की हिस्सेदारी की राशि": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        "सब्सिडी की राशि": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        "कुल राशि": filteredTableData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
       };
       
       // Also include totals for all column labels to ensure consistency
       Object.keys(columnDefs).forEach(col => {
         const label = columnDefs[col].label;
-        if (!totals[label]) {
-          if (col === "allocated_quantity" || col === "rate") {
+        if (!totals[label] && !columnDefs[col].hidden) {
+          if (col === "allocated_quantity" || col === "rate" || col === "amount_of_farmer_share" || col === "amount_of_subsidy" || col === "total_amount") {
             totals[label] = filteredTableData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2);
           } else {
             totals[label] = new Set(filteredTableData.map(item => item[col])).size;
@@ -667,10 +747,16 @@ const MainDashboard = () => {
         }
       });
 
+      // Create columns in the specified order
+      const visibleColumns = Object.keys(columnDefs)
+        .filter(col => !columnDefs[col].hidden)
+        .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
+        .map(key => columnDefs[key].label);
+
       return {
         heading: getSummaryHeading(),
         data: filteredTableData,
-        columns: Object.keys(columnDefs).map((key) => columnDefs[key].label),
+        columns: visibleColumns,
         totals: totals
       };
     } else {
@@ -689,8 +775,8 @@ const MainDashboard = () => {
         // Calculate totals for detailed view
         const totals = {};
         Object.keys(columnDefs).forEach(col => {
-          if (col !== currentFilter.column) {
-            if (col === "allocated_quantity" || col === "rate") {
+          if (col !== currentFilter.column && !columnDefs[col].hidden) {
+            if (col === "allocated_quantity" || col === "rate" || col === "amount_of_farmer_share" || col === "amount_of_subsidy" || col === "total_amount") {
               totals[columnDefs[col].label] = filteredData.reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0).toFixed(2);
             } else {
               totals[columnDefs[col].label] = new Set(filteredData.map(item => item[col])).size;
@@ -698,12 +784,16 @@ const MainDashboard = () => {
           }
         });
 
+        // Create columns in the specified order
+        const visibleColumns = Object.keys(columnDefs)
+          .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+          .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
+          .map(key => columnDefs[key].label);
+
         return {
           heading: selectedItem?.value || "Detail View",
           data: filteredData,
-          columns: Object.keys(columnDefs)
-            .filter((col) => col !== currentFilter.column)
-            .map((key) => columnDefs[key].label),
+          columns: visibleColumns,
           totals: totals
         };
       } else {
@@ -712,32 +802,36 @@ const MainDashboard = () => {
           const tableDataForValue = filteredData.filter(
             (item) => item[currentFilter.column] === checkedValue
           );
-          return {
+          
+          // Create a row with columns in the specified order
+          const row = {
             [columnDefs[currentFilter.column]?.label]: checkedValue,
             "कुल रिकॉर्ड": tableDataForValue.length,
-            ...Object.fromEntries(
-              Object.keys(columnDefs)
-                .filter(
-                  (col) =>
-                    col !== currentFilter.column &&
-                    col !== "allocated_quantity" &&
-                    col !== "rate"
-                )
-                .map((col) => [
-                  columnDefs[col].label,
-                  new Set(tableDataForValue.map((item) => item[col])).size,
-                ])
-            ),
-            "कुल आवंटित मात्रा": tableDataForValue
-              .reduce(
-                (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
-                0
-              )
-              .toFixed(2),
-            "कुल दर": tableDataForValue
-              .reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0)
-              .toFixed(2),
           };
+          
+          // Add other columns in the specified order
+          tableColumnOrder.forEach(col => {
+            if (col !== currentFilter.column && col !== "allocated_quantity" && col !== "rate" && 
+                col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" && !columnDefs[col].hidden) {
+              row[columnDefs[col].label] = new Set(tableDataForValue.map((item) => item[col])).size;
+            }
+          });
+          
+          // Add monetary columns at the end
+          row["कुल आवंटित मात्रा"] = tableDataForValue
+            .reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0)
+            .toFixed(2);
+          row["कुल किसान की हिस्सेदारी"] = tableDataForValue
+            .reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0)
+            .toFixed(2);
+          row["कुल सब्सिडी"] = tableDataForValue
+            .reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0)
+            .toFixed(2);
+          row["कुल राशि"] = tableDataForValue
+            .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
+            .toFixed(2);
+            
+          return row;
         });
 
         // Calculate totals for summary view
@@ -748,12 +842,15 @@ const MainDashboard = () => {
           return sum + tableDataForValue.length;
         }, 0);
 
-        Object.keys(columnDefs)
-          .filter(col => col !== currentFilter.column && col !== "allocated_quantity" && col !== "rate")
-          .forEach(col => {
+        // Add other columns in the specified order
+        tableColumnOrder.forEach(col => {
+          if (col !== currentFilter.column && col !== "allocated_quantity" && col !== "rate" && 
+              col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" && !columnDefs[col].hidden) {
             totals[columnDefs[col].label] = new Set(filteredData.map(item => item[col])).size;
-          });
+          }
+        });
 
+        // Add monetary columns at the end
         totals["कुल आवंटित मात्रा"] = checkedValues
           .reduce((sum, checkedValue) => {
             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
@@ -761,32 +858,52 @@ const MainDashboard = () => {
           }, 0)
           .toFixed(2);
 
-        totals["कुल दर"] = checkedValues
+        totals["कुल किसान की हिस्सेदारी"] = checkedValues
           .reduce((sum, checkedValue) => {
             const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
-            return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.rate) || 0), 0);
+            return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.amount_of_farmer_share) || 0), 0);
           }, 0)
           .toFixed(2);
+
+        totals["कुल सब्सिडी"] = checkedValues
+          .reduce((sum, checkedValue) => {
+            const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+            return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.amount_of_subsidy) || 0), 0);
+          }, 0)
+          .toFixed(2);
+
+        totals["कुल राशि"] = checkedValues
+          .reduce((sum, checkedValue) => {
+            const tableDataForValue = filteredData.filter(item => item[currentFilter.column] === checkedValue);
+            return sum + tableDataForValue.reduce((s, item) => s + (parseFloat(item.total_amount) || 0), 0);
+          }, 0)
+          .toFixed(2);
+
+        // Create columns in the specified order
+        const visibleColumns = [
+          columnDefs[currentFilter.column]?.label,
+          "कुल रिकॉर्ड",
+          ...tableColumnOrder.filter(col => 
+            col !== currentFilter.column && 
+            col !== "allocated_quantity" && 
+            col !== "rate" && 
+            col !== "amount_of_farmer_share" && 
+            col !== "amount_of_subsidy" && 
+            col !== "total_amount" && 
+            !columnDefs[col].hidden
+          ).map(key => columnDefs[key].label),
+          "कुल आवंटित मात्रा",
+          "कुल किसान की हिस्सेदारी",
+          "कुल सब्सिडी",
+          "कुल राशि",
+        ];
 
         return {
           heading: `${columnDefs[currentFilter.column]?.label || "Summary"} (${
             checkedValues.length
           } items)`,
           data: summaryData,
-          columns: [
-            columnDefs[currentFilter.column]?.label,
-            "कुल रिकॉर्ड",
-            ...Object.keys(columnDefs)
-              .filter(
-                (col) =>
-                  col !== currentFilter.column &&
-                  col !== "allocated_quantity" &&
-                  col !== "rate"
-              )
-              .map((key) => columnDefs[key].label),
-            "कुल आवंटित मात्रा",
-            "कुल दर",
-          ],
+          columns: visibleColumns,
           totals: totals
         };
       }
@@ -805,12 +922,15 @@ const MainDashboard = () => {
 
   // Add additional table to export list
   const addAdditionalTableToExport = (table, type, index) => {
+    // Use rotated table if it exists
+    const tableToExport = rotatedTables[index] || table;
+    
     // Calculate visible columns
     const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
-    const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल दर"];
+    const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल किसान की हिस्सेदारी", "कुल सब्सिडी", "कुल राशि"];
 
     // Calculate totals for additional table
-    const filteredTableData = table.data.filter((row) => {
+    const filteredTableData = tableToExport.data.filter((row) => {
       const rowValue = row[table.columns[0]];
       // Apply filters if they exist
       return true; // Assuming additional tables are already filtered
@@ -824,8 +944,12 @@ const MainDashboard = () => {
         totals[col] = filteredTableData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0);
       } else if (col === "कुल आवंटित मात्रा") {
         totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2);
-      } else if (col === "कुल दर") {
-        totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2);
+      } else if (col === "कुल किसान की हिस्सेदारी") {
+        totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0), 0).toFixed(2);
+      } else if (col === "कुल सब्सिडी") {
+        totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0).toFixed(2);
+      } else if (col === "कुल राशि") {
+        totals[col] = filteredTableData.reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0).toFixed(2);
       } else if (col === "कुल") {
         // For allocation table total
         totals[col] = filteredTableData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, c) => s + parseFloat(row[c] || 0), 0), 0).toFixed(2);
@@ -842,7 +966,7 @@ const MainDashboard = () => {
     setTableName(defaultName);
     setExportType(type);
     setCurrentTableForExport({
-      ...table,
+      ...tableToExport,
       columns: visibleColumns,
       totals: totals
     });
@@ -1020,7 +1144,7 @@ const MainDashboard = () => {
   const calculateColumnTotal = (tableData, column, columnDefs) => {
     if (column === 'कुल रिकॉर्ड') {
       return tableData.reduce((sum, row) => sum + (row[column] || 0), 0);
-    } else if (column === 'कुल आवंटित मात्रा' || column === 'कुल दर') {
+    } else if (column === 'कुल आवंटित मात्रा' || column === 'कुल किसान की हिस्सेदारी' || column === 'कुल सब्सिडी' || column === 'कुल राशि') {
       return tableData.reduce((sum, row) => sum + parseFloat(row[column] || 0), 0).toFixed(2);
     } else {
       // For other columns, count unique values
@@ -1827,41 +1951,62 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
     // Create summary data for each unique value
     const summaryData = uniqueValues.map(value => {
       const dataForValue = currentFilteredData.filter(item => item[columnKey] === value);
-      return {
+      
+      // Create a row with columns in the specified order
+      const row = {
         [columnDefs[columnKey]?.label]: value,
         "कुल रिकॉर्ड": dataForValue.length,
-        ...Object.fromEntries(
-          Object.keys(columnDefs)
-            .filter(col => col !== columnKey && col !== "allocated_quantity" && col !== "rate")
-            .map(col => [
-              columnDefs[col].label,
-              new Set(dataForValue.map(item => item[col])).size
-            ])
-        ),
-        "कुल आवंटित मात्रा": dataForValue
-          .reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0)
-          .toFixed(2),
-        "कुल दर": dataForValue
-          .reduce((sum, item) => sum + (parseFloat(item.rate) || 0), 0)
-          .toFixed(2),
       };
+      
+      // Add other columns in the specified order
+      tableColumnOrder.forEach(col => {
+        if (col !== columnKey && col !== "allocated_quantity" && col !== "rate" && 
+            col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" && !columnDefs[col].hidden) {
+          row[columnDefs[col].label] = new Set(dataForValue.map(item => item[col])).size;
+        }
+      });
+      
+      // Add monetary columns at the end
+      row["कुल आवंटित मात्रा"] = dataForValue
+        .reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0)
+        .toFixed(2);
+      row["कुल किसान की हिस्सेदारी"] = dataForValue
+        .reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0)
+        .toFixed(2);
+      row["कुल सब्सिडी"] = dataForValue
+        .reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0)
+        .toFixed(2);
+      row["कुल राशि"] = dataForValue
+        .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
+        .toFixed(2);
+        
+      return row;
     });
     
-    const columns = [
+    // Create columns in the specified order
+    const visibleColumns = [
       columnDefs[columnKey]?.label,
       "कुल रिकॉर्ड",
-      ...Object.keys(columnDefs)
-        .filter(col => col !== columnKey && col !== "allocated_quantity" && col !== "rate")
-        .map(key => columnDefs[key].label),
+      ...tableColumnOrder.filter(col => 
+        col !== columnKey && 
+        col !== "allocated_quantity" && 
+        col !== "rate" && 
+        col !== "amount_of_farmer_share" && 
+        col !== "amount_of_subsidy" && 
+        col !== "total_amount" && 
+        !columnDefs[col].hidden
+      ).map(key => columnDefs[key].label),
       "कुल आवंटित मात्रा",
-      "कुल दर",
+      "कुल किसान की हिस्सेदारी",
+      "कुल सब्सिडी",
+      "कुल राशि",
     ];
     
     // Add this table to additional tables
     const newTable = {
       heading: `${columnDefs[columnKey]?.label} - विस्तृत विवरण`,
       data: summaryData,
-      columns: columns,
+      columns: visibleColumns,
       columnKey: columnKey,
     };
     
@@ -2138,68 +2283,6 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                         "vidhan_sabha_name",
                                         option
                                       )
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.component}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" && toggleDropdown("component")
-                            }
-                          >
-                            {filters.component.length === 0
-                              ? translations.selectOption
-                              : `${filters.component.length} selected`}
-                          </button>
-                          {dropdownOpen.component && (
-                            <div className="dropdown-menu show" style={{ position: 'absolute', top: '100%', zIndex: 1000 }}>
-                              <div
-                                key="select_all_component"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected = filterOptions.component.length > 0 &&
-                                    filters.component.length === filterOptions.component.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`component_SELECT_ALL`}
-                                      label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "component",
-                                          "SELECT_ALL"
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.component.map((option) => (
-                                <div key={option} className="dropdown-item">
-                                  <FormCheck
-                                    className="check-box"
-                                    type="checkbox"
-                                    id={`component_${option}`}
-                                    label={option}
-                                    checked={filters.component.includes(option)}
-                                    onChange={() =>
-                                      handleCheckboxChange("component", option)
                                     }
                                   />
                                 </div>
@@ -2509,310 +2592,76 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                           <thead className="table-thead">
                             <tr>
                               <th>S.No.</th>
-                              <th>केंद्र का नाम</th>
-                              <th>विधानसभा</th>
-                              <th>विकास खंड</th>
-                              <th>योजना</th>
-                              <th>सप्लायर</th>
-                              <th>घटक</th>
-                              <th>निवेश</th>
-                              <th>उप-निवेश</th>
-                              <th>आवंटित मात्रा</th>
-                              <th>दर</th>
+                              {tableColumnOrder
+                                .filter(col => !columnDefs[col].hidden)
+                                .map((col) => (
+                                  <th key={col}>{columnDefs[col].label}</th>
+                                ))}
                             </tr>
                           </thead>
                           <tbody>
                             {currentPageData.map((item, index) => (
                               <tr key={item.id || index}>
                                 <td>{startIndex + index + 1}</td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "center_name",
-                                        item.center_name
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.center_name}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "vidhan_sabha_name",
-                                        item.vidhan_sabha_name
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.vidhan_sabha_name}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "vikas_khand_name",
-                                        item.vikas_khand_name
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.vikas_khand_name}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "scheme_name",
-                                        item.scheme_name
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.scheme_name}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "source_of_receipt",
-                                        item.source_of_receipt
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.source_of_receipt}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick("component", item.component);
-                                    }
-                                  }}
-                                >
-                                  {item.component}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "investment_name",
-                                        item.investment_name
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.investment_name}
-                                </td>
-                                <td
-                                  style={{
-                                    cursor: isFilterApplied ? "default" : "pointer",
-                                    color: isFilterApplied ? "black" : "blue"
-                                  }}
-                                  onClick={() => {
-                                    if (!isFilterApplied) {
-                                      handleCellClick(
-                                        "sub_investment_name",
-                                        item.sub_investment_name || "-"
-                                      );
-                                    }
-                                  }}
-                                >
-                                  {item.sub_investment_name || "-"}
-                                </td>
-                                <td>{item.allocated_quantity}</td>
-                                <td>{item.rate}</td>
+                                {tableColumnOrder
+                                  .filter(col => !columnDefs[col].hidden)
+                                  .map((col) => (
+                                    <td
+                                      key={col}
+                                      style={{
+                                        cursor: isFilterApplied ? "default" : "pointer",
+                                        color: isFilterApplied ? "black" : "blue"
+                                      }}
+                                      onClick={() => {
+                                        if (!isFilterApplied) {
+                                          handleCellClick(
+                                            col,
+                                            item[col]
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      {item[col] || "-"}
+                                    </td>
+                                  ))}
                               </tr>
                             ))}
                           </tbody>
                           <tfoot>
                             <tr>
                               <td style={{ fontWeight: "bold" }}>कुल:</td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("center_name")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.center_name
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("vidhan_sabha_name")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.vidhan_sabha_name
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("vikas_khand_name")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.vikas_khand_name
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("scheme_name")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.scheme_name
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("source_of_receipt")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.source_of_receipt
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("component")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.component
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("investment_name")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.investment_name
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td
-                                style={{
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  color: "blue",
-                                  textDecoration: "underline"
-                                }}
-                                onClick={() => handleTotalClick("sub_investment_name")}
-                              >
-                                {
-                                  new Set(
-                                    filteredTableData.map(
-                                      (item) => item.sub_investment_name
-                                    )
-                                  ).size
-                                }
-                              </td>
-                              <td style={{ fontWeight: "bold" }}>
-                                {filteredTableData
-                                  .reduce(
-                                    (sum, item) =>
-                                      sum +
-                                      (parseFloat(item.allocated_quantity) || 0),
-                                    0
-                                  )
-                                  .toFixed(2)}
-                              </td>
-                              <td style={{ fontWeight: "bold" }}>
-                                {filteredTableData
-                                  .reduce(
-                                    (sum, item) =>
-                                      sum + (parseFloat(item.rate) || 0),
-                                    0
-                                  )
-                                  .toFixed(2)}
-                              </td>
+                              {tableColumnOrder
+                                .filter(col => !columnDefs[col].hidden)
+                                .map((col) => (
+                                  <td
+                                    key={col}
+                                    style={{
+                                      fontWeight: "bold",
+                                      cursor: col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" ? "pointer" : "default",
+                                      color: col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" ? "blue" : "black",
+                                      textDecoration: col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" ? "underline" : "none"
+                                    }}
+                                    onClick={() => {
+                                      if (col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount") {
+                                        handleTotalClick(col);
+                                      }
+                                    }}
+                                  >
+                                    {col === "allocated_quantity" || col === "amount_of_farmer_share" || col === "amount_of_subsidy" || col === "total_amount"
+                                      ? filteredTableData
+                                          .reduce(
+                                            (sum, item) =>
+                                              sum + (parseFloat(item[col]) || 0),
+                                            0
+                                          )
+                                          .toFixed(2)
+                                      : new Set(
+                                          filteredTableData.map(
+                                            (item) => item[col]
+                                          )
+                                        ).size}
+                                  </td>
+                                ))}
                             </tr>
                           </tfoot>
                         </Table>
@@ -3036,6 +2885,7 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                     setShowDetailed(false);
                                     clearFilters();
                                     setAdditionalTables([]);
+                                    setRotatedTables({});
                                   }}
                                 >
                                  डैशबोर्ड
@@ -3059,11 +2909,9 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                       <thead className="table-thead">
                                         <tr>
                                           <th>S.No.</th>
-                                          {Object.keys(columnDefs)
-                                            .filter(
-                                              (col) =>
-                                                col !== currentFilter.column
-                                            )
+                                          {tableColumnOrder
+                                            .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+                                            .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
                                             .map((col) => (
                                               <th key={col}>
                                                 {columnDefs[col].label}
@@ -3075,11 +2923,9 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                         {filteredData.map((item, index) => (
                                           <tr key={item.id || index}>
                                             <td>{index + 1}</td>
-                                            {Object.keys(columnDefs)
-                                              .filter(
-                                                (col) =>
-                                                  col !== currentFilter.column
-                                              )
+                                            {tableColumnOrder
+                                              .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+                                              .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
                                               .map((col) => (
                                                 <td
                                                   key={col}
@@ -3087,20 +2933,26 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                                     cursor:
                                                       col !==
                                                         "allocated_quantity" &&
-                                                      col !== "rate"
+                                                      col !== "amount_of_farmer_share" &&
+                                                      col !== "amount_of_subsidy" &&
+                                                      col !== "total_amount"
                                                         ? "pointer"
                                                         : "default",
                                                     color:
                                                       col !==
                                                         "allocated_quantity" &&
-                                                      col !== "rate"
+                                                      col !== "amount_of_farmer_share" &&
+                                                      col !== "amount_of_subsidy" &&
+                                                      col !== "total_amount"
                                                         ? "blue"
                                                         : "black",
                                                   }}
                                                   onClick={
                                                     col !==
                                                       "allocated_quantity" &&
-                                                    col !== "rate"
+                                                    col !== "amount_of_farmer_share" &&
+                                                    col !== "amount_of_subsidy" &&
+                                                    col !== "total_amount"
                                                       ? () =>
                                                           handleSummaryValueClick(
                                                             col,
@@ -3111,7 +2963,9 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                                 >
                                                   {col ===
                                                     "allocated_quantity" ||
-                                                  col === "rate"
+                                                  col === "amount_of_farmer_share" ||
+                                                  col === "amount_of_subsidy" ||
+                                                  col === "total_amount"
                                                     ? (
                                                         parseFloat(item[col]) ||
                                                         0
@@ -3127,28 +2981,28 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                           <td style={{ fontWeight: "bold" }}>
                                             कुल:
                                           </td>
-                                          {Object.keys(columnDefs)
-                                            .filter(
-                                              (col) =>
-                                                col !== currentFilter.column
-                                            )
+                                          {tableColumnOrder
+                                            .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+                                            .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
                                             .map((col) => (
                                               <td
                                                 key={col}
                                                 style={{ 
                                                   fontWeight: "bold",
-                                                  cursor: col !== "allocated_quantity" && col !== "rate" ? "pointer" : "default",
-                                                  color: col !== "allocated_quantity" && col !== "rate" ? "blue" : "black",
-                                                  textDecoration: col !== "allocated_quantity" && col !== "rate" ? "underline" : "none"
+                                                  cursor: col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" ? "pointer" : "default",
+                                                  color: col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" ? "blue" : "black",
+                                                  textDecoration: col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount" ? "underline" : "none"
                                                 }}
                                                 onClick={
-                                                  col !== "allocated_quantity" && col !== "rate"
+                                                  col !== "allocated_quantity" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount"
                                                     ? () => handleTotalClick(col)
                                                     : undefined
                                                 }
                                               >
                                                 {col === "allocated_quantity" ||
-                                                col === "rate"
+                                                col === "amount_of_farmer_share" ||
+                                                col === "amount_of_subsidy" ||
+                                                col === "total_amount"
                                                   ? filteredData
                                                       .reduce(
                                                         (sum, item) =>
@@ -3188,20 +3042,18 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                               ?.label || "Value"}
                                           </th>
                                           <th>कुल रिकॉर्ड</th>
-                                          {Object.keys(columnDefs)
-                                            .filter(
-                                              (col) =>
-                                                col !== currentFilter.column &&
-                                                col !== "allocated_quantity" &&
-                                                col !== "rate"
-                                            )
+                                          {tableColumnOrder
+                                            .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+                                            .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
                                             .map((col) => (
                                               <th key={col}>
                                                 {columnDefs[col].label}
                                               </th>
                                             ))}
                                           <th>कुल आवंटित मात्रा</th>
-                                          <th>कुल दर</th>
+                                          <th>कुल किसान की हिस्सेदारी</th>
+                                          <th>कुल सब्सिडी</th>
+                                          <th>कुल राशि</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -3255,15 +3107,9 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                               >
                                                 {tableDataForValue.length}
                                               </td>
-                                              {Object.keys(columnDefs)
-                                                .filter(
-                                                  (col) =>
-                                                    col !==
-                                                      currentFilter.column &&
-                                                    col !==
-                                                      "allocated_quantity" &&
-                                                    col !== "rate"
-                                                )
+                                              {tableColumnOrder
+                                                .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+                                                .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
                                                 .map((col) => (
                                                   <td
                                                     key={col}
@@ -3305,7 +3151,29 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                                   .reduce(
                                                     (sum, item) =>
                                                       sum +
-                                                      (parseFloat(item.rate) ||
+                                                      (parseFloat(item.amount_of_farmer_share) ||
+                                                        0),
+                                                    0
+                                                  )
+                                                  .toFixed(2)}
+                                              </td>
+                                              <td>
+                                                {tableDataForValue
+                                                  .reduce(
+                                                    (sum, item) =>
+                                                      sum +
+                                                      (parseFloat(item.amount_of_subsidy) ||
+                                                        0),
+                                                    0
+                                                  )
+                                                  .toFixed(2)}
+                                              </td>
+                                              <td>
+                                                {tableDataForValue
+                                                  .reduce(
+                                                    (sum, item) =>
+                                                      sum +
+                                                      (parseFloat(item.total_amount) ||
                                                         0),
                                                     0
                                                   )
@@ -3337,13 +3205,9 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                               0
                                             )}
                                           </td>
-                                          {Object.keys(columnDefs)
-                                            .filter(
-                                              (col) =>
-                                                col !== currentFilter.column &&
-                                                col !== "allocated_quantity" &&
-                                                col !== "rate"
-                                            )
+                                          {tableColumnOrder
+                                            .filter(col => col !== currentFilter.column && !columnDefs[col].hidden)
+                                            .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
                                             .map((col) => (
                                               <td
                                                 key={col}
@@ -3403,7 +3267,53 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                                   tableDataForValue.reduce(
                                                     (s, item) =>
                                                       s +
-                                                      (parseFloat(item.rate) ||
+                                                      (parseFloat(item.amount_of_farmer_share) ||
+                                                        0),
+                                                    0
+                                                  )
+                                                );
+                                              }, 0)
+                                              .toFixed(2)}
+                                          </td>
+                                          <td style={{ fontWeight: "bold" }}>
+                                            {checkedValues
+                                              .reduce((sum, checkedValue) => {
+                                                const tableDataForValue =
+                                                  filteredData.filter(
+                                                    (item) =>
+                                                      item[
+                                                        currentFilter.column
+                                                      ] === checkedValue
+                                                  );
+                                                return (
+                                                  sum +
+                                                  tableDataForValue.reduce(
+                                                    (s, item) =>
+                                                      s +
+                                                      (parseFloat(item.amount_of_subsidy) ||
+                                                        0),
+                                                    0
+                                                  )
+                                                );
+                                              }, 0)
+                                              .toFixed(2)}
+                                          </td>
+                                          <td style={{ fontWeight: "bold" }}>
+                                            {checkedValues
+                                              .reduce((sum, checkedValue) => {
+                                                const tableDataForValue =
+                                                  filteredData.filter(
+                                                    (item) =>
+                                                      item[
+                                                        currentFilter.column
+                                                      ] === checkedValue
+                                                  );
+                                                return (
+                                                  sum +
+                                                  tableDataForValue.reduce(
+                                                    (s, item) =>
+                                                      s +
+                                                      (parseFloat(item.total_amount) ||
                                                         0),
                                                     0
                                                   )
@@ -3415,11 +3325,33 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                       </tfoot>
                                     </Table>
      {/* Replace the additional tables rendering section with this updated version: */}
-{additionalTables.map((table, index) => (
+{additionalTables.map((table, index) => {
+  // Check if this is the Avantan table (allocation table)
+  const isAvantanTable = table.heading.includes("आवंटन विवरण");
+  // Check if this table is rotated
+  const isRotated = rotatedTables[index] ? true : false;
+  // Use the rotated table if it exists
+  const displayTable = rotatedTables[index] || table;
+  
+  return (
   <div key={index} className="mt-4">
   <div className="d-flex justify-content-between align-items-center mb-3">
     <div className="d-flex align-items-center gap-2 table-heading ">
-      <h5 className="mb-0">{table.heading}</h5>
+      <h5 className="mb-0">{displayTable.heading}</h5>
+      
+      {/* Add rotation button only for the Avantan table */}
+      {isAvantanTable && (
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={() => rotateTable(table, index)}
+          className="d-flex align-items-center gap-1"
+        >
+          <i className={`fas fa-${isRotated ? 'undo' : 'sync-alt'}`}></i>
+          {isRotated ? "Reset View" : "Rotate Table"}
+        </Button>
+      )}
+      
       <div className="dropdown">
         <button
           className="btn btn-secondary dropdown-toggle drop-option"
@@ -3538,25 +3470,52 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
           variant="link"
           size="sm"
           className="text-danger p-0"
-          onClick={() => setAdditionalTables(prev => prev.filter((_, i) => i !== index))}
+          onClick={() => {
+            setAdditionalTables(prev => prev.filter((_, i) => i !== index));
+            // Remove from rotated tables if it exists
+            if (rotatedTables[index]) {
+              setRotatedTables(prev => {
+                const newRotatedTables = { ...prev };
+                delete newRotatedTables[index];
+                return newRotatedTables;
+              });
+            }
+          }}
         >
           <RiDeleteBinLine />
         </Button>
       </div>
     </div>
-    <div className="table-responsive" style={{ overflowX: 'auto' }}>
+    
+    {/* Apply rotation only to the Avantan table */}
+    <div 
+      className="table-responsive" 
+      style={{ 
+        overflowX: 'auto',
+        transform: isAvantanTable && isRotated ? 'rotate(90deg)' : 'none',
+        transformOrigin: isAvantanTable && isRotated ? 'top left' : 'none',
+        width: isAvantanTable && isRotated ? `${displayTable.data.length * 50}px` : 'auto',
+        height: isAvantanTable && isRotated ? `${displayTable.columns.length * 150}px` : 'auto',
+        margin: isAvantanTable && isRotated ? `${displayTable.columns.length * 75}px 0 0 0` : '0'
+      }}
+    >
       <Table
         striped
         bordered
         hover
         className="table-thead-style"
+        style={{
+          transform: isAvantanTable && isRotated ? 'rotate(-90deg)' : 'none',
+          transformOrigin: isAvantanTable && isRotated ? 'top left' : 'none',
+          marginTop: isAvantanTable && isRotated ? `${displayTable.columns.length * 75}px` : '0'
+        }}
       >
         <thead className="table-thead">
           <tr>
             {(() => {
               const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
-              const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल दर"];
-              return visibleColumns.map((col, idx) => (
+              const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल किसान की हिस्सेदारी", "कुल सब्सिडी", "कुल राशि"];
+              return displayTable.columns.map((col, idx) => (
                 <th key={idx}>{col}</th>
               ));
             })()}
@@ -3564,92 +3523,28 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         </thead>
         <tbody>
           {(() => {
-            const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
-            return table.data
+            return displayTable.data
               .filter(row => row[table.columns[0]] !== "कुल") // Filter out any existing total row
               .map((row, rowIndex) => (
               <tr key={rowIndex}>
-                <td
-                  style={{
-                    cursor: "pointer",
-                    color: "blue",
-                    fontWeight: "bold",
-                  }}
-                  onClick={() => {
-                    // Add a new filter to the stack with this value
-                    handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                  }}
-                >
-                  {row[table.columns[0]]}
-                </td>
-                {table.isAllocationTable ? (
-                  // For allocation tables, show visible dynamic columns
-                  <>
-                    {visibleDynamicColumns.map((col, colIdx) => (
-                      <td key={colIdx}>
-                        {row[col] || "0"}
-                      </td>
-                    ))}
-                    <td>{visibleDynamicColumns.reduce((sum, col) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}</td>
-                  </>
-                ) : (
-                  <>
-                    <td
-                      style={{
-                        cursor: "pointer",
-                        color: "blue",
-                        fontWeight: "bold",
-                      }}
-                      onClick={() => {
-                        // Add a new filter to the stack with this value and show detailed view
+                {displayTable.columns.map((col, colIdx) => (
+                  <td
+                    key={colIdx}
+                    style={{
+                      cursor: colIdx === 0 ? "pointer" : "default",
+                      color: colIdx === 0 ? "blue" : "black",
+                      fontWeight: colIdx === 0 ? "bold" : "normal",
+                    }}
+                    onClick={() => {
+                      if (colIdx === 0) {
+                        // Add a new filter to the stack with this value
                         handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                        setShowDetailed(true);
-                      }}
-                    >
-                      {row["कुल रिकॉर्ड"]}
-                    </td>
-                    {visibleDynamicColumns.map((col, colIdx) => (
-                      <td
-                        key={colIdx}
-                        style={{
-                          cursor: "pointer",
-                          color: "blue",
-                          fontWeight: "bold",
-                        }}
-                        onClick={() => {
-                          // Find the column key for this label
-                          const colKey = Object.keys(columnDefs).find(
-                            (k) => columnDefs[k].label === col
-                          );
-                          if (colKey) {
-                            // Get the data for this value
-                            const currentFilteredData = tableData.filter((item) => {
-                              for (let filter of filterStack) {
-                                if (!filter.checked[item[filter.column]]) return false;
-                              }
-                              return item[table.columnKey] === row[table.columns[0]];
-                            });
-
-                            // Generate a new summary table
-                            const summary = generateSummary(currentFilteredData, colKey);
-                            // Generate allocation table with the clicked column as the first column
-                            const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
-                            setAdditionalTables(prev => [allocationTable, {
-                              heading: `${row[table.columns[0]]} - ${col}`,
-                              data: summary.data,
-                              columns: summary.columns,
-                              columnKey: colKey
-                            }, ...prev]);
-                          }
-                        }}
-                      >
-                        {row[col]}
-                      </td>
-                    ))}
-                    <td>{row["कुल आवंटित मात्रा"]}</td>
-                    <td>{row["कुल दर"]}</td>
-                  </>
-                )}
+                      }
+                    }}
+                  >
+                    {row[col]}
+                  </td>
+                ))}
               </tr>
             ));
           })()}
@@ -3657,27 +3552,51 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         <tfoot>
           <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
             {(() => {
-              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
-              const filteredData = table.data.filter(row => row[table.columns[0]] !== "कुल");
-              return table.isAllocationTable ? (
-                <>
-                  <td>कुल:</td>
-                  {visibleDynamicColumns.map((col, idx) => (
+              const filteredData = displayTable.data.filter(row => row[table.columns[0]] !== "कुल");
+              return displayTable.columns.map((col, idx) => {
+                if (idx === 0) {
+                  return <td key={idx}>कुल:</td>;
+                } else if (col === "कुल रिकॉर्ड") {
+                  return (
                     <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}
+                      {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
                     </td>
-                  ))}
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, col) => s + parseFloat(row[col] || 0), 0), 0).toFixed(2)}
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td>कुल:</td>
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
-                  </td>
-                  {visibleDynamicColumns.map((col, idx) => (
+                  );
+                } else if (col === "कुल आवंटित मात्रा") {
+                  return (
+                    <td key={idx}>
+                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
+                    </td>
+                  );
+                } else if (col === "कुल किसान की हिस्सेदारी") {
+                  return (
+                    <td key={idx}>
+                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0), 0).toFixed(2)}
+                    </td>
+                  );
+                } else if (col === "कुल सब्सिडी") {
+                  return (
+                    <td key={idx}>
+                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0).toFixed(2)}
+                    </td>
+                  );
+                } else if (col === "कुल राशि") {
+                  return (
+                    <td key={idx}>
+                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0).toFixed(2)}
+                    </td>
+                  );
+                } else if (col === "कुल") {
+                  // For allocation table total
+                  const dynamicColumns = displayTable.columns.slice(1, -1);
+                  return (
+                    <td key={idx}>
+                      {filteredData.reduce((sum, row) => sum + dynamicColumns.reduce((s, c) => s + parseFloat(row[c] || 0), 0), 0).toFixed(2)}
+                    </td>
+                  );
+                } else {
+                  // Dynamic columns
+                  return (
                     <td key={idx}>
                       {new Set(
                         filteredData.flatMap(row =>
@@ -3686,22 +3605,16 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         )
                       ).size}
                     </td>
-                  ))}
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
-                  </td>
-                  <td>
-                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल दर"] || 0), 0).toFixed(2)}
-                  </td>
-                </>
-              );
+                  );
+                }
+              });
             })()}
           </tr>
         </tfoot>
       </Table>
     </div>
   </div>
-))}
+)})}
                                     {selectedTotalColumn && (
                                       <div className="mt-4">
                                         <h6>
