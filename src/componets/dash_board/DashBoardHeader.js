@@ -16,6 +16,10 @@ function DashBoardHeader() {
     navigate('/', { replace: true });
   };
 
+  const handleKendraPasswordReset = () => {
+    navigate('/kendra-password-reset');
+  };
+
   return (
     <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top">
       <Container fluid className=''>
@@ -47,6 +51,10 @@ function DashBoardHeader() {
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
+              <NavDropdown.Item onClick={handleKendraPasswordReset}>
+                केंद्र पासवर्ड रीसेट
+              </NavDropdown.Item>
+              <NavDropdown.Divider />
               <NavDropdown.Item onClick={handleLogout}>
                 लॉगआउट
               </NavDropdown.Item>

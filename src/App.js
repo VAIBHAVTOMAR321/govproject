@@ -27,6 +27,7 @@ import AddEditComponent from "./componets/dash_board/AddEditComponent";
 import ForgotPassword from "./componets/all_login/ForgotPassword";
 import DemandGenerate from "./componets/DemandGenerate";
 import { CenterProvider } from "./componets/all_login/CenterContext";
+import KendraPasswordReset from "./componets/dash_board/KendraPasswordReset";
 function App() {
   const location = useLocation();
 
@@ -91,6 +92,11 @@ function App() {
             <Route path="/DemandGenerate" element={
               <ProtectedRoute>
                 <DemandGenerate />
+              </ProtectedRoute>
+            } />
+            <Route path="/kendra-password-reset" element={
+              <ProtectedRoute>
+                <KendraPasswordReset />
               </ProtectedRoute>
             } />
           </Routes>
