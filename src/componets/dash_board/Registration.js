@@ -509,6 +509,11 @@ const Registration = () => {
         source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
         scheme_name: data.scheme_name || prev.scheme_name,
       }));
+
+      // Auto-select first sub_investment_name if available
+      if (data.level === "sub_investment_name" && data.data && data.data.length > 0) {
+        setFormData(prev => ({ ...prev, sub_investment_name: data.data[0] }));
+      }
     } catch (error) {
       console.error("Error fetching form filters:", error);
     } finally {
@@ -546,6 +551,11 @@ const Registration = () => {
         source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
         scheme_name: data.scheme_name || prev.scheme_name,
       }));
+
+      // Auto-select first sub_investment_name if available
+      if (data.level === "sub_investment_name" && data.data && data.data.length > 0) {
+        setEditingValues(prev => ({ ...prev, sub_investment_name: data.data[0] }));
+      }
     } catch (error) {
       console.error("Error fetching edit filters:", error);
     }
@@ -909,7 +919,7 @@ const Registration = () => {
     });
     // Fetch options based on current values
     if (item.investment_name) {
-      fetchFormFilters(item.investment_name);
+      fetchEditOptions(item.investment_name);
     }
     setApiError(null);
     setApiResponse(null);
@@ -1516,7 +1526,7 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {filterOptions.sub_investment_name.map(
+                          {formOptions.sub_investment_name.map(
                             (subInv, index) => (
                               <option key={index} value={subInv}>
                                 {subInv}
@@ -2280,7 +2290,7 @@ const Registration = () => {
                                           unit: "",
                                         }));
                                         if (value) {
-                                          fetchFormFilters(value);
+                                          fetchEditOptions(value);
                                         }
                                       }}
                                       size="sm"
@@ -2315,7 +2325,7 @@ const Registration = () => {
                                       size="sm"
                                     >
                                       <option value="">चुनें</option>
-                                      {filterOptions.sub_investment_name.map(
+                                      {editOptions.sub_investment_name.map(
                                         (subInv, index) => (
                                           <option key={index} value={subInv}>
                                             {subInv}
