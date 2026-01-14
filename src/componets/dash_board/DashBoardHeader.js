@@ -17,11 +17,11 @@ function DashBoardHeader() {
   };
 
   const handleKendraPasswordReset = () => {
-    navigate('/kendra-password-reset');
+    navigate('/KendraPasswordReset');
   };
 
   const handleDemandView = () => {
-    navigate('/DemandView');
+    navigate('/DemandView', { replace: true });
   };
 
   return (

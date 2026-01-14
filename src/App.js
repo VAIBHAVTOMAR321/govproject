@@ -32,7 +32,7 @@ import DemandView from "./componets/dash_board/DemandView";
 function App() {
   const location = useLocation();
 
-  const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/kendra-password-reset","/DemandView"]);
+  const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/KendraPasswordReset","/DemandView"]);
 
   const shouldHideNavbar = hiddenPaths.has(location.pathname);
   
@@ -95,7 +95,7 @@ function App() {
                 <DemandGenerate />
               </ProtectedRoute>
             } />
-            <Route path="/kendra-password-reset" element={
+            <Route path="/KendraPasswordReset" element={
               <ProtectedRoute>
                 <KendraPasswordReset />
               </ProtectedRoute>
