@@ -13,7 +13,9 @@ const DemandGenerate = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [quantities, setQuantities] = useState({});
+  const [disabledItems, setDisabledItems] = useState({});
   const [totalAmount, setTotalAmount] = useState(0);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Check if user is logged in
   useEffect(() => {
@@ -22,10 +24,19 @@ const DemandGenerate = () => {
     }
   }, [centerData.isLoggedIn, navigate]);
 
-  // Fetch billing data
+  // Fetch billing data first
   useEffect(() => {
-    fetchBillingData();
-  }, []);
+    if (centerData.centerId) {
+      fetchBillingData();
+    }
+  }, [centerData.centerId]);
+
+  // Fetch submitted demands after billing data is loaded
+  useEffect(() => {
+    if (dataLoaded && filteredData.length > 0) {
+      fetchSubmittedDemands();
+    }
+  }, [dataLoaded, filteredData]);
 
   const fetchBillingData = async () => {
     setIsLoading(true);
@@ -69,15 +80,7 @@ const DemandGenerate = () => {
       }));
       
       setFilteredData(processedData);
-      
-      // Initialize quantities object
-      const initialQuantities = {};
-      processedData.forEach(investment => {
-        investment.sub_investments.forEach(subInvestment => {
-          initialQuantities[`${investment.investment_name}-${subInvestment.sub_investment_name}`] = 0;
-        });
-      });
-      setQuantities(initialQuantities);
+      setDataLoaded(true);
     } catch (err) {
       console.error('Error fetching billing data:', err);
       setError('डेटा लाने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
@@ -86,8 +89,79 @@ const DemandGenerate = () => {
     }
   };
 
+  const fetchSubmittedDemands = async () => {
+    try {
+      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch submitted demands');
+      }
+      
+      const data = await response.json();
+      
+      // Filter demands for the current center
+      const centerDemands = data.filter(demand => demand.center_id === centerData.centerId);
+      
+      // Initialize quantities object with 0 for all items
+      const initialQuantities = {};
+      const initialDisabledItems = {};
+      
+      filteredData.forEach(investment => {
+        investment.sub_investments.forEach(subInvestment => {
+          const key = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
+          initialQuantities[key] = 0;
+          initialDisabledItems[key] = false;
+        });
+      });
+      
+      // Update quantities and disabled items for submitted demands
+      centerDemands.forEach(demand => {
+        demand.demand_list.forEach(item => {
+          const productName = item[0];
+          const quantity = parseFloat(item[1]) || 0;
+          
+          // Find the sub-investment for this product
+          filteredData.forEach(investment => {
+            const subInvestment = investment.sub_investments.find(
+              sub => sub.sub_investment_name === productName
+            );
+            
+            if (subInvestment) {
+              const key = `${investment.investment_name}-${productName}`;
+              initialQuantities[key] = quantity;
+              initialDisabledItems[key] = true;
+            }
+          });
+        });
+      });
+      
+      setQuantities(initialQuantities);
+      setDisabledItems(initialDisabledItems);
+      
+      // Calculate total amount
+      let total = 0;
+      filteredData.forEach(investment => {
+        investment.sub_investments.forEach(subInvestment => {
+          const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
+          total += (initialQuantities[quantityKey] || 0) * subInvestment.rate;
+        });
+      });
+      setTotalAmount(total);
+      
+    } catch (err) {
+      console.error('Error fetching submitted demands:', err);
+      setError('पहले से सबमिट किए गए डिमांड लाने में त्रुटि।');
+    }
+  };
+
   const handleQuantityChange = (investmentName, subInvestmentName, rate, value) => {
     const key = `${investmentName}-${subInvestmentName}`;
+    
+    // Skip if this item is disabled
+    if (disabledItems[key]) {
+      return;
+    }
+    
     const newQuantities = { ...quantities, [key]: parseFloat(value) || 0 };
     setQuantities(newQuantities);
     
@@ -109,15 +183,16 @@ const DemandGenerate = () => {
       investment.sub_investments.forEach(subInvestment => {
         const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
         const quantity = quantities[quantityKey] || 0;
-        if (quantity > 0) {
-          // Using sub_investment_name as the product name
+        
+        // Only include items that are not disabled and have a quantity > 0
+        if (quantity > 0 && !disabledItems[quantityKey]) {
           demandList.push([subInvestment.sub_investment_name, quantity.toString()]);
         }
       });
     });
     
     if (demandList.length === 0) {
-      setError('कृपया कम से कम एक उत्पाद के लिए मात्रा दर्ज करें।');
+      setError('कृपया कम से कम एक नए उत्पाद के लिए मात्रा दर्ज करें।');
       return;
     }
     
@@ -140,15 +215,8 @@ const DemandGenerate = () => {
         throw new Error('Failed to submit demand');
       }
       
-      // Reset quantities
-      const resetQuantities = {};
-      filteredData.forEach(investment => {
-        investment.sub_investments.forEach(subInvestment => {
-          resetQuantities[`${investment.investment_name}-${subInvestment.sub_investment_name}`] = 0;
-        });
-      });
-      setQuantities(resetQuantities);
-      setTotalAmount(0);
+      // Refresh submitted demands after successful submission
+      await fetchSubmittedDemands();
       
       alert('डिमांड सफलतापूर्वक सबमिट की गई!');
     } catch (err) {
@@ -216,9 +284,10 @@ const DemandGenerate = () => {
                             const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
                             const quantity = quantities[quantityKey] || 0;
                             const total = quantity * subInvestment.rate;
+                            const isDisabled = disabledItems[quantityKey] || false;
                             
                             return (
-                              <tr key={`${index}-${subIndex}`}>
+                              <tr key={`${index}-${subIndex}`} className={isDisabled ? 'table-secondary' : ''}>
                                 {subIndex === 0 && (
                                   <td rowSpan={investment.sub_investments.length}>
                                     {investment.investment_name}
@@ -237,7 +306,13 @@ const DemandGenerate = () => {
                                       subInvestment.rate, 
                                       e.target.value
                                     )}
+                                    disabled={isDisabled}
                                   />
+                                  {isDisabled && (
+                                    <Form.Text className="text-muted">
+                                      पहले से सबमिट किया गया
+                                    </Form.Text>
+                                  )}
                                 </td>
                                 <td>{subInvestment.rate}</td>
                                 <td>{total.toFixed(2)}</td>
