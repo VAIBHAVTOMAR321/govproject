@@ -174,6 +174,17 @@ const MainDashboard = () => {
     {}
   );
 
+  // Add state for allocation table toggles between dar and matra
+  const [allocationTableToggles, setAllocationTableToggles] = useState({});
+
+  // Add this function to toggle between dar and matra for a specific table
+  const toggleAllocationTableDisplay = (tableIndex) => {
+    setAllocationTableToggles((prev) => ({
+      ...prev,
+      [tableIndex]: !prev[tableIndex],
+    }));
+  };
+
   // Add this function to get unique values for a column
   const getUniqueValuesForColumn = (data, columnKey) => {
     return [...new Set(data.map((item) => item[columnKey]).filter(Boolean))];
@@ -2089,7 +2100,7 @@ const MainDashboard = () => {
                           setShowPreviewModal(true);
                         }}
                       >
-                        <RiEyeLine /> पूर्वालोकन
+                        <RiEyeLine /> पूर्वावलोकन
                       </Button>
                       <Button
                         variant="outline-success"
@@ -2245,7 +2256,7 @@ const MainDashboard = () => {
     };
   };
 
-  // Generate allocation table for clicked column entries - MODIFIED TO REMOVE UNWANTED COLUMNS AND ADD TOTALS
+  // Generate allocation table for clicked column entries - MODIFIED TO INCLUDE DAR AND MATRA
   const generateAllocationTable = (
     clickedColumn,
     checkedValue,
@@ -2275,6 +2286,7 @@ const MainDashboard = () => {
     // Create the new table structure
     const newTableData = [];
     const columnTotals = {}; // For calculating column totals
+    const columnDarTotals = {}; // For calculating column dar totals
 
     // For each value in the first column, create a row with allocation data for each clicked column value
     firstColumnValues.forEach((firstColValue) => {
@@ -2283,6 +2295,7 @@ const MainDashboard = () => {
       };
 
       let rowTotal = 0; // For calculating row total
+      let rowDarTotal = 0; // For calculating row dar total
 
       // Add allocation data for each clicked column value
       clickedColumnValues.forEach((clickedColValue) => {
@@ -2294,7 +2307,7 @@ const MainDashboard = () => {
           );
         });
 
-        // Calculate total allocated quantity for this combination
+        // Calculate total allocated quantity (matra) for this combination
         const totalAllocated = filteredForCombination
           .reduce(
             (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
@@ -2302,33 +2315,48 @@ const MainDashboard = () => {
           )
           .toFixed(2);
 
-        rowData[clickedColValue] = totalAllocated;
-        rowTotal += parseFloat(totalAllocated);
+        // Calculate total amount (dar) for this combination
+        const totalAmount = filteredForCombination
+          .reduce(
+            (sum, item) => sum + (parseFloat(item.total_amount) || 0),
+            0
+          )
+          .toFixed(2);
 
-        // Calculate column total
+        rowData[clickedColValue] = totalAllocated;
+        rowData[`${clickedColValue}_dar`] = totalAmount;
+        rowTotal += parseFloat(totalAllocated);
+        rowDarTotal += parseFloat(totalAmount);
+
+        // Calculate column totals
         if (!columnTotals[clickedColValue]) {
           columnTotals[clickedColValue] = 0;
+          columnDarTotals[clickedColValue] = 0;
         }
         columnTotals[clickedColValue] += parseFloat(totalAllocated);
+        columnDarTotals[clickedColValue] += parseFloat(totalAmount);
       });
 
-      // Add row total
+      // Add row totals
       rowData["कुल"] = rowTotal.toFixed(2);
+      rowData["कुल_dar"] = rowDarTotal.toFixed(2);
       newTableData.push(rowData);
     });
 
     // Add total row
     const totalRow = { [columnDefs[firstColumnKey]?.label]: "कुल" };
     let grandTotal = 0;
+    let grandDarTotal = 0;
 
     clickedColumnValues.forEach((clickedColValue) => {
-      totalRow[clickedColValue] = (columnTotals[clickedColValue] || 0).toFixed(
-        2
-      );
+      totalRow[clickedColValue] = (columnTotals[clickedColValue] || 0).toFixed(2);
+      totalRow[`${clickedColValue}_dar`] = (columnDarTotals[clickedColValue] || 0).toFixed(2);
       grandTotal += columnTotals[clickedColValue] || 0;
+      grandDarTotal += columnDarTotals[clickedColValue] || 0;
     });
 
     totalRow["कुल"] = grandTotal.toFixed(2);
+    totalRow["कुल_dar"] = grandDarTotal.toFixed(2);
     newTableData.push(totalRow);
 
     // Create columns for the new table
@@ -4065,8 +4093,7 @@ const MainDashboard = () => {
                                                     col !== "rate" &&
                                                     col !==
                                                       "amount_of_farmer_share" &&
-                                                    col !==
-                                                      "amount_of_subsidy" &&
+                                                    col !== "amount_of_subsidy" &&
                                                     col !== "total_amount"
                                                 )
                                                 .sort(
@@ -4435,6 +4462,22 @@ const MainDashboard = () => {
                                             <h5 className="mb-0">
                                               {table.heading}
                                             </h5>
+                                            {/* Add toggle button for allocation tables */}
+                                            {table.isAllocationTable && (
+                                              <Button
+                                                variant="outline-primary"
+                                                size="sm"
+                                                onClick={() =>
+                                                  toggleAllocationTableDisplay(
+                                                    index
+                                                  )
+                                                }
+                                              >
+                                                {allocationTableToggles[index]
+                                                  ? "मात्रा"
+                                                  : "दर"}
+                                              </Button>
+                                            )}
                                             <div className="dropdown">
                                               <button
                                                 className="btn btn-secondary dropdown-toggle drop-option"
@@ -4854,7 +4897,12 @@ const MainDashboard = () => {
                                               {(() => {
                                                 const isTableRotated =
                                                   isRotated[index] || false;
+                                                const showDar =
+                                                  table.isAllocationTable &&
+                                                  allocationTableToggles[index];
+                                                
                                                 if (isTableRotated) {
+                                                  // ... existing rotated table code ...
                                                   const transposedColumns =
                                                     table.data.map(
                                                       (row) =>
@@ -4936,31 +4984,36 @@ const MainDashboard = () => {
                                                           }
                                                         </td>
                                                         {table.isAllocationTable ? (
-                                                          // For allocation tables, show visible dynamic columns
+                                                          // For allocation tables, show either dar or matra based on toggle
                                                           <>
                                                             {visibleDynamicColumns.map(
                                                               (col, colIdx) => (
                                                                 <td
                                                                   key={colIdx}
                                                                 >
-                                                                  {row[col] ||
-                                                                    "0"}
+                                                                  {showDar
+                                                                    ? row[`${col}_dar`] ||
+                                                                      "0"
+                                                                    : row[col] ||
+                                                                      "0"}
                                                                 </td>
                                                               )
                                                             )}
                                                             <td>
-                                                              {visibleDynamicColumns
-                                                                .reduce(
-                                                                  (sum, col) =>
-                                                                    sum +
-                                                                    parseFloat(
-                                                                      row[
-                                                                        col
-                                                                      ] || 0
-                                                                    ),
-                                                                  0
-                                                                )
-                                                                .toFixed(2)}
+                                                              {showDar
+                                                                ? row["कुल_dar"] ||
+                                                                  "0"
+                                                                : visibleDynamicColumns
+                                                                    .reduce(
+                                                                      (sum, col) =>
+                                                                        sum +
+                                                                        parseFloat(
+                                                                          row[col] ||
+                                                                            0
+                                                                        ),
+                                                                      0
+                                                                    )
+                                                                    .toFixed(2)}
                                                             </td>
                                                           </>
                                                         ) : (
@@ -5238,6 +5291,9 @@ const MainDashboard = () => {
                                             {(() => {
                                               const isTableRotated =
                                                 isRotated[index] || false;
+                                              const showDar =
+                                                table.isAllocationTable &&
+                                                allocationTableToggles[index];
                                               return (
                                                 !isTableRotated && (
                                                   <tfoot>
@@ -5254,9 +5310,7 @@ const MainDashboard = () => {
                                                             index
                                                           ] ||
                                                           (table.isAllocationTable
-                                                            ? table.columns.slice(
-                                                                1
-                                                              )
+                                                            ? table.columns.slice(1)
                                                             : table.columns.slice(
                                                                 2,
                                                                 -2
@@ -5274,7 +5328,41 @@ const MainDashboard = () => {
                                                             {visibleDynamicColumns.map(
                                                               (col, idx) => (
                                                                 <td key={idx}>
-                                                                  {filteredData
+                                                                  {showDar
+                                                                    ? filteredData
+                                                                        .reduce(
+                                                                          (
+                                                                            sum,
+                                                                            row
+                                                                          ) =>
+                                                                            sum +
+                                                                            parseFloat(
+                                                                              row[
+                                                                                `${col}_dar`
+                                                                              ] || 0
+                                                                            ),
+                                                                          0
+                                                                        )
+                                                                        .toFixed(2)
+                                                                    : filteredData
+                                                                        .reduce(
+                                                                          (
+                                                                            sum,
+                                                                            row
+                                                                          ) =>
+                                                                            sum +
+                                                                            parseFloat(
+                                                                              row[col] || 0
+                                                                            ),
+                                                                          0
+                                                                        )
+                                                                        .toFixed(2)}
+                                                                </td>
+                                                              )
+                                                            )}
+                                                            <td>
+                                                              {showDar
+                                                                ? filteredData
                                                                     .reduce(
                                                                       (
                                                                         sum,
@@ -5283,36 +5371,27 @@ const MainDashboard = () => {
                                                                         sum +
                                                                         parseFloat(
                                                                           row[
-                                                                            col
+                                                                            "कुल_dar"
                                                                           ] || 0
                                                                         ),
                                                                       0
                                                                     )
-                                                                    .toFixed(2)}
-                                                                </td>
-                                                              )
-                                                            )}
-                                                            <td>
-                                                              {filteredData
-                                                                .reduce(
-                                                                  (sum, row) =>
-                                                                    sum +
-                                                                    visibleDynamicColumns.reduce(
-                                                                      (
-                                                                        s,
-                                                                        col
-                                                                      ) =>
-                                                                        s +
-                                                                        parseFloat(
-                                                                          row[
-                                                                            col
-                                                                          ] || 0
+                                                                    .toFixed(2)
+                                                                : filteredData
+                                                                    .reduce(
+                                                                      (sum, row) =>
+                                                                        sum +
+                                                                        visibleDynamicColumns.reduce(
+                                                                          (s, col) =>
+                                                                            s +
+                                                                            parseFloat(
+                                                                              row[col] || 0
+                                                                            ),
+                                                                          0
                                                                         ),
                                                                       0
-                                                                    ),
-                                                                  0
-                                                                )
-                                                                .toFixed(2)}
+                                                                    )
+                                                                    .toFixed(2)}
                                                             </td>
                                                           </>
                                                         ) : (
