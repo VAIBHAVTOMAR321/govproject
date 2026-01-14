@@ -58,18 +58,23 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordChangeOption, setShowPasswordChangeOption] = useState(false);
   const [tempUserData, setTempUserData] = useState(null);
+  const [isDemandLogin, setIsDemandLogin] = useState(false); // Track if it's a demand login
 
   // Handle navigation based on user authentication status
   useEffect(() => {
     if (isAuthenticated) {
       const timer = setTimeout(() => {
-        // All roles redirect to MainDashboard
-        navigate("/MainDashboard", { replace: true });
+        // Redirect based on login type
+        if (isDemandLogin) {
+          navigate("/DemandGenerate", { replace: true });
+        } else {
+          navigate("/MainDashboard", { replace: true });
+        }
       }, 1500); // 1.5 second delay
 
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, navigate]); // Removed user from dependencies to avoid timing issues
+  }, [isAuthenticated, navigate, isDemandLogin]); // Added isDemandLogin to dependencies
 
   // Handle Change for regular login
   const handleChange = (e) => {
@@ -89,6 +94,7 @@ export default function Login() {
     setError("");
     setSuccess("");
     setShowPasswordChangeOption(false);
+    setIsDemandLogin(false); // Reset demand login flag
     
     if (!formData.identifier || !formData.password) {
       setError("कृपया सभी आवश्यक फ़ील्ड भरें!");
@@ -186,7 +192,7 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/demand-login/", {
+      const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -204,11 +210,15 @@ export default function Login() {
         // Show success message
         setSuccess("डिमांड लॉगिन सफलतापूर्वक पूर्ण हुआ!");
         
-        // Call login with user data including role
+        // Set the demand login flag before calling login
+        setIsDemandLogin(true);
+        
+        // Call login with user data including role and login type
         login({
           user_id: data.user_id,
           role: data.role,
           username: demandFormData.username, // This will be the selected kendra name
+          loginType: "demand", // Add login type to distinguish
         });
       } else {
         // Display the error message from API or default message

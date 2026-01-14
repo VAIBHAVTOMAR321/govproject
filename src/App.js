@@ -25,7 +25,7 @@ import AllBills from "./componets/dash_board/AllBills";
 import MPR from "./componets/dash_board/MPR";
 import AddEditComponent from "./componets/dash_board/AddEditComponent";
 import ForgotPassword from "./componets/all_login/ForgotPassword";
-
+import DemandGenerate from "./componets/DemandGenerate";
 function App() {
   const location = useLocation();
 
@@ -86,7 +86,13 @@ function App() {
                 <AddEditComponent />
               </ProtectedRoute>
             } />
+            <Route path="/DemandGenerate" element={
+              <ProtectedRoute>
+                <DemandGenerate />
+              </ProtectedRoute>
+            } />
           </Routes>
+
         </main>
         
         <Footer />
