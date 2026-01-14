@@ -28,10 +28,11 @@ import ForgotPassword from "./componets/all_login/ForgotPassword";
 import DemandGenerate from "./componets/DemandGenerate";
 import { CenterProvider } from "./componets/all_login/CenterContext";
 import KendraPasswordReset from "./componets/dash_board/KendraPasswordReset";
+import DemandView from "./componets/dash_board/DemandView";
 function App() {
   const location = useLocation();
 
-  const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent"]);
+  const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/kendra-password-reset","/DemandView"]);
 
   const shouldHideNavbar = hiddenPaths.has(location.pathname);
   
@@ -97,6 +98,11 @@ function App() {
             <Route path="/kendra-password-reset" element={
               <ProtectedRoute>
                 <KendraPasswordReset />
+              </ProtectedRoute>
+            } />
+            <Route path="DemandView" element={
+              <ProtectedRoute>
+                <DemandView />
               </ProtectedRoute>
             } />
           </Routes>

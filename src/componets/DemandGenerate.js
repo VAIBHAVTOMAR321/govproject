@@ -8,17 +8,12 @@ const DemandGenerate = () => {
   const navigate = useNavigate();
   const { centerData, clearCenter } = useCenter(); // Use CenterContext
   const { logout } = useAuth(); // Use AuthContext to logout
-  const [demandData, setDemandData] = useState([]);
+  const [billingData, setBillingData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    item_name: '',
-    quantity: '',
-    unit: '',
-    purpose: '',
-    demand_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-  });
+  const [quantities, setQuantities] = useState({});
+  const [totalAmount, setTotalAmount] = useState(0);
 
   // Check if user is logged in
   useEffect(() => {
@@ -27,71 +22,135 @@ const DemandGenerate = () => {
     }
   }, [centerData.isLoggedIn, navigate]);
 
-  // Fetch demand data when centerId is available
+  // Fetch billing data
   useEffect(() => {
-    if (centerData.centerId) {
-      fetchDemandData();
-    }
-  }, [centerData.centerId]);
+    fetchBillingData();
+  }, []);
 
-  const fetchDemandData = async () => {
+  const fetchBillingData = async () => {
     setIsLoading(true);
     setError('');
     
     try {
-      const response = await fetch(`https://mahadevaaya.com/govbillingsystem/backend/api/demand/${centerData.centerId}`);
+      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/');
       
       if (!response.ok) {
-        throw new Error('Failed to fetch demand data');
+        throw new Error('Failed to fetch billing data');
       }
       
       const data = await response.json();
-      setDemandData(data);
+      setBillingData(data);
+      
+      // Process data to get unique investment names with their sub-investments
+      const uniqueInvestments = {};
+      data.forEach(item => {
+        if (!uniqueInvestments[item.investment_name]) {
+          uniqueInvestments[item.investment_name] = [];
+        }
+        
+        // Check if sub-investment already exists for this investment
+        const subInvestmentExists = uniqueInvestments[item.investment_name].some(
+          subItem => subItem.sub_investment_name === item.sub_investment_name
+        );
+        
+        if (!subInvestmentExists) {
+          uniqueInvestments[item.investment_name].push({
+            sub_investment_name: item.sub_investment_name,
+            rate: parseFloat(item.rate),
+            unit: item.unit
+          });
+        }
+      });
+      
+      // Convert to array format for rendering
+      const processedData = Object.keys(uniqueInvestments).map(investmentName => ({
+        investment_name: investmentName,
+        sub_investments: uniqueInvestments[investmentName]
+      }));
+      
+      setFilteredData(processedData);
+      
+      // Initialize quantities object
+      const initialQuantities = {};
+      processedData.forEach(investment => {
+        investment.sub_investments.forEach(subInvestment => {
+          initialQuantities[`${investment.investment_name}-${subInvestment.sub_investment_name}`] = 0;
+        });
+      });
+      setQuantities(initialQuantities);
     } catch (err) {
-      console.error('Error fetching demand data:', err);
+      console.error('Error fetching billing data:', err);
       setError('डेटा लाने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
+  const handleQuantityChange = (investmentName, subInvestmentName, rate, value) => {
+    const key = `${investmentName}-${subInvestmentName}`;
+    const newQuantities = { ...quantities, [key]: parseFloat(value) || 0 };
+    setQuantities(newQuantities);
+    
+    // Calculate total amount
+    let total = 0;
+    filteredData.forEach(investment => {
+      investment.sub_investments.forEach(subInvestment => {
+        const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
+        total += (newQuantities[quantityKey] || 0) * subInvestment.rate;
+      });
     });
+    setTotalAmount(total);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    // Prepare demand list in the required format: [["product 1","5454"]]
+    const demandList = [];
+    filteredData.forEach(investment => {
+      investment.sub_investments.forEach(subInvestment => {
+        const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
+        const quantity = quantities[quantityKey] || 0;
+        if (quantity > 0) {
+          // Using sub_investment_name as the product name
+          demandList.push([subInvestment.sub_investment_name, quantity.toString()]);
+        }
+      });
+    });
+    
+    if (demandList.length === 0) {
+      setError('कृपया कम से कम एक उत्पाद के लिए मात्रा दर्ज करें।');
+      return;
+    }
     
     try {
-      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand/', {
+      const requestData = {
+        center_id: centerData.centerId,
+        center_name: centerData.centerName,
+        demand_list: demandList
+      };
+      
+      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          center_id: centerData.centerId,
-          ...formData
-        })
+        body: JSON.stringify(requestData)
       });
       
       if (!response.ok) {
         throw new Error('Failed to submit demand');
       }
       
-      // Reset form and refresh data
-      setFormData({
-        item_name: '',
-        quantity: '',
-        unit: '',
-        purpose: '',
-        demand_date: new Date().toISOString().split('T')[0],
+      // Reset quantities
+      const resetQuantities = {};
+      filteredData.forEach(investment => {
+        investment.sub_investments.forEach(subInvestment => {
+          resetQuantities[`${investment.investment_name}-${subInvestment.sub_investment_name}`] = 0;
+        });
       });
-      setShowForm(false);
-      fetchDemandData();
+      setQuantities(resetQuantities);
+      setTotalAmount(0);
+      
+      alert('डिमांड सफलतापूर्वक सबमिट की गई!');
     } catch (err) {
       console.error('Error submitting demand:', err);
       setError('डिमांड सबमिट करने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
@@ -122,92 +181,16 @@ const DemandGenerate = () => {
         <Col>
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">डिमांड रिकॉर्ड्स</h5>
+              <h5 className="mb-0">डिमांड जनरेशन</h5>
               <Button 
                 variant="primary" 
-                onClick={() => setShowForm(!showForm)}
+                onClick={handleSubmit}
+                disabled={totalAmount === 0}
               >
-                {showForm ? 'फॉर्म छिपाएं' : 'नई डिमांड जोड़ें'}
+                सबमिट करें
               </Button>
             </Card.Header>
             <Card.Body>
-              {showForm && (
-                <Form onSubmit={handleSubmit} className="mb-4">
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>आइटम का नाम</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="item_name"
-                          value={formData.item_name}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>मात्रा</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="quantity"
-                          value={formData.quantity}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>इकाई</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="unit"
-                          value={formData.unit}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>उद्देश्य</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="purpose"
-                          value={formData.purpose}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>डिमांड दिनांक</Form.Label>
-                        <Form.Control
-                          type="date"
-                          name="demand_date"
-                          value={formData.demand_date}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  <div className="text-end">
-                    <Button variant="secondary" className="me-2" onClick={() => setShowForm(false)}>
-                      रद्द करें
-                    </Button>
-                    <Button type="submit" variant="primary">
-                      सबमिट करें
-                    </Button>
-                  </div>
-                </Form>
-              )}
-              
               {isLoading ? (
                 <div className="text-center py-4">
                   <Spinner animation="border" role="status">
@@ -215,40 +198,67 @@ const DemandGenerate = () => {
                   </Spinner>
                 </div>
               ) : (
-                <Table striped bordered hover responsive>
-                  <thead>
-                    <tr>
-                      <th>आइटम का नाम</th>
-                      <th>मात्रा</th>
-                      <th>इकाई</th>
-                      <th>उद्देश्य</th>
-                      <th>डिमांड दिनांक</th>
-                      <th>स्थिति</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {demandData.length > 0 ? (
-                      demandData.map((item, index) => (
-                        <tr key={index}>
-                          <td>{item.item_name}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.unit}</td>
-                          <td>{item.purpose}</td>
-                          <td>{new Date(item.demand_date).toLocaleDateString('hi-IN')}</td>
-                          <td>
-                            <span className={`badge bg-${item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}`}>
-                              {item.status === 'approved' ? 'स्वीकृत' : item.status === 'pending' ? 'लंबित' : 'अस्वीकृत'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
+                <>
+                  <Table striped bordered hover responsive>
+                    <thead>
                       <tr>
-                        <td colSpan="6" className="text-center">कोई डिमांड रिकॉर्ड नहीं मिला</td>
+                        <th>उपनिवेश नाम</th>
+                        <th>(Sub-investment)</th>
+                        <th>मात्रा (Quantity)</th>
+                        <th>दर (Rate)</th>
+                        <th>योग (Total)</th>
                       </tr>
-                    )}
-                  </tbody>
-                </Table>
+                    </thead>
+                    <tbody>
+                      {filteredData.length > 0 ? (
+                        filteredData.map((investment, index) => (
+                          investment.sub_investments.map((subInvestment, subIndex) => {
+                            const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
+                            const quantity = quantities[quantityKey] || 0;
+                            const total = quantity * subInvestment.rate;
+                            
+                            return (
+                              <tr key={`${index}-${subIndex}`}>
+                                {subIndex === 0 && (
+                                  <td rowSpan={investment.sub_investments.length}>
+                                    {investment.investment_name}
+                                  </td>
+                                )}
+                                <td>{subInvestment.sub_investment_name}</td>
+                                <td>
+                                  <Form.Control
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={quantity}
+                                    onChange={(e) => handleQuantityChange(
+                                      investment.investment_name, 
+                                      subInvestment.sub_investment_name, 
+                                      subInvestment.rate, 
+                                      e.target.value
+                                    )}
+                                  />
+                                </td>
+                                <td>{subInvestment.rate}</td>
+                                <td>{total.toFixed(2)}</td>
+                              </tr>
+                            );
+                          })
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="text-center">कोई डेटा नहीं मिला</td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan="4" className="text-end fw-bold">कुल योग (Total):</td>
+                        <td className="fw-bold">{totalAmount.toFixed(2)}</td>
+                      </tr>
+                    </tfoot>
+                  </Table>
+                </>
               )}
             </Card.Body>
           </Card>

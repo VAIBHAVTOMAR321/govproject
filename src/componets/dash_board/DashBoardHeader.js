@@ -20,6 +20,11 @@ function DashBoardHeader() {
     navigate('/kendra-password-reset');
   };
 
+  const handleDemandView = () => {
+    // Make sure this path matches exactly with your route definition
+    navigate('/DemandView');
+  };
+
   return (
     <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top">
       <Container fluid className=''>
@@ -32,22 +37,27 @@ function DashBoardHeader() {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            <Nav.Link href="MainDashboard">डैशबोर्ड</Nav.Link>
+            <Nav.Link as={Link} to="/MainDashboard">डैशबोर्ड</Nav.Link>
             <NavDropdown title="डेटा एंट्री" id="basic-nav-dropdown">
-              <NavDropdown.Item href="Registration">सप्लायर डेटा एंट्री</NavDropdown.Item>
-              <NavDropdown.Item href="KrishiRegistration">
+              <NavDropdown.Item as={Link} to="/Registration">सप्लायर डेटा एंट्री</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/KrishiRegistration">
                 कृषि डेटा एंट्री
               </NavDropdown.Item>
             </NavDropdown>
             <NavDropdown title="बिल" id="basic-nav-dropdown">
-              <NavDropdown.Item href="Billing">
+              <NavDropdown.Item as={Link} to="/Billing">
                 Billing
               </NavDropdown.Item>
-              <NavDropdown.Item href="AllBills">
+              <NavDropdown.Item as={Link} to="/AllBills">
                 AllBills
               </NavDropdown.Item>
             </NavDropdown>
-            <Nav.Link href="MPR">एमपीआर</Nav.Link>
+            <NavDropdown title="डिमांड" id="demand-nav-dropdown">
+              <NavDropdown.Item as={Link} to="/DemandView">
+                डिमांड देखें
+              </NavDropdown.Item>
+            </NavDropdown>
+            <Nav.Link as={Link} to="/MPR">एमपीआर</Nav.Link>
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
