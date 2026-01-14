@@ -159,9 +159,6 @@ const MainDashboard = () => {
   const [showTableSelectionModal, setShowTableSelectionModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewType, setPreviewType] = useState("pdf");
-  
-  // New state for rotation of the Avantan table
-  const [rotatedTables, setRotatedTables] = useState({});
 
   // Fetch data from API and populate filter options
   useEffect(() => {
@@ -255,7 +252,6 @@ const MainDashboard = () => {
     setSelectedItem(null);
     setShowDetailed(false);
     setAdditionalTables([]);
-    setRotatedTables({}); // Reset rotated tables
 
     // Refresh table with all data
     setFilteredTableData(tableData);
@@ -566,47 +562,6 @@ const MainDashboard = () => {
       filters.investment_name, filters.source_of_receipt, filters.scheme_name,
       filters.vikas_khand_name, filters.vidhan_sabha_name, filters.unit]);
 
-  // Function to rotate a table (transpose rows to columns)
-  const rotateTable = (table, index) => {
-    // Check if this table is already rotated
-    if (rotatedTables[index]) {
-      // If already rotated, revert to original
-      setRotatedTables(prev => {
-        const newRotatedTables = { ...prev };
-        delete newRotatedTables[index];
-        return newRotatedTables;
-      });
-      return;
-    }
-
-    // Create a new rotated table
-    const originalData = table.data;
-    const originalColumns = table.columns;
-    
-    // Create new columns (first column becomes header, then each row becomes a column)
-    const newColumns = [originalColumns[0], ...originalData.map(row => row[originalColumns[0]])];
-    
-    // Create new data (each original column becomes a row)
-    const newData = originalColumns.slice(1).map(col => {
-      const newRow = { [originalColumns[0]]: col };
-      originalData.forEach(row => {
-        newRow[row[originalColumns[0]]] = row[col];
-      });
-      return newRow;
-    });
-
-    // Store the rotated table
-    setRotatedTables(prev => ({
-      ...prev,
-      [index]: {
-        ...table,
-        columns: newColumns,
-        data: newData,
-        isRotated: true
-      }
-    }));
-  };
-
   // Generate summary data for a given data and column
   const generateSummary = (data, column) => {
     const uniqueValues = [...new Set(data.map(item => item[column]).filter(Boolean))];
@@ -714,7 +669,6 @@ const MainDashboard = () => {
     }
     setShowDetailed(false);
     setAdditionalTables([]);
-    setRotatedTables({}); // Reset rotated tables when going back
   };
 
   // Get current table data with totals for export
@@ -922,15 +876,12 @@ const MainDashboard = () => {
 
   // Add additional table to export list
   const addAdditionalTableToExport = (table, type, index) => {
-    // Use rotated table if it exists
-    const tableToExport = rotatedTables[index] || table;
-    
     // Calculate visible columns
     const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
     const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल किसान की हिस्सेदारी", "कुल सब्सिडी", "कुल राशि"];
 
     // Calculate totals for additional table
-    const filteredTableData = tableToExport.data.filter((row) => {
+    const filteredTableData = table.data.filter((row) => {
       const rowValue = row[table.columns[0]];
       // Apply filters if they exist
       return true; // Assuming additional tables are already filtered
@@ -966,7 +917,7 @@ const MainDashboard = () => {
     setTableName(defaultName);
     setExportType(type);
     setCurrentTableForExport({
-      ...tableToExport,
+      ...table,
       columns: visibleColumns,
       totals: totals
     });
@@ -2885,7 +2836,6 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                     setShowDetailed(false);
                                     clearFilters();
                                     setAdditionalTables([]);
-                                    setRotatedTables({});
                                   }}
                                 >
                                  डैशबोर्ड
@@ -3325,33 +3275,11 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                                       </tfoot>
                                     </Table>
      {/* Replace the additional tables rendering section with this updated version: */}
-{additionalTables.map((table, index) => {
-  // Check if this is the Avantan table (allocation table)
-  const isAvantanTable = table.heading.includes("आवंटन विवरण");
-  // Check if this table is rotated
-  const isRotated = rotatedTables[index] ? true : false;
-  // Use the rotated table if it exists
-  const displayTable = rotatedTables[index] || table;
-  
-  return (
+{additionalTables.map((table, index) => (
   <div key={index} className="mt-4">
   <div className="d-flex justify-content-between align-items-center mb-3">
     <div className="d-flex align-items-center gap-2 table-heading ">
-      <h5 className="mb-0">{displayTable.heading}</h5>
-      
-      {/* Add rotation button only for the Avantan table */}
-      {isAvantanTable && (
-        <Button
-          variant="outline-primary"
-          size="sm"
-          onClick={() => rotateTable(table, index)}
-          className="d-flex align-items-center gap-1"
-        >
-          <i className={`fas fa-${isRotated ? 'undo' : 'sync-alt'}`}></i>
-          {isRotated ? "Reset View" : "Rotate Table"}
-        </Button>
-      )}
-      
+      <h5 className="mb-0">{table.heading}</h5>
       <div className="dropdown">
         <button
           className="btn btn-secondary dropdown-toggle drop-option"
@@ -3470,52 +3398,25 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
           variant="link"
           size="sm"
           className="text-danger p-0"
-          onClick={() => {
-            setAdditionalTables(prev => prev.filter((_, i) => i !== index));
-            // Remove from rotated tables if it exists
-            if (rotatedTables[index]) {
-              setRotatedTables(prev => {
-                const newRotatedTables = { ...prev };
-                delete newRotatedTables[index];
-                return newRotatedTables;
-              });
-            }
-          }}
+          onClick={() => setAdditionalTables(prev => prev.filter((_, i) => i !== index))}
         >
           <RiDeleteBinLine />
         </Button>
       </div>
     </div>
-    
-    {/* Apply rotation only to the Avantan table */}
-    <div 
-      className="table-responsive" 
-      style={{ 
-        overflowX: 'auto',
-        transform: isAvantanTable && isRotated ? 'rotate(90deg)' : 'none',
-        transformOrigin: isAvantanTable && isRotated ? 'top left' : 'none',
-        width: isAvantanTable && isRotated ? `${displayTable.data.length * 50}px` : 'auto',
-        height: isAvantanTable && isRotated ? `${displayTable.columns.length * 150}px` : 'auto',
-        margin: isAvantanTable && isRotated ? `${displayTable.columns.length * 75}px 0 0 0` : '0'
-      }}
-    >
+    <div className="table-responsive" style={{ overflowX: 'auto' }}>
       <Table
         striped
         bordered
         hover
         className="table-thead-style"
-        style={{
-          transform: isAvantanTable && isRotated ? 'rotate(-90deg)' : 'none',
-          transformOrigin: isAvantanTable && isRotated ? 'top left' : 'none',
-          marginTop: isAvantanTable && isRotated ? `${displayTable.columns.length * 75}px` : '0'
-        }}
       >
         <thead className="table-thead">
           <tr>
             {(() => {
               const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1, -1) : table.columns.slice(2, -2));
               const visibleColumns = table.isAllocationTable ? [table.columns[0], ...visibleDynamicColumns, "कुल"] : [table.columns[0], "कुल रिकॉर्ड", ...visibleDynamicColumns, "कुल आवंटित मात्रा", "कुल किसान की हिस्सेदारी", "कुल सब्सिडी", "कुल राशि"];
-              return displayTable.columns.map((col, idx) => (
+              return visibleColumns.map((col, idx) => (
                 <th key={idx}>{col}</th>
               ));
             })()}
@@ -3523,28 +3424,94 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         </thead>
         <tbody>
           {(() => {
-            return displayTable.data
+            const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
+            return table.data
               .filter(row => row[table.columns[0]] !== "कुल") // Filter out any existing total row
               .map((row, rowIndex) => (
               <tr key={rowIndex}>
-                {displayTable.columns.map((col, colIdx) => (
-                  <td
-                    key={colIdx}
-                    style={{
-                      cursor: colIdx === 0 ? "pointer" : "default",
-                      color: colIdx === 0 ? "blue" : "black",
-                      fontWeight: colIdx === 0 ? "bold" : "normal",
-                    }}
-                    onClick={() => {
-                      if (colIdx === 0) {
-                        // Add a new filter to the stack with this value
+                <td
+                  style={{
+                    cursor: "pointer",
+                    color: "blue",
+                    fontWeight: "bold",
+                  }}
+                  onClick={() => {
+                    // Add a new filter to the stack with this value
+                    handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
+                  }}
+                >
+                  {row[table.columns[0]]}
+                </td>
+                {table.isAllocationTable ? (
+                  // For allocation tables, show visible dynamic columns
+                  <>
+                    {visibleDynamicColumns.map((col, colIdx) => (
+                      <td key={colIdx}>
+                        {row[col] || "0"}
+                      </td>
+                    ))}
+                    <td>{visibleDynamicColumns.reduce((sum, col) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td
+                      style={{
+                        cursor: "pointer",
+                        color: "blue",
+                        fontWeight: "bold",
+                      }}
+                      onClick={() => {
+                        // Add a new filter to the stack with this value and show detailed view
                         handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                      }
-                    }}
-                  >
-                    {row[col]}
-                  </td>
-                ))}
+                        setShowDetailed(true);
+                      }}
+                    >
+                      {row["कुल रिकॉर्ड"]}
+                    </td>
+                    {visibleDynamicColumns.map((col, colIdx) => (
+                      <td
+                        key={colIdx}
+                        style={{
+                          cursor: "pointer",
+                          color: "blue",
+                          fontWeight: "bold",
+                        }}
+                        onClick={() => {
+                          // Find the column key for this label
+                          const colKey = Object.keys(columnDefs).find(
+                            (k) => columnDefs[k].label === col
+                          );
+                          if (colKey) {
+                            // Get the data for this value
+                            const currentFilteredData = tableData.filter((item) => {
+                              for (let filter of filterStack) {
+                                if (!filter.checked[item[filter.column]]) return false;
+                              }
+                              return item[table.columnKey] === row[table.columns[0]];
+                            });
+
+                            // Generate a new summary table
+                            const summary = generateSummary(currentFilteredData, colKey);
+                            // Generate allocation table with the clicked column as the first column
+                            const allocationTable = generateAllocationTable(colKey, row[table.columns[0]], table.columnKey);
+                            setAdditionalTables(prev => [allocationTable, {
+                              heading: `${row[table.columns[0]]} - ${col}`,
+                              data: summary.data,
+                              columns: summary.columns,
+                              columnKey: colKey
+                            }, ...prev]);
+                          }
+                        }}
+                      >
+                        {row[col]}
+                      </td>
+                    ))}
+                    <td>{row["कुल आवंटित मात्रा"]}</td>
+                    <td>{row["कुल किसान की हिस्सेदारी"]}</td>
+                    <td>{row["कुल सब्सिडी"]}</td>
+                    <td>{row["कुल राशि"]}</td>
+                  </>
+                )}
               </tr>
             ));
           })()}
@@ -3552,51 +3519,27 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
         <tfoot>
           <tr style={{ backgroundColor: '#f2f2f2', fontWeight: 'bold' }}>
             {(() => {
-              const filteredData = displayTable.data.filter(row => row[table.columns[0]] !== "कुल");
-              return displayTable.columns.map((col, idx) => {
-                if (idx === 0) {
-                  return <td key={idx}>कुल:</td>;
-                } else if (col === "कुल रिकॉर्ड") {
-                  return (
+              const visibleDynamicColumns = additionalTableColumnFilters[index] || (table.isAllocationTable ? table.columns.slice(1) : table.columns.slice(2, -2));
+              const filteredData = table.data.filter(row => row[table.columns[0]] !== "कुल");
+              return table.isAllocationTable ? (
+                <>
+                  <td>कुल:</td>
+                  {visibleDynamicColumns.map((col, idx) => (
                     <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
+                      {filteredData.reduce((sum, row) => sum + parseFloat(row[col] || 0), 0).toFixed(2)}
                     </td>
-                  );
-                } else if (col === "कुल आवंटित मात्रा") {
-                  return (
-                    <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
-                    </td>
-                  );
-                } else if (col === "कुल किसान की हिस्सेदारी") {
-                  return (
-                    <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0), 0).toFixed(2)}
-                    </td>
-                  );
-                } else if (col === "कुल सब्सिडी") {
-                  return (
-                    <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0).toFixed(2)}
-                    </td>
-                  );
-                } else if (col === "कुल राशि") {
-                  return (
-                    <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0).toFixed(2)}
-                    </td>
-                  );
-                } else if (col === "कुल") {
-                  // For allocation table total
-                  const dynamicColumns = displayTable.columns.slice(1, -1);
-                  return (
-                    <td key={idx}>
-                      {filteredData.reduce((sum, row) => sum + dynamicColumns.reduce((s, c) => s + parseFloat(row[c] || 0), 0), 0).toFixed(2)}
-                    </td>
-                  );
-                } else {
-                  // Dynamic columns
-                  return (
+                  ))}
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + visibleDynamicColumns.reduce((s, col) => s + parseFloat(row[col] || 0), 0), 0).toFixed(2)}
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td>कुल:</td>
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + row["कुल रिकॉर्ड"], 0)}
+                  </td>
+                  {visibleDynamicColumns.map((col, idx) => (
                     <td key={idx}>
                       {new Set(
                         filteredData.flatMap(row =>
@@ -3605,16 +3548,28 @@ const firstColumnValues = [...new Set(currentFilteredData.map(item => item[first
                         )
                       ).size}
                     </td>
-                  );
-                }
-              });
+                  ))}
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0), 0).toFixed(2)}
+                  </td>
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0), 0).toFixed(2)}
+                  </td>
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0).toFixed(2)}
+                  </td>
+                  <td>
+                    {filteredData.reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0).toFixed(2)}
+                  </td>
+                </>
+              );
             })()}
           </tr>
         </tfoot>
       </Table>
     </div>
   </div>
-)})}
+))}
                                     {selectedTotalColumn && (
                                       <div className="mt-4">
                                         <h6>
