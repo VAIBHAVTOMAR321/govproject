@@ -4662,67 +4662,6 @@ const MainDashboard = () => {
                                               )}
                                             </div>
                                             <Button
-                                              variant="outline-primary"
-                                              size="sm"
-                                              onClick={() => {
-                                                // Toggle all columns for this table
-                                                const visibleDynamicColumns =
-                                                  additionalTableColumnFilters[
-                                                    index
-                                                  ] ||
-                                                  (table.isAllocationTable
-                                                    ? table.columns.slice(1, -1)
-                                                    : table.columns.slice(
-                                                        2,
-                                                        -2
-                                                      ));
-                                                const allExpanded =
-                                                  visibleDynamicColumns.every(
-                                                    (col) =>
-                                                      expandedColumns[
-                                                        `${index}_${col}`
-                                                      ]
-                                                  );
-
-                                                const newExpandedState = {};
-                                                visibleDynamicColumns.forEach(
-                                                  (col) => {
-                                                    newExpandedState[
-                                                      `${index}_${col}`
-                                                    ] = !allExpanded;
-                                                  }
-                                                );
-
-                                                setExpandedColumns((prev) => ({
-                                                  ...prev,
-                                                  ...newExpandedState,
-                                                }));
-                                              }}
-                                            >
-                                              {(() => {
-                                                const visibleDynamicColumns =
-                                                  additionalTableColumnFilters[
-                                                    index
-                                                  ] ||
-                                                  (table.isAllocationTable
-                                                    ? table.columns.slice(1, -1)
-                                                    : table.columns.slice(
-                                                        2,
-                                                        -2
-                                                      ));
-                                                const allExpanded =
-                                                  visibleDynamicColumns.every(
-                                                    (col) =>
-                                                      expandedColumns[
-                                                        `${index}_${col}`
-                                                      ]
-                                                  );
-                                                return allExpanded
-                                                  ? "Hide All Values"
-                                                  : "Show All Values";
-                                              })()}
-                                            </Button>
-                                            <Button
                                               variant="secondary"
                                               size="sm"
                                               onClick={() =>
