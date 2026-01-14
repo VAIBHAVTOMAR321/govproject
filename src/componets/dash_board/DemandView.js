@@ -86,9 +86,6 @@ const DemandView = () => {
           </div>
         </Col>
       </Row>
-     
-      {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
-     
       <Row className="mb-4">
         <Col>
           <Card>
@@ -117,33 +114,47 @@ const DemandView = () => {
               ) : (
                 <>
                   {filteredData.length > 0 ? (
-                    filteredData.map((demand, index) => (
-                      <div key={demand.id} className={index < filteredData.length - 1 ? 'mb-4' : ''}>
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                          <h6>
-                            <Badge bg="primary" className="me-2">{demand.center_id}</Badge>
-                            {demand.center_name}
-                          </h6>
-                          <small className="text-muted">{formatDate(demand.created_at)}</small>
-                        </div>
-                        <Table striped bordered hover responsive size="sm">
-                          <thead>
-                            <tr>
-                              <th>उत्पाद (Product)</th>
-                              <th>मात्रा (Quantity)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {demand.demand_list.map((item, itemIndex) => (
-                              <tr key={itemIndex}>
-                                <td>{item[0]}</td>
-                                <td>{item[1]}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </Table>
-                      </div>
-                    ))
+                    <Table striped bordered hover responsive size="sm">
+                      <thead>
+                        <tr>
+                         
+                          <th>केंद्र नाम</th>
+                          <th>तिथि</th>
+                          <th>उत्पाद और मात्रा</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredData.map((demand, index) => (
+                          <tr key={demand.id}>
+                           
+                            <td>{demand.center_name}</td>
+                            <td>{formatDate(demand.created_at)}</td>
+                            <td>
+                              <Table striped bordered hover responsive size="sm">
+                                <thead>
+                                  <tr>
+                                    <th>उत्पाद</th>
+                                    <th>मात्रा</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {demand.demand_list.map((item, itemIndex) => (
+                                    <tr key={itemIndex}>
+                                      <td>{item[0]}</td>
+                                      <td>{item[1]}</td>
+                                    </tr>
+                                  ))}
+                                  <tr>
+                                    <td><strong>Total</strong></td>
+                                    <td><strong>{demand.demand_list.reduce((total, item) => total + parseInt(item[1]), 0)}</strong></td>
+                                  </tr>
+                                </tbody>
+                              </Table>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
                   ) : (
                     <div className="text-center py-4">
                       <p>कोई डिमांड रिकॉर्ड नहीं मिला</p>
