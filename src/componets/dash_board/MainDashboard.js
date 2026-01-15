@@ -1684,23 +1684,46 @@ const MainDashboard = () => {
     const transposedRows = [];
     const firstColLabel = table.columns[0];
 
-    // Get all row headers (first column values)
-    const rowHeaders = table.data.map((row) => row[firstColLabel]);
+    // Get all row headers (first column values) - exclude the total row initially
+    const rowHeaders = table.data
+      .filter((row) => row[firstColLabel] !== "कुल")
+      .map((row) => row[firstColLabel]);
 
     // For each column (except the first), create a new row
     for (let i = 1; i < table.columns.length; i++) {
       const col = table.columns[i];
+
+      // Skip _dar columns in allocation tables - they're handled with the toggle
+      if (table.isAllocationTable && col.endsWith("_dar")) {
+        continue;
+      }
+
       const newRow = { [firstColLabel]: col };
 
       table.data.forEach((dataRow, idx) => {
-        newRow[rowHeaders[idx]] = dataRow[col];
+        if (dataRow[firstColLabel] !== "कुल") {
+          newRow[rowHeaders[idx]] = dataRow[col];
+          // Also add the _dar version if it's an allocation table
+          if (table.isAllocationTable && dataRow[`${col}_dar`]) {
+            newRow[`${rowHeaders[idx]}_dar`] = dataRow[`${col}_dar`];
+          }
+        }
       });
+
+      // Add total row for this column
+      const totalRow = table.data.find((row) => row[firstColLabel] === "कुल");
+      if (totalRow) {
+        newRow["कुल"] = totalRow[col];
+        if (table.isAllocationTable && totalRow[`${col}_dar`]) {
+          newRow["कुल_dar"] = totalRow[`${col}_dar`];
+        }
+      }
 
       transposedRows.push(newRow);
     }
 
-    // New columns are the row headers
-    const newColumns = [firstColLabel, ...rowHeaders];
+    // New columns are the row headers plus the total column (only once)
+    const newColumns = [firstColLabel, ...rowHeaders, "कुल"];
 
     return {
       ...table,
@@ -5328,14 +5351,24 @@ const MainDashboard = () => {
                                                     isRotated[index] || false;
                                                   if (isTableRotated) {
                                                     const transposedColumns =
-                                                      table.data.map(
-                                                        (row) =>
-                                                          row[table.columns[0]]
-                                                      );
+                                                      table.data
+                                                        .filter(
+                                                          (row) =>
+                                                            row[
+                                                              table.columns[0]
+                                                            ] !== "कुल"
+                                                        )
+                                                        .map(
+                                                          (row) =>
+                                                            row[
+                                                              table.columns[0]
+                                                            ]
+                                                        );
                                                     const transposedTableColumns =
                                                       [
                                                         table.columns[0],
                                                         ...transposedColumns,
+                                                        "कुल",
                                                       ];
                                                     return transposedTableColumns.map(
                                                       (col, idx) => (
@@ -5405,15 +5438,30 @@ const MainDashboard = () => {
                                                   allocationTableToggles[index];
 
                                                 if (isTableRotated) {
-                                                  // ... existing rotated table code ...
+                                                  // Rotated table code with dar/matra toggle support
                                                   const transposedColumns =
-                                                    table.data.map(
-                                                      (row) =>
-                                                        row[table.columns[0]]
-                                                    );
+                                                    table.data
+                                                      .filter(
+                                                        (row) =>
+                                                          row[
+                                                            table.columns[0]
+                                                          ] !== "कुल"
+                                                      )
+                                                      .map(
+                                                        (row) =>
+                                                          row[table.columns[0]]
+                                                      );
+
                                                   const transposedData =
                                                     table.columns
                                                       .slice(1)
+                                                      .filter(
+                                                        (col) =>
+                                                          !(
+                                                            table.isAllocationTable &&
+                                                            col.endsWith("_dar")
+                                                          )
+                                                      ) // Skip _dar columns in allocation tables
                                                       .map((col, idx) => {
                                                         const row = {
                                                           [table.columns[0]]:
@@ -5421,14 +5469,56 @@ const MainDashboard = () => {
                                                         };
                                                         transposedColumns.forEach(
                                                           (newCol, colIdx) => {
-                                                            row[newCol] = table
-                                                              .data[colIdx]
-                                                              ? table.data[
+                                                            // For allocation tables, respect the dar/matra toggle
+                                                            if (
+                                                              table.isAllocationTable
+                                                            ) {
+                                                              row[newCol] =
+                                                                showDar
+                                                                  ? table.data[
+                                                                      colIdx
+                                                                    ][
+                                                                      `${col}_dar`
+                                                                    ]
+                                                                  : table.data[
+                                                                      colIdx
+                                                                    ][col];
+                                                            } else {
+                                                              row[newCol] =
+                                                                table.data[
                                                                   colIdx
-                                                                ][col]
-                                                              : "";
+                                                                ]
+                                                                  ? table.data[
+                                                                      colIdx
+                                                                    ][col]
+                                                                  : "";
+                                                            }
                                                           }
                                                         );
+
+                                                        // Add total column (कुल)
+                                                        const totalRow =
+                                                          table.data.find(
+                                                            (row) =>
+                                                              row[
+                                                                table.columns[0]
+                                                              ] === "कुल"
+                                                          );
+                                                        if (totalRow) {
+                                                          if (
+                                                            table.isAllocationTable
+                                                          ) {
+                                                            row["कुल"] = showDar
+                                                              ? totalRow[
+                                                                  `${col}_dar`
+                                                                ]
+                                                              : totalRow[col];
+                                                          } else {
+                                                            row["कुल"] =
+                                                              totalRow[col];
+                                                          }
+                                                        }
+
                                                         return row;
                                                       });
                                                   return transposedData.map(
