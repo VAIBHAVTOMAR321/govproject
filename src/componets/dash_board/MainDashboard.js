@@ -5601,8 +5601,9 @@ const MainDashboard = () => {
                                                               .filter(
                                                                 (col) =>
                                                                   col !==
-                                                                  table
-                                                                    .columns[0]
+                                                                    table
+                                                                      .columns[0] &&
+                                                                  col !== "कुल"
                                                               )
                                                               .map(
                                                                 (
@@ -6056,8 +6057,9 @@ const MainDashboard = () => {
                                                               .filter(
                                                                 (col) =>
                                                                   col !==
-                                                                  table
-                                                                    .columns[0]
+                                                                    table
+                                                                      .columns[0] &&
+                                                                  col !== "कुल"
                                                               )
                                                               .map(
                                                                 (col, idx) => (
