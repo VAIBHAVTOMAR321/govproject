@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Form, Alert, Spinner, Badge, Modal, FormCheck } from 'react-bootstrap';
+import React, { useState, useEffect, useRef } from 'react';
+import { Container, Row, Col, Card, Table, Button, Form, Alert, Spinner, Badge, Modal, FormCheck, Dropdown } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useCenter } from '../all_login/CenterContext';
 import { useAuth } from '../../context/AuthContext';
@@ -15,7 +15,7 @@ const DemandView = () => {
   const [demandData, setDemandData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [centers, setCenters] = useState([]);
-  const [selectedCenter, setSelectedCenter] = useState('');
+  const [selectedCenters, setSelectedCenters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [tablesForExport, setTablesForExport] = useState({
@@ -28,7 +28,22 @@ const DemandView = () => {
   const [currentTableForExport, setCurrentTableForExport] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewType, setPreviewType] = useState('pdf');
- 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   // Fetch demand data
   useEffect(() => {
@@ -47,11 +62,24 @@ const DemandView = () => {
       }
      
       const data = await response.json();
-      setDemandData(data);
-      setFilteredData(data);
+      
+      // Sort data: items with values come first, items with blank upnivesh name and ikai come last
+      const sortedData = data.sort((a, b) => {
+        // Check if demand_list has items with non-empty names
+        const aHasValidItems = a.demand_list.some(item => item[0] && item[0].trim() !== '');
+        const bHasValidItems = b.demand_list.some(item => item[0] && item[0].trim() !== '');
+        
+        if (aHasValidItems && !bHasValidItems) return -1;
+        if (!aHasValidItems && bHasValidItems) return 1;
+        return 0;
+      });
+      
+      setDemandData(sortedData);
+      setFilteredData(sortedData);
      
       // Extract unique centers for filter
       const uniqueCenters = [...new Set(data.map(item => item.center_name))];
+      console.log('Unique centers:', uniqueCenters); // Debug log
       setCenters(uniqueCenters);
     } catch (err) {
       console.error('Error fetching demand data:', err);
@@ -61,14 +89,24 @@ const DemandView = () => {
     }
   };
  
-  const handleCenterFilter = (centerName) => {
-    setSelectedCenter(centerName);
-    if (centerName === '') {
-      setFilteredData(demandData);
+  const handleCenterFilter = (centerName, isChecked) => {
+    if (isChecked) {
+      // Add center to selected centers
+      setSelectedCenters([...selectedCenters, centerName]);
     } else {
-      setFilteredData(demandData.filter(item => item.center_name === centerName));
+      // Remove center from selected centers
+      setSelectedCenters(selectedCenters.filter(center => center !== centerName));
     }
   };
+  
+  // Apply filter when selected centers change
+  useEffect(() => {
+    if (selectedCenters.length === 0) {
+      setFilteredData(demandData);
+    } else {
+      setFilteredData(demandData.filter(item => selectedCenters.includes(item.center_name)));
+    }
+  }, [selectedCenters, demandData]);
  
   const handleLogout = () => {
     clearCenter();
@@ -90,16 +128,22 @@ const DemandView = () => {
   const addTableToExport = (type) => {
     const formattedData = filteredData.map((demand) => ({
       'केंद्र नाम': demand.center_name,
-      'तिथि': formatDate(demand.created_at),
       'उत्पाद और मात्रा': demand.demand_list
-        .map((item) => `${item[0]}: ${item[1]}`)
+        .map((item) => {
+          // Handle both old format [product, quantity] and new format [product, quantity, unit]
+          if (item.length >= 3) {
+            return `${item[0]}: ${item[1]} ${item[2]}`;
+          } else {
+            return `${item[0]}: ${item[1]}`;
+          }
+        })
         .join(', '),
     }));
 
     const currentTable = {
       heading: `डिमांड व्यू - ${centerData.centerName}`,
       data: formattedData,
-      columns: ['केंद्र नाम', 'तिथि', 'उत्पाद और मात्रा'],
+      columns: ['केंद्र नाम', 'उत्पाद और मात्रा'],
     };
     setCurrentTableForExport(currentTable);
     setExportType(type);
@@ -366,7 +410,7 @@ const DemandView = () => {
                           setShowPreviewModal(true);
                         }}
                       >
-                        <RiEyeLine /> पूर्वावलोकन
+                        <RiEyeLine /> पूर्वालोकन
                       </Button>
                       <Button
                         className="pdf-add-btn"
@@ -417,7 +461,7 @@ const DemandView = () => {
                           setShowPreviewModal(true);
                         }}
                       >
-                        <RiEyeLine /> पूर्वावलोकन
+                        <RiEyeLine /> पूर्वालोकन
                       </Button>
                       <Button
                         variant="outline-success"
@@ -465,7 +509,7 @@ const DemandView = () => {
     >
       <Modal.Header closeButton className="modal-header-style">
         <div>
-          {previewType === 'pdf' ? 'PDF पूर्वावलोकन' : 'Excel पूर्वावलोकन'}
+          {previewType === 'pdf' ? 'PDF पूर्वालोकन' : 'Excel पूर्वालोकन'}
         </div>
       </Modal.Header>
       <Modal.Body style={{ maxHeight: '70vh', overflow: 'auto' }}>
@@ -488,6 +532,48 @@ const DemandView = () => {
     </Modal>
   );
 
+  const CenterFilterDropdown = () => (
+    <div ref={dropdownRef} className="position-relative">
+      <Button 
+        variant="outline-secondary" 
+        className="w-100 text-start d-flex justify-content-between align-items-center"
+        onClick={() => setDropdownOpen(!dropdownOpen)}
+      >
+        {selectedCenters.length === 0 ? 'सभी केंद्र' : `${selectedCenters.length} केंद्र चयनित`}
+        <span>▼</span>
+      </Button>
+      {dropdownOpen && (
+        <div className="position-absolute bg-black border rounded shadow-sm p-2 mt-1 w-100" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+          <Form.Check 
+            type="checkbox" 
+            label="सभी केंद्र" 
+            checked={selectedCenters.length === 0}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedCenters([]);
+              }
+            }}
+            className="mb-2"
+          />
+          {centers.length > 0 ? (
+            centers.map((center, index) => (
+              <Form.Check 
+                key={index}
+                type="checkbox" 
+                label={center} 
+                checked={selectedCenters.includes(center)}
+                onChange={(e) => handleCenterFilter(center, e.target.checked)}
+                className="mb-1"
+              />
+            ))
+          ) : (
+            <div className="text-muted text-center py-2">कोई केंद्र उपलब्ध नहीं</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
     <DashBoardHeader />
@@ -505,17 +591,8 @@ const DemandView = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
               <h5 className="mb-0">डिमांड रिकॉर्ड्स</h5>
-              <Form.Group className="mb-0" controlId="centerFilter">
-                <Form.Select
-                  value={selectedCenter}
-                  onChange={(e) => handleCenterFilter(e.target.value)}
-                  style={{ width: '200px' }}
-                >
-                  <option value="">सभी केंद्र</option>
-                  {centers.map((center, index) => (
-                    <option key={index} value={center}>{center}</option>
-                  ))}
-                </Form.Select>
+              <Form.Group className="mb-0" controlId="centerFilter" style={{ width: '200px' }}>
+                <CenterFilterDropdown />
               </Form.Group>
             </Card.Header>
             <Card.Body>
@@ -532,24 +609,21 @@ const DemandView = () => {
                     <Table striped bordered hover responsive size="sm">
                       <thead>
                         <tr>
-                          
                           <th>केंद्र नाम</th>
-                          <th>तिथि</th>
                           <th>उप-निवेश और मात्रा</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredData.map((demand, index) => (
                           <tr key={demand.id}>
-                            
                             <td>{demand.center_name}</td>
-                            <td>{formatDate(demand.created_at)}</td>
                             <td>
                               <Table striped bordered hover responsive size="sm">
                                 <thead>
                                   <tr>
                                     <th>उप-निवेश</th>
                                     <th>मात्रा</th>
+                                    <th>इकाई</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -557,11 +631,13 @@ const DemandView = () => {
                                     <tr key={itemIndex}>
                                       <td>{item[0]}</td>
                                       <td>{item[1]}</td>
+                                      <td>{item[2] || '-'}</td>
                                     </tr>
                                   ))}
                                   <tr>
                                     <td><strong>कुल</strong></td>
                                     <td><strong>{demand.demand_list.reduce((total, item) => total + parseInt(item[1]), 0)}</strong></td>
+                                    <td>-</td>
                                   </tr>
                                 </tbody>
                               </Table>
@@ -623,4 +699,4 @@ const DemandView = () => {
   );
 };
 
-export default DemandView
+export default DemandView;
