@@ -368,7 +368,7 @@ const LeftNav = ({
     //         onClick={() => toggleSection('source')}
     //         style={{ cursor: 'pointer' }}
     //       >
-    //         <Form.Label className="mb-0 fw-bold gov-form-label">प्राप्ति का सप्लायर (Source of Receipt)</Form.Label>
+    //         <Form.Label className="mb-0 fw-bold gov-form-label">सप्लायर (Source of Receipt)</Form.Label>
     //         <span>{openSections.source ? <FaAngleUp /> : <FaAngleDown />}</span>
     //       </Card.Header>
     //       <Collapse in={openSections.source}>

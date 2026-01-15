@@ -97,7 +97,7 @@ const billingTableColumns = [
   { key: "unit", label: "इकाई" },
   { key: "allocated_quantity", label: "आवंटित मात्रा" },
   { key: "rate", label: "दर" },
-  { key: "source_of_receipt", label: "प्राप्ति का सप्लायर" },
+  { key: "source_of_receipt", label: "सप्लायर" },
   { key: "scheme_name", label: "योजना का नाम" },
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
@@ -135,7 +135,7 @@ const billingTableColumnMapping = {
   },
   rate: { header: "दर", accessor: (item) => item.rate },
   source_of_receipt: {
-    header: "प्राप्ति का सप्लायर",
+    header: "सप्लायर",
     accessor: (item) => item.source_of_receipt,
   },
   scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
@@ -170,7 +170,7 @@ const translations = {
   unit: "इकाई",
   allocatedQuantity: "आवंटित मात्रा",
   rate: "दर",
-  sourceOfReceipt: "प्राप्ति का सप्लायर",
+  sourceOfReceipt: "सप्लायर",
   schemeName: "योजना का नाम",
   amountOfFarmerShare: "किसान का हिस्सा",
   amountOfSubsidy: "सब्सिडी राशि",
@@ -742,7 +742,7 @@ const Registration = () => {
           "इकाई": "बैग",
           "आवंटित मात्रा": 100,
           "दर": 450.5,
-          "प्राप्ति का सप्लायर": "PWD",
+          "सप्लायर": "PWD",
           "योजना का नाम": "MGNREGA",
           "किसान का हिस्सा": 10000,
           "सब्सिडी राशि": 20000,
@@ -763,7 +763,7 @@ const Registration = () => {
         { wch: 10 }, // इकाई
         { wch: 15 }, // आवंटित मात्रा
         { wch: 10 }, // दर
-        { wch: 15 }, // प्राप्ति का सप्लायर
+        { wch: 15 }, // सप्लायर
         { wch: 15 }, // योजना का नाम
         { wch: 15 }, // किसान का हिस्सा
         { wch: 15 }, // सब्सिडी राशि
@@ -1108,7 +1108,7 @@ const Registration = () => {
               row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0
             ),
             source_of_receipt:
-              row[headerMapping["प्राप्ति का सप्लायर"]] ||
+              row[headerMapping["सप्लायर"]] ||
               row[headerMapping["source_of_receipt"]] ||
               "",
             scheme_name:
@@ -1445,7 +1445,7 @@ const Registration = () => {
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
                     अनिवार्य फ़ील्ड: विकास खंड का नाम, विधानसभा का नाम, केंद्र का नाम, निवेश का नाम, 
-                    उप-निवेश का नाम, इकाई, आवंटित मात्रा, दर, प्राप्ति का सप्लायर, योजना का नाम, 
+                    उप-निवेश का नाम, इकाई, आवंटित मात्रा, दर, सप्लायर, योजना का नाम, 
                     किसान का हिस्सा, सब्सिडी राशि, कुल राशि
                   </li>
                   <li>आवंटित मात्रा, दर, किसान का हिस्सा, सब्सिडी राशि और कुल राशि संख्यात्मक होनी चाहिए</li>
