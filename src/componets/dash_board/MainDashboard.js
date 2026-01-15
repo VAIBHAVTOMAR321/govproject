@@ -1524,6 +1524,9 @@ const MainDashboard = () => {
     const visibleColumns =
       tableColumnFilters.additional[index] || table.columns;
 
+    // Get the current toggle state for this table
+    const showDar = table.isAllocationTable && allocationTableToggles[index];
+
     // Create a modified data array with expanded values if needed
     const modifiedData = table.data.map((row) => {
       const newRow = { ...row };
@@ -1553,6 +1556,16 @@ const MainDashboard = () => {
 
             // Replace the count with the joined values
             newRow[col] = uniqueValues.join(", ");
+          }
+        });
+      } else {
+        // For allocation tables, apply the dar/matra toggle
+        visibleColumns.forEach((col) => {
+          if (col !== table.columns[0] && col !== "कुल") {
+            // Check if the _dar column exists in the original data
+            newRow[col] = showDar 
+              ? (row[`${col}_dar`] !== undefined ? row[`${col}_dar`] : row[col] || "0")
+              : row[col] || "0";
           }
         });
       }
@@ -1599,17 +1612,28 @@ const MainDashboard = () => {
           .reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0)
           .toFixed(2);
       } else if (col === "कुल") {
-        // For allocation table total
-        totals[col] = filteredTableData
-          .reduce(
-            (sum, row) =>
-              sum +
-              visibleColumns
-                .filter((c) => c !== "कुल")
-                .reduce((s, c) => s + parseFloat(row[c] || 0), 0),
-            0
-          )
-          .toFixed(2);
+        // For allocation table total - use the correct values based on toggle
+        if (table.isAllocationTable && showDar) {
+          // For dar view, sum the _dar values from the original data
+          const totalRow = table.data.find(
+            (row) => row[table.columns[0]] === "कुल"
+          );
+          totals[col] = totalRow 
+            ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
+            : "0";
+        } else {
+          // For matra view, sum the regular values
+          totals[col] = filteredTableData
+            .reduce(
+              (sum, row) =>
+                sum +
+                visibleColumns
+                  .filter((c) => c !== "कुल")
+                  .reduce((s, c) => s + parseFloat(row[c] || 0), 0),
+              0
+            )
+            .toFixed(2);
+        }
       } else {
         // Dynamic columns
         const isExpanded = expandedColumns[`total_${col}`];
@@ -1664,6 +1688,8 @@ const MainDashboard = () => {
       data: modifiedData,
       columns: visibleColumns,
       totals: totals,
+      isAllocationTable: table.isAllocationTable,
+      showDar: showDar, // Store the toggle state
     });
     setShowTableSelectionModal(true);
   };
@@ -1702,10 +1728,14 @@ const MainDashboard = () => {
 
       table.data.forEach((dataRow, idx) => {
         if (dataRow[firstColLabel] !== "कुल") {
-          newRow[rowHeaders[idx]] = dataRow[col];
-          // Also add the _dar version if it's an allocation table
-          if (table.isAllocationTable && dataRow[`${col}_dar`]) {
-            newRow[`${rowHeaders[idx]}_dar`] = dataRow[`${col}_dar`];
+          // For allocation tables, respect the dar/matra toggle
+          if (table.isAllocationTable && table.showDar) {
+            // Check if the _dar column exists in the original data
+            newRow[rowHeaders[idx]] = dataRow[`${col}_dar`] !== undefined 
+              ? dataRow[`${col}_dar`] 
+              : dataRow[col] || "0";
+          } else {
+            newRow[rowHeaders[idx]] = dataRow[col] || "";
           }
         }
       });
@@ -1713,9 +1743,13 @@ const MainDashboard = () => {
       // Add total row for this column
       const totalRow = table.data.find((row) => row[firstColLabel] === "कुल");
       if (totalRow) {
-        newRow["कुल"] = totalRow[col];
-        if (table.isAllocationTable && totalRow[`${col}_dar`]) {
-          newRow["कुल_dar"] = totalRow[`${col}_dar`];
+        if (table.isAllocationTable && table.showDar) {
+          // Check if the _dar column exists in the total row
+          newRow["कुल"] = totalRow[`${col}_dar`] !== undefined 
+            ? totalRow[`${col}_dar`] 
+            : totalRow[col] || "0";
+        } else {
+          newRow["कुल"] = totalRow[col] || "";
         }
       }
 
@@ -1745,6 +1779,8 @@ const MainDashboard = () => {
       totals: currentTableForExport.totals || {},
       addedAt: new Date().toLocaleString(),
       isRotated: getTableRotationStatus(),
+      isAllocationTable: currentTableForExport.isAllocationTable,
+      showDar: currentTableForExport.showDar, // Store the toggle state
     };
     setTablesForExport((prev) => ({
       ...prev,
@@ -2843,6 +2879,8 @@ const MainDashboard = () => {
       addedAt: new Date().toLocaleString(),
       addToExistingSheet: true,
       existingSheetId: existingTableId,
+      isAllocationTable: currentTableForExport.isAllocationTable,
+      showDar: currentTableForExport.showDar, // Store the toggle state
     };
 
     setTablesForExport((prev) => ({
@@ -4228,7 +4266,8 @@ const MainDashboard = () => {
                                           {tableColumnOrder
                                             .filter(
                                               (col) =>
-                                                col !== currentFilter.column &&
+                                                col !==
+                                                  currentFilter.column &&
                                                 !columnDefs[col].hidden
                                             )
                                             .filter((col) =>
@@ -4452,7 +4491,8 @@ const MainDashboard = () => {
                                                   col !== "rate" &&
                                                   col !==
                                                     "amount_of_farmer_share" &&
-                                                  col !== "amount_of_subsidy" &&
+                                                  col !==
+                                                    "amount_of_subsidy" &&
                                                   col !== "total_amount"
                                               )
                                               .forEach((col) => {
@@ -4488,7 +4528,8 @@ const MainDashboard = () => {
                                                   col !== "rate" &&
                                                   col !==
                                                     "amount_of_farmer_share" &&
-                                                  col !== "amount_of_subsidy" &&
+                                                  col !==
+                                                    "amount_of_subsidy" &&
                                                   col !== "total_amount"
                                               )
                                               .sort(
@@ -4717,8 +4758,7 @@ const MainDashboard = () => {
                                                     col !== "rate" &&
                                                     col !==
                                                       "amount_of_farmer_share" &&
-                                                    col !==
-                                                      "amount_of_subsidy" &&
+                                                    col !== "amount_of_subsidy" &&
                                                     col !== "total_amount"
                                                 )
                                                 .sort(
@@ -5499,10 +5539,7 @@ const MainDashboard = () => {
                                                         // Add total column (कुल)
                                                         const totalRow =
                                                           table.data.find(
-                                                            (row) =>
-                                                              row[
-                                                                table.columns[0]
-                                                              ] === "कुल"
+                                                            (row) => row[table.columns[0]] === "कुल"
                                                           );
                                                         if (totalRow) {
                                                           if (
@@ -5616,10 +5653,8 @@ const MainDashboard = () => {
                                                                     {showDar
                                                                       ? row[
                                                                           `${col}_dar`
-                                                                        ] || "0"
-                                                                      : row[
-                                                                          col
-                                                                        ] ||
+                                                                        ] !== undefined ? row[`${col}_dar`] : row[col] || "0"
+                                                                      : row[col] ||
                                                                         "0"}
                                                                   </td>
                                                                 )
@@ -5628,36 +5663,35 @@ const MainDashboard = () => {
                                                               "कुल"
                                                             ) && (
                                                               <td>
-                                                                {showDar
-                                                                  ? row[
-                                                                      "कुल_dar"
-                                                                    ] || "0"
-                                                                  : visibleColumns
-                                                                      .filter(
-                                                                        (col) =>
-                                                                          col !==
-                                                                            table
-                                                                              .columns[0] &&
+                                                                {(() => {
+                                                                  // Get the total from the total row for dar view
+                                                                  const totalRow = table.data.find(
+                                                                    (row) => row[table.columns[0]] === "कुल"
+                                                                  );
+                                                                  return showDar
+                                                                    ? (totalRow 
+                                                                      ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
+                                                                      : "0")
+                                                                    : visibleColumns
+                                                                        .filter(
+                                                                          (col) =>
+                                                                            col !==
+                                                                              table
+                                                                                .columns[0] &&
                                                                           col !==
                                                                             "कुल"
-                                                                      )
-                                                                      .reduce(
-                                                                        (
-                                                                          sum,
-                                                                          col
-                                                                        ) =>
-                                                                          sum +
-                                                                          parseFloat(
-                                                                            row[
-                                                                              col
-                                                                            ] ||
-                                                                              0
-                                                                          ),
-                                                                        0
-                                                                      )
-                                                                      .toFixed(
-                                                                        2
-                                                                      )}
+                                                                        )
+                                                                        .reduce(
+                                                                          (sum, col) =>
+                                                                            sum +
+                                                                            parseFloat(
+                                                                              row[col] ||
+                                                                                0
+                                                                            ),
+                                                                          0
+                                                                        )
+                                                                        .toFixed(2);
+                                                                })()}
                                                               </td>
                                                             )}
                                                           </>
@@ -6065,42 +6099,29 @@ const MainDashboard = () => {
                                                                 (col, idx) => (
                                                                   <td key={idx}>
                                                                     {showDar
-                                                                      ? filteredData
-                                                                          .reduce(
-                                                                            (
-                                                                              sum,
-                                                                              row
-                                                                            ) =>
-                                                                              sum +
-                                                                              parseFloat(
-                                                                                row[
-                                                                                  `${col}_dar`
-                                                                                ] ||
-                                                                                  0
-                                                                              ),
-                                                                            0
-                                                                          )
-                                                                          .toFixed(
-                                                                            2
-                                                                          )
-                                                                      : filteredData
-                                                                          .reduce(
-                                                                            (
-                                                                              sum,
-                                                                              row
-                                                                            ) =>
-                                                                              sum +
-                                                                              parseFloat(
-                                                                                row[
-                                                                                  col
-                                                                                ] ||
-                                                                                  0
-                                                                              ),
-                                                                            0
-                                                                          )
-                                                                          .toFixed(
-                                                                            2
-                                                                          )}
+                                                                      ? (() => {
+                                                                          // Get the total from the total row for dar view
+                                                                          const totalRow = table.data.find(
+                                                                            (row) => row[table.columns[0]] === "कुल"
+                                                                          );
+                                                                          return totalRow 
+                                                                            ? (totalRow[`${col}_dar`] !== undefined ? totalRow[`${col}_dar`] : totalRow[col] || "0")
+                                                                            : "0";
+                                                                        })()
+                                                                      : (() => {
+                                                                          // Calculate total for matra view
+                                                                          return filteredData
+                                                                            .reduce(
+                                                                              (sum, row) =>
+                                                                                sum +
+                                                                                parseFloat(
+                                                                                  row[col] ||
+                                                                                    0
+                                                                                ),
+                                                                              0
+                                                                            )
+                                                                            .toFixed(2);
+                                                                        })()}
                                                                   </td>
                                                                 )
                                                               )}
@@ -6108,62 +6129,44 @@ const MainDashboard = () => {
                                                               "कुल"
                                                             ) && (
                                                               <td>
-                                                                {showDar
-                                                                  ? filteredData
-                                                                      .reduce(
-                                                                        (
-                                                                          sum,
-                                                                          row
-                                                                        ) =>
-                                                                          sum +
-                                                                          parseFloat(
-                                                                            row[
-                                                                              "कुल_dar"
-                                                                            ] ||
-                                                                              0
-                                                                          ),
-                                                                        0
-                                                                      )
-                                                                      .toFixed(
-                                                                        2
-                                                                      )
-                                                                  : filteredData
-                                                                      .reduce(
-                                                                        (
-                                                                          sum,
-                                                                          row
-                                                                        ) =>
-                                                                          sum +
-                                                                          visibleColumns
-                                                                            .filter(
-                                                                              (
-                                                                                col
-                                                                              ) =>
-                                                                                col !==
-                                                                                  table
-                                                                                    .columns[0] &&
-                                                                                col !==
-                                                                                  "कुल"
-                                                                            )
-                                                                            .reduce(
-                                                                              (
-                                                                                s,
-                                                                                col
-                                                                              ) =>
-                                                                                s +
-                                                                                parseFloat(
-                                                                                  row[
-                                                                                    col
-                                                                                  ] ||
-                                                                                    0
+                                                                {(() => {
+                                                                  // Get the total from the total row for dar view
+                                                                  const totalRow = table.data.find(
+                                                                    (row) => row[table.columns[0]] === "कुल"
+                                                                  );
+                                                                  return showDar
+                                                                    ? (totalRow 
+                                                                      ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
+                                                                      : "0")
+                                                                    : (() => {
+                                                                        // Calculate total for matra view
+                                                                        return filteredData
+                                                                          .reduce(
+                                                                            (sum, row) =>
+                                                                              sum +
+                                                                              visibleColumns
+                                                                                .filter(
+                                                                                  (col) =>
+                                                                                    col !==
+                                                                                      table
+                                                                                        .columns[0] &&
+                                                                                    col !==
+                                                                                      "कुल"
+                                                                                )
+                                                                                .reduce(
+                                                                                  (s, col) =>
+                                                                                    s +
+                                                                                    parseFloat(
+                                                                                      row[col] ||
+                                                                                        0
+                                                                                    ),
+                                                                                  0
                                                                                 ),
-                                                                              0
-                                                                            ),
-                                                                        0
-                                                                      )
-                                                                      .toFixed(
-                                                                        2
-                                                                      )}
+                                                                            0
+                                                                          )
+                                                                          .toFixed(2);
+                                                                      })();
+                                                                })()}
                                                               </td>
                                                             )}
                                                           </>
