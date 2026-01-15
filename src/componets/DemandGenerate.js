@@ -177,7 +177,7 @@ const DemandGenerate = () => {
   };
 
   const handleSubmit = async () => {
-    // Prepare demand list in the required format: [["product 1","5454"]]
+    // Prepare demand list in the required format: [["product 1","5454","unit"]]
     const demandList = [];
     filteredData.forEach(investment => {
       investment.sub_investments.forEach(subInvestment => {
@@ -186,7 +186,7 @@ const DemandGenerate = () => {
         
         // Only include items that are not disabled and have a quantity > 0
         if (quantity > 0 && !disabledItems[quantityKey]) {
-          demandList.push([subInvestment.sub_investment_name, quantity.toString()]);
+          demandList.push([subInvestment.sub_investment_name, quantity.toString(), subInvestment.unit]);
         }
       });
     });
@@ -272,6 +272,7 @@ const DemandGenerate = () => {
                       <tr>
                         <th>उपनिवेश नाम</th>
                         <th>(Sub-investment)</th>
+                        <th>इकाई (Unit)</th>
                         <th>मात्रा (Quantity)</th>
                         <th>दर (Rate)</th>
                         <th>योग (Total)</th>
@@ -294,6 +295,7 @@ const DemandGenerate = () => {
                                   </td>
                                 )}
                                 <td>{subInvestment.sub_investment_name}</td>
+                                <td>{subInvestment.unit}</td>
                                 <td>
                                   <Form.Control
                                     type="number"
@@ -322,13 +324,13 @@ const DemandGenerate = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="5" className="text-center">कोई डेटा नहीं मिला</td>
+                          <td colSpan="6" className="text-center">कोई डेटा नहीं मिला</td>
                         </tr>
                       )}
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan="4" className="text-end fw-bold">कुल योग (Total):</td>
+                        <td colSpan="5" className="text-end fw-bold">कुल योग (Total):</td>
                         <td className="fw-bold">{totalAmount.toFixed(2)}</td>
                       </tr>
                     </tfoot>
