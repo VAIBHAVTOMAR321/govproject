@@ -204,7 +204,7 @@ const DemandGenerate = () => {
       };
       
       const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/', {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
