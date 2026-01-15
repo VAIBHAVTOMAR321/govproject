@@ -535,7 +535,7 @@ const DemandView = () => {
                           
                           <th>केंद्र नाम</th>
                           <th>तिथि</th>
-                          <th>उत्पाद और मात्रा</th>
+                          <th>उप-निवेश और मात्रा</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -548,7 +548,7 @@ const DemandView = () => {
                               <Table striped bordered hover responsive size="sm">
                                 <thead>
                                   <tr>
-                                    <th>उत्पाद</th>
+                                    <th>उप-निवेश</th>
                                     <th>मात्रा</th>
                                   </tr>
                                 </thead>
@@ -560,7 +560,7 @@ const DemandView = () => {
                                     </tr>
                                   ))}
                                   <tr>
-                                    <td><strong>Total</strong></td>
+                                    <td><strong>कुल</strong></td>
                                     <td><strong>{demand.demand_list.reduce((total, item) => total + parseInt(item[1]), 0)}</strong></td>
                                   </tr>
                                 </tbody>
