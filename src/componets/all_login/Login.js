@@ -265,10 +265,10 @@ export default function Login() {
                     <div className="mb-4">
                       <Dropdown className="w-100">
                         <Dropdown.Toggle variant="outline-secondary" id="login-type-dropdown" className="w-100">
-                          {loginType === "regular" ? "Regular Login" : "Demand Generate Login"}
+                          {loginType === "regular" ? "Department Login" : "Demand Generate Login"}
                         </Dropdown.Toggle>
                         <Dropdown.Menu className="w-100">
-                          <Dropdown.Item onClick={() => setLoginType("regular")}>Regular Login</Dropdown.Item>
+                          <Dropdown.Item onClick={() => setLoginType("regular")}>Department Login</Dropdown.Item>
                           <Dropdown.Item onClick={() => setLoginType("demand")}>Demand Generate Login</Dropdown.Item>
                         </Dropdown.Menu>
                       </Dropdown>
