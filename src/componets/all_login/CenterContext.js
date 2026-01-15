@@ -18,20 +18,39 @@ export const CenterProvider = ({ children }) => {
     isLoggedIn: false,
   });
 
+  useEffect(() => {
+    const storedCenterData = localStorage.getItem('centerData');
+    if (storedCenterData) {
+      setCenterData(JSON.parse(storedCenterData));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (centerData.isLoggedIn) {
+      localStorage.setItem('centerData', JSON.stringify(centerData));
+    } else {
+      localStorage.removeItem('centerData');
+    }
+  }, [centerData]);
+
   const setCenter = (id, name) => {
-    setCenterData({
+    const newCenterData = {
       centerId: id,
       centerName: name,
       isLoggedIn: true,
-    });
+    };
+    setCenterData(newCenterData);
+    localStorage.setItem('centerData', JSON.stringify(newCenterData));
   };
 
   const clearCenter = () => {
-    setCenterData({
+    const clearedCenterData = {
       centerId: '',
       centerName: '',
       isLoggedIn: false,
-    });
+    };
+    setCenterData(clearedCenterData);
+    localStorage.removeItem('centerData');
   };
 
   return (
