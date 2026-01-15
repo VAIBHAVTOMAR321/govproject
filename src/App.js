@@ -92,7 +92,7 @@ function App() {
             } />
             <Route path="/DemandGenerate" element={
               <ProtectedRoute>
-                <DemandGenerate />
+              <DemandGenerate />
               </ProtectedRoute>
             } />
             <Route path="/KendraPasswordReset" element={
