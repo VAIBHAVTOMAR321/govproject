@@ -4733,826 +4733,456 @@ const MainDashboard = () => {
                                             className="table-thead-style"
                                           >
                                             <thead className="table-thead">
-                                              <tr>
-                                                {(() => {
-                                                  const isTableRotated =
-                                                    isRotated[index] || false;
-                                                  if (isTableRotated) {
-                                                    const transposedColumns =
-                                                      table.data.map(
-                                                        (row) =>
-                                                          row[table.columns[0]]
-                                                      );
-                                                    const transposedTableColumns =
-                                                      [
-                                                        table.columns[0],
-                                                        ...transposedColumns,
-                                                      ];
-                                                    return transposedTableColumns.map(
-                                                      (col, idx) => (
-                                                        <th key={idx}>{col}</th>
-                                                      )
-                                                    );
-                                                  } else {
-                                                    const visibleDynamicColumns =
-                                                      additionalTableColumnFilters[
-                                                        index
-                                                      ] ||
-                                                      (table.isAllocationTable
-                                                        ? table.columns.slice(
-                                                            1,
-                                                            -1
-                                                          )
-                                                        : table.columns.slice(
-                                                            2,
-                                                            -2
-                                                          ));
-                                                    const visibleColumns =
-                                                      table.isAllocationTable
-                                                        ? [
-                                                            table.columns[0],
-                                                            ...visibleDynamicColumns,
-                                                            "कुल",
-                                                          ]
-                                                        : [
-                                                            table.columns[0],
-                                                            "कुल रिकॉर्ड",
-                                                            ...visibleDynamicColumns,
-                                                            "कुल आवंटित मात्रा",
-                                                            "कुल किसान की हिस्सेदारी",
-                                                            "कुल सब्सिडी",
-                                                            "कुल राशि",
-                                                          ];
-                                                    return visibleColumns.map(
-                                                      (col, idx) => (
-                                                        <th key={idx}>
-                                                          {col}
-                                                          {!table.isAllocationTable &&
-                                                            col !==
-                                                              table
-                                                                .columns[0] &&
-                                                            col !==
-                                                              "कुल रिकॉर्ड" &&
-                                                            col !==
-                                                              "कुल आवंटित मात्रा" &&
-                                                            col !==
-                                                              "कुल किसान की हिस्सेदारी" &&
-                                                            col !==
-                                                              "कुल सब्सिडी" &&
-                                                            col !==
-                                                              "कुल राशि" && (
-                                                              <Button
-                                                                variant="link"
-                                                                size="sm"
-                                                                className="p-0 ms-1"
-                                                                style={{
-                                                                  fontSize:
-                                                                    "10px",
-                                                                  textDecoration:
-                                                                    "underline",
-                                                                }}
-                                                                onClick={() =>
-                                                                  toggleColumnExpansion(
-                                                                    index,
-                                                                    col
-                                                                  )
-                                                                }
-                                                              >
-                                                                {expandedColumns[
-                                                                  `${index}_${col}`
-                                                                ]
-                                                                  ? "Hide"
-                                                                  : "Show"}
-                                                              </Button>
-                                                            )}
-                                                        </th>
-                                                      )
-                                                    );
-                                                  }
-                                                })()}
-                                              </tr>
-                                            </thead>
+  <tr>
+    {(() => {
+      const isTableRotated = isRotated[index] || false;
+      if (isTableRotated) {
+        const transposedColumns = table.data.map(
+          (row) => row[table.columns[0]]
+        );
+        const transposedTableColumns = [
+          table.columns[0],
+          ...transposedColumns,
+        ];
+        return transposedTableColumns.map((col, idx) => (
+          <th key={idx}>{col}</th>
+        ));
+      } else {
+        const visibleDynamicColumns =
+          additionalTableColumnFilters[index] ||
+          (table.isAllocationTable
+            ? table.columns.slice(1, -1)
+            : table.columns.slice(2, -2));
+        const visibleColumns = table.isAllocationTable
+          ? [
+              table.columns[0],
+              ...visibleDynamicColumns,
+              "कुल",
+            ]
+          : [
+              table.columns[0],
+              "कुल रिकॉर्ड",
+              ...visibleDynamicColumns,
+              "कुल आवंटित मात्रा",
+              "कुल किसान की हिस्सेदारी",
+              "कुल सब्सिडी",
+              "कुल राशि",
+            ];
+        return visibleColumns.map((col, idx) => (
+          <th key={idx}>
+            {col}
+            {!table.isAllocationTable &&
+              col !== table.columns[0] &&
+              col !== "कुल रिकॉर्ड" &&
+              col !== "कुल आवंटित मात्रा" &&
+              col !== "कुल किसान की हिस्सेदारी" &&
+              col !== "कुल सब्सिडी" &&
+              col !== "कुल राशि" && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-0 ms-1"
+                  style={{
+                    fontSize: "10px",
+                    textDecoration: "underline",
+                  }}
+                  onClick={() => toggleColumnExpansion(index, col)}
+                >
+                  {expandedColumns[`${index}_${col}`] ? "Hide" : "Show"}
+                </Button>
+              )}
+          </th>
+        ));
+      }
+    })()}
+  </tr>
+</thead>
                                             <tbody>
-                                              {(() => {
-                                                const isTableRotated =
-                                                  isRotated[index] || false;
-                                                const showDar =
-                                                  table.isAllocationTable &&
-                                                  allocationTableToggles[index];
-                                                
-                                                if (isTableRotated) {
-                                                  // ... existing rotated table code ...
-                                                  const transposedColumns =
-                                                    table.data.map(
-                                                      (row) =>
-                                                        row[table.columns[0]]
-                                                    );
-                                                  const transposedData =
-                                                    table.columns
-                                                      .slice(1)
-                                                      .map((col, idx) => {
-                                                        const row = {
-                                                          [table.columns[0]]:
-                                                            col,
-                                                        };
-                                                        transposedColumns.forEach(
-                                                          (newCol, colIdx) => {
-                                                            row[newCol] = table
-                                                              .data[colIdx]
-                                                              ? table.data[
-                                                                  colIdx
-                                                                ][col]
-                                                              : "";
-                                                          }
-                                                        );
-                                                        return row;
-                                                      });
-                                                  return transposedData.map(
-                                                    (row, rowIndex) => (
-                                                      <tr key={rowIndex}>
-                                                        {Object.keys(row).map(
-                                                          (col, colIdx) => (
-                                                            <td key={colIdx}>
-                                                              {row[col] || ""}
-                                                            </td>
-                                                          )
-                                                        )}
-                                                      </tr>
-                                                    )
-                                                  );
-                                                } else {
-                                                  const visibleDynamicColumns =
-                                                    additionalTableColumnFilters[
-                                                      index
-                                                    ] ||
-                                                    (table.isAllocationTable
-                                                      ? table.columns.slice(1)
-                                                      : table.columns.slice(
-                                                          2,
-                                                          -2
-                                                        ));
-                                                  return table.data
-                                                    .filter(
-                                                      (row) =>
-                                                        row[
-                                                          table.columns[0]
-                                                        ] !== "कुल"
-                                                    ) // Filter out any existing total row
-                                                    .map((row, rowIndex) => (
-                                                      <tr key={rowIndex}>
-                                                        <td
-                                                          style={{
-                                                            cursor: "pointer",
-                                                            color: "blue",
-                                                            fontWeight: "bold",
-                                                          }}
-                                                          onClick={() => {
-                                                            // Add a new filter to the stack with this value
-                                                            handleSummaryValueClick(
-                                                              table.columnKey,
-                                                              row[
-                                                                table.columns[0]
-                                                              ]
-                                                            );
-                                                          }}
-                                                        >
-                                                          {
-                                                            row[
-                                                              table.columns[0]
-                                                            ]
-                                                          }
-                                                        </td>
-                                                        {table.isAllocationTable ? (
-                                                          // For allocation tables, show either dar or matra based on toggle
-                                                          <>
-                                                            {visibleDynamicColumns.map(
-                                                              (col, colIdx) => (
-                                                                <td
-                                                                  key={colIdx}
-                                                                >
-                                                                  {showDar
-                                                                    ? row[`${col}_dar`] ||
-                                                                      "0"
-                                                                    : row[col] ||
-                                                                      "0"}
-                                                                </td>
-                                                              )
-                                                            )}
-                                                            <td>
-                                                              {showDar
-                                                                ? row["कुल_dar"] ||
-                                                                  "0"
-                                                                : visibleDynamicColumns
-                                                                    .reduce(
-                                                                      (sum, col) =>
-                                                                        sum +
-                                                                        parseFloat(
-                                                                          row[col] ||
-                                                                            0
-                                                                        ),
-                                                                      0
-                                                                    )
-                                                                    .toFixed(2)}
-                                                            </td>
-                                                          </>
-                                                        ) : (
-                                                          <>
-                                                            <td
-                                                              style={{
-                                                                cursor:
-                                                                  "pointer",
-                                                                color: "blue",
-                                                                fontWeight:
-                                                                  "bold",
-                                                              }}
-                                                              onClick={() => {
-                                                                // Add a new filter to the stack with this value and show detailed view
-                                                                handleSummaryValueClick(
-                                                                  table.columnKey,
-                                                                  row[
-                                                                    table
-                                                                      .columns[0]
-                                                                  ]
-                                                                );
-                                                                setShowDetailed(
-                                                                  true
-                                                                );
-                                                              }}
-                                                            >
-                                                              {
-                                                                row[
-                                                                  "कुल रिकॉर्ड"
-                                                                ]
-                                                              }
-                                                            </td>
-                                                            {visibleDynamicColumns.map(
-                                                              (col, colIdx) => {
-                                                                // Check if this column is expanded to show values instead of count
-                                                                const isExpanded =
-                                                                  expandedColumns[
-                                                                    `${index}_${col}`
-                                                                  ];
-                                                                const columnKey =
-                                                                  Object.keys(
-                                                                    columnDefs
-                                                                  ).find(
-                                                                    (k) =>
-                                                                      columnDefs[
-                                                                        k
-                                                                      ]
-                                                                        .label ===
-                                                                      col
-                                                                  );
+  {(() => {
+    const isTableRotated = isRotated[index] || false;
+    const showDar = table.isAllocationTable && allocationTableToggles[index];
+    
+    if (isTableRotated) {
+      // ... existing rotated table code ...
+      const transposedColumns = table.data.map(
+        (row) => row[table.columns[0]]
+      );
+      const transposedData = table.columns
+        .slice(1)
+        .map((col, idx) => {
+          const row = {
+            [table.columns[0]]: col,
+          };
+          transposedColumns.forEach((newCol, colIdx) => {
+            row[newCol] = table.data[colIdx]
+              ? table.data[colIdx][col]
+              : "";
+          });
+          return row;
+        });
+      return transposedData.map((row, rowIndex) => (
+        <tr key={rowIndex}>
+          {Object.keys(row).map((col, colIdx) => (
+            <td key={colIdx}>{row[col] || ""}</td>
+          ))}
+        </tr>
+      ));
+    } else {
+      const visibleDynamicColumns =
+        additionalTableColumnFilters[index] ||
+        (table.isAllocationTable
+          ? table.columns.slice(1)
+          : table.columns.slice(2, -2));
+      return table.data
+        .filter((row) => row[table.columns[0]] !== "कुल") // Filter out any existing total row
+        .map((row, rowIndex) => (
+          <tr key={rowIndex}>
+            <td
+              style={{
+                cursor: "pointer",
+                color: "blue",
+                fontWeight: "bold",
+              }}
+              onClick={() => {
+                // Add a new filter to the stack with this value
+                handleSummaryValueClick(
+                  table.columnKey,
+                  row[table.columns[0]]
+                );
+              }}
+            >
+              {row[table.columns[0]]}
+            </td>
+            {table.isAllocationTable ? (
+              // For allocation tables, show either dar or matra based on toggle
+              <>
+                {visibleDynamicColumns.map((col, colIdx) => (
+                  <td key={colIdx}>
+                    {showDar
+                      ? row[`${col}_dar`] || "0"
+                      : row[col] || "0"}
+                  </td>
+                ))}
+                <td>
+                  {showDar
+                    ? row["कुल_dar"] || "0"
+                    : visibleDynamicColumns
+                        .reduce(
+                          (sum, col) => sum + parseFloat(row[col] || 0),
+                          0
+                        )
+                        .toFixed(2)}
+                </td>
+              </>
+            ) : (
+              <>
+                <td
+                  style={{
+                    cursor: "pointer",
+                    color: "blue",
+                    fontWeight: "bold",
+                  }}
+                  onClick={() => {
+                    // Add a new filter to the stack with this value and show detailed view
+                    handleSummaryValueClick(
+                      table.columnKey,
+                      row[table.columns[0]]
+                    );
+                    setShowDetailed(true);
+                  }}
+                >
+                  {row["कुल रिकॉर्ड"]}
+                </td>
+                {visibleDynamicColumns.map((col, colIdx) => {
+                  // Check if this column is expanded to show values instead of count
+                  const isExpanded = expandedColumns[`${index}_${col}`];
+                  const columnKey = Object.keys(columnDefs).find(
+                    (k) => columnDefs[k].label === col
+                  );
 
-                                                                if (
-                                                                  isExpanded &&
-                                                                  columnKey
-                                                                ) {
-                                                                  // Get the current filtered data for this row
-                                                                  const currentFilteredData =
-                                                                    tableData.filter(
-                                                                      (
-                                                                        item
-                                                                      ) => {
-                                                                        for (let filter of filterStack) {
-                                                                          if (
-                                                                            !filter
-                                                                              .checked[
-                                                                              item[
-                                                                                filter
-                                                                                  .column
-                                                                              ]
-                                                                            ]
-                                                                          )
-                                                                            return false;
-                                                                        }
-                                                                        return (
-                                                                          item[
-                                                                            table
-                                                                              .columnKey
-                                                                          ] ===
-                                                                          row[
-                                                                            table
-                                                                              .columns[0]
-                                                                          ]
-                                                                        );
-                                                                      }
-                                                                    );
+                  if (isExpanded && columnKey) {
+                    // Get the current filtered data for this row
+                    const currentFilteredData = tableData.filter((item) => {
+                      for (let filter of filterStack) {
+                        if (!filter.checked[item[filter.column]]) return false;
+                      }
+                      return (
+                        item[table.columnKey] === row[table.columns[0]]
+                      );
+                    });
 
-                                                                  // Get unique values for this column
-                                                                  const uniqueValues =
-                                                                    getUniqueValuesForColumn(
-                                                                      currentFilteredData,
-                                                                      columnKey
-                                                                    );
+                    // Get unique values for this column
+                    const uniqueValues = getUniqueValuesForColumn(
+                      currentFilteredData,
+                      columnKey
+                    );
 
-                                                                  return (
-                                                                    <td
-                                                                      key={
-                                                                        colIdx
-                                                                      }
-                                                                      style={{
-                                                                        maxWidth:
-                                                                          "200px",
-                                                                      }}
-                                                                    >
-                                                                      <div
-                                                                        style={{
-                                                                          maxHeight:
-                                                                            "100px",
-                                                                          overflowY:
-                                                                            "auto",
-                                                                        }}
-                                                                      >
-                                                                        {uniqueValues.map(
-                                                                          (
-                                                                            val,
-                                                                            valIdx
-                                                                          ) => (
-                                                                            <div
-                                                                              key={
-                                                                                valIdx
-                                                                              }
-                                                                              style={{
-                                                                                fontSize:
-                                                                                  "11px",
-                                                                              }}
-                                                                            >
-                                                                              {
-                                                                                val
-                                                                              }
-                                                                            </div>
-                                                                          )
-                                                                        )}
-                                                                      </div>
-                                                                    </td>
-                                                                  );
-                                                                } else {
-                                                                  return (
-                                                                    <td
-                                                                      key={
-                                                                        colIdx
-                                                                      }
-                                                                      style={{
-                                                                        cursor:
-                                                                          "pointer",
-                                                                        color:
-                                                                          "blue",
-                                                                        fontWeight:
-                                                                          "bold",
-                                                                      }}
-                                                                      onClick={() => {
-                                                                        // Find the column key for this label
-                                                                        const colKey =
-                                                                          Object.keys(
-                                                                            columnDefs
-                                                                          ).find(
-                                                                            (
-                                                                              k
-                                                                            ) =>
-                                                                              columnDefs[
-                                                                                k
-                                                                              ]
-                                                                                .label ===
-                                                                              col
-                                                                          );
-                                                                        if (
-                                                                          colKey
-                                                                        ) {
-                                                                          // Get the data for this value
-                                                                          const currentFilteredData =
-                                                                            tableData.filter(
-                                                                              (
-                                                                                item
-                                                                              ) => {
-                                                                                for (let filter of filterStack) {
-                                                                                  if (
-                                                                                    !filter
-                                                                                      .checked[
-                                                                                      item[
-                                                                                        filter
-                                                                                          .column
-                                                                                      ]
-                                                                                    ]
-                                                                                  )
-                                                                                    return false;
-                                                                                }
-                                                                                return (
-                                                                                  item[
-                                                                                    table
-                                                                                      .columnKey
-                                                                                  ] ===
-                                                                                  row[
-                                                                                    table
-                                                                                      .columns[0]
-                                                                                  ]
-                                                                                );
-                                                                              }
-                                                                            );
+                    return (
+                      <td key={colIdx} style={{ maxWidth: "200px" }}>
+                        <div
+                          style={{
+                            maxHeight: "100px",
+                            overflowY: "auto",
+                          }}
+                        >
+                          {uniqueValues.map((val, valIdx) => (
+                            <div key={valIdx} style={{ fontSize: "11px" }}>
+                              {val}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    );
+                  } else {
+                    return (
+                      <td
+                        key={colIdx}
+                        style={{
+                          cursor: "pointer",
+                          color: "blue",
+                          fontWeight: "bold",
+                        }}
+                        onClick={() => {
+                          // Find the column key for this label
+                          const colKey = Object.keys(columnDefs).find(
+                            (k) => columnDefs[k].label === col
+                          );
+                          if (colKey) {
+                            // Get the data for this value
+                            const currentFilteredData = tableData.filter(
+                              (item) => {
+                                for (let filter of filterStack) {
+                                  if (!filter.checked[item[filter.column]])
+                                    return false;
+                                }
+                                return (
+                                  item[table.columnKey] ===
+                                  row[table.columns[0]]
+                                );
+                              }
+                            );
 
-                                                                          // Generate a new summary table
-                                                                          const summary =
-                                                                            generateSummary(
-                                                                              currentFilteredData,
-                                                                              colKey
-                                                                            );
-                                                                          // Generate allocation table with the clicked column as the first column
-                                                                          const allocationTable =
-                                                                            generateAllocationTable(
-                                                                              colKey,
-                                                                              row[
-                                                                                table
-                                                                                  .columns[0]
-                                                                              ],
-                                                                              table.columnKey
-                                                                            );
-                                                                          setAdditionalTables(
-                                                                            (
-                                                                              prev
-                                                                            ) => [
-                                                                              allocationTable,
-                                                                              {
-                                                                                heading: `${
-                                                                                  row[
-                                                                                    table
-                                                                                      .columns[0]
-                                                                                  ]
-                                                                                } - ${col}`,
-                                                                                data: summary.data,
-                                                                                columns:
-                                                                                  summary.columns,
-                                                                                columnKey:
-                                                                                  colKey,
-                                                                              },
-                                                                              ...prev,
-                                                                            ]
-                                                                          );
-                                                                        }
-                                                                      }}
-                                                                    >
-                                                                      {row[col]}
-                                                                    </td>
-                                                                  );
-                                                                }
-                                                              }
-                                                            )}
-                                                            <td>
-                                                              {
-                                                                row[
-                                                                  "कुल आवंटित मात्रा"
-                                                                ]
-                                                              }
-                                                            </td>
-                                                            <td>
-                                                              {
-                                                                row[
-                                                                  "कुल किसान की हिस्सेदारी"
-                                                                ]
-                                                              }
-                                                            </td>
-                                                            <td>
-                                                              {
-                                                                row[
-                                                                  "कुल सब्सिडी"
-                                                                ]
-                                                              }
-                                                            </td>
-                                                            <td>
-                                                              {row["कुल राशि"]}
-                                                            </td>
-                                                          </>
-                                                        )}
-                                                      </tr>
-                                                    ));
-                                                }
-                                              })()}
-                                            </tbody>
+                            // Generate a new summary table
+                            const summary = generateSummary(
+                              currentFilteredData,
+                              colKey
+                            );
+                            // Generate allocation table with the clicked column as the first column
+                            const allocationTable = generateAllocationTable(
+                              colKey,
+                              row[table.columns[0]],
+                              table.columnKey
+                            );
+                            setAdditionalTables((prev) => [
+                              allocationTable,
+                              {
+                                heading: `${row[table.columns[0]]} - ${col}`,
+                                data: summary.data,
+                                columns: summary.columns,
+                                columnKey: colKey,
+                              },
+                              ...prev,
+                            ]);
+                          }
+                        }}
+                      >
+                        {row[col]}
+                      </td>
+                    );
+                  }
+                })}
+                <td>{row["कुल आवंटित मात्रा"]}</td>
+                <td>{row["कुल किसान की हिस्सेदारी"]}</td>
+                <td>{row["कुल सब्सिडी"]}</td>
+                <td>{row["कुल राशि"]}</td>
+              </>
+            )}
+          </tr>
+        ));
+    }
+  })()}
+</tbody>
                                             {(() => {
-                                              const isTableRotated =
-                                                isRotated[index] || false;
-                                              const showDar =
-                                                table.isAllocationTable &&
-                                                allocationTableToggles[index];
-                                              return (
-                                                !isTableRotated && (
-                                                  <tfoot>
-                                                    <tr
-                                                      style={{
-                                                        backgroundColor:
-                                                          "#f2f2f2",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                    >
-                                                      {(() => {
-                                                        const visibleDynamicColumns =
-                                                          additionalTableColumnFilters[
-                                                            index
-                                                          ] ||
-                                                          (table.isAllocationTable
-                                                            ? table.columns.slice(1)
-                                                            : table.columns.slice(
-                                                                2,
-                                                                -2
-                                                              ));
-                                                        const filteredData =
-                                                          table.data.filter(
-                                                            (row) =>
-                                                              row[
-                                                                table.columns[0]
-                                                              ] !== "कुल"
-                                                          );
-                                                        return table.isAllocationTable ? (
-                                                          <>
-                                                            <td>कुल:</td>
-                                                            {visibleDynamicColumns.map(
-                                                              (col, idx) => (
-                                                                <td key={idx}>
-                                                                  {showDar
-                                                                    ? filteredData
-                                                                        .reduce(
-                                                                          (
-                                                                            sum,
-                                                                            row
-                                                                          ) =>
-                                                                            sum +
-                                                                            parseFloat(
-                                                                              row[
-                                                                                `${col}_dar`
-                                                                              ] || 0
-                                                                            ),
-                                                                          0
-                                                                        )
-                                                                        .toFixed(2)
-                                                                    : filteredData
-                                                                        .reduce(
-                                                                          (
-                                                                            sum,
-                                                                            row
-                                                                          ) =>
-                                                                            sum +
-                                                                            parseFloat(
-                                                                              row[col] || 0
-                                                                            ),
-                                                                          0
-                                                                        )
-                                                                        .toFixed(2)}
-                                                                </td>
-                                                              )
-                                                            )}
-                                                            <td>
-                                                              {showDar
-                                                                ? filteredData
-                                                                    .reduce(
-                                                                      (
-                                                                        sum,
-                                                                        row
-                                                                      ) =>
-                                                                        sum +
-                                                                        parseFloat(
-                                                                          row[
-                                                                            "कुल_dar"
-                                                                          ] || 0
-                                                                        ),
-                                                                      0
-                                                                    )
-                                                                    .toFixed(2)
-                                                                : filteredData
-                                                                    .reduce(
-                                                                      (sum, row) =>
-                                                                        sum +
-                                                                        visibleDynamicColumns.reduce(
-                                                                          (s, col) =>
-                                                                            s +
-                                                                            parseFloat(
-                                                                              row[col] || 0
-                                                                            ),
-                                                                          0
-                                                                        ),
-                                                                      0
-                                                                    )
-                                                                    .toFixed(2)}
-                                                            </td>
-                                                          </>
-                                                        ) : (
-                                                          <>
-                                                            <td>कुल:</td>
-                                                            <td>
-                                                              {filteredData.reduce(
-                                                                (sum, row) =>
-                                                                  sum +
-                                                                  row[
-                                                                    "कुल रिकॉर्ड"
-                                                                  ],
-                                                                0
-                                                              )}
-                                                            </td>
-                                                            {visibleDynamicColumns.map(
-                                                              (col, idx) => {
-                                                                // Check if this column is expanded to show values instead of count
-                                                                const isExpanded =
-                                                                  expandedColumns[
-                                                                    `${index}_${col}`
-                                                                  ];
-                                                                const columnKey =
-                                                                  Object.keys(
-                                                                    columnDefs
-                                                                  ).find(
-                                                                    (k) =>
-                                                                      columnDefs[
-                                                                        k
-                                                                      ]
-                                                                        .label ===
-                                                                      col
-                                                                  );
+  const isTableRotated = isRotated[index] || false;
+  const showDar = table.isAllocationTable && allocationTableToggles[index];
+  return (
+    !isTableRotated && (
+      <tfoot>
+        <tr
+          style={{
+            backgroundColor: "#f2f2f2",
+            fontWeight: "bold",
+          }}
+        >
+          {(() => {
+            const visibleDynamicColumns =
+              additionalTableColumnFilters[index] ||
+              (table.isAllocationTable
+                ? table.columns.slice(1)
+                : table.columns.slice(2, -2));
+            const filteredData = table.data.filter(
+              (row) => row[table.columns[0]] !== "कुल"
+            );
+            return table.isAllocationTable ? (
+              <>
+                <td>कुल:</td>
+                {visibleDynamicColumns.map((col, idx) => (
+                  <td key={idx}>
+                    {showDar
+                      ? filteredData
+                          .reduce(
+                            (sum, row) =>
+                              sum + parseFloat(row[`${col}_dar`] || 0),
+                            0
+                          )
+                          .toFixed(2)
+                      : filteredData
+                          .reduce(
+                            (sum, row) => sum + parseFloat(row[col] || 0),
+                            0
+                          )
+                          .toFixed(2)}
+                  </td>
+                ))}
+                <td>
+                  {showDar
+                    ? filteredData
+                        .reduce(
+                          (sum, row) =>
+                            sum + parseFloat(row["कुल_dar"] || 0),
+                          0
+                        )
+                        .toFixed(2)
+                    : filteredData
+                        .reduce(
+                          (sum, row) =>
+                            sum +
+                            visibleDynamicColumns.reduce(
+                              (s, col) => s + parseFloat(row[col] || 0),
+                              0
+                            ),
+                          0
+                        )
+                        .toFixed(2)}
+                </td>
+              </>
+            ) : (
+              <>
+                <td>कुल:</td>
+                <td>
+                  {filteredData.reduce(
+                    (sum, row) => sum + row["कुल रिकॉर्ड"],
+                    0
+                  )}
+                </td>
+                {visibleDynamicColumns.map((col, idx) => {
+                  // Check if this column is expanded to show values instead of count
+                  const isExpanded = expandedColumns[`${index}_${col}`];
+                  const columnKey = Object.keys(columnDefs).find(
+                    (k) => columnDefs[k].label === col
+                  );
 
-                                                                if (
-                                                                  isExpanded &&
-                                                                  columnKey
-                                                                ) {
-                                                                  // Get all unique values for this column from the entire filtered data
-                                                                  const currentFilteredData =
-                                                                    tableData.filter(
-                                                                      (
-                                                                        item
-                                                                      ) => {
-                                                                        for (let filter of filterStack) {
-                                                                          if (
-                                                                            !filter
-                                                                              .checked[
-                                                                              item[
-                                                                                filter
-                                                                                  .column
-                                                                              ]
-                                                                            ]
-                                                                          )
-                                                                            return false;
-                                                                        }
-                                                                        return true;
-                                                                      }
-                                                                    );
+                  if (isExpanded && columnKey) {
+                    // Get all unique values for this column from the entire filtered data
+                    const currentFilteredData = tableData.filter((item) => {
+                      for (let filter of filterStack) {
+                        if (!filter.checked[item[filter.column]]) return false;
+                      }
+                      return true;
+                    });
 
-                                                                  // Get unique values for this column
-                                                                  const uniqueValues =
-                                                                    getUniqueValuesForColumn(
-                                                                      currentFilteredData,
-                                                                      columnKey
-                                                                    );
+                    // Get unique values for this column
+                    const uniqueValues = getUniqueValuesForColumn(
+                      currentFilteredData,
+                      columnKey
+                    );
 
-                                                                  return (
-                                                                    <td
-                                                                      key={idx}
-                                                                      style={{
-                                                                        maxWidth:
-                                                                          "200px",
-                                                                      }}
-                                                                    >
-                                                                      <div
-                                                                        style={{
-                                                                          maxHeight:
-                                                                            "100px",
-                                                                          overflowY:
-                                                                            "auto",
-                                                                        }}
-                                                                      >
-                                                                        {uniqueValues.map(
-                                                                          (
-                                                                            val,
-                                                                            valIdx
-                                                                          ) => (
-                                                                            <div
-                                                                              key={
-                                                                                valIdx
-                                                                              }
-                                                                              style={{
-                                                                                fontSize:
-                                                                                  "11px",
-                                                                              }}
-                                                                            >
-                                                                              {
-                                                                                val
-                                                                              }
-                                                                            </div>
-                                                                          )
-                                                                        )}
-                                                                      </div>
-                                                                    </td>
-                                                                  );
-                                                                } else {
-                                                                  return (
-                                                                    <td
-                                                                      key={idx}
-                                                                    >
-                                                                      {
-                                                                        new Set(
-                                                                          filteredData.flatMap(
-                                                                            (
-                                                                              row
-                                                                            ) =>
-                                                                              tableData
-                                                                                .filter(
-                                                                                  (
-                                                                                    item
-                                                                                  ) =>
-                                                                                    item[
-                                                                                      table
-                                                                                        .columnKey
-                                                                                    ] ===
-                                                                                    row[
-                                                                                      table
-                                                                                        .columns[0]
-                                                                                    ]
-                                                                                )
-                                                                                .map(
-                                                                                  (
-                                                                                    item
-                                                                                  ) =>
-                                                                                    item[
-                                                                                      Object.keys(
-                                                                                        columnDefs
-                                                                                      ).find(
-                                                                                        (
-                                                                                          k
-                                                                                        ) =>
-                                                                                          columnDefs[
-                                                                                            k
-                                                                                          ]
-                                                                                            .label ===
-                                                                                          col
-                                                                                      )
-                                                                                    ]
-                                                                                )
-                                                                          )
-                                                                        ).size
-                                                                      }
-                                                                    </td>
-                                                                  );
-                                                                }
-                                                              }
-                                                            )}
-                                                            <td>
-                                                              {filteredData
-                                                                .reduce(
-                                                                  (sum, row) =>
-                                                                    sum +
-                                                                    parseFloat(
-                                                                      row[
-                                                                        "कुल आवंटित मात्रा"
-                                                                      ] || 0
-                                                                    ),
-                                                                  0
-                                                                )
-                                                                .toFixed(2)}
-                                                            </td>
-                                                            <td>
-                                                              {filteredData
-                                                                .reduce(
-                                                                  (sum, row) =>
-                                                                    sum +
-                                                                    parseFloat(
-                                                                      row[
-                                                                        "कुल किसान की हिस्सेदारी"
-                                                                      ] || 0
-                                                                    ),
-                                                                  0
-                                                                )
-                                                                .toFixed(2)}
-                                                            </td>
-                                                            <td>
-                                                              {filteredData
-                                                                .reduce(
-                                                                  (sum, row) =>
-                                                                    sum +
-                                                                    parseFloat(
-                                                                      row[
-                                                                        "कुल सब्सिडी"
-                                                                      ] || 0
-                                                                    ),
-                                                                  0
-                                                                )
-                                                                .toFixed(2)}
-                                                            </td>
-                                                            <td>
-                                                              {filteredData
-                                                                .reduce(
-                                                                  (sum, row) =>
-                                                                    sum +
-                                                                    parseFloat(
-                                                                      row[
-                                                                        "कुल राशि"
-                                                                      ] || 0
-                                                                    ),
-                                                                  0
-                                                                )
-                                                                .toFixed(2)}
-                                                            </td>
-                                                          </>
-                                                        );
-                                                      })()}
-                                                    </tr>
-                                                  </tfoot>
-                                                )
-                                              );
-                                            })()}
+                    return (
+                      <td key={idx} style={{ maxWidth: "200px" }}>
+                        <div
+                          style={{
+                            maxHeight: "100px",
+                            overflowY: "auto",
+                          }}
+                        >
+                          {uniqueValues.map((val, valIdx) => (
+                            <div key={valIdx} style={{ fontSize: "11px" }}>
+                              {val}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    );
+                  } else {
+                    return (
+                      <td key={idx}>
+                        {
+                          new Set(
+                            filteredData.flatMap((row) =>
+                              tableData
+                                .filter(
+                                  (item) =>
+                                    item[table.columnKey] ===
+                                    row[table.columns[0]]
+                                )
+                                .map(
+                                  (item) =>
+                                    item[
+                                      Object.keys(columnDefs).find(
+                                        (k) => columnDefs[k].label === col
+                                      )
+                                    ]
+                                )
+                            )
+                          ).size
+                        }
+                      </td>
+                    );
+                  }
+                })}
+                <td>
+                  {filteredData
+                    .reduce(
+                      (sum, row) =>
+                        sum + parseFloat(row["कुल आवंटित मात्रा"] || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </td>
+                <td>
+                  {filteredData
+                    .reduce(
+                      (sum, row) =>
+                        sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </td>
+                <td>
+                  {filteredData
+                    .reduce(
+                      (sum, row) =>
+                        sum + parseFloat(row["कुल सब्सिडी"] || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </td>
+                <td>
+                  {filteredData
+                    .reduce(
+                      (sum, row) => sum + parseFloat(row["कुल राशि"] || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </td>
+              </>
+            );
+          })()}
+        </tr>
+      </tfoot>
+    )
+  );
+})()}
                                           </Table>
                                         </div>
                                       </div>
