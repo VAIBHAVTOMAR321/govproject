@@ -30,34 +30,9 @@ const VIKAS_KHAND_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/get-vikas-khand-by-center/";
 const FORM_FILTERS_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-form-filters/";
+const CENTERS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/centers/";
 
 // Static options for form fields
-const centerOptions = [
-  "किनगोड़िखाल",
-  "हल्दूखाल",
-  "धुमाकोट",
-  "सिसल्ड़ी",
-  "सेंधीखाल",
-  "जयहरीखाल",
-  "जेठागांव",
-  "देवियोंखाल",
-  "किल्वोंखाल",
-  "बीरोंखाल",
-  "वेदीखाल",
-  "पोखड़ा",
-  "संगलाकोटी",
-  "देवराजखाल",
-  "चौखाल",
-  "गंगाभोगपुर",
-  "दिउली",
-  "दुगड्डा",
-  "बिथ्याणी",
-  "चैलूसैंण",
-  "सिलोगी",
-  "कोटद्वार",
-  "सतपुली",
-  "पौखाल",
-];
 const investmentOptions = [
   "भवन निर्माण",
   "सड़क निर्माण",
@@ -87,7 +62,6 @@ const vidhanSabhaOptions = [
 ];
 
 // Available columns for the table (excluding sno which is always shown)
-// Updated sequence as requested
 const billingTableColumns = [
   { key: "vikas_khand_name", label: "विकास खंड का नाम" },
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
@@ -102,10 +76,9 @@ const billingTableColumns = [
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
   { key: "total_amount", label: "कुल राशि" },
- 
 ];
 
-// Column mapping for data access - Updated sequence
+// Column mapping for data access
 const billingTableColumnMapping = {
   sno: { header: "क्र.सं.", accessor: (item, index) => index + 1 },
   vikas_khand_name: {
@@ -187,7 +160,6 @@ const translations = {
   uploadButton: "अपलोड करें",
   required: "यह फ़ील्ड आवश्यक है",
   selectOption: "चुनें",
-  otherOption: "अन्य (मैन्युअल इनपुट)",
   genericError:
     "प्रस्तुत करते समय एक त्रुटि हुई। कृपया बाद में पुन: प्रयास करें।",
   showing: "दिखा रहे हैं",
@@ -269,7 +241,7 @@ const Registration = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
 
-  // Form state for single entry - Removed component field
+  // Form state for single entry
   const [formData, setFormData] = useState({
     center_name: "",
     investment_name: "",
@@ -284,15 +256,6 @@ const Registration = () => {
     amount_of_farmer_share: "",
     amount_of_subsidy: "",
     total_amount: "",
-  });
-
-  // State for custom input fields
-  const [customFields, setCustomFields] = useState({
-    investment_name: "",
-    sub_investment_name: "",
-    unit: "",
-    source_of_receipt: "",
-    scheme_name: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -310,8 +273,9 @@ const Registration = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [vikasKhandData, setVikasKhandData] = useState(null);
   const [isFetchingVikasKhand, setIsFetchingVikasKhand] = useState(false);
+  const [centerOptions, setCenterOptions] = useState([]);
 
-  // State for filters - removed component filter
+  // State for filters
   const [filters, setFilters] = useState({
     center_name: [],
     investment_name: [],
@@ -323,7 +287,7 @@ const Registration = () => {
     end_date: "",
   });
 
-  // State for filter options (unique values from API) - removed component
+  // State for filter options (unique values from API)
   const [filterOptions, setFilterOptions] = useState({
     center_name: [],
     investment_name: [],
@@ -339,36 +303,95 @@ const Registration = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // Dynamic form options - removed component
+  // Dynamic form options
   const [formOptions, setFormOptions] = useState({
     investment_name: investmentOptions,
     sub_investment_name: [],
-    unit: unitOptions, // Start with static unit options
-    source_of_receipt: sourceOptions, // Start with static source options
+    unit: ["Number", "meter", "Square meter", "kg", "बैग"],
+    source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
   });
 
-  // Dynamic edit options - removed component
+  // Dynamic edit options
   const [editOptions, setEditOptions] = useState({
     investment_name: investmentOptions,
     sub_investment_name: [],
-    unit: unitOptions, // Start with static unit options
-    source_of_receipt: sourceOptions, // Start with static source options
+    unit: ["Number", "meter", "Square meter", "kg", "बैग"],
+    source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
-  });
-
-  // State for edit custom fields
-  const [editCustomFields, setEditCustomFields] = useState({
-    investment_name: "",
-    sub_investment_name: "",
-    unit: "",
-    source_of_receipt: "",
-    scheme_name: "",
   });
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
+
+  // Fetch center options from backend
+  const fetchCenterOptions = async () => {
+    try {
+      const response = await axios.get(CENTERS_API_URL);
+      const centers = response.data || [];
+      if (Array.isArray(centers) && centers.length > 0) {
+        setCenterOptions(centers);
+      } else {
+        // Fallback to hardcoded options if API returns empty or invalid data
+        setCenterOptions([
+          "कोटद्वार",
+  "किनगोड़िखाल",
+  "चौखाल",
+  "धुमाकोट",
+  "बीरोंखाल",
+  "हल्दूखाल",
+  "किल्वोंखाल",
+  "चेलूसैंण",
+  "जयहरीखाल",
+  "जेठागांव",
+  "देवियोंखाल",
+  "सिलोगी",
+  "सिसल्ड़ी",
+  "पौखाल",
+  "सतपुली",
+  "संगलाकोटी",
+  "देवराजखाल",
+  "पोखड़ा",
+  "वेदीखाल",
+  "विथ्याणी",
+  "गंगाभोगपुर",
+  "दिउली",
+  "दुगड्डा",
+  "सेंधीखाल"
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching center options:", error);
+      // Fallback to hardcoded options if API fails
+      setCenterOptions([
+        "कोटद्वार",
+  "किनगोड़िखाल",
+  "चौखाल",
+  "धुमाकोट",
+  "बीरोंखाल",
+  "हल्दूखाल",
+  "किल्वोंखाल",
+  "चेलूसैंण",
+  "जयहरीखाल",
+  "जेठागांव",
+  "देवियोंखाल",
+  "सिलोगी",
+  "सिसल्ड़ी",
+  "पौखाल",
+  "सतपुली",
+  "संगलाकोटी",
+  "देवराजखाल",
+  "पोखड़ा",
+  "वेदीखाल",
+  "विथ्याणी",
+  "गंगाभोगपुर",
+  "दिउली",
+  "दुगड्डा",
+  "सेंधीखाल"
+      ]);
+    }
+  };
 
   // Fetch billing items data
   const fetchBillingItems = async (appliedFilters = {}) => {
@@ -423,19 +446,37 @@ const Registration = () => {
     try {
       setIsFetchingVikasKhand(true);
       console.log("Fetching vikas khand for center:", centerName);
-      const response = await axios.get(
+      
+      // Try exact match first
+      let response = await axios.get(
         `${VIKAS_KHAND_API_URL}?center_name=${encodeURIComponent(centerName)}`
       );
-      console.log("Raw response:", response);
-      const data = response.data;
-      console.log("Parsed data:", data);
-
+      
+      let data = response.data;
+      console.log("API response:", data);
+      
+      // If no data found with exact match, try partial match
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        console.log("No exact match found, trying partial match");
+        response = await axios.get(
+          `${VIKAS_KHAND_API_URL}?search=${encodeURIComponent(centerName)}`
+        );
+        data = response.data;
+        console.log("Partial match response:", data);
+      }
+      
       // Handle different response structures
       let vikasData = null;
       if (Array.isArray(data) && data.length > 0) {
         vikasData = data[0];
-      } else if (data && typeof data === "object" && data.vikas_khand_name) {
-        vikasData = data;
+      } else if (data && typeof data === "object") {
+        // Check if the response has the expected fields
+        if (data.vikas_khand_name || data.vidhan_sabha_name) {
+          vikasData = data;
+        } else if (data.data && typeof data.data === "object") {
+          // Handle nested data structure
+          vikasData = data.data;
+        }
       }
 
       console.log("Extracted vikas data:", vikasData);
@@ -459,7 +500,11 @@ const Registration = () => {
           }));
         }
         console.log("Form data updated with:", vikasData);
+        // Clear any previous error
+        setApiError(null);
       } else {
+        // Show an error message when no data is found
+        setApiError(`No vikas khand data found for center: ${centerName}`);
         setVikasKhandData(null);
         setFormData((prev) => ({
           ...prev,
@@ -477,6 +522,7 @@ const Registration = () => {
       }
     } catch (error) {
       console.error("Error fetching vikas khand data:", error);
+      setApiError(`Error fetching vikas khand data: ${error.message}`);
       setVikasKhandData(null);
       setFormData((prev) => ({
         ...prev,
@@ -495,7 +541,7 @@ const Registration = () => {
     }
   };
 
-  // Fetch form filters - removed component parameter
+  // Fetch form filters
   const fetchFormFilters = async (investmentName = "", subInvestmentName = "") => {
     try {
       setIsLoadingFilters(true);
@@ -518,17 +564,15 @@ const Registration = () => {
         ...prev,
         investment_name:
           data.level === "investment_name"
-            ? [...new Set([...investmentOptions, ...(data.data || [])])]
+            ? data.data || []
             : prev.investment_name,
         sub_investment_name:
           data.level === "sub_investment_name"
             ? data.data || []
             : prev.sub_investment_name,
-        // FIX: Properly merge static and dynamic unit options
-        unit: [...new Set([...unitOptions, ...(data.unit || []), ...(filterOptions.unit || [])])],
-        // FIX: Properly merge static and dynamic source options
-        source_of_receipt: [...new Set([...sourceOptions, ...(data.source_of_receipt || []), ...(filterOptions.source_of_receipt || [])])],
-        scheme_name: [...new Set([...schemeOptions, ...(data.scheme_name || [])])],
+        unit: data.unit || prev.unit,
+        source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
+        scheme_name: data.scheme_name || prev.scheme_name,
       }));
 
       // Auto-select first sub_investment_name if available
@@ -542,7 +586,7 @@ const Registration = () => {
     }
   };
 
-  // Fetch edit options - removed component parameter
+  // Fetch edit options
   const fetchEditOptions = async (investmentName = "", subInvestmentName = "") => {
     try {
       let url = FORM_FILTERS_API_URL;
@@ -562,17 +606,15 @@ const Registration = () => {
         ...prev,
         investment_name:
           data.level === "investment_name"
-            ? [...new Set([...investmentOptions, ...(data.data || [])])]
+            ? data.data || []
             : prev.investment_name,
         sub_investment_name:
           data.level === "sub_investment_name"
             ? data.data || []
             : prev.sub_investment_name,
-        // FIX: Properly merge static and dynamic unit options
-        unit: [...new Set([...unitOptions, ...(data.unit || []), ...(filterOptions.unit || [])])],
-        // FIX: Properly merge static and dynamic source options
-        source_of_receipt: [...new Set([...sourceOptions, ...(data.source_of_receipt || []), ...(filterOptions.source_of_receipt || [])])],
-        scheme_name: [...new Set([...schemeOptions, ...(data.scheme_name || [])])],
+        unit: data.unit || prev.unit,
+        source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
+        scheme_name: data.scheme_name || prev.scheme_name,
       }));
 
       // Auto-select first sub_investment_name if available
@@ -588,6 +630,7 @@ const Registration = () => {
   useEffect(() => {
     fetchBillingItems();
     fetchFormFilters();
+    fetchCenterOptions();
   }, []);
 
   // Reset to page 1 when data changes
@@ -595,10 +638,10 @@ const Registration = () => {
     setCurrentPage(1);
   }, [billingItems]);
 
-  // Populate filter options from all billing items - removed component
+  // Populate filter options from all billing items
   useEffect(() => {
     if (allBillingItems.length > 0) {
-      const newFilterOptions = {
+      setFilterOptions({
         center_name: [
           ...new Set(
             allBillingItems.map((item) => item.center_name).filter(Boolean)
@@ -643,27 +686,11 @@ const Registration = () => {
               .filter(Boolean)
           ),
         ],
-      };
-      
-      setFilterOptions(newFilterOptions);
-      
-      // Update form options with new filter options for unit and source_of_receipt
-      setFormOptions(prev => ({
-        ...prev,
-        unit: [...new Set([...unitOptions, ...(newFilterOptions.unit || [])])],
-        source_of_receipt: [...new Set([...sourceOptions, ...(newFilterOptions.source_of_receipt || [])])]
-      }));
-      
-      // Update edit options with new filter options for unit and source_of_receipt
-      setEditOptions(prev => ({
-        ...prev,
-        unit: [...new Set([...unitOptions, ...(newFilterOptions.unit || [])])],
-        source_of_receipt: [...new Set([...sourceOptions, ...(newFilterOptions.source_of_receipt || [])])]
-      }));
+      });
     }
   }, [allBillingItems]);
 
-  // Apply local filtering when filters change - removed component filter
+  // Apply local filtering when filters change
   useEffect(() => {
     const hasFilters = Object.keys(filters).some((key) =>
       Array.isArray(filters[key])
@@ -674,7 +701,7 @@ const Registration = () => {
       const filtered = allBillingItems.filter((item) => {
         // Check all other filters
         for (const key in filters) {
-          if (key === "start_date" || key === "end_date") continue; // Skip date filters for now
+          if (key === "start_date" || key === "end_date") continue;
           if (filters[key].length > 0 && !filters[key].includes(item[key])) {
             return false;
           }
@@ -682,13 +709,12 @@ const Registration = () => {
         
         // Check date range filters
         if (filters.start_date || filters.end_date) {
-          if (!item.created_at) return false; // Skip if no date field
+          if (!item.created_at) return false;
           
           const itemDate = new Date(item.created_at);
           const startDate = filters.start_date ? new Date(filters.start_date) : null;
           const endDate = filters.end_date ? new Date(filters.end_date) : null;
           
-          // Set end date to end of day for inclusive comparison
           if (endDate) {
             endDate.setHours(23, 59, 59, 999);
           }
@@ -710,7 +736,7 @@ const Registration = () => {
     setCurrentPage(1);
   }, [filters]);
 
-  // Handle filter changes - removed component filter
+  // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({
@@ -719,7 +745,7 @@ const Registration = () => {
     }));
   };
 
-  // Clear all filters - removed component filter
+  // Clear all filters
   const clearFilters = () => {
     setFilters({
       center_name: [],
@@ -738,10 +764,9 @@ const Registration = () => {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // Download Excel function - updated to use new column order
+  // Download Excel function
   const downloadExcel = (data, filename, columnMapping, selectedColumns) => {
     try {
-      // Prepare data for Excel export based on selected columns
       const excelData = data.map((item, index) => {
         const row = {};
         selectedColumns.forEach((col) => {
@@ -756,7 +781,6 @@ const Registration = () => {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
-      // Set column widths
       const colWidths = selectedColumns.map(() => ({ wch: 15 }));
       ws["!cols"] = colWidths;
 
@@ -768,7 +792,7 @@ const Registration = () => {
     }
   };
 
-  // Download sample Excel template - updated to match new field order
+  // Download sample Excel template
   const downloadSampleTemplate = () => {
     try {
       const sampleData = [
@@ -792,21 +816,20 @@ const Registration = () => {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(sampleData);
 
-      // Set column widths
       const colWidths = [
-        { wch: 20 }, // विकास खंड का नाम
-        { wch: 20 }, // विधानसभा का नाम
-        { wch: 20 }, // केंद्र का नाम
-        { wch: 20 }, // निवेश का नाम
-        { wch: 20 }, // उप-निवेश का नाम
-        { wch: 10 }, // इकाई
-        { wch: 15 }, // आवंटित मात्रा
-        { wch: 10 }, // दर
-        { wch: 15 }, // सप्लायर
-        { wch: 15 }, // योजना का नाम
-        { wch: 15 }, // किसान का हिस्सा
-        { wch: 15 }, // सब्सिडी राशि
-        { wch: 15 }, // कुल राशि
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
       ];
       ws["!cols"] = colWidths;
 
@@ -818,7 +841,7 @@ const Registration = () => {
     }
   };
 
-  // Download PDF function - updated to use new column order
+  // Download PDF function
   const downloadPdf = (
     data,
     filename,
@@ -827,7 +850,6 @@ const Registration = () => {
     title
   ) => {
     try {
-      // Create headers and rows based on selected columns
       const headers = selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
         .join("");
@@ -850,7 +872,6 @@ const Registration = () => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
-
               body {
                 font-family: 'Noto Sans', Arial, sans-serif;
                 margin: 20px;
@@ -918,9 +939,8 @@ const Registration = () => {
       printWindow.document.write(tableHtml);
       printWindow.document.close();
 
-      // Wait for the content to load and display for preview
       printWindow.onload = function () {
-        // PDF is now open for preview; user can manually print if desired
+        // PDF is now open for preview
       };
     } catch (e) {
       console.error("Error generating PDF:", e);
@@ -938,7 +958,7 @@ const Registration = () => {
     setEditingValues({});
   };
 
-  // Handle edit - removed component field
+  // Handle edit
   const handleEdit = (item) => {
     setEditingRowId(item.id);
     setEditingValues({
@@ -956,17 +976,6 @@ const Registration = () => {
       amount_of_subsidy: item.amount_of_subsidy || "",
       total_amount: item.total_amount || "",
     });
-    
-    // Check if any of the values are not in the standard options, set custom fields
-    setEditCustomFields({
-      investment_name: !formOptions.investment_name.includes(item.investment_name) ? item.investment_name : "",
-      sub_investment_name: !formOptions.sub_investment_name.includes(item.sub_investment_name) ? item.sub_investment_name : "",
-      unit: !formOptions.unit.includes(item.unit) ? item.unit : "",
-      source_of_receipt: !formOptions.source_of_receipt.includes(item.source_of_receipt) ? item.source_of_receipt : "",
-      scheme_name: !formOptions.scheme_name.includes(item.scheme_name) ? item.scheme_name : "",
-    });
-    
-    // Fetch options based on current values
     if (item.investment_name) {
       fetchEditOptions(item.investment_name);
     }
@@ -974,19 +983,19 @@ const Registration = () => {
     setApiResponse(null);
   };
 
-  // Handle save edit - removed component field
+  // Handle save edit
   const handleSave = async (item) => {
     try {
       const payload = {
         bill_id: item.bill_id,
         center_name: editingValues.center_name,
-        investment_name: editingValues.investment_name === "other" ? editCustomFields.investment_name : editingValues.investment_name,
-        sub_investment_name: editingValues.sub_investment_name === "other" ? editCustomFields.sub_investment_name : editingValues.sub_investment_name,
-        unit: editingValues.unit === "other" ? editCustomFields.unit : editingValues.unit,
+        investment_name: editingValues.investment_name,
+        sub_investment_name: editingValues.sub_investment_name,
+        unit: editingValues.unit,
         allocated_quantity: parseInt(editingValues.allocated_quantity) || 0,
         rate: parseFloat(editingValues.rate) || 0,
-        source_of_receipt: editingValues.source_of_receipt === "other" ? editCustomFields.source_of_receipt : editingValues.source_of_receipt,
-        scheme_name: editingValues.scheme_name === "other" ? editCustomFields.scheme_name : editingValues.scheme_name,
+        source_of_receipt: editingValues.source_of_receipt,
+        scheme_name: editingValues.scheme_name,
         vikas_khand_name: editingValues.vikas_khand_name,
         vidhan_sabha_name: editingValues.vidhan_sabha_name,
         amount_of_farmer_share: parseFloat(editingValues.amount_of_farmer_share) || 0,
@@ -1010,13 +1019,6 @@ const Registration = () => {
   const handleCancel = () => {
     setEditingRowId(null);
     setEditingValues({});
-    setEditCustomFields({
-      investment_name: "",
-      sub_investment_name: "",
-      unit: "",
-      source_of_receipt: "",
-      scheme_name: "",
-    });
   };
 
   // Handle delete
@@ -1040,7 +1042,7 @@ const Registration = () => {
     setCurrentPage(pageNumber);
   };
 
-  // Generate pagination items similar to MainDashboard.js
+  // Generate pagination items
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const paginationItems = [];
   const maxVisiblePages = 5;
@@ -1095,7 +1097,7 @@ const Registration = () => {
     setExcelFile(e.target.files[0]);
   };
 
-  // Handle bulk upload - updated to handle new fields
+  // Handle bulk upload
   const handleBulkUpload = async () => {
     if (!excelFile) return;
 
@@ -1119,11 +1121,9 @@ const Registration = () => {
             return;
           }
 
-          // Skip header row and parse data
           const dataRows = jsonData.slice(1);
           const headers = jsonData[0];
 
-          // Create a mapping from header names to column indices
           const headerMapping = {};
           headers.forEach((header, index) => {
             if (header) {
@@ -1131,7 +1131,6 @@ const Registration = () => {
             }
           });
 
-          // Parse data using header mapping - updated to include new fields
           const payloads = dataRows.map((row) => ({
             vikas_khand_name:
               row[headerMapping["विकास खंड का नाम"]] ||
@@ -1213,7 +1212,6 @@ const Registration = () => {
             }
           }
 
-          // Reset file input
           setExcelFile(null);
           if (fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -1242,7 +1240,7 @@ const Registration = () => {
     }
   };
 
-  // Handle form field changes - removed component handling
+  // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updatedFormData = {
@@ -1250,28 +1248,21 @@ const Registration = () => {
       [name]: value,
     };
 
-    // Handle cascading dropdowns - removed component handling
-    if (name === "investment_name" && value && value !== "other") {
-      // Reset dependent fields
+    if (name === "investment_name" && value) {
       updatedFormData.sub_investment_name = "";
       updatedFormData.unit = "";
-      // Fetch options based on investment_name
       fetchFormFilters(value);
     } else if (
       name === "sub_investment_name" &&
       value &&
-      value !== "other" &&
       formData.investment_name
     ) {
-      // Sub-investment changed, no need to reset unit as it's independent
-      // Could fetch sub-investment specific data if needed, but unit is independent
+      // Sub-investment changed
     }
 
-    // If center changes, fetch vikas khand data and auto-fill all fields with default values
     if (name === "center_name") {
       if (value) {
         fetchVikasKhandData(value);
-        // Auto-fill all fields with default values
         updatedFormData.investment_name = "भवन निर्माण";
         updatedFormData.sub_investment_name = "नया भवन";
         updatedFormData.unit = "बैग";
@@ -1286,7 +1277,6 @@ const Registration = () => {
         setVikasKhandData(null);
         updatedFormData.vikas_khand_name = "";
         updatedFormData.vidhan_sabha_name = "";
-        // Clear all fields
         updatedFormData.investment_name = "";
         updatedFormData.sub_investment_name = "";
         updatedFormData.unit = "";
@@ -1300,7 +1290,6 @@ const Registration = () => {
       }
     }
 
-    // Calculate total amount if farmer share or subsidy changes
     if (name === "amount_of_farmer_share" || name === "amount_of_subsidy") {
       const farmerShare = name === "amount_of_farmer_share" ? parseFloat(value) || 0 : parseFloat(formData.amount_of_farmer_share) || 0;
       const subsidy = name === "amount_of_subsidy" ? parseFloat(value) || 0 : parseFloat(formData.amount_of_subsidy) || 0;
@@ -1317,45 +1306,7 @@ const Registration = () => {
     }
   };
 
-  // Handle custom field changes - FIXED: Now using the correct field names
-  const handleCustomFieldChange = (e) => {
-    const { name, value } = e.target;
-    // Map the input name to the correct state key
-    const fieldMapping = {
-      'investment_name_custom': 'investment_name',
-      'sub_investment_name_custom': 'sub_investment_name',
-      'unit_custom': 'unit',
-      'source_of_receipt_custom': 'source_of_receipt',
-      'scheme_name_custom': 'scheme_name',
-    };
-    
-    const stateKey = fieldMapping[name] || name;
-    setCustomFields((prev) => ({
-      ...prev,
-      [stateKey]: value,
-    }));
-  };
-
-  // Handle edit custom field changes - FIXED: Now using the correct field names
-  const handleEditCustomFieldChange = (e) => {
-    const { name, value } = e.target;
-    // Map the input name to the correct state key
-    const fieldMapping = {
-      'investment_name_custom': 'investment_name',
-      'sub_investment_name_custom': 'sub_investment_name',
-      'unit_custom': 'unit',
-      'source_of_receipt_custom': 'source_of_receipt',
-      'scheme_name_custom': 'scheme_name',
-    };
-    
-    const stateKey = fieldMapping[name] || name;
-    setEditCustomFields((prev) => ({
-      ...prev,
-      [stateKey]: value,
-    }));
-  };
-
-  // Handle form submission - removed component field
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -1370,16 +1321,15 @@ const Registration = () => {
     setApiResponse(null);
 
     try {
-      // Create new item
       const payload = {
         center_name: formData.center_name,
-        investment_name: formData.investment_name === "other" ? customFields.investment_name : formData.investment_name,
-        sub_investment_name: formData.sub_investment_name === "other" ? customFields.sub_investment_name : formData.sub_investment_name,
-        unit: formData.unit === "other" ? customFields.unit : formData.unit,
+        investment_name: formData.investment_name,
+        sub_investment_name: formData.sub_investment_name,
+        unit: formData.unit,
         allocated_quantity: parseInt(formData.allocated_quantity),
         rate: parseFloat(formData.rate),
-        source_of_receipt: formData.source_of_receipt === "other" ? customFields.source_of_receipt : formData.source_of_receipt,
-        scheme_name: formData.scheme_name === "other" ? customFields.scheme_name : formData.scheme_name,
+        source_of_receipt: formData.source_of_receipt,
+        scheme_name: formData.scheme_name,
         vikas_khand_name: formData.vikas_khand_name,
         vidhan_sabha_name: formData.vidhan_sabha_name,
         amount_of_farmer_share: parseFloat(formData.amount_of_farmer_share),
@@ -1389,14 +1339,12 @@ const Registration = () => {
 
       const response = await axios.post(BILLING_API_URL, payload);
 
-      // Handle both possible response structures
       const responseData =
         response.data && response.data.data
           ? response.data.data
           : response.data;
       setApiResponse(responseData);
 
-      // Reset form after successful submission
       setFormData({
         center_name: "",
         investment_name: "",
@@ -1412,22 +1360,11 @@ const Registration = () => {
         amount_of_subsidy: "",
         total_amount: "",
       });
-      
-      setCustomFields({
-        investment_name: "",
-        sub_investment_name: "",
-        unit: "",
-        source_of_receipt: "",
-        scheme_name: "",
-      });
 
-      // Clear vikas khand data
       setVikasKhandData(null);
 
-      // Add to table
       setAllBillingItems((prev) => [payload, ...prev]);
     } catch (error) {
-      // Handle different error response formats
       let errorMessage = translations.genericError;
       if (error.response) {
         if (error.response.data && error.response.data.message) {
@@ -1448,31 +1385,23 @@ const Registration = () => {
     }
   };
 
-  // Form validation - removed component validation
+  // Form validation
   const validateForm = () => {
     const newErrors = {};
     if (!formData.center_name.trim())
       newErrors.center_name = `${translations.centerName} ${translations.required}`;
     if (!formData.investment_name.trim())
       newErrors.investment_name = `${translations.investmentName} ${translations.required}`;
-    if (formData.investment_name === "other" && !customFields.investment_name.trim())
-      newErrors.investment_name = `कृपया ${translations.investmentName} दर्ज करें`;
     if (!formData.unit.trim())
       newErrors.unit = `${translations.unit} ${translations.required}`;
-    if (formData.unit === "other" && !customFields.unit.trim())
-      newErrors.unit = `कृपया ${translations.unit} दर्ज करें`;
     if (!formData.allocated_quantity.trim())
       newErrors.allocated_quantity = `${translations.allocatedQuantity} ${translations.required}`;
     if (!formData.rate.trim())
       newErrors.rate = `${translations.rate} ${translations.required}`;
     if (!formData.source_of_receipt.trim())
       newErrors.source_of_receipt = `${translations.sourceOfReceipt} ${translations.required}`;
-    if (formData.source_of_receipt === "other" && !customFields.source_of_receipt.trim())
-      newErrors.source_of_receipt = `कृपया ${translations.sourceOfReceipt} दर्ज करें`;
     if (!formData.scheme_name.trim())
       newErrors.scheme_name = `${translations.schemeName} ${translations.required}`;
-    if (formData.scheme_name === "other" && !customFields.scheme_name.trim())
-      newErrors.scheme_name = `कृपया ${translations.schemeName} दर्ज करें`;
     if (!formData.vikas_khand_name.trim())
       newErrors.vikas_khand_name = `${translations.vikasKhandName} ${translations.required}`;
     if (!formData.vidhan_sabha_name.trim())
@@ -1490,10 +1419,6 @@ const Registration = () => {
         </Row>
 
         <Row className="left-top">
-          {/* <Col lg={2} md={2} sm={12}>
-            <LeftNav />
-          </Col> */}
-
           <Col lg={12} md={12} sm={10}>
             <Container fluid className="dashboard-body-main">
               <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
@@ -1614,19 +1539,7 @@ const Registration = () => {
                               {inv}
                             </option>
                           ))}
-                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
-                        {formData.investment_name === "other" && (
-                          <Form.Control
-                            type="text"
-                            name="investment_name_custom"
-                            value={customFields.investment_name}
-                            onChange={handleCustomFieldChange}
-                            isInvalid={!!errors.investment_name}
-                            className="compact-input mt-2"
-                            placeholder="मैन्युअल इनपुट"
-                          />
-                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.investment_name}
                         </Form.Control.Feedback>
@@ -1656,19 +1569,7 @@ const Registration = () => {
                               </option>
                             )
                           )}
-                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
-                        {formData.sub_investment_name === "other" && (
-                          <Form.Control
-                            type="text"
-                            name="sub_investment_name_custom"
-                            value={customFields.sub_investment_name}
-                            onChange={handleCustomFieldChange}
-                            isInvalid={!!errors.sub_investment_name}
-                            className="compact-input mt-2"
-                            placeholder="मैन्युअल इनपुट"
-                          />
-                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.sub_investment_name}
                         </Form.Control.Feedback>
@@ -1688,24 +1589,12 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {formOptions.unit.map((unit, index) => (
+                          {filterOptions.unit.map((unit, index) => (
                             <option key={index} value={unit}>
                               {unit}
                             </option>
                           ))}
-                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
-                        {formData.unit === "other" && (
-                          <Form.Control
-                            type="text"
-                            name="unit_custom"
-                            value={customFields.unit}
-                            onChange={handleCustomFieldChange}
-                            isInvalid={!!errors.unit}
-                            className="compact-input mt-2"
-                            placeholder="मैन्युअल इनपुट"
-                          />
-                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.unit}
                         </Form.Control.Feedback>
@@ -1766,24 +1655,17 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {formOptions.source_of_receipt.map((source, index) => (
+                          {[
+                            ...new Set([
+                              ...filterOptions.source_of_receipt,
+                              ...sourceOptions,
+                            ]),
+                          ].map((source, index) => (
                             <option key={index} value={source}>
                               {source}
                             </option>
                           ))}
-                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
-                        {formData.source_of_receipt === "other" && (
-                          <Form.Control
-                            type="text"
-                            name="source_of_receipt_custom"
-                            value={customFields.source_of_receipt}
-                            onChange={handleCustomFieldChange}
-                            isInvalid={!!errors.source_of_receipt}
-                            className="compact-input mt-2"
-                            placeholder="मैन्युअल इनपुट"
-                          />
-                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.source_of_receipt}
                         </Form.Control.Feedback>
@@ -1803,24 +1685,17 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {formOptions.scheme_name.map((scheme, index) => (
+                          {[
+                            ...new Set([
+                              ...filterOptions.scheme_name,
+                              ...schemeOptions,
+                            ]),
+                          ].map((scheme, index) => (
                             <option key={index} value={scheme}>
                               {scheme}
                             </option>
                           ))}
-                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
-                        {formData.scheme_name === "other" && (
-                          <Form.Control
-                            type="text"
-                            name="scheme_name_custom"
-                            value={customFields.scheme_name}
-                            onChange={handleCustomFieldChange}
-                            isInvalid={!!errors.scheme_name}
-                            className="compact-input mt-2"
-                            placeholder="मैन्युअल इनपुट"
-                          />
-                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.scheme_name}
                         </Form.Control.Feedback>
@@ -1943,7 +1818,6 @@ const Registration = () => {
               {/* Table Section */}
               <div className="billing-table-section mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h3 className="small-fonts mb-0">बिलिंग आइटम डेटा</h3>
                   <div className="d-flex align-items-center">
                     {billingItems.length > 0 && (
                       <OverlayTrigger
@@ -2054,7 +1928,7 @@ const Registration = () => {
                   />
                 )}
 
-                {/* Multi-Filter Section - removed component filter */}
+                {/* Multi-Filter Section */}
                 {billingItems.length > 0 && (
                   <div className="filter-section mb-3 p-3 border rounded bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-2">
@@ -2145,7 +2019,12 @@ const Registration = () => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.source_of_receipt.map((option) => ({ value: option, label: option }))}
+                            options={[
+                              ...new Set([
+                                ...filterOptions.source_of_receipt,
+                                ...sourceOptions,
+                              ]),
+                            ].map((option) => ({ value: option, label: option }))}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -2171,7 +2050,12 @@ const Registration = () => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.scheme_name.map((option) => ({
+                            options={[
+                              ...new Set([
+                                ...filterOptions.scheme_name,
+                                ...schemeOptions,
+                              ]),
+                            ].map((option) => ({
                               value: option,
                               label: option,
                             }))}
@@ -2430,45 +2314,31 @@ const Registration = () => {
                               {selectedColumns.includes("investment_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <>
-                                      <Form.Select
-                                        value={editingValues.investment_name}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            investment_name: value,
-                                            sub_investment_name: "",
-                                            unit: "",
-                                          }));
-                                          if (value && value !== "other") {
-                                            fetchEditOptions(value);
-                                          }
-                                        }}
-                                        size="sm"
-                                      >
-                                        <option value="">चुनें</option>
-                                        {editOptions.investment_name.map(
-                                          (inv, index) => (
-                                            <option key={index} value={inv}>
-                                              {inv}
-                                            </option>
-                                          )
-                                        )}
-                                        <option value="other">{translations.otherOption}</option>
-                                      </Form.Select>
-                                      {editingValues.investment_name === "other" && (
-                                        <Form.Control
-                                          type="text"
-                                          name="investment_name_custom"
-                                          value={editCustomFields.investment_name}
-                                          onChange={handleEditCustomFieldChange}
-                                          size="sm"
-                                          className="mt-1"
-                                          placeholder="मैन्युअल इनपुट"
-                                        />
+                                    <Form.Select
+                                      value={editingValues.investment_name}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          investment_name: value,
+                                          sub_investment_name: "",
+                                          unit: "",
+                                        }));
+                                        if (value) {
+                                          fetchEditOptions(value);
+                                        }
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {filterOptions.investment_name.map(
+                                        (inv, index) => (
+                                          <option key={index} value={inv}>
+                                            {inv}
+                                          </option>
+                                        )
                                       )}
-                                    </>
+                                    </Form.Select>
                                   ) : (
                                     item.investment_name
                                   )}
@@ -2479,39 +2349,25 @@ const Registration = () => {
                               ) && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <>
-                                      <Form.Select
-                                        value={editingValues.sub_investment_name}
-                                        onChange={(e) =>
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            sub_investment_name: e.target.value,
-                                          }))
-                                        }
-                                        size="sm"
-                                      >
-                                        <option value="">चुनें</option>
-                                        {editOptions.sub_investment_name.map(
-                                          (subInv, index) => (
-                                            <option key={index} value={subInv}>
-                                              {subInv}
-                                            </option>
-                                          )
-                                        )}
-                                        <option value="other">{translations.otherOption}</option>
-                                      </Form.Select>
-                                      {editingValues.sub_investment_name === "other" && (
-                                        <Form.Control
-                                          type="text"
-                                          name="sub_investment_name_custom"
-                                          value={editCustomFields.sub_investment_name}
-                                          onChange={handleEditCustomFieldChange}
-                                          size="sm"
-                                          className="mt-1"
-                                          placeholder="मैन्युअल इनपुट"
-                                        />
+                                    <Form.Select
+                                      value={editingValues.sub_investment_name}
+                                      onChange={(e) =>
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          sub_investment_name: e.target.value,
+                                        }))
+                                      }
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {editOptions.sub_investment_name.map(
+                                        (subInv, index) => (
+                                          <option key={index} value={subInv}>
+                                            {subInv}
+                                          </option>
+                                        )
                                       )}
-                                    </>
+                                    </Form.Select>
                                   ) : (
                                     item.sub_investment_name
                                   )}
@@ -2520,38 +2376,24 @@ const Registration = () => {
                               {selectedColumns.includes("unit") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <>
-                                      <Form.Select
-                                        value={editingValues.unit}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            unit: value,
-                                          }));
-                                        }}
-                                        size="sm"
-                                      >
-                                        <option value="">चुनें</option>
-                                        {editOptions.unit.map((unit, index) => (
-                                          <option key={index} value={unit}>
-                                            {unit}
-                                          </option>
-                                        ))}
-                                        <option value="other">{translations.otherOption}</option>
-                                      </Form.Select>
-                                      {editingValues.unit === "other" && (
-                                        <Form.Control
-                                          type="text"
-                                          name="unit_custom"
-                                          value={editCustomFields.unit}
-                                          onChange={handleEditCustomFieldChange}
-                                          size="sm"
-                                          className="mt-1"
-                                          placeholder="मैन्युअल इनपुट"
-                                        />
-                                      )}
-                                    </>
+                                    <Form.Select
+                                      value={editingValues.unit}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          unit: value,
+                                        }));
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {formOptions.unit.map((unit, index) => (
+                                        <option key={index} value={unit}>
+                                          {unit}
+                                        </option>
+                                      ))}
+                                    </Form.Select>
                                   ) : (
                                     item.unit
                                   )}
@@ -2599,38 +2441,29 @@ const Registration = () => {
                               {selectedColumns.includes("source_of_receipt") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <>
-                                      <Form.Select
-                                        value={editingValues.source_of_receipt}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            source_of_receipt: value,
-                                          }));
-                                        }}
-                                        size="sm"
-                                      >
-                                        <option value="">चुनें</option>
-                                        {editOptions.source_of_receipt.map((source, index) => (
-                                          <option key={index} value={source}>
-                                            {source}
-                                          </option>
-                                        ))}
-                                        <option value="other">{translations.otherOption}</option>
-                                      </Form.Select>
-                                      {editingValues.source_of_receipt === "other" && (
-                                        <Form.Control
-                                          type="text"
-                                          name="source_of_receipt_custom"
-                                          value={editCustomFields.source_of_receipt}
-                                          onChange={handleEditCustomFieldChange}
-                                          size="sm"
-                                          className="mt-1"
-                                          placeholder="मैन्युअल इनपुट"
-                                        />
-                                      )}
-                                    </>
+                                    <Form.Select
+                                      value={editingValues.source_of_receipt}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          source_of_receipt: value,
+                                        }));
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {[
+                                        ...new Set([
+                                          ...filterOptions.source_of_receipt,
+                                          ...sourceOptions,
+                                        ]),
+                                      ].map((source, index) => (
+                                        <option key={index} value={source}>
+                                          {source}
+                                        </option>
+                                      ))}
+                                    </Form.Select>
                                   ) : (
                                     item.source_of_receipt
                                   )}
@@ -2639,38 +2472,29 @@ const Registration = () => {
                               {selectedColumns.includes("scheme_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <>
-                                      <Form.Select
-                                        value={editingValues.scheme_name}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          setEditingValues((prev) => ({
-                                            ...prev,
-                                            scheme_name: value,
-                                          }));
-                                        }}
-                                        size="sm"
-                                      >
-                                        <option value="">चुनें</option>
-                                        {editOptions.scheme_name.map((scheme, index) => (
-                                          <option key={index} value={scheme}>
-                                            {scheme}
-                                          </option>
-                                        ))}
-                                        <option value="other">{translations.otherOption}</option>
-                                      </Form.Select>
-                                      {editingValues.scheme_name === "other" && (
-                                        <Form.Control
-                                          type="text"
-                                          name="scheme_name_custom"
-                                          value={editCustomFields.scheme_name}
-                                          onChange={handleEditCustomFieldChange}
-                                          size="sm"
-                                          className="mt-1"
-                                          placeholder="मैन्युअल इनपुट"
-                                        />
-                                      )}
-                                    </>
+                                    <Form.Select
+                                      value={editingValues.scheme_name}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          scheme_name: value,
+                                        }));
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {[
+                                        ...new Set([
+                                          ...filterOptions.scheme_name,
+                                          ...schemeOptions,
+                                        ]),
+                                      ].map((scheme, index) => (
+                                        <option key={index} value={scheme}>
+                                          {scheme}
+                                        </option>
+                                      ))}
+                                    </Form.Select>
                                   ) : (
                                     item.scheme_name
                                   )}

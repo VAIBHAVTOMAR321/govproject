@@ -1183,30 +1183,37 @@ const KrishiRegistration = () => {
     setEditingValues(updatedValues);
   };
 
-  // Handle save edit - FIXED VERSION
-  const handleSave = async (item) => {
-    try {
-      const payload = {
-        beneficiary_id: item.beneficiary_id,
-        farmer_name: editingValues.farmer_name,
-        father_name: editingValues.father_name,
-        address: editingValues.address,
-        center_name: editingValues.center_name,
-        supplied_item_name: editingValues.supplied_item_name,
-        unit: editingValues.unit,
-        quantity: parseInt(editingValues.quantity) || 0,
-        rate: parseFloat(editingValues.rate) || 0,
-        amount: parseFloat(editingValues.amount) || 0,
-        aadhaar_number: editingValues.aadhaar_number,
-        bank_account_number: editingValues.bank_account_number,
-        ifsc_code: editingValues.ifsc_code,
-        mobile_number: editingValues.mobile_number,
-        category: editingValues.category,
-        scheme_name: editingValues.scheme_name,
-        vikas_khand_name: editingValues.vikas_khand_name,
-        vidhan_sabha_name: editingValues.vidhan_sabha_name,
-      };
-      const response = await axios.put(BENEFICIARIES_API_URL, payload);
+// Handle save edit - UPDATED VERSION
+const handleSave = async (item) => {
+  try {
+    // Prepare payload with the required fields
+    const payload = {
+      beneficiary_id: item.beneficiary_id,
+      farmer_name: editingValues.farmer_name,
+      father_name: editingValues.father_name,
+      address: editingValues.address,
+      center_name: editingValues.center_name,
+      supplied_item_name: editingValues.supplied_item_name,
+      unit: editingValues.unit,
+      quantity: parseInt(editingValues.quantity) || 0,
+      rate: parseFloat(editingValues.rate) || 0,
+      amount: parseFloat(editingValues.amount) || 0,
+      aadhaar_number: editingValues.aadhaar_number,
+      bank_account_number: editingValues.bank_account_number,
+      ifsc_code: editingValues.ifsc_code,
+      mobile_number: editingValues.mobile_number,
+      category: editingValues.category,
+      scheme_name: editingValues.scheme_name,
+      vikas_khand_name: editingValues.vikas_khand_name,
+      vidhan_sabha_name: editingValues.vidhan_sabha_name,
+    };
+    
+    // Make the PUT request to update the beneficiary
+    const response = await axios.put(BENEFICIARIES_API_URL, payload);
+    
+    // Check if the response is successful (status 200-299)
+    if (response.status >= 200 && response.status < 300) {
+      // Update the item in the local state
       setAllBeneficiaries((prev) =>
         prev.map((i) =>
           i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
@@ -1215,11 +1222,22 @@ const KrishiRegistration = () => {
       setEditingRowId(null);
       setEditingValues({});
       setApiResponse({ message: "लाभार्थी सफलतापूर्वक अपडेट किया गया!" });
-    } catch (error) {
-      console.error("Error updating item:", error);
+    } else {
+      // Handle unexpected response status
+      setApiError(`अप्रत्याशित प्रतिक्रिया स्थिति: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Error updating item:", error);
+    // Check if it's a network error or server error
+    if (error.response) {
+      setApiError(`सर्वर त्रुटि: ${error.response.status} - ${error.response.data?.message || "अज्ञात त्रुटि"}`);
+    } else if (error.request) {
+      setApiError("नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।");
+    } else {
       setApiError("लाभार्थी अपडेट करने में त्रुटि हुई।");
     }
-  };
+  }
+};
 
   // Handle cancel edit
   const handleCancel = () => {
@@ -1233,23 +1251,42 @@ const KrishiRegistration = () => {
     });
   };
 
-  // Handle delete
-  const handleDelete = async (item) => {
-    if (window.confirm("क्या आप इस लाभार्थी को हटाना चाहते हैं?")) {
-      try {
-        const response = await axios.delete(
-          `${BENEFICIARIES_API_URL}${item.beneficiary_id}`
-        );
+// Handle delete
+const handleDelete = async (item) => {
+  if (window.confirm("क्या आप इस लाभार्थी को हटाना चाहते हैं?")) {
+    try {
+      // Prepare payload with beneficiary_id
+      const payload = {
+        beneficiary_id: item.beneficiary_id
+      };
+      
+      // Send DELETE request with payload in the body
+      const response = await axios.delete(BENEFICIARIES_API_URL, { data: payload });
+      
+      // Check if the response is successful (status 200-299)
+      if (response.status >= 200 && response.status < 300) {
+        // Remove the item from the local state
         setAllBeneficiaries((prev) =>
           prev.filter((i) => i.beneficiary_id !== item.beneficiary_id)
         );
         setApiResponse({ message: "लाभार्थी सफलतापूर्वक हटा दिया गया!" });
-      } catch (error) {
-        console.error("Error deleting item:", error);
+      } else {
+        // Handle unexpected response status
+        setApiError(`अप्रत्याशित प्रतिक्रिया स्थिति: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      // Check if it's a network error or server error
+      if (error.response) {
+        setApiError(`सर्वर त्रुटि: ${error.response.status} - ${error.response.data?.message || "अज्ञात त्रुटि"}`);
+      } else if (error.request) {
+        setApiError("नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।");
+      } else {
         setApiError("लाभार्थी हटाने में त्रुटि हुई।");
       }
     }
-  };
+  }
+};
 
   // Generate pagination items similar to MainDashboard.js
   const totalPages = Math.ceil(beneficiaries.length / itemsPerPage);
