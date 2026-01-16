@@ -110,8 +110,8 @@ const KendraPasswordReset = () => {
     <Container className="py-4 container-view">
       <Row className="justify-content-center">
         <Col md={6}>
-          <div className="card">
-            <div className="card-header bg-primary text-white">
+          <div className="card forgot-card">
+            <div className="card-header reset-heading">
               <h4 className="mb-0">केंद्र पासवर्ड रीसेट</h4>
             </div>
             <div className="card-body">
@@ -130,7 +130,7 @@ const KendraPasswordReset = () => {
               ) : (
                 <Form onSubmit={handleSubmit}>
                   <Form.Group className="mb-3" controlId="kendraSelect">
-                    <Form.Label>केंद्र चुनें (Select Kendra)</Form.Label>
+                    <Form.Label className="reset-label">केंद्र चुनें (Select Kendra)</Form.Label>
                     <Form.Select
                       value={selectedKendraId}
                       onChange={(e) => setSelectedKendraId(e.target.value)}
@@ -149,7 +149,7 @@ const KendraPasswordReset = () => {
                   </Form.Group>
                   
                   <Form.Group className="mb-3" controlId="newPassword">
-                    <Form.Label>नया पासवर्ड (New Password)</Form.Label>
+                    <Form.Label className="reset-label">नया पासवर्ड (New Password)</Form.Label>
                     <Form.Control
                       type="password"
                       value={newPassword}
@@ -162,7 +162,7 @@ const KendraPasswordReset = () => {
                   </Form.Group>
                   
                   <Form.Group className="mb-3" controlId="confirmPassword">
-                    <Form.Label>पासवर्ड की पुष्टि करें (Confirm Password)</Form.Label>
+                    <Form.Label className="reset-label">पासवर्ड की पुष्टि करें (Confirm Password)</Form.Label>
                     <Form.Control
                       type="password"
                       value={confirmPassword}
@@ -174,9 +174,9 @@ const KendraPasswordReset = () => {
                     </Form.Control.Feedback>
                   </Form.Group>
                   
-                  <div className="d-grid gap-2">
+                  <div className="d-flex justify-content-center mt-3">
                     <Button 
-                      variant="primary" 
+                    
                       type="submit" 
                       disabled={loading}
                     >
@@ -192,7 +192,7 @@ const KendraPasswordReset = () => {
                           <span className="visually-hidden">Loading...</span>
                         </>
                       ) : (
-                        'पासवर्ड रीसेट करें (Reset Password)'
+                        'पासवर्ड रीसेट करें'
                       )}
                     </Button>
                   </div>

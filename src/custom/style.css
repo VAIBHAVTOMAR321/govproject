@@ -77,7 +77,17 @@ body {
   cursor: pointer;
 
 }
-
+.card.forgot-card {
+    margin-top: 100px;
+}
+.reset-heading {
+    background-color: #0B488F !important;
+    color: #fff !important;
+    font-size: 12px;
+}
+label.reset-label{
+    font-size: 14px;
+    font-weight: 600;}
 .table-regi tr th {
   background-color: #13539d;
   color: #fff;
