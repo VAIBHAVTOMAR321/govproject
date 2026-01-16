@@ -68,44 +68,55 @@ const staticCategoryOptions = [
 const staticUnitOptions = ["नग", "किलोग्राम", "लीटर", "मीटर", "बैग"];
 
 // Available columns for table (excluding sno which is always shown)
+// Reordered according to the requested sequence
 const beneficiariesTableColumns = [
+  { key: "center_name", label: "केंद्र का नाम" },
+  { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
+  { key: "vikas_khand_name", label: "विकास खंड का नाम" },
+  { key: "scheme_name", label: "योजना का नाम" },
+  { key: "supplied_item_name", label: "आपूर्ति की गई वस्तु का नाम" },
   { key: "farmer_name", label: "किसान का नाम" },
   { key: "father_name", label: "पिता का नाम" },
+  { key: "category", label: "श्रेणी" },
   { key: "address", label: "पता" },
-  { key: "center_name", label: "केंद्र का नाम" },
-  { key: "supplied_item_name", label: "आपूर्ति की गई वस्तु का नाम" },
+  { key: "mobile_number", label: "मोबाइल नंबर" },
+  { key: "aadhaar_number", label: "आधार नंबर" },
+  { key: "bank_account_number", label: "बैंक खाता नंबर" },
+  { key: "ifsc_code", label: "IFSC कोड" },
   { key: "unit", label: "इकाई" },
   { key: "quantity", label: "मात्रा" },
   { key: "rate", label: "दर" },
   { key: "amount", label: "राशि" },
-  { key: "aadhaar_number", label: "आधार नंबर" },
-  { key: "bank_account_number", label: "बैंक खाता नंबर" },
-  { key: "ifsc_code", label: "IFSC कोड" },
-  { key: "mobile_number", label: "मोबाइल नंबर" },
-  { key: "category", label: "श्रेणी" },
-  { key: "scheme_name", label: "योजना का नाम" },
-  { key: "vikas_khand_name", label: "विकास खंड का नाम" },
-  { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
 ];
 
-// Column mapping for data access
+// Column mapping for data access - Reordered to match the new sequence
 const beneficiariesTableColumnMapping = {
   sno: { header: "क्र.सं.", accessor: (item, index) => index + 1 },
-  farmer_name: { header: "किसान का नाम", accessor: (item) => item.farmer_name },
-  father_name: { header: "पिता का नाम", accessor: (item) => item.father_name },
-  address: { header: "पता", accessor: (item) => item.address },
   center_name: {
     header: "केंद्र का नाम",
     accessor: (item) => item.center_name,
   },
+  vidhan_sabha_name: {
+    header: "विधानसभा का नाम",
+    accessor: (item) => item.vidhan_sabha_name,
+  },
+  vikas_khand_name: {
+    header: "विकास खंड का नाम",
+    accessor: (item) => item.vikas_khand_name,
+  },
+  scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
   supplied_item_name: {
     header: "आपूर्ति की गई वस्तु का नाम",
     accessor: (item) => item.supplied_item_name,
   },
-  unit: { header: "इकाई", accessor: (item) => item.unit },
-  quantity: { header: "मात्रा", accessor: (item) => item.quantity },
-  rate: { header: "दर", accessor: (item) => item.rate },
-  amount: { header: "राशि", accessor: (item) => item.amount },
+  farmer_name: { header: "किसान का नाम", accessor: (item) => item.farmer_name },
+  father_name: { header: "पिता का नाम", accessor: (item) => item.father_name },
+  category: { header: "श्रेणी", accessor: (item) => item.category },
+  address: { header: "पता", accessor: (item) => item.address },
+  mobile_number: {
+    header: "मोबाइल नंबर",
+    accessor: (item) => item.mobile_number,
+  },
   aadhaar_number: {
     header: "आधार नंबर",
     accessor: (item) => item.aadhaar_number,
@@ -115,20 +126,10 @@ const beneficiariesTableColumnMapping = {
     accessor: (item) => item.bank_account_number,
   },
   ifsc_code: { header: "IFSC कोड", accessor: (item) => item.ifsc_code },
-  mobile_number: {
-    header: "मोबाइल नंबर",
-    accessor: (item) => item.mobile_number,
-  },
-  category: { header: "श्रेणी", accessor: (item) => item.category },
-  scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
-  vikas_khand_name: {
-    header: "विकास खंड का नाम",
-    accessor: (item) => item.vikas_khand_name,
-  },
-  vidhan_sabha_name: {
-    header: "विधानसभा का नाम",
-    accessor: (item) => item.vidhan_sabha_name,
-  },
+  unit: { header: "इकाई", accessor: (item) => item.unit },
+  quantity: { header: "मात्रा", accessor: (item) => item.quantity },
+  rate: { header: "दर", accessor: (item) => item.rate },
+  amount: { header: "राशि", accessor: (item) => item.amount },
 };
 
 // Hindi translations for form
@@ -885,8 +886,26 @@ const KrishiRegistration = () => {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
-      // Set column widths
-      const colWidths = selectedColumns.map(() => ({ wch: 15 }));
+      // Set column widths based on the new column order
+      const colWidths = [
+        { wch: 20 }, // केंद्र का नाम
+        { wch: 20 }, // विधानसभा का नाम
+        { wch: 20 }, // विकास खंड का नाम
+        { wch: 20 }, // योजना का नाम
+        { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
+        { wch: 20 }, // किसान का नाम
+        { wch: 20 }, // पिता का नाम
+        { wch: 15 }, // श्रेणी
+        { wch: 40 }, // पता
+        { wch: 15 }, // मोबाइल नंबर
+        { wch: 15 }, // आधार नंबर
+        { wch: 20 }, // बैंक खाता नंबर
+        { wch: 15 }, // IFSC कोड
+        { wch: 10 }, // इकाई
+        { wch: 10 }, // मात्रा
+        { wch: 10 }, // दर
+        { wch: 10 }, // राशि
+      ];
       ws["!cols"] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, "Data");
@@ -897,49 +916,53 @@ const KrishiRegistration = () => {
     }
   };
 
-  // Download sample Excel template
+  // Download sample Excel template - Updated to match the new column order
   const downloadSampleTemplate = () => {
     try {
       const sampleData = [
         {
+          "केंद्र का नाम": "कोटद्वार",
+          "विधानसभा का नाम": "कोटद्वार",
+          "विकास खंड का नाम": "कोटद्वार",
+          "योजना का नाम": "MGNREGA",
+          "आपूर्ति की गई वस्तु का नाम": "बीज",
           "किसान का नाम": "रामेश कुमार",
           "पिता का नाम": "सुरेश कुमार",
-          पता: "ग्राम रामपुर, पोस्ट रामपुर, जिला सीतापुर, उत्तर प्रदेश",
-          "केंद्र का नाम": "कृषि सेवा केंद्र महौली",
-          "आपूर्ति की गई वस्तु का नाम": "आम का पौधा",
-          इकाई: "नग",
-          मात्रा: 50,
-          दर: 25,
-          राशि: 1250,
+          "श्रेणी": "सामान्य",
+          "पता": "ग्राम रामपुर, पोस्ट रामपुर, जिला सीतापुर, उत्तर प्रदेश",
+          "मोबाइल नंबर": "9876543210",
           "आधार नंबर": "123456789012",
           "बैंक खाता नंबर": "12345678901234",
           "IFSC कोड": "SBIN0001234",
-          "मोबाइल नंबर": "9876543210",
-          श्रेणी: "सामान्य",
-          "योजना का नाम": "उद्यान विकास योजना",
+          "इकाई": "नग",
+          "मात्रा": 50,
+          "दर": 25,
+          "राशि": 1250,
         },
       ];
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(sampleData);
 
-      // Set column widths
+      // Set column widths based on the new column order
       const colWidths = [
+        { wch: 20 }, // केंद्र का नाम
+        { wch: 20 }, // विधानसभा का नाम
+        { wch: 20 }, // विकास खंड का नाम
+        { wch: 20 }, // योजना का नाम
+        { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
         { wch: 20 }, // किसान का नाम
         { wch: 20 }, // पिता का नाम
+        { wch: 15 }, // श्रेणी
         { wch: 40 }, // पता
-        { wch: 25 }, // केंद्र का नाम
-        { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
+        { wch: 15 }, // मोबाइल नंबर
+        { wch: 15 }, // आधार नंबर
+        { wch: 20 }, // बैंक खाता नंबर
+        { wch: 15 }, // IFSC कोड
         { wch: 10 }, // इकाई
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
-        { wch: 10 }, // आधार नंबर
-        { wch: 20 }, // बैंक खाता नंबर
-        { wch: 15 }, // IFSC कोड
-        { wch: 15 }, // मोबाइल नंबर
-        { wch: 15 }, // श्रेणी
-        { wch: 20 }, // योजना का नाम
       ];
       ws["!cols"] = colWidths;
 
@@ -1343,7 +1366,7 @@ const handleDelete = async (item) => {
     setExcelFile(e.target.files[0]);
   };
 
-  // Handle bulk upload
+  // Handle bulk upload - Updated to match the new column order
   const handleBulkUpload = async () => {
     if (!excelFile) return;
 
@@ -1379,8 +1402,28 @@ const handleDelete = async (item) => {
             }
           });
 
-          // Parse data using header mapping
+          // Parse data using header mapping - Updated to match the new column order
           const payloads = dataRows.map((row) => ({
+            center_name:
+              row[headerMapping["केंद्र का नाम"]] ||
+              row[headerMapping["center_name"]] ||
+              "",
+            vidhan_sabha_name:
+              row[headerMapping["विधानसभा का नाम"]] ||
+              row[headerMapping["vidhan_sabha_name"]] ||
+              "",
+            vikas_khand_name:
+              row[headerMapping["विकास खंड का नाम"]] ||
+              row[headerMapping["vikas_khand_name"]] ||
+              "",
+            scheme_name:
+              row[headerMapping["योजना का नाम"]] ||
+              row[headerMapping["scheme_name"]] ||
+              "",
+            supplied_item_name:
+              row[headerMapping["आपूर्ति की गई वस्तु का नाम"]] ||
+              row[headerMapping["supplied_item_name"]] ||
+              "",
             farmer_name:
               row[headerMapping["किसान का नाम"]] ||
               row[headerMapping["farmer_name"]] ||
@@ -1389,15 +1432,27 @@ const handleDelete = async (item) => {
               row[headerMapping["पिता का नाम"]] ||
               row[headerMapping["father_name"]] ||
               "",
+            category:
+              row[headerMapping["श्रेणी"]] ||
+              row[headerMapping["category"]] ||
+              "",
             address:
               row[headerMapping["पता"]] || row[headerMapping["address"]] || "",
-            center_name:
-              row[headerMapping["केंद्र का नाम"]] ||
-              row[headerMapping["center_name"]] ||
+            mobile_number:
+              row[headerMapping["मोबाइल नंबर"]] ||
+              row[headerMapping["mobile_number"]] ||
               "",
-            supplied_item_name:
-              row[headerMapping["आपूर्ति की गई वस्तु का नाम"]] ||
-              row[headerMapping["supplied_item_name"]] ||
+            aadhaar_number:
+              row[headerMapping["आधार नंबर"]] ||
+              row[headerMapping["aadhaar_number"]] ||
+              "",
+            bank_account_number:
+              row[headerMapping["बैंक खाता नंबर"]] ||
+              row[headerMapping["bank_account_number"]] ||
+              "",
+            ifsc_code:
+              row[headerMapping["ifsc कोड"]] ||
+              row[headerMapping["ifsc_code"]] ||
               "",
             unit:
               row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "",
@@ -1412,38 +1467,6 @@ const handleDelete = async (item) => {
             amount: parseFloat(
               row[headerMapping["राशि"]] || row[headerMapping["amount"]] || 0
             ),
-            aadhaar_number:
-              row[headerMapping["आधार नंबर"]] ||
-              row[headerMapping["aadhaar_number"]] ||
-              "",
-            bank_account_number:
-              row[headerMapping["बैंक खाता नंबर"]] ||
-              row[headerMapping["bank_account_number"]] ||
-              "",
-            ifsc_code:
-              row[headerMapping["ifsc कोड"]] ||
-              row[headerMapping["ifsc_code"]] ||
-              "",
-            mobile_number:
-              row[headerMapping["मोबाइल नंबर"]] ||
-              row[headerMapping["mobile_number"]] ||
-              "",
-            category:
-              row[headerMapping["श्रेणी"]] ||
-              row[headerMapping["category"]] ||
-              "",
-            scheme_name:
-              row[headerMapping["योजना का नाम"]] ||
-              row[headerMapping["scheme_name"]] ||
-              "",
-            vikas_khand_name:
-              row[headerMapping["विकास खंड का नाम"]] ||
-              row[headerMapping["vikas_khand_name"]] ||
-              "",
-            vidhan_sabha_name:
-              row[headerMapping["विधानसभा का नाम"]] ||
-              row[headerMapping["vidhan_sabha_name"]] ||
-              "",
           }));
 
           let successfulUploads = 0;
@@ -1803,10 +1826,9 @@ const handleDelete = async (item) => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    अनिवार्य फ़ील्ड: किसान का नाम, पिता का नाम, पता, केंद्र का
-                    नाम, आपूर्ति की गई वस्तु का नाम, इकाई, मात्रा, दर, राशि, आधार
-                    नंबर, बैंक खाता नंबर, IFSC कोड, मोबाइल नंबर, श्रेणी, योजना का
-                    नाम, विकास खंड का नाम, विधानसभा का नाम
+                    अनिवार्य फ़ील्ड: केंद्र का नाम, विधानसभा का नाम, विकास खंड का नाम, योजना का नाम, 
+                    आपूर्ति की गई वस्तु का नाम, किसान का नाम, पिता का नाम, श्रेणी, पता, मोबाइल नंबर, 
+                    आधार नंबर, बैंक खाता नंबर, IFSC कोड, इकाई, मात्रा, दर, राशि
                   </li>
                   <li>मात्रा, दर और राशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
@@ -2753,20 +2775,45 @@ const handleDelete = async (item) => {
                       <thead className="table-light">
                         <tr>
                           <th>क्र.सं.</th>
+                          {/* Updated column order to match the requested sequence */}
+                          {selectedColumns.includes("center_name") && (
+                            <th>{translations.centerName}</th>
+                          )}
+                          {selectedColumns.includes("vidhan_sabha_name") && (
+                            <th>{translations.vidhanSabhaName}</th>
+                          )}
+                          {selectedColumns.includes("vikas_khand_name") && (
+                            <th>{translations.vikasKhandName}</th>
+                          )}
+                          {selectedColumns.includes("scheme_name") && (
+                            <th>{translations.schemeName}</th>
+                          )}
+                          {selectedColumns.includes("supplied_item_name") && (
+                            <th>{translations.suppliedItemName}</th>
+                          )}
                           {selectedColumns.includes("farmer_name") && (
                             <th>{translations.farmerName}</th>
                           )}
                           {selectedColumns.includes("father_name") && (
                             <th>{translations.fatherName}</th>
                           )}
+                          {selectedColumns.includes("category") && (
+                            <th>{translations.category}</th>
+                          )}
                           {selectedColumns.includes("address") && (
                             <th>{translations.address}</th>
                           )}
-                          {selectedColumns.includes("center_name") && (
-                            <th>{translations.centerName}</th>
+                          {selectedColumns.includes("mobile_number") && (
+                            <th>{translations.mobileNumber}</th>
                           )}
-                          {selectedColumns.includes("supplied_item_name") && (
-                            <th>{translations.suppliedItemName}</th>
+                          {selectedColumns.includes("aadhaar_number") && (
+                            <th>{translations.aadhaarNumber}</th>
+                          )}
+                          {selectedColumns.includes("bank_account_number") && (
+                            <th>{translations.bankAccountNumber}</th>
+                          )}
+                          {selectedColumns.includes("ifsc_code") && (
+                            <th>{translations.ifscCode}</th>
                           )}
                           {selectedColumns.includes("unit") && (
                             <th>{translations.unit}</th>
@@ -2779,30 +2826,6 @@ const handleDelete = async (item) => {
                           )}
                           {selectedColumns.includes("amount") && (
                             <th>{translations.amount}</th>
-                          )}
-                          {selectedColumns.includes("aadhaar_number") && (
-                            <th>{translations.aadhaarNumber}</th>
-                          )}
-                          {selectedColumns.includes("bank_account_number") && (
-                            <th>{translations.bankAccountNumber}</th>
-                          )}
-                          {selectedColumns.includes("ifsc_code") && (
-                            <th>{translations.ifscCode}</th>
-                          )}
-                          {selectedColumns.includes("mobile_number") && (
-                            <th>{translations.mobileNumber}</th>
-                          )}
-                          {selectedColumns.includes("category") && (
-                            <th>{translations.category}</th>
-                          )}
-                          {selectedColumns.includes("scheme_name") && (
-                            <th>{translations.schemeName}</th>
-                          )}
-                          {selectedColumns.includes("vikas_khand_name") && (
-                            <th>{translations.vikasKhandName}</th>
-                          )}
-                          {selectedColumns.includes("vidhan_sabha_name") && (
-                            <th>{translations.vidhanSabhaName}</th>
                           )}
                           <th>कार्रवाई</th>
                         </tr>
@@ -2818,52 +2841,7 @@ const handleDelete = async (item) => {
                               <td>
                                 {(currentPage - 1) * itemsPerPage + index + 1}
                               </td>
-                              {selectedColumns.includes("farmer_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="farmer_name"
-                                      value={editingValues.farmer_name}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.farmer_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("father_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="father_name"
-                                      value={editingValues.father_name}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.father_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("address") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      as="textarea"
-                                      rows={2}
-                                      name="address"
-                                      value={editingValues.address}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.address
-                                  )}
-                                </td>
-                              )}
+                              {/* Updated column order to match the requested sequence */}
                               {selectedColumns.includes("center_name") && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
@@ -2884,6 +2862,96 @@ const handleDelete = async (item) => {
                                     </Form.Select>
                                   ) : (
                                     item.center_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("vidhan_sabha_name") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="vidhan_sabha_name"
+                                      value={editingValues.vidhan_sabha_name}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                      disabled
+                                    />
+                                  ) : (
+                                    item.vidhan_sabha_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("vikas_khand_name") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="vikas_khand_name"
+                                      value={editingValues.vikas_khand_name}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                      disabled
+                                    />
+                                  ) : (
+                                    item.vikas_khand_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("scheme_name") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    editingOtherMode.scheme_name ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          name="scheme_name"
+                                          value={editingValues.scheme_name}
+                                          onChange={handleEditChange}
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          className="ms-1"
+                                          onClick={() => {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              scheme_name: false,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              scheme_name: "",
+                                            }));
+                                            // Refetch base options
+                                            fetchFormFilters("", "", editingValues.center_name);
+                                          }}
+                                          title="विकल्प दिखाएं"
+                                        >
+                                          ↺
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        name="scheme_name"
+                                        value={editingValues.scheme_name}
+                                        onChange={handleEditChange}
+                                        size="sm"
+                                      >
+                                        <option value="">
+                                          {translations.selectOption}
+                                        </option>
+                                        {formOptions.scheme_name.map(
+                                          (scheme, index) => (
+                                            <option key={index} value={scheme}>
+                                              {scheme}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य</option>
+                                      </Form.Select>
+                                    )
+                                  ) : (
+                                    item.scheme_name
                                   )}
                                 </td>
                               )}
@@ -2942,6 +3010,172 @@ const handleDelete = async (item) => {
                                     )
                                   ) : (
                                     item.supplied_item_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("farmer_name") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="farmer_name"
+                                      value={editingValues.farmer_name}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.farmer_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("father_name") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="father_name"
+                                      value={editingValues.father_name}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.father_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("category") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    editingOtherMode.category ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          name="category"
+                                          value={editingValues.category}
+                                          onChange={handleEditChange}
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          className="ms-1"
+                                          onClick={() => {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              category: false,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              category: "",
+                                            }));
+                                            // Refetch base options
+                                            fetchFormFilters("", "", editingValues.center_name);
+                                          }}
+                                          title="विकल्प दिखाएं"
+                                        >
+                                          ↺
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        name="category"
+                                        value={editingValues.category}
+                                        onChange={handleEditChange}
+                                        size="sm"
+                                      >
+                                        <option value="">
+                                          {translations.selectOption}
+                                        </option>
+                                        {formOptions.category.map(
+                                          (cat, index) => (
+                                            <option key={index} value={cat}>
+                                              {cat}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य</option>
+                                      </Form.Select>
+                                    )
+                                  ) : (
+                                    item.category
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("address") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      as="textarea"
+                                      rows={2}
+                                      name="address"
+                                      value={editingValues.address}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.address
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("mobile_number") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="mobile_number"
+                                      value={editingValues.mobile_number}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.mobile_number
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("aadhaar_number") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="aadhaar_number"
+                                      value={editingValues.aadhaar_number}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.aadhaar_number
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes(
+                                "bank_account_number"
+                              ) && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="bank_account_number"
+                                      value={editingValues.bank_account_number}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.bank_account_number
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("ifsc_code") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="text"
+                                      name="ifsc_code"
+                                      value={editingValues.ifsc_code}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.ifsc_code
                                   )}
                                 </td>
                               )}
@@ -3045,226 +3279,6 @@ const handleDelete = async (item) => {
                                     />
                                   ) : (
                                     item.amount
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("aadhaar_number") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="aadhaar_number"
-                                      value={editingValues.aadhaar_number}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.aadhaar_number
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes(
-                                "bank_account_number"
-                              ) && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="bank_account_number"
-                                      value={editingValues.bank_account_number}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.bank_account_number
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("ifsc_code") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="ifsc_code"
-                                      value={editingValues.ifsc_code}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.ifsc_code
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("mobile_number") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="mobile_number"
-                                      value={editingValues.mobile_number}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.mobile_number
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("category") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    editingOtherMode.category ? (
-                                      <div className="d-flex">
-                                        <Form.Control
-                                          type="text"
-                                          name="category"
-                                          value={editingValues.category}
-                                          onChange={handleEditChange}
-                                          size="sm"
-                                        />
-                                        <Button
-                                          variant="outline-secondary"
-                                          size="sm"
-                                          className="ms-1"
-                                          onClick={() => {
-                                            setEditingOtherMode((prev) => ({
-                                              ...prev,
-                                              category: false,
-                                            }));
-                                            setEditingValues((prev) => ({
-                                              ...prev,
-                                              category: "",
-                                            }));
-                                            // Refetch base options
-                                            fetchFormFilters("", "", editingValues.center_name);
-                                          }}
-                                          title="विकल्प दिखाएं"
-                                        >
-                                          ↺
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <Form.Select
-                                        name="category"
-                                        value={editingValues.category}
-                                        onChange={handleEditChange}
-                                        size="sm"
-                                      >
-                                        <option value="">
-                                          {translations.selectOption}
-                                        </option>
-                                        {formOptions.category.map(
-                                          (cat, index) => (
-                                            <option key={index} value={cat}>
-                                              {cat}
-                                            </option>
-                                          )
-                                        )}
-                                        <option value="Other">अन्य</option>
-                                      </Form.Select>
-                                    )
-                                  ) : (
-                                    item.category
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("scheme_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    editingOtherMode.scheme_name ? (
-                                      <div className="d-flex">
-                                        <Form.Control
-                                          type="text"
-                                          name="scheme_name"
-                                          value={editingValues.scheme_name}
-                                          onChange={handleEditChange}
-                                          size="sm"
-                                        />
-                                        <Button
-                                          variant="outline-secondary"
-                                          size="sm"
-                                          className="ms-1"
-                                          onClick={() => {
-                                            setEditingOtherMode((prev) => ({
-                                              ...prev,
-                                              scheme_name: false,
-                                            }));
-                                            setEditingValues((prev) => ({
-                                              ...prev,
-                                              scheme_name: "",
-                                            }));
-                                            // Refetch base options
-                                            fetchFormFilters("", "", editingValues.center_name);
-                                          }}
-                                          title="विकल्प दिखाएं"
-                                        >
-                                          ↺
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <Form.Select
-                                        name="scheme_name"
-                                        value={editingValues.scheme_name}
-                                        onChange={handleEditChange}
-                                        size="sm"
-                                      >
-                                        <option value="">
-                                          {translations.selectOption}
-                                        </option>
-                                        {formOptions.scheme_name.map(
-                                          (scheme, index) => (
-                                            <option key={index} value={scheme}>
-                                              {scheme}
-                                            </option>
-                                          )
-                                        )}
-                                        <option value="Other">अन्य</option>
-                                      </Form.Select>
-                                    )
-                                  ) : (
-                                    item.scheme_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("vikas_khand_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="vikas_khand_name"
-                                      value={editingValues.vikas_khand_name}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                      disabled
-                                      placeholder={
-                                        isFetchingVikasKhand
-                                          ? "लोड हो रहा है..."
-                                          : ""
-                                      }
-                                    />
-                                  ) : (
-                                    item.vikas_khand_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("vidhan_sabha_name") && (
-                                <td>
-                                  {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
-                                      name="vidhan_sabha_name"
-                                      value={editingValues.vidhan_sabha_name}
-                                      onChange={handleEditChange}
-                                      size="sm"
-                                      disabled
-                                      placeholder={
-                                        isFetchingVikasKhand
-                                          ? "लोड हो रहा है..."
-                                          : ""
-                                      }
-                                    />
-                                  ) : (
-                                    item.vidhan_sabha_name
                                   )}
                                 </td>
                               )}

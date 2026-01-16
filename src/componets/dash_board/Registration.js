@@ -308,7 +308,7 @@ const Registration = () => {
   const [formOptions, setFormOptions] = useState({
     investment_name: investmentOptions,
     sub_investment_name: [],
-    unit: ["Number", "meter", "Square meter", "kg", "बैग"],
+    unit: unitOptions,
     source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
   });
@@ -317,7 +317,7 @@ const Registration = () => {
   const [editOptions, setEditOptions] = useState({
     investment_name: investmentOptions,
     sub_investment_name: [],
-    unit: ["Number", "meter", "Square meter", "kg", "बैग"],
+    unit: unitOptions,
     source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
   });
@@ -325,6 +325,24 @@ const Registration = () => {
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
+
+  // Track which fields are in "Other" mode (text input instead of dropdown)
+  const [otherMode, setOtherMode] = useState({
+    investment_name: false,
+    sub_investment_name: false,
+    unit: false,
+    source_of_receipt: false,
+    scheme_name: false,
+  });
+
+  // Track which fields are in "Other" mode for editing
+  const [editingOtherMode, setEditingOtherMode] = useState({
+    investment_name: false,
+    sub_investment_name: false,
+    unit: false,
+    source_of_receipt: false,
+    scheme_name: false,
+  });
 
   // Fetch center options from backend
   const fetchCenterOptions = async () => {
@@ -1251,46 +1269,65 @@ const Registration = () => {
       [name]: value,
     };
 
-    if (name === "investment_name" && value) {
-      updatedFormData.sub_investment_name = "";
-      updatedFormData.unit = "";
-      fetchFormFilters(value);
-    } else if (
-      name === "sub_investment_name" &&
-      value &&
-      formData.investment_name
-    ) {
-      // Sub-investment changed
-    }
+    // Handle "Other" selection - switch to text input mode
+    if (value === "Other") {
+      setOtherMode((prev) => ({
+        ...prev,
+        [name]: true,
+      }));
+      updatedFormData[name] = ""; // Clear the value
+    } else {
+      // If not "Other", ensure we're in dropdown mode (unless already in other mode)
+      if (!otherMode[name]) {
+        setOtherMode((prev) => ({
+          ...prev,
+          [name]: false,
+        }));
 
-    if (name === "center_name") {
-      if (value) {
-        fetchVikasKhandData(value);
-        updatedFormData.investment_name = "भवन निर्माण";
-        updatedFormData.sub_investment_name = "नया भवन";
-        updatedFormData.unit = "बैग";
-        updatedFormData.allocated_quantity = "100";
-        updatedFormData.rate = "450.5";
-        updatedFormData.source_of_receipt = "PWD";
-        updatedFormData.scheme_name = "MGNREGA";
-        updatedFormData.amount_of_farmer_share = "10000";
-        updatedFormData.amount_of_subsidy = "20000";
-        updatedFormData.total_amount = "30000";
-      } else {
-        setVikasKhandData(null);
-        updatedFormData.vikas_khand_name = "";
-        updatedFormData.vidhan_sabha_name = "";
-        updatedFormData.investment_name = "";
-        updatedFormData.sub_investment_name = "";
-        updatedFormData.unit = "";
-        updatedFormData.allocated_quantity = "";
-        updatedFormData.rate = "";
-        updatedFormData.source_of_receipt = "";
-        updatedFormData.scheme_name = "";
-        updatedFormData.amount_of_farmer_share = "";
-        updatedFormData.amount_of_subsidy = "";
-        updatedFormData.total_amount = "";
+        // Handle cascading dropdowns only when not in other mode
+        if (name === "investment_name" && value) {
+          updatedFormData.sub_investment_name = "";
+          updatedFormData.unit = "";
+          fetchFormFilters(value);
+        } else if (
+          name === "sub_investment_name" &&
+          value &&
+          formData.investment_name
+        ) {
+          // Sub-investment changed
+        }
+
+        if (name === "center_name") {
+          if (value) {
+            fetchVikasKhandData(value);
+            updatedFormData.investment_name = "भवन निर्माण";
+            updatedFormData.sub_investment_name = "नया भवन";
+            updatedFormData.unit = "बैग";
+            updatedFormData.allocated_quantity = "100";
+            updatedFormData.rate = "450.5";
+            updatedFormData.source_of_receipt = "PWD";
+            updatedFormData.scheme_name = "MGNREGA";
+            updatedFormData.amount_of_farmer_share = "10000";
+            updatedFormData.amount_of_subsidy = "20000";
+            updatedFormData.total_amount = "30000";
+          } else {
+            setVikasKhandData(null);
+            updatedFormData.vikas_khand_name = "";
+            updatedFormData.vidhan_sabha_name = "";
+            updatedFormData.investment_name = "";
+            updatedFormData.sub_investment_name = "";
+            updatedFormData.unit = "";
+            updatedFormData.allocated_quantity = "";
+            updatedFormData.rate = "";
+            updatedFormData.source_of_receipt = "";
+            updatedFormData.scheme_name = "";
+            updatedFormData.amount_of_farmer_share = "";
+            updatedFormData.amount_of_subsidy = "";
+            updatedFormData.total_amount = "";
+          }
+        }
       }
+      // If in other mode, just update the value without triggering cascading
     }
 
     if (name === "amount_of_farmer_share" || name === "amount_of_subsidy") {
@@ -1528,21 +1565,56 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.investmentName}
                         </Form.Label>
-                        <Form.Select
-                          name="investment_name"
-                          value={formData.investment_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.investment_name}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {formOptions.investment_name.map((inv, index) => (
-                            <option key={index} value={inv}>
-                              {inv}
-                            </option>
-                          ))}
-                        </Form.Select>
+                        {otherMode.investment_name ? (
+                          <div className="d-flex">
+                            <Form.Control
+                              type="text"
+                              name="investment_name"
+                              value={formData.investment_name}
+                              onChange={handleChange}
+                              isInvalid={!!errors.investment_name}
+                              className="compact-input"
+                              placeholder="निवेश का नाम दर्ज करें"
+                            />
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="ms-1"
+                              onClick={() => {
+                                setOtherMode((prev) => ({
+                                  ...prev,
+                                  investment_name: false,
+                                }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  investment_name: "",
+                                }));
+                                // Refetch options
+                                fetchFormFilters("", "");
+                              }}
+                              title="विकल्प दिखाएं"
+                            >
+                              ↺
+                            </Button>
+                          </div>
+                        ) : (
+                          <Form.Select
+                            name="investment_name"
+                            value={formData.investment_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.investment_name}
+                            className="compact-input"
+                            disabled={isLoadingFilters}
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.investment_name.map((inv, index) => (
+                              <option key={index} value={inv}>
+                                {inv}
+                              </option>
+                            ))}
+                            <option value="Other">अन्य</option>
+                          </Form.Select>
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.investment_name}
                         </Form.Control.Feedback>
@@ -1556,23 +1628,58 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.subInvestmentName}
                         </Form.Label>
-                        <Form.Select
-                          name="sub_investment_name"
-                          value={formData.sub_investment_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.sub_investment_name}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {formOptions.sub_investment_name.map(
-                            (subInv, index) => (
-                              <option key={index} value={subInv}>
-                                {subInv}
-                              </option>
-                            )
-                          )}
-                        </Form.Select>
+                        {otherMode.sub_investment_name ? (
+                          <div className="d-flex">
+                            <Form.Control
+                              type="text"
+                              name="sub_investment_name"
+                              value={formData.sub_investment_name}
+                              onChange={handleChange}
+                              isInvalid={!!errors.sub_investment_name}
+                              className="compact-input"
+                              placeholder="उप-निवेश का नाम दर्ज करें"
+                            />
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="ms-1"
+                              onClick={() => {
+                                setOtherMode((prev) => ({
+                                  ...prev,
+                                  sub_investment_name: false,
+                                }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  sub_investment_name: "",
+                                }));
+                                // Refetch options
+                                fetchFormFilters(formData.investment_name, "");
+                              }}
+                              title="विकल्प दिखाएं"
+                            >
+                              ↺
+                            </Button>
+                          </div>
+                        ) : (
+                          <Form.Select
+                            name="sub_investment_name"
+                            value={formData.sub_investment_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.sub_investment_name}
+                            className="compact-input"
+                            disabled={isLoadingFilters}
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.sub_investment_name.map(
+                              (subInv, index) => (
+                                <option key={index} value={subInv}>
+                                  {subInv}
+                                </option>
+                              )
+                            )}
+                            <option value="Other">अन्य</option>
+                          </Form.Select>
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.sub_investment_name}
                         </Form.Control.Feedback>
@@ -1583,21 +1690,56 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.unit}
                         </Form.Label>
-                        <Form.Select
-                          name="unit"
-                          value={formData.unit}
-                          onChange={handleChange}
-                          isInvalid={!!errors.unit}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {filterOptions.unit.map((unit, index) => (
-                            <option key={index} value={unit}>
-                              {unit}
-                            </option>
-                          ))}
-                        </Form.Select>
+                        {otherMode.unit ? (
+                          <div className="d-flex">
+                            <Form.Control
+                              type="text"
+                              name="unit"
+                              value={formData.unit}
+                              onChange={handleChange}
+                              isInvalid={!!errors.unit}
+                              className="compact-input"
+                              placeholder="इकाई दर्ज करें"
+                            />
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="ms-1"
+                              onClick={() => {
+                                setOtherMode((prev) => ({
+                                  ...prev,
+                                  unit: false,
+                                }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  unit: "",
+                                }));
+                                // Refetch options
+                                fetchFormFilters(formData.investment_name, formData.sub_investment_name);
+                              }}
+                              title="विकल्प दिखाएं"
+                            >
+                              ↺
+                            </Button>
+                          </div>
+                        ) : (
+                          <Form.Select
+                            name="unit"
+                            value={formData.unit}
+                            onChange={handleChange}
+                            isInvalid={!!errors.unit}
+                            className="compact-input"
+                            disabled={isLoadingFilters}
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.unit.map((unit, index) => (
+                              <option key={index} value={unit}>
+                                {unit}
+                              </option>
+                            ))}
+                            <option value="Other">अन्य</option>
+                          </Form.Select>
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.unit}
                         </Form.Control.Feedback>
@@ -1649,26 +1791,59 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.sourceOfReceipt}
                         </Form.Label>
-                        <Form.Select
-                          name="source_of_receipt"
-                          value={formData.source_of_receipt}
-                          onChange={handleChange}
-                          isInvalid={!!errors.source_of_receipt}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {[
-                            ...new Set([
-                              ...filterOptions.source_of_receipt,
-                              ...sourceOptions,
-                            ]),
-                          ].map((source, index) => (
-                            <option key={index} value={source}>
-                              {source}
-                            </option>
-                          ))}
-                        </Form.Select>
+                        {otherMode.source_of_receipt ? (
+                          <div className="d-flex">
+                            <Form.Control
+                              type="text"
+                              name="source_of_receipt"
+                              value={formData.source_of_receipt}
+                              onChange={handleChange}
+                              isInvalid={!!errors.source_of_receipt}
+                              className="compact-input"
+                              placeholder="सप्लायर दर्ज करें"
+                            />
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="ms-1"
+                              onClick={() => {
+                                setOtherMode((prev) => ({
+                                  ...prev,
+                                  source_of_receipt: false,
+                                }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  source_of_receipt: "",
+                                }));
+                              }}
+                              title="विकल्प दिखाएं"
+                            >
+                              ↺
+                            </Button>
+                          </div>
+                        ) : (
+                          <Form.Select
+                            name="source_of_receipt"
+                            value={formData.source_of_receipt}
+                            onChange={handleChange}
+                            isInvalid={!!errors.source_of_receipt}
+                            className="compact-input"
+                            disabled={isLoadingFilters}
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {[
+                              ...new Set([
+                                ...filterOptions.source_of_receipt,
+                                ...sourceOptions,
+                              ]),
+                            ].map((source, index) => (
+                              <option key={index} value={source}>
+                                {source}
+                              </option>
+                            ))}
+                            <option value="Other">अन्य</option>
+                          </Form.Select>
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.source_of_receipt}
                         </Form.Control.Feedback>
@@ -1679,26 +1854,59 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.schemeName}
                         </Form.Label>
-                        <Form.Select
-                          name="scheme_name"
-                          value={formData.scheme_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.scheme_name}
-                          className="compact-input"
-                          disabled={isLoadingFilters}
-                        >
-                          <option value="">{translations.selectOption}</option>
-                          {[
-                            ...new Set([
-                              ...filterOptions.scheme_name,
-                              ...schemeOptions,
-                            ]),
-                          ].map((scheme, index) => (
-                            <option key={index} value={scheme}>
-                              {scheme}
-                            </option>
-                          ))}
-                        </Form.Select>
+                        {otherMode.scheme_name ? (
+                          <div className="d-flex">
+                            <Form.Control
+                              type="text"
+                              name="scheme_name"
+                              value={formData.scheme_name}
+                              onChange={handleChange}
+                              isInvalid={!!errors.scheme_name}
+                              className="compact-input"
+                              placeholder="योजना का नाम दर्ज करें"
+                            />
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="ms-1"
+                              onClick={() => {
+                                setOtherMode((prev) => ({
+                                  ...prev,
+                                  scheme_name: false,
+                                }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  scheme_name: "",
+                                }));
+                              }}
+                              title="विकल्प दिखाएं"
+                            >
+                              ↺
+                            </Button>
+                          </div>
+                        ) : (
+                          <Form.Select
+                            name="scheme_name"
+                            value={formData.scheme_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.scheme_name}
+                            className="compact-input"
+                            disabled={isLoadingFilters}
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {[
+                              ...new Set([
+                                ...filterOptions.scheme_name,
+                                ...schemeOptions,
+                              ]),
+                            ].map((scheme, index) => (
+                              <option key={index} value={scheme}>
+                                {scheme}
+                              </option>
+                            ))}
+                            <option value="Other">अन्य</option>
+                          </Form.Select>
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.scheme_name}
                         </Form.Control.Feedback>
