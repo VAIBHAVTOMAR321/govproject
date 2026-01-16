@@ -187,6 +187,7 @@ const translations = {
   uploadButton: "अपलोड करें",
   required: "यह फ़ील्ड आवश्यक है",
   selectOption: "चुनें",
+  otherOption: "अन्य (मैन्युअल इनपुट)",
   genericError:
     "प्रस्तुत करते समय एक त्रुटि हुई। कृपया बाद में पुन: प्रयास करें।",
   showing: "दिखा रहे हैं",
@@ -285,6 +286,15 @@ const Registration = () => {
     total_amount: "",
   });
 
+  // State for custom input fields
+  const [customFields, setCustomFields] = useState({
+    investment_name: "",
+    sub_investment_name: "",
+    unit: "",
+    source_of_receipt: "",
+    scheme_name: "",
+  });
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiResponse, setApiResponse] = useState(null);
@@ -333,8 +343,8 @@ const Registration = () => {
   const [formOptions, setFormOptions] = useState({
     investment_name: investmentOptions,
     sub_investment_name: [],
-    unit: ["Number", "meter", "Square meter", "kg", "बैग"], // Default unit options from API
-    source_of_receipt: sourceOptions,
+    unit: unitOptions, // Start with static unit options
+    source_of_receipt: sourceOptions, // Start with static source options
     scheme_name: schemeOptions,
   });
 
@@ -342,9 +352,18 @@ const Registration = () => {
   const [editOptions, setEditOptions] = useState({
     investment_name: investmentOptions,
     sub_investment_name: [],
-    unit: ["Number", "meter", "Square meter", "kg", "बैग"], // Default unit options from API
-    source_of_receipt: sourceOptions,
+    unit: unitOptions, // Start with static unit options
+    source_of_receipt: sourceOptions, // Start with static source options
     scheme_name: schemeOptions,
+  });
+
+  // State for edit custom fields
+  const [editCustomFields, setEditCustomFields] = useState({
+    investment_name: "",
+    sub_investment_name: "",
+    unit: "",
+    source_of_receipt: "",
+    scheme_name: "",
   });
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
@@ -499,15 +518,17 @@ const Registration = () => {
         ...prev,
         investment_name:
           data.level === "investment_name"
-            ? data.data || []
+            ? [...new Set([...investmentOptions, ...(data.data || [])])]
             : prev.investment_name,
         sub_investment_name:
           data.level === "sub_investment_name"
             ? data.data || []
             : prev.sub_investment_name,
-        unit: data.unit || prev.unit,
-        source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
-        scheme_name: data.scheme_name || prev.scheme_name,
+        // FIX: Properly merge static and dynamic unit options
+        unit: [...new Set([...unitOptions, ...(data.unit || []), ...(filterOptions.unit || [])])],
+        // FIX: Properly merge static and dynamic source options
+        source_of_receipt: [...new Set([...sourceOptions, ...(data.source_of_receipt || []), ...(filterOptions.source_of_receipt || [])])],
+        scheme_name: [...new Set([...schemeOptions, ...(data.scheme_name || [])])],
       }));
 
       // Auto-select first sub_investment_name if available
@@ -541,15 +562,17 @@ const Registration = () => {
         ...prev,
         investment_name:
           data.level === "investment_name"
-            ? data.data || []
+            ? [...new Set([...investmentOptions, ...(data.data || [])])]
             : prev.investment_name,
         sub_investment_name:
           data.level === "sub_investment_name"
             ? data.data || []
             : prev.sub_investment_name,
-        unit: data.unit || prev.unit,
-        source_of_receipt: data.source_of_receipt || prev.source_of_receipt,
-        scheme_name: data.scheme_name || prev.scheme_name,
+        // FIX: Properly merge static and dynamic unit options
+        unit: [...new Set([...unitOptions, ...(data.unit || []), ...(filterOptions.unit || [])])],
+        // FIX: Properly merge static and dynamic source options
+        source_of_receipt: [...new Set([...sourceOptions, ...(data.source_of_receipt || []), ...(filterOptions.source_of_receipt || [])])],
+        scheme_name: [...new Set([...schemeOptions, ...(data.scheme_name || [])])],
       }));
 
       // Auto-select first sub_investment_name if available
@@ -575,7 +598,7 @@ const Registration = () => {
   // Populate filter options from all billing items - removed component
   useEffect(() => {
     if (allBillingItems.length > 0) {
-      setFilterOptions({
+      const newFilterOptions = {
         center_name: [
           ...new Set(
             allBillingItems.map((item) => item.center_name).filter(Boolean)
@@ -620,7 +643,23 @@ const Registration = () => {
               .filter(Boolean)
           ),
         ],
-      });
+      };
+      
+      setFilterOptions(newFilterOptions);
+      
+      // Update form options with new filter options for unit and source_of_receipt
+      setFormOptions(prev => ({
+        ...prev,
+        unit: [...new Set([...unitOptions, ...(newFilterOptions.unit || [])])],
+        source_of_receipt: [...new Set([...sourceOptions, ...(newFilterOptions.source_of_receipt || [])])]
+      }));
+      
+      // Update edit options with new filter options for unit and source_of_receipt
+      setEditOptions(prev => ({
+        ...prev,
+        unit: [...new Set([...unitOptions, ...(newFilterOptions.unit || [])])],
+        source_of_receipt: [...new Set([...sourceOptions, ...(newFilterOptions.source_of_receipt || [])])]
+      }));
     }
   }, [allBillingItems]);
 
@@ -917,6 +956,16 @@ const Registration = () => {
       amount_of_subsidy: item.amount_of_subsidy || "",
       total_amount: item.total_amount || "",
     });
+    
+    // Check if any of the values are not in the standard options, set custom fields
+    setEditCustomFields({
+      investment_name: !formOptions.investment_name.includes(item.investment_name) ? item.investment_name : "",
+      sub_investment_name: !formOptions.sub_investment_name.includes(item.sub_investment_name) ? item.sub_investment_name : "",
+      unit: !formOptions.unit.includes(item.unit) ? item.unit : "",
+      source_of_receipt: !formOptions.source_of_receipt.includes(item.source_of_receipt) ? item.source_of_receipt : "",
+      scheme_name: !formOptions.scheme_name.includes(item.scheme_name) ? item.scheme_name : "",
+    });
+    
     // Fetch options based on current values
     if (item.investment_name) {
       fetchEditOptions(item.investment_name);
@@ -931,13 +980,13 @@ const Registration = () => {
       const payload = {
         bill_id: item.bill_id,
         center_name: editingValues.center_name,
-        investment_name: editingValues.investment_name,
-        sub_investment_name: editingValues.sub_investment_name,
-        unit: editingValues.unit,
+        investment_name: editingValues.investment_name === "other" ? editCustomFields.investment_name : editingValues.investment_name,
+        sub_investment_name: editingValues.sub_investment_name === "other" ? editCustomFields.sub_investment_name : editingValues.sub_investment_name,
+        unit: editingValues.unit === "other" ? editCustomFields.unit : editingValues.unit,
         allocated_quantity: parseInt(editingValues.allocated_quantity) || 0,
         rate: parseFloat(editingValues.rate) || 0,
-        source_of_receipt: editingValues.source_of_receipt,
-        scheme_name: editingValues.scheme_name,
+        source_of_receipt: editingValues.source_of_receipt === "other" ? editCustomFields.source_of_receipt : editingValues.source_of_receipt,
+        scheme_name: editingValues.scheme_name === "other" ? editCustomFields.scheme_name : editingValues.scheme_name,
         vikas_khand_name: editingValues.vikas_khand_name,
         vidhan_sabha_name: editingValues.vidhan_sabha_name,
         amount_of_farmer_share: parseFloat(editingValues.amount_of_farmer_share) || 0,
@@ -961,6 +1010,13 @@ const Registration = () => {
   const handleCancel = () => {
     setEditingRowId(null);
     setEditingValues({});
+    setEditCustomFields({
+      investment_name: "",
+      sub_investment_name: "",
+      unit: "",
+      source_of_receipt: "",
+      scheme_name: "",
+    });
   };
 
   // Handle delete
@@ -1195,7 +1251,7 @@ const Registration = () => {
     };
 
     // Handle cascading dropdowns - removed component handling
-    if (name === "investment_name" && value) {
+    if (name === "investment_name" && value && value !== "other") {
       // Reset dependent fields
       updatedFormData.sub_investment_name = "";
       updatedFormData.unit = "";
@@ -1204,6 +1260,7 @@ const Registration = () => {
     } else if (
       name === "sub_investment_name" &&
       value &&
+      value !== "other" &&
       formData.investment_name
     ) {
       // Sub-investment changed, no need to reset unit as it's independent
@@ -1260,6 +1317,44 @@ const Registration = () => {
     }
   };
 
+  // Handle custom field changes - FIXED: Now using the correct field names
+  const handleCustomFieldChange = (e) => {
+    const { name, value } = e.target;
+    // Map the input name to the correct state key
+    const fieldMapping = {
+      'investment_name_custom': 'investment_name',
+      'sub_investment_name_custom': 'sub_investment_name',
+      'unit_custom': 'unit',
+      'source_of_receipt_custom': 'source_of_receipt',
+      'scheme_name_custom': 'scheme_name',
+    };
+    
+    const stateKey = fieldMapping[name] || name;
+    setCustomFields((prev) => ({
+      ...prev,
+      [stateKey]: value,
+    }));
+  };
+
+  // Handle edit custom field changes - FIXED: Now using the correct field names
+  const handleEditCustomFieldChange = (e) => {
+    const { name, value } = e.target;
+    // Map the input name to the correct state key
+    const fieldMapping = {
+      'investment_name_custom': 'investment_name',
+      'sub_investment_name_custom': 'sub_investment_name',
+      'unit_custom': 'unit',
+      'source_of_receipt_custom': 'source_of_receipt',
+      'scheme_name_custom': 'scheme_name',
+    };
+    
+    const stateKey = fieldMapping[name] || name;
+    setEditCustomFields((prev) => ({
+      ...prev,
+      [stateKey]: value,
+    }));
+  };
+
   // Handle form submission - removed component field
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1278,13 +1373,13 @@ const Registration = () => {
       // Create new item
       const payload = {
         center_name: formData.center_name,
-        investment_name: formData.investment_name,
-        sub_investment_name: formData.sub_investment_name,
-        unit: formData.unit,
+        investment_name: formData.investment_name === "other" ? customFields.investment_name : formData.investment_name,
+        sub_investment_name: formData.sub_investment_name === "other" ? customFields.sub_investment_name : formData.sub_investment_name,
+        unit: formData.unit === "other" ? customFields.unit : formData.unit,
         allocated_quantity: parseInt(formData.allocated_quantity),
         rate: parseFloat(formData.rate),
-        source_of_receipt: formData.source_of_receipt,
-        scheme_name: formData.scheme_name,
+        source_of_receipt: formData.source_of_receipt === "other" ? customFields.source_of_receipt : formData.source_of_receipt,
+        scheme_name: formData.scheme_name === "other" ? customFields.scheme_name : formData.scheme_name,
         vikas_khand_name: formData.vikas_khand_name,
         vidhan_sabha_name: formData.vidhan_sabha_name,
         amount_of_farmer_share: parseFloat(formData.amount_of_farmer_share),
@@ -1316,6 +1411,14 @@ const Registration = () => {
         amount_of_farmer_share: "",
         amount_of_subsidy: "",
         total_amount: "",
+      });
+      
+      setCustomFields({
+        investment_name: "",
+        sub_investment_name: "",
+        unit: "",
+        source_of_receipt: "",
+        scheme_name: "",
       });
 
       // Clear vikas khand data
@@ -1352,16 +1455,24 @@ const Registration = () => {
       newErrors.center_name = `${translations.centerName} ${translations.required}`;
     if (!formData.investment_name.trim())
       newErrors.investment_name = `${translations.investmentName} ${translations.required}`;
+    if (formData.investment_name === "other" && !customFields.investment_name.trim())
+      newErrors.investment_name = `कृपया ${translations.investmentName} दर्ज करें`;
     if (!formData.unit.trim())
       newErrors.unit = `${translations.unit} ${translations.required}`;
+    if (formData.unit === "other" && !customFields.unit.trim())
+      newErrors.unit = `कृपया ${translations.unit} दर्ज करें`;
     if (!formData.allocated_quantity.trim())
       newErrors.allocated_quantity = `${translations.allocatedQuantity} ${translations.required}`;
     if (!formData.rate.trim())
       newErrors.rate = `${translations.rate} ${translations.required}`;
     if (!formData.source_of_receipt.trim())
       newErrors.source_of_receipt = `${translations.sourceOfReceipt} ${translations.required}`;
+    if (formData.source_of_receipt === "other" && !customFields.source_of_receipt.trim())
+      newErrors.source_of_receipt = `कृपया ${translations.sourceOfReceipt} दर्ज करें`;
     if (!formData.scheme_name.trim())
       newErrors.scheme_name = `${translations.schemeName} ${translations.required}`;
+    if (formData.scheme_name === "other" && !customFields.scheme_name.trim())
+      newErrors.scheme_name = `कृपया ${translations.schemeName} दर्ज करें`;
     if (!formData.vikas_khand_name.trim())
       newErrors.vikas_khand_name = `${translations.vikasKhandName} ${translations.required}`;
     if (!formData.vidhan_sabha_name.trim())
@@ -1503,7 +1614,19 @@ const Registration = () => {
                               {inv}
                             </option>
                           ))}
+                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
+                        {formData.investment_name === "other" && (
+                          <Form.Control
+                            type="text"
+                            name="investment_name_custom"
+                            value={customFields.investment_name}
+                            onChange={handleCustomFieldChange}
+                            isInvalid={!!errors.investment_name}
+                            className="compact-input mt-2"
+                            placeholder="मैन्युअल इनपुट"
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.investment_name}
                         </Form.Control.Feedback>
@@ -1533,7 +1656,19 @@ const Registration = () => {
                               </option>
                             )
                           )}
+                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
+                        {formData.sub_investment_name === "other" && (
+                          <Form.Control
+                            type="text"
+                            name="sub_investment_name_custom"
+                            value={customFields.sub_investment_name}
+                            onChange={handleCustomFieldChange}
+                            isInvalid={!!errors.sub_investment_name}
+                            className="compact-input mt-2"
+                            placeholder="मैन्युअल इनपुट"
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.sub_investment_name}
                         </Form.Control.Feedback>
@@ -1553,12 +1688,24 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {filterOptions.unit.map((unit, index) => (
+                          {formOptions.unit.map((unit, index) => (
                             <option key={index} value={unit}>
                               {unit}
                             </option>
                           ))}
+                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
+                        {formData.unit === "other" && (
+                          <Form.Control
+                            type="text"
+                            name="unit_custom"
+                            value={customFields.unit}
+                            onChange={handleCustomFieldChange}
+                            isInvalid={!!errors.unit}
+                            className="compact-input mt-2"
+                            placeholder="मैन्युअल इनपुट"
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.unit}
                         </Form.Control.Feedback>
@@ -1619,17 +1766,24 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {[
-                            ...new Set([
-                              ...filterOptions.source_of_receipt,
-                              ...sourceOptions,
-                            ]),
-                          ].map((source, index) => (
+                          {formOptions.source_of_receipt.map((source, index) => (
                             <option key={index} value={source}>
                               {source}
                             </option>
                           ))}
+                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
+                        {formData.source_of_receipt === "other" && (
+                          <Form.Control
+                            type="text"
+                            name="source_of_receipt_custom"
+                            value={customFields.source_of_receipt}
+                            onChange={handleCustomFieldChange}
+                            isInvalid={!!errors.source_of_receipt}
+                            className="compact-input mt-2"
+                            placeholder="मैन्युअल इनपुट"
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.source_of_receipt}
                         </Form.Control.Feedback>
@@ -1649,17 +1803,24 @@ const Registration = () => {
                           disabled={isLoadingFilters}
                         >
                           <option value="">{translations.selectOption}</option>
-                          {[
-                            ...new Set([
-                              ...filterOptions.scheme_name,
-                              ...schemeOptions,
-                            ]),
-                          ].map((scheme, index) => (
+                          {formOptions.scheme_name.map((scheme, index) => (
                             <option key={index} value={scheme}>
                               {scheme}
                             </option>
                           ))}
+                          <option value="other">{translations.otherOption}</option>
                         </Form.Select>
+                        {formData.scheme_name === "other" && (
+                          <Form.Control
+                            type="text"
+                            name="scheme_name_custom"
+                            value={customFields.scheme_name}
+                            onChange={handleCustomFieldChange}
+                            isInvalid={!!errors.scheme_name}
+                            className="compact-input mt-2"
+                            placeholder="मैन्युअल इनपुट"
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.scheme_name}
                         </Form.Control.Feedback>
@@ -1984,12 +2145,7 @@ const Registration = () => {
                                   : [],
                               }));
                             }}
-                            options={[
-                              ...new Set([
-                                ...filterOptions.source_of_receipt,
-                                ...sourceOptions,
-                              ]),
-                            ].map((option) => ({ value: option, label: option }))}
+                            options={filterOptions.source_of_receipt.map((option) => ({ value: option, label: option }))}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -2015,12 +2171,7 @@ const Registration = () => {
                                   : [],
                               }));
                             }}
-                            options={[
-                              ...new Set([
-                                ...filterOptions.scheme_name,
-                                ...schemeOptions,
-                              ]),
-                            ].map((option) => ({
+                            options={filterOptions.scheme_name.map((option) => ({
                               value: option,
                               label: option,
                             }))}
@@ -2279,31 +2430,45 @@ const Registration = () => {
                               {selectedColumns.includes("investment_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.investment_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          investment_name: value,
-                                          sub_investment_name: "",
-                                          unit: "",
-                                        }));
-                                        if (value) {
-                                          fetchEditOptions(value);
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {filterOptions.investment_name.map(
-                                        (inv, index) => (
-                                          <option key={index} value={inv}>
-                                            {inv}
-                                          </option>
-                                        )
+                                    <>
+                                      <Form.Select
+                                        value={editingValues.investment_name}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            investment_name: value,
+                                            sub_investment_name: "",
+                                            unit: "",
+                                          }));
+                                          if (value && value !== "other") {
+                                            fetchEditOptions(value);
+                                          }
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {editOptions.investment_name.map(
+                                          (inv, index) => (
+                                            <option key={index} value={inv}>
+                                              {inv}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="other">{translations.otherOption}</option>
+                                      </Form.Select>
+                                      {editingValues.investment_name === "other" && (
+                                        <Form.Control
+                                          type="text"
+                                          name="investment_name_custom"
+                                          value={editCustomFields.investment_name}
+                                          onChange={handleEditCustomFieldChange}
+                                          size="sm"
+                                          className="mt-1"
+                                          placeholder="मैन्युअल इनपुट"
+                                        />
                                       )}
-                                    </Form.Select>
+                                    </>
                                   ) : (
                                     item.investment_name
                                   )}
@@ -2314,25 +2479,39 @@ const Registration = () => {
                               ) && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.sub_investment_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          sub_investment_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {editOptions.sub_investment_name.map(
-                                        (subInv, index) => (
-                                          <option key={index} value={subInv}>
-                                            {subInv}
-                                          </option>
-                                        )
+                                    <>
+                                      <Form.Select
+                                        value={editingValues.sub_investment_name}
+                                        onChange={(e) =>
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            sub_investment_name: e.target.value,
+                                          }))
+                                        }
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {editOptions.sub_investment_name.map(
+                                          (subInv, index) => (
+                                            <option key={index} value={subInv}>
+                                              {subInv}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="other">{translations.otherOption}</option>
+                                      </Form.Select>
+                                      {editingValues.sub_investment_name === "other" && (
+                                        <Form.Control
+                                          type="text"
+                                          name="sub_investment_name_custom"
+                                          value={editCustomFields.sub_investment_name}
+                                          onChange={handleEditCustomFieldChange}
+                                          size="sm"
+                                          className="mt-1"
+                                          placeholder="मैन्युअल इनपुट"
+                                        />
                                       )}
-                                    </Form.Select>
+                                    </>
                                   ) : (
                                     item.sub_investment_name
                                   )}
@@ -2341,24 +2520,38 @@ const Registration = () => {
                               {selectedColumns.includes("unit") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.unit}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          unit: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {formOptions.unit.map((unit, index) => (
-                                        <option key={index} value={unit}>
-                                          {unit}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
+                                    <>
+                                      <Form.Select
+                                        value={editingValues.unit}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            unit: value,
+                                          }));
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {editOptions.unit.map((unit, index) => (
+                                          <option key={index} value={unit}>
+                                            {unit}
+                                          </option>
+                                        ))}
+                                        <option value="other">{translations.otherOption}</option>
+                                      </Form.Select>
+                                      {editingValues.unit === "other" && (
+                                        <Form.Control
+                                          type="text"
+                                          name="unit_custom"
+                                          value={editCustomFields.unit}
+                                          onChange={handleEditCustomFieldChange}
+                                          size="sm"
+                                          className="mt-1"
+                                          placeholder="मैन्युअल इनपुट"
+                                        />
+                                      )}
+                                    </>
                                   ) : (
                                     item.unit
                                   )}
@@ -2406,29 +2599,38 @@ const Registration = () => {
                               {selectedColumns.includes("source_of_receipt") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.source_of_receipt}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          source_of_receipt: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.source_of_receipt,
-                                          ...sourceOptions,
-                                        ]),
-                                      ].map((source, index) => (
-                                        <option key={index} value={source}>
-                                          {source}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
+                                    <>
+                                      <Form.Select
+                                        value={editingValues.source_of_receipt}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            source_of_receipt: value,
+                                          }));
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {editOptions.source_of_receipt.map((source, index) => (
+                                          <option key={index} value={source}>
+                                            {source}
+                                          </option>
+                                        ))}
+                                        <option value="other">{translations.otherOption}</option>
+                                      </Form.Select>
+                                      {editingValues.source_of_receipt === "other" && (
+                                        <Form.Control
+                                          type="text"
+                                          name="source_of_receipt_custom"
+                                          value={editCustomFields.source_of_receipt}
+                                          onChange={handleEditCustomFieldChange}
+                                          size="sm"
+                                          className="mt-1"
+                                          placeholder="मैन्युअल इनपुट"
+                                        />
+                                      )}
+                                    </>
                                   ) : (
                                     item.source_of_receipt
                                   )}
@@ -2437,29 +2639,38 @@ const Registration = () => {
                               {selectedColumns.includes("scheme_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.scheme_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          scheme_name: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.scheme_name,
-                                          ...schemeOptions,
-                                        ]),
-                                      ].map((scheme, index) => (
-                                        <option key={index} value={scheme}>
-                                          {scheme}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
+                                    <>
+                                      <Form.Select
+                                        value={editingValues.scheme_name}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setEditingValues((prev) => ({
+                                            ...prev,
+                                            scheme_name: value,
+                                          }));
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {editOptions.scheme_name.map((scheme, index) => (
+                                          <option key={index} value={scheme}>
+                                            {scheme}
+                                          </option>
+                                        ))}
+                                        <option value="other">{translations.otherOption}</option>
+                                      </Form.Select>
+                                      {editingValues.scheme_name === "other" && (
+                                        <Form.Control
+                                          type="text"
+                                          name="scheme_name_custom"
+                                          value={editCustomFields.scheme_name}
+                                          onChange={handleEditCustomFieldChange}
+                                          size="sm"
+                                          className="mt-1"
+                                          placeholder="मैन्युअल इनपुट"
+                                        />
+                                      )}
+                                    </>
                                   ) : (
                                     item.scheme_name
                                   )}
