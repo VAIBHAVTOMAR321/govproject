@@ -62,17 +62,18 @@ const vidhanSabhaOptions = [
 ];
 
 // Available columns for the table (excluding sno which is always shown)
+// Reordered according to the requested sequence
 const billingTableColumns = [
-  { key: "vikas_khand_name", label: "विकास खंड का नाम" },
-  { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
   { key: "center_name", label: "केंद्र का नाम" },
+  { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
+  { key: "vikas_khand_name", label: "विकास खंड का नाम" },
+  { key: "scheme_name", label: "योजना का नाम" },
+  { key: "source_of_receipt", label: "सप्लायर" },
   { key: "investment_name", label: "निवेश का नाम" },
   { key: "sub_investment_name", label: "उप-निवेश का नाम" },
   { key: "unit", label: "इकाई" },
   { key: "allocated_quantity", label: "आवंटित मात्रा" },
   { key: "rate", label: "दर" },
-  { key: "source_of_receipt", label: "सप्लायर" },
-  { key: "scheme_name", label: "योजना का नाम" },
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
   { key: "total_amount", label: "कुल राशि" },
@@ -81,17 +82,22 @@ const billingTableColumns = [
 // Column mapping for data access
 const billingTableColumnMapping = {
   sno: { header: "क्र.सं.", accessor: (item, index) => index + 1 },
-  vikas_khand_name: {
-    header: "विकास खंड का नाम",
-    accessor: (item) => item.vikas_khand_name,
+  center_name: {
+    header: "केंद्र का नाम",
+    accessor: (item) => item.center_name,
   },
   vidhan_sabha_name: {
     header: "विधानसभा का नाम",
     accessor: (item) => item.vidhan_sabha_name,
   },
-  center_name: {
-    header: "केंद्र का नाम",
-    accessor: (item) => item.center_name,
+  vikas_khand_name: {
+    header: "विकास खंड का नाम",
+    accessor: (item) => item.vikas_khand_name,
+  },
+  scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
+  source_of_receipt: {
+    header: "सप्लायर",
+    accessor: (item) => item.source_of_receipt,
   },
   investment_name: {
     header: "निवेश का नाम",
@@ -107,11 +113,6 @@ const billingTableColumnMapping = {
     accessor: (item) => item.allocated_quantity,
   },
   rate: { header: "दर", accessor: (item) => item.rate },
-  source_of_receipt: {
-    header: "सप्लायर",
-    accessor: (item) => item.source_of_receipt,
-  },
-  scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
   amount_of_farmer_share: {
     header: "किसान का हिस्सा",
     accessor: (item) => item.amount_of_farmer_share || 0,
@@ -795,18 +796,19 @@ const Registration = () => {
   // Download sample Excel template
   const downloadSampleTemplate = () => {
     try {
+      // Updated to match the new column order
       const sampleData = [
         {
-          "विकास खंड का नाम": "नैनीडांडा",
-          "विधानसभा का नाम": "लैन्सडाउन",
           "केंद्र का नाम": "किनगोड़िखाल",
+          "विधानसभा का नाम": "लैन्सडाउन",
+          "विकास खंड का नाम": "नैनीडांडा",
+          "योजना का नाम": "MGNREGA",
+          "सप्लायर": "PWD",
           "निवेश का नाम": "भवन निर्माण",
           "उप-निवेश का नाम": "नया भवन",
           "इकाई": "बैग",
           "आवंटित मात्रा": 100,
           "दर": 450.5,
-          "सप्लायर": "PWD",
-          "योजना का नाम": "MGNREGA",
           "किसान का हिस्सा": 10000,
           "सब्सिडी राशि": 20000,
           "कुल राशि": 30000,
@@ -817,19 +819,19 @@ const Registration = () => {
       const ws = XLSX.utils.json_to_sheet(sampleData);
 
       const colWidths = [
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 10 },
-        { wch: 15 },
-        { wch: 10 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
+        { wch: 20 }, // केंद्र का नाम
+        { wch: 20 }, // विधानसभा का नाम
+        { wch: 20 }, // विकास खंड का नाम
+        { wch: 15 }, // योजना का नाम
+        { wch: 15 }, // सप्लायर
+        { wch: 20 }, // निवेश का नाम
+        { wch: 20 }, // उप-निवेश का नाम
+        { wch: 10 }, // इकाई
+        { wch: 15 }, // आवंटित मात्रा
+        { wch: 10 }, // दर
+        { wch: 15 }, // किसान का हिस्सा
+        { wch: 15 }, // सब्सिडी राशि
+        { wch: 15 }, // कुल राशि
       ];
       ws["!cols"] = colWidths;
 
@@ -1131,18 +1133,27 @@ const Registration = () => {
             }
           });
 
+          // Updated to match the new column order
           const payloads = dataRows.map((row) => ({
-            vikas_khand_name:
-              row[headerMapping["विकास खंड का नाम"]] ||
-              row[headerMapping["vikas_khand_name"]] ||
+            center_name:
+              row[headerMapping["केंद्र का नाम"]] ||
+              row[headerMapping["center_name"]] ||
               "",
             vidhan_sabha_name:
               row[headerMapping["विधानसभा का नाम"]] ||
               row[headerMapping["vidhan_sabha_name"]] ||
               "",
-            center_name:
-              row[headerMapping["केंद्र का नाम"]] ||
-              row[headerMapping["center_name"]] ||
+            vikas_khand_name:
+              row[headerMapping["विकास खंड का नाम"]] ||
+              row[headerMapping["vikas_khand_name"]] ||
+              "",
+            scheme_name:
+              row[headerMapping["योजना का नाम"]] ||
+              row[headerMapping["scheme_name"]] ||
+              "",
+            source_of_receipt:
+              row[headerMapping["सप्लायर"]] ||
+              row[headerMapping["source_of_receipt"]] ||
               "",
             investment_name:
               row[headerMapping["निवेश का नाम"]] ||
@@ -1162,14 +1173,6 @@ const Registration = () => {
             rate: parseFloat(
               row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0
             ),
-            source_of_receipt:
-              row[headerMapping["सप्लायर"]] ||
-              row[headerMapping["source_of_receipt"]] ||
-              "",
-            scheme_name:
-              row[headerMapping["योजना का नाम"]] ||
-              row[headerMapping["scheme_name"]] ||
-              "",
             amount_of_farmer_share: parseFloat(
               row[headerMapping["किसान का हिस्सा"]] ||
                 row[headerMapping["amount_of_farmer_share"]] ||
@@ -2170,14 +2173,21 @@ const Registration = () => {
                       <thead className="table-light">
                         <tr>
                           <th>क्र.सं.</th>
-                          {selectedColumns.includes("vikas_khand_name") && (
-                            <th>{translations.vikasKhandName}</th>
+                          {/* Updated column order to match the requested sequence */}
+                          {selectedColumns.includes("center_name") && (
+                            <th>{translations.centerName}</th>
                           )}
                           {selectedColumns.includes("vidhan_sabha_name") && (
                             <th>{translations.vidhanSabhaName}</th>
                           )}
-                          {selectedColumns.includes("center_name") && (
-                            <th>{translations.centerName}</th>
+                          {selectedColumns.includes("vikas_khand_name") && (
+                            <th>{translations.vikasKhandName}</th>
+                          )}
+                          {selectedColumns.includes("scheme_name") && (
+                            <th>{translations.schemeName}</th>
+                          )}
+                          {selectedColumns.includes("source_of_receipt") && (
+                            <th>{translations.sourceOfReceipt}</th>
                           )}
                           {selectedColumns.includes("investment_name") && (
                             <th>{translations.investmentName}</th>
@@ -2193,12 +2203,6 @@ const Registration = () => {
                           )}
                           {selectedColumns.includes("rate") && (
                             <th>{translations.rate}</th>
-                          )}
-                          {selectedColumns.includes("source_of_receipt") && (
-                            <th>{translations.sourceOfReceipt}</th>
-                          )}
-                          {selectedColumns.includes("scheme_name") && (
-                            <th>{translations.schemeName}</th>
                           )}
                           {selectedColumns.includes("amount_of_farmer_share") && (
                             <th>{translations.amountOfFarmerShare}</th>
@@ -2226,30 +2230,35 @@ const Registration = () => {
                               <td>
                                 {(currentPage - 1) * itemsPerPage + index + 1}
                               </td>
-                              {selectedColumns.includes("vikas_khand_name") && (
+                              {/* Updated column order to match the requested sequence */}
+                              {selectedColumns.includes("center_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Select
-                                      value={editingValues.vikas_khand_name}
-                                      onChange={(e) =>
+                                      value={editingValues.center_name}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
                                         setEditingValues((prev) => ({
                                           ...prev,
-                                          vikas_khand_name: e.target.value,
-                                        }))
-                                      }
+                                          center_name: value,
+                                          vikas_khand_name: "",
+                                          vidhan_sabha_name: "",
+                                        }));
+                                        if (value) {
+                                          fetchVikasKhandData(value);
+                                        }
+                                      }}
                                       size="sm"
                                     >
                                       <option value="">चुनें</option>
-                                      {filterOptions.vikas_khand_name.map(
-                                        (vikas, index) => (
-                                          <option key={index} value={vikas}>
-                                            {vikas}
-                                          </option>
-                                        )
-                                      )}
+                                      {centerOptions.map((center, index) => (
+                                        <option key={index} value={center}>
+                                          {center}
+                                        </option>
+                                      ))}
                                     </Form.Select>
                                   ) : (
-                                    item.vikas_khand_name
+                                    item.center_name
                                   )}
                                 </td>
                               )}
@@ -2280,34 +2289,92 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("center_name") && (
+                              {selectedColumns.includes("vikas_khand_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Select
-                                      value={editingValues.center_name}
+                                      value={editingValues.vikas_khand_name}
+                                      onChange={(e) =>
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          vikas_khand_name: e.target.value,
+                                        }))
+                                      }
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {filterOptions.vikas_khand_name.map(
+                                        (vikas, index) => (
+                                          <option key={index} value={vikas}>
+                                            {vikas}
+                                          </option>
+                                        )
+                                      )}
+                                    </Form.Select>
+                                  ) : (
+                                    item.vikas_khand_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("scheme_name") && (
+                                <td>
+                                  {editingRowId === item.id ? (
+                                    <Form.Select
+                                      value={editingValues.scheme_name}
                                       onChange={(e) => {
                                         const value = e.target.value;
                                         setEditingValues((prev) => ({
                                           ...prev,
-                                          center_name: value,
-                                          vikas_khand_name: "",
-                                          vidhan_sabha_name: "",
+                                          scheme_name: value,
                                         }));
-                                        if (value) {
-                                          fetchVikasKhandData(value);
-                                        }
                                       }}
                                       size="sm"
                                     >
                                       <option value="">चुनें</option>
-                                      {centerOptions.map((center, index) => (
-                                        <option key={index} value={center}>
-                                          {center}
+                                      {[
+                                        ...new Set([
+                                          ...filterOptions.scheme_name,
+                                          ...schemeOptions,
+                                        ]),
+                                      ].map((scheme, index) => (
+                                        <option key={index} value={scheme}>
+                                          {scheme}
                                         </option>
                                       ))}
                                     </Form.Select>
                                   ) : (
-                                    item.center_name
+                                    item.scheme_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("source_of_receipt") && (
+                                <td>
+                                  {editingRowId === item.id ? (
+                                    <Form.Select
+                                      value={editingValues.source_of_receipt}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          source_of_receipt: value,
+                                        }));
+                                      }}
+                                      size="sm"
+                                    >
+                                      <option value="">चुनें</option>
+                                      {[
+                                        ...new Set([
+                                          ...filterOptions.source_of_receipt,
+                                          ...sourceOptions,
+                                        ]),
+                                      ].map((source, index) => (
+                                        <option key={index} value={source}>
+                                          {source}
+                                        </option>
+                                      ))}
+                                    </Form.Select>
+                                  ) : (
+                                    item.source_of_receipt
                                   )}
                                 </td>
                               )}
@@ -2435,68 +2502,6 @@ const Registration = () => {
                                     />
                                   ) : (
                                     item.rate
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("source_of_receipt") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.source_of_receipt}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          source_of_receipt: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.source_of_receipt,
-                                          ...sourceOptions,
-                                        ]),
-                                      ].map((source, index) => (
-                                        <option key={index} value={source}>
-                                          {source}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
-                                  ) : (
-                                    item.source_of_receipt
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("scheme_name") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.scheme_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          scheme_name: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.scheme_name,
-                                          ...schemeOptions,
-                                        ]),
-                                      ].map((scheme, index) => (
-                                        <option key={index} value={scheme}>
-                                          {scheme}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
-                                  ) : (
-                                    item.scheme_name
                                   )}
                                 </td>
                               )}
