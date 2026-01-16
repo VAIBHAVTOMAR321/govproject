@@ -88,6 +88,11 @@ body {
 label.reset-label{
     font-size: 14px;
     font-weight: 600;}
+    
+    .sabhi-chune {
+    display: flex;
+    justify-content: end;
+}
 .table-regi tr th {
   background-color: #13539d;
   color: #fff;

@@ -533,10 +533,9 @@ const DemandView = () => {
   );
 
   const CenterFilterDropdown = () => (
-    <div ref={dropdownRef} className="position-relative">
+    <div ref={dropdownRef} className="sabhi-chune position-relative">
       <Button 
-        variant="outline-secondary" 
-        className="w-100 text-start d-flex justify-content-between align-items-center"
+         className="w-100 text-start d-flex justify-content-between align-items-center"
         onClick={() => setDropdownOpen(!dropdownOpen)}
       >
         {selectedCenters.length === 0 ? 'सभी केंद्र' : `${selectedCenters.length} केंद्र चयनित`}
