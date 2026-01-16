@@ -1529,49 +1529,54 @@ const MainDashboard = () => {
 
     // Create a modified data array with expanded values if needed
     const modifiedData = table.data.map((row) => {
-      const newRow = { ...row };
+  const newRow = { ...row };
 
-      // Check if any columns are expanded and replace counts with values
-      if (!table.isAllocationTable) {
-        visibleColumns.forEach((col) => {
-          const isExpanded = expandedColumns[`${index}_${col}`];
-          const columnKey = Object.keys(columnDefs).find(
-            (k) => columnDefs[k].label === col
-          );
+  // Check if any columns are expanded and replace counts with values
+  if (!table.isAllocationTable) {
+    visibleColumns.forEach((col) => {
+      const isExpanded = expandedColumns[`${index}_${col}`];
+      const columnKey = Object.keys(columnDefs).find(
+        (k) => columnDefs[k].label === col
+      );
 
-          if (isExpanded && columnKey) {
-            // Get the current filtered data for this row
-            const currentFilteredData = tableData.filter((item) => {
-              for (let filter of filterStack) {
-                if (!filter.checked[item[filter.column]]) return false;
-              }
-              return item[table.columnKey] === row[table.columns[0]];
-            });
-
-            // Get unique values for this column
-            const uniqueValues = getUniqueValuesForColumn(
-              currentFilteredData,
-              columnKey
-            );
-
-            // Replace the count with the joined values
-            newRow[col] = uniqueValues.join(", ");
+      if (isExpanded && columnKey) {
+        // Get the current filtered data for this row
+        const currentFilteredData = tableData.filter((item) => {
+          for (let filter of filterStack) {
+            if (!filter.checked[item[filter.column]]) return false;
           }
+          return item[table.columnKey] === row[table.columns[0]];
         });
-      } else {
-        // For allocation tables, apply the dar/matra toggle
-        visibleColumns.forEach((col) => {
-          if (col !== table.columns[0] && col !== "कुल") {
-            // Check if the _dar column exists in the original data
-            newRow[col] = showDar 
-              ? (row[`${col}_dar`] !== undefined ? row[`${col}_dar`] : row[col] || "0")
-              : row[col] || "0";
-          }
-        });
+
+        // Get unique values for this column
+        const uniqueValues = getUniqueValuesForColumn(
+          currentFilteredData,
+          columnKey
+        );
+
+        // Replace the count with the joined values
+        newRow[col] = uniqueValues.join(", ");
       }
-
-      return newRow;
     });
+  } else {
+    // For allocation tables, apply the dar/matra toggle
+    visibleColumns.forEach((col) => {
+      if (col !== table.columns[0] && col !== "कुल") {
+        // Check if the _dar column exists in the original data
+        newRow[col] = showDar 
+          ? (row[`${col}_dar`] !== undefined ? row[`${col}_dar`] : row[col] || "0")
+          : row[col] || "0";
+      } else if (col === "कुल") {
+        // For the total column, use the correct value based on toggle
+        newRow[col] = showDar 
+          ? (row["कुल_dar"] !== undefined ? row["कुल_dar"] : row["कुल"] || "0")
+          : row["कुल"] || "0";
+      }
+    });
+  }
+
+  return newRow;
+});
 
     // Calculate totals for additional table
     const filteredTableData = modifiedData.filter((row) => {
@@ -1611,30 +1616,30 @@ const MainDashboard = () => {
         totals[col] = filteredTableData
           .reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0)
           .toFixed(2);
-      } else if (col === "कुल") {
-        // For allocation table total - use the correct values based on toggle
-        if (table.isAllocationTable && showDar) {
-          // For dar view, sum the _dar values from the original data
-          const totalRow = table.data.find(
-            (row) => row[table.columns[0]] === "कुल"
-          );
-          totals[col] = totalRow 
-            ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
-            : "0";
-        } else {
-          // For matra view, sum the regular values
-          totals[col] = filteredTableData
-            .reduce(
-              (sum, row) =>
-                sum +
-                visibleColumns
-                  .filter((c) => c !== "कुल")
-                  .reduce((s, c) => s + parseFloat(row[c] || 0), 0),
-              0
-            )
-            .toFixed(2);
-        }
-      } else {
+     } else if (col === "कुल") {
+  // For allocation table total - use the correct values based on toggle
+  if (table.isAllocationTable && showDar) {
+    // For dar view, get the _dar value from the total row in the original data
+    const totalRow = table.data.find(
+      (row) => row[table.columns[0]] === "कुल"
+    );
+    totals[col] = totalRow 
+      ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
+      : "0";
+  } else {
+    // For matra view, sum the regular values
+    totals[col] = filteredTableData
+      .reduce(
+        (sum, row) =>
+          sum +
+          visibleColumns
+            .filter((c) => c !== "कुल")
+            .reduce((s, c) => s + parseFloat(row[c] || 0), 0),
+        0
+      )
+      .toFixed(2);
+  }
+} else {
         // Dynamic columns
         const isExpanded = expandedColumns[`total_${col}`];
         const columnKey = Object.keys(columnDefs).find(
