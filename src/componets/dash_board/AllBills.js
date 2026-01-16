@@ -67,7 +67,7 @@ const translations = {
   filters: "फिल्टर",
   clearAllFilters: "सभी फिल्टर हटाएं",
   centerName: "केंद्र का नाम",
-  sourceOfReceipt: "प्राप्ति का स्रोत",
+  sourceOfReceipt: "सप्लायर",
   sno: "क्र.सं.",
   reportId: "रिपोर्ट आईडी",
   billId: "बिल आईडी", // Updated to show in Hindi
@@ -100,8 +100,8 @@ const translations = {
   no: "नहीं",
   accepted: "स्वीकृत",
   cancelled: "रद्द",
-  component: "घटक", // Changed from "घटक विवरण" to just "घटक"
-  investmentName: "निवेश का नाम",
+  nivesh: "निवेश", // Changed from "घटक" to "निवेश"
+  subniveshName: "उप-निवेश का नाम", // Changed from "निवेश का नाम" to "उप-निवेश का नाम"
   unit: "इकाई",
   allocatedQuantity: "आवंटित मात्रा",
   rate: "दर",
@@ -156,8 +156,8 @@ const availableColumns = [
 // Available columns for component download
 const availableComponentColumns = [
   { key: "reportId", label: translations.reportId },
-  { key: "component", label: translations.component },
-  { key: "investment_name", label: translations.investmentName },
+  { key: "nivesh", label: translations.nivesh }, // Changed from "component" to "nivesh"
+  { key: "subnivesh_name", label: translations.subniveshName }, // Changed from "investment_name" to "subnivesh_name"
   { key: "unit", label: translations.unit },
   { key: "allocated_quantity", label: translations.allocatedQuantity },
   { key: "rate", label: translations.rate },
@@ -201,13 +201,13 @@ const columnMapping = {
     accessor: (item, billReportId) =>
       billReportId || item.bill_report_id || item.report_id || "",
   },
-  component: {
-    header: translations.component,
-    accessor: (item) => item.component,
+  nivesh: {
+    header: translations.nivesh,
+    accessor: (item) => item.investment_name, // Map to investment_name from API
   },
-  investment_name: {
-    header: translations.investmentName,
-    accessor: (item) => item.investment_name,
+  subnivesh_name: {
+    header: translations.subniveshName,
+    accessor: (item) => item.sub_investment_name, // Map to sub_investment_name from API
   },
   scheme_name: {
     header: translations.schemeName,
@@ -1442,7 +1442,7 @@ const AllBills = () => {
                                           <div className="p-3 bg-light">
                                             <div className="d-flex justify-content-between align-items-center mb-3">
                                               <h5 className="mb-0">
-                                                {translations.component}
+                                                {translations.nivesh}
                                               </h5>
                                               <div>
                                                 <div className="column-selection mb-2">

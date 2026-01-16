@@ -81,10 +81,10 @@ const translations = {
   filters: "फिल्टर",
   clearAllFilters: "सभी फिल्टर हटाएं",
   centerName: "केंद्र का नाम",
-  component: "घटक",
-  investmentName: "निवेश का नाम",
+  nivesh: "निवेश",
+  subniveshName: "उप-निवेश का नाम",
   unit: "इकाई",
-  sourceOfReceipt: "प्राप्ति का स्रोत",
+  sourceOfReceipt: "सप्लायर",
   allocatedQuantity: "आवंटित मात्रा",
   rate: "दर",
   sno: "क्र.सं.",
@@ -102,16 +102,16 @@ const translations = {
   next: "अगला",
   itemsPerPage: "प्रति पृष्ठ आइटम:",
   allCenters: "सभी केंद्र",
-  allComponents: "सभी घटक",
-  allInvestments: "सभी निवेश",
+  allNivesh: "सभी निवेश",
+  allSubnivesh: "सभी उप-निवेश",
   allUnits: "सभी इकाइयां",
   allSources: "सभी स्रोत",
   allSchemes: "सभी योजनाएं",
   schemeName: "योजना का नाम",
   selectSourceFirst: "पहले स्रोत चुनें",
   selectCenterFirst: "पहले केंद्र चुनें",
-  selectComponentFirst: "पहले घटक चुनें",
-  selectInvestmentFirst: "पहले निवेश चुनें",
+  selectNiveshFirst: "पहले निवेश चुनें",
+  selectSubniveshFirst: "पहले उप-निवेश चुनें",
   selectUnitFirst: "पहले इकाई चुनें",
   fetchError: "डेटा लाने में विफल। कृपया बाद में पुन: प्रयास करें।",
   networkError: "नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।",
@@ -143,8 +143,8 @@ const availableColumns = [
   { key: "sno", label: "क्र.सं." },
   { key: "center_name", label: translations.centerName },
   { key: "source_of_receipt", label: translations.sourceOfReceipt },
-  { key: "component", label: translations.component },
-  { key: "investment_name", label: translations.investmentName },
+  { key: "nivesh", label: translations.nivesh },
+  { key: "subnivesh_name", label: translations.subniveshName },
   { key: "scheme_name", label: translations.schemeName },
   { key: "unit", label: translations.unit },
   { key: "allocated_quantity", label: translations.allocatedQuantity },
@@ -188,8 +188,8 @@ const Billing = () => {
   const [filters, setFilters] = useState({
     center_name: [], // Multi-select
     source_of_receipt: [], // Multi-select
-    component: [], // Multi-select
-    investment_name: [], // Multi-select
+    nivesh: [], // Multi-select
+    subnivesh_name: [], // Multi-select
     scheme_name: [], // Multi-select
   });
 
@@ -212,13 +212,13 @@ const Billing = () => {
       header: translations.sourceOfReceipt,
       accessor: (item) => item.source_of_receipt,
     },
-    component: {
-      header: translations.component,
-      accessor: (item) => item.component,
+    nivesh: {
+      header: translations.nivesh,
+      accessor: (item) => item.investment_name, // Using investment_name from API
     },
-    investment_name: {
-      header: translations.investmentName,
-      accessor: (item) => item.investment_name,
+    subnivesh_name: {
+      header: translations.subniveshName,
+      accessor: (item) => item.sub_investment_name, // Using sub_investment_name from API
     },
     scheme_name: {
       header: translations.schemeName,
@@ -331,8 +331,8 @@ const Billing = () => {
       return {
         center_name: [],
         source_of_receipt: [],
-        component: [],
-        investment_name: [],
+        nivesh: [],
+        subnivesh_name: [],
         scheme_name: [],
       };
     }
@@ -350,15 +350,15 @@ const Billing = () => {
           (name) => ({ value: name, label: name })
         ),
       ],
-      component: [
+      nivesh: [
         { value: "select_all", label: "सभी चुनें" },
-        ...[...new Set(billingData.map((item) => item.component))].map(
+        ...[...new Set(billingData.map((item) => item.investment_name))].map(
           (name) => ({ value: name, label: name })
         ),
       ],
-      investment_name: [
+      subnivesh_name: [
         { value: "select_all", label: "सभी चुनें" },
-        ...[...new Set(billingData.map((item) => item.investment_name))].map(
+        ...[...new Set(billingData.map((item) => item.sub_investment_name))].map(
           (name) => ({ value: name, label: name })
         ),
       ],
@@ -385,20 +385,20 @@ const Billing = () => {
       const matchesScheme =
         filters.scheme_name.length === 0 ||
         filters.scheme_name.some((scheme) => scheme.value === item.scheme_name);
-      const matchesComponent =
-        filters.component.length === 0 ||
-        filters.component.some((comp) => comp.value === item.component);
-      const matchesInvestment =
-        filters.investment_name.length === 0 ||
-        filters.investment_name.some(
-          (inv) => inv.value === item.investment_name
+      const matchesNivesh =
+        filters.nivesh.length === 0 ||
+        filters.nivesh.some((n) => n.value === item.investment_name);
+      const matchesSubnivesh =
+        filters.subnivesh_name.length === 0 ||
+        filters.subnivesh_name.some(
+          (sub) => sub.value === item.sub_investment_name
         );
       return (
         matchesCenter &&
         matchesSource &&
         matchesScheme &&
-        matchesComponent &&
-        matchesInvestment
+        matchesNivesh &&
+        matchesSubnivesh
       );
     });
   }, [billingData, filters]);
@@ -779,8 +779,8 @@ const Billing = () => {
     setFilters({
       center_name: [],
       source_of_receipt: [],
-      component: [],
-      investment_name: [],
+      nivesh: [],
+      subnivesh_name: [],
       scheme_name: [],
     });
   };
@@ -888,7 +888,7 @@ const Billing = () => {
 
   return (
     <>
-   <div>
+      <div>
         <Container fluid className="p-4">
           <Row>
             <Col lg={12} md={12} sm={12}>
@@ -897,495 +897,486 @@ const Billing = () => {
           </Row>
 
           <Row className="left-top">
-            {/* <Col lg={2} md={2} sm={12}>
-              <LeftNav />
-            </Col> */}
-
             <Col lg={12} md={12} sm={10}>
               <Container fluid className="dashboard-body-main">
-                
-       
-      
-            <h1 className="page-title small-fonts">{translations.billing}</h1>
+                <h1 className="page-title small-fonts">{translations.billing}</h1>
 
-            {submitSuccess && (
-              <Alert
-                variant="success"
-                dismissible
-                onClose={() => setSubmitSuccess(false)}
-              >
-                {translations.billingDataUpdated}
-              </Alert>
-            )}
+                {submitSuccess && (
+                  <Alert
+                    variant="success"
+                    dismissible
+                    onClose={() => setSubmitSuccess(false)}
+                  >
+                    {translations.billingDataUpdated}
+                  </Alert>
+                )}
 
-            {submitError && (
-              <Alert
-                variant="danger"
-                dismissible
-                onClose={() => setSubmitError(null)}
-              >
-                {translations.error}: {submitError}
-              </Alert>
-            )}
+                {submitError && (
+                  <Alert
+                    variant="danger"
+                    dismissible
+                    onClose={() => setSubmitError(null)}
+                  >
+                    {translations.error}: {submitError}
+                  </Alert>
+                )}
 
-            {/* Filters Section */}
-            <div className="filter-section mb-4 p-3 border rounded bg-light">
-              <Row className="mb-3">
-                <Col
-                  md={12}
-                  className="d-flex justify-content-between align-items-center"
-                >
-                  <h5 className="mb-0 small-fonts">{translations.filters}</h5>
-                  {(filters.center_name.length > 0 ||
-                    filters.source_of_receipt.length > 0 ||
-                    filters.component.length > 0 ||
-                    filters.investment_name.length > 0 ||
-                    filters.scheme_name.length > 0) && (
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="small-fonts"
+                {/* Filters Section */}
+                <div className="filter-section mb-4 p-3 border rounded bg-light">
+                  <Row className="mb-3">
+                    <Col
+                      md={12}
+                      className="d-flex justify-content-between align-items-center"
                     >
-                      {translations.clearAllFilters}
-                    </Button>
-                  )}
-                </Col>
-              </Row>
-
-              <Row>
-                <Col xs={12} sm={6} md={3} className="mb-2">
-                  <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">
-                      {translations.centerName}
-                    </FormLabel>
-                    <Select
-                      value={filters.center_name}
-                      onChange={(value) =>
-                        handleFilterChange("center_name", value)
-                      }
-                      options={filterOptions.center_name}
-                      isMulti={true}
-                      isClearable={true}
-                      placeholder={translations.allCenters}
-                      styles={customSelectStyles}
-                      className="compact-input small-fonts filter-dropdown"
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </FormGroup>
-                </Col>
-
-                <Col xs={12} sm={6} md={3} className="mb-2">
-                  <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">
-                      {translations.sourceOfReceipt}
-                    </FormLabel>
-                    <Select
-                      value={filters.source_of_receipt}
-                      onChange={(value) =>
-                        handleFilterChange("source_of_receipt", value)
-                      }
-                      options={filterOptions.source_of_receipt}
-                      isMulti={true}
-                      isClearable={true}
-                      placeholder={translations.allSources}
-                      styles={customSelectStyles}
-                      className="compact-input small-fonts filter-dropdown"
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </FormGroup>
-                </Col>
-
-                <Col xs={12} sm={6} md={3} className="mb-2">
-                  <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">
-                      {translations.schemeName}
-                    </FormLabel>
-                    <Select
-                      value={filters.scheme_name}
-                      onChange={(value) =>
-                        handleFilterChange("scheme_name", value)
-                      }
-                      options={filterOptions.scheme_name}
-                      isClearable={true}
-                      isMulti={true}
-                      placeholder={translations.allSchemes}
-                      styles={customSelectStyles}
-                      className="compact-input small-fonts filter-dropdown"
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </FormGroup>
-                </Col>
-
-                <Col xs={12} sm={6} md={3} className="mb-2">
-                  <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">
-                      {translations.component}
-                    </FormLabel>
-                    <Select
-                      value={filters.component}
-                      onChange={(value) =>
-                        handleFilterChange("component", value)
-                      }
-                      options={filterOptions.component}
-                      isClearable={true}
-                      isMulti={true}
-                      placeholder={translations.allComponents}
-                      styles={customSelectStyles}
-                      className="compact-input small-fonts filter-dropdown"
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </FormGroup>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col xs={12} sm={6} md={3} className="mb-2">
-                  <FormGroup>
-                    <FormLabel className="small-fonts fw-bold">
-                      {translations.investmentName}
-                    </FormLabel>
-                    <Select
-                      value={filters.investment_name}
-                      onChange={(value) =>
-                        handleFilterChange("investment_name", value)
-                      }
-                      options={filterOptions.investment_name}
-                      isClearable={true}
-                      isMulti={true}
-                      placeholder={translations.allInvestments}
-                      styles={customSelectStyles}
-                      className="compact-input small-fonts filter-dropdown"
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </FormGroup>
-                </Col>
-              </Row>
-            </div>
-            <div>
-              <Form onSubmit={handleSubmit}>
-                <div className="billing-table-container">
-                  <Row className="mt-3">
-                    <div className="col-md-12">
-                      <div className="table-wrapper">
-                        {filteredData.length > 0 ? (
-                          <>
-                            <div className="d-flex justify-content-end mb-2">
-                              <Button
-                                variant="outline-success"
-                                size="sm"
-                                onClick={() =>
-                                  downloadExcel(
-                                    filteredData,
-                                    `BillingItems_${
-                                      new Date().toISOString().split("T")[0]
-                                    }`
-                                  )
-                                }
-                                className="me-2"
-                              >
-                                <FaFileExcel className="me-1" />
-                                Excel
-                              </Button>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() =>
-                                  downloadPdf(
-                                    filteredData,
-                                    `BillingItems_${
-                                      new Date().toISOString().split("T")[0]
-                                    }`
-                                  )
-                                }
-                              >
-                                <FaFilePdf className="me-1" />
-                                PDF
-                              </Button>
-                            </div>
-                            <div className="table-info mb-2 d-flex justify-content-between align-items-center">
-                              <span className="small-fonts">
-                                {translations.showing} {indexOfFirstItem + 1}{" "}
-                                {translations.to}{" "}
-                                {Math.min(indexOfLastItem, filteredData.length)}{" "}
-                                {translations.of} {filteredData.length}{" "}
-                                {translations.entries}
-                              </span>
-                              <div className="d-flex align-items-center">
-                                <span className="small-fonts me-2">
-                                  {translations.itemsPerPage}
-                                </span>
-                                <span className="badge bg-primary">
-                                  {itemsPerPage}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Column Selection Section */}
-                            <div className="column-selection mb-3 p-3 border rounded bg-light">
-                              <h6 className="small-fonts mb-3">
-                                {translations.selectColumns}
-                              </h6>
-                              <Row>
-                                <Col>
-                                  <div className="d-flex flex-wrap">
-                                    {availableColumns.map((col) => (
-                                      <div
-                                        key={col.key}
-                                        className="form-check me-3 mb-2"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          id={`col-${col.key}`}
-                                          checked={selectedColumns.includes(
-                                            col.key
-                                          )}
-                                          onChange={(e) => {
-                                            if (e.target.checked) {
-                                              setSelectedColumns([
-                                                ...selectedColumns,
-                                                col.key,
-                                              ]);
-                                            } else {
-                                              setSelectedColumns(
-                                                selectedColumns.filter(
-                                                  (c) => c !== col.key
-                                                )
-                                              );
-                                            }
-                                          }}
-                                          className="form-check-input"
-                                        />
-                                        <label
-                                          className="form-check-label small-fonts ms-1"
-                                          htmlFor={`col-${col.key}`}
-                                        >
-                                          {col.label}
-                                        </label>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </Col>
-                              </Row>
-                            </div>
-
-                            <table className="responsive-table small-fonts">
-                              <thead>
-                                <tr>
-                                  <th>{translations.sno}</th>
-                                  <th>{translations.centerName}</th>
-                                  <th>{translations.sourceOfReceipt}</th>
-                                  <th>{translations.component}</th>
-                                  <th>{translations.investmentName}</th>
-                                  <th>{translations.schemeName}</th>
-                                  <th>{translations.unit}</th>
-                                  <th>{translations.allocatedQuantity}</th>
-                                  <th>{translations.updatedQuantity}</th>
-                                  <th>{translations.quantityLeft}</th>
-                                  <th>{translations.allotedRashi}</th>
-                                  <th>{translations.soldRashi}</th>
-                                  <th>{translations.cutQuantity}</th>
-                                  <th>{translations.rate}</th>
-                                  <th>{translations.totalBill}</th>
-                                  <th>{translations.billingDate}</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {paginatedBillingData.map((item, index) => {
-                                  const allocatedAmount =
-                                    calculateAllocatedAmount(
-                                      item.allocated_quantity,
-                                      item.rate
-                                    );
-                                  const soldAmount = calculateAmount(
-                                    item.updated_quantity,
-                                    item.rate
-                                  );
-                                  const quantityLeft = calculateQuantityLeft(
-                                    item.allocated_quantity,
-                                    item.updated_quantity,
-                                    item.cut_quantity
-                                  );
-                                  const maxCut =
-                                    (parseFloat(item.allocated_quantity) || 0) -
-                                    (parseFloat(item.updated_quantity) || 0);
-                                  const totalBill = calculateTotalBill(
-                                    item.cut_quantity,
-                                    item.rate
-                                  );
-
-                                  return (
-                                    <tr key={item.id}>
-                                      <td data-label={translations.sno}>
-                                        {indexOfFirstItem + index + 1}
-                                      </td>
-                                      <td data-label={translations.centerName}>
-                                        {item.center_name}
-                                      </td>
-                                      <td
-                                        data-label={
-                                          translations.sourceOfReceipt
-                                        }
-                                      >
-                                        {item.source_of_receipt}
-                                      </td>
-                                      <td data-label={translations.component}>
-                                        {item.component}
-                                      </td>
-                                      <td
-                                        data-label={translations.investmentName}
-                                      >
-                                        {item.investment_name}
-                                      </td>
-                                      <td data-label={translations.schemeName}>
-                                        {item.scheme_name}
-                                      </td>
-                                      <td data-label={translations.unit}>
-                                        {item.unit}
-                                      </td>
-                                      <td
-                                        data-label={
-                                          translations.allocatedQuantity
-                                        }
-                                      >
-                                        {item.allocated_quantity}
-                                      </td>
-                                      <td
-                                        data-label={
-                                          translations.updatedQuantity
-                                        }
-                                      >
-                                        {item.updated_quantity}
-                                      </td>
-                                      <td
-                                        data-label={translations.quantityLeft}
-                                      >
-                                        {quantityLeft}
-                                      </td>
-                                      <td
-                                        data-label={translations.allotedRashi}
-                                      >
-                                        {allocatedAmount}
-                                      </td>
-                                      <td data-label={translations.soldRashi}>
-                                        {soldAmount}
-                                      </td>
-                                      <td data-label={translations.cutQuantity}>
-                                        <Form.Control
-                                          type="number"
-                                          min="0"
-                                          max={maxCut}
-                                          step="0.01"
-                                          value={item.cut_quantity || ""}
-                                          onChange={(e) =>
-                                            handleCutQuantityChange(
-                                              item.id,
-                                              e.target.value
-                                            )
-                                          }
-                                          className={`small-fonts ${
-                                            modifiedItems[item.id]
-                                              ? "border-warning"
-                                              : ""
-                                          }`}
-                                        />
-                                      </td>
-                                      <td data-label={translations.rate}>
-                                        {item.rate}
-                                      </td>
-                                      <td data-label={translations.totalBill}>
-                                        <Form.Control
-                                          type="text"
-                                          value={totalBill}
-                                          disabled
-                                          className="bg-light small-fonts"
-                                        />
-                                      </td>
-                                      <td data-label={translations.billingDate}>
-                                        <Form.Control
-                                          type="date"
-                                          value={item.billing_date || ""}
-                                          onChange={(e) =>
-                                            handleBillingDateChange(
-                                              item.id,
-                                              e.target.value
-                                            )
-                                          }
-                                          className={`small-fonts ${
-                                            modifiedItems[item.id]
-                                              ? "border-warning"
-                                              : ""
-                                          }`}
-                                        />
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-
-                            {totalPages > 1 && (
-                              <div className="mt-2">
-                                <div className="small-fonts mb-3 text-center">
-                                  {translations.page} {currentPage}{" "}
-                                  {translations.of} {totalPages}
-                                </div>
-                                <Pagination className="d-flex justify-content-center">
-                                  <Pagination.Prev
-                                    disabled={currentPage === 1}
-                                    onClick={() =>
-                                      handlePageChange(currentPage - 1)
-                                    }
-                                  />
-                                  {paginationItems}
-                                  <Pagination.Next
-                                    disabled={currentPage === totalPages}
-                                    onClick={() =>
-                                      handlePageChange(currentPage + 1)
-                                    }
-                                  />
-                                </Pagination>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <Alert variant="info">
-                            {translations.noMatchingItems}
-                          </Alert>
-                        )}
-                      </div>
-                    </div>
+                      <h5 className="mb-0 small-fonts">{translations.filters}</h5>
+                      {(filters.center_name.length > 0 ||
+                        filters.source_of_receipt.length > 0 ||
+                        filters.nivesh.length > 0 ||
+                        filters.subnivesh_name.length > 0 ||
+                        filters.scheme_name.length > 0) && (
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={clearFilters}
+                          className="small-fonts"
+                        >
+                          {translations.clearAllFilters}
+                        </Button>
+                      )}
+                    </Col>
                   </Row>
 
-                  <div className="d-flex justify-content-end mt-3">
-                    <Button
-                      variant="primary"
-                      type="submit"
-                      disabled={
-                        submitting || Object.keys(modifiedItems).length === 0
-                      }
-                    >
-                      {submitting ? (
-                        <Spinner as="span" animation="border" size="sm" />
-                      ) : null}
-                      {translations.submitUpdates}
-                    </Button>
-                  </div>
+                  <Row>
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.centerName}
+                        </FormLabel>
+                        <Select
+                          value={filters.center_name}
+                          onChange={(value) =>
+                            handleFilterChange("center_name", value)
+                          }
+                          options={filterOptions.center_name}
+                          isMulti={true}
+                          isClearable={true}
+                          placeholder={translations.allCenters}
+                          styles={customSelectStyles}
+                          className="compact-input small-fonts filter-dropdown"
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </FormGroup>
+                    </Col>
+
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.sourceOfReceipt}
+                        </FormLabel>
+                        <Select
+                          value={filters.source_of_receipt}
+                          onChange={(value) =>
+                            handleFilterChange("source_of_receipt", value)
+                          }
+                          options={filterOptions.source_of_receipt}
+                          isMulti={true}
+                          isClearable={true}
+                          placeholder={translations.allSources}
+                          styles={customSelectStyles}
+                          className="compact-input small-fonts filter-dropdown"
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </FormGroup>
+                    </Col>
+
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.schemeName}
+                        </FormLabel>
+                        <Select
+                          value={filters.scheme_name}
+                          onChange={(value) =>
+                            handleFilterChange("scheme_name", value)
+                          }
+                          options={filterOptions.scheme_name}
+                          isClearable={true}
+                          isMulti={true}
+                          placeholder={translations.allSchemes}
+                          styles={customSelectStyles}
+                          className="compact-input small-fonts filter-dropdown"
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </FormGroup>
+                    </Col>
+
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.nivesh}
+                        </FormLabel>
+                        <Select
+                          value={filters.nivesh}
+                          onChange={(value) =>
+                            handleFilterChange("nivesh", value)
+                          }
+                          options={filterOptions.nivesh}
+                          isClearable={true}
+                          isMulti={true}
+                          placeholder={translations.allNivesh}
+                          styles={customSelectStyles}
+                          className="compact-input small-fonts filter-dropdown"
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </FormGroup>
+                    </Col>
+                  </Row>
+
+                  <Row>
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.subniveshName}
+                        </FormLabel>
+                        <Select
+                          value={filters.subnivesh_name}
+                          onChange={(value) =>
+                            handleFilterChange("subnivesh_name", value)
+                          }
+                          options={filterOptions.subnivesh_name}
+                          isClearable={true}
+                          isMulti={true}
+                          placeholder={translations.allSubnivesh}
+                          styles={customSelectStyles}
+                          className="compact-input small-fonts filter-dropdown"
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </FormGroup>
+                    </Col>
+                  </Row>
                 </div>
-              </Form>
-            </div>
-          </Container>
-       
-              </Col>
-              </Row>
-</Container>
-</div>
-     
+                <div>
+                  <Form onSubmit={handleSubmit}>
+                    <div className="billing-table-container">
+                      <Row className="mt-3">
+                        <div className="col-md-12">
+                          <div className="table-wrapper">
+                            {filteredData.length > 0 ? (
+                              <>
+                                <div className="d-flex justify-content-end mb-2">
+                                  <Button
+                                    variant="outline-success"
+                                    size="sm"
+                                    onClick={() =>
+                                      downloadExcel(
+                                        filteredData,
+                                        `BillingItems_${
+                                          new Date().toISOString().split("T")[0]
+                                        }`
+                                      )
+                                    }
+                                    className="me-2"
+                                  >
+                                    <FaFileExcel className="me-1" />
+                                    Excel
+                                  </Button>
+                                  <Button
+                                    variant="outline-danger"
+                                    size="sm"
+                                    onClick={() =>
+                                      downloadPdf(
+                                        filteredData,
+                                        `BillingItems_${
+                                          new Date().toISOString().split("T")[0]
+                                        }`
+                                      )
+                                    }
+                                  >
+                                    <FaFilePdf className="me-1" />
+                                    PDF
+                                  </Button>
+                                </div>
+                                <div className="table-info mb-2 d-flex justify-content-between align-items-center">
+                                  <span className="small-fonts">
+                                    {translations.showing} {indexOfFirstItem + 1}{" "}
+                                    {translations.to}{" "}
+                                    {Math.min(indexOfLastItem, filteredData.length)}{" "}
+                                    {translations.of} {filteredData.length}{" "}
+                                    {translations.entries}
+                                  </span>
+                                  <div className="d-flex align-items-center">
+                                    <span className="small-fonts me-2">
+                                      {translations.itemsPerPage}
+                                    </span>
+                                    <span className="badge bg-primary">
+                                      {itemsPerPage}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Column Selection Section */}
+                                <div className="column-selection mb-3 p-3 border rounded bg-light">
+                                  <h6 className="small-fonts mb-3">
+                                    {translations.selectColumns}
+                                  </h6>
+                                  <Row>
+                                    <Col>
+                                      <div className="d-flex flex-wrap">
+                                        {availableColumns.map((col) => (
+                                          <div
+                                            key={col.key}
+                                            className="form-check me-3 mb-2"
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              id={`col-${col.key}`}
+                                              checked={selectedColumns.includes(
+                                                col.key
+                                              )}
+                                              onChange={(e) => {
+                                                if (e.target.checked) {
+                                                  setSelectedColumns([
+                                                    ...selectedColumns,
+                                                    col.key,
+                                                  ]);
+                                                } else {
+                                                  setSelectedColumns(
+                                                    selectedColumns.filter(
+                                                      (c) => c !== col.key
+                                                    )
+                                                  );
+                                                }
+                                              }}
+                                              className="form-check-input"
+                                            />
+                                            <label
+                                              className="form-check-label small-fonts ms-1"
+                                              htmlFor={`col-${col.key}`}
+                                            >
+                                              {col.label}
+                                            </label>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </Col>
+                                  </Row>
+                                </div>
+
+                                <table className="responsive-table small-fonts">
+                                  <thead>
+                                    <tr>
+                                      <th>{translations.sno}</th>
+                                      <th>{translations.centerName}</th>
+                                      <th>{translations.sourceOfReceipt}</th>
+                                      <th>{translations.nivesh}</th>
+                                      <th>{translations.subniveshName}</th>
+                                      <th>{translations.schemeName}</th>
+                                      <th>{translations.unit}</th>
+                                      <th>{translations.allocatedQuantity}</th>
+                                      <th>{translations.updatedQuantity}</th>
+                                      <th>{translations.quantityLeft}</th>
+                                      <th>{translations.allotedRashi}</th>
+                                      <th>{translations.soldRashi}</th>
+                                      <th>{translations.cutQuantity}</th>
+                                      <th>{translations.rate}</th>
+                                      <th>{translations.totalBill}</th>
+                                      <th>{translations.billingDate}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {paginatedBillingData.map((item, index) => {
+                                      const allocatedAmount =
+                                        calculateAllocatedAmount(
+                                          item.allocated_quantity,
+                                          item.rate
+                                        );
+                                      const soldAmount = calculateAmount(
+                                        item.updated_quantity,
+                                        item.rate
+                                      );
+                                      const quantityLeft = calculateQuantityLeft(
+                                        item.allocated_quantity,
+                                        item.updated_quantity,
+                                        item.cut_quantity
+                                      );
+                                      const maxCut =
+                                        (parseFloat(item.allocated_quantity) || 0) -
+                                        (parseFloat(item.updated_quantity) || 0);
+                                      const totalBill = calculateTotalBill(
+                                        item.cut_quantity,
+                                        item.rate
+                                      );
+
+                                      return (
+                                        <tr key={item.id}>
+                                          <td data-label={translations.sno}>
+                                            {indexOfFirstItem + index + 1}
+                                          </td>
+                                          <td data-label={translations.centerName}>
+                                            {item.center_name}
+                                          </td>
+                                          <td
+                                            data-label={
+                                              translations.sourceOfReceipt
+                                            }
+                                          >
+                                            {item.source_of_receipt}
+                                          </td>
+                                          <td data-label={translations.nivesh}>
+                                            {item.investment_name}
+                                          </td>
+                                          <td
+                                            data-label={translations.subniveshName}
+                                          >
+                                            {item.sub_investment_name}
+                                          </td>
+                                          <td data-label={translations.schemeName}>
+                                            {item.scheme_name}
+                                          </td>
+                                          <td data-label={translations.unit}>
+                                            {item.unit}
+                                          </td>
+                                          <td
+                                            data-label={
+                                              translations.allocatedQuantity
+                                            }
+                                          >
+                                            {item.allocated_quantity}
+                                          </td>
+                                          <td
+                                            data-label={
+                                              translations.updatedQuantity
+                                            }
+                                          >
+                                            {item.updated_quantity}
+                                          </td>
+                                          <td
+                                            data-label={translations.quantityLeft}
+                                          >
+                                            {quantityLeft}
+                                          </td>
+                                          <td
+                                            data-label={translations.allotedRashi}
+                                          >
+                                            {allocatedAmount}
+                                          </td>
+                                          <td data-label={translations.soldRashi}>
+                                            {soldAmount}
+                                          </td>
+                                          <td data-label={translations.cutQuantity}>
+                                            <Form.Control
+                                              type="number"
+                                              min="0"
+                                              max={maxCut}
+                                              step="0.01"
+                                              value={item.cut_quantity || ""}
+                                              onChange={(e) =>
+                                                handleCutQuantityChange(
+                                                  item.id,
+                                                  e.target.value
+                                                )
+                                              }
+                                              className={`small-fonts ${
+                                                modifiedItems[item.id]
+                                                  ? "border-warning"
+                                                  : ""
+                                              }`}
+                                            />
+                                          </td>
+                                          <td data-label={translations.rate}>
+                                            {item.rate}
+                                          </td>
+                                          <td data-label={translations.totalBill}>
+                                            <Form.Control
+                                              type="text"
+                                              value={totalBill}
+                                              disabled
+                                              className="bg-light small-fonts"
+                                            />
+                                          </td>
+                                          <td data-label={translations.billingDate}>
+                                            <Form.Control
+                                              type="date"
+                                              value={item.billing_date || ""}
+                                              onChange={(e) =>
+                                                handleBillingDateChange(
+                                                  item.id,
+                                                  e.target.value
+                                                )
+                                              }
+                                              className={`small-fonts ${
+                                                modifiedItems[item.id]
+                                                  ? "border-warning"
+                                                  : ""
+                                              }`}
+                                            />
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+
+                                {totalPages > 1 && (
+                                  <div className="mt-2">
+                                    <div className="small-fonts mb-3 text-center">
+                                      {translations.page} {currentPage}{" "}
+                                      {translations.of} {totalPages}
+                                    </div>
+                                    <Pagination className="d-flex justify-content-center">
+                                      <Pagination.Prev
+                                        disabled={currentPage === 1}
+                                        onClick={() =>
+                                          handlePageChange(currentPage - 1)
+                                        }
+                                      />
+                                      {paginationItems}
+                                      <Pagination.Next
+                                        disabled={currentPage === totalPages}
+                                        onClick={() =>
+                                          handlePageChange(currentPage + 1)
+                                        }
+                                      />
+                                    </Pagination>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <Alert variant="info">
+                                {translations.noMatchingItems}
+                              </Alert>
+                            )}
+                          </div>
+                        </div>
+                      </Row>
+
+                      <div className="d-flex justify-content-end mt-3">
+                        <Button
+                          variant="primary"
+                          type="submit"
+                          disabled={
+                            submitting || Object.keys(modifiedItems).length === 0
+                          }
+                        >
+                          {submitting ? (
+                            <Spinner as="span" animation="border" size="sm" />
+                          ) : null}
+                          {translations.submitUpdates}
+                        </Button>
+                      </div>
+                    </div>
+                  </Form>
+                </div>
+              </Container>
+            </Col>
+          </Row>
+        </Container>
+      </div>
     </>
   );
 };
