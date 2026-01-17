@@ -350,15 +350,17 @@ label.reset-label{
 }
 
 .btn-filter-submit {
-  font-size: 10px !important;
+  font-size: 12px !important;
   background-color: #822431;
   border: 1px solid #822431;
+  padding: 2px 4px 0px 2px;
 }
 
 .btn-filter-submit:hover {
-  font-size: 10px !important;
+  font-size: 12px !important;
   background-color: #0B488F;
   border: 1px solid #0B488F;
+  padding: 2px 4px 0px 2px;
 }
 .page-info{
   font-size: 12px !important;
@@ -449,14 +451,16 @@ label.reset-label{
 }
 
 .clear-btn-primary {
-  font-size: 10px !important;
+  font-size: 12px !important;
+    padding: 2px 4px 0px 2px;
 }
 
 .clear-btn-primary:hover {
   color: #fff;
   background-color: #0c83e2;
-  font-size: 10px !important;
+  font-size: 12px !important;
   border-color: #0c7cd5;
+    padding: 2px 4px 0px 2px;
 }
 
 /* Print-safe: keep selection visible in print */

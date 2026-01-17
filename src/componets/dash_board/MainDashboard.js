@@ -1053,6 +1053,45 @@ const MainDashboard = () => {
       };
     });
 
+    // Add total row
+    const totalRow = {
+      [columnDefs[column]?.label]: "कुल",
+      "कुल रिकॉर्ड": summaryData.reduce((sum, row) => sum + (row["कुल रिकॉर्ड"] || 0), 0),
+    };
+
+    // Add totals for monetary columns
+    totalRow["कुल आवंटित मात्रा"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["कुल आवंटित मात्रा"]) || 0), 0)
+      .toFixed(2);
+    totalRow["कुल किसान की हिस्सेदारी"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["कुल किसान की हिस्सेदारी"]) || 0), 0)
+      .toFixed(2);
+    totalRow["कुल सब्सिडी"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["कुल सब्सिडी"]) || 0), 0)
+      .toFixed(2);
+    totalRow["कुल राशि"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["कुल राशि"]) || 0), 0)
+      .toFixed(2);
+
+    // Add counts for other columns
+    Object.keys(columnDefs)
+      .filter((col) => !columnDefs[col].hidden)
+      .filter(
+        (col) =>
+          col !== column &&
+          col !== "allocated_quantity" &&
+          col !== "rate" &&
+          col !== "amount_of_farmer_share" &&
+          col !== "amount_of_subsidy" &&
+          col !== "total_amount"
+      )
+      .forEach((col) => {
+        const allValues = data.map((item) => item[col]).filter(Boolean);
+        totalRow[columnDefs[col].label] = new Set(allValues).size;
+      });
+
+    summaryData.push(totalRow);
+
     // Create columns in the specified order - excluding individual monetary columns
     const visibleColumns = Object.keys(columnDefs)
       .filter((col) => !columnDefs[col].hidden)
@@ -1873,51 +1912,52 @@ const MainDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayTable.data.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      <td
-                        style={{
-                          border: "1px solid #ddd",
-                          padding: "6px",
-                          fontSize: "10px",
-                        }}
-                      >
-                        {row[displayTable.columns[0]] === "कुल"
-                          ? ""
-                          : rowIndex + 1}
-                      </td>
-                      {displayTable.columns.map((col) => {
-                        let cellValue = "";
-                        if (typeof row === "object" && row !== null) {
-                          if (row.hasOwnProperty(col)) {
-                            cellValue = row[col] || "";
-                          } else {
-                            // Find the key for this label
-                            const key = Object.keys(columnDefs).find(
-                              (k) => columnDefs[k].label === col
-                            );
-                            if (key) {
-                              cellValue = row[key] || "";
+                  {displayTable.data.map((row, rowIndex) => {
+                    const isTotalRow = row[displayTable.columns[0]] === "कुल";
+                    return (
+                      <tr key={rowIndex} style={isTotalRow ? { fontWeight: "bold" } : {}}>
+                        <td
+                          style={{
+                            border: "1px solid #ddd",
+                            padding: "6px",
+                            fontSize: "10px",
+                          }}
+                        >
+                          {isTotalRow ? "" : rowIndex + 1}
+                        </td>
+                        {displayTable.columns.map((col) => {
+                          let cellValue = "";
+                          if (typeof row === "object" && row !== null) {
+                            if (row.hasOwnProperty(col)) {
+                              cellValue = row[col] || "";
+                            } else {
+                              // Find the key for this label
+                              const key = Object.keys(columnDefs).find(
+                                (k) => columnDefs[k].label === col
+                              );
+                              if (key) {
+                                cellValue = row[key] || "";
+                              }
                             }
+                          } else {
+                            cellValue = row;
                           }
-                        } else {
-                          cellValue = row;
-                        }
-                        return (
-                          <td
-                            key={col}
-                            style={{
-                              border: "1px solid #ddd",
-                              padding: "6px",
-                              fontSize: "10px",
-                            }}
-                          >
-                            {cellValue}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                          return (
+                            <td
+                              key={col}
+                              style={{
+                                border: "1px solid #ddd",
+                                padding: "6px",
+                                fontSize: "10px",
+                              }}
+                            >
+                              {cellValue}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 {(() => {
                   const hasTotalRow =
@@ -2066,51 +2106,52 @@ const MainDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayTable.data.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      <td
-                        style={{
-                          border: "1px solid #ddd",
-                          padding: "6px",
-                          fontSize: "10px",
-                        }}
-                      >
-                        {row[displayTable.columns[0]] === "कुल"
-                          ? ""
-                          : rowIndex + 1}
-                      </td>
-                      {displayTable.columns.map((col) => {
-                        let cellValue = "";
-                        if (typeof row === "object" && row !== null) {
-                          if (row.hasOwnProperty(col)) {
-                            cellValue = row[col] || "";
-                          } else {
-                            // Find the key for this label
-                            const key = Object.keys(columnDefs).find(
-                              (k) => columnDefs[k].label === col
-                            );
-                            if (key) {
-                              cellValue = row[key] || "";
+                  {displayTable.data.map((row, rowIndex) => {
+                    const isTotalRow = row[displayTable.columns[0]] === "कुल";
+                    return (
+                      <tr key={rowIndex} style={isTotalRow ? { fontWeight: "bold" } : {}}>
+                        <td
+                          style={{
+                            border: "1px solid #ddd",
+                            padding: "6px",
+                            fontSize: "10px",
+                          }}
+                        >
+                          {isTotalRow ? "" : rowIndex + 1}
+                        </td>
+                        {displayTable.columns.map((col) => {
+                          let cellValue = "";
+                          if (typeof row === "object" && row !== null) {
+                            if (row.hasOwnProperty(col)) {
+                              cellValue = row[col] || "";
+                            } else {
+                              // Find the key for this label
+                              const key = Object.keys(columnDefs).find(
+                                (k) => columnDefs[k].label === col
+                              );
+                              if (key) {
+                                cellValue = row[key] || "";
+                              }
                             }
+                          } else {
+                            cellValue = row;
                           }
-                        } else {
-                          cellValue = row;
-                        }
-                        return (
-                          <td
-                            key={col}
-                            style={{
-                              border: "1px solid #ddd",
-                              padding: "6px",
-                              fontSize: "10px",
-                            }}
-                          >
-                            {cellValue}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                          return (
+                            <td
+                              key={col}
+                              style={{
+                                border: "1px solid #ddd",
+                                padding: "6px",
+                                fontSize: "10px",
+                              }}
+                            >
+                              {cellValue}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 {(() => {
                   const hasTotalRow =
@@ -2245,9 +2286,10 @@ const MainDashboard = () => {
         `;
 
         displayTable.data.forEach((row, rowIndex) => {
-          htmlContent += "<tr>";
+          const isTotalRow = row[displayTable.columns[0]] === "कुल";
+          htmlContent += `<tr${isTotalRow ? ' style="font-weight: bold;"' : ''}>`;
           htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${
-            row[displayTable.columns[0]] === "कुल" ? "" : rowIndex + 1
+            isTotalRow ? "" : rowIndex + 1
           }</td>`;
           displayTable.columns.forEach((col) => {
             let cellValue = "";
@@ -3222,18 +3264,7 @@ const MainDashboard = () => {
                       )}
                     </h6>
                     <div className="d-flex gap-2">
-                      <Button
-                        variant="primary"
-                        className="btn-filter-submit"
-                        size="sm"
-                        onClick={applyFilters}
-                        disabled={isApplyingFilters}
-                      >
-                        <i className="fltr-icon">
-                          <BiFilter />
-                        </i>{" "}
-                        फिल्टर लागू करें
-                      </Button>
+                      
                       <Button
                         className="clear-btn-primary"
                         variant="outline-secondary"
@@ -3828,6 +3859,21 @@ const MainDashboard = () => {
                       </Form.Group>
                     </Col>
                   </Row>
+                                      <div className="d-flex gap-2 justify-content-end mt-2">
+
+                  <Button
+                        variant="primary"
+                        className="btn-filter-submit"
+                        size="sm"
+                        onClick={applyFilters}
+                        disabled={isApplyingFilters}
+                      >
+                        <i className="fltr-icon">
+                          <BiFilter />
+                        </i>{" "}
+                        फिल्टर लागू करें
+                      </Button>
+                      </div>
                 </div>
               )}
               {view === "main" ? (
@@ -4478,11 +4524,7 @@ const MainDashboard = () => {
                                           size="sm"
                                           onClick={() => {
                                             // Toggle all columns
-                                            const allExpanded = Object.values(
-                                              mainSummaryExpandedColumns
-                                            ).every(Boolean);
-                                            const newExpandedState = {};
-                                            tableColumnOrder
+                                            const expandableColumns = tableColumnOrder
                                               .filter(
                                                 (col) =>
                                                   col !==
@@ -4499,21 +4541,46 @@ const MainDashboard = () => {
                                                   col !==
                                                     "amount_of_subsidy" &&
                                                   col !== "total_amount"
-                                              )
-                                              .forEach((col) => {
-                                                newExpandedState[col] =
-                                                  !allExpanded;
-                                              });
+                                              );
+
+                                            // Check if all expandable columns are currently expanded
+                                            const allExpanded = expandableColumns.every(
+                                              (col) => mainSummaryExpandedColumns[col] === true
+                                            );
+
+                                            const newExpandedState = {};
+                                            expandableColumns.forEach((col) => {
+                                              newExpandedState[col] = !allExpanded;
+                                            });
                                             setMainSummaryExpandedColumns(
                                               newExpandedState
                                             );
                                           }}
                                         >
-                                          {Object.values(
-                                            mainSummaryExpandedColumns
-                                          ).every(Boolean)
-                                            ? "Hide All Values"
-                                            : "Show All Values"}
+                                          {(() => {
+                                            const expandableColumns = tableColumnOrder
+                                              .filter(
+                                                (col) =>
+                                                  col !==
+                                                    currentFilter.column &&
+                                                  !columnDefs[col].hidden
+                                              )
+                                              .filter(
+                                                (col) =>
+                                                  col !==
+                                                    "allocated_quantity" &&
+                                                  col !== "rate" &&
+                                                  col !==
+                                                    "amount_of_farmer_share" &&
+                                                  col !==
+                                                    "amount_of_subsidy" &&
+                                                  col !== "total_amount"
+                                              );
+                                            const allExpanded = expandableColumns.every(
+                                              (col) => mainSummaryExpandedColumns[col] === true
+                                            );
+                                            return allExpanded ? "Hide All Values" : "Show All Values";
+                                          })()}
                                         </Button>
                                         <ColumnFilter
                                           tableId="summary"
