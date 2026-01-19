@@ -2092,6 +2092,7 @@ const MainDashboard = () => {
       totals: totals,
       isAllocationTable: table.isAllocationTable,
       showDar: showDar, // Store the toggle state
+      isRotated: isRotated[index] || false,
     });
     setShowTableSelectionModal(true);
   };
@@ -2123,6 +2124,11 @@ const MainDashboard = () => {
 
       // Skip _dar columns in allocation tables - they're handled with the toggle
       if (table.isAllocationTable && col.endsWith("_dar")) {
+        continue;
+      }
+
+      // Skip the explicit total column when transposing; we'll add a single totals row later
+      if (col === "कुल") {
         continue;
       }
 
@@ -2158,6 +2164,44 @@ const MainDashboard = () => {
       transposedRows.push(newRow);
     }
 
+    // Append a totals row so rotated tables also contain a "कुल" data row
+    // This ensures exports include the total row just like the preview
+    const totalRowOriginal = table.data.find((r) => r[firstColLabel] === "कुल");
+    if (totalRowOriginal) {
+      const totalsRow = { [firstColLabel]: "कुल" };
+      // For each original row header (non-total), get its total from the original row
+      rowHeaders.forEach((rh) => {
+        const origRow = table.data.find((r) => r[firstColLabel] === rh);
+        if (origRow) {
+          if (table.isAllocationTable && table.showDar) {
+            totalsRow[rh] = origRow["कुल_dar"] !== undefined ? origRow["कुल_dar"] : origRow["कुल"] || "";
+          } else {
+            totalsRow[rh] = origRow["कुल"] !== undefined ? origRow["कुल"] : "";
+          }
+        } else {
+          totalsRow[rh] = "";
+        }
+      });
+
+      // For the transposed 'कुल' column, use the total from the original total row
+      if (table.isAllocationTable && table.showDar) {
+        totalsRow["कुल"] = totalRowOriginal["कुल_dar"] !== undefined ? totalRowOriginal["कुल_dar"] : totalRowOriginal["कुल"] || "";
+      } else {
+        totalsRow["कुल"] = totalRowOriginal["कुल"] || "";
+      }
+
+      // Only append totals row if it contains at least one non-empty value
+      const hasNonEmptyTotal = Object.keys(totalsRow).some((k) => {
+        if (k === firstColLabel) return false;
+        const v = totalsRow[k];
+        return v !== null && v !== undefined && String(v).trim() !== "";
+      });
+
+      if (hasNonEmptyTotal) {
+        transposedRows.push(totalsRow);
+      }
+    }
+
     // New columns are the row headers plus the total column (only once)
     const newColumns = [firstColLabel, ...rowHeaders, "कुल"];
 
@@ -2180,7 +2224,9 @@ const MainDashboard = () => {
       columns: currentTableForExport.columns,
       totals: currentTableForExport.totals || {},
       addedAt: new Date().toLocaleString(),
-      isRotated: getTableRotationStatus(),
+      // Prefer the rotation flag from the current table preview (set when user clicked add),
+      // otherwise fallback to lookup by additionalTables index
+      isRotated: currentTableForExport?.isRotated ?? getTableRotationStatus(),
       isAllocationTable: currentTableForExport.isAllocationTable,
       showDar: currentTableForExport.showDar, // Store the toggle state
       isSummary: currentTableForExport.isSummary !== false, // Mark as summary unless marked as additional
@@ -2650,9 +2696,8 @@ const MainDashboard = () => {
               <tbody>
         `;
 
-        const dataToProcess = table.isRotated && table.isSummary
-          ? displayTable.data.filter((row) => row[displayTable.columns[0]] !== "कुल")
-          : displayTable.data;
+        // Include all rows from the display table (including any appended 'कुल' row)
+        const dataToProcess = displayTable.data;
         
         dataToProcess.forEach((row, rowIndex) => {
           const isTotalRow = row[displayTable.columns[0]] === "कुल";
@@ -2775,9 +2820,8 @@ const MainDashboard = () => {
         : table;
 
       // Prepare data for this table
-      const dataToProcess = table.isRotated && table.isSummary
-        ? displayTable.data.filter((row) => row[displayTable.columns[0]] !== "कुल")
-        : displayTable.data;
+      // Include all rows from the display table (including any appended 'कुल' row)
+      const dataToProcess = displayTable.data;
       
       let tableDataArray = [
         [displayTable.heading], // Title
@@ -3329,6 +3373,7 @@ const MainDashboard = () => {
       existingSheetId: existingTableId,
       isAllocationTable: currentTableForExport.isAllocationTable,
       showDar: currentTableForExport.showDar, // Store the toggle state
+      isRotated: currentTableForExport?.isRotated || false,
     };
 
     setTablesForExport((prev) => ({
