@@ -27,6 +27,8 @@ import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
 import * as XLSX from "xlsx";
 import html2pdf from "html2pdf.js";
+import { Bar, Pie, Doughnut } from "react-chartjs-2";
+import Chart from "chart.js/auto";
 
 const API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
@@ -232,6 +234,41 @@ const MainDashboard = () => {
     detail: [],
     additional: {},
   });
+
+  // Add state for graph visualization
+  const [graphType, setGraphType] = useState("bar"); // bar, pie, doughnut
+  const [graphColumn, setGraphColumn] = useState("center_name");
+  
+  // State to track currently displayed table for graph synchronization
+  const [currentDisplayedTable, setCurrentDisplayedTable] = useState({
+    type: "main", // main, summary, detail, breakdown
+    data: [],
+    columns: [],
+  });
+
+  // Calculate dynamic chart width based on number of data points
+  const calculateChartWidth = () => {
+    const chartData = generateChartData();
+    if (!chartData || !chartData.labels) return "100%";
+    
+    const numItems = chartData.labels.length;
+    
+    // For bar charts, allocate width based on number of items
+    if (graphType === "bar") {
+      // Minimum width for each bar + padding
+      const minWidthPerItem = 60; // pixels
+      const calculatedWidth = Math.max(numItems * minWidthPerItem, 300);
+      return `${calculatedWidth}px`;
+    } else if (graphType === "pie" || graphType === "doughnut") {
+      // For pie and doughnut charts, also enable scrolling with many segments
+      const minWidthPerItem = 50; // pixels per segment
+      const calculatedWidth = Math.max(numItems * minWidthPerItem, 300);
+      return `${calculatedWidth}px`;
+    }
+    
+    // Default fallback
+    return "100%";
+  };
 
   // Initialize main table column filters
   useEffect(() => {
@@ -1002,6 +1039,50 @@ const MainDashboard = () => {
     filters.unit,
   ]);
 
+  // Update graph when main table data changes
+  useEffect(() => {
+    if (view === "main" && filteredTableData.length > 0) {
+      setCurrentDisplayedTable({
+        type: "main",
+        data: filteredTableData,
+        columns: tableColumnOrder.filter((col) => !columnDefs[col].hidden),
+      });
+      // Reset graph column to default if not in available columns
+      if (graphColumn && !Object.keys(columnDefs).includes(graphColumn)) {
+        setGraphColumn("center_name");
+      }
+    }
+  }, [filteredTableData, view]);
+
+  // Update graph when filterStack changes (detail view)
+  useEffect(() => {
+    if (view === "detail" && filterStack.length > 0) {
+      const filteredData = tableData.filter((item) => {
+        for (let filter of filterStack) {
+          if (!filter.checked[item[filter.column]]) return false;
+        }
+        return true;
+      });
+      
+      if (filteredData.length > 0) {
+        const currentFilter = filterStack[filterStack.length - 1];
+        const availableColumns = Object.keys(columnDefs)
+          .filter((col) => col !== currentFilter.column && !columnDefs[col].hidden);
+        
+        setCurrentDisplayedTable({
+          type: "detail",
+          data: filteredData,
+          columns: availableColumns,
+        });
+        
+        // Set graph column to first available column
+        if (availableColumns.length > 0) {
+          setGraphColumn(availableColumns[0]);
+        }
+      }
+    }
+  }, [filterStack, tableData, view]);
+
   // Generate summary data for a given data and column
   const generateSummary = (data, column) => {
     const uniqueValues = [
@@ -1186,6 +1267,283 @@ const MainDashboard = () => {
       setSelectedItem(null);
     }
     setShowDetailed(false);
+  };
+
+  // Generate chart data based on selected column and type
+  const generateChartData = () => {
+    // Use current displayed table data
+    let dataToVisualize = currentDisplayedTable.data && currentDisplayedTable.data.length > 0 
+      ? currentDisplayedTable.data 
+      : (view === "main" ? filteredTableData : tableData);
+    
+    if (dataToVisualize.length === 0) {
+      return null;
+    }
+
+    // Try to find the column key - first check if graphColumn is a key, then check labels
+    let columnKey = graphColumn;
+    if (!Object.keys(columnDefs).includes(graphColumn)) {
+      // graphColumn might be a label, try to find its key
+      columnKey = Object.keys(columnDefs).find(
+        (key) => columnDefs[key].label === graphColumn
+      ) || graphColumn;
+    }
+
+    const dataMap = {};
+    const detailsMap = {}; // Store comprehensive details for tooltip
+    
+    dataToVisualize.forEach((item) => {
+      // For summary/detail tables, the column might be the label directly
+      let value = item[columnKey];
+      
+      if (value === undefined && currentDisplayedTable.type !== "main") {
+        // Try to find the value using the label as key for summary tables
+        value = item[graphColumn];
+      }
+      
+      if (value !== undefined && value !== null && value !== "") {
+        dataMap[value] = (dataMap[value] || 0) + 1;
+        
+        // Collect comprehensive details for tooltip
+        if (!detailsMap[value]) {
+          detailsMap[value] = {
+            totalMatra: 0,
+            totalDar: 0,
+            totalFarmerShare: 0,
+            totalSubsidy: 0,
+            totalAmount: 0,
+            count: 0,
+            items: [],
+            maxMatra: 0,
+            minMatra: Infinity,
+            maxDar: 0,
+            minDar: Infinity
+          };
+        }
+        
+        const matra = item.allocated_quantity ? parseFloat(item.allocated_quantity) : 0;
+        const dar = item.rate ? parseFloat(item.rate) : 0;
+        const farmerShare = item.amount_of_farmer_share ? parseFloat(item.amount_of_farmer_share) : 0;
+        const subsidy = item.amount_of_subsidy ? parseFloat(item.amount_of_subsidy) : 0;
+        const totalAmount = item.total_amount ? parseFloat(item.total_amount) : 0;
+        
+        detailsMap[value].totalMatra += matra;
+        detailsMap[value].totalDar += dar;
+        detailsMap[value].totalFarmerShare += farmerShare;
+        detailsMap[value].totalSubsidy += subsidy;
+        detailsMap[value].totalAmount += totalAmount;
+        detailsMap[value].count += 1;
+        
+        // Track min/max values
+        detailsMap[value].maxMatra = Math.max(detailsMap[value].maxMatra, matra);
+        detailsMap[value].minMatra = Math.min(detailsMap[value].minMatra, matra);
+        detailsMap[value].maxDar = Math.max(detailsMap[value].maxDar, dar);
+        detailsMap[value].minDar = Math.min(detailsMap[value].minDar, dar);
+        
+        detailsMap[value].items.push({
+          matra: matra,
+          dar: dar,
+          farmerShare: farmerShare,
+          subsidy: subsidy,
+          amount: totalAmount
+        });
+      }
+    });
+
+    const labels = Object.keys(dataMap);
+    const counts = Object.values(dataMap);
+    const totalRecords = counts.reduce((sum, count) => sum + count, 0);
+
+    if (labels.length === 0) {
+      return null;
+    }
+
+    // Generate colors with gradient
+    const colors = [
+      "#FF6384",
+      "#36A2EB",
+      "#FFCE56",
+      "#4BC0C0",
+      "#9966FF",
+      "#FF9F40",
+      "#FF6384",
+      "#C9CBCF",
+      "#4BC0C0",
+      "#FF6384",
+    ];
+    const backgroundColors = labels.map((_, i) => colors[i % colors.length]);
+
+    // Store metadata for tooltip usage
+    const chartDataWithMetadata = {
+      labels: labels,
+      counts: counts,
+      totalRecords: totalRecords,
+      columnLabel: columnDefs[columnKey]?.label || graphColumn,
+      columnKey: columnKey,
+      detailsMap: detailsMap,
+    };
+
+    if (graphType === "bar") {
+      return {
+        labels: labels,
+        datasets: [
+          {
+            label: `${columnDefs[columnKey]?.label || graphColumn} - रिकॉर्ड की संख्या`,
+            data: counts,
+            backgroundColor: backgroundColors,
+            borderColor: backgroundColors.map((color) => color.replace("0.6", "1")),
+            borderWidth: 1,
+            borderRadius: 4,
+            metadata: chartDataWithMetadata,
+          },
+        ],
+      };
+    } else if (graphType === "pie") {
+      return {
+        labels: labels,
+        datasets: [
+          {
+            data: counts,
+            backgroundColor: backgroundColors,
+            borderColor: "#fff",
+            borderWidth: 2,
+            metadata: chartDataWithMetadata,
+          },
+        ],
+      };
+    } else if (graphType === "doughnut") {
+      return {
+        labels: labels,
+        datasets: [
+          {
+            data: counts,
+            backgroundColor: backgroundColors,
+            borderColor: "#fff",
+            borderWidth: 2,
+            metadata: chartDataWithMetadata,
+          },
+        ],
+      };
+    }
+
+    return null;
+  };
+
+  // Custom external tooltip for better scrolling and visibility
+  const [tooltipState, setTooltipState] = useState({ visible: false, content: [], position: { x: 0, y: 0 } });
+
+  // Chart options configuration
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: graphType === "bar" ? "bottom" : "right",
+        labels: {
+          boxWidth: 12,
+          font: { size: 10 },
+          maxWidth: 200,
+          padding: 10,
+        },
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: "rgba(0, 0, 0, 0.95)",
+        padding: 14,
+        titleFont: { size: 13, weight: "bold" },
+        bodyFont: { size: 10 },
+        bodySpacing: 6,
+        borderColor: "#fff",
+        borderWidth: 2,
+        cornerRadius: 6,
+        displayColors: false,
+        maxWidth: 500,
+        callbacks: {
+          title: function (context) {
+            if (context.length > 0) {
+              const label = context[0].label || "डेटा";
+              return `📊 ${label}`;
+            }
+            return "";
+          },
+          label: function (context) {
+            const count = context.parsed.y || context.parsed;
+            const metadata = context.dataset.metadata;
+            const label = context.label;
+            
+            if (metadata && metadata.detailsMap && metadata.detailsMap[label]) {
+              const details = metadata.detailsMap[label];
+              const percentage = ((count / metadata.totalRecords) * 100).toFixed(1);
+              const avgMatra = (details.totalMatra / details.count).toFixed(2);
+              const avgDar = (details.totalDar / details.count).toFixed(2);
+              const avgFarmerShare = (details.totalFarmerShare / details.count).toFixed(2);
+              const avgSubsidy = (details.totalSubsidy / details.count).toFixed(2);
+              const avgTotalAmount = (details.totalAmount / details.count).toFixed(2);
+              
+              return [
+                "📋 रिकॉर्ड जानकारी (Record Info)",
+                `🔢 कुल रिकॉर्ड: ${count}`,
+                `📈 प्रतिशत: ${percentage}%`,
+                `📌 कुल डेटा: ${metadata.totalRecords}`,
+                "📦 मात्रा (दर) विवरण (Quantity)",
+                `📏 कुल मात्रा: ${details.totalMatra.toFixed(2)}`,
+                `📏 औसत मात्रा: ${avgMatra}`,
+                // `📏 अधिकतम मात्रा: ${details.maxMatra.toFixed(2)}`,
+                // `📏 न्यूनतम मात्रा: ${details.minMatra === Infinity ? '0.00' : details.minMatra.toFixed(2)}`,
+                "💰 दर विवरण (Rate Details)",
+                `💵 कुल दर: ${details.totalDar.toFixed(2)}`,
+                `💵 औसत दर: ${avgDar}`,
+                // `💵 अधिकतम दर: ${details.maxDar.toFixed(2)}`,
+                // `💵 न्यूनतम दर: ${details.minDar === Infinity ? '0.00' : details.minDar.toFixed(2)}`,
+                "💳 राशि विवरण (Amount Details)",
+                `👨‍🌾 किसान हिस्सेदारी: ${details.totalFarmerShare.toFixed(2)}`,
+                // `👨‍🌾 औसत किसान हिस्सेदारी: ${avgFarmerShare}`,
+                `🏦 कुल सब्सिडी: ${details.totalSubsidy.toFixed(2)}`,
+                // `🏦 औसत सब्सिडी: ${avgSubsidy}`,
+                `💰 कुल राशि: ${details.totalAmount.toFixed(2)}`,
+                // `💰 औसत राशि: ${avgTotalAmount}`,
+              ];
+            }
+            return `🔢 रिकॉर्ड: ${count}`;
+          },
+        },
+      },
+      filler: {
+        propagate: true,
+      },
+    },
+    indexAxis: graphType === "bar" ? "x" : undefined,
+    scales: graphType === "bar" ? {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "रिकॉर्ड की संख्या",
+          font: { size: 12, weight: "bold" },
+        },
+        ticks: {
+          stepSize: 1,
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: columnDefs[graphColumn]?.label || graphColumn,
+          font: { size: 12, weight: "bold" },
+        },
+        ticks: {
+          font: { size: 10 },
+          maxRotation: 45,
+          minRotation: 0,
+        },
+      },
+    } : undefined,
+    layout: {
+      padding: {
+        right: graphType === "bar" ? 20 : 0,
+        bottom: graphType === "bar" ? 40 : 0,
+      },
+    },
   };
 
   // Get current table data with totals for export
@@ -1825,6 +2183,7 @@ const MainDashboard = () => {
       isRotated: getTableRotationStatus(),
       isAllocationTable: currentTableForExport.isAllocationTable,
       showDar: currentTableForExport.showDar, // Store the toggle state
+      isSummary: currentTableForExport.isSummary !== false, // Mark as summary unless marked as additional
     };
     setTablesForExport((prev) => ({
       ...prev,
@@ -1965,8 +2324,11 @@ const MainDashboard = () => {
                     displayTable.data[displayTable.data.length - 1][
                       displayTable.columns[0]
                     ] === "कुल";
+                  // Check if this is a rotated table (कुल is in columns)
+                  const isRotatedWithTotal = displayTable.columns.includes("कुल");
+                  
                   return (
-                    !hasTotalRow && (
+                    !hasTotalRow && !isRotatedWithTotal && (
                       <tfoot>
                         <tr
                           style={{
@@ -2159,8 +2521,11 @@ const MainDashboard = () => {
                     displayTable.data[displayTable.data.length - 1][
                       displayTable.columns[0]
                     ] === "कुल";
+                  // Check if this is a rotated table (कुल is in columns)
+                  const isRotatedWithTotal = displayTable.columns.includes("कुल");
+                  
                   return (
-                    !hasTotalRow && (
+                    !hasTotalRow && !isRotatedWithTotal && (
                       <tfoot>
                         <tr
                           style={{
@@ -2285,7 +2650,11 @@ const MainDashboard = () => {
               <tbody>
         `;
 
-        displayTable.data.forEach((row, rowIndex) => {
+        const dataToProcess = table.isRotated && table.isSummary
+          ? displayTable.data.filter((row) => row[displayTable.columns[0]] !== "कुल")
+          : displayTable.data;
+        
+        dataToProcess.forEach((row, rowIndex) => {
           const isTotalRow = row[displayTable.columns[0]] === "कुल";
           htmlContent += `<tr${isTotalRow ? ' style="font-weight: bold;"' : ''}>`;
           htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${
@@ -2314,12 +2683,15 @@ const MainDashboard = () => {
         });
 
         // Add footer row with totals only if the table doesn't already have a total row
-        const hasTotalRow =
+        // For rotated summary tables, "कुल" is a column name, not a data row, so don't add footer
+        const hasTotalRowInData =
           displayTable.data.length > 0 &&
           displayTable.data[displayTable.data.length - 1][
             displayTable.columns[0]
           ] === "कुल";
-        if (!hasTotalRow) {
+        const hasKulAsColumn = displayTable.columns.includes("कुल") && table.isSummary;
+        
+        if (!hasTotalRowInData && !hasKulAsColumn) {
           htmlContent += `
               </tbody>
               <tfoot>
@@ -2403,11 +2775,15 @@ const MainDashboard = () => {
         : table;
 
       // Prepare data for this table
+      const dataToProcess = table.isRotated && table.isSummary
+        ? displayTable.data.filter((row) => row[displayTable.columns[0]] !== "कुल")
+        : displayTable.data;
+      
       let tableDataArray = [
         [displayTable.heading], // Title
         [], // Empty row
         ["S.No.", ...displayTable.columns], // Headers
-        ...displayTable.data.map((row, rowIndex) => [
+        ...dataToProcess.map((row, rowIndex) => [
           row[displayTable.columns[0]] === "कुल" ? "" : rowIndex + 1,
           ...displayTable.columns.map((col) => {
             if (typeof row === "object" && row !== null) {
@@ -2431,12 +2807,15 @@ const MainDashboard = () => {
       ];
 
       // Add totals row only if the table doesn't already have a total row
-      const hasTotalRow =
+      // For rotated summary tables, "कुल" is a column name, not a data row, so don't add footer
+      const hasTotalRowInData =
         displayTable.data.length > 0 &&
         displayTable.data[displayTable.data.length - 1][
           displayTable.columns[0]
         ] === "कुल";
-      if (!hasTotalRow) {
+      const hasKulAsColumn = displayTable.columns.includes("कुल") && table.isSummary;
+      
+      if (!hasTotalRowInData && !hasKulAsColumn) {
         // Calculate totals for each column using pre-calculated values
         const totalsRow = ["कुल:"];
         displayTable.columns.forEach((col) => {
@@ -2707,6 +3086,28 @@ const MainDashboard = () => {
     setFilterStack((prev) => [...prev, { column, checked }]);
     setShowDetailed(false);
     setAdditionalTables([]);
+    
+    // Update graph to show breakdown for this selection
+    // Get the breakdown data
+    const breakdownData = currentFilteredData.filter(
+      (item) => item[column] === value
+    );
+    if (breakdownData.length > 0) {
+      setCurrentDisplayedTable({
+        type: "breakdown",
+        data: breakdownData,
+        columns: Object.keys(columnDefs).filter(
+          (col) => col !== column && !columnDefs[col].hidden
+        ),
+      });
+      // Reset to first available column for the breakdown
+      const firstCol = Object.keys(columnDefs).find(
+        (col) => col !== column && !columnDefs[col].hidden
+      );
+      if (firstCol) {
+        setGraphColumn(firstCol);
+      }
+    }
   };
 
   // Initialize filters for additional tables
@@ -4212,6 +4613,92 @@ const MainDashboard = () => {
                             </Form.Group>
                           );
                         })}
+                      
+                      {/* Graph Visualization Section */}
+                      <div className="graph-visualization-section">
+                        <h6>डेटा विज़ुअलाइज़ेशन</h6>
+                        
+                        {/* Graph Type Selector */}
+                        <div className="mb-3 graph-type-selector">
+                          <Button
+                            size="sm"
+                            variant={graphType === "bar" ? "primary" : "outline-primary"}
+                            onClick={() => setGraphType("bar")}
+                          >
+                            📊 बार ग्राफ
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={graphType === "pie" ? "success" : "outline-success"}
+                            onClick={() => setGraphType("pie")}
+                          >
+                            🥧 पाई चार्ट
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={graphType === "doughnut" ? "warning" : "outline-warning"}
+                            onClick={() => setGraphType("doughnut")}
+                          >
+                            🍩 डोनट चार्ट
+                          </Button>
+                        </div>
+
+                        {/* Graph Column Selector */}
+                        <div className="mb-3 graph-column-selector">
+                          <Form.Label className="form-label fw-bold small mb-2">
+                            📋 दिखाने के लिए कॉलम चुनें
+                          </Form.Label>
+                          <Form.Select
+                            size="sm"
+                            value={graphColumn}
+                            onChange={(e) => setGraphColumn(e.target.value)}
+                          >
+                            {/* Show all available columns, mark selected ones from main table */}
+                            {[
+                              { key: "center_name", label: columnDefs.center_name.label },
+                              { key: "vidhan_sabha_name", label: columnDefs.vidhan_sabha_name.label },
+                              { key: "vikas_khand_name", label: columnDefs.vikas_khand_name.label },
+                              { key: "scheme_name", label: columnDefs.scheme_name.label },
+                              { key: "source_of_receipt", label: columnDefs.source_of_receipt.label },
+                              { key: "investment_name", label: columnDefs.investment_name.label },
+                              { key: "sub_investment_name", label: columnDefs.sub_investment_name.label },
+                              { key: "allocated_quantity", label: columnDefs.allocated_quantity.label },
+                              { key: "amount_of_farmer_share", label: columnDefs.amount_of_farmer_share.label },
+                              { key: "amount_of_subsidy", label: columnDefs.amount_of_subsidy.label },
+                              { key: "total_amount", label: columnDefs.total_amount.label },
+                            ].map((col) => {
+                              const isSelected = tableColumnFilters.main && tableColumnFilters.main.includes(col.key);
+                              return (
+                                <option key={col.key} value={col.key}>
+                                  {isSelected ? "✓ " : ""}{col.label}
+                                </option>
+                              );
+                            })}
+                          </Form.Select>
+                        </div>
+
+                        {/* Chart Rendering with Scrolling */}
+                        <div className="chart-scroll-wrapper">
+                          <div 
+                            className="chart-container"
+                            style={{ width: calculateChartWidth() }}
+                          >
+                            {generateChartData() ? (
+                              graphType === "bar" ? (
+                                <Bar data={generateChartData()} options={chartOptions} />
+                              ) : graphType === "pie" ? (
+                                <Pie data={generateChartData()} options={chartOptions} />
+                              ) : (
+                                <Doughnut data={generateChartData()} options={chartOptions} />
+                              )
+                            ) : (
+                              <div className="chart-no-data">
+                                <p>📊 डेटा उपलब्ध नहीं है</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </Col>
                   <Col lg={9} md={9} sm={12}>
