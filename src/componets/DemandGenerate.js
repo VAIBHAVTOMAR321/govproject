@@ -270,8 +270,8 @@ const DemandGenerate = () => {
                   <Table striped bordered hover responsive>
                     <thead>
                       <tr>
-                        <th>उपनिवेश नाम</th>
-                        <th>(Sub-investment)</th>
+                        <th>निवेश</th>
+                        <th>उपनिवेश</th>
                         <th>इकाई (Unit)</th>
                         <th>मात्रा (Quantity)</th>
                         <th>दर (Rate)</th>
