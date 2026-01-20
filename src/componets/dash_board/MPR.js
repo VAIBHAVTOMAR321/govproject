@@ -27,10 +27,9 @@ const formatCurrency = (amount) => {
 const formatFieldTitle = (fieldKey) => {
   const titles = {
     center_name: 'केंद्र का नाम',
-    component: 'घटक',
     investment_name: 'निवेश का नाम',
     unit: 'इकाई',
-    source_of_receipt: 'प्राप्ति का स्रोत',
+    source_of_receipt: 'सप्लायर',
     scheme_name: 'योजना का नाम'
   };
   return titles[fieldKey] || fieldKey;
@@ -41,7 +40,7 @@ const mainTableColumnMapping = {
   sno: { header: 'क्र.सं.', accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
   reportId: { header: 'रिपोर्ट आईडी', accessor: (item) => item.bill_report_id || '-' },
   centerName: { header: 'केंद्र का नाम', accessor: (item) => item.center_name },
-  sourceOfReceipt: { header: 'प्राप्ति का स्रोत', accessor: (item) => item.source_of_receipt },
+  sourceOfReceipt: { header: 'सप्लायर', accessor: (item) => item.source_of_receipt },
   reportDate: { header: 'रिपोर्ट तारीख', accessor: (item) => item.billing_date ? new Date(item.billing_date).toLocaleDateString('hi-IN') : 'N/A' },
   status: { header: 'स्थिति', accessor: (item) => item.status === 'accepted' ? 'स्वीकृत' : item.status === 'cancelled' ? 'रद्द' : 'लंबित' },
   totalItems: { header: 'कुल आइटम', accessor: (item) => item.component_data ? item.component_data.length : 0 },
@@ -61,7 +60,6 @@ const componentColumnMapping = {
       return item.bill_report_id || '-';
     }
   },
-  component: { header: 'घटक', accessor: (item) => item.component },
   investment_name: { header: 'निवेश का नाम', accessor: (item) => item.investment_name },
   unit: { header: 'इकाई', accessor: (item) => item.unit },
   allocated_quantity: { header: 'आवंटित मात्रा', accessor: (item) => item.allocated_quantity },
@@ -78,7 +76,7 @@ const availableColumns = [
   { key: 'sno', label: 'क्र.सं.' },
   { key: 'reportId', label: 'रिपोर्ट आईडी' },
   { key: 'centerName', label: 'केंद्र का नाम' },
-  { key: 'sourceOfReceipt', label: 'प्राप्ति का स्रोत' },
+  { key: 'sourceOfReceipt', label: 'सप्लायर' },
   { key: 'reportDate', label: 'रिपोर्ट तारीख' },
   { key: 'status', label: 'स्थिति' },
   { key: 'totalItems', label: 'कुल आइटम' },
@@ -88,7 +86,6 @@ const availableColumns = [
 // Available columns for component tables
 const availableComponentColumns = [
   { key: 'reportId', label: 'रिपोर्ट आईडी' },
-  { key: 'component', label: 'घटक' },
   { key: 'investment_name', label: 'निवेश का नाम' },
   { key: 'unit', label: 'इकाई' },
   { key: 'allocated_quantity', label: 'आवंटित मात्रा' },
@@ -106,8 +103,7 @@ const translations = {
   filters: "फिल्टर",
   clearAllFilters: "सभी फिल्टर हटाएं",
   centerName: "केंद्र का नाम",
-  sourceOfReceipt: "प्राप्ति का स्रोत",
-  component: "घटक",
+  sourceOfReceipt: "सप्लायर",
   investmentName: "निवेश का नाम",
   schemeName: "योजना का नाम",
   fromDate: "आरंभ तिथि",
@@ -121,7 +117,6 @@ const translations = {
   clearAllFilters: "सभी फिल्टर हटाएं",
   sno: "क्र.सं.",
   reportId: "रिपोर्ट आईडी",
-  component: "घटक",
   investmentName: "निवेश का नाम",
   unit: "इकाई",
   allocatedQuantity: "आवंटित मात्रा",
@@ -300,7 +295,6 @@ const MPR = () => {
   const [filters, setFilters] = useState({
     center_name: [],
     source_of_receipt: [],
-    component: [],
     investment_name: [],
     scheme_name: [],
     from_date: '',
@@ -396,10 +390,6 @@ const MPR = () => {
         const selectedSources = filters.source_of_receipt.map(s => s.value);
         filteredYearlyData = filteredYearlyData.filter(item => selectedSources.includes(item.source_of_receipt));
       }
-      if (filters.component && filters.component.length > 0) {
-        const selectedComponents = filters.component.map(c => c.value);
-        filteredYearlyData = filteredYearlyData.filter(item => selectedComponents.includes(item.component));
-      }
       if (filters.investment_name && filters.investment_name.length > 0) {
         const selectedInvestments = filters.investment_name.map(i => i.value);
         filteredYearlyData = filteredYearlyData.filter(item => selectedInvestments.includes(item.investment_name));
@@ -467,12 +457,6 @@ const MPR = () => {
       if (filters.source_of_receipt && filters.source_of_receipt.length > 0) {
         const selectedSources = filters.source_of_receipt.map(s => s.value);
         filteredMonthlyData = filteredMonthlyData.filter(item => selectedSources.includes(item.source_of_receipt));
-      }
-      if (filters.component && filters.component.length > 0) {
-        const selectedComponents = filters.component.map(c => c.value);
-        filteredMonthlyData = filteredMonthlyData.filter(item =>
-          item.component_data && item.component_data.some(comp => selectedComponents.includes(comp.component))
-        );
       }
       if (filters.investment_name && filters.investment_name.length > 0) {
         const selectedInvestments = filters.investment_name.map(i => i.value);
@@ -557,7 +541,6 @@ const MPR = () => {
     setFilters({
       center_name: [],
       source_of_receipt: [],
-      component: [],
       investment_name: [],
       scheme_name: [],
       from_date: '',
@@ -633,7 +616,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
           // Component table totals
           if (col === 'reportId') {
             totalsRow[columnMapping[col].header] = "कुल";
-          } else if (col === 'component' || col === 'investment_name' || 
+          } else if (col === 'investment_name' || 
                      col === 'unit' || col === 'scheme_name') {
             totalsRow[columnMapping[col].header] = "";
           } else if (col === 'allocated_quantity') {
@@ -852,7 +835,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
       const totalsCells = selectedColumns.map(col => {
         if (col === 'reportId') {
           return `<td class="fw-bold">कुल</td>`; // Only show "कुल" in Report ID column
-        } else if (col === 'component' || col === 'investment_name' || 
+        } else if (col === 'investment_name' || 
                    col === 'unit' || col === 'scheme_name') {
           return `<td></td>`; // Empty cells for text columns
         } else if (col === 'allocated_quantity') {
@@ -958,7 +941,6 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
       return {
         center_name: [],
         source_of_receipt: [],
-        component: [],
         investment_name: [],
         scheme_name: []
       };
@@ -967,7 +949,6 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
     return {
       center_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.center_name))].map(name => ({ value: name, label: name }))],
       source_of_receipt: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.source_of_receipt))].map(name => ({ value: name, label: name }))],
-      component: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.component))].map(name => ({ value: name, label: name }))],
       investment_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.investment_name))].map(name => ({ value: name, label: name }))],
       scheme_name: [{ value: 'select_all', label: 'सभी चुनें' }, ...[...new Set(originalYearlyData.map(item => item.scheme_name))].map(name => ({ value: name, label: name }))],
       dates: [...new Set(originalYearlyData.filter(item => item.billing_date).map(item => new Date(item.billing_date).toISOString().split('T')[0]))].sort().map(date => ({ value: date, label: date }))
@@ -1220,24 +1201,6 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
 
                 <Col xs={12} sm={6} md={3} className="mb-2">
                   <Form.Group>
-                    <Form.Label className="small-fonts fw-bold">{translations.component}</Form.Label>
-                    <Select
-                      value={filters.component}
-                      onChange={(value) => handleFilterChange('component', value)}
-                      options={filterOptions.component}
-                      isMulti
-                      isClearable
-                      placeholder="सभी घटक"
-                      styles={customSelectStyles}
-                      className="compact-input small-fonts filter-dropdown"
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col xs={12} sm={6} md={3} className="mb-2">
-                  <Form.Group>
                     <Form.Label className="small-fonts fw-bold">{translations.investmentName}</Form.Label>
                     <Select
                       value={filters.investment_name}
@@ -1395,7 +1358,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                 <table className="table table-bordered small-fonts">
                   <thead>
                     <tr>
-                      <th>{translations.component}</th>
+                      <th>{translations.investmentName}</th>
                       <th>{translations.totalAmount}</th>
                     </tr>
                   </thead>
@@ -1537,14 +1500,14 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                               <td colSpan={`${selectedColumns.length + 2}`} className="p-0">
                                 <Collapse in={expandedReports[item.id]}>
                                   <div className="p-3 bg-light">
-                                    <h5 className="mb-3">{translations.component}</h5>
+                                    <h5 className="mb-3">{translations.investmentName}</h5>
 
                                     {/* Column Selection for Component Table */}
                                     <ColumnSelection
                                       columns={availableComponentColumns}
                                       selectedColumns={selectedComponentColumns}
                                       setSelectedColumns={setSelectedComponentColumns}
-                                      title={`${translations.component} ${translations.selectColumns}`}
+                                      title={`${translations.investmentName} ${translations.selectColumns}`}
                                     />
 
                                     <div className="d-flex justify-content-end mb-2">
@@ -1566,7 +1529,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                                       <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        onClick={() => downloadComponentTablePdf(item.component_data, `Component_${item.bill_report_id}_${new Date().toISOString().slice(0, 10)}`, selectedComponentColumns, `${translations.component} ${translations.viewDetails}`, item)}
+                                        onClick={() => downloadComponentTablePdf(item.component_data, `Component_${item.bill_report_id}_${new Date().toISOString().slice(0, 10)}`, selectedComponentColumns, `${translations.investmentName} ${translations.viewDetails}`, item)}
                                         className="me-2"
                                       >
                                         <FaFilePdf className="me-1" />PDF
@@ -1579,7 +1542,6 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                                           <tr>
                                             {selectedComponentColumns.map(col => {
                                               if (col === 'reportId') return <th key={col}>{translations.reportId}</th>;
-                                              if (col === 'component') return <th key={col}>{translations.component}</th>;
                                               if (col === 'investment_name') return <th key={col}>{translations.investmentName}</th>;
                                               if (col === 'unit') return <th key={col}>{translations.unit}</th>;
                                               if (col === 'allocated_quantity') return <th key={col}>{translations.allocatedQuantity}</th>;
@@ -1598,7 +1560,6 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                                             <tr key={compIndex}>
                                               {selectedComponentColumns.map(col => {
                                                 if (col === 'reportId') return <td key={col}>{item.bill_report_id}</td>;
-                                                if (col === 'component') return <td key={col}>{component.component}</td>;
                                                 if (col === 'investment_name') return <td key={col}>{component.investment_name}</td>;
                                                 if (col === 'unit') return <td key={col}>{component.unit}</td>;
                                                 if (col === 'allocated_quantity') return <td key={col}>{component.allocated_quantity}</td>;
@@ -1618,7 +1579,7 @@ const downloadExcel = (data, filename, columnMapping, selectedColumns, includeTo
                                             {selectedComponentColumns.map(col => {
                                               if (col === 'reportId') {
                                                 return <td key={col}>{translations.total}</td>; // Show "कुल" only in Report ID column
-                                              } else if (col === 'component' || col === 'investment_name' || 
+                                              } else if (col === 'investment_name' || 
                                                          col === 'unit' || col === 'scheme_name') {
                                                 return <td key={col}></td>; // Empty cells for text columns
                                               } else if (col === 'allocated_quantity') {
