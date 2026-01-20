@@ -15,12 +15,12 @@
 .dashboard-body-main h1,
 .dashboard-body-main h2,
 .dashboard-body-main h3 {
-  color: #fff;
+  color: #000000;
   font-weight: 600;
 }
 
 .dashboard-body-main p {
-  color: #fff;
+  color: #020202;
   font-size: 14px;
 }
 

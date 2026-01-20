@@ -132,3 +132,10 @@
     padding: 0.6rem;
   }
 }
+.page-title{
+  font-size: 18px !important;
+}
+.pdf-button-section {
+    display: flex;
+    justify-content: end;
+}

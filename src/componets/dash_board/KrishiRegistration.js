@@ -18,6 +18,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import Select from "react-select";
 import "../../assets/css/registration.css";
+
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 
@@ -134,7 +135,7 @@ const beneficiariesTableColumnMapping = {
 
 // Hindi translations for form
 const translations = {
-  pageTitle: "लाभार्थी पंजीकरण",
+  pageTitle: "कृषि डेटा एंट्री",
   farmerName: "किसान का नाम",
   fatherName: "पिता का नाम",
   address: "पता",
@@ -874,6 +875,8 @@ const KrishiRegistration = () => {
       // Prepare data for Excel export based on selected columns
       const excelData = data.map((item, index) => {
         const row = {};
+        // Add serial number column
+        row["क्र.सं."] = index + 1;
         selectedColumns.forEach((col) => {
           row[columnMapping[col].header] = columnMapping[col].accessor(
             item,
@@ -883,11 +886,38 @@ const KrishiRegistration = () => {
         return row;
       });
 
+      // Add total row
+      const totalRow = {};
+      // Add serial number column with "कुल" label
+      totalRow["क्र.सं."] = "कुल";
+      selectedColumns.forEach((col) => {
+        if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
+            col === "scheme_name" || col === "supplied_item_name" || col === "category" || col === "unit") {
+          // Unique count for categorical columns
+          const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
+          totalRow[columnMapping[col].header] = uniqueValues.size;
+        } else if (col === "farmer_name") {
+          // Total count for farmer_name
+          totalRow[columnMapping[col].header] = data.length;
+        } else if (col === "quantity" || col === "rate" || col === "amount") {
+          // Sum for numeric columns
+          const sum = data.reduce((total, item) => {
+            const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
+            return total + value;
+          }, 0);
+          totalRow[columnMapping[col].header] = sum;
+        } else {
+          totalRow[columnMapping[col].header] = "";
+        }
+      });
+      excelData.push(totalRow);
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
       // Set column widths based on the new column order
       const colWidths = [
+        { wch: 10 }, // क्र.सं.
         { wch: 20 }, // केंद्र का नाम
         { wch: 20 }, // विधानसभा का नाम
         { wch: 20 }, // विकास खंड का नाम
@@ -983,20 +1013,47 @@ const KrishiRegistration = () => {
     title
   ) => {
     try {
-      // Create headers and rows based on selected columns
-      const headers = selectedColumns
+      // Add serial number column header
+      const headers = `<th>क्र.सं.</th>${selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
-        .join("");
+        .join("")}`;
+      
+      // Add serial numbers to data rows
       const rows = data
         .map((item, index) => {
-          const cells = selectedColumns
+          const cells = `<td>${index + 1}</td>${selectedColumns
             .map(
               (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`
             )
-            .join("");
+            .join("")}`;
           return `<tr>${cells}</tr>`;
         })
         .join("");
+
+      // Add total row - first cell is "कुल" for serial number column
+      const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
+        .map((col) => {
+          if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
+              col === "scheme_name" || col === "supplied_item_name" || col === "category" || col === "unit") {
+            // Unique count for categorical columns
+            const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
+            return `<td><strong>${uniqueValues.size}</strong></td>`;
+          } else if (col === "farmer_name") {
+            // Total count for farmer_name
+            return `<td><strong>${data.length}</strong></td>`;
+          } else if (col === "quantity" || col === "rate" || col === "amount") {
+            // Sum for numeric columns
+            const sum = data.reduce((total, item) => {
+              const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
+              return total + value;
+            }, 0);
+            return `<td><strong>${sum.toFixed(2)}</strong></td>`;
+          } else {
+            return `<td></td>`;
+          }
+        })
+        .join("")}`;
+      const totalRow = `<tr class="table-total-row">${totalCells}</tr>`;
 
       const tableHtml = `
         <html>
@@ -1049,6 +1106,7 @@ const KrishiRegistration = () => {
               </thead>
               <tbody>
                 ${rows}
+                ${totalRow}
               </tbody>
             </table>
           </body>
@@ -1767,11 +1825,11 @@ const handleDelete = async (item) => {
 
           <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
-              <h1 className="page-title small-fonts">{translations.pageTitle}</h1>
+              <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Bulk Upload Section */}
               <Row className="mb-3">
-                <Col xs={12} md={6} lg={12}>
+                <Col sm={12} md={6} lg={6}>
                   <Form.Group controlId="excelFile">
                     <Form.Label className="small-fonts fw-bold">
                       {translations.bulkUpload}
@@ -3327,8 +3385,134 @@ const handleDelete = async (item) => {
                             </tr>
                           ))}
                       </tbody>
+                      <tfoot>
+                        <tr className="table-total-row">
+                          <td><strong>कुल</strong></td>
+                          {selectedColumns.includes("center_name") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.center_name) set.add(item.center_name);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("vidhan_sabha_name") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.vidhan_sabha_name) set.add(item.vidhan_sabha_name);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("vikas_khand_name") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.vikas_khand_name) set.add(item.vikas_khand_name);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("scheme_name") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.scheme_name) set.add(item.scheme_name);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("supplied_item_name") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.supplied_item_name) set.add(item.supplied_item_name);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("farmer_name") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("father_name") && <td></td>}
+                          {selectedColumns.includes("category") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.category) set.add(item.category);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("address") && <td></td>}
+                          {selectedColumns.includes("mobile_number") && <td></td>}
+                          {selectedColumns.includes("aadhaar_number") && <td></td>}
+                          {selectedColumns.includes("bank_account_number") && <td></td>}
+                          {selectedColumns.includes("ifsc_code") && <td></td>}
+                          {selectedColumns.includes("unit") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.unit) set.add(item.unit);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("quantity") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((sum, item) => {
+                                  const qty = parseFloat(item.quantity) || 0;
+                                  return sum + qty;
+                                }, 0)}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("rate") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((sum, item) => {
+                                  const rate = parseFloat(item.rate) || 0;
+                                  return sum + rate;
+                                }, 0)}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("amount") && (
+                            <td>
+                              <strong>
+                                {beneficiaries.reduce((sum, item) => {
+                                  const amount = parseFloat(item.amount) || 0;
+                                  return sum + amount;
+                                }, 0)}
+                              </strong>
+                            </td>
+                          )}
+                          <td></td>
+                        </tr>
+                      </tfoot>
                     </Table>
-
+                    
                     {/* Pagination controls */}
                     {beneficiaries.length > itemsPerPage && (
                       <div className="mt-3">

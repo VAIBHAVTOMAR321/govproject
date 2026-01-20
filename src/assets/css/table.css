@@ -166,7 +166,22 @@
   font-weight: 500 !important;
 }
 
+/* Total row styling */
+.table-total-row {
+background-color: #e3f2fd !important;
+font-weight: 400 !important;
+font-size: 12px !important;
+}
 
+.table-total-row td {
+border-top: 2px solid #000000 !important;
+border-bottom: 2px solid #000000 !important;
+}
+
+.small-fonts .table-total-row td {
+font-size: 4px !important;
+padding: 6px 6px !important;
+}
 
 .small-fonts .page-title {
   font-size: 1.1rem !important;
