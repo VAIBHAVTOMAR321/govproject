@@ -70,7 +70,7 @@ export default function Login() {
         if (isDemandLogin) {
           navigate("/DemandGenerate", { replace: true });
         } else {
-          navigate("/MainDashboard", { replace: true });
+          navigate("/Dashboard", { replace: true });
         }
       }, 1500); // 1.5 second delay
 

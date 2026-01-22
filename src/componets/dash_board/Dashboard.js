@@ -1,60 +1,120 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Container, Spinner, Alert, Row, Col, Form, Button, Pagination } from "react-bootstrap";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal, Dropdown, ButtonGroup } from "react-bootstrap";
+import Select from "react-select";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
+import { Bar, Pie, Doughnut } from 'react-chartjs-2';
+import html2pdf from 'html2pdf.js';
 import * as XLSX from 'xlsx';
-import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
 import "../../assets/css/dashboard.css";
-import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
+import { FaClipboardList, FaRupeeSign, FaHandHoldingUsd, FaChartLine, FaCalendarAlt, FaFilter, FaChartBar, FaChartPie, FaFilePdf, FaFileExcel, FaDownload, FaEye } from 'react-icons/fa';
+
+// Register ChartJS components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement);
 
 // Hindi translations
 const translations = {
-  dashboard: "डैशबोर्ड",
-  billingItems: "बिलिंग आइटम्स",
-  filters: "फिल्टर",
-  clearAllFilters: "सभी फिल्टर हटाएं",
-  centerName: "केंद्र का नाम",
-  component: "घटक",
-  investmentName: "निवेश का नाम",
-  unit: "इकाई",
-  sourceOfReceipt: "प्राप्ति का स्रोत",
+  home: "होम",
+  welcomeMessage: "DHO कोटद्वार बिलिंग प्रणाली में आपका स्वागत है",
+  selectScheme: "योजना चुनें",
+  selectInvestment: "उपनिवेश चुनें",
+  allSchemes: "सभी योजनाएं",
+  allInvestments: "सभी उपनिवेश",
   allocatedQuantity: "आवंटित मात्रा",
-  rate: "दर",
-  amount: "राशि",
-  sno: "क्र.सं.",
-  id: "आईडी",
+  farmerShareAmount: "किसान की हिस्सेदारी की राशि",
+  subsidyAmount: "सब्सिडी की राशि",
+  totalAmount: "कुल राशि",
   loading: "लोड हो रहा है...",
-  noItemsFound: "कोई बिलिंग आइटम नहीं मिला।",
-  noMatchingItems: "चयनित फिल्टर से मेल खाने वाली कोई आइटम नहीं मिली।",
-  showingItems: "दिखा रहे हैं",
-  of: "की",
-  items: "आइटम्स",
-  page: "पृष्ठ",
-  previous: "पिछला",
-  next: "अगला",
-  allCenters: "सभी केंद्र",
-  allComponents: "सभी घटक",
-  allInvestments: "सभी निवेश",
-  allUnits: "सभी इकाइयां",
-  allSources: "सभी स्रोत",
-  allSchemes: "सभी योजनाएं", // Added for scheme_name
-  schemeName: "योजना का नाम", // Added for scheme_name
-  selectSourceFirst: "पहले स्रोत चुनें",
-  selectCenterFirst: "पहले केंद्र चुनें",
-  selectSchemeFirst: "पहले योजना चुनें", // Added for scheme_name
-  selectComponentFirst: "पहले घटक चुनें",
-  selectInvestmentFirst: "पहले निवेश चुनें",
-  selectUnitFirst: "पहले इकाई चुनें", // Added for scheme_name
-  fetchError: "डेटा लाने में विफल। कृपया बाद में पुन: प्रयास करें।",
   networkError: "नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।",
   serverError: "सर्वर त्रुटि। कृपया बाद में पुन: प्रयास करें।",
   dataError: "डेटा प्रोसेस करने में त्रुटि।",
   retry: "पुनः प्रयास करें",
-  // New translations for dynamic heading
-  filterSeparator: " > ",
-  itemsPerPage: "प्रति पृष्ठ आइटम:",
-  selectColumns: "कॉलम चुनें"
+  overviewTitle: "समग्र डेटा अवलोकन",
+  filterByScheme: "योजना के अनुसार फ़िल्टर करें (एक या अधिक चुनें)",
+  filterByInvestment: "उपनिवेश के अनुसार फ़िल्टर करें (एक या अधिक चुनें)",
+  totalRecords: "कुल रिकॉर्ड",
+  selectSchemeFirst: "पहले योजना चुनें",
+  selectPlaceholder: "चुनें...",
+  noOptions: "कोई विकल्प उपलब्ध नहीं",
+  startDate: "प्रारंभ तिथि",
+  endDate: "समाप्ति तिथि",
+  applyFilter: "फ़िल्टर लागू करें",
+  clearFilter: "फ़िल्टर हटाएं",
+  dateFilter: "तिथि के अनुसार फ़िल्टर",
+  dateRangeSelected: "चयनित तिथि सीमा",
+  graphsByScheme: "योजना के अनुसार ग्राफ़",
+  graphsByInvestment: "उपनिवेश के अनुसार ग्राफ़",
+  combinedGraph: "संयुक्त ग्राफ़",
+  amountComparison: "राशि तुलना",
+  schemeWiseDistribution: "योजना-वार वितरण",
+  investmentWiseDistribution: "उपनिवेश-वार वितरण"
+};
+
+// Custom styles for react-select
+const customSelectStyles = {
+  control: (provided, state) => ({
+    ...provided,
+    borderColor: state.isFocused ? '#194e8b' : '#e0e0e0',
+    borderWidth: '1px',
+    borderRadius: '6px',
+    padding: '2px',
+    minHeight: '36px',
+    boxShadow: state.isFocused ? '0 0 0 2px rgba(25, 78, 139, 0.15)' : 'none',
+    '&:hover': {
+      borderColor: '#194e8b'
+    }
+  }),
+  valueContainer: (provided) => ({
+    ...provided,
+    padding: '0 6px'
+  }),
+  multiValue: (provided) => ({
+    ...provided,
+    backgroundColor: '#194e8b',
+    borderRadius: '3px',
+    margin: '2px'
+  }),
+  multiValueLabel: (provided) => ({
+    ...provided,
+    color: '#ffffff',
+    fontSize: '0.75rem',
+    padding: '1px 4px'
+  }),
+  multiValueRemove: (provided) => ({
+    ...provided,
+    color: '#ffffff',
+    padding: '0 2px',
+    '&:hover': {
+      backgroundColor: '#0d3a6b',
+      color: '#ffffff'
+    }
+  }),
+  placeholder: (provided) => ({
+    ...provided,
+    color: '#6c757d',
+    fontSize: '0.8rem'
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected ? '#194e8b' : state.isFocused ? '#e8f0f8' : '#ffffff',
+    color: state.isSelected ? '#ffffff' : '#333333',
+    fontSize: '0.8rem',
+    padding: '8px 12px',
+    '&:active': {
+      backgroundColor: '#194e8b'
+    }
+  }),
+  menu: (provided) => ({
+    ...provided,
+    zIndex: 9999,
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+  }),
+  menuPortal: (provided) => ({
+    ...provided,
+    zIndex: 9999
+  })
 };
 
 const Dashboard = () => {
@@ -64,142 +124,527 @@ const Dashboard = () => {
   const [billingData, setBillingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [, setErrorType] = useState("");
   
-  // Filter states - Center is now first filter
-  const [centerFilter, setCenterFilter] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
-  const [schemeFilter, setSchemeFilter] = useState(""); // Moved up before component
-  const [componentFilter, setComponentFilter] = useState("");
-  const [investmentFilter, setInvestmentFilter] = useState("");
-  const [unitFilter, setUnitFilter] = useState("");
+  // Date filter states
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [appliedStartDate, setAppliedStartDate] = useState("");
+  const [appliedEndDate, setAppliedEndDate] = useState("");
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
   
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50); // Changed from 30 to 50 to match the first component
+  // Filter states - now arrays for multiple selection
+  const [selectedSchemes, setSelectedSchemes] = useState([]);
+  const [selectedInvestments, setSelectedInvestments] = useState([]);
 
-  // Column selection states
-  const availableColumns = [
-    { key: 'sno', label: translations.sno },
-    { key: 'id', label: translations.id },
-    { key: 'centerName', label: translations.centerName },
-    { key: 'component', label: translations.component },
-    { key: 'investmentName', label: translations.investmentName },
-    { key: 'unit', label: translations.unit },
-    { key: 'allocatedQuantity', label: translations.allocatedQuantity },
-    { key: 'rate', label: translations.rate },
-    { key: 'amount', label: translations.amount },
-    { key: 'sourceOfReceipt', label: translations.sourceOfReceipt },
-    { key: 'schemeName', label: translations.schemeName }
-  ];
-  const [selectedColumns, setSelectedColumns] = useState(availableColumns.map(col => col.key));
-
-  // Extract unique values for each filter with cascading logic
-  const uniqueCenters = useMemo(() => {
-    if (!billingData.length) return [];
-    const centers = [...new Set(billingData.map(item => item.center_name))];
-    return centers.filter(Boolean).sort();
-  }, [billingData]);
-
-  const uniqueSources = useMemo(() => {
-    if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) {
-      filteredData = filteredData.filter(item => item.center_name === centerFilter);
+  // Filter data by date range first
+  const dateFilteredData = useMemo(() => {
+    if (!isDateFilterApplied || (!appliedStartDate && !appliedEndDate)) {
+      return billingData;
     }
-    const sources = [...new Set(filteredData.map(item => item.source_of_receipt))];
-    return sources.filter(Boolean).sort();
-  }, [billingData, centerFilter]);
-
-  // Updated to only depend on center and source filters
-  const uniqueSchemes = useMemo(() => {
-    if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    const schemes = [...new Set(filteredData.map(item => item.scheme_name))];
-    return schemes.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter]);
-
-  // Updated to also depend on schemeFilter
-  const uniqueComponents = useMemo(() => {
-    if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    if (schemeFilter) filteredData = filteredData.filter(item => item.scheme_name === schemeFilter);
-    const components = [...new Set(filteredData.map(item => item.component))];
-    return components.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter, schemeFilter]);
-
-  // Updated to also depend on schemeFilter
-  const uniqueInvestments = useMemo(() => {
-    if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    if (schemeFilter) filteredData = filteredData.filter(item => item.scheme_name === schemeFilter);
-    if (componentFilter) filteredData = filteredData.filter(item => item.component === componentFilter);
-    const investments = [...new Set(filteredData.map(item => item.investment_name))];
-    return investments.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter, schemeFilter, componentFilter]);
-
-  // Updated to also depend on schemeFilter
-  const uniqueUnits = useMemo(() => {
-    if (!billingData.length) return [];
-    let filteredData = billingData;
-    if (centerFilter) filteredData = filteredData.filter(item => item.center_name === centerFilter);
-    if (sourceFilter) filteredData = filteredData.filter(item => item.source_of_receipt === sourceFilter);
-    if (schemeFilter) filteredData = filteredData.filter(item => item.scheme_name === schemeFilter);
-    if (componentFilter) filteredData = filteredData.filter(item => item.component === componentFilter);
-    if (investmentFilter) filteredData = filteredData.filter(item => item.investment_name === investmentFilter);
-    const units = [...new Set(filteredData.map(item => item.unit))];
-    return units.filter(Boolean).sort();
-  }, [billingData, centerFilter, sourceFilter, schemeFilter, componentFilter, investmentFilter]);
-
-  // Filter data based on all selected filters
-  const filteredData = useMemo(() => {
+    
     return billingData.filter(item => {
-      return (
-        (!centerFilter || item.center_name === centerFilter) &&
-        (!sourceFilter || item.source_of_receipt === sourceFilter) &&
-        (!schemeFilter || item.scheme_name === schemeFilter) && // Moved up before component
-        (!componentFilter || item.component === componentFilter) &&
-        (!investmentFilter || item.investment_name === investmentFilter) &&
-        (!unitFilter || item.unit === unitFilter)
-      );
+      const itemDate = new Date(item.bill_date);
+      const start = appliedStartDate ? new Date(appliedStartDate) : null;
+      const end = appliedEndDate ? new Date(appliedEndDate) : null;
+      
+      if (start && end) {
+        return itemDate >= start && itemDate <= end;
+      } else if (start) {
+        return itemDate >= start;
+      } else if (end) {
+        return itemDate <= end;
+      }
+      return true;
     });
-  }, [billingData, centerFilter, sourceFilter, schemeFilter, componentFilter, investmentFilter, unitFilter]);
+  }, [billingData, appliedStartDate, appliedEndDate, isDateFilterApplied]);
 
-  // Calculate paginated data based on filtered data
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const paginatedBillingData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  // Dynamic heading for table section
-  const dynamicTableHeading = useMemo(() => {
-    let heading = translations.billingItems;
-    const appliedFilters = [];
-
-    if (centerFilter) appliedFilters.push(`${translations.centerName}: ${centerFilter}`);
-    if (sourceFilter) appliedFilters.push(`${translations.sourceOfReceipt}: ${sourceFilter}`);
-    if (schemeFilter) appliedFilters.push(`${translations.schemeName}: ${schemeFilter}`); // Moved up before component
-    if (componentFilter) appliedFilters.push(`${translations.component}: ${componentFilter}`);
-    if (investmentFilter) appliedFilters.push(`${translations.investmentName}: ${investmentFilter}`);
-    if (unitFilter) appliedFilters.push(`${translations.unit}: ${unitFilter}`);
+  // Extract unique schemes as options for react-select (from date filtered data)
+  const schemeOptions = useMemo(() => {
+    if (!dateFilteredData.length) return [];
+    let filteredData = dateFilteredData;
     
-    if (appliedFilters.length > 0) {
-      heading += `: ` + appliedFilters.join(` ${translations.filterSeparator} `);
+    // Filter by selected investments if any are selected
+    if (selectedInvestments.length > 0) {
+      const investmentValues = selectedInvestments.map(i => i.value);
+      filteredData = filteredData.filter(item => investmentValues.includes(item.sub_investment_name));
     }
     
-    return heading;
-  }, [centerFilter, sourceFilter, schemeFilter, componentFilter, investmentFilter, unitFilter, translations]);
+    const schemes = [...new Set(filteredData.map(item => item.scheme_name))];
+    return schemes.filter(Boolean).sort().map(scheme => ({
+      value: scheme,
+      label: scheme
+    }));
+  }, [dateFilteredData, selectedInvestments]);
 
-  // Reset to page 1 when any filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [centerFilter, sourceFilter, schemeFilter, componentFilter, investmentFilter, unitFilter]);
+  // Extract unique investments as options for react-select (from date filtered data)
+  const investmentOptions = useMemo(() => {
+    if (!dateFilteredData.length) return [];
+    let filteredData = dateFilteredData;
+    
+    // Filter by selected schemes if any are selected
+    if (selectedSchemes.length > 0) {
+      const schemeValues = selectedSchemes.map(s => s.value);
+      filteredData = filteredData.filter(item => schemeValues.includes(item.scheme_name));
+    }
+    
+    const investments = [...new Set(filteredData.map(item => item.sub_investment_name))];
+    return investments.filter(Boolean).sort().map(investment => ({
+      value: investment,
+      label: investment
+    }));
+  }, [dateFilteredData, selectedSchemes]);
+
+  // Filter data based on multiple selections (schemes and investments)
+  const filteredData = useMemo(() => {
+    return dateFilteredData.filter(item => {
+      const schemeMatch = selectedSchemes.length === 0 || 
+        selectedSchemes.some(s => s.value === item.scheme_name);
+      const investmentMatch = selectedInvestments.length === 0 || 
+        selectedInvestments.some(i => i.value === item.sub_investment_name);
+      
+      return schemeMatch && investmentMatch;
+    });
+  }, [dateFilteredData, selectedSchemes, selectedInvestments]);
+
+  // Calculate aggregated statistics
+  const aggregatedStats = useMemo(() => {
+    const stats = {
+      totalRecords: filteredData.length,
+      allocatedQuantity: 0,
+      farmerShareAmount: 0,
+      subsidyAmount: 0,
+      totalAmount: 0
+    };
+
+    filteredData.forEach(item => {
+      stats.allocatedQuantity += parseFloat(item.allocated_quantity) || 0;
+      stats.farmerShareAmount += parseFloat(item.amount_of_farmer_share) || 0;
+      stats.subsidyAmount += parseFloat(item.amount_of_subsidy) || 0;
+      stats.totalAmount += parseFloat(item.total_amount) || 0;
+    });
+
+    return stats;
+  }, [filteredData]);
+
+  // Format number to Indian currency format
+  const formatCurrency = (num) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(num);
+  };
+
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat('en-IN').format(num);
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('hi-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Chart data for scheme-wise analysis
+  const schemeChartData = useMemo(() => {
+    const schemeData = {};
+    filteredData.forEach(item => {
+      const scheme = item.scheme_name || 'अन्य';
+      if (!schemeData[scheme]) {
+        schemeData[scheme] = {
+          farmerShare: 0,
+          subsidy: 0,
+          total: 0,
+          quantity: 0
+        };
+      }
+      schemeData[scheme].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      schemeData[scheme].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      schemeData[scheme].total += parseFloat(item.total_amount) || 0;
+      schemeData[scheme].quantity += parseFloat(item.allocated_quantity) || 0;
+    });
+
+    const labels = Object.keys(schemeData);
+    const colors = [
+      'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)', 'rgba(255, 193, 7, 0.8)',
+      'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)', 'rgba(108, 117, 125, 0.8)',
+      'rgba(102, 16, 242, 0.8)', 'rgba(253, 126, 20, 0.8)', 'rgba(32, 201, 151, 0.8)'
+    ];
+
+    return {
+      bar: {
+        labels,
+        datasets: [
+          {
+            label: translations.farmerShareAmount,
+            data: labels.map(l => schemeData[l].farmerShare),
+            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1
+          },
+          {
+            label: translations.subsidyAmount,
+            data: labels.map(l => schemeData[l].subsidy),
+            backgroundColor: 'rgba(23, 162, 184, 0.7)',
+            borderColor: 'rgba(23, 162, 184, 1)',
+            borderWidth: 1
+          }
+        ]
+      },
+      pie: {
+        labels,
+        datasets: [{
+          data: labels.map(l => schemeData[l].total),
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: colors.slice(0, labels.length).map(c => c.replace('0.8', '1')),
+          borderWidth: 2
+        }]
+      },
+      rawData: schemeData
+    };
+  }, [filteredData]);
+
+  // Chart data for investment-wise analysis (उपनिवेश)
+  const investmentChartData = useMemo(() => {
+    const investmentData = {};
+    filteredData.forEach(item => {
+      const investment = item.sub_investment_name || 'अन्य';
+      if (!investmentData[investment]) {
+        investmentData[investment] = {
+          farmerShare: 0,
+          subsidy: 0,
+          total: 0,
+          quantity: 0
+        };
+      }
+      investmentData[investment].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      investmentData[investment].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      investmentData[investment].total += parseFloat(item.total_amount) || 0;
+      investmentData[investment].quantity += parseFloat(item.allocated_quantity) || 0;
+    });
+
+    // Sort by total amount descending for better visibility
+    const sortedEntries = Object.entries(investmentData)
+      .sort((a, b) => b[1].total - a[1].total);
+    
+    const labels = sortedEntries.map(([key]) => key);
+    const truncatedLabels = labels.map(l => l.length > 20 ? l.substring(0, 18) + '...' : l);
+    
+    // Generate more colors for many items
+    const baseColors = [
+      'rgba(40, 167, 69, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(253, 126, 20, 0.8)',
+      'rgba(102, 16, 242, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(32, 201, 151, 0.8)',
+      'rgba(255, 193, 7, 0.8)', 'rgba(23, 162, 184, 0.8)', 'rgba(108, 117, 125, 0.8)',
+      'rgba(0, 123, 255, 0.8)', 'rgba(111, 66, 193, 0.8)', 'rgba(253, 51, 114, 0.8)',
+      'rgba(0, 200, 150, 0.8)', 'rgba(255, 120, 100, 0.8)', 'rgba(80, 180, 220, 0.8)',
+      'rgba(180, 100, 200, 0.8)', 'rgba(100, 200, 100, 0.8)', 'rgba(255, 160, 50, 0.8)'
+    ];
+    const colors = labels.map((_, i) => baseColors[i % baseColors.length]);
+
+    return {
+      bar: {
+        labels: truncatedLabels,
+        fullLabels: labels, // Keep full labels for tooltips
+        datasets: [
+          {
+            label: translations.farmerShareAmount,
+            data: sortedEntries.map(([, val]) => val.farmerShare),
+            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1
+          },
+          {
+            label: translations.subsidyAmount,
+            data: sortedEntries.map(([, val]) => val.subsidy),
+            backgroundColor: 'rgba(23, 162, 184, 0.7)',
+            borderColor: 'rgba(23, 162, 184, 1)',
+            borderWidth: 1
+          }
+        ]
+      },
+      doughnut: {
+        labels: truncatedLabels,
+        fullLabels: labels,
+        datasets: [{
+          data: sortedEntries.map(([, val]) => val.total),
+          backgroundColor: colors,
+          borderColor: colors.map(c => c.replace('0.8', '1')),
+          borderWidth: 1
+        }]
+      },
+      rawData: investmentData,
+      itemCount: labels.length
+    };
+  }, [filteredData]);
+
+  // Combined chart data (Scheme + Investment breakdown)
+  const combinedChartData = useMemo(() => {
+    const combinedData = {};
+    filteredData.forEach(item => {
+      const key = `${item.scheme_name || 'अन्य'} - ${item.sub_investment_name || 'अन्य'}`;
+      if (!combinedData[key]) {
+        combinedData[key] = { total: 0, farmerShare: 0, subsidy: 0 };
+      }
+      combinedData[key].total += parseFloat(item.total_amount) || 0;
+      combinedData[key].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      combinedData[key].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+    });
+
+    // Sort by total and take top 10 for readability
+    const sortedEntries = Object.entries(combinedData)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 10);
+
+    const labels = sortedEntries.map(([key]) => key.length > 25 ? key.substring(0, 25) + '...' : key);
+    
+    return {
+      labels,
+      datasets: [
+        {
+          label: translations.farmerShareAmount,
+          data: sortedEntries.map(([, val]) => val.farmerShare),
+          backgroundColor: 'rgba(255, 193, 7, 0.7)',
+          borderColor: 'rgba(255, 193, 7, 1)',
+          borderWidth: 1
+        },
+        {
+          label: translations.subsidyAmount,
+          data: sortedEntries.map(([, val]) => val.subsidy),
+          backgroundColor: 'rgba(23, 162, 184, 0.7)',
+          borderColor: 'rgba(23, 162, 184, 1)',
+          borderWidth: 1
+        }
+      ]
+    };
+  }, [filteredData]);
+
+  // Chart options
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          font: { size: 11 },
+          padding: 10
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: {
+          font: { size: 10 },
+          maxRotation: 45,
+          minRotation: 45
+        }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          font: { size: 10 },
+          callback: (value) => {
+            if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+            if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+            return `₹${value}`;
+          }
+        }
+      }
+    }
+  };
+
+  const pieChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          font: { size: 9 },
+          padding: 4,
+          boxWidth: 10,
+          generateLabels: (chart) => {
+            const data = chart.data;
+            if (data.labels.length && data.datasets.length) {
+              return data.labels.map((label, i) => {
+                const value = data.datasets[0].data[i];
+                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return {
+                  text: `${label} (${percentage}%)`,
+                  fillStyle: data.datasets[0].backgroundColor[i],
+                  strokeStyle: data.datasets[0].borderColor[i],
+                  lineWidth: 1,
+                  hidden: false,
+                  index: i
+                };
+              });
+            }
+            return [];
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          title: (context) => {
+            // Show full label in tooltip
+            const chart = context[0].chart;
+            const fullLabels = chart.data.fullLabels || chart.data.labels;
+            return fullLabels[context[0].dataIndex];
+          },
+          label: (context) => {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.raw / total) * 100).toFixed(1);
+            return `राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
+          }
+        }
+      }
+    }
+  };
+
+  // Special options for doughnut with many items - show top 15 only
+  const doughnutChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '50%',
+    plugins: {
+      legend: {
+        display: false // Hide legend, we'll show a custom table below
+      },
+      tooltip: {
+        callbacks: {
+          title: (context) => {
+            const chart = context[0].chart;
+            const fullLabels = chart.data.fullLabels || chart.data.labels;
+            return fullLabels[context[0].dataIndex];
+          },
+          label: (context) => {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.raw / total) * 100).toFixed(1);
+            return `कुल राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
+          }
+        }
+      }
+    }
+  };
+
+  const horizontalBarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          font: { size: 11 },
+          padding: 10
+        }
+      },
+      tooltip: {
+        callbacks: {
+          title: (context) => {
+            const chart = context[0].chart;
+            const fullLabels = chart.data.fullLabels || chart.data.labels;
+            return fullLabels[context[0].dataIndex];
+          },
+          label: (context) => {
+            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: {
+          font: { size: 10 },
+          callback: (value) => {
+            if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+            if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+            return `₹${value}`;
+          }
+        }
+      },
+      y: {
+        ticks: {
+          font: { size: 8 }
+        }
+      }
+    }
+  };
+
+  // Bar chart options specifically for उपनिवेश (handles many items)
+  const investmentBarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y', // Horizontal bars for better readability with many items
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          font: { size: 11, weight: 'bold' },
+          padding: 15
+        }
+      },
+      tooltip: {
+        callbacks: {
+          title: (context) => {
+            const chart = context[0].chart;
+            const fullLabels = chart.data.fullLabels || chart.data.labels;
+            return fullLabels[context[0].dataIndex];
+          },
+          label: (context) => {
+            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        grid: {
+          display: true,
+          color: 'rgba(0,0,0,0.05)'
+        },
+        ticks: {
+          font: { size: 10 },
+          callback: (value) => {
+            if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+            if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+            return `₹${value}`;
+          }
+        }
+      },
+      y: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          font: { size: 10 },
+          autoSkip: false,
+          padding: 5
+        }
+      }
+    },
+    layout: {
+      padding: {
+        left: 10,
+        right: 20
+      }
+    }
+  };
 
   // Check device width
   useEffect(() => {
@@ -220,7 +665,6 @@ const Dashboard = () => {
       try {
         setLoading(true);
         setError(null);
-        setErrorType("");
         
         const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/");
         
@@ -231,15 +675,11 @@ const Dashboard = () => {
         const data = await response.json();
         setBillingData(data);
       } catch (err) {
-        
         if (err.name === 'TypeError' && err.message.includes('fetch')) {
-          setErrorType("network");
           setError(translations.networkError);
         } else if (err.message.includes('HTTP error')) {
-          setErrorType("server");
           setError(translations.serverError);
         } else {
-          setErrorType("data");
           setError(translations.dataError);
         }
       } finally {
@@ -250,506 +690,940 @@ const Dashboard = () => {
     fetchBillingData();
   }, []);
 
+  // Handle apply date filter
+  const handleApplyDateFilter = () => {
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    setIsDateFilterApplied(true);
+    // Reset scheme and investment selections when date filter changes
+    setSelectedSchemes([]);
+    setSelectedInvestments([]);
+  };
+
+  // Handle clear date filter
+  const handleClearDateFilter = () => {
+    setStartDate("");
+    setEndDate("");
+    setAppliedStartDate("");
+    setAppliedEndDate("");
+    setIsDateFilterApplied(false);
+    setSelectedSchemes([]);
+    setSelectedInvestments([]);
+  };
+
+  // Handle scheme filter change
+  const handleSchemeChange = (selected) => {
+    setSelectedSchemes(selected || []);
+  };
+
+  // Handle investment filter change
+  const handleInvestmentChange = (selected) => {
+    setSelectedInvestments(selected || []);
+  };
+
   // Function to retry fetching data
   const retryFetch = () => {
     window.location.reload();
   };
 
-  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
-  
-  // Convert table data to Excel format and download
-  const downloadExcel = (data, filename) => {
-    try {
-      const excelData = data.map((item, index) => {
-        const row = {};
-        selectedColumns.forEach(col => {
-          if (col === 'sno') row[translations.sno] = index + 1;
-          else if (col === 'id') row[translations.id] = item.id;
-          else if (col === 'centerName') row[translations.centerName] = item.center_name;
-          else if (col === 'component') row[translations.component] = item.component;
-          else if (col === 'investmentName') row[translations.investmentName] = item.investment_name;
-          else if (col === 'unit') row[translations.unit] = item.unit;
-          else if (col === 'allocatedQuantity') row[translations.allocatedQuantity] = item.allocated_quantity;
-          else if (col === 'rate') row[translations.rate] = item.rate;
-          else if (col === 'amount') row[translations.amount] = calculateAmount(item.allocated_quantity, item.rate);
-          else if (col === 'sourceOfReceipt') row[translations.sourceOfReceipt] = item.source_of_receipt;
-          else if (col === 'schemeName') row[translations.schemeName] = item.scheme_name;
-        });
-        return row;
+  // State for PDF preview modal
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
+
+  // Get filter status text for report
+  const getFilterStatusText = () => {
+    const filters = [];
+    if (isDateFilterApplied && (appliedStartDate || appliedEndDate)) {
+      filters.push(`तिथि: ${formatDate(appliedStartDate) || 'N/A'} से ${formatDate(appliedEndDate) || 'N/A'}`);
+    }
+    if (selectedSchemes.length > 0) {
+      filters.push(`योजना: ${selectedSchemes.map(s => s.label).join(', ')}`);
+    }
+    if (selectedInvestments.length > 0) {
+      filters.push(`उपनिवेश: ${selectedInvestments.map(i => i.label).join(', ')}`);
+    }
+    return filters.length > 0 ? filters.join(' | ') : 'सभी डेटा (कोई फ़िल्टर नहीं)';
+  };
+
+  // Prepare report data based on filtered data
+  const getReportData = () => {
+    // Group by scheme and investment
+    const schemeWise = {};
+    const investmentWise = {};
+    
+    filteredData.forEach(item => {
+      // Scheme-wise aggregation
+      const scheme = item.scheme_name || 'अन्य';
+      if (!schemeWise[scheme]) {
+        schemeWise[scheme] = { quantity: 0, farmerShare: 0, subsidy: 0, total: 0, count: 0 };
+      }
+      schemeWise[scheme].quantity += parseFloat(item.allocated_quantity) || 0;
+      schemeWise[scheme].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      schemeWise[scheme].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      schemeWise[scheme].total += parseFloat(item.total_amount) || 0;
+      schemeWise[scheme].count += 1;
+
+      // Investment-wise aggregation
+      const investment = item.sub_investment_name || 'अन्य';
+      if (!investmentWise[investment]) {
+        investmentWise[investment] = { quantity: 0, farmerShare: 0, subsidy: 0, total: 0, count: 0 };
+      }
+      investmentWise[investment].quantity += parseFloat(item.allocated_quantity) || 0;
+      investmentWise[investment].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      investmentWise[investment].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      investmentWise[investment].total += parseFloat(item.total_amount) || 0;
+      investmentWise[investment].count += 1;
+    });
+
+    return { schemeWise, investmentWise };
+  };
+
+  // Generate PDF Report using html2pdf for proper Hindi support
+  const generatePDF = (action = 'download') => {
+    const { schemeWise, investmentWise } = getReportData();
+    const currentDate = new Date().toLocaleDateString('hi-IN');
+    
+    // Create HTML content for PDF
+    const pdfContent = `
+      <div style="font-family: 'Noto Sans Devanagari', 'Mangal', Arial, sans-serif; padding: 20px; color: #333;">
+        <!-- Header -->
+        <div style="text-align: center; border-bottom: 3px solid #194e8b; padding-bottom: 15px; margin-bottom: 20px;">
+          <h1 style="color: #194e8b; font-size: 24px; margin: 0;">DHO कोटद्वार बिलिंग रिपोर्ट</h1>
+          <p style="color: #666; font-size: 12px; margin: 5px 0 0 0;">रिपोर्ट तिथि: ${currentDate}</p>
+          <p style="color: #888; font-size: 11px; margin: 3px 0 0 0;">फ़िल्टर: ${getFilterStatusText()}</p>
+        </div>
+
+        <!-- Summary Section -->
+        <div style="margin-bottom: 25px;">
+          <h2 style="color: #194e8b; font-size: 16px; border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-bottom: 10px;">सारांश</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5);">
+                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">कुल रिकॉर्ड</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">आवंटित मात्रा</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">किसान हिस्सेदारी</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">सब्सिडी</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">कुल राशि</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background: #f8f9fa;">
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">${aggregatedStats.totalRecords}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${aggregatedStats.allocatedQuantity.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #28a745;">₹${aggregatedStats.farmerShareAmount.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #6610f2;">₹${aggregatedStats.subsidyAmount.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #194e8b;">₹${aggregatedStats.totalAmount.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Scheme-wise Section -->
+        <div style="margin-bottom: 25px;">
+          <h2 style="color: #28a745; font-size: 16px; border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-bottom: 10px;">योजना-वार विवरण</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #28a745, #34ce57);">
+                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: left;">योजना</th>
+                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">रिकॉर्ड</th>
+                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">मात्रा</th>
+                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">किसान हिस्सेदारी</th>
+                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">सब्सिडी</th>
+                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">कुल राशि</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(schemeWise).map(([name, data], idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">${name}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${data.count}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${data.quantity.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">₹${data.farmerShare.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">₹${data.subsidy.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">₹${data.total.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Investment-wise Section -->
+        <div style="margin-bottom: 25px;">
+          <h2 style="color: #6610f2; font-size: 16px; border-bottom: 2px solid #6610f2; padding-bottom: 5px; margin-bottom: 10px;">उपनिवेश-वार विवरण</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #6610f2, #8540f5);">
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">उपनिवेश</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">रिकॉर्ड</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">मात्रा</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">किसान हिस्सेदारी</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">सब्सिडी</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">कुल राशि</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(investmentWise)
+                .sort((a, b) => b[1].total - a[1].total)
+                .map(([name, data], idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${name}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${data.count}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${data.quantity.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">₹${data.farmerShare.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">₹${data.subsidy.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">₹${data.total.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px; color: #888; font-size: 9px;">
+          <p>DHO कोटद्वार बिलिंग प्रणाली | रिपोर्ट जनरेट तिथि: ${currentDate}</p>
+        </div>
+      </div>
+    `;
+
+    // Create a temporary element
+    const element = document.createElement('div');
+    element.innerHTML = pdfContent;
+    document.body.appendChild(element);
+
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true,
+        letterRendering: true
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    if (action === 'download') {
+      html2pdf().set(opt).from(element).save().then(() => {
+        document.body.removeChild(element);
       });
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(wb, ws, "BillingItems");
-      XLSX.writeFile(wb, `${filename}.xlsx`);
-    } catch (e) {
-    }
-  };
-  
-  // Convert table data to PDF format and download
-  const downloadPdf = (data, filename) => {
-    try {
-      const headers = selectedColumns.map(col => {
-        if (col === 'sno') return `<th>${translations.sno}</th>`;
-        else if (col === 'id') return `<th>${translations.id}</th>`;
-        else if (col === 'centerName') return `<th>${translations.centerName}</th>`;
-        else if (col === 'component') return `<th>${translations.component}</th>`;
-        else if (col === 'investmentName') return `<th>${translations.investmentName}</th>`;
-        else if (col === 'unit') return `<th>${translations.unit}</th>`;
-        else if (col === 'allocatedQuantity') return `<th>${translations.allocatedQuantity}</th>`;
-        else if (col === 'rate') return `<th>${translations.rate}</th>`;
-        else if (col === 'amount') return `<th>${translations.amount}</th>`;
-        else if (col === 'sourceOfReceipt') return `<th>${translations.sourceOfReceipt}</th>`;
-        else if (col === 'schemeName') return `<th>${translations.schemeName}</th>`;
-      }).join('');
-
-      const rows = data.map((item, index) => {
-        const cells = selectedColumns.map(col => {
-          if (col === 'sno') return `<td>${index + 1}</td>`;
-          else if (col === 'id') return `<td>${item.id}</td>`;
-          else if (col === 'centerName') return `<td>${item.center_name}</td>`;
-          else if (col === 'component') return `<td>${item.component}</td>`;
-          else if (col === 'investmentName') return `<td>${item.investment_name}</td>`;
-          else if (col === 'unit') return `<td>${item.unit}</td>`;
-          else if (col === 'allocatedQuantity') return `<td>${item.allocated_quantity}</td>`;
-          else if (col === 'rate') return `<td>${item.rate}</td>`;
-          else if (col === 'amount') return `<td>${calculateAmount(item.allocated_quantity, item.rate)}</td>`;
-          else if (col === 'sourceOfReceipt') return `<td>${item.source_of_receipt}</td>`;
-          else if (col === 'schemeName') return `<td>${item.scheme_name}</td>`;
-        }).join('');
-        return `<tr>${cells}</tr>`;
-      }).join('');
-
-      const tableHtml = `
-        <html>
-          <head>
-            <style>
-              table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; font-weight: bold; }
-            </style>
-          </head>
-          <body>
-            <h2>${dynamicTableHeading}</h2>
-            <table>
-              <tr>${headers}</tr>
-              ${rows}
-            </table>
-          </body>
-        </html>
-      `;
-
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(tableHtml);
-      printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
-    } catch (e) {
+    } else {
+      html2pdf().set(opt).from(element).outputPdf('blob').then((pdfBlob) => {
+        document.body.removeChild(element);
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfPreviewUrl(pdfUrl);
+        setShowPdfPreview(true);
+      });
     }
   };
 
-  const handleFilterChange = (filterType, value) => {
-    switch (filterType) {
-      case 'center':
-        setCenterFilter(value);
-        setSourceFilter("");
-        setSchemeFilter("");
-        setComponentFilter("");
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'source':
-        setSourceFilter(value);
-        setSchemeFilter("");
-        setComponentFilter("");
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'scheme': // Added for scheme_name
-        setSchemeFilter(value);
-        setComponentFilter("");
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'component':
-        setComponentFilter(value);
-        setInvestmentFilter("");
-        setUnitFilter("");
-        break;
-      case 'investment':
-        setInvestmentFilter(value);
-        setUnitFilter("");
-        break;
-      case 'unit':
-        setUnitFilter(value);
-        break;
-      default:
-        break;
+  // Generate Excel Report
+  const generateExcel = (action = 'download') => {
+    const { schemeWise, investmentWise } = getReportData();
+    const currentDate = new Date().toLocaleDateString('hi-IN');
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Summary Sheet
+    const summaryData = [
+      ['DHO कोटद्वार बिलिंग रिपोर्ट'],
+      [`रिपोर्ट तिथि: ${currentDate}`],
+      [`फ़िल्टर: ${getFilterStatusText()}`],
+      [],
+      ['सारांश'],
+      ['कुल रिकॉर्ड', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
+      [
+        aggregatedStats.totalRecords,
+        aggregatedStats.allocatedQuantity.toFixed(2),
+        aggregatedStats.farmerShareAmount.toFixed(2),
+        aggregatedStats.subsidyAmount.toFixed(2),
+        aggregatedStats.totalAmount.toFixed(2)
+      ]
+    ];
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+    summaryWs['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'सारांश');
+
+    // Scheme-wise Sheet
+    const schemeHeaders = ['योजना', 'रिकॉर्ड संख्या', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
+    const schemeRows = Object.entries(schemeWise).map(([name, data]) => [
+      name, data.count, data.quantity.toFixed(2), data.farmerShare.toFixed(2), data.subsidy.toFixed(2), data.total.toFixed(2)
+    ]);
+    const schemeWs = XLSX.utils.aoa_to_sheet([schemeHeaders, ...schemeRows]);
+    schemeWs['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, schemeWs, 'योजना-वार');
+
+    // Investment-wise Sheet
+    const investmentHeaders = ['उपनिवेश', 'रिकॉर्ड संख्या', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
+    const investmentRows = Object.entries(investmentWise)
+      .sort((a, b) => b[1].total - a[1].total)
+      .map(([name, data]) => [
+        name, data.count, data.quantity.toFixed(2), data.farmerShare.toFixed(2), data.subsidy.toFixed(2), data.total.toFixed(2)
+      ]);
+    const investmentWs = XLSX.utils.aoa_to_sheet([investmentHeaders, ...investmentRows]);
+    investmentWs['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, investmentWs, 'उपनिवेश-वार');
+
+    // Detailed Data Sheet
+    const detailHeaders = ['क्र.सं.', 'योजना', 'उपनिवेश', 'बिल तिथि', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
+    const detailRows = filteredData.map((item, idx) => [
+      idx + 1,
+      item.scheme_name || '',
+      item.sub_investment_name || '',
+      item.bill_date || '',
+      parseFloat(item.allocated_quantity) || 0,
+      parseFloat(item.amount_of_farmer_share) || 0,
+      parseFloat(item.amount_of_subsidy) || 0,
+      parseFloat(item.total_amount) || 0
+    ]);
+    const detailWs = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
+    detailWs['!cols'] = [{ wch: 8 }, { wch: 25 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, detailWs, 'विस्तृत डेटा');
+
+    if (action === 'download') {
+      XLSX.writeFile(wb, `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`);
+    } else {
+      // For view, download and open
+      XLSX.writeFile(wb, `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`);
+      alert('एक्सेल फ़ाइल डाउनलोड हो गई है। कृपया इसे खोलें।');
     }
   };
-
-  const clearAllFilters = () => {
-    setCenterFilter("");
-    setSourceFilter("");
-    setSchemeFilter("");
-    setComponentFilter("");
-    setInvestmentFilter("");
-    setUnitFilter("");
-  };
-
-  const hasActiveFilters = centerFilter || sourceFilter || schemeFilter || componentFilter || investmentFilter || unitFilter;
-
-  // Function to calculate amount
-  const calculateAmount = (quantity, rate) => {
-    const qty = parseFloat(quantity) || 0;
-    const r = parseFloat(rate) || 0;
-    return (qty * r).toFixed(2);
-  };
-
-  // Function to handle page change
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-
-  // Build pagination items
-  const paginationItems = [];
-  const maxVisiblePages = 5;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-  
-  if (endPage - startPage < maxVisiblePages - 1) {
-    startPage = Math.max(1, endPage - maxVisiblePages + 1);
-  }
-  
-  // Add first page and ellipsis if needed
-  if (startPage > 1) {
-    paginationItems.push(<Pagination.Item key={1} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
-    if (startPage > 2) {
-      paginationItems.push(<Pagination.Ellipsis key="start-ellipsis" disabled />);
-    }
-  }
-  
-  // Add page numbers
-  for (let number = startPage; number <= endPage; number++) {
-    paginationItems.push(
-      <Pagination.Item 
-        key={number} 
-        active={number === currentPage}
-        onClick={() => handlePageChange(number)}
-      >
-        {number}
-      </Pagination.Item>
-    );
-  }
-  
-  // Add ellipsis and last page if needed
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) {
-      paginationItems.push(<Pagination.Ellipsis key="end-ellipsis" disabled />);
-    }
-    paginationItems.push(<Pagination.Item key={totalPages} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
-  }
 
   return (
     <>
-    <div className="dashboard-container">
-      {/* Left Sidebar */}
-      <LeftNav
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        isMobile={isMobile}
-        isTablet={isTablet}
-      />
+      <div className="dashboard-container">
+        {/* Left Sidebar */}
+        <LeftNav
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isMobile={isMobile}
+          isTablet={isTablet}
+        />
 
-      {/* Main Content */}
-      <div className="main-content">
-        <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        {/* Main Content */}
+        <div className="main-content">
+          <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-        <Container fluid className="dashboard-body">
-          {/* Static Main Page Title */}
-          <h1 className="page-title small-fonts">{translations.dashboard}</h1>
-
-          {/* Billing Items Table */}
-          <div className="billing-table-container">
-            {/* Filter Section */}
-            <div className="filter-section">
-              <Row className="mb-3">
-                <Col md={12} className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0 small-fonts">{translations.filters}</h5>
-                  {hasActiveFilters && (
-                    <Button variant="outline-secondary" size="sm" onClick={clearAllFilters} className="small-fonts">
-                      {translations.clearAllFilters}
-                    </Button>
-                  )}
-                </Col>
-              </Row>
-              
-              <Row>
-                <Col md={4} className="mb-3">
-                  <Form.Group controlId="centerFilter">
-                    <Form.Label className="small-fonts">{translations.centerName}:</Form.Label>
-                    <Form.Select 
-                      value={centerFilter} 
-                      onChange={(e) => handleFilterChange('center', e.target.value)}
-                      className="filter-dropdown small-fonts"
-                    >
-                      <option value="">{translations.allCenters}</option>
-                      {uniqueCenters.map(center => (
-                        <option key={center} value={center}>{center}</option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                
-                <Col md={4} className="mb-3">
-                  <Form.Group controlId="sourceFilter">
-                    <Form.Label className="small-fonts">{translations.sourceOfReceipt}:</Form.Label>
-                    <Form.Select 
-                      value={sourceFilter} 
-                      onChange={(e) => handleFilterChange('source', e.target.value)}
-                      className="filter-dropdown small-fonts"
-                      disabled={!centerFilter}
-                    >
-                      <option value="">
-                        {centerFilter ? translations.allSources : translations.selectCenterFirst}
-                      </option>
-                      {centerFilter && uniqueSources.map(source => (
-                        <option key={source} value={source}>{source}</option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                
-                <Col md={4} className="mb-3">
-                  <Form.Group controlId="schemeFilter">
-                    <Form.Label className="small-fonts">{translations.schemeName}:</Form.Label>
-                    <Form.Select 
-                      value={schemeFilter} 
-                      onChange={(e) => handleFilterChange('scheme', e.target.value)}
-                      className="filter-dropdown small-fonts"
-                      disabled={!sourceFilter}
-                    >
-                      <option value="">
-                        {sourceFilter ? translations.allSchemes : translations.selectSourceFirst}
-                      </option>
-                      {sourceFilter && uniqueSchemes.map(scheme => (
-                        <option key={scheme} value={scheme}>{scheme}</option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
-              
-              <Row>
-                <Col md={4} className="mb-3">
-                  <Form.Group controlId="componentFilter">
-                    <Form.Label className="small-fonts">{translations.component}:</Form.Label>
-                    <Form.Select 
-                      value={componentFilter} 
-                      onChange={(e) => handleFilterChange('component', e.target.value)}
-                      className="filter-dropdown small-fonts"
-                      disabled={!schemeFilter}
-                    >
-                      <option value="">
-                        {schemeFilter ? translations.allComponents : translations.selectSchemeFirst}
-                      </option>
-                      {schemeFilter && uniqueComponents.map(component => (
-                        <option key={component} value={component}>{component}</option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                
-                <Col md={4} className="mb-3">
-                  <Form.Group controlId="investmentFilter">
-                    <Form.Label className="small-fonts">{translations.investmentName}:</Form.Label>
-                    <Form.Select 
-                      value={investmentFilter} 
-                      onChange={(e) => handleFilterChange('investment', e.target.value)}
-                      className="filter-dropdown small-fonts"
-                      disabled={!componentFilter}
-                    >
-                      <option value="">
-                        {componentFilter ? translations.allInvestments : translations.selectComponentFirst}
-                      </option>
-                      {componentFilter && uniqueInvestments.map(investment => (
-                        <option key={investment} value={investment}>{investment}</option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                
-                <Col md={4} className="mb-3">
-                  <Form.Group controlId="unitFilter">
-                    <Form.Label className="small-fonts">{translations.unit}:</Form.Label>
-                    <Form.Select 
-                      value={unitFilter} 
-                      onChange={(e) => handleFilterChange('unit', e.target.value)}
-                      className="filter-dropdown small-fonts"
-                      disabled={!investmentFilter}
-                    >
-                      <option value="">
-                        {investmentFilter ? translations.allUnits : translations.selectInvestmentFirst}
-                      </option>
-                      {investmentFilter && uniqueUnits.map(unit => (
-                        <option key={unit} value={unit}>{unit}</option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+          <Container fluid className="dashboard-body">
+            {/* Welcome Section */}
+            <div className="home-welcome-section text-center mb-4">
+              <h1 className="home-title">{translations.home}</h1>
+              <p className="home-subtitle">{translations.welcomeMessage}</p>
             </div>
-            
-            {/* Dynamic Heading Above Table */}
-            <h2 className="dynamic-table-heading small-fonts">{dynamicTableHeading}</h2>
 
-            {/* Column Selection Section */}
-            <div className="column-selection mb-4 p-3 border rounded bg-light">
-              <h5 className="small-fonts mb-3">{translations.selectColumns}</h5>
-              <Row>
-                <Col>
-                  <div className="d-flex flex-wrap">
-                    {availableColumns.map(col => (
-                      <Form.Check
-                        type="checkbox"
-                        id={col.key}
-                        label={col.label}
-                        checked={selectedColumns.includes(col.key)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedColumns([...selectedColumns, col.key]);
-                          } else {
-                            setSelectedColumns(selectedColumns.filter(c => c !== col.key));
-                          }
-                        }}
-                        className="me-3 small-fonts"
-                      />
-                    ))}
-                  </div>
-                </Col>
-              </Row>
-            </div>
+            {/* Report Export Buttons */}
+            {!loading && !error && (
+              <Card className="report-export-card mb-4">
+                <Card.Body className="py-2">
+                  <Row className="align-items-center">
+                    <Col md={6} className="mb-2 mb-md-0">
+                      <div className="d-flex align-items-center">
+                        <FaClipboardList className="text-primary me-2" />
+                        <span className="report-title" style={{ fontSize: '0.9rem', fontWeight: '600' }}>
+                          रिपोर्ट निर्यात करें
+                        </span>
+                        <span className="badge bg-info ms-2" style={{ fontSize: '0.7rem' }}>
+                          {filteredData.length} रिकॉर्ड
+                        </span>
+                        {(isDateFilterApplied || selectedSchemes.length > 0 || selectedInvestments.length > 0) && (
+                          <span className="badge bg-warning text-dark ms-2" style={{ fontSize: '0.65rem' }}>
+                            फ़िल्टर्ड डेटा
+                          </span>
+                        )}
+                      </div>
+                    </Col>
+                    <Col md={6}>
+                      <div className="d-flex gap-2 justify-content-md-end flex-wrap">
+                        {/* PDF Options */}
+                        <Dropdown as={ButtonGroup} size="sm">
+                          <Button variant="danger" size="sm" onClick={() => generatePDF('download')}>
+                            <FaFilePdf className="me-1" /> PDF
+                          </Button>
+                          <Dropdown.Toggle split variant="danger" size="sm" />
+                          <Dropdown.Menu>
+                            <Dropdown.Item onClick={() => generatePDF('view')}>
+                              <FaEye className="me-2" /> देखें (View)
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => generatePDF('download')}>
+                              <FaDownload className="me-2" /> डाउनलोड (Download)
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+
+                        {/* Excel Options */}
+                        <Dropdown as={ButtonGroup} size="sm">
+                          <Button variant="success" size="sm" onClick={() => generateExcel('download')}>
+                            <FaFileExcel className="me-1" /> Excel
+                          </Button>
+                          <Dropdown.Toggle split variant="success" size="sm" />
+                          <Dropdown.Menu>
+                            <Dropdown.Item onClick={() => generateExcel('view')}>
+                              <FaEye className="me-2" /> देखें (View)
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => generateExcel('download')}>
+                              <FaDownload className="me-2" /> डाउनलोड (Download)
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </div>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* PDF Preview Modal */}
+            <Modal show={showPdfPreview} onHide={() => { setShowPdfPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }} size="xl" centered>
+              <Modal.Header closeButton style={{ backgroundColor: '#dc3545', color: 'white' }}>
+                <Modal.Title style={{ fontSize: '1rem' }}>
+                  <FaFilePdf className="me-2" /> PDF रिपोर्ट प्रीव्यू
+                </Modal.Title>
+              </Modal.Header>
+              <Modal.Body style={{ padding: 0, height: '75vh' }}>
+                <iframe src={pdfPreviewUrl} width="100%" height="100%" title="PDF Preview" style={{ border: 'none' }} />
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" size="sm" onClick={() => { setShowPdfPreview(false); URL.revokeObjectURL(pdfPreviewUrl); }}>
+                  बंद करें
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => generatePDF('download')}>
+                  <FaDownload className="me-1" /> डाउनलोड करें
+                </Button>
+              </Modal.Footer>
+            </Modal>
 
             {loading ? (
               <div className="text-center my-5">
-                <Spinner animation="border" role="status">
+                <Spinner animation="border" role="status" variant="primary">
                   <span className="visually-hidden">{translations.loading}</span>
                 </Spinner>
+                <p className="mt-3">{translations.loading}</p>
               </div>
             ) : error ? (
-              <Alert variant="danger" className="small-fonts">
+              <Alert variant="danger" className="text-center">
                 {error}
                 <div className="mt-2">
-                  <Button variant="outline-danger" size="sm" onClick={retryFetch}>
+                  <button className="btn btn-outline-danger btn-sm" onClick={retryFetch}>
                     {translations.retry}
-                  </Button>
+                  </button>
                 </div>
               </Alert>
             ) : (
               <>
-                <Row className="mt-3">
-                  <div className="col-md-12">
-                    <div className="table-wrapper">
-                      <div className="d-flex justify-content-end mb-2">
-                        <Button 
-                          variant="outline-success" 
-                          size="sm" 
-                          onClick={() => downloadExcel(filteredData, `BillingItems_${new Date().toISOString().split('T')[0]}`)}
-                          className="me-2"
-                        >
-                          <FaFileExcel className="me-1" />Excel
-                        </Button>
-                        <Button 
-                          variant="outline-danger" 
-                          size="sm" 
-                          onClick={() => downloadPdf(filteredData, `BillingItems_${new Date().toISOString().split('T')[0]}`)}
-                        >
-                          <FaFilePdf className="me-1" />PDF
-                        </Button>
-                      </div>
-                      {filteredData.length > 0 ? (
-                        <>
-                          <div className="table-info mb-2 d-flex justify-content-between align-items-center">
-                            <span className="small-fonts">
-                              {translations.showingItems} {indexOfFirstItem + 1} {translations.to} {Math.min(indexOfLastItem, filteredData.length)} {translations.of} {filteredData.length} {translations.items}
-                            </span>
-                            <div className="d-flex align-items-center">
-                              <span className="small-fonts me-2">{translations.itemsPerPage}</span>
-                              <span className="badge bg-primary">{itemsPerPage}</span>
-                            </div>
+                {/* Filter Section */}
+                <Card className="filter-card mb-4">
+                  <Card.Header className="filter-card-header">
+                    <h5 className="mb-0">
+                      <FaClipboardList className="me-2" />
+                      {translations.overviewTitle}
+                    </h5>
+                  </Card.Header>
+                  <Card.Body>
+                    {/* Date Filter Section */}
+                    <div className="date-filter-section-compact mb-3">
+                      <h6 className="filter-section-title-sm mb-2">
+                        <FaCalendarAlt className="me-1" />
+                        {translations.dateFilter}
+                      </h6>
+                      <Row className="align-items-end g-2">
+                        <Col lg={3} md={4} sm={6} className="mb-2">
+                          <Form.Group controlId="startDate">
+                            <Form.Label className="filter-label-sm">
+                              {translations.startDate}
+                            </Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={startDate}
+                              onChange={(e) => setStartDate(e.target.value)}
+                              className="date-input-sm"
+                              size="sm"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col lg={3} md={4} sm={6} className="mb-2">
+                          <Form.Group controlId="endDate">
+                            <Form.Label className="filter-label-sm">
+                              {translations.endDate}
+                            </Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={endDate}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              className="date-input-sm"
+                              size="sm"
+                              min={startDate}
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col lg={6} md={4} sm={12} className="mb-2">
+                          <div className="d-flex gap-2 flex-wrap">
+                            <Button 
+                              variant="primary" 
+                              size="sm"
+                              onClick={handleApplyDateFilter}
+                              disabled={!startDate && !endDate}
+                              className="apply-filter-btn-sm"
+                            >
+                              <FaFilter className="me-1" />
+                              {translations.applyFilter}
+                            </Button>
+                            <Button 
+                              variant="outline-secondary" 
+                              size="sm"
+                              onClick={handleClearDateFilter}
+                              disabled={!isDateFilterApplied && !startDate && !endDate}
+                              className="clear-filter-btn-sm"
+                            >
+                              {translations.clearFilter}
+                            </Button>
+                            {/* Applied Date Filter Display */}
+                            {isDateFilterApplied && (appliedStartDate || appliedEndDate) && (
+                              <span className="badge bg-success d-flex align-items-center" style={{fontSize: '0.7rem'}}>
+                                <FaCalendarAlt className="me-1" />
+                                {formatDate(appliedStartDate)} - {formatDate(appliedEndDate)}
+                              </span>
+                            )}
                           </div>
-                          <table className="responsive-table small-fonts">
-                            <thead>
-                              <tr>
-                                <th>{translations.sno}</th>
-                                <th>{translations.id}</th>
-                                <th>{translations.centerName}</th>
-                                <th>{translations.component}</th>
-                                <th>{translations.investmentName}</th>
-                                <th>{translations.unit}</th>
-                                <th>{translations.allocatedQuantity}</th>
-                                <th>{translations.rate}</th>
-                                <th>{translations.amount}</th>
-                                <th>{translations.sourceOfReceipt}</th>
-                                <th>{translations.schemeName}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedBillingData.map((item, index) => (
-                                <tr key={item.id}>
-                                  <td data-label={translations.sno}>{indexOfFirstItem + index + 1}</td>
-                                  <td data-label={translations.id}>{item.id}</td>
-                                  <td data-label={translations.centerName}>{item.center_name}</td>
-                                  <td data-label={translations.component}>{item.component}</td>
-                                  <td data-label={translations.investmentName}>{item.investment_name}</td>
-                                  <td data-label={translations.unit}>{item.unit}</td>
-                                  <td data-label={translations.allocatedQuantity}>{item.allocated_quantity}</td>
-                                  <td data-label={translations.rate}>{item.rate}</td>
-                                  <td data-label={translations.amount}>{calculateAmount(item.allocated_quantity, item.rate)}</td>
-                                  <td data-label={translations.sourceOfReceipt}>{item.source_of_receipt}</td>
-                                  <td data-label={translations.schemeName}>{item.scheme_name}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          
-                          {totalPages > 1 && (
-                            <div className=" mt-2">
-                              <div className="small-fonts mb-3 text-center">
-                                {translations.page} {currentPage} {translations.of} {totalPages}
-                              </div>
-                              <Pagination className="d-flex justify-content-center">
-                                <Pagination.Prev 
-                                  disabled={currentPage === 1} 
-                                  onClick={() => handlePageChange(currentPage - 1)}
-                                />
-                                {paginationItems}
-                                <Pagination.Next 
-                                  disabled={currentPage === totalPages} 
-                                  onClick={() => handlePageChange(currentPage + 1)}
-                                />
-                              </Pagination>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <Alert variant="info" className="small-fonts">
-                          {hasActiveFilters ? translations.noMatchingItems : translations.noItemsFound}
-                        </Alert>
-                      )}
+                        </Col>
+                      </Row>
                     </div>
-                  </div>
+
+                    <hr className="filter-divider-sm" />
+
+                    {/* Scheme and Investment Filters */}
+                    <Row>
+                      <Col md={6} className="mb-2">
+                        <label className="filter-label-sm">
+                          {translations.filterByScheme}
+                        </label>
+                        <Select
+                          isMulti
+                          options={schemeOptions}
+                          value={selectedSchemes}
+                          onChange={handleSchemeChange}
+                          placeholder={translations.selectPlaceholder}
+                          noOptionsMessage={() => translations.noOptions}
+                          styles={customSelectStyles}
+                          closeMenuOnSelect={false}
+                          isClearable
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </Col>
+                      
+                      <Col md={6} className="mb-2">
+                        <label className="filter-label-sm">
+                          {translations.filterByInvestment}
+                        </label>
+                        <Select
+                          isMulti
+                          options={investmentOptions}
+                          value={selectedInvestments}
+                          onChange={handleInvestmentChange}
+                          placeholder={translations.selectPlaceholder}
+                          noOptionsMessage={() => translations.noOptions}
+                          styles={customSelectStyles}
+                          closeMenuOnSelect={false}
+                          isClearable
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
+                        />
+                      </Col>
+                    </Row>
+                    
+                    {/* Selected Filters Display */}
+                    {(selectedSchemes.length > 0 || selectedInvestments.length > 0) && (
+                      <div className="selected-filters-display mt-2">
+                        <small className="text-muted" style={{fontSize: '0.75rem'}}>
+                          चयनित: {selectedSchemes.length} योजना, {selectedInvestments.length} उपनिवेश
+                        </small>
+                      </div>
+                    )}
+                  </Card.Body>
+                </Card>
+
+                {/* Statistics Cards */}
+                <Row className="stats-row mb-4">
+                  {/* Total Records Card */}
+                  <Col lg={3} md={6} className="mb-3">
+                    <Card className="stat-card stat-card-records">
+                      <Card.Body>
+                        <div className="stat-icon-wrapper bg-primary-light">
+                          <FaClipboardList className="stat-icon text-primary" />
+                        </div>
+                        <div className="stat-content">
+                          <h6 className="stat-label">{translations.totalRecords}</h6>
+                          <h3 className="stat-value">{formatNumber(aggregatedStats.totalRecords)}</h3>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+
+                  {/* Allocated Quantity Card */}
+                  <Col lg={3} md={6} className="mb-3">
+                    <Card className="stat-card stat-card-quantity">
+                      <Card.Body>
+                        <div className="stat-icon-wrapper bg-success-light">
+                          <FaChartLine className="stat-icon text-success" />
+                        </div>
+                        <div className="stat-content">
+                          <h6 className="stat-label">{translations.allocatedQuantity}</h6>
+                          <h3 className="stat-value">{formatNumber(aggregatedStats.allocatedQuantity.toFixed(2))}</h3>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+
+                  {/* Farmer Share Amount Card */}
+                  <Col lg={3} md={6} className="mb-3">
+                    <Card className="stat-card stat-card-farmer">
+                      <Card.Body>
+                        <div className="stat-icon-wrapper bg-warning-light">
+                          <FaHandHoldingUsd className="stat-icon text-warning" />
+                        </div>
+                        <div className="stat-content">
+                          <h6 className="stat-label">{translations.farmerShareAmount}</h6>
+                          <h3 className="stat-value">{formatCurrency(aggregatedStats.farmerShareAmount)}</h3>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+
+                  {/* Subsidy Amount Card */}
+                  <Col lg={3} md={6} className="mb-3">
+                    <Card className="stat-card stat-card-subsidy">
+                      <Card.Body>
+                        <div className="stat-icon-wrapper bg-info-light">
+                          <FaRupeeSign className="stat-icon text-info" />
+                        </div>
+                        <div className="stat-content">
+                          <h6 className="stat-label">{translations.subsidyAmount}</h6>
+                          <h3 className="stat-value">{formatCurrency(aggregatedStats.subsidyAmount)}</h3>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
                 </Row>
+
+                {/* Total Amount Highlight Card */}
+                <Row className="mb-4">
+                  <Col>
+                    <Card className="total-amount-card">
+                      <Card.Body className="text-center">
+                        <h5 className="total-label">{translations.totalAmount}</h5>
+                        <h2 className="total-value">{formatCurrency(aggregatedStats.totalAmount)}</h2>
+                        <div className="total-breakdown">
+                          <span className="breakdown-item">
+                            <span className="breakdown-label">{translations.farmerShareAmount}:</span>
+                            <span className="breakdown-value farmer">{formatCurrency(aggregatedStats.farmerShareAmount)}</span>
+                          </span>
+                          <span className="breakdown-separator">+</span>
+                          <span className="breakdown-item">
+                            <span className="breakdown-label">{translations.subsidyAmount}:</span>
+                            <span className="breakdown-value subsidy">{formatCurrency(aggregatedStats.subsidyAmount)}</span>
+                          </span>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                </Row>
+
+                {/* Summary Table */}
+                <Card className="summary-table-card mb-4">
+                  <Card.Header className="summary-card-header">
+                    <h5 className="mb-0">विस्तृत सारांश</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="table-responsive">
+                      <table className="table table-bordered summary-table">
+                        <thead>
+                          <tr>
+                            <th>{translations.allocatedQuantity}</th>
+                            <th>{translations.farmerShareAmount}</th>
+                            <th>{translations.subsidyAmount}</th>
+                            <th>{translations.totalAmount}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="text-center">
+                              <strong>{formatNumber(aggregatedStats.allocatedQuantity.toFixed(2))}</strong>
+                            </td>
+                            <td className="text-center text-warning">
+                              <strong>{formatCurrency(aggregatedStats.farmerShareAmount)}</strong>
+                            </td>
+                            <td className="text-center text-info">
+                              <strong>{formatCurrency(aggregatedStats.subsidyAmount)}</strong>
+                            </td>
+                            <td className="text-center text-success">
+                              <strong>{formatCurrency(aggregatedStats.totalAmount)}</strong>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card.Body>
+                </Card>
+
+                {/* ==================== GRAPHS SECTION ==================== */}
+                {filteredData.length > 0 && (
+                  <>
+                    {/* Section Title */}
+                    <div className="graphs-section-title mb-3">
+                      <h4 className="text-primary">
+                        <FaChartBar className="me-2" />
+                        डेटा विश्लेषण ग्राफ़
+                      </h4>
+                      <p className="text-muted small mb-0">चयनित फ़िल्टर के आधार पर ग्राफ़ प्रदर्शित</p>
+                    </div>
+
+                    {/* Row 1: Scheme-wise Charts */}
+                    <Row className="mb-4">
+                      <Col lg={7} md={12} className="mb-3">
+                        <Card className="chart-card h-100">
+                          <Card.Header className="chart-card-header">
+                            <h6 className="mb-0">
+                              <FaChartBar className="me-2" />
+                              {translations.graphsByScheme} - {translations.amountComparison}
+                            </h6>
+                          </Card.Header>
+                          <Card.Body>
+                            <div className="chart-container" style={{ height: '280px' }}>
+                              {schemeChartData.bar.labels.length > 0 ? (
+                                <Bar data={schemeChartData.bar} options={barChartOptions} />
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                      <Col lg={5} md={12} className="mb-3">
+                        <Card className="chart-card h-100">
+                          <Card.Header className="chart-card-header">
+                            <h6 className="mb-0">
+                              <FaChartPie className="me-2" />
+                              {translations.schemeWiseDistribution}
+                            </h6>
+                          </Card.Header>
+                          <Card.Body>
+                            <div className="chart-container" style={{ height: '280px' }}>
+                              {schemeChartData.pie.labels.length > 0 ? (
+                                <Pie data={schemeChartData.pie} options={pieChartOptions} />
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    </Row>
+
+                    {/* Row 2: उपनिवेश (Investment) - Pie Chart with Table */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header className="chart-card-header bg-success-gradient">
+                        <h6 className="mb-0 text-white">
+                          <FaChartPie className="me-2" />
+                          {translations.graphsByInvestment} - {translations.amountComparison}
+                          <span className="badge bg-light text-dark ms-2" style={{fontSize: '0.7rem'}}>
+                            {investmentChartData.itemCount} उपनिवेश
+                          </span>
+                        </h6>
+                      </Card.Header>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={6} md={12} className="mb-3">
+                            <div className="chart-container" style={{ height: '450px' }}>
+                              {investmentChartData.doughnut.labels.length > 0 ? (
+                                <Pie data={investmentChartData.doughnut} options={{
+                                  responsive: true,
+                                  maintainAspectRatio: false,
+                                  plugins: {
+                                    legend: {
+                                      display: false
+                                    },
+                                    tooltip: {
+                                      callbacks: {
+                                        title: (context) => {
+                                          return investmentChartData.doughnut.fullLabels[context[0].dataIndex];
+                                        },
+                                        label: (context) => {
+                                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                          const percentage = ((context.raw / total) * 100).toFixed(1);
+                                          return `कुल राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                        }
+                                      }
+                                    }
+                                  }
+                                }} />
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                          <Col lg={6} md={12}>
+                            <div className="upnivesh-legend-table" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                              <table className="table table-sm table-striped" style={{ fontSize: '0.8rem' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#28a745', color: 'white' }}>
+                                  <tr>
+                                    <th style={{width: '25px'}}>#</th>
+                                    <th>उपनिवेश नाम</th>
+                                    <th className="text-end">कुल राशि</th>
+                                    <th className="text-end">%</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {investmentChartData.doughnut.fullLabels.map((label, idx) => {
+                                    const value = investmentChartData.doughnut.datasets[0].data[idx];
+                                    const total = investmentChartData.doughnut.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    const color = investmentChartData.doughnut.datasets[0].backgroundColor[idx];
+                                    return (
+                                      <tr key={idx}>
+                                        <td>
+                                          <span style={{ 
+                                            display: 'inline-block', 
+                                            width: '14px', 
+                                            height: '14px', 
+                                            backgroundColor: color,
+                                            borderRadius: '3px',
+                                            border: '1px solid rgba(0,0,0,0.1)'
+                                          }}></span>
+                                        </td>
+                                        <td title={label} style={{ fontSize: '0.75rem' }}>
+                                          {label}
+                                        </td>
+                                        <td className="text-end" style={{ fontWeight: '600', fontSize: '0.75rem' }}>
+                                          {formatCurrency(value)}
+                                        </td>
+                                        <td className="text-end">
+                                          <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>{percentage}%</span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+
+                    {/* Row 3: संयुक्त ग्राफ़ - योजना और उपनिवेश Pie Chart */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header className="chart-card-header bg-combined-gradient">
+                        <h6 className="mb-0 text-white">
+                          <FaChartPie className="me-2" />
+                          {translations.combinedGraph} - योजना और उपनिवेश (शीर्ष 10)
+                        </h6>
+                      </Card.Header>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={6} md={12} className="mb-3">
+                            <div className="chart-container" style={{ height: '400px' }}>
+                              {combinedChartData.labels.length > 0 ? (
+                                <Pie 
+                                  data={{
+                                    labels: combinedChartData.labels,
+                                    datasets: [{
+                                      data: combinedChartData.datasets[0].data.map((v, i) => v + combinedChartData.datasets[1].data[i]),
+                                      backgroundColor: [
+                                        'rgba(102, 16, 242, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)',
+                                        'rgba(253, 126, 20, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)',
+                                        'rgba(255, 193, 7, 0.8)', 'rgba(32, 201, 151, 0.8)', 'rgba(111, 66, 193, 0.8)',
+                                        'rgba(253, 51, 114, 0.8)'
+                                      ],
+                                      borderWidth: 2
+                                    }]
+                                  }} 
+                                  options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                      legend: {
+                                        display: false
+                                      },
+                                      tooltip: {
+                                        callbacks: {
+                                          label: (context) => {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((context.raw / total) * 100).toFixed(1);
+                                            return `कुल राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }} 
+                                />
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                          <Col lg={6} md={12}>
+                            <div className="upnivesh-legend-table" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                              <table className="table table-sm table-striped" style={{ fontSize: '0.8rem' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6f42c1', color: 'white' }}>
+                                  <tr>
+                                    <th style={{width: '25px'}}>#</th>
+                                    <th>योजना - उपनिवेश</th>
+                                    <th className="text-end">कुल राशि</th>
+                                    <th className="text-end">%</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {combinedChartData.labels.map((label, idx) => {
+                                    const totalValue = combinedChartData.datasets[0].data[idx] + combinedChartData.datasets[1].data[idx];
+                                    const grandTotal = combinedChartData.datasets[0].data.reduce((a, b) => a + b, 0) + 
+                                                       combinedChartData.datasets[1].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((totalValue / grandTotal) * 100).toFixed(1);
+                                    const colors = [
+                                      'rgba(102, 16, 242, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)',
+                                      'rgba(253, 126, 20, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)',
+                                      'rgba(255, 193, 7, 0.8)', 'rgba(32, 201, 151, 0.8)', 'rgba(111, 66, 193, 0.8)',
+                                      'rgba(253, 51, 114, 0.8)'
+                                    ];
+                                    return (
+                                      <tr key={idx}>
+                                        <td>
+                                          <span style={{ 
+                                            display: 'inline-block', 
+                                            width: '14px', 
+                                            height: '14px', 
+                                            backgroundColor: colors[idx],
+                                            borderRadius: '3px',
+                                            border: '1px solid rgba(0,0,0,0.1)'
+                                          }}></span>
+                                        </td>
+                                        <td title={label} style={{ fontSize: '0.75rem' }}>
+                                          {label}
+                                        </td>
+                                        <td className="text-end" style={{ fontWeight: '600', fontSize: '0.75rem' }}>
+                                          {formatCurrency(totalValue)}
+                                        </td>
+                                        <td className="text-end">
+                                          <span className="badge" style={{ fontSize: '0.65rem', backgroundColor: '#6f42c1' }}>{percentage}%</span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+                  </>
+                )}
               </>
             )}
-          </div>
-        </Container>
+          </Container>
+        </div>
       </div>
-      
-    </div>
-    <Footer />
+      <Footer />
     </>
   );
 };

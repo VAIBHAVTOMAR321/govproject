@@ -574,14 +574,34 @@ const MainDashboard = () => {
         ? filteredTableData
         : tableData;
 
+    const currentFilter = filterStack[filterStack.length - 1];
+    if (!currentFilter) return;
+
+    // For the first column, get all possible values from baseData (not filtered by current filter)
+    // This ensures all values are available when reselecting
+    const allValuesForFirstColumn = [
+      ...new Set(
+        baseData
+          .filter((item) => {
+            // Apply all filters EXCEPT the current (last) filter
+            for (let i = 0; i < filterStack.length - 1; i++) {
+              const f = filterStack[i];
+              if (!f.checked[item[f.column]]) return false;
+            }
+            return true;
+          })
+          .map((item) => item[currentFilter.column])
+          .filter(Boolean)
+      ),
+    ];
+
+    // For other columns, use data filtered by all filters including current
     const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
       return true;
     });
-    const currentFilter = filterStack[filterStack.length - 1];
-    if (!currentFilter) return;
 
     // Summary columns: first column + other visible non-amount columns
     const summaryKeys = [
@@ -601,17 +621,28 @@ const MainDashboard = () => {
     setSummaryColumnValueFilters((prev) => {
       const next = { ...prev };
       for (const col of summaryKeys) {
-        const allVals = getUniqueValuesForColumn(currentFilteredData, col);
-        if (!Array.isArray(next[col]) || next[col].length === 0) {
-          next[col] = [...allVals];
+        // For the first column (currentFilter.column), always sync with the left filter's checked values
+        // This ensures that when a value is reselected in the left filter, it appears in the summary table
+        if (col === currentFilter.column) {
+          // Get all values that are currently checked in the left filter
+          const checkedValuesFromFilter = Object.keys(currentFilter.checked).filter(
+            (val) => currentFilter.checked[val]
+          );
+          // Use allValuesForFirstColumn which includes all possible values (not filtered by current filter)
+          next[col] = checkedValuesFromFilter.filter((v) => allValuesForFirstColumn.includes(v));
         } else {
-          // Keep user selection but trim to existing values
-          next[col] = next[col].filter((v) => allVals.includes(v));
+          const allVals = getUniqueValuesForColumn(currentFilteredData, col);
+          if (!Array.isArray(next[col]) || next[col].length === 0) {
+            next[col] = [...allVals];
+          } else {
+            // Keep user selection but trim to existing values
+            next[col] = next[col].filter((v) => allVals.includes(v));
+          }
         }
       }
       return next;
     });
-  }, [filterStack, tableColumnFilters.summary, tableData]);
+  }, [filterStack, tableColumnFilters.summary, tableData, filteredTableData]);
 
   // Add a function to get unique values for a column in the main summary table
   const getMainSummaryUniqueValues = (columnKey, rowValue) => {
@@ -6967,29 +6998,41 @@ const MainDashboard = () => {
                                       <tbody>
                                         {(() => {
                                           // Apply header filters to determine which checked values to show
-                                          const anyEmptySelection = Object.values(summaryColumnValueFilters || {}).some((arr) => Array.isArray(arr) && arr.length === 0);
-                                          const displayCheckedValues = anyEmptySelection
-                                            ? []
-                                            : checkedValues.filter((checkedValue) => {
-                                            const rowsForValue = filteredData.filter(
+                                          // For the first column (currentFilter.column), we should NOT filter based on summaryColumnValueFilters
+                                          // because the left filter already controls which values are shown
+                                          // We only filter based on other column filters
+                                          
+                                          // Get data filtered by all filters EXCEPT the current filter for checking available values
+                                          const dataForAvailableValues = baseData.filter((item) => {
+                                            for (let i = 0; i < filterStack.length - 1; i++) {
+                                              const f = filterStack[i];
+                                              if (!f.checked[item[f.column]]) return false;
+                                            }
+                                            return true;
+                                          });
+                                          
+                                          const displayCheckedValues = checkedValues.filter((checkedValue) => {
+                                            // Check if this value exists in the available data (filtered by other filters, not current)
+                                            const rowsForValue = dataForAvailableValues.filter(
                                               (item) => item[currentFilter.column] === checkedValue
                                             );
-                                            // Filter on currentFilter.column if selection exists
-                                            const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
-                                            if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
-                                              return false;
-                                            }
-                                            // Apply other column filters
+                                            // If no rows exist for this value at all, don't show it
+                                            if (rowsForValue.length === 0) return false;
+                                            
+                                            // Apply other column filters (NOT the first column - that's controlled by left filter)
                                             for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                              // Skip the first column - it's controlled by the left filter dropdown
                                               if (col === currentFilter.column) continue;
                                               const sel = selectedVals || [];
+                                              // If a column has empty selection, hide all rows
+                                              if (Array.isArray(sel) && sel.length === 0) return false;
                                               if (sel.length > 0) {
                                                 const match = rowsForValue.some((row) => sel.includes(row[col]));
                                                 if (!match) return false;
                                               }
                                             }
                                             return true;
-                                            });
+                                          });
 
                                           return displayCheckedValues.map((checkedValue) => {
                                           const tableDataForValueBase = filteredData.filter(

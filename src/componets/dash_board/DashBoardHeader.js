@@ -36,6 +36,7 @@ function DashBoardHeader() {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
+            <Nav.Link as={Link} to="/Dashboard">होम</Nav.Link>
             <Nav.Link as={Link} to="/MainDashboard">डैशबोर्ड</Nav.Link>
             <NavDropdown title="डेटा एंट्री" id="basic-nav-dropdown">
               <NavDropdown.Item as={Link} to="/Registration">सप्लायर डेटा एंट्री</NavDropdown.Item>
