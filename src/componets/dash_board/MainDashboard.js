@@ -247,6 +247,113 @@ const MainDashboard = () => {
     columns: [],
   });
 
+  // State for summary table total breakdown filter
+  // Options: center_name, vidhan_sabha_name, vikas_khand_name, scheme_name, source_of_receipt, investment_name, sub_investment_name
+  const [summaryTotalBreakdownColumn, setSummaryTotalBreakdownColumn] = useState("scheme_name");
+
+  // Function to generate breakdown data for totals columns based on selected grouping
+  const generateTotalBreakdown = (data, groupByColumn) => {
+    if (!data || data.length === 0) return [];
+    
+    // Group data by the selected column
+    const grouped = {};
+    data.forEach((item) => {
+      const groupKey = item[groupByColumn] || "अज्ञात";
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = {
+          groupName: groupKey,
+          investments: {},
+          totals: {
+            allocated_quantity: 0,
+            amount_of_farmer_share: 0,
+            amount_of_subsidy: 0,
+            total_amount: 0,
+          },
+        };
+      }
+      
+      // Track investments and sub-investments
+      const invName = item.investment_name || "अज्ञात निवेश";
+      const subInvName = item.sub_investment_name || "अज्ञात उप-निवेश";
+      const unit = item.unit || "";
+      
+      if (!grouped[groupKey].investments[invName]) {
+        grouped[groupKey].investments[invName] = {
+          name: invName,
+          unit: unit,
+          subInvestments: {},
+          totals: {
+            allocated_quantity: 0,
+            amount_of_farmer_share: 0,
+            amount_of_subsidy: 0,
+            total_amount: 0,
+          },
+        };
+      }
+      
+      if (!grouped[groupKey].investments[invName].subInvestments[subInvName]) {
+        grouped[groupKey].investments[invName].subInvestments[subInvName] = {
+          name: subInvName,
+          unit: unit,
+          totals: {
+            allocated_quantity: 0,
+            amount_of_farmer_share: 0,
+            amount_of_subsidy: 0,
+            total_amount: 0,
+          },
+        };
+      }
+      
+      // Parse allocated quantity
+      const parseQty = (qty) => {
+        if (typeof qty === "string" && qty.includes(" / ")) {
+          return parseFloat(qty.split(" / ")[0]) || 0;
+        }
+        return parseFloat(qty) || 0;
+      };
+      
+      const qty = parseQty(item.allocated_quantity);
+      const farmerShare = parseFloat(item.amount_of_farmer_share) || 0;
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const total = parseFloat(item.total_amount) || 0;
+      
+      // Add to group totals
+      grouped[groupKey].totals.allocated_quantity += qty;
+      grouped[groupKey].totals.amount_of_farmer_share += farmerShare;
+      grouped[groupKey].totals.amount_of_subsidy += subsidy;
+      grouped[groupKey].totals.total_amount += total;
+      
+      // Add to investment totals
+      grouped[groupKey].investments[invName].totals.allocated_quantity += qty;
+      grouped[groupKey].investments[invName].totals.amount_of_farmer_share += farmerShare;
+      grouped[groupKey].investments[invName].totals.amount_of_subsidy += subsidy;
+      grouped[groupKey].investments[invName].totals.total_amount += total;
+      
+      // Add to sub-investment totals
+      grouped[groupKey].investments[invName].subInvestments[subInvName].totals.allocated_quantity += qty;
+      grouped[groupKey].investments[invName].subInvestments[subInvName].totals.amount_of_farmer_share += farmerShare;
+      grouped[groupKey].investments[invName].subInvestments[subInvName].totals.amount_of_subsidy += subsidy;
+      grouped[groupKey].investments[invName].subInvestments[subInvName].totals.total_amount += total;
+      
+      // Update unit if found
+      if (!grouped[groupKey].investments[invName].unit && unit) {
+        grouped[groupKey].investments[invName].unit = unit;
+      }
+      if (!grouped[groupKey].investments[invName].subInvestments[subInvName].unit && unit) {
+        grouped[groupKey].investments[invName].subInvestments[subInvName].unit = unit;
+      }
+    });
+    
+    // Convert to array format
+    return Object.values(grouped).map((group) => ({
+      ...group,
+      investments: Object.values(group.investments).map((inv) => ({
+        ...inv,
+        subInvestments: Object.values(inv.subInvestments),
+      })),
+    }));
+  };
+
   // Calculate dynamic chart width based on number of data points
   const calculateChartWidth = () => {
     const chartData = generateChartData();
@@ -462,7 +569,12 @@ const MainDashboard = () => {
 
   // Initialize summary header filters to 'all selected' for each column
   useEffect(() => {
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -504,7 +616,12 @@ const MainDashboard = () => {
   // Add a function to get unique values for a column in the main summary table
   const getMainSummaryUniqueValues = (columnKey, rowValue) => {
     // Get the current filtered data based on the filter stack
-      const currentFilteredData = tableData.filter((item) => {
+      const baseData =
+        filteredTableData && filteredTableData.length > 0
+          ? filteredTableData
+          : tableData;
+
+      const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -540,7 +657,12 @@ const MainDashboard = () => {
   // Function to get unique values with their matra sum for sub_investment_name and investment_name columns
   const getUniqueValuesWithMatra = (columnKey, rowValue) => {
     // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -596,7 +718,12 @@ const MainDashboard = () => {
   // Function to get उप-निवेश grouped by निवेश with their matra
   const getSubInvestmentGroupedByInvestment = (rowValue) => {
     // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -671,7 +798,12 @@ const MainDashboard = () => {
 
   // Totals helper: उप-निवेश grouped by निवेश with unit at both levels
   const getSubInvestmentGroupedByInvestmentWithUnit = (rowValue) => {
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -740,7 +872,12 @@ const MainDashboard = () => {
   // Function to get योजना -> निवेश (unit/matra) -> उप-निवेश hierarchy
   const getSchemeInvestmentHierarchy = (rowValue) => {
     // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -812,7 +949,12 @@ const MainDashboard = () => {
 
   // Scheme totals: योजना -> निवेश (unit/matra) -> उप-निवेश (unit/matra)
   const getSchemeInvestmentHierarchyWithUnit = (rowValue) => {
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -885,7 +1027,12 @@ const MainDashboard = () => {
   // Generic: group by a column -> investment (unit/matra) -> sub-investment (matra)
   const getColumnInvestmentHierarchy = (rowValue, groupColKey) => {
     // Current filtered data based on filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -1371,12 +1518,12 @@ const MainDashboard = () => {
     // Refresh table with all data
     setFilteredTableData(tableData);
     // Ensure the summary heading updates immediately
-    checkIfTopFiltersApplied(clearedFilters);
+    checkIfTopFiltersApplied();
   };
 
   // Check if filters are applied from top filtering
-  const checkIfTopFiltersApplied = (currentFilters = filters) => {
-    const hasFilters = Object.values(currentFilters).some(
+  const checkIfTopFiltersApplied = () => {
+    const hasFilters = Object.values(filters).some(
       (filter) => filter.length > 0
     );
     setIsFilterApplied(hasFilters);
@@ -1401,13 +1548,12 @@ const MainDashboard = () => {
       ...new Set(filteredTableData.map((item) => item[column]).filter(Boolean)),
     ];
 
-    // Create checked object with all values initialized to false
-    // Then set the clicked value to true
+    // Create checked object with all values initialized to true so that
+    // the summary table initially shows all entries for this column
     const checked = {};
     allValues.forEach((val) => {
-      checked[val] = false;
+      checked[val] = true;
     });
-    checked[value] = true;
 
     // Set up filter stack with this column's filter
     // Check if a filter for this column already exists
@@ -1455,15 +1601,25 @@ const MainDashboard = () => {
   const handleSelectChange = (name, selected) => {
     if (selected && selected.some((s) => s.value === "ALL")) {
       // If "सभी चुनें" is selected, set filter to all options
-      setFilters((prev) => ({
-        ...prev,
-        [name]: filterOptions[name] || [],
-      }));
+      setFilters((prev) => {
+        const newFilters = {
+          ...prev,
+          [name]: filterOptions[name] || [],
+        };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
+      });
     } else {
-      setFilters((prev) => ({
-        ...prev,
-        [name]: selected ? selected.map((s) => s.value) : [],
-      }));
+      setFilters((prev) => {
+        const newFilters = {
+          ...prev,
+          [name]: selected ? selected.map((s) => s.value) : [],
+        };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
+      });
     }
   };
 
@@ -1490,7 +1646,7 @@ const MainDashboard = () => {
 
     if (filterIndexStr.startsWith("additional_")) {
       // Handle additional table filters
-      const tableIndex = parseInt(filterIndexStr.split("_")[1]);
+        const tableIndex = parseInt(filterIndexStr.split("_")[1]);
       setAdditionalTables((prev) => {
         const newTables = [...prev];
         const table = newTables[tableIndex];
@@ -1500,7 +1656,12 @@ const MainDashboard = () => {
         if (!columnKey) return prev;
 
         // Get all unique values for this column from the currently filtered data
-        const currentFilteredData = tableData.filter((item) => {
+        const baseData =
+          filteredTableData && filteredTableData.length > 0
+            ? filteredTableData
+            : tableData;
+
+        const currentFilteredData = baseData.filter((item) => {
           for (let filter of filterStack) {
             if (!filter.checked[item[filter.column]]) return false;
           }
@@ -1550,7 +1711,12 @@ const MainDashboard = () => {
           if (idx !== filterIndex) return filter;
 
           // Calculate currentFilteredData for this filter
-          const currentFilteredData = tableData.filter((item) => {
+          const baseData =
+            filteredTableData && filteredTableData.length > 0
+              ? filteredTableData
+              : tableData;
+
+          const currentFilteredData = baseData.filter((item) => {
             for (let i = 0; i < prev.length; i++) {
               if (i === filterIndex) continue;
               const f = prev[i];
@@ -1567,10 +1733,15 @@ const MainDashboard = () => {
             ),
           ];
 
-          // Create newChecked with only current allValues, preserving previous selections if available
-          const newChecked = {};
+          // Create newChecked starting from the current filter.checked state
+          // This preserves previous selections properly
+          const newChecked = { ...filter.checked };
+          
+          // Ensure all current values exist in newChecked
           allValues.forEach((v) => {
-            newChecked[v] = filter.checked[v] || false;
+            if (newChecked[v] === undefined) {
+              newChecked[v] = false;
+            }
           });
 
           if (val === "SELECT_ALL") {
@@ -1578,6 +1749,7 @@ const MainDashboard = () => {
             // Toggle: if all are selected, deselect all; otherwise select all
             allValues.forEach((k) => (newChecked[k] = !currentlyAllSelected));
           } else {
+            // Simply toggle the value - this ensures reselection works
             newChecked[val] = !newChecked[val];
           }
 
@@ -1622,10 +1794,13 @@ const MainDashboard = () => {
         const areAllSelected = allOptions.every((option) =>
           currentValues.includes(option)
         );
-        return {
+        const newFilters = {
           ...prev,
           [name]: areAllSelected ? [] : allOptions,
         };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
       });
     } else {
       setFilters((prev) => {
@@ -1633,7 +1808,10 @@ const MainDashboard = () => {
         const newValues = currentValues.includes(value)
           ? currentValues.filter((v) => v !== value)
           : [...currentValues, value];
-        return { ...prev, [name]: newValues };
+        const newFilters = { ...prev, [name]: newValues };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
       });
     }
   };
@@ -1672,6 +1850,25 @@ const MainDashboard = () => {
     applyFilters();
   }, [filters]);
 
+  // Real-time filter update effect - ensures immediate response to filter changes
+  useEffect(() => {
+    // This effect will trigger immediately when any filter changes
+    const timeoutId = setTimeout(() => {
+      applyFilters();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    filters.center_name,
+    filters.sub_investment_name,
+    filters.investment_name,
+    filters.source_of_receipt,
+    filters.scheme_name,
+    filters.vikas_khand_name,
+    filters.vidhan_sabha_name,
+    filters.unit,
+  ]);
+
   // Update graph when main table data changes
   useEffect(() => {
     if (view === "main" && filteredTableData.length > 0) {
@@ -1690,7 +1887,13 @@ const MainDashboard = () => {
   // Update graph when filterStack changes (detail view)
   useEffect(() => {
     if (view === "detail" && filterStack.length > 0) {
-      const filteredData = tableData.filter((item) => {
+      // Use filteredTableData as base to respect top-level filters
+      const baseData =
+        filteredTableData && filteredTableData.length > 0
+          ? filteredTableData
+          : tableData;
+
+      const filteredData = baseData.filter((item) => {
         for (let filter of filterStack) {
           if (!filter.checked[item[filter.column]]) return false;
         }
@@ -1714,7 +1917,7 @@ const MainDashboard = () => {
         }
       }
     }
-  }, [filterStack, tableData, view]);
+  }, [filterStack, tableData, filteredTableData, view]);
 
   // Generate summary data for a given data and column
   const generateSummary = (data, column) => {
@@ -2257,8 +2460,13 @@ const MainDashboard = () => {
         totals: totals,
       };
     } else if (view === "detail" && !showDetailed) {
-      // Summary table view
-      const filteredData = tableData.filter((item) => {
+      // Summary table view - Export with breakdown format matching the table display
+      const baseData =
+        filteredTableData && filteredTableData.length > 0
+          ? filteredTableData
+          : tableData;
+
+      const filteredData = baseData.filter((item) => {
         for (let filter of filterStack) {
           if (!filter.checked[item[filter.column]]) return false;
         }
@@ -2269,7 +2477,34 @@ const MainDashboard = () => {
         (val) => currentFilter.checked[val]
       );
 
-      // Modified to include expanded values
+      // Helper function to format breakdown for export (hierarchical format)
+      const formatBreakdownForExport = (breakdown, valueField) => {
+        const lines = [];
+        breakdown.forEach((group) => {
+          // Group level
+          const groupValue = valueField === "name" ? group.groupName : ((group.totals[valueField] || 0).toFixed(2));
+          lines.push(groupValue);
+          // Investment level
+          group.investments.forEach((inv) => {
+            const invValue = valueField === "name" 
+              ? `  ├─ ${inv.name}`
+              : `  ├─ ${(inv.totals[valueField] || 0).toFixed(2)}${inv.unit ? ` (${inv.unit})` : ""}`;
+            lines.push(invValue);
+            // Sub-investment level
+            inv.subInvestments.forEach((sub, idx) => {
+              const isLast = idx === inv.subInvestments.length - 1;
+              const prefix = isLast ? "  │  └─ " : "  │  ├─ ";
+              const subValue = valueField === "name"
+                ? `${prefix}${sub.name}`
+                : `${prefix}${(sub.totals[valueField] || 0).toFixed(2)}${sub.unit ? ` (${sub.unit})` : ""}`;
+              lines.push(subValue);
+            });
+          });
+        });
+        return lines.join("\n");
+      };
+
+      // Modified to include expanded values with breakdown format
       const summaryData = [];
 
       // For each checked value, create a row
@@ -2279,6 +2514,9 @@ const MainDashboard = () => {
         );
         // Apply summary header filters to this row's data
         const filteredRowData = applySummaryHeaderFilters(tableDataForValue);
+
+        // Generate breakdown for this row
+        const breakdown = generateTotalBreakdown(filteredRowData, summaryTotalBreakdownColumn);
 
         // Create a row with columns in the specified order
         const row = {
@@ -2297,87 +2535,58 @@ const MainDashboard = () => {
             col !== "total_amount" &&
             !columnDefs[col].hidden
           ) {
-            // Check if this column is expanded
-            if (mainSummaryExpandedColumns[col]) {
-              // For sub_investment_name, show grouped by investment_name (one per line)
-              if (col === "sub_investment_name") {
-                const groupedData = getSubInvestmentGroupedByInvestment(checkedValue);
-                const formattedLines = [];
-                groupedData.forEach((group) => {
-                  const investmentDisplay = group.unit 
-                    ? `**${group.investmentName} (${group.unit})**`
-                    : `**${group.investmentName}**`;
-                  formattedLines.push(investmentDisplay);
-                  group.subInvestments.forEach((item) => {
-                    formattedLines.push(`  • ${item.name} (${item.matra})`);
-                  });
-                });
-                row[columnDefs[col].label] = formattedLines.join("\n");
-              } else if (col === "investment_name") {
-                // For investment_name, show values with unit at investment level
-                const valuesWithMatra = getUniqueValuesWithMatra(col, checkedValue);
-                const formattedLines = valuesWithMatra.map((item) => {
-                  const display = item.unit 
-                    ? `**${item.name} (${item.unit})**`
-                    : `**${item.name}**`;
-                  return item.matra ? `${display} (${item.matra})` : display;
-                });
-                row[columnDefs[col].label] = formattedLines.join("\n");
-              } else {
-                // Get unique values for this column
-                // Use filteredRowData for unique values
-                const uniqueValues = [...new Set(filteredRowData.map((item) => item[col]).filter(Boolean))];
-                // Join values with newline for export (one per line)
-                row[columnDefs[col].label] = uniqueValues.join("\n");
-              }
+            // If this is the selected breakdown column, use breakdown format
+            if (col === summaryTotalBreakdownColumn) {
+              row[columnDefs[col].label] = formatBreakdownForExport(breakdown, "name");
+            } else if (mainSummaryExpandedColumns[col]) {
+              // For other expanded columns, show unique values
+              const uniqueValues = [...new Set(filteredRowData.map((item) => item[col]).filter(Boolean))];
+              row[columnDefs[col].label] = uniqueValues.join("\n");
             } else {
-              // Show the filtered values as a list (not just the count)
+              // Show the filtered values as a list
               const uniqueValues = [...new Set(filteredRowData.map((item) => item[col]).filter(Boolean))];
               row[columnDefs[col].label] = uniqueValues.join("\n");
             }
           }
         });
 
-        // Add monetary columns at the end
-        row["आवंटित मात्रा"] = filteredRowData
-          .reduce(
-            (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
-            0
-          )
-          .toFixed(2);
-        row["कृषक धनराशि"] = filteredRowData
-          .reduce(
-            (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
-            0
-          )
-          .toFixed(2);
-        row["सब्सिडी धनराशि"] = filteredRowData
-          .reduce(
-            (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
-            0
-          )
-          .toFixed(2);
-        row["कुल राशि"] = filteredRowData
-          .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
-          .toFixed(2);
+        // Add monetary columns with breakdown format
+        row["आवंटित मात्रा"] = formatBreakdownForExport(breakdown, "allocated_quantity");
+        row["कृषक धनराशि"] = formatBreakdownForExport(breakdown, "amount_of_farmer_share");
+        row["सब्सिडी धनराशि"] = formatBreakdownForExport(breakdown, "amount_of_subsidy");
+        row["कुल राशि"] = formatBreakdownForExport(breakdown, "total_amount");
 
         summaryData.push(row);
       });
 
-      // Create a total row
-
-      // Build combined dataset for the checked values (used for totals), and apply summary header filters
+      // Create a total row with breakdown format
       const totalRowData = applySummaryHeaderFilters(
         checkedValues.flatMap((checkedValue) =>
           filteredData.filter((item) => item[currentFilter.column] === checkedValue)
         )
       );
 
+      // Generate breakdown for totals
+      const totalBreakdown = generateTotalBreakdown(totalRowData, summaryTotalBreakdownColumn);
+
+      // Calculate grand totals
+      const grandTotals = {
+        allocated_quantity: totalRowData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0),
+        amount_of_farmer_share: totalRowData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0),
+        amount_of_subsidy: totalRowData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0),
+        total_amount: totalRowData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0),
+      };
+
       const totalRow = {};
       totalRow[columnDefs[currentFilter.column]?.label] = "कुल";
       totalRow["कुल रिकॉर्ड"] = totalRowData.length;
 
-      // Add other columns in the specified order (aggregate over totalRowData)
+      // Add other columns with breakdown format for selected column
       tableColumnOrder.forEach((col) => {
         if (
           col !== currentFilter.column &&
@@ -2388,97 +2597,24 @@ const MainDashboard = () => {
           col !== "total_amount" &&
           !columnDefs[col].hidden
         ) {
-          // Check if this column is expanded
-          if (mainSummaryExpandedColumns[col]) {
-            // For sub_investment_name, show grouped by investment_name (one per line)
-            if (col === "sub_investment_name") {
-              const groupedData = {};
-              totalRowData.forEach((item) => {
-                const investmentName = item.investment_name;
-                const subInvestmentName = item.sub_investment_name;
-                if (investmentName && subInvestmentName) {
-                  if (!groupedData[investmentName]) groupedData[investmentName] = {};
-                  if (!groupedData[investmentName][subInvestmentName])
-                    groupedData[investmentName][subInvestmentName] = { matra: 0, unit: "" };
-                  let qty = item.allocated_quantity;
-                  if (typeof qty === "string" && qty.includes(" / ")) {
-                    qty = parseFloat(qty.split(" / ")[0]) || 0;
-                  } else {
-                    qty = parseFloat(qty) || 0;
-                  }
-                  groupedData[investmentName][subInvestmentName].matra += qty;
-                  if (!groupedData[investmentName][subInvestmentName].unit) {
-                    const u = getUnitFromItem(item);
-                    if (u) groupedData[investmentName][subInvestmentName].unit = u;
-                  }
-                }
-              });
-
-              const formattedLines = [];
-              Object.entries(groupedData).forEach(([investmentName, subInvestments]) => {
-                const investmentUnit = Object.values(subInvestments).find(v => v.unit)?.unit || "";
-                const investmentDisplay = investmentUnit ? `**${investmentName} (${investmentUnit})**` : `**${investmentName}**`;
-                formattedLines.push(investmentDisplay);
-                Object.entries(subInvestments).forEach(([name, info]) => {
-                  formattedLines.push(`  • ${name} (${info.matra.toFixed(2)})`);
-                });
-              });
-              totalRow[columnDefs[col].label] = formattedLines.join("\n");
-            } else if (col === "investment_name") {
-              // For investment_name, show values with unit at investment level
-              const groupedInvestments = {};
-              totalRowData.forEach((item) => {
-                const investmentName = item.investment_name;
-                if (investmentName) {
-                  if (!groupedInvestments[investmentName]) groupedInvestments[investmentName] = { matra: 0, unit: "" };
-                  let qty = item.allocated_quantity;
-                  if (typeof qty === "string" && qty.includes(" / ")) {
-                    qty = parseFloat(qty.split(" / ")[0]) || 0;
-                  } else {
-                    qty = parseFloat(qty) || 0;
-                  }
-                  groupedInvestments[investmentName].matra += qty;
-                  if (!groupedInvestments[investmentName].unit) {
-                    const u = getUnitFromItem(item);
-                    if (u) groupedInvestments[investmentName].unit = u;
-                  }
-                }
-              });
-              const formattedLines = Object.entries(groupedInvestments).map(([name, info]) => {
-                const display = info.unit ? `**${name} (${info.unit})**` : `**${name}**`;
-                return info.matra ? `${display} (${info.matra.toFixed(2)})` : display;
-              });
-              totalRow[columnDefs[col].label] = formattedLines.join("\n");
-            } else {
-              // Get all unique values for this column from the selected rows only
-              const uniqueValues = [...new Set(totalRowData.map((item) => item[col]).filter(Boolean))];
-              totalRow[columnDefs[col].label] = uniqueValues.join("\n");
-            }
+          if (col === summaryTotalBreakdownColumn) {
+            // Add "कुल: X [column name]" header and breakdown
+            const headerLine = `कुल: ${totalBreakdown.length} ${columnDefs[col]?.label || col}`;
+            totalRow[columnDefs[col].label] = headerLine + "\n" + formatBreakdownForExport(totalBreakdown, "name");
+          } else if (mainSummaryExpandedColumns[col]) {
+            const uniqueValues = [...new Set(totalRowData.map((item) => item[col]).filter(Boolean))];
+            totalRow[columnDefs[col].label] = uniqueValues.join("\n");
           } else {
-            // Otherwise, just show the count for selected rows only
-            totalRow[columnDefs[col].label] = new Set(
-              totalRowData.map((item) => item[col])
-            ).size;
+            totalRow[columnDefs[col].label] = new Set(totalRowData.map((item) => item[col])).size;
           }
         }
       });
 
-      // Add monetary columns at the end
-      totalRow["आवंटित मात्रा"] = totalRowData
-        .reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0)
-        .toFixed(2);
-
-      totalRow["कृषक धनराशि"] = totalRowData
-        .reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0)
-        .toFixed(2);
-
-      totalRow["सब्सिडी धनराशि"] = totalRowData
-        .reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0)
-        .toFixed(2);
-
-      totalRow["कुल राशि"] = totalRowData
-        .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
-        .toFixed(2);
+      // Add monetary columns with breakdown format for totals
+      totalRow["आवंटित मात्रा"] = `कुल: ${grandTotals.allocated_quantity.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "allocated_quantity");
+      totalRow["कृषक धनराशि"] = `कुल: ${grandTotals.amount_of_farmer_share.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "amount_of_farmer_share");
+      totalRow["सब्सिडी धनराशि"] = `कुल: ${grandTotals.amount_of_subsidy.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "amount_of_subsidy");
+      totalRow["कुल राशि"] = `कुल: ${grandTotals.total_amount.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "total_amount");
 
       // Add total row to summary data
       summaryData.push(totalRow);
@@ -2518,7 +2654,12 @@ const MainDashboard = () => {
       };
     } else {
       // Detailed view
-      const filteredData = tableData.filter((item) => {
+      const baseData =
+        filteredTableData && filteredTableData.length > 0
+          ? filteredTableData
+          : tableData;
+
+      const filteredData = baseData.filter((item) => {
         for (let filter of filterStack) {
           if (!filter.checked[item[filter.column]]) return false;
         }
@@ -3532,6 +3673,8 @@ const MainDashboard = () => {
                               cellValue = formatted.join("\n");
                             }
                           }
+                          // Check if value contains newlines (hierarchical format)
+                          const hasMultipleLines = typeof cellValue === "string" && cellValue.includes("\n");
                           return (
                             <td
                               key={col}
@@ -3539,6 +3682,8 @@ const MainDashboard = () => {
                                 border: "1px solid #ddd",
                                 padding: "6px",
                                 fontSize: "10px",
+                                whiteSpace: hasMultipleLines ? "pre-wrap" : "normal",
+                                verticalAlign: "top",
                               }}
                             >
                               {cellValue}
@@ -3722,6 +3867,8 @@ const MainDashboard = () => {
                         </td>
                         {displayTable.columns.map((col) => {
                           const cellValue = resolveCellValue(row, col);
+                          // Check if value contains newlines (hierarchical format)
+                          const hasMultipleLines = typeof cellValue === "string" && cellValue.includes("\n");
                           return (
                             <td
                               key={col}
@@ -3729,6 +3876,8 @@ const MainDashboard = () => {
                                 border: "1px solid #ddd",
                                 padding: "6px",
                                 fontSize: "10px",
+                                whiteSpace: hasMultipleLines ? "pre-wrap" : "normal",
+                                verticalAlign: "top",
                               }}
                             >
                               {cellValue}
@@ -4437,7 +4586,12 @@ const MainDashboard = () => {
   // Generate detailed breakdown table for clicked entries
   const generateDetailedBreakdownTable = (clickedValues, columnKey) => {
     // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -4563,7 +4717,12 @@ const MainDashboard = () => {
     firstColumnKey
   ) => {
     // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
+    const currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
@@ -5161,6 +5320,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -5240,6 +5401,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -5319,6 +5482,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -5399,6 +5564,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -5478,6 +5645,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -5560,6 +5729,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -5639,6 +5810,8 @@ const MainDashboard = () => {
                                 position: "absolute",
                                 top: "100%",
                                 zIndex: 1000,
+                                maxHeight: "250px",
+                                overflowY: "auto",
                               }}
                             >
                               <div
@@ -6001,8 +6174,13 @@ const MainDashboard = () => {
                         .map((filter, index) => {
                           const filterIndex = filterStack.length - 1 - index;
                           // Get all unique values from filtered data for this column
-                          // Sort: selected values first, then unselected
-                          const currentFilteredData = tableData.filter(
+                          // Use filteredTableData as base to respect top-level filters
+                          const baseData =
+                            filteredTableData && filteredTableData.length > 0
+                              ? filteredTableData
+                              : tableData;
+
+                          const currentFilteredData = baseData.filter(
                             (item) => {
                               // Apply all filters except the current one
                               for (let i = 0; i < filterStack.length; i++) {
@@ -6058,6 +6236,8 @@ const MainDashboard = () => {
                                       position: "absolute",
                                       top: "100%",
                                       zIndex: 1000,
+                                      maxHeight: "250px",
+                                      overflowY: "auto",
                                     }}
                                   >
                                     <div
@@ -6200,7 +6380,13 @@ const MainDashboard = () => {
                   <Col lg={9} md={9} sm={12}>
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       {(() => {
-                        const filteredData = tableData.filter((item) => {
+                        // Use filteredTableData as base to respect top-level filters
+                        const baseData =
+                          filteredTableData && filteredTableData.length > 0
+                            ? filteredTableData
+                            : tableData;
+
+                        const filteredData = baseData.filter((item) => {
                           for (let filter of filterStack) {
                             if (!filter.checked[item[filter.column]])
                               return false;
@@ -6495,6 +6681,31 @@ const MainDashboard = () => {
                                 return (
                                   <div>
                                     <ExportSection />
+                                    {/* Total Breakdown Filter for Summary Table */}
+                                    <div className="mb-3 p-2 border rounded bg-light">
+                                      <div className="d-flex align-items-center gap-3 flex-wrap">
+                                        <span className="fw-bold small">
+                                          <BiFilter /> कुल का विवरण देखें:
+                                        </span>
+                                        <Form.Select
+                                          size="sm"
+                                          style={{ width: "auto", minWidth: "180px" }}
+                                          value={summaryTotalBreakdownColumn}
+                                          onChange={(e) => setSummaryTotalBreakdownColumn(e.target.value)}
+                                        >
+                                          <option value="center_name">केंद्र</option>
+                                          <option value="vidhan_sabha_name">विधानसभा</option>
+                                          <option value="vikas_khand_name">विकास खंड</option>
+                                          <option value="scheme_name">योजना</option>
+                                          <option value="source_of_receipt">सप्लायर</option>
+                                          <option value="investment_name">निवेश</option>
+                                          <option value="sub_investment_name">उप-निवेश</option>
+                                        </Form.Select>
+                                        <span className="text-muted small">
+                                          (आवंटित मात्रा, कृषक धनराशि, सब्सिडी धनराशि, कुल राशि में विवरण दिखाएं)
+                                        </span>
+                                      </div>
+                                    </div>
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                       <h5 className="mb-0">
                                         {columnDefs[currentFilter.column]?.label || "Summary Table"}
@@ -6923,7 +7134,37 @@ const MainDashboard = () => {
                                                     );
                                                     cellData = applySummaryHeaderFilters(cellData);
 
-                                                    // योजना column: show hierarchy -> योजना -> निवेश (unit/matra) -> उप-निवेश
+                                                    // SPECIAL: If this column is the selected breakdown column, show names in same format as value columns
+                                                    if (col === summaryTotalBreakdownColumn) {
+                                                      const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
+                                                      return (
+                                                        <td key={col} style={{ maxWidth: "350px", verticalAlign: "top" }}>
+                                                          <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                            {breakdown.map((group, gIdx) => (
+                                                              <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                                <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                                  {group.groupName}
+                                                                </div>
+                                                                {group.investments.map((inv, iIdx) => (
+                                                                  <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                    <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                      {inv.name}
+                                                                    </div>
+                                                                    {inv.subInvestments.map((sub, sIdx) => (
+                                                                      <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                        {sub.name}
+                                                                      </div>
+                                                                    ))}
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        </td>
+                                                      );
+                                                    }
+
+                                                    // योजना column: show hierarchy -> योजना -> निवेश -> उप-निवेश (names only, no matra/dar)
                                                     if (col === "scheme_name") {
                                                       // Only use filtered cellData for this row
                                                       // Only show schemes that are currently selected in the filter
@@ -6941,14 +7182,12 @@ const MainDashboard = () => {
                                                                   <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>{schemeItem.schemeName}</div>
                                                                   {schemeItem.investments.map((invItem, iIdx) => (
                                                                     <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                      <div style={{ fontSize: "11px", fontWeight: 500, display: "flex", justifyContent: "space-between", padding: "2px 6px 2px 12px" }}>
+                                                                      <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                         <span>{invItem.investmentName}</span>
-                                                                        <span style={{ color: "#0d6efd" }}>{invItem.unit ? `(${invItem.unit}) ` : ""}{invItem.matra ? `(${invItem.matra})` : ""}</span>
                                                                       </div>
                                                                       {invItem.subInvestments.map((subItem, subIdx) => (
-                                                                        <div key={subIdx} style={{ fontSize: "10px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                        <div key={subIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
                                                                           <span>{subItem.name}</span>
-                                                                          <span style={{ color: "#0d6efd" }}>{subItem.matra ? `(${subItem.matra})` : ""}</span>
                                                                         </div>
                                                                       ))}
                                                                     </div>
@@ -6960,7 +7199,7 @@ const MainDashboard = () => {
                                                       );
                                                     }
                                                     // For vikas_khand_name, vidhan_sabha_name, center_name, source_of_receipt:
-                                                    // show groups per value -> investment (unit/matra) -> sub-investment (matra)
+                                                    // show groups per value -> investment -> sub-investment (names only, no matra/dar)
                                                     if (
                                                       col === "vikas_khand_name" ||
                                                       col === "vidhan_sabha_name" ||
@@ -6981,14 +7220,12 @@ const MainDashboard = () => {
                                                                   <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "4px 6px", borderRadius: "3px", color: "#495057" }}>{group.groupValue}</div>
                                                                   {group.investments.map((invItem, iIdx) => (
                                                                     <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                      <div style={{ fontSize: "11px", fontWeight: 500, display: "flex", justifyContent: "space-between", padding: "2px 6px 2px 12px" }}>
+                                                                      <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                         <span>{invItem.investmentName}</span>
-                                                                        <span style={{ color: "#0d6efd" }}>{invItem.unit ? `(${invItem.unit}) ` : ""}{invItem.matra ? `(${invItem.matra})` : ""}</span>
                                                                       </div>
                                                                       {invItem.subInvestments.map((subItem, subIdx) => (
-                                                                        <div key={subIdx} style={{ fontSize: "10px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                        <div key={subIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
                                                                           <span>{subItem.name}</span>
-                                                                          <span style={{ color: "#0d6efd" }}>{subItem.matra ? `(${subItem.matra})` : ""}</span>
                                                                         </div>
                                                                       ))}
                                                                     </div>
@@ -6999,7 +7236,7 @@ const MainDashboard = () => {
                                                         </td>
                                                       );
                                                     }
-                                                    // For sub_investment_name, show grouped by investment_name
+                                                    // For sub_investment_name, show grouped by investment_name (names only, no matra/dar)
                                                     if (col === "sub_investment_name") {
                                                       // Only use filtered cellData for this row
                                                       const groupedData = getSubInvestmentGroupedByInvestment(checkedValue);
@@ -7012,11 +7249,10 @@ const MainDashboard = () => {
                                                               .filter((group) => allowedInvestments.has(group.investmentName))
                                                               .map((group, groupIdx) => (
                                                                 <div key={groupIdx} style={{ marginBottom: "8px" }}>
-                                                                  <div style={{ fontSize: "11px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "3px 5px", borderRadius: "3px", color: "#495057" }}>{group.investmentName}{group.unit && !String(group.investmentName).includes(`(${group.unit})`) && (<span style={{ marginLeft: "5px", color: "#666" }}>({group.unit})</span>)}</div>
+                                                                  <div style={{ fontSize: "11px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "3px 5px", borderRadius: "3px", color: "#495057" }}>{group.investmentName}</div>
                                                                   {group.subInvestments.map((item, itemIdx) => (
-                                                                    <div key={itemIdx} style={{ fontSize: "10px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 5px 2px 15px" }}>
+                                                                    <div key={itemIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 5px 2px 15px" }}>
                                                                       <span>{item.name}</span>
-                                                                      <span style={{ color: "#007bff", marginLeft: "8px" }}>{item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}</span>
                                                                     </div>
                                                                   ))}
                                                                 </div>
@@ -7025,7 +7261,7 @@ const MainDashboard = () => {
                                                         </td>
                                                       );
                                                     }
-                                                    // For investment_name, show values with matra
+                                                    // For investment_name, show names only (no matra/dar)
                                                     if (col === "investment_name") {
                                                       // Only use filtered cellData for this row
                                                       const valuesWithMatra = getUniqueValuesWithMatra(col, checkedValue);
@@ -7037,9 +7273,8 @@ const MainDashboard = () => {
                                                             {valuesWithMatra
                                                               .filter((item) => allowedInvestments.has(item.name))
                                                               .map((item, valIdx) => (
-                                                                <div key={valIdx} style={{ fontSize: "11px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 0" }}>
+                                                                <div key={valIdx} style={{ fontSize: "11px", borderBottom: "1px dotted #ccc", padding: "2px 0" }}>
                                                                   <span style={{ fontWeight: "500" }}>{item.name}</span>
-                                                                  <span style={{ color: "#007bff", marginLeft: "8px" }}>{item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}</span>
                                                                 </div>
                                                               ))}
                                                           </div>
@@ -7126,67 +7361,170 @@ const MainDashboard = () => {
                                                     );
                                                   }
                                                 })}
+                                              {/* Breakdown Column - Shows matra/values line by line matching group column */}
                                               {tableColumnFilters.summary.includes(
                                                 "आवंटित मात्रा"
                                               ) && (
-                                                <td>
-                                                  {tableDataForValue
-                                                    .reduce((sum, item) => {
-                                                      const qtyVal =
-                                                        typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
-                                                          ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
-                                                          : parseFloat(item.allocated_quantity) || 0;
-                                                      return sum + qtyVal;
-                                                    }, 0)
-                                                    .toFixed(2)}
+                                                <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
+                                                  {(() => {
+                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
+                                                    const totalQty = tableDataForValue
+                                                      .reduce((sum, item) => {
+                                                        const qtyVal =
+                                                          typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+                                                            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+                                                            : parseFloat(item.allocated_quantity) || 0;
+                                                        return sum + qtyVal;
+                                                      }, 0)
+                                                      .toFixed(2);
+                                                    
+                                                    return (
+                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                        {breakdown.map((group, gIdx) => (
+                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              {group.totals.allocated_quantity.toFixed(2)}
+                                                            </div>
+                                                            {group.investments.map((inv, iIdx) => (
+                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                  {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
+                                                                </div>
+                                                                {inv.subInvestments.map((sub, sIdx) => (
+                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                    {sub.totals.allocated_quantity.toFixed(2)}{sub.unit && ` (${sub.unit})`}
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    );
+                                                  })()}
                                                 </td>
                                               )}
                                               {tableColumnFilters.summary.includes(
                                                 "कृषक धनराशि"
                                               ) && (
-                                                <td>
-                                                  {tableDataForValue
-                                                    .reduce(
-                                                      (sum, item) =>
-                                                        sum +
-                                                        (parseFloat(
-                                                          item.amount_of_farmer_share
-                                                        ) || 0),
-                                                      0
-                                                    )
-                                                    .toFixed(2)}
+                                                <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
+                                                  {(() => {
+                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
+                                                    const totalAmt = tableDataForValue
+                                                      .reduce(
+                                                        (sum, item) =>
+                                                          sum +
+                                                          (parseFloat(item.amount_of_farmer_share) || 0),
+                                                        0
+                                                      )
+                                                      .toFixed(2);
+                                                    
+                                                    return (
+                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                        {breakdown.map((group, gIdx) => (
+                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              {group.totals.amount_of_farmer_share.toFixed(2)}
+                                                            </div>
+                                                            {group.investments.map((inv, iIdx) => (
+                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                  {inv.totals.amount_of_farmer_share.toFixed(2)}
+                                                                </div>
+                                                                {inv.subInvestments.map((sub, sIdx) => (
+                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                    {sub.totals.amount_of_farmer_share.toFixed(2)}
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    );
+                                                  })()}
                                                 </td>
                                               )}
                                               {tableColumnFilters.summary.includes(
                                                 "सब्सिडी धनराशि"
                                               ) && (
-                                                <td>
-                                                  {tableDataForValue
-                                                    .reduce(
-                                                      (sum, item) =>
-                                                        sum +
-                                                        (parseFloat(
-                                                          item.amount_of_subsidy
-                                                        ) || 0),
-                                                      0
-                                                    )
-                                                    .toFixed(2)}
+                                                <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
+                                                  {(() => {
+                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
+                                                    const totalAmt = tableDataForValue
+                                                      .reduce(
+                                                        (sum, item) =>
+                                                          sum +
+                                                          (parseFloat(item.amount_of_subsidy) || 0),
+                                                        0
+                                                      )
+                                                      .toFixed(2);
+                                                    
+                                                    return (
+                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                        {breakdown.map((group, gIdx) => (
+                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              {group.totals.amount_of_subsidy.toFixed(2)}
+                                                            </div>
+                                                            {group.investments.map((inv, iIdx) => (
+                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                  {inv.totals.amount_of_subsidy.toFixed(2)}
+                                                                </div>
+                                                                {inv.subInvestments.map((sub, sIdx) => (
+                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                    {sub.totals.amount_of_subsidy.toFixed(2)}
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    );
+                                                  })()}
                                                 </td>
                                               )}
                                               {tableColumnFilters.summary.includes(
                                                 "कुल राशि"
                                               ) && (
-                                                <td>
-                                                  {tableDataForValue
-                                                    .reduce(
-                                                      (sum, item) =>
-                                                        sum +
-                                                        (parseFloat(
-                                                          item.total_amount
-                                                        ) || 0),
-                                                      0
-                                                    )
-                                                    .toFixed(2)}
+                                                <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
+                                                  {(() => {
+                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
+                                                    const totalAmt = tableDataForValue
+                                                      .reduce(
+                                                        (sum, item) =>
+                                                          sum +
+                                                          (parseFloat(item.total_amount) || 0),
+                                                        0
+                                                      )
+                                                      .toFixed(2);
+                                                    
+                                                    return (
+                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                        {breakdown.map((group, gIdx) => (
+                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              {group.totals.total_amount.toFixed(2)}
+                                                            </div>
+                                                            {group.investments.map((inv, iIdx) => (
+                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                  {inv.totals.total_amount.toFixed(2)}
+                                                                </div>
+                                                                {inv.subInvestments.map((sub, sIdx) => (
+                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                    {sub.totals.total_amount.toFixed(2)}
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    );
+                                                  })()}
                                                 </td>
                                               )}
                                             </tr>
@@ -7275,7 +7613,63 @@ const MainDashboard = () => {
                                                 mainSummaryExpandedColumns[col];
 
                                               if (isExpanded) {
-                                                // Totals row expanded for योजना: show all schemes inline and detailed totals
+                                                // SPECIAL: If this column is the selected breakdown column, show names in same format as value columns
+                                                if (col === summaryTotalBreakdownColumn) {
+                                                  // Build header-filtered dataset across all visible groups
+                                                  const displayCheckedValues = (() => {
+                                                    const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                    return checkedValues.filter((checkedValue) => {
+                                                      const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
+                                                      const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                      if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                        return false;
+                                                      }
+                                                      for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                        if (k === currentFilter.column) continue;
+                                                        const sel = selectedVals || [];
+                                                        if (sel.length > 0) {
+                                                          const match = rowsForValue.some((row) => sel.includes(row[k]));
+                                                          if (!match) return false;
+                                                        }
+                                                      }
+                                                      return true;
+                                                    });
+                                                  })();
+                                                  const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                  const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
+                                                  const totalCount = breakdown.length;
+                                                  return (
+                                                    <td key={col} style={{ maxWidth: "420px", verticalAlign: "top" }}>
+                                                      <div>
+                                                        <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
+                                                          कुल: {totalCount} {columnDefs[col]?.label || col}
+                                                        </div>
+                                                        <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                          {breakdown.map((group, gIdx) => (
+                                                            <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                                {group.groupName}
+                                                              </div>
+                                                              {group.investments.map((inv, iIdx) => (
+                                                                <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                  <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                    {inv.name}
+                                                                  </div>
+                                                                  {inv.subInvestments.map((sub, sIdx) => (
+                                                                    <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                      {sub.name}
+                                                                    </div>
+                                                                  ))}
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    </td>
+                                                  );
+                                                }
+                                                // Totals row expanded for योजना: show all schemes inline (names only, no matra/dar)
                                                 if (col === "scheme_name") {
                                                   // Build header-filtered dataset across all visible groups
                                                   const displayCheckedValues = (() => {
@@ -7299,13 +7693,7 @@ const MainDashboard = () => {
                                                   })();
                                                   const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
                                                   const allSchemes = [...new Set(headerFilteredAll.map((item) => item.scheme_name).filter(Boolean))];
-                                                  // Group scheme -> investment -> sub-investment with unit/matra
-                                                  const parseQty = (qty) => {
-                                                    if (typeof qty === "string" && qty.includes(" / ")) {
-                                                      return parseFloat(qty.split(" / ")[0]) || 0;
-                                                    }
-                                                    return parseFloat(qty) || 0;
-                                                  };
+                                                  // Group scheme -> investment -> sub-investment (names only)
                                                   const grouped = {};
                                                   headerFilteredAll.forEach((item) => {
                                                     const scheme = item.scheme_name;
@@ -7314,34 +7702,15 @@ const MainDashboard = () => {
                                                     if (!scheme || !investment || !subInvestment) return;
                                                     if (!grouped[scheme]) grouped[scheme] = {};
                                                     if (!grouped[scheme][investment]) {
-                                                      grouped[scheme][investment] = { matra: 0, unit: "", subs: {} };
+                                                      grouped[scheme][investment] = { subs: new Set() };
                                                     }
-                                                    if (!grouped[scheme][investment].subs[subInvestment]) {
-                                                      grouped[scheme][investment].subs[subInvestment] = { matra: 0, unit: "" };
-                                                    }
-                                                    const qty = parseQty(item.allocated_quantity);
-                                                    grouped[scheme][investment].matra += qty;
-                                                    grouped[scheme][investment].subs[subInvestment].matra += qty;
-                                                    if (!grouped[scheme][investment].unit) {
-                                                      const uInv = getUnitFromItem(item);
-                                                      if (uInv) grouped[scheme][investment].unit = uInv;
-                                                    }
-                                                    if (!grouped[scheme][investment].subs[subInvestment].unit) {
-                                                      const uSub = getUnitFromItem(item);
-                                                      if (uSub) grouped[scheme][investment].subs[subInvestment].unit = uSub;
-                                                    }
+                                                    grouped[scheme][investment].subs.add(subInvestment);
                                                   });
                                                   const schemeTotals = Object.entries(grouped).map(([schemeName, investments]) => ({
                                                     schemeName,
                                                     investments: Object.entries(investments).map(([invName, info]) => ({
                                                       investmentName: invName,
-                                                      unit: info.unit || "",
-                                                      matra: info.matra.toFixed(2),
-                                                      subInvestments: Object.entries(info.subs).map(([subName, sInfo]) => ({
-                                                        name: subName,
-                                                        unit: sInfo.unit || "",
-                                                        matra: sInfo.matra.toFixed(2),
-                                                      })),
+                                                      subInvestments: [...info.subs].map((subName) => ({ name: subName })),
                                                     })),
                                                   }));
                                                   return (
@@ -7370,33 +7739,21 @@ const MainDashboard = () => {
                                                                   style={{
                                                                     fontSize: "11px",
                                                                     fontWeight: 500,
-                                                                    display: "flex",
-                                                                    justifyContent: "space-between",
                                                                     padding: "2px 6px 2px 12px",
                                                                   }}
                                                                 >
                                                                   <span>{invItem.investmentName}</span>
-                                                                  <span style={{ color: "#0d6efd" }}>
-                                                                    {invItem.unit ? `(${invItem.unit}) ` : ""}
-                                                                    {invItem.matra ? `(${invItem.matra})` : ""}
-                                                                  </span>
                                                                 </div>
                                                                 {invItem.subInvestments.map((subItem, subIdx) => (
                                                                   <div
                                                                     key={subIdx}
                                                                     style={{
                                                                       fontSize: "10px",
-                                                                      display: "flex",
-                                                                      justifyContent: "space-between",
                                                                       borderBottom: "1px dotted #ccc",
                                                                       padding: "2px 6px 2px 22px",
                                                                     }}
                                                                   >
                                                                     <span>{subItem.name}</span>
-                                                                    <span style={{ color: "#0d6efd" }}>
-                                                                      {subItem.unit ? `(${subItem.unit}) ` : ""}
-                                                                      {subItem.matra ? `(${subItem.matra})` : ""}
-                                                                    </span>
                                                                   </div>
                                                                 ))}
                                                               </div>
@@ -7407,7 +7764,7 @@ const MainDashboard = () => {
                                                     </td>
                                                   );
                                                 }
-                                                // Totals row expanded for center/vikas/vidhan/supplier: show all values on one line and overall investment/sub-investment totals
+                                                // Totals row expanded for center/vikas/vidhan/supplier: show all values (names only, no matra/dar)
                                                 if (
                                                   col === "center_name" ||
                                                   col === "vikas_khand_name" ||
@@ -7436,41 +7793,18 @@ const MainDashboard = () => {
                                                   })();
                                                   const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
                                                   const allValues = [...new Set(headerFilteredAll.map((item) => item[col]).filter(Boolean))];
-                                                  // Group by investment -> sub-investment with unit/matra
-                                                  const parseQty = (qty) => {
-                                                    if (typeof qty === "string" && qty.includes(" / ")) {
-                                                      return parseFloat(qty.split(" / ")[0]) || 0;
-                                                    }
-                                                    return parseFloat(qty) || 0;
-                                                  };
+                                                  // Group by investment -> sub-investment (names only, no matra/dar)
                                                   const invGrouped = {};
                                                   headerFilteredAll.forEach((item) => {
                                                     const inv = item.investment_name;
                                                     const sub = item.sub_investment_name;
                                                     if (!inv || !sub) return;
-                                                    if (!invGrouped[inv]) invGrouped[inv] = { matra: 0, unit: "", subs: {} };
-                                                    if (!invGrouped[inv].subs[sub]) invGrouped[inv].subs[sub] = { matra: 0, unit: "" };
-                                                    const qty = parseQty(item.allocated_quantity);
-                                                    invGrouped[inv].matra += qty;
-                                                    invGrouped[inv].subs[sub].matra += qty;
-                                                    if (!invGrouped[inv].unit) {
-                                                      const u = getUnitFromItem(item);
-                                                      if (u) invGrouped[inv].unit = u;
-                                                    }
-                                                    if (!invGrouped[inv].subs[sub].unit) {
-                                                      const u2 = getUnitFromItem(item);
-                                                      if (u2) invGrouped[inv].subs[sub].unit = u2;
-                                                    }
+                                                    if (!invGrouped[inv]) invGrouped[inv] = { subs: new Set() };
+                                                    invGrouped[inv].subs.add(sub);
                                                   });
                                                   const groupedTotals = Object.entries(invGrouped).map(([invName, info]) => ({
                                                     investmentName: invName,
-                                                    unit: info.unit || "",
-                                                    matra: info.matra.toFixed(2),
-                                                    subInvestments: Object.entries(info.subs).map(([subName, sInfo]) => ({
-                                                      name: subName,
-                                                      unit: sInfo.unit || "",
-                                                      matra: sInfo.matra.toFixed(2),
-                                                    })),
+                                                    subInvestments: [...info.subs].map((subName) => ({ name: subName })),
                                                   }));
                                                   return (
                                                     <td key={col} style={{ maxWidth: "400px" }}>
@@ -7484,33 +7818,21 @@ const MainDashboard = () => {
                                                               style={{
                                                                 fontSize: "11px",
                                                                 fontWeight: 500,
-                                                                display: "flex",
-                                                                justifyContent: "space-between",
                                                                 padding: "2px 6px 2px 12px",
                                                               }}
                                                             >
                                                               <span>{invItem.investmentName}</span>
-                                                              <span style={{ color: "#0d6efd" }}>
-                                                                {invItem.unit ? `(${invItem.unit}) ` : ""}
-                                                                {invItem.matra ? `(${invItem.matra})` : ""}
-                                                              </span>
                                                             </div>
                                                             {invItem.subInvestments.map((subItem, subIdx) => (
                                                               <div
                                                                 key={subIdx}
                                                                 style={{
                                                                   fontSize: "10px",
-                                                                  display: "flex",
-                                                                  justifyContent: "space-between",
                                                                   borderBottom: "1px dotted #ccc",
                                                                   padding: "2px 6px 2px 22px",
                                                                 }}
                                                               >
                                                                 <span>{subItem.name}</span>
-                                                                <span style={{ color: "#0d6efd" }}>
-                                                                  {subItem.unit ? `(${subItem.unit}) ` : ""}
-                                                                  {subItem.matra ? `(${subItem.matra})` : ""}
-                                                                </span>
                                                               </div>
                                                             ))}
                                                           </div>
@@ -7519,7 +7841,7 @@ const MainDashboard = () => {
                                                     </td>
                                                   );
                                                 }
-                                                // For sub_investment_name, show grouped by investment_name
+                                                // For sub_investment_name, show grouped by investment_name (names only, no matra/dar)
                                                 if (col === "sub_investment_name") {
                                                   // Build header-filtered dataset across all visible groups
                                                   const displayCheckedValues = (() => {
@@ -7542,39 +7864,18 @@ const MainDashboard = () => {
                                                     });
                                                   })();
                                                   const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
-                                                  // Group sub_investment by investment_name with unit/matra shown per item
-                                                  const parseQty = (qty) => {
-                                                    if (typeof qty === "string" && qty.includes(" / ")) {
-                                                      return parseFloat(qty.split(" / ")[0]) || 0;
-                                                    }
-                                                    return parseFloat(qty) || 0;
-                                                  };
+                                                  // Group sub_investment by investment_name (names only)
                                                   const groupedMap = {};
                                                   headerFilteredAll.forEach((item) => {
                                                     const inv = item.investment_name;
                                                     const sub = item.sub_investment_name;
                                                     if (!inv || !sub) return;
-                                                    if (!groupedMap[inv]) groupedMap[inv] = { unit: "", subs: {} };
-                                                    if (!groupedMap[inv].subs[sub]) groupedMap[inv].subs[sub] = { matra: 0, unit: "" };
-                                                    const qty = parseQty(item.allocated_quantity);
-                                                    groupedMap[inv].subs[sub].matra += qty;
-                                                    if (!groupedMap[inv].unit) {
-                                                      const u = getUnitFromItem(item);
-                                                      if (u) groupedMap[inv].unit = u;
-                                                    }
-                                                    if (!groupedMap[inv].subs[sub].unit) {
-                                                      const u2 = getUnitFromItem(item);
-                                                      if (u2) groupedMap[inv].subs[sub].unit = u2;
-                                                    }
+                                                    if (!groupedMap[inv]) groupedMap[inv] = { subs: new Set() };
+                                                    groupedMap[inv].subs.add(sub);
                                                   });
                                                   const groupedData = Object.entries(groupedMap).map(([investmentName, info]) => ({
                                                     investmentName,
-                                                    unit: info.unit || "",
-                                                    subInvestments: Object.entries(info.subs).map(([name, sInfo]) => ({
-                                                      name,
-                                                      unit: sInfo.unit || "",
-                                                      matra: sInfo.matra.toFixed(2),
-                                                    })),
+                                                    subInvestments: [...info.subs].map((name) => ({ name })),
                                                   }));
                                                   return (
                                                     <td
@@ -7603,25 +7904,17 @@ const MainDashboard = () => {
                                                                 }}
                                                               >
                                                                 {group.investmentName}
-                                                                {group.unit && !String(group.investmentName).includes(`(${group.unit})`) && (
-                                                                  <span style={{ marginLeft: "5px", color: "#666" }}>({group.unit})</span>
-                                                                )}
                                                               </div>
                                                               {group.subInvestments.map((item, itemIdx) => (
                                                                 <div
                                                                   key={itemIdx}
                                                                   style={{
                                                                     fontSize: "10px",
-                                                                    display: "flex",
-                                                                    justifyContent: "space-between",
                                                                     borderBottom: "1px dotted #ccc",
                                                                     padding: "2px 5px 2px 15px",
                                                                   }}
                                                                 >
                                                                   <span>{item.name}</span>
-                                                                    <span style={{ color: "#007bff", marginLeft: "8px" }}>
-                                                                      {item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}
-                                                                    </span>
                                                                 </div>
                                                               ))}
                                                             </div>
@@ -7632,7 +7925,7 @@ const MainDashboard = () => {
                                                   );
                                                 }
                                                 
-                                                // For investment_name, show values with matra
+                                                // For investment_name, show names only (no matra/dar)
                                                 if (col === "investment_name") {
                                                   // Build header-filtered dataset across all visible groups
                                                   const displayCheckedValues = (() => {
@@ -7655,29 +7948,8 @@ const MainDashboard = () => {
                                                     });
                                                   })();
                                                   const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
-                                                  // Aggregate matra by investment_name with unit
-                                                  const parseQty = (qty) => {
-                                                    if (typeof qty === "string" && qty.includes(" / ")) {
-                                                      return parseFloat(qty.split(" / ")[0]) || 0;
-                                                    }
-                                                    return parseFloat(qty) || 0;
-                                                  };
-                                                  const grouped = {};
-                                                  headerFilteredAll.forEach((item) => {
-                                                    const key = item[col];
-                                                    if (!key) return;
-                                                    if (!grouped[key]) grouped[key] = { matra: 0, unit: "" };
-                                                    grouped[key].matra += parseQty(item.allocated_quantity);
-                                                    if (!grouped[key].unit) {
-                                                      const u = getUnitFromItem(item);
-                                                      if (u) grouped[key].unit = u;
-                                                    }
-                                                  });
-                                                  const valuesWithMatra = Object.entries(grouped).map(([name, info]) => ({
-                                                    name,
-                                                    matra: info.matra.toFixed(2),
-                                                    unit: info.unit || "",
-                                                  }));
+                                                  // Get unique investment names only
+                                                  const uniqueInvestments = [...new Set(headerFilteredAll.map((item) => item[col]).filter(Boolean))];
                                                   return (
                                                     <td
                                                       key={col}
@@ -7691,22 +7963,17 @@ const MainDashboard = () => {
                                                           overflowY: "auto",
                                                         }}
                                                       >
-                                                        {valuesWithMatra.map(
-                                                          (item, valIdx) => (
+                                                        {uniqueInvestments.map(
+                                                          (name, valIdx) => (
                                                             <div
                                                               key={valIdx}
                                                               style={{
                                                                 fontSize: "11px",
-                                                                display: "flex",
-                                                                justifyContent: "space-between",
                                                                 borderBottom: "1px dotted #ccc",
                                                                 padding: "2px 0",
                                                               }}
                                                             >
-                                                              <span style={{ fontWeight: "500" }}>{item.name}</span>
-                                                              <span style={{ color: "#007bff", marginLeft: "8px" }}>
-                                                                {item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}
-                                                              </span>
+                                                              <span style={{ fontWeight: "500" }}>{name}</span>
                                                             </div>
                                                           )
                                                         )}
@@ -7796,7 +8063,7 @@ const MainDashboard = () => {
                                           {tableColumnFilters.summary.includes(
                                             "आवंटित मात्रा"
                                           ) && (
-                                            <td style={{ fontWeight: "bold" }}>
+                                            <td style={{ fontWeight: "bold", verticalAlign: "top", maxWidth: "200px" }}>
                                               {(() => {
                                                 const anyEmptySelection = Object.values(summaryColumnValueFilters || {}).some((arr) => Array.isArray(arr) && arr.length === 0);
                                                 const displayCheckedValues = (() => {
@@ -7820,38 +8087,49 @@ const MainDashboard = () => {
                                                     return true;
                                                   });
                                                 })();
-                                                return displayCheckedValues
-                                                .reduce((sum, checkedValue) => {
-                                                  const tableDataForValue =
-                                                    filteredData.filter(
-                                                      (item) =>
-                                                        item[
-                                                          currentFilter.column
-                                                        ] === checkedValue
-                                                    );
-                                                  return (
-                                                    sum +
-                                                    tableDataForValue.reduce(
-                                                      (s, item) =>
-                                                        s + (() => {
-                                                          const qtyVal =
-                                                            typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
-                                                              ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
-                                                              : parseFloat(item.allocated_quantity) || 0;
-                                                          return qtyVal;
-                                                        })(),
-                                                      0
-                                                    )
-                                                  );
-                                                }, 0)
-                                                .toFixed(2);
+                                                const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                const grandTotal = headerFilteredAll.reduce((sum, item) => {
+                                                  const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+                                                    ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+                                                    : parseFloat(item.allocated_quantity) || 0;
+                                                  return sum + qtyVal;
+                                                }, 0).toFixed(2);
+                                                const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
+                                                return (
+                                                  <div>
+                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
+                                                      कुल: {grandTotal}
+                                                    </div>
+                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      {breakdown.map((group, gIdx) => (
+                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                            {group.totals.allocated_quantity.toFixed(2)}
+                                                          </div>
+                                                          {group.investments.map((inv, iIdx) => (
+                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
+                                                              </div>
+                                                              {inv.subInvestments.map((sub, sIdx) => (
+                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                  {sub.totals.allocated_quantity.toFixed(2)}{sub.unit && ` (${sub.unit})`}
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                );
                                               })()}
                                             </td>
                                           )}
                                           {tableColumnFilters.summary.includes(
                                             "कृषक धनराशि"
                                           ) && (
-                                            <td style={{ fontWeight: "bold" }}>
+                                            <td style={{ fontWeight: "bold", verticalAlign: "top", maxWidth: "200px" }}>
                                               {(() => {
                                                 const displayCheckedValues = (() => {
                                                   return checkedValues.filter((checkedValue) => {
@@ -7873,35 +8151,44 @@ const MainDashboard = () => {
                                                     return true;
                                                   });
                                                 })();
-                                                return displayCheckedValues
-                                                .reduce((sum, checkedValue) => {
-                                                  const tableDataForValue =
-                                                    filteredData.filter(
-                                                      (item) =>
-                                                        item[
-                                                          currentFilter.column
-                                                        ] === checkedValue
-                                                    );
-                                                  return (
-                                                    sum +
-                                                    tableDataForValue.reduce(
-                                                      (s, item) =>
-                                                        s +
-                                                        (parseFloat(
-                                                          item.amount_of_farmer_share
-                                                        ) || 0),
-                                                      0
-                                                    )
-                                                  );
-                                                }, 0)
-                                                .toFixed(2);
+                                                const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                const grandTotal = headerFilteredAll.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2);
+                                                const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
+                                                return (
+                                                  <div>
+                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
+                                                      कुल: {grandTotal}
+                                                    </div>
+                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      {breakdown.map((group, gIdx) => (
+                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                            {group.totals.amount_of_farmer_share.toFixed(2)}
+                                                          </div>
+                                                          {group.investments.map((inv, iIdx) => (
+                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                {inv.totals.amount_of_farmer_share.toFixed(2)}
+                                                              </div>
+                                                              {inv.subInvestments.map((sub, sIdx) => (
+                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                  {sub.totals.amount_of_farmer_share.toFixed(2)}
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                );
                                               })()}
                                             </td>
                                           )}
                                           {tableColumnFilters.summary.includes(
                                             "सब्सिडी धनराशि"
                                           ) && (
-                                            <td style={{ fontWeight: "bold" }}>
+                                            <td style={{ fontWeight: "bold", verticalAlign: "top", maxWidth: "200px" }}>
                                               {(() => {
                                                 const displayCheckedValues = (() => {
                                                   return checkedValues.filter((checkedValue) => {
@@ -7923,35 +8210,44 @@ const MainDashboard = () => {
                                                     return true;
                                                   });
                                                 })();
-                                                return displayCheckedValues
-                                                .reduce((sum, checkedValue) => {
-                                                  const tableDataForValue =
-                                                    filteredData.filter(
-                                                      (item) =>
-                                                        item[
-                                                          currentFilter.column
-                                                        ] === checkedValue
-                                                    );
-                                                  return (
-                                                    sum +
-                                                    tableDataForValue.reduce(
-                                                      (s, item) =>
-                                                        s +
-                                                        (parseFloat(
-                                                          item.amount_of_subsidy
-                                                        ) || 0),
-                                                      0
-                                                    )
-                                                  );
-                                                }, 0)
-                                                .toFixed(2);
+                                                const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                const grandTotal = headerFilteredAll.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2);
+                                                const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
+                                                return (
+                                                  <div>
+                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
+                                                      कुल: {grandTotal}
+                                                    </div>
+                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      {breakdown.map((group, gIdx) => (
+                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                            {group.totals.amount_of_subsidy.toFixed(2)}
+                                                          </div>
+                                                          {group.investments.map((inv, iIdx) => (
+                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                {inv.totals.amount_of_subsidy.toFixed(2)}
+                                                              </div>
+                                                              {inv.subInvestments.map((sub, sIdx) => (
+                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                  {sub.totals.amount_of_subsidy.toFixed(2)}
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                );
                                               })()}
                                             </td>
                                           )}
                                           {tableColumnFilters.summary.includes(
                                             "कुल राशि"
                                           ) && (
-                                            <td style={{ fontWeight: "bold" }}>
+                                            <td style={{ fontWeight: "bold", verticalAlign: "top", maxWidth: "200px" }}>
                                               {(() => {
                                                 const displayCheckedValues = (() => {
                                                   return checkedValues.filter((checkedValue) => {
@@ -7973,28 +8269,37 @@ const MainDashboard = () => {
                                                     return true;
                                                   });
                                                 })();
-                                                return displayCheckedValues
-                                                .reduce((sum, checkedValue) => {
-                                                  const tableDataForValue =
-                                                    filteredData.filter(
-                                                      (item) =>
-                                                        item[
-                                                          currentFilter.column
-                                                        ] === checkedValue
-                                                    );
-                                                  return (
-                                                    sum +
-                                                    tableDataForValue.reduce(
-                                                      (s, item) =>
-                                                        s +
-                                                        (parseFloat(
-                                                          item.total_amount
-                                                        ) || 0),
-                                                      0
-                                                    )
-                                                  );
-                                                }, 0)
-                                                .toFixed(2);
+                                                const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                const grandTotal = headerFilteredAll.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2);
+                                                const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
+                                                return (
+                                                  <div>
+                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
+                                                      कुल: {grandTotal}
+                                                    </div>
+                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      {breakdown.map((group, gIdx) => (
+                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
+                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                            {group.totals.total_amount.toFixed(2)}
+                                                          </div>
+                                                          {group.investments.map((inv, iIdx) => (
+                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                {inv.totals.total_amount.toFixed(2)}
+                                                              </div>
+                                                              {inv.subInvestments.map((sub, sIdx) => (
+                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                  {sub.totals.total_amount.toFixed(2)}
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                );
                                               })()}
                                             </td>
                                           )}
@@ -8066,6 +8371,8 @@ const MainDashboard = () => {
                                                     position: "absolute",
                                                     top: "100%",
                                                     zIndex: 1000,
+                                                    maxHeight: "250px",
+                                                    overflowY: "auto",
                                                   }}
                                                 >
                                                   <div className="dropdown-item">
