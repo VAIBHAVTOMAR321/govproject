@@ -16,6 +16,8 @@ const DemandView = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [centers, setCenters] = useState([]);
   const [selectedCenters, setSelectedCenters] = useState([]);
+  const [upniveshOptions, setUpniveshOptions] = useState([]);
+  const [selectedUpnivesh, setSelectedUpnivesh] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [tablesForExport, setTablesForExport] = useState({
@@ -101,12 +103,37 @@ const DemandView = () => {
   
   // Apply filter when selected centers change
   useEffect(() => {
-    if (selectedCenters.length === 0) {
-      setFilteredData(demandData);
-    } else {
-      setFilteredData(demandData.filter(item => selectedCenters.includes(item.center_name)));
+    // Compute available upnivesh options based on selected centers (or all if none selected)
+    const relevant = selectedCenters.length === 0
+      ? demandData
+      : demandData.filter(item => selectedCenters.includes(item.center_name));
+
+    const allUpnivesh = new Set();
+    relevant.forEach(demand => {
+      if (Array.isArray(demand.demand_list)) {
+        demand.demand_list.forEach(item => {
+          if (item && item[0]) allUpnivesh.add(item[0]);
+        });
+      }
+    });
+    setUpniveshOptions(Array.from(allUpnivesh));
+
+    // Now filter the data to include only centers and upnivesh selection
+    let filtered = relevant.map(d => ({ ...d }));
+
+    if (selectedUpnivesh.length > 0) {
+      filtered = filtered
+        .map(d => ({
+          ...d,
+          demand_list: Array.isArray(d.demand_list)
+            ? d.demand_list.filter(item => selectedUpnivesh.includes(item[0]))
+            : []
+        }))
+        .filter(d => d.demand_list && d.demand_list.length > 0);
     }
-  }, [selectedCenters, demandData]);
+
+    setFilteredData(filtered);
+  }, [selectedCenters, selectedUpnivesh, demandData]);
  
   const handleLogout = () => {
     clearCenter();
@@ -532,8 +559,21 @@ const DemandView = () => {
     </Modal>
   );
 
+  const upnDropdownRef = useRef(null);
+  const [upnDropdownOpen, setUpnDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutsideUpn = (event) => {
+      if (upnDropdownRef.current && !upnDropdownRef.current.contains(event.target)) {
+        setUpnDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideUpn);
+    return () => document.removeEventListener('mousedown', handleClickOutsideUpn);
+  }, []);
+
   const CenterFilterDropdown = () => (
-    <div ref={dropdownRef} className="sabhi-chune position-relative">
+    <div ref={dropdownRef} className="sabhi-chune position-relative d-flex">
       <Button 
          className="w-100 text-start d-flex justify-content-between align-items-center"
         onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -573,6 +613,43 @@ const DemandView = () => {
     </div>
   );
 
+  const UpniveshFilterDropdown = () => (
+    <div ref={upnDropdownRef} className="sabhi-chune position-relative ms-2">
+      <Button
+        className="w-100 text-start d-flex justify-content-between align-items-center"
+        onClick={() => setUpnDropdownOpen(s => !s)}
+      >
+        {selectedUpnivesh.length === 0 ? 'सभी उप-निवेश' : `${selectedUpnivesh.length} चुने गए`}
+        <span>▼</span>
+      </Button>
+      {upnDropdownOpen && (
+        <div className="position-absolute bg-black border rounded shadow-sm p-2 mt-1 w-100" style={{ zIndex: 1000, maxHeight: '220px', overflowY: 'auto' }}>
+          {upniveshOptions.length > 0 ? (
+            upniveshOptions.map((u, idx) => (
+              <Form.Check
+                key={idx}
+                type="checkbox"
+                label={`${u}`}
+                checked={selectedUpnivesh.includes(u)}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  setSelectedUpnivesh(prev => isChecked ? [...prev, u] : prev.filter(x=>x!==u));
+                }}
+                className="mb-1 text-white"
+              />
+            ))
+          ) : (
+            <div className="text-muted text-center py-2">कोई उप-निवेश उपलब्ध नहीं</div>
+          )}
+          <div className="mt-2 d-flex justify-content-between">
+            <Button size="sm" variant="outline-secondary" onClick={()=>setSelectedUpnivesh([])}>सभी हटाएं</Button>
+            <Button size="sm" variant="outline-secondary" onClick={()=>setSelectedUpnivesh(upniveshOptions)}>सभी चुनें</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
     <DashBoardHeader />
@@ -590,8 +667,9 @@ const DemandView = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
               <h5 className="mb-0">डिमांड रिकॉर्ड्स</h5>
-              <Form.Group className="mb-0" controlId="centerFilter" style={{ width: '200px' }}>
-                <CenterFilterDropdown />
+              <Form.Group className="mb-0" controlId="centerFilter" style={{ width: '420px', display: 'flex', gap: '8px' }}>
+                <div style={{ width: '200px' }}><CenterFilterDropdown /></div>
+                <div style={{ width: '200px' }}><UpniveshFilterDropdown /></div>
               </Form.Group>
             </Card.Header>
             <Card.Body>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -86,6 +86,7 @@ const columnDefs = {
     key: "sub_investment_name",
   },
   unit: { label: "इकाई", key: "unit", hidden: true },
+  bill_date: { label: "लाभार्थी पंजीकरण तिथि", key: "bill_date", hidden: true },
   allocated_quantity: { label: "आवंटित मात्रा", key: "allocated_quantity" },
   rate: { label: "दर", key: "rate", hidden: true },
   amount_of_farmer_share: {
@@ -288,6 +289,7 @@ const MainDashboard = () => {
   useEffect(() => {
     if (additionalTables.length > 0) {
       const newAdditionalFilters = { ...tableColumnFilters.additional };
+      const newAdditionalColumnFilters = { ...additionalTableColumnFilters };
 
       additionalTables.forEach((table, index) => {
         // Always initialize with all valid columns when table is created
@@ -295,12 +297,25 @@ const MainDashboard = () => {
           (col) => col && col.trim() !== ""
         );
         newAdditionalFilters[index] = validColumns;
+        
+        // Initialize additionalTableColumnFilters with all columns selected (including summary columns)
+        // Only filter out hidden columns like _dar, _farmer, _subsidy
+        if (table.isAllocationTable && !newAdditionalColumnFilters[index]) {
+          const dynamicCols = table.columns.slice(1).filter(col => 
+            !col.endsWith("_dar") &&
+            !col.endsWith("_farmer") &&
+            !col.endsWith("_subsidy")
+          );
+          newAdditionalColumnFilters[index] = dynamicCols;
+        }
       });
 
       setTableColumnFilters((prev) => ({
         ...prev,
         additional: newAdditionalFilters,
       }));
+      
+      setAdditionalTableColumnFilters(newAdditionalColumnFilters);
     }
   }, [additionalTables]);
 
@@ -328,9 +343,9 @@ const MainDashboard = () => {
                 tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b)
             )
             .map((key) => columnDefs[key].label),
-          "कुल आवंटित मात्रा",
-          "कुल किसान की हिस्सेदारी",
-          "कुल सब्सिडी",
+          "आवंटित मात्रा",
+          "कृषक धनराशि",
+          "सब्सिडी धनराशि",
           "कुल राशि",
         ].filter((col) => col && col.trim() !== ""); // Filter out empty columns
 
@@ -346,20 +361,66 @@ const MainDashboard = () => {
   // Add this state to track which columns are expanded to show values instead of counts
   const [expandedColumns, setExpandedColumns] = useState({});
 
+  // Remember removed column positions so they can be restored to same place
+  const [removedColumnPositions, setRemovedColumnPositions] = useState({
+    main: {},
+    summary: {},
+    detail: {},
+    additional: {},
+  });
+
   // Add state for main summary table expanded columns
   const [mainSummaryExpandedColumns, setMainSummaryExpandedColumns] = useState(
     {}
   );
 
+  // Summary header column value filters (per-column selected values)
+  const [summaryColumnValueFilters, setSummaryColumnValueFilters] = useState({});
+  const [summaryHeaderFilterOpen, setSummaryHeaderFilterOpen] = useState({});
+
+  const toggleSummaryHeaderDropdown = (columnKey) => {
+    setSummaryHeaderFilterOpen((prev) => ({
+      ...prev,
+      [columnKey]: !prev[columnKey],
+    }));
+  };
+
+  const setSummaryHeaderSelectAll = (columnKey, values) => {
+    setSummaryColumnValueFilters((prev) => ({
+      ...prev,
+      [columnKey]: [...values],
+    }));
+  };
+
+  const clearSummaryHeaderSelection = (columnKey) => {
+    setSummaryColumnValueFilters((prev) => ({
+      ...prev,
+      [columnKey]: [],
+    }));
+  };
+
+  const toggleSummaryHeaderValue = (columnKey, value) => {
+    setSummaryColumnValueFilters((prev) => {
+      const current = prev[columnKey] || [];
+      const exists = current.includes(value);
+      const next = exists ? current.filter((v) => v !== value) : [...current, value];
+      return { ...prev, [columnKey]: next };
+    });
+  };
+
   // Add state for allocation table toggles between dar and matra
   const [allocationTableToggles, setAllocationTableToggles] = useState({});
 
-  // Add this function to toggle between dar and matra for a specific table
-  const toggleAllocationTableDisplay = (tableIndex) => {
-    setAllocationTableToggles((prev) => ({
-      ...prev,
-      [tableIndex]: !prev[tableIndex],
-    }));
+  // Add this function to toggle dar/matra for a specific table
+  const toggleAllocationTableDisplay = (tableIndex, type) => {
+    // type is 'dar', 'matra' or 'ikai'
+    setAllocationTableToggles((prev) => {
+      const prevObj = prev[tableIndex] || { dar: false, matra: false, ikai: false };
+      return {
+        ...prev,
+        [tableIndex]: { ...prevObj, [type]: !prevObj[type] },
+      };
+    });
   };
 
   // Add this function to get unique values for a column
@@ -383,8 +444,101 @@ const MainDashboard = () => {
     }));
   };
 
+  // Apply header filters to a dataset of rows for summary table
+  const applySummaryHeaderFilters = (rows) => {
+    if (!rows || rows.length === 0) return [];
+    const entries = Object.entries(summaryColumnValueFilters || {});
+    if (entries.length === 0) return rows;
+    return rows.filter((row) => {
+      for (const [col, selectedVals] of entries) {
+        const sel = selectedVals || [];
+        if (sel.length > 0) {
+          if (!sel.includes(row[col])) return false;
+        }
+      }
+      return true;
+    });
+  };
+
+  // Initialize summary header filters to 'all selected' for each column
+  useEffect(() => {
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+    const currentFilter = filterStack[filterStack.length - 1];
+    if (!currentFilter) return;
+
+    // Summary columns: first column + other visible non-amount columns
+    const summaryKeys = [
+      currentFilter.column,
+      ...tableColumnOrder
+        .filter((col) => col !== currentFilter.column && !columnDefs[col].hidden)
+        .filter(
+          (col) =>
+            col !== "allocated_quantity" &&
+            col !== "rate" &&
+            col !== "amount_of_farmer_share" &&
+            col !== "amount_of_subsidy" &&
+            col !== "total_amount"
+        ),
+    ];
+
+    setSummaryColumnValueFilters((prev) => {
+      const next = { ...prev };
+      for (const col of summaryKeys) {
+        const allVals = getUniqueValuesForColumn(currentFilteredData, col);
+        if (!Array.isArray(next[col]) || next[col].length === 0) {
+          next[col] = [...allVals];
+        } else {
+          // Keep user selection but trim to existing values
+          next[col] = next[col].filter((v) => allVals.includes(v));
+        }
+      }
+      return next;
+    });
+  }, [filterStack, tableColumnFilters.summary, tableData]);
+
   // Add a function to get unique values for a column in the main summary table
   const getMainSummaryUniqueValues = (columnKey, rowValue) => {
+    // Get the current filtered data based on the filter stack
+      const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    // If rowValue is null, get all unique values from the entire filtered data
+    if (rowValue === null) {
+      const headerFilteredAll = applySummaryHeaderFilters(currentFilteredData);
+      return [
+        ...new Set(
+          headerFilteredAll.map((item) => item[columnKey]).filter(Boolean)
+        ),
+      ];
+    }
+
+    // Determine current filter (if any) and filter data for the specific row value
+    const currentFilter = filterStack[filterStack.length - 1];
+    let rowSpecificData = currentFilteredData.filter((item) => {
+      if (!currentFilter || !currentFilter.column) return true;
+      return item[currentFilter.column] === rowValue;
+    });
+    rowSpecificData = applySummaryHeaderFilters(rowSpecificData);
+
+    // Get unique values for the column
+    return [
+      ...new Set(
+        rowSpecificData.map((item) => item[columnKey]).filter(Boolean)
+      ),
+    ];
+  };
+
+  // Function to get unique values with their matra sum for sub_investment_name and investment_name columns
+  const getUniqueValuesWithMatra = (columnKey, rowValue) => {
     // Get the current filtered data based on the filter stack
     const currentFilteredData = tableData.filter((item) => {
       for (let filter of filterStack) {
@@ -396,26 +550,403 @@ const MainDashboard = () => {
     // Get the current filter
     const currentFilter = filterStack[filterStack.length - 1];
 
-    // If rowValue is null, get all unique values from the entire filtered data
+    // Filter data for the specific row value
+    let rowSpecificData;
     if (rowValue === null) {
-      return [
-        ...new Set(
-          currentFilteredData.map((item) => item[columnKey]).filter(Boolean)
-        ),
-      ];
+      rowSpecificData = currentFilteredData;
+    } else {
+      rowSpecificData = currentFilteredData.filter(
+        (item) => item[currentFilter.column] === rowValue
+      );
     }
+    rowSpecificData = applySummaryHeaderFilters(rowSpecificData);
+
+    // Group by the column value and sum the allocated_quantity and collect unit
+    const groupedData = {};
+    rowSpecificData.forEach((item) => {
+      const key = item[columnKey];
+      if (key) {
+        if (!groupedData[key]) {
+          groupedData[key] = { matra: 0, unit: "" };
+        }
+        // Parse allocated_quantity - handle string with " / " separator
+        let qty = item.allocated_quantity;
+        if (typeof qty === "string" && qty.includes(" / ")) {
+          qty = parseFloat(qty.split(" / ")[0]) || 0;
+        } else {
+          qty = parseFloat(qty) || 0;
+        }
+        groupedData[key].matra += qty;
+        if (!groupedData[key].unit) {
+          const u = getUnitFromItem(item);
+          if (u) groupedData[key].unit = u;
+        }
+      }
+    });
+
+    // Convert to array of objects with name, matra and unit (and a display string)
+    return Object.entries(groupedData).map(([name, info]) => ({
+      name,
+      matra: info.matra.toFixed(2),
+      unit: info.unit || "",
+      display: `${name}${info.unit ? ` (${info.unit})` : ""}${info.matra ? ` (${info.matra.toFixed(2)})` : ""}`,
+    }));
+  };
+
+  // Function to get उप-निवेश grouped by निवेश with their matra
+  const getSubInvestmentGroupedByInvestment = (rowValue) => {
+    // Get the current filtered data based on the filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    // Get the current filter
+    const currentFilter = filterStack[filterStack.length - 1];
 
     // Filter data for the specific row value
-    const rowSpecificData = currentFilteredData.filter(
-      (item) => item[currentFilter.column] === rowValue
-    );
+    let rowSpecificData;
+    if (rowValue === null) {
+      rowSpecificData = currentFilteredData;
+    } else {
+      rowSpecificData = currentFilteredData.filter(
+        (item) => item[currentFilter.column] === rowValue
+      );
+    }
+    rowSpecificData = applySummaryHeaderFilters(rowSpecificData);
 
-    // Get unique values for the column
-    return [
-      ...new Set(
-        rowSpecificData.map((item) => item[columnKey]).filter(Boolean)
-      ),
-    ];
+    // Group by investment_name first, then by sub_investment_name
+    const groupedData = {};
+    rowSpecificData.forEach((item) => {
+      const investmentName = item.investment_name;
+      const subInvestmentName = item.sub_investment_name;
+      
+      if (investmentName && subInvestmentName) {
+        if (!groupedData[investmentName]) {
+          groupedData[investmentName] = {};
+        }
+        if (!groupedData[investmentName][subInvestmentName]) {
+          groupedData[investmentName][subInvestmentName] = { matra: 0, unit: "" };
+        }
+        // Parse allocated_quantity - handle string with " / " separator
+        let qty = item.allocated_quantity;
+        if (typeof qty === "string" && qty.includes(" / ")) {
+          qty = parseFloat(qty.split(" / ")[0]) || 0;
+        } else {
+          qty = parseFloat(qty) || 0;
+        }
+        groupedData[investmentName][subInvestmentName].matra += qty;
+        if (!groupedData[investmentName][subInvestmentName].unit) {
+          const u = getUnitFromItem(item);
+          if (u) groupedData[investmentName][subInvestmentName].unit = u;
+        }
+      }
+    });
+
+    // Convert to hierarchical structure with unit only at investment level
+    return Object.entries(groupedData).map(([investmentName, subInvestments]) => {
+      // Collect unit from first sub-investment (display at investment level only)
+      let investmentUnit = "";
+      for (const [, info] of Object.entries(subInvestments)) {
+        if (info.unit) {
+          investmentUnit = info.unit;
+          break;
+        }
+      }
+
+      return {
+        investmentName,
+        unit: investmentUnit, // Unit stored at investment level
+        subInvestments: Object.entries(subInvestments).map(([name, info]) => ({
+          name,
+          matra: info.matra.toFixed(2),
+          // display sub_investment without unit (unit shown only at investment level)
+          display: `${name} (${info.matra.toFixed(2)})`,
+        })),
+      };
+    });
+  };
+
+  // Totals helper: उप-निवेश grouped by निवेश with unit at both levels
+  const getSubInvestmentGroupedByInvestmentWithUnit = (rowValue) => {
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    const currentFilter = filterStack[filterStack.length - 1];
+
+    let rowSpecificData;
+    if (rowValue === null) {
+      rowSpecificData = currentFilteredData;
+    } else {
+      rowSpecificData = currentFilteredData.filter(
+        (item) => item[currentFilter.column] === rowValue
+      );
+    }
+
+    const parseQty = (qty) => {
+      if (typeof qty === "string" && qty.includes(" / ")) {
+        return parseFloat(qty.split(" / ")[0]) || 0;
+      }
+      return parseFloat(qty) || 0;
+    };
+
+    const groupedData = {};
+    rowSpecificData.forEach((item) => {
+      const investmentName = item.investment_name;
+      const subInvestmentName = item.sub_investment_name;
+      if (!investmentName || !subInvestmentName) return;
+
+      if (!groupedData[investmentName]) {
+        groupedData[investmentName] = { matra: 0, unit: "", subs: {} };
+      }
+      if (!groupedData[investmentName].subs[subInvestmentName]) {
+        groupedData[investmentName].subs[subInvestmentName] = { matra: 0, unit: "" };
+      }
+
+      const qty = parseQty(item.allocated_quantity);
+      groupedData[investmentName].matra += qty;
+      groupedData[investmentName].subs[subInvestmentName].matra += qty;
+
+      // Set investment-level unit
+      if (!groupedData[investmentName].unit) {
+        const uInv = getUnitFromItem(item);
+        if (uInv) groupedData[investmentName].unit = uInv;
+      }
+      // Set sub-investment-level unit
+      if (!groupedData[investmentName].subs[subInvestmentName].unit) {
+        const uSub = getUnitFromItem(item);
+        if (uSub) groupedData[investmentName].subs[subInvestmentName].unit = uSub;
+      }
+    });
+
+    return Object.entries(groupedData).map(([investmentName, info]) => ({
+      investmentName,
+      unit: info.unit || "",
+      matra: info.matra.toFixed(2),
+      subInvestments: Object.entries(info.subs).map(([name, sInfo]) => ({
+        name,
+        unit: sInfo.unit || "",
+        matra: sInfo.matra.toFixed(2),
+      })),
+    }));
+  };
+
+  // Function to get योजना -> निवेश (unit/matra) -> उप-निवेश hierarchy
+  const getSchemeInvestmentHierarchy = (rowValue) => {
+    // Get the current filtered data based on the filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    // Get the current filter
+    const currentFilter = filterStack[filterStack.length - 1];
+
+    // Filter data for the specific row value
+    let rowSpecificData;
+    if (rowValue === null) {
+      rowSpecificData = currentFilteredData;
+    } else {
+      rowSpecificData = currentFilteredData.filter(
+        (item) => item[currentFilter.column] === rowValue
+      );
+    }
+    rowSpecificData = applySummaryHeaderFilters(rowSpecificData);
+
+    // Helper to parse quantity safely (handles "x / y" strings)
+    const parseQty = (qty) => {
+      if (typeof qty === "string" && qty.includes(" / ")) {
+        return parseFloat(qty.split(" / ")[0]) || 0;
+      }
+      return parseFloat(qty) || 0;
+    };
+
+    // Group by scheme_name -> investment_name -> sub_investment_name
+    const grouped = {};
+    rowSpecificData.forEach((item) => {
+      const scheme = item.scheme_name;
+      const investment = item.investment_name;
+      const subInvestment = item.sub_investment_name;
+      if (!scheme || !investment || !subInvestment) return;
+
+      if (!grouped[scheme]) grouped[scheme] = {};
+      if (!grouped[scheme][investment]) {
+        grouped[scheme][investment] = { matra: 0, unit: "", subs: {} };
+      }
+      if (!grouped[scheme][investment].subs[subInvestment]) {
+        grouped[scheme][investment].subs[subInvestment] = { matra: 0 };
+      }
+
+      const qty = parseQty(item.allocated_quantity);
+      grouped[scheme][investment].matra += qty;
+      grouped[scheme][investment].subs[subInvestment].matra += qty;
+      // Set unit at investment level once available
+      if (!grouped[scheme][investment].unit) {
+        const u = getUnitFromItem(item);
+        if (u) grouped[scheme][investment].unit = u;
+      }
+    });
+
+    // Convert to render-friendly structure
+    return Object.entries(grouped).map(([schemeName, investments]) => ({
+      schemeName,
+      investments: Object.entries(investments).map(([invName, info]) => ({
+        investmentName: invName,
+        unit: info.unit || "",
+        matra: info.matra.toFixed(2),
+        subInvestments: Object.entries(info.subs).map(([subName, subInfo]) => ({
+          name: subName,
+          matra: subInfo.matra.toFixed(2),
+        })),
+      })),
+    }));
+  };
+
+  // Scheme totals: योजना -> निवेश (unit/matra) -> उप-निवेश (unit/matra)
+  const getSchemeInvestmentHierarchyWithUnit = (rowValue) => {
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    const currentFilter = filterStack[filterStack.length - 1];
+
+    let rowSpecificData;
+    if (rowValue === null) {
+      rowSpecificData = currentFilteredData;
+    } else {
+      rowSpecificData = currentFilteredData.filter(
+        (item) => item[currentFilter.column] === rowValue
+      );
+    }
+    rowSpecificData = applySummaryHeaderFilters(rowSpecificData);
+
+    const parseQty = (qty) => {
+      if (typeof qty === "string" && qty.includes(" / ")) {
+        return parseFloat(qty.split(" / ")[0]) || 0;
+      }
+      return parseFloat(qty) || 0;
+    };
+
+    const grouped = {};
+    rowSpecificData.forEach((item) => {
+      const scheme = item.scheme_name;
+      const investment = item.investment_name;
+      const subInvestment = item.sub_investment_name;
+      if (!scheme || !investment || !subInvestment) return;
+
+      if (!grouped[scheme]) grouped[scheme] = {};
+      if (!grouped[scheme][investment]) {
+        grouped[scheme][investment] = { matra: 0, unit: "", subs: {} };
+      }
+      if (!grouped[scheme][investment].subs[subInvestment]) {
+        grouped[scheme][investment].subs[subInvestment] = { matra: 0, unit: "" };
+      }
+
+      const qty = parseQty(item.allocated_quantity);
+      grouped[scheme][investment].matra += qty;
+      grouped[scheme][investment].subs[subInvestment].matra += qty;
+      // Units
+      if (!grouped[scheme][investment].unit) {
+        const uInv = getUnitFromItem(item);
+        if (uInv) grouped[scheme][investment].unit = uInv;
+      }
+      if (!grouped[scheme][investment].subs[subInvestment].unit) {
+        const uSub = getUnitFromItem(item);
+        if (uSub) grouped[scheme][investment].subs[subInvestment].unit = uSub;
+      }
+    });
+
+    return Object.entries(grouped).map(([schemeName, investments]) => ({
+      schemeName,
+      investments: Object.entries(investments).map(([invName, info]) => ({
+        investmentName: invName,
+        unit: info.unit || "",
+        matra: info.matra.toFixed(2),
+        subInvestments: Object.entries(info.subs).map(([subName, sInfo]) => ({
+          name: subName,
+          unit: sInfo.unit || "",
+          matra: sInfo.matra.toFixed(2),
+        })),
+      })),
+    }));
+  };
+
+  // Generic: group by a column -> investment (unit/matra) -> sub-investment (matra)
+  const getColumnInvestmentHierarchy = (rowValue, groupColKey) => {
+    // Current filtered data based on filter stack
+    const currentFilteredData = tableData.filter((item) => {
+      for (let filter of filterStack) {
+        if (!filter.checked[item[filter.column]]) return false;
+      }
+      return true;
+    });
+
+    const currentFilter = filterStack[filterStack.length - 1];
+
+    let rowSpecificData;
+    if (rowValue === null) {
+      rowSpecificData = currentFilteredData;
+    } else {
+      rowSpecificData = currentFilteredData.filter(
+        (item) => item[currentFilter.column] === rowValue
+      );
+    }
+    rowSpecificData = applySummaryHeaderFilters(rowSpecificData);
+
+    const parseQty = (qty) => {
+      if (typeof qty === "string" && qty.includes(" / ")) {
+        return parseFloat(qty.split(" / ")[0]) || 0;
+      }
+      return parseFloat(qty) || 0;
+    };
+
+    const grouped = {};
+    rowSpecificData.forEach((item) => {
+      const groupVal = item[groupColKey];
+      const investment = item.investment_name;
+      const subInvestment = item.sub_investment_name;
+      if (!groupVal || !investment || !subInvestment) return;
+
+      if (!grouped[groupVal]) grouped[groupVal] = {};
+      if (!grouped[groupVal][investment]) {
+        grouped[groupVal][investment] = { matra: 0, unit: "", subs: {} };
+      }
+      if (!grouped[groupVal][investment].subs[subInvestment]) {
+        grouped[groupVal][investment].subs[subInvestment] = { matra: 0 };
+      }
+
+      const qty = parseQty(item.allocated_quantity);
+      grouped[groupVal][investment].matra += qty;
+      grouped[groupVal][investment].subs[subInvestment].matra += qty;
+      if (!grouped[groupVal][investment].unit) {
+        const u = getUnitFromItem(item);
+        if (u) grouped[groupVal][investment].unit = u;
+      }
+    });
+
+    return Object.entries(grouped).map(([groupValue, investments]) => ({
+      groupValue,
+      investments: Object.entries(investments).map(([invName, info]) => ({
+        investmentName: invName,
+        unit: info.unit || "",
+        matra: info.matra.toFixed(2),
+        subInvestments: Object.entries(info.subs).map(([subName, subInfo]) => ({
+          name: subName,
+          matra: subInfo.matra.toFixed(2),
+        })),
+      })),
+    }));
   };
 
   // Function to handle column filter changes
@@ -425,9 +956,49 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.includes(column)) {
+        // remember removed position
+        const idx = currentSelected.indexOf(column);
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          main: { ...(rp.main || {}), [column]: idx },
+        }));
         newSelected = currentSelected.filter((col) => col !== column);
       } else {
-        newSelected = [...currentSelected, column];
+        // restore to previous position if available
+        const prevPos = removedColumnPositions.main?.[column];
+        if (prevPos !== undefined && prevPos >= 0) {
+          newSelected = [...currentSelected];
+          const insertAt = Math.min(prevPos, newSelected.length);
+          newSelected.splice(insertAt, 0, column);
+          // remove stored position
+          setRemovedColumnPositions((rp) => {
+            const copy = { ...(rp.main || {}) };
+            delete copy[column];
+            return { ...rp, main: copy };
+          });
+        } else {
+          // fallback: insert according to tableColumnOrder
+          const allCols = tableColumnOrder
+            .filter((colKey) => !columnDefs[colKey].hidden)
+            .map((k) => columnDefs[k].label);
+          const insertIndex = allCols.indexOf(column);
+          if (insertIndex === -1) newSelected = [...currentSelected, column];
+          else {
+            // find proper place among currently selected using allCols order
+            const before = allCols.slice(0, insertIndex);
+            let pos = currentSelected.length;
+            for (let i = before.length - 1; i >= 0; i--) {
+              const b = before[i];
+              const p = currentSelected.indexOf(b);
+              if (p !== -1) {
+                pos = p + 1;
+                break;
+              }
+            }
+            newSelected = [...currentSelected];
+            newSelected.splice(pos, 0, column);
+          }
+        }
       }
 
       return {
@@ -448,8 +1019,18 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.length === allColumns.length) {
+        // store current positions before clearing
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          main: currentSelected.reduce((acc, col, i) => {
+            acc[col] = i;
+            return acc;
+          }, {}),
+        }));
         newSelected = [];
       } else {
+        // selecting all -> clear remembered positions
+        setRemovedColumnPositions((rp) => ({ ...rp, main: {} }));
         newSelected = allColumns;
       }
 
@@ -467,9 +1048,26 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.includes(column)) {
+        const idx = currentSelected.indexOf(column);
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          summary: { ...(rp.summary || {}), [column]: idx },
+        }));
         newSelected = currentSelected.filter((col) => col !== column);
       } else {
-        newSelected = [...currentSelected, column];
+        const prevPos = removedColumnPositions.summary?.[column];
+        if (prevPos !== undefined && prevPos >= 0) {
+          newSelected = [...currentSelected];
+          const insertAt = Math.min(prevPos, newSelected.length);
+          newSelected.splice(insertAt, 0, column);
+          setRemovedColumnPositions((rp) => {
+            const copy = { ...(rp.summary || {}) };
+            delete copy[column];
+            return { ...rp, summary: copy };
+          });
+        } else {
+          newSelected = [...currentSelected, column];
+        }
       }
 
       return {
@@ -498,9 +1096,9 @@ const MainDashboard = () => {
             (a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b)
           )
           .map((key) => columnDefs[key].label),
-        "कुल आवंटित मात्रा",
-        "कुल किसान की हिस्सेदारी",
-        "कुल सब्सिडी",
+        "आवंटित मात्रा",
+        "कृषक धनराशि",
+        "सब्सिडी धनराशि",
         "कुल राशि",
       ];
 
@@ -508,8 +1106,16 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.length === allColumns.length) {
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          summary: currentSelected.reduce((acc, col, i) => {
+            acc[col] = i;
+            return acc;
+          }, {}),
+        }));
         newSelected = [];
       } else {
+        setRemovedColumnPositions((rp) => ({ ...rp, summary: {} }));
         newSelected = allColumns;
       }
 
@@ -527,9 +1133,26 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.includes(column)) {
+        const idx = currentSelected.indexOf(column);
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          detail: { ...(rp.detail || {}), [column]: idx },
+        }));
         newSelected = currentSelected.filter((col) => col !== column);
       } else {
-        newSelected = [...currentSelected, column];
+        const prevPos = removedColumnPositions.detail?.[column];
+        if (prevPos !== undefined && prevPos >= 0) {
+          newSelected = [...currentSelected];
+          const insertAt = Math.min(prevPos, newSelected.length);
+          newSelected.splice(insertAt, 0, column);
+          setRemovedColumnPositions((rp) => {
+            const copy = { ...(rp.detail || {}) };
+            delete copy[column];
+            return { ...rp, detail: copy };
+          });
+        } else {
+          newSelected = [...currentSelected, column];
+        }
       }
 
       return {
@@ -553,8 +1176,16 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.length === allColumns.length) {
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          detail: currentSelected.reduce((acc, col, i) => {
+            acc[col] = i;
+            return acc;
+          }, {}),
+        }));
         newSelected = [];
       } else {
+        setRemovedColumnPositions((rp) => ({ ...rp, detail: {} }));
         newSelected = allColumns;
       }
 
@@ -573,9 +1204,30 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.includes(column)) {
+        const idx = currentSelected.indexOf(column);
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          additional: {
+            ...(rp.additional || {}),
+            [tableIndex]: { ...((rp.additional || {})[tableIndex] || {}), [column]: idx },
+          },
+        }));
         newSelected = currentSelected.filter((col) => col !== column);
       } else {
-        newSelected = [...currentSelected, column];
+        const prevPos = (removedColumnPositions.additional || {})[tableIndex]?.[column];
+        if (prevPos !== undefined && prevPos >= 0) {
+          newSelected = [...currentSelected];
+          const insertAt = Math.min(prevPos, newSelected.length);
+          newSelected.splice(insertAt, 0, column);
+          setRemovedColumnPositions((rp) => {
+            const copy = { ...(rp.additional || {}) };
+            copy[tableIndex] = { ...(copy[tableIndex] || {}) };
+            delete copy[tableIndex][column];
+            return { ...rp, additional: copy };
+          });
+        } else {
+          newSelected = [...currentSelected, column];
+        }
       }
 
       newAdditionalFilters[tableIndex] = newSelected;
@@ -595,8 +1247,24 @@ const MainDashboard = () => {
       let newSelected;
 
       if (currentSelected.length === allColumns.length) {
+        // store positions
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          additional: {
+            ...(rp.additional || {}),
+            [tableIndex]: currentSelected.reduce((acc, col, i) => {
+              acc[col] = i;
+              return acc;
+            }, {}),
+          },
+        }));
         newSelected = [];
       } else {
+        // clear stored positions for this table index
+        setRemovedColumnPositions((rp) => ({
+          ...rp,
+          additional: { ...(rp.additional || {}), [tableIndex]: {} },
+        }));
         newSelected = allColumns;
       }
 
@@ -703,12 +1371,12 @@ const MainDashboard = () => {
     // Refresh table with all data
     setFilteredTableData(tableData);
     // Ensure the summary heading updates immediately
-    checkIfTopFiltersApplied();
+    checkIfTopFiltersApplied(clearedFilters);
   };
 
   // Check if filters are applied from top filtering
-  const checkIfTopFiltersApplied = () => {
-    const hasFilters = Object.values(filters).some(
+  const checkIfTopFiltersApplied = (currentFilters = filters) => {
+    const hasFilters = Object.values(currentFilters).some(
       (filter) => filter.length > 0
     );
     setIsFilterApplied(hasFilters);
@@ -787,25 +1455,15 @@ const MainDashboard = () => {
   const handleSelectChange = (name, selected) => {
     if (selected && selected.some((s) => s.value === "ALL")) {
       // If "सभी चुनें" is selected, set filter to all options
-      setFilters((prev) => {
-        const newFilters = {
-          ...prev,
-          [name]: filterOptions[name] || [],
-        };
-        // Immediately apply filters for better UX
-        applyFilters();
-        return newFilters;
-      });
+      setFilters((prev) => ({
+        ...prev,
+        [name]: filterOptions[name] || [],
+      }));
     } else {
-      setFilters((prev) => {
-        const newFilters = {
-          ...prev,
-          [name]: selected ? selected.map((s) => s.value) : [],
-        };
-        // Immediately apply filters for better UX
-        applyFilters();
-        return newFilters;
-      });
+      setFilters((prev) => ({
+        ...prev,
+        [name]: selected ? selected.map((s) => s.value) : [],
+      }));
     }
   };
 
@@ -964,13 +1622,10 @@ const MainDashboard = () => {
         const areAllSelected = allOptions.every((option) =>
           currentValues.includes(option)
         );
-        const newFilters = {
+        return {
           ...prev,
           [name]: areAllSelected ? [] : allOptions,
         };
-        // Immediately apply filters for better UX
-        applyFilters();
-        return newFilters;
       });
     } else {
       setFilters((prev) => {
@@ -978,10 +1633,7 @@ const MainDashboard = () => {
         const newValues = currentValues.includes(value)
           ? currentValues.filter((v) => v !== value)
           : [...currentValues, value];
-        const newFilters = { ...prev, [name]: newValues };
-        // Immediately apply filters for better UX
-        applyFilters();
-        return newFilters;
+        return { ...prev, [name]: newValues };
       });
     }
   };
@@ -1019,25 +1671,6 @@ const MainDashboard = () => {
   useEffect(() => {
     applyFilters();
   }, [filters]);
-
-  // Real-time filter update effect - ensures immediate response to filter changes
-  useEffect(() => {
-    // This effect will trigger immediately when any filter changes
-    const timeoutId = setTimeout(() => {
-      applyFilters();
-    }, 0);
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    filters.center_name,
-    filters.sub_investment_name,
-    filters.investment_name,
-    filters.source_of_receipt,
-    filters.scheme_name,
-    filters.vikas_khand_name,
-    filters.vidhan_sabha_name,
-    filters.unit,
-  ]);
 
   // Update graph when main table data changes
   useEffect(() => {
@@ -1110,19 +1743,19 @@ const MainDashboard = () => {
               new Set(dataForValue.map((item) => item[col])).size,
             ])
         ),
-        "कुल आवंटित मात्रा": dataForValue
+        "आवंटित मात्रा": dataForValue
           .reduce(
             (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
             0
           )
           .toFixed(2),
-        "कुल किसान की हिस्सेदारी": dataForValue
+        "कृषक धनराशि": dataForValue
           .reduce(
             (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
             0
           )
           .toFixed(2),
-        "कुल सब्सिडी": dataForValue
+        "सब्सिडी धनराशि": dataForValue
           .reduce(
             (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
             0
@@ -1141,14 +1774,14 @@ const MainDashboard = () => {
     };
 
     // Add totals for monetary columns
-    totalRow["कुल आवंटित मात्रा"] = summaryData
-      .reduce((sum, row) => sum + (parseFloat(row["कुल आवंटित मात्रा"]) || 0), 0)
+    totalRow["आवंटित मात्रा"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["आवंटित मात्रा"]) || 0), 0)
       .toFixed(2);
-    totalRow["कुल किसान की हिस्सेदारी"] = summaryData
-      .reduce((sum, row) => sum + (parseFloat(row["कुल किसान की हिस्सेदारी"]) || 0), 0)
+    totalRow["कृषक धनराशि"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["कृषक धनराशि"]) || 0), 0)
       .toFixed(2);
-    totalRow["कुल सब्सिडी"] = summaryData
-      .reduce((sum, row) => sum + (parseFloat(row["कुल सब्सिडी"]) || 0), 0)
+    totalRow["सब्सिडी धनराशि"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["सब्सिडी धनराशि"]) || 0), 0)
       .toFixed(2);
     totalRow["कुल राशि"] = summaryData
       .reduce((sum, row) => sum + (parseFloat(row["कुल राशि"]) || 0), 0)
@@ -1192,9 +1825,9 @@ const MainDashboard = () => {
       columnDefs[column]?.label,
       "कुल रिकॉर्ड",
       ...visibleColumns,
-      "कुल आवंटित मात्रा",
-      "कुल किसान की हिस्सेदारी",
-      "कुल सब्सिडी",
+      "आवंटित मात्रा",
+      "कृषक धनराशि",
+      "सब्सिडी धनराशि",
       "कुल राशि",
     ];
 
@@ -1644,11 +2277,13 @@ const MainDashboard = () => {
         const tableDataForValue = filteredData.filter(
           (item) => item[currentFilter.column] === checkedValue
         );
+        // Apply summary header filters to this row's data
+        const filteredRowData = applySummaryHeaderFilters(tableDataForValue);
 
         // Create a row with columns in the specified order
         const row = {
           [columnDefs[currentFilter.column]?.label]: checkedValue,
-          "कुल रिकॉर्ड": tableDataForValue.length,
+          "कुल रिकॉर्ड": filteredRowData.length,
         };
 
         // Add other columns in the specified order
@@ -1664,42 +2299,65 @@ const MainDashboard = () => {
           ) {
             // Check if this column is expanded
             if (mainSummaryExpandedColumns[col]) {
-              // Get unique values for this column
-              const uniqueValues = getMainSummaryUniqueValues(
-                col,
-                checkedValue
-              );
-              // Join values with comma for export
-              row[columnDefs[col].label] = uniqueValues.join(", ");
+              // For sub_investment_name, show grouped by investment_name (one per line)
+              if (col === "sub_investment_name") {
+                const groupedData = getSubInvestmentGroupedByInvestment(checkedValue);
+                const formattedLines = [];
+                groupedData.forEach((group) => {
+                  const investmentDisplay = group.unit 
+                    ? `**${group.investmentName} (${group.unit})**`
+                    : `**${group.investmentName}**`;
+                  formattedLines.push(investmentDisplay);
+                  group.subInvestments.forEach((item) => {
+                    formattedLines.push(`  • ${item.name} (${item.matra})`);
+                  });
+                });
+                row[columnDefs[col].label] = formattedLines.join("\n");
+              } else if (col === "investment_name") {
+                // For investment_name, show values with unit at investment level
+                const valuesWithMatra = getUniqueValuesWithMatra(col, checkedValue);
+                const formattedLines = valuesWithMatra.map((item) => {
+                  const display = item.unit 
+                    ? `**${item.name} (${item.unit})**`
+                    : `**${item.name}**`;
+                  return item.matra ? `${display} (${item.matra})` : display;
+                });
+                row[columnDefs[col].label] = formattedLines.join("\n");
+              } else {
+                // Get unique values for this column
+                // Use filteredRowData for unique values
+                const uniqueValues = [...new Set(filteredRowData.map((item) => item[col]).filter(Boolean))];
+                // Join values with newline for export (one per line)
+                row[columnDefs[col].label] = uniqueValues.join("\n");
+              }
             } else {
-              // Otherwise, just show the count
-              row[columnDefs[col].label] = new Set(
-                tableDataForValue.map((item) => item[col])
-              ).size;
+              // Show the filtered values as a list (not just the count)
+              const uniqueValues = [...new Set(filteredRowData.map((item) => item[col]).filter(Boolean))];
+              row[columnDefs[col].label] = uniqueValues.join("\n");
             }
           }
         });
 
         // Add monetary columns at the end
-        row["कुल आवंटित मात्रा"] = tableDataForValue
+        row["आवंटित मात्रा"] = filteredRowData
           .reduce(
             (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
             0
           )
           .toFixed(2);
-        row["कुल किसान की हिस्सेदारी"] = tableDataForValue
+        row["कृषक धनराशि"] = filteredRowData
           .reduce(
             (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
             0
           )
           .toFixed(2);
-        row["कुल सब्सिडी"] = tableDataForValue
+        row["सब्सिडी धनराशि"] = filteredRowData
           .reduce(
             (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
             0
           )
           .toFixed(2);
-        row["कुल राशि"] = tableDataForValue
+        row["कुल राशि"] = filteredRowData
           .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
           .toFixed(2);
 
@@ -1707,16 +2365,19 @@ const MainDashboard = () => {
       });
 
       // Create a total row
+
+      // Build combined dataset for the checked values (used for totals), and apply summary header filters
+      const totalRowData = applySummaryHeaderFilters(
+        checkedValues.flatMap((checkedValue) =>
+          filteredData.filter((item) => item[currentFilter.column] === checkedValue)
+        )
+      );
+
       const totalRow = {};
       totalRow[columnDefs[currentFilter.column]?.label] = "कुल";
-      totalRow["कुल रिकॉर्ड"] = checkedValues.reduce((sum, checkedValue) => {
-        const tableDataForValue = filteredData.filter(
-          (item) => item[currentFilter.column] === checkedValue
-        );
-        return sum + tableDataForValue.length;
-      }, 0);
+      totalRow["कुल रिकॉर्ड"] = totalRowData.length;
 
-      // Add other columns in the specified order
+      // Add other columns in the specified order (aggregate over totalRowData)
       tableColumnOrder.forEach((col) => {
         if (
           col !== currentFilter.column &&
@@ -1729,78 +2390,94 @@ const MainDashboard = () => {
         ) {
           // Check if this column is expanded
           if (mainSummaryExpandedColumns[col]) {
-            // Get all unique values for this column from the entire filtered data
-            const uniqueValues = getMainSummaryUniqueValues(col, null);
-            // Join values with comma for export
-            totalRow[columnDefs[col].label] = uniqueValues.join(", ");
+            // For sub_investment_name, show grouped by investment_name (one per line)
+            if (col === "sub_investment_name") {
+              const groupedData = {};
+              totalRowData.forEach((item) => {
+                const investmentName = item.investment_name;
+                const subInvestmentName = item.sub_investment_name;
+                if (investmentName && subInvestmentName) {
+                  if (!groupedData[investmentName]) groupedData[investmentName] = {};
+                  if (!groupedData[investmentName][subInvestmentName])
+                    groupedData[investmentName][subInvestmentName] = { matra: 0, unit: "" };
+                  let qty = item.allocated_quantity;
+                  if (typeof qty === "string" && qty.includes(" / ")) {
+                    qty = parseFloat(qty.split(" / ")[0]) || 0;
+                  } else {
+                    qty = parseFloat(qty) || 0;
+                  }
+                  groupedData[investmentName][subInvestmentName].matra += qty;
+                  if (!groupedData[investmentName][subInvestmentName].unit) {
+                    const u = getUnitFromItem(item);
+                    if (u) groupedData[investmentName][subInvestmentName].unit = u;
+                  }
+                }
+              });
+
+              const formattedLines = [];
+              Object.entries(groupedData).forEach(([investmentName, subInvestments]) => {
+                const investmentUnit = Object.values(subInvestments).find(v => v.unit)?.unit || "";
+                const investmentDisplay = investmentUnit ? `**${investmentName} (${investmentUnit})**` : `**${investmentName}**`;
+                formattedLines.push(investmentDisplay);
+                Object.entries(subInvestments).forEach(([name, info]) => {
+                  formattedLines.push(`  • ${name} (${info.matra.toFixed(2)})`);
+                });
+              });
+              totalRow[columnDefs[col].label] = formattedLines.join("\n");
+            } else if (col === "investment_name") {
+              // For investment_name, show values with unit at investment level
+              const groupedInvestments = {};
+              totalRowData.forEach((item) => {
+                const investmentName = item.investment_name;
+                if (investmentName) {
+                  if (!groupedInvestments[investmentName]) groupedInvestments[investmentName] = { matra: 0, unit: "" };
+                  let qty = item.allocated_quantity;
+                  if (typeof qty === "string" && qty.includes(" / ")) {
+                    qty = parseFloat(qty.split(" / ")[0]) || 0;
+                  } else {
+                    qty = parseFloat(qty) || 0;
+                  }
+                  groupedInvestments[investmentName].matra += qty;
+                  if (!groupedInvestments[investmentName].unit) {
+                    const u = getUnitFromItem(item);
+                    if (u) groupedInvestments[investmentName].unit = u;
+                  }
+                }
+              });
+              const formattedLines = Object.entries(groupedInvestments).map(([name, info]) => {
+                const display = info.unit ? `**${name} (${info.unit})**` : `**${name}**`;
+                return info.matra ? `${display} (${info.matra.toFixed(2)})` : display;
+              });
+              totalRow[columnDefs[col].label] = formattedLines.join("\n");
+            } else {
+              // Get all unique values for this column from the selected rows only
+              const uniqueValues = [...new Set(totalRowData.map((item) => item[col]).filter(Boolean))];
+              totalRow[columnDefs[col].label] = uniqueValues.join("\n");
+            }
           } else {
-            // Otherwise, just show the count
+            // Otherwise, just show the count for selected rows only
             totalRow[columnDefs[col].label] = new Set(
-              filteredData.map((item) => item[col])
+              totalRowData.map((item) => item[col])
             ).size;
           }
         }
       });
 
       // Add monetary columns at the end
-      totalRow["कुल आवंटित मात्रा"] = checkedValues
-        .reduce((sum, checkedValue) => {
-          const tableDataForValue = filteredData.filter(
-            (item) => item[currentFilter.column] === checkedValue
-          );
-          return (
-            sum +
-            tableDataForValue.reduce(
-              (s, item) => s + (parseFloat(item.allocated_quantity) || 0),
-              0
-            )
-          );
-        }, 0)
+      totalRow["आवंटित मात्रा"] = totalRowData
+        .reduce((sum, item) => sum + (parseFloat(item.allocated_quantity) || 0), 0)
         .toFixed(2);
 
-      totalRow["कुल किसान की हिस्सेदारी"] = checkedValues
-        .reduce((sum, checkedValue) => {
-          const tableDataForValue = filteredData.filter(
-            (item) => item[currentFilter.column] === checkedValue
-          );
-          return (
-            sum +
-            tableDataForValue.reduce(
-              (s, item) => s + (parseFloat(item.amount_of_farmer_share) || 0),
-              0
-            )
-          );
-        }, 0)
+      totalRow["कृषक धनराशि"] = totalRowData
+        .reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0)
         .toFixed(2);
 
-      totalRow["कुल सब्सिडी"] = checkedValues
-        .reduce((sum, checkedValue) => {
-          const tableDataForValue = filteredData.filter(
-            (item) => item[currentFilter.column] === checkedValue
-          );
-          return (
-            sum +
-            tableDataForValue.reduce(
-              (s, item) => s + (parseFloat(item.amount_of_subsidy) || 0),
-              0
-            )
-          );
-        }, 0)
+      totalRow["सब्सिडी धनराशि"] = totalRowData
+        .reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0)
         .toFixed(2);
 
-      totalRow["कुल राशि"] = checkedValues
-        .reduce((sum, checkedValue) => {
-          const tableDataForValue = filteredData.filter(
-            (item) => item[currentFilter.column] === checkedValue
-          );
-          return (
-            sum +
-            tableDataForValue.reduce(
-              (s, item) => s + (parseFloat(item.total_amount) || 0),
-              0
-            )
-          );
-        }, 0)
+      totalRow["कुल राशि"] = totalRowData
+        .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
         .toFixed(2);
 
       // Add total row to summary data
@@ -1825,9 +2502,9 @@ const MainDashboard = () => {
                     !columnDefs[col].hidden
                 )
                 .map((key) => columnDefs[key].label),
-              "कुल आवंटित मात्रा",
-              "कुल किसान की हिस्सेदारी",
-              "कुल सब्सिडी",
+              "आवंटित मात्रा",
+              "कृषक धनराशि",
+              "सब्सिडी धनराशि",
               "कुल राशि",
             ];
 
@@ -1922,7 +2599,9 @@ const MainDashboard = () => {
       tableColumnFilters.additional[index] || table.columns;
 
     // Get the current toggle state for this table
-    const showDar = table.isAllocationTable && allocationTableToggles[index];
+    const showDar = table.isAllocationTable && allocationTableToggles[index]?.dar;
+    const showMatra = table.isAllocationTable && allocationTableToggles[index]?.matra;
+    const showIkai = table.isAllocationTable && allocationTableToggles[index]?.ikai;
 
     // Create a modified data array with expanded values if needed
     const modifiedData = table.data.map((row) => {
@@ -1945,30 +2624,134 @@ const MainDashboard = () => {
           return item[table.columnKey] === row[table.columns[0]];
         });
 
-        // Get unique values for this column
-        const uniqueValues = getUniqueValuesForColumn(
-          currentFilteredData,
-          columnKey
-        );
+        // Special handling for sub_investment_name - group by investment_name
+        if (columnKey === "sub_investment_name") {
+          const groupedData = {};
+          currentFilteredData.forEach((item) => {
+            const investmentName = item.investment_name;
+            const subInvestmentName = item.sub_investment_name;
+            
+            if (investmentName && subInvestmentName) {
+              if (!groupedData[investmentName]) {
+                groupedData[investmentName] = {};
+              }
+              if (!groupedData[investmentName][subInvestmentName]) {
+                groupedData[investmentName][subInvestmentName] = 0;
+              }
+              let qty = item.allocated_quantity;
+              if (typeof qty === "string" && qty.includes(" / ")) {
+                qty = parseFloat(qty.split(" / ")[0]) || 0;
+              } else {
+                qty = parseFloat(qty) || 0;
+              }
+              groupedData[investmentName][subInvestmentName] += qty;
+            }
+          });
 
-        // Replace the count with the joined values
-        newRow[col] = uniqueValues.join(", ");
+          // Format as hierarchical text with **bold** markers
+          const formattedLines = [];
+          Object.entries(groupedData).forEach(([investmentName, subInvestments]) => {
+            formattedLines.push(`**${investmentName}**`);
+            Object.entries(subInvestments).forEach(([name, matra]) => {
+              formattedLines.push(`  • ${name} (${matra.toFixed(2)})`);
+            });
+          });
+          newRow[col] = formattedLines.join("\n");
+        } else if (columnKey === "investment_name") {
+          // Special handling for investment_name - show with unit and matra
+          const groupedInvestments = {};
+          currentFilteredData.forEach((item) => {
+            const investmentName = item.investment_name;
+            if (investmentName) {
+              if (!groupedInvestments[investmentName]) {
+                groupedInvestments[investmentName] = { matra: 0, unit: "" };
+              }
+              let qty = item.allocated_quantity;
+              if (typeof qty === "string" && qty.includes(" / ")) {
+                qty = parseFloat(qty.split(" / ")[0]) || 0;
+              } else {
+                qty = parseFloat(qty) || 0;
+              }
+              groupedInvestments[investmentName].matra += qty;
+              if (!groupedInvestments[investmentName].unit) {
+                const u = getUnitFromItem(item);
+                if (u) groupedInvestments[investmentName].unit = u;
+              }
+            }
+          });
+          newRow[col] = Object.entries(groupedInvestments)
+            .map(([name, info]) => {
+              const display = info.unit 
+                ? `**${name} (${info.unit})**`
+                : `**${name}**`;
+              return info.matra ? `${display} (${info.matra.toFixed(2)})` : display;
+            })
+            .join("\n");
+        } else {
+          // Get unique values for this column
+          const uniqueValues = getUniqueValuesForColumn(
+            currentFilteredData,
+            columnKey
+          );
+
+          // Replace the count with the joined values (one per line)
+          newRow[col] = uniqueValues.join("\n");
+        }
       }
     });
   } else {
     // For allocation tables, apply the dar/matra toggle
     visibleColumns.forEach((col) => {
-      if (col !== table.columns[0] && col !== "कुल") {
-        // Check if the _dar column exists in the original data
-        newRow[col] = showDar 
-          ? (row[`${col}_dar`] !== undefined ? row[`${col}_dar`] : row[col] || "0")
-          : row[col] || "0";
-      } else if (col === "कुल") {
-        // For the total column, use the correct value based on toggle
-        newRow[col] = showDar 
-          ? (row["कुल_dar"] !== undefined ? row["कुल_dar"] : row["कुल"] || "0")
-          : row["कुल"] || "0";
+      // If this is the first column (row label), keep as-is
+      if (col === table.columns[0]) return;
+
+      // Handle columns that are aggregate totals (start with 'कुल' or new names) separately
+      if (col.startsWith("कुल") || col === "आवंटित मात्रा" || col === "कृषक धनराशि" || col === "सब्सिडी धनराशि") {
+        // Use the explicit total keys placed on the rows: "आवंटित मात्रा", "कृषक धनराशि", "सब्सिडी धनराशि", "कुल राशि"
+        const matraVal = parseFloat(row["आवंटित मात्रा"] || 0).toFixed(2);
+        const darVal = parseFloat(row["कुल राशि"] || 0).toFixed(2);
+        if (showMatra && showDar) newRow[col] = `${matraVal} / ${darVal}`;
+        else if (showDar) newRow[col] = darVal;
+        else newRow[col] = matraVal;
+        return;
       }
+
+      // Dynamic columns (the clicked values) have matra, ikai and _dar variants
+      let matraVal = row[col];
+      let darVal = row[`${col}_dar`];
+      let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
+
+      // If matraVal already contains "/" it's been formatted, extract the first number
+      if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+        const parts = String(matraVal).split(" / ");
+        matraVal = parts[0];
+        if (darVal === undefined) darVal = parts[1] || parts[0];
+        if (!ikaiVal && parts.length === 3) ikaiVal = parts[1];
+      } else {
+        matraVal = matraVal !== undefined ? String(matraVal) : "0";
+      }
+
+      if (darVal === undefined) {
+        darVal = matraVal;
+      } else if (String(darVal).includes(" / ")) {
+        darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+      } else {
+        darVal = String(darVal);
+      }
+
+      ikaiVal = ikaiVal !== undefined && ikaiVal !== null ? String(ikaiVal) : "";
+
+      // If ikai/unit is missing on the row, try to derive it from underlying items
+      if ((!ikaiVal || ikaiVal === "") && table && table.isAllocationTable) {
+        const derivedUnit = findUnitForRowCol(row, col, table);
+        if (derivedUnit) {
+          ikaiVal = String(derivedUnit);
+          // Persist it on the newRow so totals/exports can pick it up
+          newRow[`${col}_ikai`] = ikaiVal;
+        }
+      }
+
+      newRow[col] = formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
     });
   }
 
@@ -1983,6 +2766,9 @@ const MainDashboard = () => {
     });
 
     const totals = {};
+    // Determine visible dynamic columns (clicked values) for allocation tables
+    const visibleDynamicColsExport = visibleColumns.filter((c) => c !== table.columns[0] && !c.startsWith("कुल") && c !== "आवंटित मात्रा" && c !== "कृषक धनराशि" && c !== "सब्सिडी धनराशि");
+
     visibleColumns.forEach((col) => {
       if (col === table.columns[0]) {
         totals[col] = filteredTableData.length;
@@ -1991,54 +2777,89 @@ const MainDashboard = () => {
           (sum, row) => sum + row["कुल रिकॉर्ड"],
           0
         );
-      } else if (col === "कुल आवंटित मात्रा") {
-        totals[col] = filteredTableData
-          .reduce(
-            (sum, row) => sum + parseFloat(row["कुल आवंटित मात्रा"] || 0),
-            0
-          )
-          .toFixed(2);
-      } else if (col === "कुल किसान की हिस्सेदारी") {
-        totals[col] = filteredTableData
-          .reduce(
-            (sum, row) => sum + parseFloat(row["कुल किसान की हिस्सेदारी"] || 0),
-            0
-          )
-          .toFixed(2);
-      } else if (col === "कुल सब्सिडी") {
-        totals[col] = filteredTableData
-          .reduce((sum, row) => sum + parseFloat(row["कुल सब्सिडी"] || 0), 0)
-          .toFixed(2);
+      } else if (col === "आवंटित मात्रा") {
+        if (table.isAllocationTable) {
+          const matraTotal = filteredTableData
+            .reduce(
+              (sum, row) =>
+                sum +
+                visibleDynamicColsExport.reduce((s, c) => s + parseFloat(row[c] || 0), 0),
+              0
+            )
+            .toFixed(2);
+          const darTotal = filteredTableData
+            .reduce(
+              (sum, row) =>
+                sum +
+                visibleDynamicColsExport.reduce((s, c) => s + parseFloat(row[`${c}_dar`] || 0), 0),
+              0
+            )
+            .toFixed(2);
+          const ikaiTotal = filteredTableData
+            .reduce(
+              (sum, row) =>
+                sum +
+                visibleDynamicColsExport.reduce((s, c) => s + parseFloat(row[`${c}_ikai`] || row[`${c}_unit`] || 0), 0),
+              0
+            )
+            .toFixed(2);
+          const showDarFlag = allocationTableToggles[index]?.dar ?? table.showDar ?? false;
+          const showMatraFlag = allocationTableToggles[index]?.matra ?? table.showMatra ?? false;
+          const showIkaiFlag = allocationTableToggles[index]?.ikai ?? table.showIkai ?? false;
+          totals[col] = formatAllocationValue(matraTotal, ikaiTotal, darTotal, showMatraFlag, showIkaiFlag, showDarFlag);
+        } else {
+          totals[col] = filteredTableData
+            .reduce(
+              (sum, row) => sum + parseFloat(row["आवंटित मात्रा"] || 0),
+              0
+            )
+            .toFixed(2);
+        }
+      } else if (col === "कृषक धनराशि") {
+        if (table.isAllocationTable) {
+          totals[col] = filteredTableData
+            .reduce(
+              (sum, row) => sum + visibleDynamicColsExport.reduce((s, c) => s + parseFloat(row[`${c}_farmer`] || 0), 0),
+              0
+            )
+            .toFixed(2);
+        } else {
+          totals[col] = filteredTableData
+            .reduce(
+              (sum, row) => sum + parseFloat(row["कृषक धनराशि"] || 0),
+              0
+            )
+            .toFixed(2);
+        }
+      } else if (col === "सब्सिडी धनराशि") {
+        if (table.isAllocationTable) {
+          totals[col] = filteredTableData
+            .reduce(
+              (sum, row) => sum + visibleDynamicColsExport.reduce((s, c) => s + parseFloat(row[`${c}_subsidy`] || 0), 0),
+              0
+            )
+            .toFixed(2);
+        } else {
+          totals[col] = filteredTableData
+            .reduce((sum, row) => sum + parseFloat(row["सब्सिडी धनराशि"] || 0), 0)
+            .toFixed(2);
+        }
       } else if (col === "कुल राशि") {
-        totals[col] = filteredTableData
-          .reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0)
-          .toFixed(2);
-     } else if (col === "कुल") {
-  // For allocation table total - use the correct values based on toggle
-  if (table.isAllocationTable && showDar) {
-    // For dar view, get the _dar value from the total row in the original data
-    const totalRow = table.data.find(
-      (row) => row[table.columns[0]] === "कुल"
-    );
-    totals[col] = totalRow 
-      ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
-      : "0";
-  } else {
-    // For matra view, sum the regular values
-    totals[col] = filteredTableData
-      .reduce(
-        (sum, row) =>
-          sum +
-          visibleColumns
-            .filter((c) => c !== "कुल")
-            .reduce((s, c) => s + parseFloat(row[c] || 0), 0),
-        0
-      )
-      .toFixed(2);
-  }
-} else {
+        if (table.isAllocationTable) {
+          totals[col] = filteredTableData
+            .reduce(
+              (sum, row) => sum + visibleDynamicColsExport.reduce((s, c) => s + parseFloat(row[`${c}_dar`] || 0), 0),
+              0
+            )
+            .toFixed(2);
+        } else {
+          totals[col] = filteredTableData
+            .reduce((sum, row) => sum + parseFloat(row["कुल राशि"] || 0), 0)
+            .toFixed(2);
+        }
+     } else {
         // Dynamic columns
-        const isExpanded = expandedColumns[`total_${col}`];
+        const isExpanded = expandedColumns[`${index}_${col}`];
         const columnKey = Object.keys(columnDefs).find(
           (k) => columnDefs[k].label === col
         );
@@ -2052,14 +2873,79 @@ const MainDashboard = () => {
             return true;
           });
 
-          // Get unique values for this column
-          const uniqueValues = getUniqueValuesForColumn(
-            currentFilteredData,
-            columnKey
-          );
+          // Special handling for sub_investment_name - group by investment_name
+          if (columnKey === "sub_investment_name") {
+            const groupedData = {};
+            currentFilteredData.forEach((item) => {
+              const investmentName = item.investment_name;
+              const subInvestmentName = item.sub_investment_name;
+              
+              if (investmentName && subInvestmentName) {
+                if (!groupedData[investmentName]) {
+                  groupedData[investmentName] = {};
+                }
+                if (!groupedData[investmentName][subInvestmentName]) {
+                  groupedData[investmentName][subInvestmentName] = 0;
+                }
+                let qty = item.allocated_quantity;
+                if (typeof qty === "string" && qty.includes(" / ")) {
+                  qty = parseFloat(qty.split(" / ")[0]) || 0;
+                } else {
+                  qty = parseFloat(qty) || 0;
+                }
+                groupedData[investmentName][subInvestmentName] += qty;
+              }
+            });
 
-          // Use the joined values for the total
-          totals[col] = uniqueValues.join(", ");
+            // Format as hierarchical text with **bold** markers
+            const formattedLines = [];
+            Object.entries(groupedData).forEach(([investmentName, subInvestments]) => {
+              formattedLines.push(`**${investmentName}**`);
+              Object.entries(subInvestments).forEach(([name, matra]) => {
+                formattedLines.push(`  • ${name} (${matra.toFixed(2)})`);
+              });
+            });
+            totals[col] = formattedLines.join("\n");
+          } else if (columnKey === "investment_name") {
+            // Special handling for investment_name - show with unit and matra
+            const groupedInvestments = {};
+            currentFilteredData.forEach((item) => {
+              const investmentName = item.investment_name;
+              if (investmentName) {
+                if (!groupedInvestments[investmentName]) {
+                  groupedInvestments[investmentName] = { matra: 0, unit: "" };
+                }
+                let qty = item.allocated_quantity;
+                if (typeof qty === "string" && qty.includes(" / ")) {
+                  qty = parseFloat(qty.split(" / ")[0]) || 0;
+                } else {
+                  qty = parseFloat(qty) || 0;
+                }
+                groupedInvestments[investmentName].matra += qty;
+                if (!groupedInvestments[investmentName].unit) {
+                  const u = getUnitFromItem(item);
+                  if (u) groupedInvestments[investmentName].unit = u;
+                }
+              }
+            });
+            totals[col] = Object.entries(groupedInvestments)
+              .map(([name, info]) => {
+                const display = info.unit 
+                  ? `**${name} (${info.unit})**`
+                  : `**${name}**`;
+                return info.matra ? `${display} (${info.matra.toFixed(2)})` : display;
+              })
+              .join("\n");
+          } else {
+            // Get unique values for this column
+            const uniqueValues = getUniqueValuesForColumn(
+              currentFilteredData,
+              columnKey
+            );
+
+            // Use the joined values for the total (one per line)
+            totals[col] = uniqueValues.join("\n");
+          }
         } else {
           // Otherwise, count unique values
           totals[col] = new Set(
@@ -2085,14 +2971,58 @@ const MainDashboard = () => {
     const defaultName = `Table ${tablesForExport[type].length + 1}`;
     setTableName(defaultName);
     setExportType(type);
+    
+    // When rotated, include summary columns (आवंटित मात्रा, etc.) in visibleClickedCols for export
+    const summaryColsForExport = visibleColumns.filter((c) => (c.startsWith("कुल") || c === "आवंटित मात्रा" || c === "कृषक धनराशि" || c === "सब्सिडी धनराशि") && c !== "कुल रिकॉर्ड");
+    const visibleClickedColsForExport = isRotated[index] 
+      ? [...visibleDynamicColsExport, ...summaryColsForExport]
+      : visibleDynamicColsExport;
+    
+    // For rotated tables, the row headers (first column values) become column headers in transposed view
+    // Get the visible row names from the data (excluding the "कुल" total row)
+    const visibleRowNames = modifiedData
+      .filter((row) => row[table.columns[0]] !== "कुल")
+      .map((row) => row[table.columns[0]]);
+    
+    // For rotated tables, we need to pass raw (unformatted) data to transposeTableForRotation
+    // because it will apply its own formatting. Using modifiedData would cause double-formatting.
+    const rawDataForRotation = table.data.filter((row) => {
+      const rowValue = row[table.columns[0]];
+      // Apply the same row filter as modifiedData
+      return rowValue !== "कुल" ? visibleRowNames.includes(rowValue) : true;
+    });
+    // Augment rawDataForRotation with derived ikai values for dynamic columns so
+    // transpose and export logic can pick up units even if per-row `${col}_ikai`
+    // keys were not originally present.
+    // Use previously computed visibleDynamicColsExport to augment raw rows
+    const augmentedRawData = rawDataForRotation.map((r) => {
+      const newR = { ...r };
+      visibleDynamicColsExport.forEach((c) => {
+        const existing = newR[`${c}_ikai`] || newR[`${c}_unit`] || "";
+        if (!existing) {
+          const derived = findUnitForRowCol(newR, c, table);
+          if (derived) newR[`${c}_ikai`] = derived;
+        }
+      });
+      return newR;
+    });
+    
     setCurrentTableForExport({
       ...table,
       data: modifiedData,
+      // Store raw data for rotation (transposeTableForRotation will use this)
+      rawData: augmentedRawData,
       columns: visibleColumns,
       totals: totals,
       isAllocationTable: table.isAllocationTable,
-      showDar: showDar, // Store the toggle state
+      showDar: showDar, // Store the dar toggle
+      showMatra: showMatra, // Store the matra toggle
+      showIkai: showIkai, // Store the ikai toggle
       isRotated: isRotated[index] || false,
+      // Export-time visibility: which original rows (headers) are visible (become columns when transposed)
+      visibleTransposed: [table.columns[0], ...visibleRowNames, "कुल"],
+      // Which clicked/dynamic columns are visible (become rows when transposed)
+      visibleClickedCols: visibleClickedColsForExport,
     });
     setShowTableSelectionModal(true);
   };
@@ -2112,97 +3042,218 @@ const MainDashboard = () => {
   const transposeTableForRotation = (table) => {
     const transposedRows = [];
     const firstColLabel = table.columns[0];
+    
+    // Use rawData if available (unformatted data for proper calculation)
+    // Otherwise fall back to table.data
+    const sourceData = table.rawData || table.data;
 
-    // Get all row headers (first column values) - exclude the total row initially
-    const rowHeaders = table.data
-      .filter((row) => row[firstColLabel] !== "कुल")
-      .map((row) => row[firstColLabel]);
+    // Determine which original rows (headers) are visible when transposed
+    const rowHeaders = (table.visibleTransposed && table.visibleTransposed.length > 0)
+      ? table.visibleTransposed.filter((c) => c !== firstColLabel && c !== "कुल")
+      : sourceData.filter((row) => row[firstColLabel] !== "कुल").map((row) => row[firstColLabel]);
 
-    // For each column (except the first), create a new row
-    for (let i = 1; i < table.columns.length; i++) {
-      const col = table.columns[i];
+    // Determine which clicked/dynamic columns are visible (these will become rows)
+    // Include summary columns (आवंटित मात्रा, etc.) as rows in transposed view
+    const allClickedCols = (table.visibleClickedCols && table.visibleClickedCols.length > 0)
+      ? table.visibleClickedCols
+      : table.columns.slice(1).filter((col) => 
+          !(table.isAllocationTable && col.endsWith("_dar")) && 
+          !(table.isAllocationTable && col.endsWith("_farmer")) &&
+          !(table.isAllocationTable && col.endsWith("_subsidy"))
+        );
 
-      // Skip _dar columns in allocation tables - they're handled with the toggle
-      if (table.isAllocationTable && col.endsWith("_dar")) {
-        continue;
-      }
+    // Separate dynamic columns from summary columns
+    const dynamicCols = allClickedCols.filter(col => !col.startsWith("कुल") && col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && col !== "सब्सिडी धनराशि");
+    const summaryColsToInclude = allClickedCols.filter(col => col.startsWith("कुल") || col === "आवंटित मात्रा" || col === "कृषक धनराशि" || col === "सब्सिडी धनराशि");
 
-      // Skip the explicit total column when transposing; we'll add a single totals row later
-      if (col === "कुल") {
-        continue;
-      }
-
+    // For each visible dynamic column, create a transposed row
+    dynamicCols.forEach((col) => {
       const newRow = { [firstColLabel]: col };
 
-      table.data.forEach((dataRow, idx) => {
-        if (dataRow[firstColLabel] !== "कुल") {
-          // For allocation tables, respect the dar/matra toggle
-          if (table.isAllocationTable && table.showDar) {
-            // Check if the _dar column exists in the original data
-            newRow[rowHeaders[idx]] = dataRow[`${col}_dar`] !== undefined 
-              ? dataRow[`${col}_dar`] 
-              : dataRow[col] || "0";
-          } else {
-            newRow[rowHeaders[idx]] = dataRow[col] || "";
-          }
+      // For each visible original row header, populate cell
+      rowHeaders.forEach((rh) => {
+        const dataRow = sourceData.find((r) => r[firstColLabel] === rh);
+        if (!dataRow) {
+          newRow[rh] = "";
+          return;
+        }
+
+        if (table.isAllocationTable) {
+          const matraValRaw = resolveCellValue(dataRow, col);
+          const darValRaw = resolveCellValue(dataRow, `${col}_dar`);
+          const ikaiValRaw = resolveCellValue(dataRow, `${col}_ikai`) || resolveCellValue(dataRow, `${col}_unit`) || "";
+          const matraVal = matraValRaw !== "" ? String(matraValRaw) : "0";
+          const darVal = darValRaw !== "" ? String(darValRaw) : matraVal;
+          const ikaiVal = ikaiValRaw !== "" ? String(ikaiValRaw) : "";
+          newRow[rh] = formatAllocationValue(matraVal, ikaiVal, darVal, table.showMatra, table.showIkai, table.showDar);
+        } else {
+          newRow[rh] = resolveCellValue(dataRow, col) || "";
         }
       });
 
-      // Add total row for this column
-      const totalRow = table.data.find((row) => row[firstColLabel] === "कुल");
-      if (totalRow) {
-        if (table.isAllocationTable && table.showDar) {
-          // Check if the _dar column exists in the total row
-          newRow["कुल"] = totalRow[`${col}_dar`] !== undefined 
-            ? totalRow[`${col}_dar`] 
-            : totalRow[col] || "0";
+      // Compute total for this clicked column across visible rowHeaders
+      if (rowHeaders.length > 0) {
+        if (table.isAllocationTable) {
+          const matraTotal = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + parseFloat(resolveCellValue(r, col) || 0);
+          }, 0).toFixed(2);
+          const darTotal = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + parseFloat(resolveCellValue(r, `${col}_dar`) || 0);
+          }, 0).toFixed(2);
+          const ikaiTotal = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + parseFloat(resolveCellValue(r, `${col}_ikai`) || resolveCellValue(r, `${col}_unit`) || 0);
+          }, 0).toFixed(2);
+          newRow["कुल"] = formatAllocationValue(matraTotal, ikaiTotal, darTotal, table.showMatra, table.showIkai, table.showDar);
         } else {
-          newRow["कुल"] = totalRow[col] || "";
+          const totalVal = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + parseFloat(resolveCellValue(r, col) || 0);
+          }, 0).toFixed(2);
+          newRow["कुल"] = totalVal;
         }
       }
 
       transposedRows.push(newRow);
-    }
+    });
 
-    // Append a totals row so rotated tables also contain a "कुल" data row
-    // This ensures exports include the total row just like the preview
-    const totalRowOriginal = table.data.find((r) => r[firstColLabel] === "कुल");
-    if (totalRowOriginal) {
-      const totalsRow = { [firstColLabel]: "कुल" };
-      // For each original row header (non-total), get its total from the original row
-      rowHeaders.forEach((rh) => {
-        const origRow = table.data.find((r) => r[firstColLabel] === rh);
-        if (origRow) {
-          if (table.isAllocationTable && table.showDar) {
-            totalsRow[rh] = origRow["कुल_dar"] !== undefined ? origRow["कुल_dar"] : origRow["कुल"] || "";
-          } else {
-            totalsRow[rh] = origRow["कुल"] !== undefined ? origRow["कुल"] : "";
-          }
-        } else {
-          totalsRow[rh] = "";
+    // Add summary columns as rows (आवंटित मात्रा, कृषक धनराशि, सब्सिडी धनराशि, कुल राशि)
+    if (table.isAllocationTable && summaryColsToInclude.length > 0) {
+      summaryColsToInclude.forEach((summaryCol) => {
+        // Determine the display label for summary columns based on matra/dar toggle
+        let displayLabel = summaryCol;
+        if (summaryCol === "आवंटित मात्रा") {
+          if (table.showMatra && table.showDar) displayLabel = "आवंटित मात्रा/दर";
+          else if (table.showDar) displayLabel = "आवंटित दर";
+          else displayLabel = "आवंटित मात्रा";
         }
+        
+        const newRow = { [firstColLabel]: displayLabel };
+        
+        // For each visible original row header, calculate the summary value
+        rowHeaders.forEach((rh) => {
+          const dataRow = sourceData.find((r) => r[firstColLabel] === rh);
+          if (!dataRow) {
+            newRow[rh] = "0";
+            return;
+          }
+
+          // Calculate summary value based on dynamicCols (same logic as display)
+            if (summaryCol === "आवंटित मात्रा") {
+              const matraTotal = dynamicCols.reduce((s, c) => s + parseFloat(resolveCellValue(dataRow, c) || 0), 0).toFixed(2);
+              const darTotal = dynamicCols.reduce((s, c) => s + parseFloat(resolveCellValue(dataRow, `${c}_dar`) || 0), 0).toFixed(2);
+              const ikaiTotal = dynamicCols.reduce((s, c) => s + parseFloat(resolveCellValue(dataRow, `${c}_ikai`) || resolveCellValue(dataRow, `${c}_unit`) || 0), 0).toFixed(2);
+              newRow[rh] = formatAllocationValue(matraTotal, ikaiTotal, darTotal, table.showMatra, table.showIkai, table.showDar);
+            } else if (summaryCol === "कृषक धनराशि") {
+              newRow[rh] = dynamicCols.reduce((s, c) => s + parseFloat(resolveCellValue(dataRow, `${c}_farmer`) || 0), 0).toFixed(2);
+            } else if (summaryCol === "सब्सिडी धनराशि") {
+              newRow[rh] = dynamicCols.reduce((s, c) => s + parseFloat(resolveCellValue(dataRow, `${c}_subsidy`) || 0), 0).toFixed(2);
+            } else if (summaryCol === "कुल राशि") {
+              newRow[rh] = dynamicCols.reduce((s, c) => s + parseFloat(resolveCellValue(dataRow, `${c}_dar`) || 0), 0).toFixed(2);
+            } else {
+              newRow[rh] = resolveCellValue(dataRow, summaryCol) !== undefined ? String(resolveCellValue(dataRow, summaryCol)) : "0";
+            }
+        });
+
+        // Calculate total for summary column (grand total across all rows)
+        if (summaryCol === "आवंटित मात्रा") {
+          const matraTotal = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + dynamicCols.reduce((rs, c) => rs + parseFloat(resolveCellValue(r, c) || 0), 0);
+          }, 0).toFixed(2);
+          const darTotal = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + dynamicCols.reduce((rs, c) => rs + parseFloat(resolveCellValue(r, `${c}_dar`) || 0), 0);
+          }, 0).toFixed(2);
+          if (table.showMatra && table.showDar) newRow["कुल"] = `${matraTotal} / ${darTotal}`;
+          else if (table.showDar) newRow["कुल"] = darTotal;
+          else newRow["कुल"] = matraTotal;
+        } else if (summaryCol === "कृषक धनराशि") {
+          newRow["कुल"] = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + dynamicCols.reduce((rs, c) => rs + parseFloat(resolveCellValue(r, `${c}_farmer`) || 0), 0);
+          }, 0).toFixed(2);
+        } else if (summaryCol === "सब्सिडी धनराशि") {
+          newRow["कुल"] = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + dynamicCols.reduce((rs, c) => rs + parseFloat(resolveCellValue(r, `${c}_subsidy`) || 0), 0), 0;
+          }, 0).toFixed(2);
+        } else if (summaryCol === "कुल राशि") {
+          newRow["कुल"] = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + dynamicCols.reduce((rs, c) => rs + parseFloat(resolveCellValue(r, `${c}_dar`) || 0), 0);
+          }, 0).toFixed(2);
+        } else {
+          const total = rowHeaders.reduce((s, rh) => {
+            const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+            return s + parseFloat(resolveCellValue(r, summaryCol) || 0);
+          }, 0).toFixed(2);
+          newRow["कुल"] = total;
+        }
+
+        transposedRows.push(newRow);
       });
-
-      // For the transposed 'कुल' column, use the total from the original total row
-      if (table.isAllocationTable && table.showDar) {
-        totalsRow["कुल"] = totalRowOriginal["कुल_dar"] !== undefined ? totalRowOriginal["कुल_dar"] : totalRowOriginal["कुल"] || "";
-      } else {
-        totalsRow["कुल"] = totalRowOriginal["कुल"] || "";
-      }
-
-      // Only append totals row if it contains at least one non-empty value
-      const hasNonEmptyTotal = Object.keys(totalsRow).some((k) => {
-        if (k === firstColLabel) return false;
-        const v = totalsRow[k];
-        return v !== null && v !== undefined && String(v).trim() !== "";
-      });
-
-      if (hasNonEmptyTotal) {
-        transposedRows.push(totalsRow);
-      }
     }
 
-    // New columns are the row headers plus the total column (only once)
+    // Build totals row: for each visible rowHeader, sum over dynamicCols (not summary cols)
+    const totalsRow = { [firstColLabel]: "कुल" };
+    // For each visible original row header, compute sum across dynamicCols
+    rowHeaders.forEach((rh) => {
+      if (table.isAllocationTable) {
+        const matraSum = dynamicCols.reduce((s, c) => {
+          const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+          return s + parseFloat(resolveCellValue(r, c) || 0);
+        }, 0).toFixed(2);
+        const darSum = dynamicCols.reduce((s, c) => {
+          const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+          return s + parseFloat(resolveCellValue(r, `${c}_dar`) || 0);
+        }, 0).toFixed(2);
+        if (table.showMatra && table.showDar) totalsRow[rh] = `${matraSum} / ${darSum}`;
+        else if (table.showDar) totalsRow[rh] = darSum;
+        else totalsRow[rh] = matraSum;
+      } else {
+        const sumVal = dynamicCols.reduce((s, c) => {
+          const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+          return s + parseFloat(resolveCellValue(r, c) || 0);
+        }, 0).toFixed(2);
+        totalsRow[rh] = sumVal;
+      }
+    });
+
+    // For the transposed 'कुल' column (grand total across all), compute sums
+    if (table.isAllocationTable) {
+      const grandMatra = dynamicCols.reduce((s, c) => {
+        return s + rowHeaders.reduce((ss, rh) => {
+          const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+          return ss + parseFloat(resolveCellValue(r, c) || 0);
+        }, 0);
+      }, 0).toFixed(2);
+      const grandDar = dynamicCols.reduce((s, c) => {
+        return s + rowHeaders.reduce((ss, rh) => {
+          const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+          return ss + parseFloat(resolveCellValue(r, `${c}_dar`) || 0);
+        }, 0);
+      }, 0).toFixed(2);
+      if (table.showMatra && table.showDar) totalsRow["कुल"] = `${grandMatra} / ${grandDar}`;
+      else if (table.showDar) totalsRow["कुल"] = grandDar;
+      else totalsRow["कुल"] = grandMatra;
+    } else {
+      const grand = dynamicCols.reduce((s, c) => {
+        return s + rowHeaders.reduce((ss, rh) => {
+          const r = sourceData.find((rr) => rr[firstColLabel] === rh);
+          return ss + parseFloat(resolveCellValue(r, c) || 0);
+        }, 0);
+      }, 0).toFixed(2);
+      totalsRow["कुल"] = grand;
+    }
+
+    // Append totals row only if there is any data AND it's not an allocation table
+    // For allocation tables, the "कुल" column already shows row totals, so we skip the bottom totals row
+    const hasAny = rowHeaders.length > 0 && (dynamicCols.length > 0 || summaryColsToInclude.length > 0);
+    if (hasAny && !table.isAllocationTable) transposedRows.push(totalsRow);
+
     const newColumns = [firstColLabel, ...rowHeaders, "कुल"];
 
     return {
@@ -2221,6 +3272,8 @@ const MainDashboard = () => {
       name: tableName || `Table ${tablesForExport[exportType].length + 1}`,
       heading: currentTableForExport.heading,
       data: currentTableForExport.data,
+      // Store raw data for rotation (used by transposeTableForRotation to avoid double-formatting)
+      rawData: currentTableForExport.rawData,
       columns: currentTableForExport.columns,
       totals: currentTableForExport.totals || {},
       addedAt: new Date().toLocaleString(),
@@ -2228,8 +3281,13 @@ const MainDashboard = () => {
       // otherwise fallback to lookup by additionalTables index
       isRotated: currentTableForExport?.isRotated ?? getTableRotationStatus(),
       isAllocationTable: currentTableForExport.isAllocationTable,
-      showDar: currentTableForExport.showDar, // Store the toggle state
+      showDar: currentTableForExport.showDar, // Store the dar toggle
+      showMatra: currentTableForExport.showMatra, // Store the matra toggle
+      showIkai: currentTableForExport.showIkai,
       isSummary: currentTableForExport.isSummary !== false, // Mark as summary unless marked as additional
+      // Pass visibility info for rotation
+      visibleTransposed: currentTableForExport.visibleTransposed,
+      visibleClickedCols: currentTableForExport.visibleClickedCols,
     };
     setTablesForExport((prev) => ({
       ...prev,
@@ -2248,6 +3306,112 @@ const MainDashboard = () => {
     }));
   };
 
+  // Helper to robustly resolve a cell value from a row given a column label
+  const resolveCellValue = (row, col) => {
+    if (row == null) return "";
+    // If primitive row (string/number), return it
+    if (typeof row !== "object") return row;
+
+    // Direct property match
+    if (Object.prototype.hasOwnProperty.call(row, col)) return row[col] ?? "";
+
+    const normalizedCol = String(col).trim();
+
+    // Exact match ignoring surrounding whitespace
+    for (const k of Object.keys(row)) {
+      if (String(k).trim() === normalizedCol) return row[k] ?? "";
+    }
+
+    // Try matching by removing parenthesis part from column label
+    const withoutParen = normalizedCol.replace(/\s*\(.+?\)\s*$/, "").trim();
+    if (withoutParen && withoutParen !== normalizedCol) {
+      for (const k of Object.keys(row)) {
+        if (String(k).trim() === withoutParen) return row[k] ?? "";
+        if (String(k).includes(withoutParen)) return row[k] ?? "";
+      }
+    }
+
+    // Try partial / substring matches (useful when keys differ slightly)
+    for (const k of Object.keys(row)) {
+      if (String(k).includes(normalizedCol) || normalizedCol.includes(String(k))) {
+        return row[k] ?? "";
+      }
+    }
+
+    // Fallback: if this column maps to a known key in columnDefs, return that
+    const key = Object.keys(columnDefs).find((k) => columnDefs[k].label === col);
+    if (key && Object.prototype.hasOwnProperty.call(row, key)) return row[key] ?? "";
+
+    return "";
+  };
+
+  // Format allocation display string including matra, ikai (unit) and dar based on toggles
+  const formatAllocationValue = (matra, ikai, dar, showMatra, showIkai, showDar) => {
+    const m = (matra === undefined || matra === null || String(matra).trim() === "") ? "0" : String(matra);
+    const i = (ikai === undefined || ikai === null || String(ikai).trim() === "") ? "" : String(ikai);
+    const d = (dar === undefined || dar === null || String(dar).trim() === "") ? "0" : String(dar);
+
+    if (showMatra && showIkai && showDar) return `${m} / ${i || ""} / ${d}`;
+    if (showMatra && showIkai) return `${m} / ${i || ""}`;
+    if (showIkai && showDar) return `${i || ""} / ${d}`;
+    if (showMatra && showDar) return `${m} / ${d}`;
+    if (showIkai) return `${i || ""}`;
+    if (showDar) return `${d}`;
+    return `${m}`;
+  };
+
+  // Try to detect a unit (ikai) string from a data item using common field names
+  const getUnitFromItem = (item) => {
+    if (!item || typeof item !== "object") return "";
+    const candidates = [
+      "ikai",
+      "unit",
+      "unit_of_measure",
+      "investment_ikai",
+      "investment_unit",
+      "sub_investment_unit",
+      "measure",
+    ];
+    for (const c of candidates) {
+      if (item[c]) return item[c];
+    }
+    return "";
+  };
+
+  // Try to derive a unit (ikai) for a given table row and dynamic column by
+  // scanning the underlying dataset for an item that matches the row header
+  // and has a field equal to the column label. This is a best-effort
+  // fallback when per-column `${col}_ikai` keys are not present on the row.
+  const findUnitForRowCol = (row, colLabel, table) => {
+    try {
+      const rowHeaderKey = table.columns && table.columns[0];
+      const rowHeaderVal = row && row[rowHeaderKey];
+      if (!rowHeaderVal) return "";
+
+      // Search the global tableData for an item that belongs to this row
+      // and contains a property whose value matches the column label.
+      for (const item of tableData) {
+        // Ensure this item belongs to the same row (by first column value)
+        if (item[table.columnKey] !== rowHeaderVal) continue;
+
+        // If any property equals the column label, return its unit
+        for (const k of Object.keys(item)) {
+          try {
+            if (item[k] === colLabel || String(item[k]) === String(colLabel)) {
+              const u = getUnitFromItem(item);
+              if (u) return u;
+            }
+          } catch (e) {
+            // ignore coercion problems
+          }
+        }
+      }
+    } catch (e) {
+      // swallow errors and return empty
+    }
+    return "";
+  };
+
   // Generate PDF preview
   const generatePDFPreview = () => {
     return (
@@ -2258,6 +3422,15 @@ const MainDashboard = () => {
           fontSize: "12px",
         }}
       >
+        <style>{`
+          /* Prevent rows or cells from splitting across PDF pages */
+          table { page-break-inside: avoid; break-inside: avoid; }
+          thead { display: table-header-group }
+          tfoot { display: table-row-group }
+          tr { page-break-inside: avoid; break-inside: avoid; }
+          td, th { page-break-inside: avoid; break-inside: avoid; }
+          .table-container { page-break-inside: avoid; break-inside: avoid; }
+        `}</style>
         <h1
           style={{
             textAlign: "center",
@@ -2311,7 +3484,7 @@ const MainDashboard = () => {
                           fontSize: "11px",
                         }}
                       >
-                        {col}
+                        {getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable, table.showIkai)}
                       </th>
                     ))}
                   </tr>
@@ -2331,21 +3504,33 @@ const MainDashboard = () => {
                           {isTotalRow ? "" : rowIndex + 1}
                         </td>
                         {displayTable.columns.map((col) => {
-                          let cellValue = "";
-                          if (typeof row === "object" && row !== null) {
-                            if (row.hasOwnProperty(col)) {
-                              cellValue = row[col] || "";
-                            } else {
-                              // Find the key for this label
-                              const key = Object.keys(columnDefs).find(
-                                (k) => columnDefs[k].label === col
-                              );
-                              if (key) {
-                                cellValue = row[key] || "";
-                              }
+                          let cellValue = resolveCellValue(row, col);
+                          // Fallback for investment/sub-investment expanded totals: compute unique lists
+                          if (
+                            (cellValue === "" || cellValue === null) &&
+                            typeof col === "string"
+                          ) {
+                            const colKey = Object.keys(columnDefs).find(
+                              (k) => columnDefs[k].label === col
+                            );
+                            if (colKey === "investment_name") {
+                              const vals = getUniqueValuesWithMatra("investment_name", null);
+                              cellValue = vals.map((v) => v.display).join("\n");
+                            } else if (colKey === "sub_investment_name") {
+                              const grouped = getSubInvestmentGroupedByInvestment(null);
+                              const formatted = [];
+                              grouped.forEach((group) => {
+                                // Show investment name with unit (if present) as bold heading
+                                const investmentDisplay = group.unit 
+                                  ? `**${group.investmentName} (${group.unit})**`
+                                  : `**${group.investmentName}**`;
+                                formatted.push(investmentDisplay);
+                                group.subInvestments.forEach((item) => {
+                                  formatted.push(`  • ${item.display}`);
+                                });
+                              });
+                              cellValue = formatted.join("\n");
                             }
-                          } else {
-                            cellValue = row;
                           }
                           return (
                             <td
@@ -2439,6 +3624,14 @@ const MainDashboard = () => {
           fontSize: "12px",
         }}
       >
+        <style>{`
+          /* Prevent rows from visually splitting in print preview */
+          table { page-break-inside: avoid; break-inside: avoid; }
+          tr { page-break-inside: avoid; break-inside: avoid; }
+          td, th { page-break-inside: avoid; break-inside: avoid; }
+          thead { display: table-header-group }
+          tfoot { display: table-row-group }
+        `}</style>
         <h3
           style={{
             textAlign: "center",
@@ -2508,7 +3701,7 @@ const MainDashboard = () => {
                           fontSize: "11px",
                         }}
                       >
-                        {col}
+                        {getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable, table.showIkai)}
                       </th>
                     ))}
                   </tr>
@@ -2528,22 +3721,7 @@ const MainDashboard = () => {
                           {isTotalRow ? "" : rowIndex + 1}
                         </td>
                         {displayTable.columns.map((col) => {
-                          let cellValue = "";
-                          if (typeof row === "object" && row !== null) {
-                            if (row.hasOwnProperty(col)) {
-                              cellValue = row[col] || "";
-                            } else {
-                              // Find the key for this label
-                              const key = Object.keys(columnDefs).find(
-                                (k) => columnDefs[k].label === col
-                              );
-                              if (key) {
-                                cellValue = row[key] || "";
-                              }
-                            }
-                          } else {
-                            cellValue = row;
-                          }
+                          const cellValue = resolveCellValue(row, col);
                           return (
                             <td
                               key={col}
@@ -2626,14 +3804,27 @@ const MainDashboard = () => {
     );
   };
 
+  // Helper function to get dynamic column header based on matra/dar toggle
+  const getDynamicColumnHeader = (col, showMatra, showDar, isAllocationTable, showIkai) => {
+    if (!isAllocationTable || col !== "आवंटित मात्रा") return col;
+    // Build header based on which toggles are active
+    if (showMatra && showIkai && showDar) return "आवंटित मात्रा/इकाई/दर";
+    if (showMatra && showIkai) return "आवंटित मात्रा/इकाई";
+    if (showIkai && showDar) return "इकाई/दर";
+    if (showMatra && showDar) return "आवंटित मात्रा/दर";
+    if (showIkai) return "इकाई";
+    if (showDar) return "आवंटित दर";
+    return "आवंटित मात्रा";
+  };
+
   // Helper function to calculate column totals (fallback)
   const calculateColumnTotal = (tableData, column, columnDefs) => {
     if (column === "कुल रिकॉर्ड") {
       return tableData.reduce((sum, row) => sum + (row[column] || 0), 0);
     } else if (
-      column === "कुल आवंटित मात्रा" ||
-      column === "कुल किसान की हिस्सेदारी" ||
-      column === "कुल सब्सिडी" ||
+      column === "आवंटित मात्रा" ||
+      column === "कृषक धनराशि" ||
+      column === "सब्सिडी धनराशि" ||
       column === "कुल राशि"
     ) {
       return tableData
@@ -2688,13 +3879,22 @@ const MainDashboard = () => {
                   ${displayTable.columns
                     .map(
                       (col) =>
-                        `<th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">${col}</th>`
+                        `<th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">${getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable)}</th>`
                     )
                     .join("")}
                 </tr>
               </thead>
               <tbody>
         `;
+
+          // Insert CSS at top of each table block to help html2pdf avoid splitting rows
+          if (index === 0) {
+            // inject a global style block at top of the content
+            htmlContent = htmlContent.replace(
+              '<div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">',
+              '<div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">\n<style>table{page-break-inside:avoid;break-inside:avoid;} thead{display:table-header-group;} tfoot{display:table-row-group;} tr{page-break-inside:avoid;break-inside:avoid;} td,th{page-break-inside:avoid;break-inside:avoid;}</style>'
+            );
+          }
 
         // Include all rows from the display table (including any appended 'कुल' row)
         const dataToProcess = displayTable.data;
@@ -2705,22 +3905,39 @@ const MainDashboard = () => {
           htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${
             isTotalRow ? "" : rowIndex + 1
           }</td>`;
-          displayTable.columns.forEach((col) => {
-            let cellValue = "";
-            if (typeof row === "object" && row !== null) {
-              if (row.hasOwnProperty(col)) {
-                cellValue = row[col] || "";
-              } else {
-                // Find the key for this label
-                const key = Object.keys(columnDefs).find(
-                  (k) => columnDefs[k].label === col
-                );
-                if (key) {
-                  cellValue = row[key] || "";
-                }
+            displayTable.columns.forEach((col) => {
+            let cellValue = resolveCellValue(row, col);
+            // Fallback for investment/sub-investment expanded totals in HTML/pdf generation
+            if ((cellValue === "" || cellValue === null) && typeof col === "string") {
+              const colKey = Object.keys(columnDefs).find((k) => columnDefs[k].label === col);
+              if (colKey === "investment_name") {
+                const vals = getUniqueValuesWithMatra("investment_name", null);
+                cellValue = vals.map((v) => {
+                  const display = v.unit 
+                    ? `**${v.name} (${v.unit})**`
+                    : `**${v.name}**`;
+                  return v.matra ? `${display} (${v.matra})` : display;
+                }).join("\n");
+              } else if (colKey === "sub_investment_name") {
+                const grouped = getSubInvestmentGroupedByInvestment(null);
+                const formatted = [];
+                grouped.forEach((group) => {
+                  const investmentDisplay = group.unit 
+                    ? `**${group.investmentName} (${group.unit})**`
+                    : `**${group.investmentName}**`;
+                  formatted.push(investmentDisplay);
+                  group.subInvestments.forEach((item) => {
+                    formatted.push(`  • ${item.name} (${item.matra})`);
+                  });
+                });
+                cellValue = formatted.join("\n");
               }
-            } else {
-              cellValue = row;
+            }
+            // Convert newlines to <br/> for PDF display
+            if (typeof cellValue === "string") {
+              cellValue = cellValue.replace(/\n/g, "<br/>");
+              // Convert **text** to bold for PDF
+              cellValue = cellValue.replace(/\*\*(.+?)\*\*/g, '<strong style="background-color: #e9ecef; padding: 2px 4px; border-radius: 3px;">$1</strong>');
             }
             htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${cellValue}</td>`;
           });
@@ -2746,10 +3963,17 @@ const MainDashboard = () => {
 
           displayTable.columns.forEach((col) => {
             // Use pre-calculated totals if available
-            const totalValue =
+            let totalValue =
               displayTable.totals && displayTable.totals[col] !== undefined
                 ? displayTable.totals[col]
                 : calculateColumnTotal(displayTable.data, col, columnDefs);
+
+            // Convert newlines to <br/> for PDF display
+            if (typeof totalValue === "string") {
+              totalValue = totalValue.replace(/\n/g, "<br/>");
+              // Convert **text** to bold for PDF
+              totalValue = totalValue.replace(/\*\*(.+?)\*\*/g, '<strong style="background-color: #e9ecef; padding: 2px 4px; border-radius: 3px;">$1</strong>');
+            }
 
             htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
           });
@@ -2823,29 +4047,55 @@ const MainDashboard = () => {
       // Include all rows from the display table (including any appended 'कुल' row)
       const dataToProcess = displayTable.data;
       
+      // Transform column headers with dynamic naming based on matra/dar toggle
+      const transformedColumns = displayTable.columns.map((col) =>
+        getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable, table.showIkai)
+      );
+      
+      // Helper function to format cell value for Excel (convert **text** to [text] and • to proper format)
+      const formatCellForExcel = (value) => {
+        if (typeof value !== "string") return value;
+        // Convert **text** to [text] for Excel (bold marker)
+        let formatted = value.replace(/\*\*(.+?)\*\*/g, '[$1]');
+        // Keep • bullet points and newlines as they are - Excel handles them well
+        return formatted;
+      };
+
       let tableDataArray = [
         [displayTable.heading], // Title
         [], // Empty row
-        ["S.No.", ...displayTable.columns], // Headers
-        ...dataToProcess.map((row, rowIndex) => [
+        ["S.No.", ...transformedColumns], // Headers
+          ...dataToProcess.map((row, rowIndex) => [
           row[displayTable.columns[0]] === "कुल" ? "" : rowIndex + 1,
           ...displayTable.columns.map((col) => {
-            if (typeof row === "object" && row !== null) {
-              if (row.hasOwnProperty(col)) {
-                return row[col] || "";
-              } else {
-                // Find the key for this label
-                const key = Object.keys(columnDefs).find(
-                  (k) => columnDefs[k].label === col
-                );
-                if (key) {
-                  return row[key] || "";
-                } else {
-                  return "";
-                }
+            let cellValue = resolveCellValue(row, col);
+            // Fallback for investment/sub-investment expanded totals in Excel
+            if ((cellValue === "" || cellValue === null) && typeof col === "string") {
+              const colKey = Object.keys(columnDefs).find((k) => columnDefs[k].label === col);
+              if (colKey === "investment_name") {
+                const vals = getUniqueValuesWithMatra("investment_name", null);
+                cellValue = vals.map((v) => {
+                  const display = v.unit 
+                    ? `**${v.name} (${v.unit})**`
+                    : `**${v.name}**`;
+                  return v.matra ? `${display} (${v.matra})` : display;
+                }).join("\n");
+              } else if (colKey === "sub_investment_name") {
+                const grouped = getSubInvestmentGroupedByInvestment(null);
+                const formatted = [];
+                grouped.forEach((group) => {
+                  const investmentDisplay = group.unit 
+                    ? `**${group.investmentName} (${group.unit})**`
+                    : `**${group.investmentName}**`;
+                  formatted.push(investmentDisplay);
+                  group.subInvestments.forEach((item) => {
+                    formatted.push(`  • ${item.name} (${item.matra})`);
+                  });
+                });
+                cellValue = formatted.join("\n");
               }
             }
-            return row;
+            return formatCellForExcel(cellValue);
           }),
         ]),
       ];
@@ -2863,11 +4113,12 @@ const MainDashboard = () => {
         // Calculate totals for each column using pre-calculated values
         const totalsRow = ["कुल:"];
         displayTable.columns.forEach((col) => {
-          const totalValue =
+          let totalValue =
             displayTable.totals && displayTable.totals[col] !== undefined
               ? displayTable.totals[col]
               : calculateColumnTotal(displayTable.data, col, columnDefs);
-          totalsRow.push(totalValue);
+          // Format total value for Excel
+          totalsRow.push(formatCellForExcel(totalValue));
         });
 
         // Add empty row and totals row
@@ -3104,13 +4355,24 @@ const MainDashboard = () => {
       },
     ]);
 
+    // Start from top-filtered data if available so multi-filters are respected
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
     // Get all unique values for this column from the currently filtered data
-    const currentFilteredData = tableData.filter((item) => {
+    // (top filters + filterStack + header filters)
+    let currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
       return true;
     });
+
+    // Also apply header filters from the summary table so that
+    // drilling down respects the column header filter selections
+    currentFilteredData = applySummaryHeaderFilters(currentFilteredData);
 
     const allValues = [
       ...new Set(
@@ -3159,9 +4421,13 @@ const MainDashboard = () => {
     if (additionalTables.length > 0) {
       const initialFilters = {};
       additionalTables.forEach((table, index) => {
+        // Filter out "कुल" row from the selected values
+        const allRowValues = table.data
+          .filter(row => row[table.columns[0]] !== "कुल")
+          .map((row) => row[table.columns[0]]);
         initialFilters[index] = {
           allSelected: true,
-          selectedValues: table.data.map((row) => row[table.columns[0]]),
+          selectedValues: allRowValues,
         };
       });
       setAdditionalTableFilters(initialFilters);
@@ -3178,6 +4444,56 @@ const MainDashboard = () => {
       return true;
     });
 
+    // If only one row is selected, show only that row's data (not grouped by columnKey)
+    if (clickedValues.length === 1) {
+      const selectedValue = clickedValues[0];
+      const filteredRows = currentFilteredData.filter(
+        (item) => item[columnKey] === selectedValue
+      );
+      // Choose columns to show (exclude the clicked column)
+      const showColumns = Object.keys(columnDefs)
+        .filter(
+          (col) =>
+            col !== columnKey &&
+            !columnDefs[col].hidden &&
+            col !== "allocated_quantity" &&
+            col !== "rate" &&
+            col !== "amount_of_farmer_share" &&
+            col !== "amount_of_subsidy" &&
+            col !== "total_amount"
+        )
+        .map((col) => columnDefs[col].label);
+
+      // Build table data: one row per filtered item
+      const newTableData = filteredRows.map((item, idx) => {
+        const row = { SNo: idx + 1 };
+        showColumns.forEach((label) => {
+          const colKey = Object.keys(columnDefs).find(
+            (k) => columnDefs[k].label === label
+          );
+          row[label] = item[colKey];
+        });
+        return row;
+      });
+
+      // Add total row with unique count for each column
+      const totalRow = { SNo: "कुल" };
+      showColumns.forEach((label) => {
+        totalRow[label] = new Set(newTableData.map((row) => row[label])).size;
+      });
+      newTableData.push(totalRow);
+
+      return {
+        heading: `${selectedValue}`,
+        data: newTableData,
+        columns: ["SNo", ...showColumns],
+        columnKey: columnKey,
+        isBreakdownTable: true,
+      };
+    }
+
+    // Default: previous behavior for multiple values
+    // ...existing code...
     // Get all unique values for the first column (same as summary table)
     const firstColumnValues = [
       ...new Set(
@@ -3221,8 +4537,18 @@ const MainDashboard = () => {
     // Create columns for the new table
     const newColumns = [columnDefs[columnKey]?.label, ...clickedValues];
 
+    // Add total row with unique count for each column
+    const totalRow = {};
+    totalRow[columnDefs[columnKey]?.label] = "कुल";
+    newColumns.forEach((col) => {
+      if (col === columnDefs[columnKey]?.label) return;
+      // Unique count for each column (clicked value)
+      totalRow[col] = new Set(newTableData.map((row) => row[col])).size;
+    });
+    newTableData.push(totalRow);
+
     return {
-      heading: `विस्तृत आवंटन - ${columnDefs[columnKey]?.label}`,
+      heading: columnDefs[columnKey]?.label || `Summary Table`,
       data: newTableData,
       columns: newColumns,
       columnKey: columnKey,
@@ -3259,8 +4585,10 @@ const MainDashboard = () => {
 
     // Create the new table structure
     const newTableData = [];
-    const columnTotals = {}; // For calculating column totals
+    const columnTotals = {}; // For calculating column totals (matra)
     const columnDarTotals = {}; // For calculating column dar totals
+    const columnFarmerTotals = {}; // For calculating total farmer share per column
+    const columnSubsidyTotals = {}; // For calculating total subsidy per column
 
     // For each value in the first column, create a row with allocation data for each clicked column value
     firstColumnValues.forEach((firstColValue) => {
@@ -3268,8 +4596,10 @@ const MainDashboard = () => {
         [columnDefs[firstColumnKey]?.label]: firstColValue,
       };
 
-      let rowTotal = 0; // For calculating row total
+      let rowTotal = 0; // For calculating row total (matra)
       let rowDarTotal = 0; // For calculating row dar total
+      let rowFarmerTotal = 0; // For calculating row farmer share total
+      let rowSubsidyTotal = 0; // For calculating row subsidy total
 
       // Add allocation data for each clicked column value
       clickedColumnValues.forEach((clickedColValue) => {
@@ -3294,23 +4624,51 @@ const MainDashboard = () => {
           .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
           .toFixed(2);
 
+        // Calculate total farmer share and subsidy for this combination
+        const totalFarmerShare = filteredForCombination
+          .reduce(
+            (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
+            0
+          )
+          .toFixed(2);
+
+        const totalSubsidy = filteredForCombination
+          .reduce(
+            (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
+            0
+          )
+          .toFixed(2);
+
         rowData[clickedColValue] = totalAllocated;
         rowData[`${clickedColValue}_dar`] = totalAmount;
+        // Store farmer share and subsidy per clicked column internally (not shown as separate columns by default)
+        rowData[`${clickedColValue}_farmer`] = totalFarmerShare;
+        rowData[`${clickedColValue}_subsidy`] = totalSubsidy;
+
         rowTotal += parseFloat(totalAllocated);
         rowDarTotal += parseFloat(totalAmount);
+        rowFarmerTotal += parseFloat(totalFarmerShare);
+        rowSubsidyTotal += parseFloat(totalSubsidy);
 
         // Calculate column totals
         if (!columnTotals[clickedColValue]) {
           columnTotals[clickedColValue] = 0;
           columnDarTotals[clickedColValue] = 0;
+          columnFarmerTotals[clickedColValue] = 0;
+          columnSubsidyTotals[clickedColValue] = 0;
         }
         columnTotals[clickedColValue] += parseFloat(totalAllocated);
         columnDarTotals[clickedColValue] += parseFloat(totalAmount);
+        columnFarmerTotals[clickedColValue] += parseFloat(totalFarmerShare);
+        columnSubsidyTotals[clickedColValue] += parseFloat(totalSubsidy);
       });
 
-      // Add row totals
-      rowData["कुल"] = rowTotal.toFixed(2);
-      rowData["कुल_dar"] = rowDarTotal.toFixed(2);
+      // Add row totals in requested sequence:
+      // "आवंटित मात्रा", "कृषक धनराशि", "सब्सिडी धनराशि", "कुल राशि"
+      rowData["आवंटित मात्रा"] = rowTotal.toFixed(2);
+      rowData["कृषक धनराशि"] = rowFarmerTotal.toFixed(2);
+      rowData["सब्सिडी धनराशि"] = rowSubsidyTotal.toFixed(2);
+      rowData["कुल राशि"] = rowDarTotal.toFixed(2);
       newTableData.push(rowData);
     });
 
@@ -3318,6 +4676,8 @@ const MainDashboard = () => {
     const totalRow = { [columnDefs[firstColumnKey]?.label]: "कुल" };
     let grandTotal = 0;
     let grandDarTotal = 0;
+    let grandFarmerTotal = 0;
+    let grandSubsidyTotal = 0;
 
     clickedColumnValues.forEach((clickedColValue) => {
       totalRow[clickedColValue] = (columnTotals[clickedColValue] || 0).toFixed(
@@ -3328,17 +4688,24 @@ const MainDashboard = () => {
       ).toFixed(2);
       grandTotal += columnTotals[clickedColValue] || 0;
       grandDarTotal += columnDarTotals[clickedColValue] || 0;
+      grandFarmerTotal += columnFarmerTotals[clickedColValue] || 0;
+      grandSubsidyTotal += columnSubsidyTotals[clickedColValue] || 0;
     });
 
-    totalRow["कुल"] = grandTotal.toFixed(2);
-    totalRow["कुल_dar"] = grandDarTotal.toFixed(2);
+    totalRow["आवंटित मात्रा"] = grandTotal.toFixed(2);
+    totalRow["कृषक धनराशि"] = grandFarmerTotal.toFixed(2);
+    totalRow["सब्सिडी धनराशि"] = grandSubsidyTotal.toFixed(2);
+    totalRow["कुल राशि"] = grandDarTotal.toFixed(2);
     newTableData.push(totalRow);
 
     // Create columns for the new table - FIXED: Only add "कुल" once
     const newColumns = [
       columnDefs[firstColumnKey]?.label,
       ...clickedColumnValues,
-      "कुल",
+      "आवंटित मात्रा",
+      "कृषक धनराशि",
+      "सब्सिडी धनराशि",
+      "कुल राशि",
     ];
 
     return {
@@ -3372,7 +4739,8 @@ const MainDashboard = () => {
       addToExistingSheet: true,
       existingSheetId: existingTableId,
       isAllocationTable: currentTableForExport.isAllocationTable,
-      showDar: currentTableForExport.showDar, // Store the toggle state
+      showDar: currentTableForExport.showDar, // Store the dar toggle
+      showMatra: currentTableForExport.showMatra, // Store the matra toggle
       isRotated: currentTableForExport?.isRotated || false,
     };
 
@@ -3477,7 +4845,10 @@ const MainDashboard = () => {
         selectedValues: [],
       };
       const table = additionalTables[tableIndex];
-      const allValues = table.data.map((row) => row[table.columns[0]]);
+      // Exclude "कुल" row from all values
+      const allValues = table.data
+        .filter(row => row[table.columns[0]] !== "कुल")
+        .map((row) => row[table.columns[0]]);
 
       let newSelectedValues;
 
@@ -3509,9 +4880,11 @@ const MainDashboard = () => {
           tableData.originalData = [...tableData.data];
         }
 
-        // Filter the data based on the new selection
+        // Filter the data based on the new selection (keep "कुल" row always)
         const filteredData = originalData.filter((row) => {
           const rowValue = row[tableData.columns[0]];
+          // Always keep the "कुल" row
+          if (rowValue === "कुल") return true;
           return (
             newFilter.allSelected || newFilter.selectedValues.includes(rowValue)
           );
@@ -3537,8 +4910,13 @@ const MainDashboard = () => {
   const handleAdditionalTableColumnFilterChange = (tableIndex, columnName) => {
     setAdditionalTableColumnFilters((prev) => {
       const table = additionalTables[tableIndex];
+      // For allocation tables, include dynamic columns AND summary columns (but not hidden columns like _dar, _farmer, _subsidy)
       const allColumns = table.isAllocationTable
-        ? table.columns.slice(1)
+        ? table.columns.slice(1).filter(col => 
+            !col.endsWith("_dar") &&
+            !col.endsWith("_farmer") &&
+            !col.endsWith("_subsidy")
+          )
         : table.columns.slice(2, -4);
       const currentVisibleColumns = prev[tableIndex] || allColumns;
       let newVisibleColumns;
@@ -3578,13 +4956,24 @@ const MainDashboard = () => {
       },
     ]);
 
+    // Start from top-filtered data if available so multi-filters are respected
+    const baseData =
+      filteredTableData && filteredTableData.length > 0
+        ? filteredTableData
+        : tableData;
+
     // Get the current filtered data based on the filter stack
-    const currentFilteredData = tableData.filter((item) => {
+    let currentFilteredData = baseData.filter((item) => {
       for (let filter of filterStack) {
         if (!filter.checked[item[filter.column]]) return false;
       }
       return true;
     });
+
+    // Also apply header filters from the summary table so that the
+    // derived "कुल"-based table stays consistent with what is visible
+    // in the summary view (per-column header filter selections).
+    currentFilteredData = applySummaryHeaderFilters(currentFilteredData);
 
     // Generate unique values for the selected column
     const uniqueValues = [
@@ -3623,19 +5012,19 @@ const MainDashboard = () => {
       });
 
       // Add monetary columns at the end
-      row["कुल आवंटित मात्रा"] = dataForValue
+      row["आवंटित मात्रा"] = dataForValue
         .reduce(
           (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
           0
         )
         .toFixed(2);
-      row["कुल किसान की हिस्सेदारी"] = dataForValue
+      row["कृषक धनराशि"] = dataForValue
         .reduce(
           (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
           0
         )
         .toFixed(2);
-      row["कुल सब्सिडी"] = dataForValue
+      row["सब्सिडी धनराशि"] = dataForValue
         .reduce(
           (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
           0
@@ -3664,9 +5053,9 @@ const MainDashboard = () => {
             !columnDefs[col].hidden
         )
         .map((key) => columnDefs[key].label),
-      "कुल आवंटित मात्रा",
-      "कुल किसान की हिस्सेदारी",
-      "कुल सब्सिडी",
+      "आवंटित मात्रा",
+      "कृषक धनराशि",
+      "सब्सिडी धनराशि",
       "कुल राशि",
     ];
 
@@ -4355,131 +5744,193 @@ const MainDashboard = () => {
                               onToggleAll={handleMainTableToggleAllColumns}
                             />
                           </div>
-                          <Table
-                            striped
-                            bordered
-                            hover
-                            className="table-thead-style"
+                          <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto", maxHeight: "60vh", overflowY: "auto" }}
                           >
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              className="table-thead-style"
+                            >
                             <thead className="table-thead">
                               <tr>
                                 <th>S.No.</th>
-                                {tableColumnOrder
-                                  .filter((col) => !columnDefs[col].hidden)
-                                  .filter((col) =>
-                                    tableColumnFilters.main.includes(
-                                      columnDefs[col].label
+                                {(() => {
+                                  // Build main table columns: start from normal visible columns,
+                                  // insert 'unit' after 'scheme_name' and append 'bill_date'
+                                  const baseCols = tableColumnOrder.filter(
+                                    (col) => !columnDefs[col].hidden
+                                  );
+                                  const cols = [...baseCols];
+                                  const schemeIdx = cols.indexOf("scheme_name");
+                                  if (schemeIdx !== -1 && !cols.includes("unit")) {
+                                    cols.splice(schemeIdx + 1, 0, "unit");
+                                  }
+                                  if (!cols.includes("bill_date")) {
+                                    cols.push("bill_date");
+                                  }
+
+                                  return cols
+                                    .filter((col) =>
+                                      tableColumnFilters.main.includes(
+                                        columnDefs[col]?.label
+                                      ) ||
+                                      // Always include these two in main table regardless of column filter
+                                      col === "unit" ||
+                                      col === "bill_date"
                                     )
-                                  )
-                                  .map((col) => (
-                                    <th key={col}>{columnDefs[col].label}</th>
-                                  ))}
+                                    .map((col) => (
+                                      <th key={col}>{columnDefs[col]?.label || col}</th>
+                                    ));
+                                })()}
                               </tr>
                             </thead>
                             <tbody>
                               {currentPageData.map((item, index) => (
                                 <tr key={item.id || index}>
                                   <td>{startIndex + index + 1}</td>
-                                  {tableColumnOrder
-                                    .filter((col) => !columnDefs[col].hidden)
-                                    .filter((col) =>
-                                      tableColumnFilters.main.includes(
-                                        columnDefs[col].label
+                                  {(() => {
+                                    const baseCols = tableColumnOrder.filter(
+                                      (col) => !columnDefs[col].hidden
+                                    );
+                                    const cols = [...baseCols];
+                                    const schemeIdx = cols.indexOf("scheme_name");
+                                    if (schemeIdx !== -1 && !cols.includes("unit")) {
+                                      cols.splice(schemeIdx + 1, 0, "unit");
+                                    }
+                                    if (!cols.includes("bill_date")) {
+                                      cols.push("bill_date");
+                                    }
+
+                                    return cols
+                                      .filter((col) =>
+                                        tableColumnFilters.main.includes(
+                                          columnDefs[col]?.label
+                                        ) ||
+                                        col === "unit" ||
+                                        col === "bill_date"
                                       )
-                                    )
-                                    .map((col) => (
-                                      <td
-                                        key={col}
-                                        style={{
-                                          cursor: isFilterApplied
-                                            ? "default"
-                                            : "pointer",
-                                          color: isFilterApplied
-                                            ? "black"
-                                            : "blue",
-                                        }}
-                                        onClick={() => {
-                                          if (!isFilterApplied) {
-                                            handleCellClick(col, item[col]);
-                                          }
-                                        }}
-                                      >
-                                        {item[col] || "-"}
-                                      </td>
-                                    ))}
+                                      .map((col) => {
+                                        const isSpecial =
+                                          col === "unit" ||
+                                          col === "bill_date";
+                                        return (
+                                          <td
+                                            key={col}
+                                            style={{
+                                              cursor: isSpecial
+                                                ? "default"
+                                                : isFilterApplied
+                                                ? "default"
+                                                : "pointer",
+                                              color: isSpecial
+                                                ? "black"
+                                                : isFilterApplied
+                                                ? "black"
+                                                : "blue",
+                                            }}
+                                            onClick={() => {
+                                              if (!isSpecial && !isFilterApplied) {
+                                                handleCellClick(col, item[col]);
+                                              }
+                                            }}
+                                          >
+                                            {col === "unit"
+                                              ? // Prefer explicit unit field or try helper
+                                                item.unit || getUnitFromItem(item) || "-"
+                                              : item[col] || "-"}
+                                          </td>
+                                        );
+                                      });
+                                  })()}
                                 </tr>
                               ))}
                             </tbody>
                             <tfoot>
                               <tr>
                                 <td style={{ fontWeight: "bold" }}>कुल:</td>
-                                {tableColumnOrder
-                                  .filter((col) => !columnDefs[col].hidden)
-                                  .filter((col) =>
-                                    tableColumnFilters.main.includes(
-                                      columnDefs[col].label
-                                    )
-                                  )
-                                  .map((col) => (
-                                    <td
-                                      key={col}
-                                      style={{
-                                        fontWeight: "bold",
-                                        cursor:
-                                          col !== "allocated_quantity" &&
-                                          col !== "amount_of_farmer_share" &&
-                                          col !== "amount_of_subsidy" &&
-                                          col !== "total_amount"
-                                            ? "pointer"
-                                            : "default",
-                                        color:
-                                          col !== "allocated_quantity" &&
-                                          col !== "amount_of_farmer_share" &&
-                                          col !== "amount_of_subsidy" &&
-                                          col !== "total_amount"
-                                            ? "blue"
-                                            : "black",
-                                        textDecoration:
-                                          col !== "allocated_quantity" &&
-                                          col !== "amount_of_farmer_share" &&
-                                          col !== "amount_of_subsidy" &&
-                                          col !== "total_amount"
-                                            ? "underline"
-                                            : "none",
-                                      }}
-                                      onClick={() => {
-                                        if (
-                                          col !== "allocated_quantity" &&
-                                          col !== "amount_of_farmer_share" &&
-                                          col !== "amount_of_subsidy" &&
-                                          col !== "total_amount"
-                                        ) {
-                                          handleTotalClick(col);
-                                        }
-                                      }}
-                                    >
-                                      {col === "allocated_quantity" ||
-                                      col === "amount_of_farmer_share" ||
-                                      col === "amount_of_subsidy" ||
-                                      col === "total_amount"
-                                        ? filteredTableData
-                                            .reduce(
-                                              (sum, item) =>
-                                                sum +
-                                                (parseFloat(item[col]) || 0),
-                                              0
-                                            )
-                                            .toFixed(2)
-                                        : new Set(
-                                            filteredTableData.map(
-                                              (item) => item[col]
-                                            )
-                                          ).size}
-                                    </td>
-                                  ))}
+                                  {(() => {
+                                    const baseCols = tableColumnOrder.filter(
+                                      (col) => !columnDefs[col].hidden
+                                    );
+                                    const cols = [...baseCols];
+                                    const schemeIdx = cols.indexOf("scheme_name");
+                                    if (schemeIdx !== -1 && !cols.includes("unit")) {
+                                      cols.splice(schemeIdx + 1, 0, "unit");
+                                    }
+                                    if (!cols.includes("bill_date")) {
+                                      cols.push("bill_date");
+                                    }
+
+                                    return cols
+                                      .filter((col) =>
+                                        tableColumnFilters.main.includes(
+                                          columnDefs[col]?.label
+                                        ) ||
+                                        col === "unit" ||
+                                        col === "bill_date"
+                                      )
+                                      .map((col) => {
+                                        const isNumeric =
+                                          col === "allocated_quantity" ||
+                                          col === "amount_of_farmer_share" ||
+                                          col === "amount_of_subsidy" ||
+                                          col === "total_amount";
+                                        const isSpecial =
+                                          col === "unit" ||
+                                          col === "bill_date";
+
+                                        return (
+                                          <td
+                                            key={col}
+                                            style={{
+                                              fontWeight: "bold",
+                                              cursor: isSpecial
+                                                ? "default"
+                                                : !isNumeric
+                                                ? "pointer"
+                                                : "default",
+                                              color: isSpecial
+                                                ? "black"
+                                                : !isNumeric
+                                                ? "blue"
+                                                : "black",
+                                              textDecoration: !isNumeric && !isSpecial
+                                                ? "underline"
+                                                : "none",
+                                            }}
+                                            onClick={() => {
+                                              if (!isSpecial && !isNumeric) {
+                                                handleTotalClick(col);
+                                              }
+                                            }}
+                                          >
+                                            {isNumeric
+                                              ? filteredTableData
+                                                  .reduce(
+                                                    (sum, item) =>
+                                                      sum +
+                                                      (parseFloat(item[col]) || 0),
+                                                    0
+                                                  )
+                                                  .toFixed(2)
+                                              : isSpecial
+                                              ? "-"
+                                              : new Set(
+                                                  filteredTableData.map(
+                                                    (item) => item[col]
+                                                  )
+                                                ).size}
+                                          </td>
+                                        );
+                                      });
+                                  })()}
                               </tr>
                             </tfoot>
-                          </Table>
+                            </Table>
+                          </div>
                         </>
                       )}
                       {!isApplyingFilters && (
@@ -4837,12 +6288,16 @@ const MainDashboard = () => {
                                         }
                                       />
                                     </div>
-                                    <Table
-                                      striped
-                                      bordered
-                                      hover
-                                      className="table-thead-style"
+                                    <div
+                                      className="table-responsive"
+                                      style={{ overflowX: "auto", maxHeight: "60vh", overflowY: "auto" }}
                                     >
+                                      <Table
+                                        striped
+                                        bordered
+                                        hover
+                                        className="table-thead-style"
+                                      >
                                       <thead className="table-thead">
                                         <tr>
                                           <th>S.No.</th>
@@ -4950,9 +6405,7 @@ const MainDashboard = () => {
                                       </tbody>
                                       <tfoot>
                                         <tr>
-                                          <td style={{ fontWeight: "bold" }}>
-                                            कुल:
-                                          </td>
+                                          <td style={{ fontWeight: "bold" }}>कुल:</td>
                                           {tableColumnOrder
                                             .filter(
                                               (col) =>
@@ -4969,79 +6422,73 @@ const MainDashboard = () => {
                                                 tableColumnOrder.indexOf(a) -
                                                 tableColumnOrder.indexOf(b)
                                             )
-                                            .map((col) => (
-                                              <td
-                                                key={col}
-                                                style={{
-                                                  fontWeight: "bold",
-                                                  cursor:
-                                                    col !==
-                                                      "allocated_quantity" &&
-                                                    col !==
-                                                      "amount_of_farmer_share" &&
-                                                    col !==
-                                                      "amount_of_subsidy" &&
-                                                    col !== "total_amount"
-                                                      ? "pointer"
-                                                      : "default",
-                                                  color:
-                                                    col !==
-                                                      "allocated_quantity" &&
-                                                    col !==
-                                                      "amount_of_farmer_share" &&
-                                                    col !==
-                                                      "amount_of_subsidy" &&
-                                                    col !== "total_amount"
-                                                      ? "blue"
-                                                      : "black",
-                                                  textDecoration:
-                                                    col !==
-                                                      "allocated_quantity" &&
-                                                    col !==
-                                                      "amount_of_farmer_share" &&
-                                                    col !==
-                                                      "amount_of_subsidy" &&
-                                                    col !== "total_amount"
-                                                      ? "underline"
-                                                      : "none",
-                                                }}
-                                                onClick={
-                                                  col !==
-                                                    "allocated_quantity" &&
-                                                  col !==
-                                                    "amount_of_farmer_share" &&
-                                                  col !== "amount_of_subsidy" &&
-                                                  col !== "total_amount"
-                                                    ? () =>
-                                                        handleTotalClick(col)
-                                                    : undefined
-                                                }
-                                              >
-                                                {col === "allocated_quantity" ||
-                                                col ===
-                                                  "amount_of_farmer_share" ||
+                                            .map((col) => {
+                                              // For total row, show unique count for each column (not overall)
+                                              let value;
+                                              if (
+                                                col === "allocated_quantity" ||
+                                                col === "amount_of_farmer_share" ||
                                                 col === "amount_of_subsidy" ||
                                                 col === "total_amount"
-                                                  ? filteredData
-                                                      .reduce(
-                                                        (sum, item) =>
-                                                          sum +
-                                                          (parseFloat(
-                                                            item[col]
-                                                          ) || 0),
-                                                        0
-                                                      )
-                                                      .toFixed(2)
-                                                  : new Set(
-                                                      filteredData.map(
-                                                        (item) => item[col]
-                                                      )
-                                                    ).size}
-                                              </td>
-                                            ))}
+                                              ) {
+                                                value = filteredData
+                                                  .reduce(
+                                                    (sum, item) =>
+                                                      sum +
+                                                      (parseFloat(item[col]) || 0),
+                                                    0
+                                                  )
+                                                  .toFixed(2);
+                                              } else {
+                                                // Show unique count for this column only among the visible rows
+                                                value = new Set(
+                                                  filteredData.map((item) => item[col])
+                                                ).size;
+                                              }
+                                              return (
+                                                <td
+                                                  key={col}
+                                                  style={{
+                                                    fontWeight: "bold",
+                                                    cursor:
+                                                      col !== "allocated_quantity" &&
+                                                      col !== "amount_of_farmer_share" &&
+                                                      col !== "amount_of_subsidy" &&
+                                                      col !== "total_amount"
+                                                        ? "pointer"
+                                                        : "default",
+                                                    color:
+                                                      col !== "allocated_quantity" &&
+                                                      col !== "amount_of_farmer_share" &&
+                                                      col !== "amount_of_subsidy" &&
+                                                      col !== "total_amount"
+                                                        ? "blue"
+                                                        : "black",
+                                                    textDecoration:
+                                                      col !== "allocated_quantity" &&
+                                                      col !== "amount_of_farmer_share" &&
+                                                      col !== "amount_of_subsidy" &&
+                                                      col !== "total_amount"
+                                                        ? "underline"
+                                                        : "none",
+                                                  }}
+                                                  onClick={
+                                                    col !== "allocated_quantity" &&
+                                                    col !== "amount_of_farmer_share" &&
+                                                    col !== "amount_of_subsidy" &&
+                                                    col !== "total_amount"
+                                                      ? () => handleTotalClick(col)
+                                                      : undefined
+                                                  }
+                                                >
+                                                  {value}
+                                                </td>
+                                              );
+                                            })}
                                         </tr>
                                       </tfoot>
-                                    </Table>
+                                      </Table>
+                                    </div>
                                   </div>
                                 );
                               } else {
@@ -5049,7 +6496,9 @@ const MainDashboard = () => {
                                   <div>
                                     <ExportSection />
                                     <div className="d-flex justify-content-between align-items-center mb-3">
-                                      <h5 className="mb-0">Summary Table</h5>
+                                      <h5 className="mb-0">
+                                        {columnDefs[currentFilter.column]?.label || "Summary Table"}
+                                      </h5>
                                       <div className="d-flex gap-2">
                                         <Button
                                           variant="outline-primary"
@@ -5144,9 +6593,9 @@ const MainDashboard = () => {
                                               .map(
                                                 (key) => columnDefs[key].label
                                               ),
-                                            "कुल आवंटित मात्रा",
-                                            "कुल किसान की हिस्सेदारी",
-                                            "कुल सब्सिडी",
+                                            "आवंटित मात्रा",
+                                            "कृषक धनराशि",
+                                            "सब्सिडी धनराशि",
                                             "कुल राशि",
                                           ]}
                                           selectedColumns={
@@ -5161,17 +6610,21 @@ const MainDashboard = () => {
                                         />
                                       </div>
                                     </div>
-                                    <Table
-                                      striped
-                                      bordered
-                                      hover
-                                      className="table-thead-style"
+                                    <div
+                                      className="table-responsive"
+                                      style={{ overflowX: "auto", maxHeight: "60vh", overflowY: "auto" }}
                                     >
+                                      <Table
+                                        striped
+                                        bordered
+                                        hover
+                                        className="table-thead-style"
+                                      >
                                       <thead className="table-thead">
                                         <tr>
-                                          <th>
-                                            {columnDefs[currentFilter.column]
-                                              ?.label || "Value"}
+                                          <th style={{ position: "relative" }}>
+                                            {columnDefs[currentFilter.column]?.label || "Value"}
+                                            {/* No filter icon or dropdown for the first column in summary table */}
                                           </th>
                                           {tableColumnFilters.summary.includes(
                                             "कुल रिकॉर्ड"
@@ -5227,30 +6680,111 @@ const MainDashboard = () => {
                                                     ? "Hide"
                                                     : "Show"}
                                                 </Button>
+                                                {/* Only show filter icon and dropdown for columns other than the first column */}
+                                                {col !== currentFilter.column && (
+                                                  <>
+                                                    <Button
+                                                      variant="link"
+                                                      size="sm"
+                                                      className="p-0 ms-1"
+                                                      onClick={() => toggleSummaryHeaderDropdown(col)}
+                                                    >
+                                                      <BiFilter />
+                                                    </Button>
+                                                    {summaryHeaderFilterOpen[col] && (
+                                                      <div
+                                                        className="dropdown-menu show"
+                                                        style={{ position: "absolute", top: "100%", zIndex: 1000, padding: "6px", minWidth: "220px" }}
+                                                      >
+                                                        {(() => {
+                                                          const allValues = getUniqueValuesForColumn(filteredData, col);
+                                                          const selected = summaryColumnValueFilters[col] || [];
+                                                          const allSelected = selected.length === allValues.length && allValues.length > 0;
+                                                          return (
+                                                            <>
+                                                              <div className="dropdown-item">
+                                                                <FormCheck
+                                                                  className="check-box"
+                                                                  type="checkbox"
+                                                                  id={`select_all_summary_${col}`}
+                                                                  label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
+                                                                  checked={allSelected}
+                                                                  onChange={() => {
+                                                                    if (allSelected) {
+                                                                      clearSummaryHeaderSelection(col);
+                                                                    } else {
+                                                                      setSummaryHeaderSelectAll(col, allValues);
+                                                                    }
+                                                                  }}
+                                                                />
+                                                              </div>
+                                                              {allValues.map((val) => (
+                                                                <div key={val} className="dropdown-item">
+                                                                  <FormCheck
+                                                                    className="check-box"
+                                                                    type="checkbox"
+                                                                    id={`summary_${col}_${val}`}
+                                                                    label={String(val)}
+                                                                    checked={selected.includes(val)}
+                                                                    onChange={() => toggleSummaryHeaderValue(col, val)}
+                                                                  />
+                                                                </div>
+                                                              ))}
+                                                            </>
+                                                          );
+                                                        })()}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                )}
                                               </th>
                                             ))}
                                           {tableColumnFilters.summary.includes(
-                                            "कुल आवंटित मात्रा"
-                                          ) && <th>कुल आवंटित मात्रा</th>}
+                                            "आवंटित मात्रा"
+                                          ) && <th>आवंटित मात्रा</th>}
                                           {tableColumnFilters.summary.includes(
-                                            "कुल किसान की हिस्सेदारी"
-                                          ) && <th>कुल किसान की हिस्सेदारी</th>}
+                                            "कृषक धनराशि"
+                                          ) && <th>कृषक धनराशि</th>}
                                           {tableColumnFilters.summary.includes(
-                                            "कुल सब्सिडी"
-                                          ) && <th>कुल सब्सिडी</th>}
+                                            "सब्सिडी धनराशि"
+                                          ) && <th>सब्सिडी धनराशि</th>}
                                           {tableColumnFilters.summary.includes(
                                             "कुल राशि"
                                           ) && <th>कुल राशि</th>}
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {checkedValues.map((checkedValue) => {
-                                          const tableDataForValue =
-                                            filteredData.filter(
-                                              (item) =>
-                                                item[currentFilter.column] ===
-                                                checkedValue
+                                        {(() => {
+                                          // Apply header filters to determine which checked values to show
+                                          const anyEmptySelection = Object.values(summaryColumnValueFilters || {}).some((arr) => Array.isArray(arr) && arr.length === 0);
+                                          const displayCheckedValues = anyEmptySelection
+                                            ? []
+                                            : checkedValues.filter((checkedValue) => {
+                                            const rowsForValue = filteredData.filter(
+                                              (item) => item[currentFilter.column] === checkedValue
                                             );
+                                            // Filter on currentFilter.column if selection exists
+                                            const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                            if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                              return false;
+                                            }
+                                            // Apply other column filters
+                                            for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                              if (col === currentFilter.column) continue;
+                                              const sel = selectedVals || [];
+                                              if (sel.length > 0) {
+                                                const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                if (!match) return false;
+                                              }
+                                            }
+                                            return true;
+                                            });
+
+                                          return displayCheckedValues.map((checkedValue) => {
+                                          const tableDataForValueBase = filteredData.filter(
+                                              (item) => item[currentFilter.column] === checkedValue
+                                            );
+                                          const tableDataForValue = applySummaryHeaderFilters(tableDataForValueBase);
                                           return (
                                             <tr key={checkedValue}>
                                               <td
@@ -5357,11 +6891,9 @@ const MainDashboard = () => {
                                                 )
                                                 .filter(
                                                   (col) =>
-                                                    col !==
-                                                      "allocated_quantity" &&
+                                                    col !== "allocated_quantity" &&
                                                     col !== "rate" &&
-                                                    col !==
-                                                      "amount_of_farmer_share" &&
+                                                    col !== "amount_of_farmer_share" &&
                                                     col !== "amount_of_subsidy" &&
                                                     col !== "total_amount"
                                                 )
@@ -5384,38 +6916,146 @@ const MainDashboard = () => {
                                                     ];
 
                                                   if (isExpanded) {
-                                                    const uniqueValues =
-                                                      getMainSummaryUniqueValues(
-                                                        col,
-                                                        checkedValue
-                                                      );
+                                                    // Always apply summary header filters to the data for this cell
+                                                    // so deselected values are removed from every row immediately
+                                                    let cellData = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    cellData = applySummaryHeaderFilters(cellData);
 
+                                                    // योजना column: show hierarchy -> योजना -> निवेश (unit/matra) -> उप-निवेश
+                                                    if (col === "scheme_name") {
+                                                      // Only use filtered cellData for this row
+                                                      // Only show schemes that are currently selected in the filter
+                                                      const selectedSchemes = summaryColumnValueFilters.scheme_name || [];
+                                                      const hierarchy = getSchemeInvestmentHierarchy(checkedValue);
+                                                      // Filter hierarchy to only include schemes present in cellData and selected in filter
+                                                      const allowedSchemes = new Set(cellData.map((item) => item.scheme_name));
+                                                      return (
+                                                        <td key={col} style={{ maxWidth: "350px" }}>
+                                                          <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                            {hierarchy
+                                                              .filter((schemeItem) => allowedSchemes.has(schemeItem.schemeName) && selectedSchemes.includes(schemeItem.schemeName))
+                                                              .map((schemeItem, sIdx) => (
+                                                                <div key={sIdx} style={{ marginBottom: "10px" }}>
+                                                                  <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>{schemeItem.schemeName}</div>
+                                                                  {schemeItem.investments.map((invItem, iIdx) => (
+                                                                    <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                      <div style={{ fontSize: "11px", fontWeight: 500, display: "flex", justifyContent: "space-between", padding: "2px 6px 2px 12px" }}>
+                                                                        <span>{invItem.investmentName}</span>
+                                                                        <span style={{ color: "#0d6efd" }}>{invItem.unit ? `(${invItem.unit}) ` : ""}{invItem.matra ? `(${invItem.matra})` : ""}</span>
+                                                                      </div>
+                                                                      {invItem.subInvestments.map((subItem, subIdx) => (
+                                                                        <div key={subIdx} style={{ fontSize: "10px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                          <span>{subItem.name}</span>
+                                                                          <span style={{ color: "#0d6efd" }}>{subItem.matra ? `(${subItem.matra})` : ""}</span>
+                                                                        </div>
+                                                                      ))}
+                                                                    </div>
+                                                                  ))}
+                                                                </div>
+                                                              ))}
+                                                          </div>
+                                                        </td>
+                                                      );
+                                                    }
+                                                    // For vikas_khand_name, vidhan_sabha_name, center_name, source_of_receipt:
+                                                    // show groups per value -> investment (unit/matra) -> sub-investment (matra)
+                                                    if (
+                                                      col === "vikas_khand_name" ||
+                                                      col === "vidhan_sabha_name" ||
+                                                      col === "center_name" ||
+                                                      col === "source_of_receipt"
+                                                    ) {
+                                                      // Only use filtered cellData for this row
+                                                      const groupedData = getColumnInvestmentHierarchy(checkedValue, col);
+                                                      // Only show groups present in cellData
+                                                      const allowedGroups = new Set(cellData.map((item) => item[col]));
+                                                      return (
+                                                        <td key={col} style={{ maxWidth: "350px" }}>
+                                                          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                                                            {groupedData
+                                                              .filter((group) => allowedGroups.has(group.groupValue))
+                                                              .map((group, groupIdx) => (
+                                                                <div key={groupIdx} style={{ marginBottom: "8px" }}>
+                                                                  <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "4px 6px", borderRadius: "3px", color: "#495057" }}>{group.groupValue}</div>
+                                                                  {group.investments.map((invItem, iIdx) => (
+                                                                    <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                      <div style={{ fontSize: "11px", fontWeight: 500, display: "flex", justifyContent: "space-between", padding: "2px 6px 2px 12px" }}>
+                                                                        <span>{invItem.investmentName}</span>
+                                                                        <span style={{ color: "#0d6efd" }}>{invItem.unit ? `(${invItem.unit}) ` : ""}{invItem.matra ? `(${invItem.matra})` : ""}</span>
+                                                                      </div>
+                                                                      {invItem.subInvestments.map((subItem, subIdx) => (
+                                                                        <div key={subIdx} style={{ fontSize: "10px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
+                                                                          <span>{subItem.name}</span>
+                                                                          <span style={{ color: "#0d6efd" }}>{subItem.matra ? `(${subItem.matra})` : ""}</span>
+                                                                        </div>
+                                                                      ))}
+                                                                    </div>
+                                                                  ))}
+                                                                </div>
+                                                              ))}
+                                                          </div>
+                                                        </td>
+                                                      );
+                                                    }
+                                                    // For sub_investment_name, show grouped by investment_name
+                                                    if (col === "sub_investment_name") {
+                                                      // Only use filtered cellData for this row
+                                                      const groupedData = getSubInvestmentGroupedByInvestment(checkedValue);
+                                                      // Only show investments present in cellData
+                                                      const allowedInvestments = new Set(cellData.map((item) => item.investment_name));
+                                                      return (
+                                                        <td key={col} style={{ maxWidth: "300px" }}>
+                                                          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                                                            {groupedData
+                                                              .filter((group) => allowedInvestments.has(group.investmentName))
+                                                              .map((group, groupIdx) => (
+                                                                <div key={groupIdx} style={{ marginBottom: "8px" }}>
+                                                                  <div style={{ fontSize: "11px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "3px 5px", borderRadius: "3px", color: "#495057" }}>{group.investmentName}{group.unit && !String(group.investmentName).includes(`(${group.unit})`) && (<span style={{ marginLeft: "5px", color: "#666" }}>({group.unit})</span>)}</div>
+                                                                  {group.subInvestments.map((item, itemIdx) => (
+                                                                    <div key={itemIdx} style={{ fontSize: "10px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 5px 2px 15px" }}>
+                                                                      <span>{item.name}</span>
+                                                                      <span style={{ color: "#007bff", marginLeft: "8px" }}>{item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}</span>
+                                                                    </div>
+                                                                  ))}
+                                                                </div>
+                                                              ))}
+                                                          </div>
+                                                        </td>
+                                                      );
+                                                    }
+                                                    // For investment_name, show values with matra
+                                                    if (col === "investment_name") {
+                                                      // Only use filtered cellData for this row
+                                                      const valuesWithMatra = getUniqueValuesWithMatra(col, checkedValue);
+                                                      // Only show investments present in cellData
+                                                      const allowedInvestments = new Set(cellData.map((item) => item[col]));
+                                                      return (
+                                                        <td key={col} style={{ maxWidth: "250px" }}>
+                                                          <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+                                                            {valuesWithMatra
+                                                              .filter((item) => allowedInvestments.has(item.name))
+                                                              .map((item, valIdx) => (
+                                                                <div key={valIdx} style={{ fontSize: "11px", display: "flex", justifyContent: "space-between", borderBottom: "1px dotted #ccc", padding: "2px 0" }}>
+                                                                  <span style={{ fontWeight: "500" }}>{item.name}</span>
+                                                                  <span style={{ color: "#007bff", marginLeft: "8px" }}>{item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}</span>
+                                                                </div>
+                                                              ))}
+                                                          </div>
+                                                        </td>
+                                                      );
+                                                    }
+                                                    // For all other expanded columns, show only values present in cellData
+                                                    const uniqueValues = [
+                                                      ...new Set(cellData.map((item) => item[col]).filter(Boolean)),
+                                                    ];
                                                     return (
-                                                      <td
-                                                        key={col}
-                                                        style={{
-                                                          maxWidth: "200px",
-                                                        }}
-                                                      >
-                                                        <div
-                                                          style={{
-                                                            maxHeight: "100px",
-                                                            overflowY: "auto",
-                                                          }}
-                                                        >
-                                                          {uniqueValues.map(
-                                                            (val, valIdx) => (
-                                                              <div
-                                                                key={valIdx}
-                                                                style={{
-                                                                  fontSize:
-                                                                    "11px",
-                                                                }}
-                                                              >
-                                                                {val}
-                                                              </div>
-                                                            )
-                                                          )}
+                                                      <td key={col} style={{ maxWidth: "200px" }}>
+                                                        <div style={{ maxHeight: "100px", overflowY: "auto" }}>
+                                                          {uniqueValues.map((val, valIdx) => (
+                                                            <div key={valIdx} style={{ fontSize: "11px" }}>{val}</div>
+                                                          ))}
                                                         </div>
                                                       </td>
                                                     );
@@ -5487,23 +7127,22 @@ const MainDashboard = () => {
                                                   }
                                                 })}
                                               {tableColumnFilters.summary.includes(
-                                                "कुल आवंटित मात्रा"
+                                                "आवंटित मात्रा"
                                               ) && (
                                                 <td>
                                                   {tableDataForValue
-                                                    .reduce(
-                                                      (sum, item) =>
-                                                        sum +
-                                                        (parseFloat(
-                                                          item.allocated_quantity
-                                                        ) || 0),
-                                                      0
-                                                    )
+                                                    .reduce((sum, item) => {
+                                                      const qtyVal =
+                                                        typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+                                                          ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+                                                          : parseFloat(item.allocated_quantity) || 0;
+                                                      return sum + qtyVal;
+                                                    }, 0)
                                                     .toFixed(2)}
                                                 </td>
                                               )}
                                               {tableColumnFilters.summary.includes(
-                                                "कुल किसान की हिस्सेदारी"
+                                                "कृषक धनराशि"
                                               ) && (
                                                 <td>
                                                   {tableDataForValue
@@ -5519,7 +7158,7 @@ const MainDashboard = () => {
                                                 </td>
                                               )}
                                               {tableColumnFilters.summary.includes(
-                                                "कुल सब्सिडी"
+                                                "सब्सिडी धनराशि"
                                               ) && (
                                                 <td>
                                                   {tableDataForValue
@@ -5552,7 +7191,8 @@ const MainDashboard = () => {
                                               )}
                                             </tr>
                                           );
-                                        })}
+                                          });
+                                        })()}
                                       </tbody>
                                       <tfoot>
                                         <tr>
@@ -5563,7 +7203,30 @@ const MainDashboard = () => {
                                             "कुल रिकॉर्ड"
                                           ) && (
                                             <td style={{ fontWeight: "bold" }}>
-                                              {checkedValues.reduce(
+                                              {(() => {
+                                                const anyEmptySelection = Object.values(summaryColumnValueFilters || {}).some((arr) => Array.isArray(arr) && arr.length === 0);
+                                                const displayCheckedValues = (() => {
+                                                  if (anyEmptySelection) return [];
+                                                  return checkedValues.filter((checkedValue) => {
+                                                    const rowsForValue = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                    if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                      return false;
+                                                    }
+                                                    for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                      if (col === currentFilter.column) continue;
+                                                      const sel = selectedVals || [];
+                                                      if (sel.length > 0) {
+                                                        const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                        if (!match) return false;
+                                                      }
+                                                    }
+                                                    return true;
+                                                  });
+                                                })();
+                                                return displayCheckedValues.reduce(
                                                 (sum, checkedValue) => {
                                                   const tableDataForValue =
                                                     filteredData.filter(
@@ -5578,7 +7241,8 @@ const MainDashboard = () => {
                                                   );
                                                 },
                                                 0
-                                              )}
+                                              );
+                                              })()}
                                             </td>
                                           )}
                                           {tableColumnOrder
@@ -5611,6 +7275,446 @@ const MainDashboard = () => {
                                                 mainSummaryExpandedColumns[col];
 
                                               if (isExpanded) {
+                                                // Totals row expanded for योजना: show all schemes inline and detailed totals
+                                                if (col === "scheme_name") {
+                                                  // Build header-filtered dataset across all visible groups
+                                                  const displayCheckedValues = (() => {
+                                                    const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                    return checkedValues.filter((checkedValue) => {
+                                                      const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
+                                                      const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                      if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                        return false;
+                                                      }
+                                                      for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                        if (k === currentFilter.column) continue;
+                                                        const sel = selectedVals || [];
+                                                        if (sel.length > 0) {
+                                                          const match = rowsForValue.some((row) => sel.includes(row[k]));
+                                                          if (!match) return false;
+                                                        }
+                                                      }
+                                                      return true;
+                                                    });
+                                                  })();
+                                                  const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                  const allSchemes = [...new Set(headerFilteredAll.map((item) => item.scheme_name).filter(Boolean))];
+                                                  // Group scheme -> investment -> sub-investment with unit/matra
+                                                  const parseQty = (qty) => {
+                                                    if (typeof qty === "string" && qty.includes(" / ")) {
+                                                      return parseFloat(qty.split(" / ")[0]) || 0;
+                                                    }
+                                                    return parseFloat(qty) || 0;
+                                                  };
+                                                  const grouped = {};
+                                                  headerFilteredAll.forEach((item) => {
+                                                    const scheme = item.scheme_name;
+                                                    const investment = item.investment_name;
+                                                    const subInvestment = item.sub_investment_name;
+                                                    if (!scheme || !investment || !subInvestment) return;
+                                                    if (!grouped[scheme]) grouped[scheme] = {};
+                                                    if (!grouped[scheme][investment]) {
+                                                      grouped[scheme][investment] = { matra: 0, unit: "", subs: {} };
+                                                    }
+                                                    if (!grouped[scheme][investment].subs[subInvestment]) {
+                                                      grouped[scheme][investment].subs[subInvestment] = { matra: 0, unit: "" };
+                                                    }
+                                                    const qty = parseQty(item.allocated_quantity);
+                                                    grouped[scheme][investment].matra += qty;
+                                                    grouped[scheme][investment].subs[subInvestment].matra += qty;
+                                                    if (!grouped[scheme][investment].unit) {
+                                                      const uInv = getUnitFromItem(item);
+                                                      if (uInv) grouped[scheme][investment].unit = uInv;
+                                                    }
+                                                    if (!grouped[scheme][investment].subs[subInvestment].unit) {
+                                                      const uSub = getUnitFromItem(item);
+                                                      if (uSub) grouped[scheme][investment].subs[subInvestment].unit = uSub;
+                                                    }
+                                                  });
+                                                  const schemeTotals = Object.entries(grouped).map(([schemeName, investments]) => ({
+                                                    schemeName,
+                                                    investments: Object.entries(investments).map(([invName, info]) => ({
+                                                      investmentName: invName,
+                                                      unit: info.unit || "",
+                                                      matra: info.matra.toFixed(2),
+                                                      subInvestments: Object.entries(info.subs).map(([subName, sInfo]) => ({
+                                                        name: subName,
+                                                        unit: sInfo.unit || "",
+                                                        matra: sInfo.matra.toFixed(2),
+                                                      })),
+                                                    })),
+                                                  }));
+                                                  return (
+                                                    <td key={col} style={{ maxWidth: "420px" }}>
+                                                      <div style={{ fontSize: "11px", marginBottom: "6px" }}>
+                                                        <span style={{ fontWeight: 600 }}>सभी:</span> {allSchemes.join(", ") || "-"}
+                                                      </div>
+                                                      <div style={{ maxHeight: "240px", overflowY: "auto" }}>
+                                                        {schemeTotals.map((schemeItem, sIdx) => (
+                                                          <div key={sIdx} style={{ marginBottom: "10px" }}>
+                                                            <div
+                                                              style={{
+                                                                fontSize: "12px",
+                                                                fontWeight: "bold",
+                                                                backgroundColor: "#f1f3f5",
+                                                                padding: "4px 6px",
+                                                                borderRadius: "3px",
+                                                                color: "#343a40",
+                                                              }}
+                                                            >
+                                                              {schemeItem.schemeName}
+                                                            </div>
+                                                            {schemeItem.investments.map((invItem, iIdx) => (
+                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                <div
+                                                                  style={{
+                                                                    fontSize: "11px",
+                                                                    fontWeight: 500,
+                                                                    display: "flex",
+                                                                    justifyContent: "space-between",
+                                                                    padding: "2px 6px 2px 12px",
+                                                                  }}
+                                                                >
+                                                                  <span>{invItem.investmentName}</span>
+                                                                  <span style={{ color: "#0d6efd" }}>
+                                                                    {invItem.unit ? `(${invItem.unit}) ` : ""}
+                                                                    {invItem.matra ? `(${invItem.matra})` : ""}
+                                                                  </span>
+                                                                </div>
+                                                                {invItem.subInvestments.map((subItem, subIdx) => (
+                                                                  <div
+                                                                    key={subIdx}
+                                                                    style={{
+                                                                      fontSize: "10px",
+                                                                      display: "flex",
+                                                                      justifyContent: "space-between",
+                                                                      borderBottom: "1px dotted #ccc",
+                                                                      padding: "2px 6px 2px 22px",
+                                                                    }}
+                                                                  >
+                                                                    <span>{subItem.name}</span>
+                                                                    <span style={{ color: "#0d6efd" }}>
+                                                                      {subItem.unit ? `(${subItem.unit}) ` : ""}
+                                                                      {subItem.matra ? `(${subItem.matra})` : ""}
+                                                                    </span>
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    </td>
+                                                  );
+                                                }
+                                                // Totals row expanded for center/vikas/vidhan/supplier: show all values on one line and overall investment/sub-investment totals
+                                                if (
+                                                  col === "center_name" ||
+                                                  col === "vikas_khand_name" ||
+                                                  col === "vidhan_sabha_name" ||
+                                                  col === "source_of_receipt"
+                                                ) {
+                                                  // Build header-filtered dataset across all visible groups
+                                                  const displayCheckedValues = (() => {
+                                                    const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                    return checkedValues.filter((checkedValue) => {
+                                                      const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
+                                                      const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                      if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                        return false;
+                                                      }
+                                                      for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                        if (k === currentFilter.column) continue;
+                                                        const sel = selectedVals || [];
+                                                        if (sel.length > 0) {
+                                                          const match = rowsForValue.some((row) => sel.includes(row[k]));
+                                                          if (!match) return false;
+                                                        }
+                                                      }
+                                                      return true;
+                                                    });
+                                                  })();
+                                                  const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                  const allValues = [...new Set(headerFilteredAll.map((item) => item[col]).filter(Boolean))];
+                                                  // Group by investment -> sub-investment with unit/matra
+                                                  const parseQty = (qty) => {
+                                                    if (typeof qty === "string" && qty.includes(" / ")) {
+                                                      return parseFloat(qty.split(" / ")[0]) || 0;
+                                                    }
+                                                    return parseFloat(qty) || 0;
+                                                  };
+                                                  const invGrouped = {};
+                                                  headerFilteredAll.forEach((item) => {
+                                                    const inv = item.investment_name;
+                                                    const sub = item.sub_investment_name;
+                                                    if (!inv || !sub) return;
+                                                    if (!invGrouped[inv]) invGrouped[inv] = { matra: 0, unit: "", subs: {} };
+                                                    if (!invGrouped[inv].subs[sub]) invGrouped[inv].subs[sub] = { matra: 0, unit: "" };
+                                                    const qty = parseQty(item.allocated_quantity);
+                                                    invGrouped[inv].matra += qty;
+                                                    invGrouped[inv].subs[sub].matra += qty;
+                                                    if (!invGrouped[inv].unit) {
+                                                      const u = getUnitFromItem(item);
+                                                      if (u) invGrouped[inv].unit = u;
+                                                    }
+                                                    if (!invGrouped[inv].subs[sub].unit) {
+                                                      const u2 = getUnitFromItem(item);
+                                                      if (u2) invGrouped[inv].subs[sub].unit = u2;
+                                                    }
+                                                  });
+                                                  const groupedTotals = Object.entries(invGrouped).map(([invName, info]) => ({
+                                                    investmentName: invName,
+                                                    unit: info.unit || "",
+                                                    matra: info.matra.toFixed(2),
+                                                    subInvestments: Object.entries(info.subs).map(([subName, sInfo]) => ({
+                                                      name: subName,
+                                                      unit: sInfo.unit || "",
+                                                      matra: sInfo.matra.toFixed(2),
+                                                    })),
+                                                  }));
+                                                  return (
+                                                    <td key={col} style={{ maxWidth: "400px" }}>
+                                                      <div style={{ fontSize: "11px", marginBottom: "6px" }}>
+                                                        <span style={{ fontWeight: 600 }}>सभी:</span> {allValues.join(", ") || "-"}
+                                                      </div>
+                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                        {groupedTotals.map((invItem, iIdx) => (
+                                                          <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                            <div
+                                                              style={{
+                                                                fontSize: "11px",
+                                                                fontWeight: 500,
+                                                                display: "flex",
+                                                                justifyContent: "space-between",
+                                                                padding: "2px 6px 2px 12px",
+                                                              }}
+                                                            >
+                                                              <span>{invItem.investmentName}</span>
+                                                              <span style={{ color: "#0d6efd" }}>
+                                                                {invItem.unit ? `(${invItem.unit}) ` : ""}
+                                                                {invItem.matra ? `(${invItem.matra})` : ""}
+                                                              </span>
+                                                            </div>
+                                                            {invItem.subInvestments.map((subItem, subIdx) => (
+                                                              <div
+                                                                key={subIdx}
+                                                                style={{
+                                                                  fontSize: "10px",
+                                                                  display: "flex",
+                                                                  justifyContent: "space-between",
+                                                                  borderBottom: "1px dotted #ccc",
+                                                                  padding: "2px 6px 2px 22px",
+                                                                }}
+                                                              >
+                                                                <span>{subItem.name}</span>
+                                                                <span style={{ color: "#0d6efd" }}>
+                                                                  {subItem.unit ? `(${subItem.unit}) ` : ""}
+                                                                  {subItem.matra ? `(${subItem.matra})` : ""}
+                                                                </span>
+                                                              </div>
+                                                            ))}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    </td>
+                                                  );
+                                                }
+                                                // For sub_investment_name, show grouped by investment_name
+                                                if (col === "sub_investment_name") {
+                                                  // Build header-filtered dataset across all visible groups
+                                                  const displayCheckedValues = (() => {
+                                                    const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                    return checkedValues.filter((checkedValue) => {
+                                                      const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
+                                                      const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                      if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                        return false;
+                                                      }
+                                                      for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                        if (k === currentFilter.column) continue;
+                                                        const sel = selectedVals || [];
+                                                        if (sel.length > 0) {
+                                                          const match = rowsForValue.some((row) => sel.includes(row[k]));
+                                                          if (!match) return false;
+                                                        }
+                                                      }
+                                                      return true;
+                                                    });
+                                                  })();
+                                                  const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                  // Group sub_investment by investment_name with unit/matra shown per item
+                                                  const parseQty = (qty) => {
+                                                    if (typeof qty === "string" && qty.includes(" / ")) {
+                                                      return parseFloat(qty.split(" / ")[0]) || 0;
+                                                    }
+                                                    return parseFloat(qty) || 0;
+                                                  };
+                                                  const groupedMap = {};
+                                                  headerFilteredAll.forEach((item) => {
+                                                    const inv = item.investment_name;
+                                                    const sub = item.sub_investment_name;
+                                                    if (!inv || !sub) return;
+                                                    if (!groupedMap[inv]) groupedMap[inv] = { unit: "", subs: {} };
+                                                    if (!groupedMap[inv].subs[sub]) groupedMap[inv].subs[sub] = { matra: 0, unit: "" };
+                                                    const qty = parseQty(item.allocated_quantity);
+                                                    groupedMap[inv].subs[sub].matra += qty;
+                                                    if (!groupedMap[inv].unit) {
+                                                      const u = getUnitFromItem(item);
+                                                      if (u) groupedMap[inv].unit = u;
+                                                    }
+                                                    if (!groupedMap[inv].subs[sub].unit) {
+                                                      const u2 = getUnitFromItem(item);
+                                                      if (u2) groupedMap[inv].subs[sub].unit = u2;
+                                                    }
+                                                  });
+                                                  const groupedData = Object.entries(groupedMap).map(([investmentName, info]) => ({
+                                                    investmentName,
+                                                    unit: info.unit || "",
+                                                    subInvestments: Object.entries(info.subs).map(([name, sInfo]) => ({
+                                                      name,
+                                                      unit: sInfo.unit || "",
+                                                      matra: sInfo.matra.toFixed(2),
+                                                    })),
+                                                  }));
+                                                  return (
+                                                    <td
+                                                      key={col}
+                                                      style={{
+                                                        maxWidth: "300px",
+                                                      }}
+                                                    >
+                                                      <div
+                                                        style={{
+                                                          maxHeight: "200px",
+                                                          overflowY: "auto",
+                                                        }}
+                                                      >
+                                                        {groupedData.map(
+                                                          (group, groupIdx) => (
+                                                            <div key={groupIdx} style={{ marginBottom: "8px" }}>
+                                                              <div
+                                                                style={{
+                                                                  fontSize: "11px",
+                                                                  fontWeight: "bold",
+                                                                  backgroundColor: "#e9ecef",
+                                                                  padding: "3px 5px",
+                                                                  borderRadius: "3px",
+                                                                  color: "#495057",
+                                                                }}
+                                                              >
+                                                                {group.investmentName}
+                                                                {group.unit && !String(group.investmentName).includes(`(${group.unit})`) && (
+                                                                  <span style={{ marginLeft: "5px", color: "#666" }}>({group.unit})</span>
+                                                                )}
+                                                              </div>
+                                                              {group.subInvestments.map((item, itemIdx) => (
+                                                                <div
+                                                                  key={itemIdx}
+                                                                  style={{
+                                                                    fontSize: "10px",
+                                                                    display: "flex",
+                                                                    justifyContent: "space-between",
+                                                                    borderBottom: "1px dotted #ccc",
+                                                                    padding: "2px 5px 2px 15px",
+                                                                  }}
+                                                                >
+                                                                  <span>{item.name}</span>
+                                                                    <span style={{ color: "#007bff", marginLeft: "8px" }}>
+                                                                      {item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}
+                                                                    </span>
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          )
+                                                        )}
+                                                      </div>
+                                                    </td>
+                                                  );
+                                                }
+                                                
+                                                // For investment_name, show values with matra
+                                                if (col === "investment_name") {
+                                                  // Build header-filtered dataset across all visible groups
+                                                  const displayCheckedValues = (() => {
+                                                    const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                    return checkedValues.filter((checkedValue) => {
+                                                      const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
+                                                      const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                      if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                        return false;
+                                                      }
+                                                      for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                        if (k === currentFilter.column) continue;
+                                                        const sel = selectedVals || [];
+                                                        if (sel.length > 0) {
+                                                          const match = rowsForValue.some((row) => sel.includes(row[k]));
+                                                          if (!match) return false;
+                                                        }
+                                                      }
+                                                      return true;
+                                                    });
+                                                  })();
+                                                  const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                  // Aggregate matra by investment_name with unit
+                                                  const parseQty = (qty) => {
+                                                    if (typeof qty === "string" && qty.includes(" / ")) {
+                                                      return parseFloat(qty.split(" / ")[0]) || 0;
+                                                    }
+                                                    return parseFloat(qty) || 0;
+                                                  };
+                                                  const grouped = {};
+                                                  headerFilteredAll.forEach((item) => {
+                                                    const key = item[col];
+                                                    if (!key) return;
+                                                    if (!grouped[key]) grouped[key] = { matra: 0, unit: "" };
+                                                    grouped[key].matra += parseQty(item.allocated_quantity);
+                                                    if (!grouped[key].unit) {
+                                                      const u = getUnitFromItem(item);
+                                                      if (u) grouped[key].unit = u;
+                                                    }
+                                                  });
+                                                  const valuesWithMatra = Object.entries(grouped).map(([name, info]) => ({
+                                                    name,
+                                                    matra: info.matra.toFixed(2),
+                                                    unit: info.unit || "",
+                                                  }));
+                                                  return (
+                                                    <td
+                                                      key={col}
+                                                      style={{
+                                                        maxWidth: "250px",
+                                                      }}
+                                                    >
+                                                      <div
+                                                        style={{
+                                                          maxHeight: "150px",
+                                                          overflowY: "auto",
+                                                        }}
+                                                      >
+                                                        {valuesWithMatra.map(
+                                                          (item, valIdx) => (
+                                                            <div
+                                                              key={valIdx}
+                                                              style={{
+                                                                fontSize: "11px",
+                                                                display: "flex",
+                                                                justifyContent: "space-between",
+                                                                borderBottom: "1px dotted #ccc",
+                                                                padding: "2px 0",
+                                                              }}
+                                                            >
+                                                              <span style={{ fontWeight: "500" }}>{item.name}</span>
+                                                              <span style={{ color: "#007bff", marginLeft: "8px" }}>
+                                                                {item.unit && !String(item.name).includes(`(${item.unit})`) ? `(${item.unit}) ` : ""}{item.matra ? `(${item.matra})` : ""}
+                                                              </span>
+                                                            </div>
+                                                          )
+                                                        )}
+                                                      </div>
+                                                    </td>
+                                                  );
+                                                }
+                                                
                                                 // Get all unique values for this column from the entire filtered data
                                                 const uniqueValues =
                                                   getMainSummaryUniqueValues(
@@ -5661,22 +7765,62 @@ const MainDashboard = () => {
                                                       handleTotalClick(col)
                                                     }
                                                   >
-                                                    {
-                                                      new Set(
-                                                        filteredData.map(
-                                                          (item) => item[col]
-                                                        )
-                                                      ).size
-                                                    }
+                                                    {(() => {
+                                                      // Apply header filters and restrict to displayCheckedValues groups
+                                                      const displayCheckedValues = (() => {
+                                                        const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                        return checkedValues.filter((checkedValue) => {
+                                                          const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
+                                                          const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                          if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                            return false;
+                                                          }
+                                                          for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                            if (k === currentFilter.column) continue;
+                                                            const sel = selectedVals || [];
+                                                            if (sel.length > 0) {
+                                                              const match = rowsForValue.some((row) => sel.includes(row[k]));
+                                                              if (!match) return false;
+                                                            }
+                                                          }
+                                                          return true;
+                                                        });
+                                                      })();
+                                                      const headerFiltered = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                      return new Set(headerFiltered.map((item) => item[col])).size;
+                                                    })()}
                                                   </td>
                                                 );
                                               }
                                             })}
                                           {tableColumnFilters.summary.includes(
-                                            "कुल आवंटित मात्रा"
+                                            "आवंटित मात्रा"
                                           ) && (
                                             <td style={{ fontWeight: "bold" }}>
-                                              {checkedValues
+                                              {(() => {
+                                                const anyEmptySelection = Object.values(summaryColumnValueFilters || {}).some((arr) => Array.isArray(arr) && arr.length === 0);
+                                                const displayCheckedValues = (() => {
+                                                  if (anyEmptySelection) return [];
+                                                  return checkedValues.filter((checkedValue) => {
+                                                    const rowsForValue = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                    if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                      return false;
+                                                    }
+                                                    for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                      if (col === currentFilter.column) continue;
+                                                      const sel = selectedVals || [];
+                                                      if (sel.length > 0) {
+                                                        const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                        if (!match) return false;
+                                                      }
+                                                    }
+                                                    return true;
+                                                  });
+                                                })();
+                                                return displayCheckedValues
                                                 .reduce((sum, checkedValue) => {
                                                   const tableDataForValue =
                                                     filteredData.filter(
@@ -5689,22 +7833,47 @@ const MainDashboard = () => {
                                                     sum +
                                                     tableDataForValue.reduce(
                                                       (s, item) =>
-                                                        s +
-                                                        (parseFloat(
-                                                          item.allocated_quantity
-                                                        ) || 0),
+                                                        s + (() => {
+                                                          const qtyVal =
+                                                            typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+                                                              ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+                                                              : parseFloat(item.allocated_quantity) || 0;
+                                                          return qtyVal;
+                                                        })(),
                                                       0
                                                     )
                                                   );
                                                 }, 0)
-                                                .toFixed(2)}
+                                                .toFixed(2);
+                                              })()}
                                             </td>
                                           )}
                                           {tableColumnFilters.summary.includes(
-                                            "कुल किसान की हिस्सेदारी"
+                                            "कृषक धनराशि"
                                           ) && (
                                             <td style={{ fontWeight: "bold" }}>
-                                              {checkedValues
+                                              {(() => {
+                                                const displayCheckedValues = (() => {
+                                                  return checkedValues.filter((checkedValue) => {
+                                                    const rowsForValue = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                    if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                      return false;
+                                                    }
+                                                    for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                      if (col === currentFilter.column) continue;
+                                                      const sel = selectedVals || [];
+                                                      if (sel.length > 0) {
+                                                        const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                        if (!match) return false;
+                                                      }
+                                                    }
+                                                    return true;
+                                                  });
+                                                })();
+                                                return displayCheckedValues
                                                 .reduce((sum, checkedValue) => {
                                                   const tableDataForValue =
                                                     filteredData.filter(
@@ -5725,14 +7894,36 @@ const MainDashboard = () => {
                                                     )
                                                   );
                                                 }, 0)
-                                                .toFixed(2)}
+                                                .toFixed(2);
+                                              })()}
                                             </td>
                                           )}
                                           {tableColumnFilters.summary.includes(
-                                            "कुल सब्सिडी"
+                                            "सब्सिडी धनराशि"
                                           ) && (
                                             <td style={{ fontWeight: "bold" }}>
-                                              {checkedValues
+                                              {(() => {
+                                                const displayCheckedValues = (() => {
+                                                  return checkedValues.filter((checkedValue) => {
+                                                    const rowsForValue = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                    if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                      return false;
+                                                    }
+                                                    for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                      if (col === currentFilter.column) continue;
+                                                      const sel = selectedVals || [];
+                                                      if (sel.length > 0) {
+                                                        const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                        if (!match) return false;
+                                                      }
+                                                    }
+                                                    return true;
+                                                  });
+                                                })();
+                                                return displayCheckedValues
                                                 .reduce((sum, checkedValue) => {
                                                   const tableDataForValue =
                                                     filteredData.filter(
@@ -5753,14 +7944,36 @@ const MainDashboard = () => {
                                                     )
                                                   );
                                                 }, 0)
-                                                .toFixed(2)}
+                                                .toFixed(2);
+                                              })()}
                                             </td>
                                           )}
                                           {tableColumnFilters.summary.includes(
                                             "कुल राशि"
                                           ) && (
                                             <td style={{ fontWeight: "bold" }}>
-                                              {checkedValues
+                                              {(() => {
+                                                const displayCheckedValues = (() => {
+                                                  return checkedValues.filter((checkedValue) => {
+                                                    const rowsForValue = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                    if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                      return false;
+                                                    }
+                                                    for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                      if (col === currentFilter.column) continue;
+                                                      const sel = selectedVals || [];
+                                                      if (sel.length > 0) {
+                                                        const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                        if (!match) return false;
+                                                      }
+                                                    }
+                                                    return true;
+                                                  });
+                                                })();
+                                                return displayCheckedValues
                                                 .reduce((sum, checkedValue) => {
                                                   const tableDataForValue =
                                                     filteredData.filter(
@@ -5781,12 +7994,14 @@ const MainDashboard = () => {
                                                     )
                                                   );
                                                 }, 0)
-                                                .toFixed(2)}
+                                                .toFixed(2);
+                                              })()}
                                             </td>
                                           )}
                                         </tr>
                                       </tfoot>
-                                    </Table>
+                                      </Table>
+                                    </div>
                                     {/* Replace the additional tables rendering section with this updated version: */}
                                     {additionalTables.map((table, index) => (
                                       <div key={index} className="mt-4">
@@ -5795,22 +8010,40 @@ const MainDashboard = () => {
                                             <h5 className="mb-0">
                                               {table.heading}
                                             </h5>
+                                            {table.isAllocationTable && (
+                                              <small className="text-muted ms-2">
+                                                ({(() => {
+                                                  const mat = allocationTableToggles[index]?.matra;
+                                                  const ika = allocationTableToggles[index]?.ikai;
+                                                  if (mat && ika) return "मात्रा/इकाई";
+                                                  if (ika) return "इकाई";
+                                                  if (mat) return "मात्रा";
+                                                  return "";
+                                                })()})
+                                              </small>
+                                            )}
                                             {/* Add toggle button for allocation tables */}
                                             {table.isAllocationTable && (
-                                              <Button
-                                                variant="outline-primary"
-                                                size="sm"
-                                                onClick={() =>
-                                                  toggleAllocationTableDisplay(
-                                                    index
-                                                  )
-                                                }
-                                              >
-                                                {allocationTableToggles[index]
-                                                  ? "मात्रा"
-                                                  : "दर"}
-                                              </Button>
+                                              <>
+                                                <Button
+                                                  variant={allocationTableToggles[index]?.matra ? "primary" : "outline-primary"}
+                                                  size="sm"
+                                                  onClick={() => toggleAllocationTableDisplay(index, "matra")}
+                                                >
+                                                  मात्रा
+                                                </Button>
+                                                <Button
+                                                  variant={allocationTableToggles[index]?.ikai ? "primary" : "outline-primary"}
+                                                  size="sm"
+                                                  className="ms-1"
+                                                  onClick={() => toggleAllocationTableDisplay(index, "ikai")}
+                                                >
+                                                  इकाई
+                                                </Button>
+                                              </>
                                             )}
+                                            {/* Hide Filter dropdown when table is rotated */}
+                                            {!isRotated[index] && (
                                             <div className="dropdown">
                                               <button
                                                 className="btn btn-secondary dropdown-toggle drop-option"
@@ -5841,96 +8074,146 @@ const MainDashboard = () => {
                                                       type="checkbox"
                                                       id={`select_all_additional_${index}`}
                                                       label={
-                                                        additionalTableFilters[
-                                                          index
-                                                        ]?.allSelected
-                                                          ? "सभी हटाएं"
-                                                          : "सभी चुनें"
+                                                        // When rotated, use additionalTableColumnFilters counts if present
+                                                        (isRotated[index]
+                                                          ? (() => {
+                                                              const allCols = table.columns.slice(1).filter(col => 
+                                                                !(table.isAllocationTable && col.endsWith("_dar")) &&
+                                                                !(table.isAllocationTable && col.endsWith("_farmer")) &&
+                                                                !(table.isAllocationTable && col.endsWith("_subsidy"))
+                                                              );
+                                                              return (additionalTableColumnFilters[index] && additionalTableColumnFilters[index].length === allCols.length) ? "सभी हटाएं" : "सभी चुनें";
+                                                            })()
+                                                          : (additionalTableFilters[index]?.allSelected ? "सभी हटाएं" : "सभी चुनें"))
                                                       }
                                                       checked={
-                                                        additionalTableFilters[
-                                                          index
-                                                        ]?.allSelected || false
+                                                        isRotated[index]
+                                                          ? (() => {
+                                                              const allCols = table.columns.slice(1).filter(col => 
+                                                                !(table.isAllocationTable && col.endsWith("_dar")) &&
+                                                                !(table.isAllocationTable && col.endsWith("_farmer")) &&
+                                                                !(table.isAllocationTable && col.endsWith("_subsidy"))
+                                                              );
+                                                              return additionalTableColumnFilters[index] ? additionalTableColumnFilters[index].length === allCols.length : true;
+                                                            })()
+                                                          : (additionalTableFilters[index]?.allSelected || false)
                                                       }
-                                                      onChange={() =>
-                                                        handleAdditionalTableFilterChange(
-                                                          index,
-                                                          "SELECT_ALL"
-                                                        )
-                                                      }
+                                                      onChange={() => {
+                                                        if (isRotated[index]) {
+                                                          // Toggle all rows (which are original columns.slice(1)) via additionalTableColumnFilters
+                                                          handleAdditionalTableColumnFilterChange(index, "SELECT_ALL");
+                                                        } else {
+                                                          handleAdditionalTableFilterChange(index, "SELECT_ALL");
+                                                        }
+                                                      }}
                                                     />
                                                   </div>
-                                                  {(
-                                                    table.originalData ||
-                                                    table.data
-                                                  ).map((row) => {
-                                                    const rowValue =
-                                                      row[table.columns[0]];
-                                                    const isChecked =
-                                                      additionalTableFilters[
-                                                        index
-                                                      ]?.selectedValues?.includes(
-                                                        rowValue
-                                                      ) || false;
-                                                    return (
-                                                      <div
-                                                        key={rowValue}
-                                                        className="dropdown-item"
-                                                      >
-                                                        <FormCheck
-                                                          className="check-box"
-                                                          type="checkbox"
-                                                          id={`additional_${index}_${rowValue}`}
-                                                          label={rowValue}
-                                                          checked={isChecked}
-                                                          onChange={() =>
-                                                            handleAdditionalTableFilterChange(
-                                                              index,
-                                                              rowValue
-                                                            )
-                                                          }
-                                                        />
-                                                      </div>
-                                                    );
-                                                  })}
+                                                  {(() => {
+                                                    if (isRotated[index]) {
+                                                      // When rotated, list the original column keys (these become rows in rotated view)
+                                                      // Include summary columns like "आवंटित मात्रा", "कृषक धनराशि", etc.
+                                                      // Only filter out hidden columns like _dar, _farmer, _subsidy
+                                                      const values = table.columns.slice(1).filter(col => 
+                                                        !(table.isAllocationTable && col.endsWith("_dar")) &&
+                                                        !(table.isAllocationTable && col.endsWith("_farmer")) &&
+                                                        !(table.isAllocationTable && col.endsWith("_subsidy"))
+                                                      );
+                                                      return values.map((val) => {
+                                                        const isChecked = additionalTableColumnFilters[index]
+                                                          ? additionalTableColumnFilters[index].includes(val)
+                                                          : true;
+                                                        return (
+                                                          <div key={val} className="dropdown-item">
+                                                            <FormCheck
+                                                              className="check-box"
+                                                              type="checkbox"
+                                                              id={`additional_${index}_${val}`}
+                                                              label={val}
+                                                              checked={isChecked}
+                                                              onChange={() => handleAdditionalTableColumnFilterChange(index, val)}
+                                                            />
+                                                          </div>
+                                                        );
+                                                      });
+                                                    } else {
+                                                      // Not rotated: behave as before (list first-column row values)
+                                                      // Filter out "कुल" row from the list
+                                                      const rows = (table.originalData || table.data).filter(row => row[table.columns[0]] !== "कुल");
+                                                      return rows.map((row) => {
+                                                        const rowValue = row[table.columns[0]];
+                                                        const isChecked = additionalTableFilters[index]?.selectedValues?.includes(rowValue) || false;
+                                                        return (
+                                                          <div key={rowValue} className="dropdown-item">
+                                                            <FormCheck
+                                                              className="check-box"
+                                                              type="checkbox"
+                                                              id={`additional_${index}_${rowValue}`}
+                                                              label={rowValue}
+                                                              checked={isChecked}
+                                                              onChange={() => handleAdditionalTableFilterChange(index, rowValue)}
+                                                            />
+                                                          </div>
+                                                        );
+                                                      });
+                                                    }
+                                                  })()}
                                                 </div>
                                               )}
                                             </div>
-                                            <ColumnFilter
-                                              tableId={`additional_${index}`}
-                                              columns={table.columns}
-                                              selectedColumns={
-                                                tableColumnFilters.additional[
-                                                  index
-                                                ] || table.columns
+                                            )}
+                                            {/* Hide ColumnFilter when table is rotated */}
+                                            {!isRotated[index] && (
+                                            <>
+                                            {(() => {
+                                              const isTableRotated = isRotated[index] || false;
+                                              let columnsForFilter = table.columns;
+                                              if (isTableRotated) {
+                                                // Use originalData to get all rows, then apply row filter
+                                                const sourceData = table.originalData || table.data;
+                                                const allRowValues = sourceData
+                                                  .filter((row) => row[table.columns[0]] !== "कुल")
+                                                  .map((row) => row[table.columns[0]]);
+                                                
+                                                // Apply additionalTableFilters (row selection before rotation)
+                                                const selectedRowValues = additionalTableFilters[index]?.selectedValues || allRowValues;
+                                                const visibleRowValues = allRowValues.filter(val => selectedRowValues.includes(val));
+                                                
+                                                columnsForFilter = [table.columns[0], ...visibleRowValues, "कुल"];
                                               }
-                                              onColumnToggle={(column) =>
-                                                handleAdditionalTableColumnToggle(
-                                                  index,
-                                                  column
-                                                )
-                                              }
-                                              onToggleAll={() =>
-                                                handleAdditionalTableToggleAllColumns(
-                                                  index,
-                                                  table.columns
-                                                )
-                                              }
-                                            />
-                                            <Button
-                                              variant="secondary"
-                                              size="sm"
-                                              onClick={() =>
-                                                setIsRotated((prev) => {
-                                                  const newArr = [...prev];
-                                                  newArr[index] =
-                                                    !newArr[index];
-                                                  return newArr;
-                                                })
-                                              }
-                                            >
-                                              <RiRepeatLine /> Rotate
-                                            </Button>
+
+                                              return (
+                                                <ColumnFilter
+                                                  tableId={`additional_${index}`}
+                                                  columns={columnsForFilter}
+                                                  selectedColumns={
+                                                    tableColumnFilters.additional[index] || columnsForFilter
+                                                  }
+                                                  onColumnToggle={(column) =>
+                                                    handleAdditionalTableColumnToggle(index, column)
+                                                  }
+                                                  onToggleAll={() =>
+                                                    handleAdditionalTableToggleAllColumns(index, columnsForFilter)
+                                                  }
+                                                />
+                                              );
+                                            })()}
+                                            </>
+                                            )}
+                                            {table.isAllocationTable && (
+                                              <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() =>
+                                                  setIsRotated((prev) => {
+                                                    const newArr = [...prev];
+                                                    newArr[index] = !newArr[index];
+                                                    return newArr;
+                                                  })
+                                                }
+                                              >
+                                                <RiRepeatLine /> Rotate
+                                              </Button>
+                                            )}
                                           </div>
                                           <div className="d-flex gap-2">
                                             <Button
@@ -5994,31 +8277,35 @@ const MainDashboard = () => {
                                                   const isTableRotated =
                                                     isRotated[index] || false;
                                                   if (isTableRotated) {
-                                                    const transposedColumns =
-                                                      table.data
-                                                        .filter(
-                                                          (row) =>
-                                                            row[
-                                                              table.columns[0]
-                                                            ] !== "कुल"
-                                                        )
-                                                        .map(
-                                                          (row) =>
-                                                            row[
-                                                              table.columns[0]
-                                                            ]
-                                                        );
-                                                    const transposedTableColumns =
-                                                      [
-                                                        table.columns[0],
-                                                        ...transposedColumns,
-                                                        "कुल",
-                                                      ];
-                                                    return transposedTableColumns.map(
-                                                      (col, idx) => (
-                                                        <th key={idx}>{col}</th>
-                                                      )
-                                                    );
+                                                    // Use table.data directly (already filtered by row filter before rotation)
+                                                    const filteredData = table.data.filter((row) => row[table.columns[0]] !== "कुल");
+                                                    
+                                                    // Get visible row values from the already filtered data
+                                                    const visibleRowValues = filteredData.map((row) => row[table.columns[0]]);
+
+                                                    // Build transposed table columns from the visible data
+                                                    const transposedTableColumns = [table.columns[0], ...visibleRowValues, "कुल"];
+
+                                                    // All transposed columns are visible (no filtering after rotation)
+                                                    const visibleTransposed = transposedTableColumns;
+
+                                                    return visibleTransposed.map((col, idx) => (
+                                                      <th key={idx}>
+                                                        {(() => {
+                                                          if (!table.isAllocationTable || col !== "आवंटित मात्रा") return col;
+                                                          const darSel = allocationTableToggles[index]?.dar;
+                                                          const matraSel = allocationTableToggles[index]?.matra;
+                                                          const ikaiSel = allocationTableToggles[index]?.ikai;
+                                                          if (matraSel && ikaiSel && darSel) return "आवंटित मात्रा/इकाई/दर";
+                                                          if (matraSel && ikaiSel) return "आवंटित मात्रा/इकाई";
+                                                          if (ikaiSel && darSel) return "इकाई/दर";
+                                                          if (matraSel && darSel) return "आवंटित मात्रा/दर";
+                                                          if (ikaiSel) return "इकाई";
+                                                          if (darSel) return "आवंटित दर";
+                                                          return "आवंटित मात्रा";
+                                                        })()}
+                                                      </th>
+                                                    ));
                                                   } else {
                                                     const visibleColumns =
                                                       tableColumnFilters
@@ -6027,7 +8314,19 @@ const MainDashboard = () => {
                                                     return visibleColumns.map(
                                                       (col, idx) => (
                                                         <th key={idx}>
-                                                          {col}
+                                                          {(() => {
+                                                            if (!table.isAllocationTable || col !== "आवंटित मात्रा") return col;
+                                                            const darSel = allocationTableToggles[index]?.dar;
+                                                            const matraSel = allocationTableToggles[index]?.matra;
+                                                            const ikaiSel = allocationTableToggles[index]?.ikai;
+                                                            if (matraSel && ikaiSel && darSel) return "आवंटित मात्रा/इकाई/दर";
+                                                            if (matraSel && ikaiSel) return "आवंटित मात्रा/इकाई";
+                                                            if (ikaiSel && darSel) return "इकाई/दर";
+                                                            if (matraSel && darSel) return "आवंटित मात्रा/दर";
+                                                            if (ikaiSel) return "इकाई";
+                                                            if (darSel) return "आवंटित दर";
+                                                            return "आवंटित मात्रा";
+                                                          })()}
                                                           {!table.isAllocationTable &&
                                                             col !==
                                                               table
@@ -6035,11 +8334,11 @@ const MainDashboard = () => {
                                                             col !==
                                                               "कुल रिकॉर्ड" &&
                                                             col !==
-                                                              "कुल आवंटित मात्रा" &&
+                                                              "आवंटित मात्रा" &&
                                                             col !==
-                                                              "कुल किसान की हिस्सेदारी" &&
+                                                              "कृषक धनराशि" &&
                                                             col !==
-                                                              "कुल सब्सिडी" &&
+                                                              "सब्सिडी धनराशि" &&
                                                             col !==
                                                               "कुल राशि" && (
                                                               <Button
@@ -6077,225 +8376,304 @@ const MainDashboard = () => {
                                               {(() => {
                                                 const isTableRotated =
                                                   isRotated[index] || false;
-                                                const showDar =
-                                                  table.isAllocationTable &&
-                                                  allocationTableToggles[index];
+                                                const showDar = table.isAllocationTable && allocationTableToggles[index]?.dar;
+                                                const showMatra = table.isAllocationTable && allocationTableToggles[index]?.matra;
+                                                const showIkai = table.isAllocationTable && allocationTableToggles[index]?.ikai;
 
                                                 if (isTableRotated) {
                                                   // Rotated table code with dar/matra toggle support
-                                                  const transposedColumns =
-                                                    table.data
-                                                      .filter(
-                                                        (row) =>
-                                                          row[
-                                                            table.columns[0]
-                                                          ] !== "कुल"
-                                                      )
-                                                      .map(
-                                                        (row) =>
-                                                          row[table.columns[0]]
-                                                      );
+                                                  // Use table.data directly (already filtered by row filter before rotation)
+                                                  const filteredData = table.data.filter((r) => r[table.columns[0]] !== "कुल");
 
-                                                  const transposedData =
-                                                    table.columns
-                                                      .slice(1)
-                                                      .filter(
-                                                        (col) =>
-                                                          !(
-                                                            table.isAllocationTable &&
-                                                            col.endsWith("_dar")
-                                                          )
-                                                      ) // Skip _dar columns in allocation tables
-                                                      .map((col, idx) => {
-                                                        const row = {
-                                                          [table.columns[0]]:
-                                                            col,
-                                                        };
-                                                        transposedColumns.forEach(
-                                                          (newCol, colIdx) => {
-                                                            // For allocation tables, respect the dar/matra toggle
-                                                            if (
-                                                              table.isAllocationTable
-                                                            ) {
-                                                              row[newCol] =
-                                                                showDar
-                                                                  ? table.data[
-                                                                      colIdx
-                                                                    ][
-                                                                      `${col}_dar`
-                                                                    ]
-                                                                  : table.data[
-                                                                      colIdx
-                                                                    ][col];
-                                                            } else {
-                                                              row[newCol] =
-                                                                table.data[
-                                                                  colIdx
-                                                                ]
-                                                                  ? table.data[
-                                                                      colIdx
-                                                                    ][col]
-                                                                  : "";
-                                                            }
-                                                          }
-                                                        );
+                                                  // Get visible row values from the already filtered data
+                                                  const visibleRowValues = filteredData.map((r) => r[table.columns[0]]);
 
-                                                        // Add total column (कुल)
-                                                        const totalRow =
-                                                          table.data.find(
-                                                            (row) => row[table.columns[0]] === "कुल"
-                                                          );
-                                                        if (totalRow) {
-                                                          if (
-                                                            table.isAllocationTable
-                                                          ) {
-                                                            row["कुल"] = showDar
-                                                              ? totalRow[
-                                                                  `${col}_dar`
-                                                                ]
-                                                              : totalRow[col];
-                                                          } else {
-                                                            row["कुल"] =
-                                                              totalRow[col];
-                                                          }
-                                                        }
+                                                  // Build transposed table columns from the visible data
+                                                  const transposedTableColumns = [table.columns[0], ...visibleRowValues, "कुल"];
 
-                                                        return row;
-                                                      });
-                                                  return transposedData.map(
-                                                    (row, rowIndex) => (
-                                                      <tr key={rowIndex}>
-                                                        {Object.keys(row).map(
-                                                          (col, colIdx) => (
-                                                            <td key={colIdx}>
-                                                              {row[col] || ""}
-                                                            </td>
-                                                          )
-                                                        )}
-                                                      </tr>
-                                                    )
+                                                  // Get visible columns from tableColumnFilters (columns visible before rotation)
+                                                  const visibleTransposed = transposedTableColumns;
+
+                                                  // Get visible dynamic columns (columns that were visible before rotation, excluding summary columns)
+                                                  const allClickedCols = table.columns.slice(1).filter((col) => 
+                                                    !(table.isAllocationTable && col.endsWith("_dar")) &&
+                                                    !(table.isAllocationTable && col.endsWith("_farmer")) &&
+                                                    !(table.isAllocationTable && col.endsWith("_subsidy"))
                                                   );
+                                                  
+                                                  // Only show columns that were visible in the original table (from tableColumnFilters)
+                                                  const visibleColumnsBeforeRotation = tableColumnFilters.additional[index] || table.columns;
+                                                  const visibleClickedCols = allClickedCols.filter((col) => 
+                                                    visibleColumnsBeforeRotation.includes(col)
+                                                  );
+                                                  
+                                                  // Get the visible dynamic columns (non-summary columns) for calculating summary values
+                                                  const visibleDynamicCols = visibleClickedCols.filter(col => !col.startsWith("कुल") && col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && col !== "सब्सिडी धनराशि");
+
+                                                  const transposedData = visibleClickedCols.map((col) => {
+                                                    const row = { [table.columns[0]]: col };
+                                                    
+                                                    // Check if this is a summary column
+                                                    const isSummaryCol = col.startsWith("कुल") || col === "आवंटित मात्रा" || col === "कृषक धनराशि" || col === "सब्सिडी धनराशि";
+
+                                                    // For each visible transposed column (i.e., visible original rows), map value
+                                                    visibleTransposed.forEach((newCol) => {
+                                                      if (newCol === table.columns[0] || newCol === "कुल") return; // skip header label and total placeholder
+                                                      const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
+                                                      if (!dataRow) return;
+
+                                                      if (table.isAllocationTable) {
+                                                        if (isSummaryCol) {
+                                                          // For summary columns, calculate the value based on visible dynamic columns
+                                                          // Same calculation as in non-rotated table
+                                                          if (col === "आवंटित मात्रा") {
+                                                            const matraTotal = visibleDynamicCols.reduce((s, c) => s + parseFloat(dataRow[c] || 0), 0).toFixed(2);
+                                                            const darTotal = visibleDynamicCols.reduce((s, c) => s + parseFloat(dataRow[`${c}_dar`] || 0), 0).toFixed(2);
+                                                            if (showMatra && showDar) row[newCol] = `${matraTotal} / ${darTotal}`;
+                                                            else if (showDar) row[newCol] = darTotal;
+                                                            else row[newCol] = matraTotal;
+                                                          } else if (col === "कृषक धनराशि") {
+                                                            row[newCol] = visibleDynamicCols.reduce((s, c) => s + parseFloat(dataRow[`${c}_farmer`] || 0), 0).toFixed(2);
+                                                          } else if (col === "सब्सिडी धनराशि") {
+                                                            row[newCol] = visibleDynamicCols.reduce((s, c) => s + parseFloat(dataRow[`${c}_subsidy`] || 0), 0).toFixed(2);
+                                                          } else if (col === "कुल राशि") {
+                                                            row[newCol] = visibleDynamicCols.reduce((s, c) => s + parseFloat(dataRow[`${c}_dar`] || 0), 0).toFixed(2);
+                                                          } else {
+                                                            row[newCol] = dataRow[col] !== undefined ? String(dataRow[col]) : "0";
+                                                          }
+                                                        } else {
+                                                          // Get raw numeric values - avoid double formatting if value already contains "/"
+                                                          let matraVal = dataRow[col];
+                                                          let darVal = dataRow[`${col}_dar`];
+                                                          let ikaiVal = dataRow[`${col}_ikai`] || dataRow[`${col}_unit`] || "";
+
+                                                          // If matraVal already contains "/" it's been formatted, extract the first number
+                                                          if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+                                                            const parts = String(matraVal).split(" / ");
+                                                            matraVal = parts[0];
+                                                            if (darVal === undefined) darVal = parts[1] || parts[0];
+                                                            if (!ikaiVal && parts.length === 3) ikaiVal = parts[1];
+                                                          } else {
+                                                            matraVal = matraVal !== undefined ? String(matraVal) : "0";
+                                                          }
+
+                                                          // If darVal is undefined, use raw dar value or fallback
+                                                          if (darVal !== undefined) {
+                                                            if (String(darVal).includes(" / ")) {
+                                                              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+                                                            } else {
+                                                              darVal = String(darVal);
+                                                            }
+                                                          } else {
+                                                            darVal = matraVal;
+                                                          }
+
+                                                          // Try deriving ikai if missing
+                                                          if ((!ikaiVal || ikaiVal === "") && table) {
+                                                            ikaiVal = findUnitForRowCol(dataRow, col, table) || "";
+                                                          }
+
+                                                          row[newCol] = formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
+                                                        }
+                                                      } else {
+                                                        row[newCol] = dataRow[col] || "";
+                                                      }
+                                                    });
+
+                                                    // Add total column (कुल) - sum over all visible rows in the rotated table
+                                                        if (visibleTransposed.includes("कुल")) {
+                                                      // sum only over visible rows (which are now columns in rotated view)
+                                                      // filteredData already contains only the visible rows
+                                                        if (table.isAllocationTable) {
+                                                        if (isSummaryCol) {
+                                                          // For summary columns, sum the calculated summary values across all rows
+                                                            if (col === "आवंटित मात्रा") {
+                                                            const matraTotal = filteredData.reduce((s, r) => {
+                                                              return s + visibleDynamicCols.reduce((rs, c) => rs + parseFloat(r[c] || 0), 0);
+                                                            }, 0).toFixed(2);
+                                                            const darTotal = filteredData.reduce((s, r) => {
+                                                              return s + visibleDynamicCols.reduce((rs, c) => rs + parseFloat(r[`${c}_dar`] || 0), 0);
+                                                            }, 0).toFixed(2);
+                                                            const ikaiTotal = filteredData.reduce((s, r) => {
+                                                              return s + visibleDynamicCols.reduce((rs, c) => rs + parseFloat(r[`${c}_ikai`] || r[`${c}_unit`] || 0), 0);
+                                                            }, 0).toFixed(2);
+                                                            row["कुल"] = formatAllocationValue(matraTotal, ikaiTotal, darTotal, showMatra, showIkai, showDar);
+                                                          } else if (col === "कृषक धनराशि") {
+                                                            row["कुल"] = filteredData.reduce((s, r) => {
+                                                              return s + visibleDynamicCols.reduce((rs, c) => rs + parseFloat(r[`${c}_farmer`] || 0), 0);
+                                                            }, 0).toFixed(2);
+                                                          } else if (col === "सब्सिडी धनराशि") {
+                                                            row["कुल"] = filteredData.reduce((s, r) => {
+                                                              return s + visibleDynamicCols.reduce((rs, c) => rs + parseFloat(r[`${c}_subsidy`] || 0), 0);
+                                                            }, 0).toFixed(2);
+                                                          } else if (col === "कुल राशि") {
+                                                            row["कुल"] = filteredData.reduce((s, r) => {
+                                                              return s + visibleDynamicCols.reduce((rs, c) => rs + parseFloat(r[`${c}_dar`] || 0), 0);
+                                                            }, 0).toFixed(2);
+                                                          } else {
+                                                            const total = filteredData.reduce((s, r) => s + (parseFloat(r[col]) || 0), 0).toFixed(2);
+                                                            row["कुल"] = total;
+                                                          }
+                                                        } else {
+                                                          // Calculate totals - extract raw numeric values if already formatted
+                                                          const matraTotal = filteredData.reduce((s, r) => {
+                                                            let val = r[col];
+                                                            if (val !== undefined && String(val).includes(" / ")) {
+                                                              val = String(val).split(" / ")[0];
+                                                            }
+                                                            return s + (parseFloat(val) || 0);
+                                                          }, 0).toFixed(2);
+                                                          const darTotal = filteredData.reduce((s, r) => {
+                                                            let val = r[`${col}_dar`];
+                                                            if (val === undefined) {
+                                                              // Try to get from formatted value
+                                                              let mainVal = r[col];
+                                                              if (mainVal !== undefined && String(mainVal).includes(" / ")) {
+                                                                val = String(mainVal).split(" / ")[1] || String(mainVal).split(" / ")[0];
+                                                              } else {
+                                                                val = mainVal;
+                                                              }
+                                                            } else if (String(val).includes(" / ")) {
+                                                              val = String(val).split(" / ")[1] || String(val).split(" / ")[0];
+                                                            }
+                                                            return s + (parseFloat(val) || 0);
+                                                          }, 0).toFixed(2);
+                                                          if (showMatra && showDar) row["कुल"] = `${matraTotal} / ${darTotal}`;
+                                                          else if (showDar) row["कुल"] = darTotal;
+                                                          else row["कुल"] = matraTotal;
+                                                        }
+                                                      } else {
+                                                        const totalVal = filteredData.reduce((s, r) => s + (parseFloat(r[col]) || 0), 0).toFixed(2);
+                                                        row["कुल"] = totalVal;
+                                                      }
+                                                    }
+
+                                                    return row;
+                                                  });
+                                                  return transposedData.map((row, rowIndex) => (
+                                                    <tr key={rowIndex}>
+                                                      {(visibleTransposed || []).map((col, colIdx) => (
+                                                        <td key={colIdx}>
+                                                          {col === table.columns[0] 
+                                                            ? getDynamicColumnHeader(row[col], showMatra, showDar, table.isAllocationTable)
+                                                            : (row[col] !== undefined ? row[col] : "")}
+                                                        </td>
+                                                      ))}
+                                                    </tr>
+                                                  ));
                                                 } else {
                                                   const visibleColumns =
                                                     tableColumnFilters
                                                       .additional[index] ||
                                                     table.columns;
+                                                  // When rendering non-rotated allocation tables, compute per-row totals from currently visible dynamic columns
+                                                  const visibleDynamicCols = (tableColumnFilters.additional[index] && tableColumnFilters.additional[index].length > 0)
+                                                    ? tableColumnFilters.additional[index].filter((c) => c !== table.columns[0] && !c.startsWith("कुल") && c !== "आवंटित मात्रा" && c !== "कृषक धनराशि" && c !== "सब्सिडी धनराशि")
+                                                    : table.columns.filter((c) => c !== table.columns[0] && !c.startsWith("कुल") && c !== "आवंटित मात्रा" && c !== "कृषक धनराशि" && c !== "सब्सिडी धनराशि");
+
                                                   return table.data
-                                                    .filter(
-                                                      (row) =>
-                                                        row[
-                                                          table.columns[0]
-                                                        ] !== "कुल"
-                                                    ) // Filter out any existing total row
+                                                    .filter((row) => row[table.columns[0]] !== "कुल")
                                                     .map((row, rowIndex) => (
                                                       <tr key={rowIndex}>
-                                                        {visibleColumns.includes(
-                                                          table.columns[0]
-                                                        ) && (
+                                                        {visibleColumns.includes(table.columns[0]) && (
                                                           <td
-                                                            style={{
-                                                              cursor: "pointer",
-                                                              color: "blue",
-                                                              fontWeight:
-                                                                "bold",
-                                                            }}
+                                                            style={{ cursor: "pointer", color: "blue", fontWeight: "bold" }}
                                                             onClick={() => {
-                                                              // Add to navigation history
-                                                              setNavigationHistory(
-                                                                (prev) => [
-                                                                  ...prev,
-                                                                  {
-                                                                    view,
-                                                                    filterStack:
-                                                                      [
-                                                                        ...filterStack,
-                                                                      ],
-                                                                    additionalTables:
-                                                                      [
-                                                                        ...additionalTables,
-                                                                      ],
-                                                                  },
-                                                                ]
-                                                              );
-
-                                                              // Add a new filter to the stack with this value
-                                                              handleSummaryValueClick(
-                                                                table.columnKey,
-                                                                row[
-                                                                  table
-                                                                    .columns[0]
-                                                                ]
-                                                              );
+                                                              setNavigationHistory((prev) => [
+                                                                ...prev,
+                                                                { view, filterStack: [...filterStack], additionalTables: [...additionalTables] },
+                                                              ]);
+                                                              handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
                                                             }}
                                                           >
-                                                            {
-                                                              row[
-                                                                table.columns[0]
-                                                              ]
-                                                            }
+                                                            {row[table.columns[0]]}
                                                           </td>
                                                         )}
                                                         {table.isAllocationTable ? (
-                                                          // For allocation tables, show either dar or matra based on toggle
+                                                          // For allocation tables, show matra, dar or both separated by '/'
                                                           <>
-                                                            {visibleColumns
-                                                              .filter(
-                                                                (col) =>
-                                                                  col !==
-                                                                    table
-                                                                      .columns[0] &&
-                                                                  col !== "कुल"
-                                                              )
-                                                              .map(
-                                                                (
-                                                                  col,
-                                                                  colIdx
-                                                                ) => (
-                                                                  <td
-                                                                    key={colIdx}
-                                                                  >
-                                                                    {showDar
-                                                                      ? row[
-                                                                          `${col}_dar`
-                                                                        ] !== undefined ? row[`${col}_dar`] : row[col] || "0"
-                                                                      : row[col] ||
-                                                                        "0"}
-                                                                  </td>
-                                                                )
-                                                              )}
-                                                            {visibleColumns.includes(
-                                                              "कुल"
-                                                            ) && (
+                                                            {visibleDynamicCols.map((col, colIdx) => (
+                                                              <td key={colIdx}>
+                                                                {(() => {
+                                                                  // Extract raw numeric values - avoid double formatting
+                                                                  let matraVal = row[col];
+                                                                  let darVal = row[`${col}_dar`];
+                                                                  let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
+                                                                  
+                                                                  // If matraVal already contains "/" it's been formatted, extract the first number
+                                                                  if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+                                                                    const parts = String(matraVal).split(" / ");
+                                                                    matraVal = parts[0];
+                                                                    if (darVal === undefined) darVal = parts[1] || parts[0];
+                                                                    if (!ikaiVal && parts.length === 3) ikaiVal = parts[1];
+                                                                  } else {
+                                                                    matraVal = matraVal !== undefined ? String(matraVal) : "0";
+                                                                  }
+                                                                  
+                                                                  if (darVal === undefined) {
+                                                                    darVal = matraVal;
+                                                                  } else if (String(darVal).includes(" / ")) {
+                                                                    darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+                                                                  } else {
+                                                                    darVal = String(darVal);
+                                                                  }
+                                                                  
+                                                                  // Try deriving ikai if missing
+                                                                  if ((!ikaiVal || ikaiVal === "") && table) {
+                                                                    ikaiVal = findUnitForRowCol(row, col, table) || "";
+                                                                  }
+                                                                  
+                                                                  return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
+                                                                })()}
+                                                              </td>
+                                                            ))}
+
+                                                            {visibleColumns.includes("आवंटित मात्रा") && (
                                                               <td>
                                                                 {(() => {
-                                                                  // Get the total from the total row for dar view
-                                                                  const totalRow = table.data.find(
-                                                                    (row) => row[table.columns[0]] === "कुल"
-                                                                  );
-                                                                  return showDar
-                                                                    ? (totalRow 
-                                                                      ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
-                                                                      : "0")
-                                                                    : visibleColumns
-                                                                        .filter(
-                                                                          (col) =>
-                                                                            col !==
-                                                                              table
-                                                                                .columns[0] &&
-                                                                          col !==
-                                                                            "कुल"
-                                                                        )
-                                                                        .reduce(
-                                                                          (sum, col) =>
-                                                                            sum +
-                                                                            parseFloat(
-                                                                              row[col] ||
-                                                                                0
-                                                                            ),
-                                                                          0
-                                                                        )
-                                                                        .toFixed(2);
+                                                                  // Compute row total from visible dynamic cols - extract raw values
+                                                                  const matraTotal = visibleDynamicCols.reduce((s, col) => {
+                                                                    let val = row[col];
+                                                                    if (val !== undefined && String(val).includes(" / ")) {
+                                                                      val = String(val).split(" / ")[0];
+                                                                    }
+                                                                    return s + parseFloat(val || 0);
+                                                                  }, 0).toFixed(2);
+                                                                  const darTotal = visibleDynamicCols.reduce((s, col) => {
+                                                                    let val = row[`${col}_dar`];
+                                                                    if (val === undefined) {
+                                                                      let mainVal = row[col];
+                                                                      if (mainVal !== undefined && String(mainVal).includes(" / ")) {
+                                                                        val = String(mainVal).split(" / ")[1] || String(mainVal).split(" / ")[0];
+                                                                      } else {
+                                                                        val = mainVal;
+                                                                      }
+                                                                    }
+                                                                    return s + parseFloat(val || 0);
+                                                                  }, 0).toFixed(2);
+                                                                  const ikaiTotal = visibleDynamicCols.reduce((s, col) => {
+                                                                    return s + parseFloat(row[`${col}_ikai`] || row[`${col}_unit`] || 0);
+                                                                  }, 0).toFixed(2);
+                                                                  return formatAllocationValue(matraTotal, ikaiTotal, darTotal, showMatra, showIkai, showDar);
                                                                 })()}
+                                                              </td>
+                                                            )}
+
+                                                            {visibleColumns.includes("कृषक धनराशि") && (
+                                                              <td>
+                                                                {(() => visibleDynamicCols.reduce((s, col) => s + parseFloat(row[`${col}_farmer`] || 0), 0).toFixed(2))()}
+                                                              </td>
+                                                            )}
+
+                                                            {visibleColumns.includes("सब्सिडी धनराशि") && (
+                                                              <td>
+                                                                {(() => visibleDynamicCols.reduce((s, col) => s + parseFloat(row[`${col}_subsidy`] || 0), 0).toFixed(2))()}
+                                                              </td>
+                                                            )}
+
+                                                            {visibleColumns.includes("कुल राशि") && (
+                                                              <td>
+                                                                {(() => visibleDynamicCols.reduce((s, col) => s + parseFloat(row[`${col}_dar`] || 0), 0).toFixed(2))()}
                                                               </td>
                                                             )}
                                                           </>
@@ -6360,11 +8738,11 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "कुल रिकॉर्ड" &&
                                                                   col !==
-                                                                    "कुल आवंटित मात्रा" &&
+                                                                    "आवंटित मात्रा" &&
                                                                   col !==
-                                                                    "कुल किसान की हिस्सेदारी" &&
+                                                                    "कृषक धनराशि" &&
                                                                   col !==
-                                                                    "कुल सब्सिडी" &&
+                                                                    "सब्सिडी धनराशि" &&
                                                                   col !==
                                                                     "कुल राशि"
                                                               )
@@ -6425,7 +8803,166 @@ const MainDashboard = () => {
                                                                         }
                                                                       );
 
-                                                                    // Get unique values for this column
+                                                                    // Special handling for उप-निवेश column - group by निवेश
+                                                                    if (columnKey === "sub_investment_name") {
+                                                                      // Group by investment_name first, then by sub_investment_name
+                                                                      const groupedData = {};
+                                                                      currentFilteredData.forEach((item) => {
+                                                                        const investmentName = item.investment_name;
+                                                                        const subInvestmentName = item.sub_investment_name;
+                                                                        
+                                                                        if (investmentName && subInvestmentName) {
+                                                                          if (!groupedData[investmentName]) {
+                                                                            groupedData[investmentName] = { subs: {}, unit: "" };
+                                                                          }
+                                                                          if (!groupedData[investmentName].subs[subInvestmentName]) {
+                                                                            groupedData[investmentName].subs[subInvestmentName] = 0;
+                                                                          }
+                                                                          let qty = item.allocated_quantity;
+                                                                          if (typeof qty === "string" && qty.includes(" / ")) {
+                                                                            qty = parseFloat(qty.split(" / ")[0]) || 0;
+                                                                          } else {
+                                                                            qty = parseFloat(qty) || 0;
+                                                                          }
+                                                                          groupedData[investmentName].subs[subInvestmentName] += qty;
+                                                                          // Collect unit once per investment
+                                                                          if (!groupedData[investmentName].unit) {
+                                                                            const u = getUnitFromItem(item);
+                                                                            if (u) groupedData[investmentName].unit = u;
+                                                                          }
+                                                                        }
+                                                                      });
+
+                                                                      // Convert to hierarchical structure with unit at investment level only
+                                                                      const hierarchicalData = Object.entries(groupedData).map(([investmentName, data]) => ({
+                                                                        investmentName,
+                                                                        unit: data.unit,
+                                                                        subInvestments: Object.entries(data.subs).map(([name, matra]) => ({
+                                                                          name,
+                                                                          matra: matra.toFixed(2),
+                                                                        })),
+                                                                      }));
+
+                                                                      return (
+                                                                        <td
+                                                                          key={colIdx}
+                                                                          style={{
+                                                                            maxWidth: "300px",
+                                                                          }}
+                                                                        >
+                                                                          <div
+                                                                            style={{
+                                                                              maxHeight: "200px",
+                                                                              overflowY: "auto",
+                                                                            }}
+                                                                          >
+                                                                            {hierarchicalData.map((group, groupIdx) => (
+                                                                              <div key={groupIdx} style={{ marginBottom: "8px" }}>
+                                                                                <div
+                                                                                  style={{
+                                                                                    fontSize: "11px",
+                                                                                    fontWeight: "bold",
+                                                                                    backgroundColor: "#e9ecef",
+                                                                                    padding: "3px 5px",
+                                                                                    borderRadius: "3px",
+                                                                                    color: "#495057",
+                                                                                  }}
+                                                                                >
+                                                                                  {group.investmentName}
+                                                                                  {group.unit && !String(group.investmentName).includes(`(${group.unit})`) && (
+                                                                                    <span style={{ marginLeft: "5px", color: "#666" }}>({group.unit})</span>
+                                                                                  )}
+                                                                                </div>
+                                                                                {group.subInvestments.map((sub, subIdx) => (
+                                                                                  <div
+                                                                                    key={subIdx}
+                                                                                    style={{
+                                                                                      fontSize: "10px",
+                                                                                      display: "flex",
+                                                                                      justifyContent: "space-between",
+                                                                                      borderBottom: "1px dotted #ccc",
+                                                                                      padding: "2px 5px 2px 15px",
+                                                                                    }}
+                                                                                  >
+                                                                                    <span>{sub.name}</span>
+                                                                                    <span style={{ color: "#007bff", marginLeft: "8px" }}>
+                                                                                      ({sub.matra})
+                                                                                    </span>
+                                                                                  </div>
+                                                                                ))}
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        </td>
+                                                                      );
+                                                                    }
+
+                                                                    // Special handling for निवेश column - show with matra
+                                                                    if (columnKey === "investment_name") {
+                                                                      // Group by investment_name and sum matra from currentFilteredData
+                                                                      const groupedData = {};
+                                                                      currentFilteredData.forEach((item) => {
+                                                                        const key = item.investment_name;
+                                                                        if (key) {
+                                                                          if (!groupedData[key]) {
+                                                                            groupedData[key] = 0;
+                                                                          }
+                                                                          let qty = item.allocated_quantity;
+                                                                          if (typeof qty === "string" && qty.includes(" / ")) {
+                                                                            qty = parseFloat(qty.split(" / ")[0]) || 0;
+                                                                          } else {
+                                                                            qty = parseFloat(qty) || 0;
+                                                                          }
+                                                                          groupedData[key] += qty;
+                                                                        }
+                                                                      });
+                                                                      const valuesWithMatra = Object.entries(groupedData).map(([name, matra]) => ({
+                                                                        name,
+                                                                        matra: matra.toFixed(2),
+                                                                      }));
+                                                                      return (
+                                                                        <td
+                                                                          key={colIdx}
+                                                                          style={{
+                                                                            maxWidth: "250px",
+                                                                          }}
+                                                                        >
+                                                                          <div
+                                                                            style={{
+                                                                              maxHeight: "150px",
+                                                                              overflowY: "auto",
+                                                                            }}
+                                                                          >
+                                                                            {valuesWithMatra.map((item, valIdx) => (
+                                                                              <div
+                                                                                key={valIdx}
+                                                                                style={{
+                                                                                  fontSize: "11px",
+                                                                                  display: "flex",
+                                                                                  justifyContent: "space-between",
+                                                                                  borderBottom: "1px dotted #ccc",
+                                                                                  padding: "2px 0",
+                                                                                }}
+                                                                              >
+                                                                                <span style={{ fontWeight: "500" }}>
+                                                                                  {item.name}
+                                                                                  {(() => {
+                                                                                    const match = currentFilteredData.find((it) => it.investment_name === item.name);
+                                                                                    const u = match ? (match["unit"] || match["investment_unit"] || getUnitFromItem(match)) : null;
+                                                                                    return u && !String(item.name).includes(`(${u})`) ? (
+                                                                                      <span style={{ marginLeft: "6px", color: "#666" }}>({u})</span>
+                                                                                    ) : null;
+                                                                                  })()}
+                                                                                </span>
+                                                                                <span style={{ color: "#007bff", marginLeft: "8px" }}>({item.matra})</span>
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        </td>
+                                                                      );
+                                                                    }
+
+                                                                    // Get unique values for this column (default behavior)
                                                                     const uniqueValues =
                                                                       getUniqueValuesForColumn(
                                                                         currentFilteredData,
@@ -6607,34 +9144,34 @@ const MainDashboard = () => {
                                                                 }
                                                               )}
                                                             {visibleColumns.includes(
-                                                              "कुल आवंटित मात्रा"
+                                                              "आवंटित मात्रा"
                                                             ) && (
                                                               <td>
                                                                 {
                                                                   row[
-                                                                    "कुल आवंटित मात्रा"
+                                                                    "आवंटित मात्रा"
                                                                   ]
                                                                 }
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "कुल किसान की हिस्सेदारी"
+                                                              "कृषक धनराशि"
                                                             ) && (
                                                               <td>
                                                                 {
                                                                   row[
-                                                                    "कुल किसान की हिस्सेदारी"
+                                                                    "कृषक धनराशि"
                                                                   ]
                                                                 }
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "कुल सब्सिडी"
+                                                              "सब्सिडी धनराशि"
                                                             ) && (
                                                               <td>
                                                                 {
                                                                   row[
-                                                                    "कुल सब्सिडी"
+                                                                    "सब्सिडी धनराशि"
                                                                   ]
                                                                 }
                                                               </td>
@@ -6660,9 +9197,9 @@ const MainDashboard = () => {
                                             {(() => {
                                               const isTableRotated =
                                                 isRotated[index] || false;
-                                              const showDar =
-                                                table.isAllocationTable &&
-                                                allocationTableToggles[index];
+                                              const showDar = table.isAllocationTable && allocationTableToggles[index]?.dar;
+                                              const showMatra = table.isAllocationTable && allocationTableToggles[index]?.matra;
+                                              const showIkai = table.isAllocationTable && allocationTableToggles[index]?.ikai;
                                               return (
                                                 !isTableRotated && (
                                                   <tfoot>
@@ -6686,99 +9223,93 @@ const MainDashboard = () => {
                                                                 table.columns[0]
                                                               ] !== "कुल"
                                                           );
+                                                        const detectedUnitRow = filteredData.find(r => r.unit || r.investment_unit || r[`${table.columns[0]}_unit`]);
+                                                        const detectedUnit = detectedUnitRow ? (detectedUnitRow.unit || detectedUnitRow.investment_unit || getUnitFromItem(detectedUnitRow)) : "";
                                                         return table.isAllocationTable ? (
                                                           <>
                                                             {visibleColumns.includes(
                                                               table.columns[0]
-                                                            ) && <td>कुल:</td>}
-                                                            {visibleColumns
-                                                              .filter(
-                                                                (col) =>
-                                                                  col !==
-                                                                    table
-                                                                      .columns[0] &&
-                                                                  col !== "कुल"
-                                                              )
-                                                              .map(
-                                                                (col, idx) => (
-                                                                  <td key={idx}>
-                                                                    {showDar
-                                                                      ? (() => {
-                                                                          // Get the total from the total row for dar view
-                                                                          const totalRow = table.data.find(
-                                                                            (row) => row[table.columns[0]] === "कुल"
-                                                                          );
-                                                                          return totalRow 
-                                                                            ? (totalRow[`${col}_dar`] !== undefined ? totalRow[`${col}_dar`] : totalRow[col] || "0")
-                                                                            : "0";
-                                                                        })()
-                                                                      : (() => {
-                                                                          // Calculate total for matra view
-                                                                          return filteredData
-                                                                            .reduce(
-                                                                              (sum, row) =>
-                                                                                sum +
-                                                                                parseFloat(
-                                                                                  row[col] ||
-                                                                                    0
-                                                                                ),
-                                                                              0
-                                                                            )
-                                                                            .toFixed(2);
-                                                                        })()}
-                                                                  </td>
+                                                            ) && <td>{`कुल${detectedUnit ? ` (${detectedUnit})` : ""}:`}</td>}
+                                                              {visibleColumns
+                                                                .filter(
+                                                                  (col) =>
+                                                                    col !== table.columns[0] &&
+                                                                    !col.startsWith("कुल") &&
+                                                                    col !== "आवंटित मात्रा" &&
+                                                                    col !== "कृषक धनराशि" &&
+                                                                    col !== "सब्सिडी धनराशि"
                                                                 )
-                                                              )}
-                                                            {visibleColumns.includes(
-                                                              "कुल"
-                                                            ) && (
-                                                              <td>
-                                                                {(() => {
-                                                                  // Get the total from the total row for dar view
-                                                                  const totalRow = table.data.find(
-                                                                    (row) => row[table.columns[0]] === "कुल"
-                                                                  );
-                                                                  return showDar
-                                                                    ? (totalRow 
-                                                                      ? (totalRow["कुल_dar"] !== undefined ? totalRow["कुल_dar"] : totalRow["कुल"] || "0")
-                                                                      : "0")
-                                                                    : (() => {
-                                                                        // Calculate total for matra view
-                                                                        return filteredData
-                                                                          .reduce(
-                                                                            (sum, row) =>
-                                                                              sum +
-                                                                              visibleColumns
-                                                                                .filter(
-                                                                                  (col) =>
-                                                                                    col !==
-                                                                                      table
-                                                                                        .columns[0] &&
-                                                                                    col !==
-                                                                                      "कुल"
-                                                                                )
-                                                                                .reduce(
-                                                                                  (s, col) =>
-                                                                                    s +
-                                                                                    parseFloat(
-                                                                                      row[col] ||
-                                                                                        0
-                                                                                    ),
-                                                                                  0
-                                                                                ),
-                                                                            0
-                                                                          )
-                                                                          .toFixed(2);
-                                                                      })();
-                                                                })()}
-                                                              </td>
-                                                            )}
+                                                                .map((col, idx) => (
+                                                                  <td key={idx}>
+                                                                    {(() => {
+                                                                      const matraTotal = filteredData
+                                                                        .reduce(
+                                                                          (sum, row) => sum + parseFloat(row[col] || 0),
+                                                                          0
+                                                                        )
+                                                                        .toFixed(2);
+                                                                      const darTotal = filteredData
+                                                                        .reduce(
+                                                                          (sum, row) => sum + parseFloat(row[`${col}_dar`] || 0),
+                                                                          0
+                                                                        )
+                                                                        .toFixed(2);
+                                                                      const ikaiTotal = filteredData
+                                                                        .reduce(
+                                                                          (sum, row) => sum + parseFloat(row[`${col}_ikai`] || row[`${col}_unit`] || 0),
+                                                                          0
+                                                                        )
+                                                                        .toFixed(2);
+                                                                      return formatAllocationValue(matraTotal, ikaiTotal, darTotal, showMatra, showIkai, showDar);
+                                                                    })()}
+                                                                  </td>
+                                                                ))}
+
+                                                              {(() => {
+                                                                // Compute grand totals from visible dynamic columns
+                                                                const visibleDynamic = (tableColumnFilters.additional[index] && tableColumnFilters.additional[index].length > 0)
+                                                                  ? tableColumnFilters.additional[index].filter((c) => c !== table.columns[0] && !c.startsWith("कुल") && c !== "आवंटित मात्रा" && c !== "कृषक धनराशि" && c !== "सब्सिडी धनराशि")
+                                                                  : table.columns.filter((c) => c !== table.columns[0] && !c.startsWith("कुल") && c !== "आवंटित मात्रा" && c !== "कृषक धनराशि" && c !== "सब्सिडी धनराशि");
+
+                                                                return (
+                                                                  <>
+                                                                    {visibleColumns.includes("आवंटित मात्रा") && (
+                                                                      <td>
+                                                                        {(() => {
+                                                                          const matraSum = filteredData.reduce((s, r) => s + visibleDynamic.reduce((sr, col) => sr + parseFloat(r[col] || 0), 0), 0).toFixed(2);
+                                                                          const darSum = filteredData.reduce((s, r) => s + visibleDynamic.reduce((sr, col) => sr + parseFloat(r[`${col}_dar`] || 0), 0), 0).toFixed(2);
+                                                                          const ikaiSum = filteredData.reduce((s, r) => s + visibleDynamic.reduce((sr, col) => sr + parseFloat(r[`${col}_ikai`] || r[`${col}_unit`] || 0), 0), 0).toFixed(2);
+                                                                          return formatAllocationValue(matraSum, ikaiSum, darSum, showMatra, showIkai, showDar);
+                                                                        })()}
+                                                                      </td>
+                                                                    )}
+
+                                                                    {visibleColumns.includes("कृषक धनराशि") && (
+                                                                      <td>
+                                                                        {filteredData.reduce((s, r) => s + visibleDynamic.reduce((sr, col) => sr + parseFloat(r[`${col}_farmer`] || 0), 0), 0).toFixed(2)}
+                                                                      </td>
+                                                                    )}
+
+                                                                    {visibleColumns.includes("सब्सिडी धनराशि") && (
+                                                                      <td>
+                                                                        {filteredData.reduce((s, r) => s + visibleDynamic.reduce((sr, col) => sr + parseFloat(r[`${col}_subsidy`] || 0), 0), 0).toFixed(2)}
+                                                                      </td>
+                                                                    )}
+
+                                                                    {visibleColumns.includes("कुल राशि") && (
+                                                                      <td>
+                                                                        {filteredData.reduce((s, r) => s + visibleDynamic.reduce((sr, col) => sr + parseFloat(r[`${col}_dar`] || 0), 0), 0).toFixed(2)}
+                                                                      </td>
+                                                                    )}
+                                                                  </>
+                                                                );
+                                                              })()}
                                                           </>
                                                         ) : (
                                                           <>
                                                             {visibleColumns.includes(
                                                               table.columns[0]
-                                                            ) && <td>कुल:</td>}
+                                                            ) && <td>{`कुल${detectedUnit ? ` (${detectedUnit})` : ""}:`}</td>}
                                                             {visibleColumns.includes(
                                                               "कुल रिकॉर्ड"
                                                             ) && (
@@ -6802,11 +9333,11 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "कुल रिकॉर्ड" &&
                                                                   col !==
-                                                                    "कुल आवंटित मात्रा" &&
+                                                                    "आवंटित मात्रा" &&
                                                                   col !==
-                                                                    "कुल किसान की हिस्सेदारी" &&
+                                                                    "कृषक धनराशि" &&
                                                                   col !==
-                                                                    "कुल सब्सिडी" &&
+                                                                    "सब्सिडी धनराशि" &&
                                                                   col !==
                                                                     "कुल राशि"
                                                               )
@@ -6854,6 +9385,166 @@ const MainDashboard = () => {
                                                                           return true;
                                                                         }
                                                                       );
+
+                                                                    // Special handling for उप-निवेश column - group by निवेश
+                                                                    if (columnKey === "sub_investment_name") {
+                                                                      // Group by investment_name first, then by sub_investment_name
+                                                                      const groupedData = {};
+                                                                      currentFilteredData.forEach((item) => {
+                                                                        const investmentName = item.investment_name;
+                                                                        const subInvestmentName = item.sub_investment_name;
+                                                                        
+                                                                        if (investmentName && subInvestmentName) {
+                                                                          if (!groupedData[investmentName]) {
+                                                                            groupedData[investmentName] = { subs: {}, unit: "" };
+                                                                          }
+                                                                          if (!groupedData[investmentName].subs[subInvestmentName]) {
+                                                                            groupedData[investmentName].subs[subInvestmentName] = 0;
+                                                                          }
+                                                                          let qty = item.allocated_quantity;
+                                                                          if (typeof qty === "string" && qty.includes(" / ")) {
+                                                                            qty = parseFloat(qty.split(" / ")[0]) || 0;
+                                                                          } else {
+                                                                            qty = parseFloat(qty) || 0;
+                                                                          }
+                                                                          groupedData[investmentName].subs[subInvestmentName] += qty;
+                                                                          // Collect unit at investment level
+                                                                          if (!groupedData[investmentName].unit) {
+                                                                            const u = getUnitFromItem(item);
+                                                                            if (u) groupedData[investmentName].unit = u;
+                                                                          }
+                                                                        }
+                                                                      });
+
+                                                                      // Convert to hierarchical structure
+                                                                      const hierarchicalData = Object.entries(groupedData).map(([investmentName, data]) => ({
+                                                                        investmentName,
+                                                                        unit: data.unit,
+                                                                        subInvestments: Object.entries(data.subs).map(([name, matra]) => ({
+                                                                          name,
+                                                                          matra: matra.toFixed(2),
+                                                                        })),
+                                                                      }));
+
+                                                                      return (
+                                                                        <td
+                                                                          key={idx}
+                                                                          style={{
+                                                                            maxWidth: "300px",
+                                                                          }}
+                                                                        >
+                                                                          <div
+                                                                            style={{
+                                                                              maxHeight: "200px",
+                                                                              overflowY: "auto",
+                                                                            }}
+                                                                          >
+                                                                            {hierarchicalData.map((group, groupIdx) => (
+                                                                              <div key={groupIdx} style={{ marginBottom: "8px" }}>
+                                                                                <div
+                                                                                  style={{
+                                                                                    fontSize: "11px",
+                                                                                    fontWeight: "bold",
+                                                                                    backgroundColor: "#e9ecef",
+                                                                                    padding: "3px 5px",
+                                                                                    borderRadius: "3px",
+                                                                                    color: "#495057",
+                                                                                  }}
+                                                                                >
+                                                                                  {group.investmentName}
+                                                                                  {group.unit && !String(group.investmentName).includes(`(${group.unit})`) && (
+                                                                                    <span style={{ marginLeft: "5px", color: "#666" }}>({group.unit})</span>
+                                                                                  )}
+                                                                                </div>
+                                                                                {group.subInvestments.map((sub, subIdx) => (
+                                                                                  <div
+                                                                                    key={subIdx}
+                                                                                    style={{
+                                                                                      fontSize: "10px",
+                                                                                      display: "flex",
+                                                                                      justifyContent: "space-between",
+                                                                                      borderBottom: "1px dotted #ccc",
+                                                                                      padding: "2px 5px 2px 15px",
+                                                                                    }}
+                                                                                  >
+                                                                                    <span>{sub.name}</span>
+                                                                                    <span style={{ color: "#007bff", marginLeft: "8px" }}>
+                                                                                      ({sub.matra})
+                                                                                    </span>
+                                                                                  </div>
+                                                                                ))}
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        </td>
+                                                                      );
+                                                                    }
+
+                                                                    // Special handling for निवेश column - show with matra
+                                                                    if (columnKey === "investment_name") {
+                                                                      // Group by investment_name and sum matra; collect unit
+                                                                      const groupedInvestments = {};
+                                                                      currentFilteredData.forEach((item) => {
+                                                                        const investmentName = item.investment_name;
+                                                                        if (investmentName) {
+                                                                          if (!groupedInvestments[investmentName]) {
+                                                                            groupedInvestments[investmentName] = { matra: 0, unit: "" };
+                                                                          }
+                                                                          let qty = item.allocated_quantity;
+                                                                          if (typeof qty === "string" && qty.includes(" / ")) {
+                                                                            qty = parseFloat(qty.split(" / ")[0]) || 0;
+                                                                          } else {
+                                                                            qty = parseFloat(qty) || 0;
+                                                                          }
+                                                                          groupedInvestments[investmentName].matra += qty;
+                                                                          if (!groupedInvestments[investmentName].unit) {
+                                                                            const u = getUnitFromItem(item);
+                                                                            if (u) groupedInvestments[investmentName].unit = u;
+                                                                          }
+                                                                        }
+                                                                      });
+                                                                      const investmentValues = Object.entries(groupedInvestments).map(([name, info]) => ({
+                                                                        name,
+                                                                        matra: info.matra.toFixed(2),
+                                                                        unit: info.unit || "",
+                                                                      }));
+                                                                      return (
+                                                                        <td
+                                                                          key={idx}
+                                                                          style={{
+                                                                            maxWidth: "250px",
+                                                                          }}
+                                                                        >
+                                                                          <div
+                                                                            style={{
+                                                                              maxHeight: "150px",
+                                                                              overflowY: "auto",
+                                                                            }}
+                                                                          >
+                                                                            {investmentValues.map((item, valIdx) => (
+                                                                              <div
+                                                                                key={valIdx}
+                                                                                style={{
+                                                                                  fontSize: "11px",
+                                                                                  display: "flex",
+                                                                                  justifyContent: "space-between",
+                                                                                  borderBottom: "1px dotted #ccc",
+                                                                                  padding: "2px 0",
+                                                                                }}
+                                                                              >
+                                                                                <span style={{ fontWeight: "500" }}>
+                                                                                  {item.name}
+                                                                                  {item.unit && !String(item.name).includes(`(${item.unit})`) && (
+                                                                                    <span style={{ marginLeft: "6px", color: "#666" }}>({item.unit})</span>
+                                                                                  )}
+                                                                                </span>
+                                                                                <span style={{ color: "#007bff", marginLeft: "8px" }}>({item.matra})</span>
+                                                                              </div>
+                                                                            ))}
+                                                                          </div>
+                                                                        </td>
+                                                                      );
+                                                                    }
 
                                                                     // Get unique values for this column
                                                                     const uniqueValues =
@@ -6958,7 +9649,7 @@ const MainDashboard = () => {
                                                                 }
                                                               )}
                                                             {visibleColumns.includes(
-                                                              "कुल आवंटित मात्रा"
+                                                              "आवंटित मात्रा"
                                                             ) && (
                                                               <td>
                                                                 {filteredData
@@ -6970,7 +9661,7 @@ const MainDashboard = () => {
                                                                       sum +
                                                                       parseFloat(
                                                                         row[
-                                                                          "कुल आवंटित मात्रा"
+                                                                          "आवंटित मात्रा"
                                                                         ] || 0
                                                                       ),
                                                                     0
@@ -6979,7 +9670,7 @@ const MainDashboard = () => {
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "कुल किसान की हिस्सेदारी"
+                                                              "कृषक धनराशि"
                                                             ) && (
                                                               <td>
                                                                 {filteredData
@@ -6991,7 +9682,7 @@ const MainDashboard = () => {
                                                                       sum +
                                                                       parseFloat(
                                                                         row[
-                                                                          "कुल किसान की हिस्सेदारी"
+                                                                          "कृषक धनराशि"
                                                                         ] || 0
                                                                       ),
                                                                     0
@@ -7000,7 +9691,7 @@ const MainDashboard = () => {
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "कुल सब्सिडी"
+                                                              "सब्सिडी धनराशि"
                                                             ) && (
                                                               <td>
                                                                 {filteredData
@@ -7012,7 +9703,7 @@ const MainDashboard = () => {
                                                                       sum +
                                                                       parseFloat(
                                                                         row[
-                                                                          "कुल सब्सिडी"
+                                                                          "सब्सिडी धनराशि"
                                                                         ] || 0
                                                                       ),
                                                                     0
@@ -7071,12 +9762,16 @@ const MainDashboard = () => {
                                         >
                                           Close
                                         </Button>
-                                        <Table
-                                          striped
-                                          bordered
-                                          hover
-                                          className="table-thead-style mt-2"
+                                        <div
+                                          className="table-responsive"
+                                          style={{ overflowX: "auto", maxHeight: "60vh", overflowY: "auto" }}
                                         >
+                                          <Table
+                                            striped
+                                            bordered
+                                            hover
+                                            className="table-thead-style mt-2"
+                                          >
                                           <thead className="table-thead">
                                             <tr>
                                               <th>
@@ -7111,7 +9806,8 @@ const MainDashboard = () => {
                                               );
                                             })}
                                           </tbody>
-                                        </Table>
+                                          </Table>
+                                        </div>
                                       </div>
                                     )}
                                   </div>

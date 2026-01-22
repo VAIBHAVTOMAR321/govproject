@@ -69,8 +69,8 @@ const translations = {
   centerName: "केंद्र का नाम",
   sourceOfReceipt: "सप्लायर",
   sno: "क्र.सं.",
-  reportId: "रिपोर्ट आईडी",
-  billId: "बिल आईडी", // Updated to show in Hindi
+  reportId: "बिल संख्या",
+  billId: "बिल संख्या", // Updated to show in Hindi
   reportDate: "रिपोर्ट दिनांक",
   status: "स्थिति",
   download: "डाउनलोड",
@@ -146,7 +146,6 @@ const translations = {
 const availableColumns = [
   { key: "reportId", label: translations.reportId },
   { key: "centerName", label: translations.centerName },
-  { key: "sourceOfReceipt", label: translations.sourceOfReceipt },
   { key: "reportDate", label: translations.reportDate },
   { key: "status", label: translations.status },
   { key: "totalItems", label: translations.totalItems },
@@ -284,10 +283,6 @@ const reportsColumnMapping = {
     header: translations.centerName,
     accessor: (item) => item.center_name,
   },
-  sourceOfReceipt: {
-    header: translations.sourceOfReceipt,
-    accessor: (item) => item.source_of_receipt,
-  },
   reportDate: {
     header: translations.reportDate,
     accessor: (item) => formatDate(item.billing_date),
@@ -341,7 +336,6 @@ const AllBills = () => {
   // State for filtering
   const [filters, setFilters] = useState({
     center_name: [],
-    source_of_receipt: [],
     bill_id: [],
     status: [],
     dateFrom: "",
@@ -407,7 +401,6 @@ const AllBills = () => {
     if (!reportsData || reportsData.length === 0) {
       return {
         center_name: [],
-        source_of_receipt: [],
         bill_id: [],
         status: [],
       };
@@ -416,9 +409,6 @@ const AllBills = () => {
     return {
       center_name: [
         ...new Set(reportsData.map((item) => item.center_name)),
-      ].map((name) => ({ value: name, label: name })),
-      source_of_receipt: [
-        ...new Set(reportsData.map((item) => item.source_of_receipt)),
       ].map((name) => ({ value: name, label: name })),
       bill_id: [...new Set(reportsData.map((item) => item.bill_report_id))].map(
         (id) => ({ value: id, label: id })
@@ -443,11 +433,7 @@ const AllBills = () => {
       const matchesCenter =
         filters.center_name.length === 0 ||
         filters.center_name.some((c) => c.value === item.center_name);
-      const matchesSource =
-        filters.source_of_receipt.length === 0 ||
-        filters.source_of_receipt.some(
-          (s) => s.value === item.source_of_receipt
-        );
+      // source_of_receipt filter removed
       const matchesBillId =
         filters.bill_id.length === 0 ||
         filters.bill_id.some((b) => b.value === item.bill_report_id);
@@ -461,7 +447,6 @@ const AllBills = () => {
         !filters.dateTo || itemDate <= new Date(filters.dateTo + "T23:59:59");
       return (
         matchesCenter &&
-        matchesSource &&
         matchesBillId &&
         matchesStatus &&
         matchesDateFrom &&
@@ -701,7 +686,6 @@ const AllBills = () => {
     componentData,
     filename,
     centerName,
-    sourceOfReceipt,
     billReportId
   ) => {
     try {
@@ -776,7 +760,7 @@ const AllBills = () => {
             </style>
           </head>
           <body>
-            <h2>${centerName} - ${sourceOfReceipt}</h2>
+            <h2>${centerName}</h2>
             <table>
               <tr>${headers}</tr>
               ${rows}
@@ -906,7 +890,6 @@ const AllBills = () => {
   const clearFilters = () => {
     setFilters({
       center_name: [],
-      source_of_receipt: [],
       bill_id: [],
       status: [],
       dateFrom: "",
@@ -1099,7 +1082,6 @@ const AllBills = () => {
                         {translations.filters}
                       </h5>
                       {(filters.center_name.length > 0 ||
-                        filters.source_of_receipt.length > 0 ||
                         filters.bill_id.length > 0 ||
                         filters.status.length > 0 ||
                         filters.dateFrom ||
@@ -1139,27 +1121,7 @@ const AllBills = () => {
                       </FormGroup>
                     </Col>
 
-                    <Col xs={12} sm={6} md={3} className="mb-2">
-                      <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
-                          {translations.sourceOfReceipt}
-                        </FormLabel>
-                        <Select
-                          value={filters.source_of_receipt}
-                          onChange={(value) =>
-                            handleFilterChange("source_of_receipt", value)
-                          }
-                          options={filterOptions.source_of_receipt}
-                          isMulti
-                          isClearable
-                          placeholder={translations.allSources}
-                          styles={customSelectStyles}
-                          className="compact-input small-fonts filter-dropdown"
-                          menuPortalTarget={document.body}
-                          menuPosition="fixed"
-                        />
-                      </FormGroup>
-                    </Col>
+                    
 
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
@@ -1174,7 +1136,7 @@ const AllBills = () => {
                           options={filterOptions.bill_id}
                           isMulti
                           isClearable
-                          placeholder="बिल आईडी"
+                          placeholder="बिल संख्या"
                           styles={customSelectStyles}
                           className="compact-input small-fonts filter-dropdown"
                           menuPortalTarget={document.body}
@@ -1350,8 +1312,6 @@ const AllBills = () => {
                                             item.bill_report_id
                                           ) : col === "centerName" ? (
                                             item.center_name
-                                          ) : col === "sourceOfReceipt" ? (
-                                            item.source_of_receipt
                                           ) : col === "reportDate" ? (
                                             formatDate(item.billing_date)
                                           ) : col === "status" ? (
@@ -1508,7 +1468,6 @@ const AllBills = () => {
                                                       item.component_data,
                                                       `Component_${item.bill_report_id}`,
                                                       item.center_name,
-                                                      item.source_of_receipt,
                                                       item.bill_report_id
                                                     )
                                                   }

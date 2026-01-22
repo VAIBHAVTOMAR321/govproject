@@ -69,6 +69,7 @@ const billingTableColumns = [
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
   { key: "vikas_khand_name", label: "विकास खंड का नाम" },
   { key: "scheme_name", label: "योजना का नाम" },
+  { key: "ikai", label: "इकाई  " },
   { key: "source_of_receipt", label: "सप्लायर" },
   { key: "investment_name", label: "निवेश का नाम" },
   { key: "sub_investment_name", label: "उप-निवेश का नाम" },
@@ -78,6 +79,7 @@ const billingTableColumns = [
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
   { key: "total_amount", label: "कुल राशि" },
+  { key: "bill_date", label: "लाभार्थी पंजीकरण तिथि" },
 ];
 
 // Column mapping for data access
@@ -96,6 +98,7 @@ const billingTableColumnMapping = {
     accessor: (item) => item.vikas_khand_name,
   },
   scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
+  ikai: { header: "इकाई  ", accessor: (item) => item.ikai || "" },
   source_of_receipt: {
     header: "सप्लायर",
     accessor: (item) => item.source_of_receipt,
@@ -126,11 +129,11 @@ const billingTableColumnMapping = {
     header: "कुल राशि",
     accessor: (item) => item.total_amount || 0,
   },
-  created_at: {
-    header: "बनाने की तारीख",
+  bill_date: {
+    header: "लाभार्थी पंजीकरण तिथि",
     accessor: (item) => {
-      if (!item.created_at) return "";
-      const date = new Date(item.created_at);
+      if (!item.bill_date) return "";
+      const date = new Date(item.bill_date);
       return date.toLocaleDateString("hi-IN");
     },
   },
@@ -258,6 +261,7 @@ const Registration = () => {
     amount_of_farmer_share: "",
     amount_of_subsidy: "",
     total_amount: "",
+    bill_date: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -727,18 +731,18 @@ const Registration = () => {
           }
         }
         
-        // Check date range filters
+        // Check date range filters (use bill_date)
         if (filters.start_date || filters.end_date) {
-          if (!item.created_at) return false;
-          
-          const itemDate = new Date(item.created_at);
+          if (!item.bill_date) return false;
+
+          const itemDate = new Date(item.bill_date);
           const startDate = filters.start_date ? new Date(filters.start_date) : null;
           const endDate = filters.end_date ? new Date(filters.end_date) : null;
-          
+
           if (endDate) {
             endDate.setHours(23, 59, 59, 999);
           }
-          
+
           if (startDate && itemDate < startDate) return false;
           if (endDate && itemDate > endDate) return false;
         }
@@ -858,6 +862,7 @@ const Registration = () => {
           "किसान का हिस्सा": 10000,
           "सब्सिडी राशि": 20000,
           "कुल राशि": 30000,
+          "लाभार्थी पंजीकरण तिथि": new Date().toISOString().slice(0,10),
         },
       ];
 
@@ -878,6 +883,7 @@ const Registration = () => {
         { wch: 15 }, // किसान का हिस्सा
         { wch: 15 }, // सब्सिडी राशि
         { wch: 15 }, // कुल राशि
+        { wch: 12 }, // लाभार्थी पंजीकरण तिथि (last)
       ];
       ws["!cols"] = colWidths;
 
@@ -1048,6 +1054,7 @@ const Registration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
+      bill_date: item.bill_date || "",
       amount_of_farmer_share: item.amount_of_farmer_share || "",
       amount_of_subsidy: item.amount_of_subsidy || "",
       total_amount: item.total_amount || "",
@@ -1074,6 +1081,7 @@ const Registration = () => {
         scheme_name: editingValues.scheme_name,
         vikas_khand_name: editingValues.vikas_khand_name,
         vidhan_sabha_name: editingValues.vidhan_sabha_name,
+        bill_date: editingValues.bill_date || "",
         amount_of_farmer_share: parseFloat(editingValues.amount_of_farmer_share) || 0,
         amount_of_subsidy: parseFloat(editingValues.amount_of_subsidy) || 0,
         total_amount: parseFloat(editingValues.total_amount) || 0,
@@ -1207,6 +1215,28 @@ const Registration = () => {
             }
           });
 
+          // Determine bill_date column index. Support named headers, otherwise assume last column.
+          const billDateHeaderKeys = [
+            "लाभार्थी पंजीकरण तिथि",
+            "beneficiary registration date",
+            "bill_date",
+            "registration_tithi",
+            "post_date",
+            "bill date",
+          ];
+
+          let billDateIndex = null;
+          for (const key of billDateHeaderKeys) {
+            const idx = headerMapping[key.trim().toLowerCase()];
+            if (typeof idx !== "undefined") {
+              billDateIndex = idx;
+              break;
+            }
+          }
+          if (billDateIndex === null) {
+            billDateIndex = headers.length - 1; // default to last column
+          }
+
           // Updated to match the new column order
           const payloads = dataRows.map((row) => ({
             center_name:
@@ -1262,6 +1292,7 @@ const Registration = () => {
                 row[headerMapping["total_amount"]] ||
                 0
             ),
+            bill_date: row[billDateIndex] || "",
           }));
 
           let successfulUploads = 0;
@@ -1431,6 +1462,7 @@ const Registration = () => {
         amount_of_farmer_share: parseFloat(formData.amount_of_farmer_share),
         amount_of_subsidy: parseFloat(formData.amount_of_subsidy),
         total_amount: parseFloat(formData.total_amount),
+        bill_date: formData.bill_date || "",
       };
 
       const response = await axios.post(BILLING_API_URL, payload);
@@ -1455,6 +1487,7 @@ const Registration = () => {
         amount_of_farmer_share: "",
         amount_of_subsidy: "",
         total_amount: "",
+        bill_date: "",
       });
 
       setVikasKhandData(null);
@@ -2062,6 +2095,20 @@ const Registration = () => {
                         />
                       </Form.Group>
                     </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group className="mb-2" controlId="bill_date">
+                        <Form.Label className="small-fonts fw-bold">
+                          {billingTableColumnMapping.bill_date.header}
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="bill_date"
+                          value={formData.bill_date}
+                          onChange={handleChange}
+                          className="compact-input"
+                        />
+                      </Form.Group>
+                    </Col>
                     <Col
                       xs={12}
                       sm={6}
@@ -2451,6 +2498,9 @@ const Registration = () => {
                           {selectedColumns.includes("scheme_name") && (
                             <th>{translations.schemeName}</th>
                           )}
+                          {selectedColumns.includes("ikai") && (
+                            <th>इकाई  </th>
+                          )}
                           {selectedColumns.includes("source_of_receipt") && (
                             <th>{translations.sourceOfReceipt}</th>
                           )}
@@ -2478,8 +2528,8 @@ const Registration = () => {
                           {selectedColumns.includes("total_amount") && (
                             <th>{translations.totalAmount}</th>
                           )}
-                          {selectedColumns.includes("created_at") && (
-                            <th>{billingTableColumnMapping.created_at.header}</th>
+                          {selectedColumns.includes("bill_date") && (
+                            <th>{billingTableColumnMapping.bill_date.header}</th>
                           )}
                           <th>कार्रवाई</th>
                         </tr>
@@ -2609,6 +2659,25 @@ const Registration = () => {
                                     </Form.Select>
                                   ) : (
                                     item.scheme_name
+                                  )}
+                                </td>
+                              )}
+                              {selectedColumns.includes("ikai") && (
+                                <td>
+                                  {editingRowId === item.id ? (
+                                    <Form.Control
+                                      type="text"
+                                      value={editingValues.ikai || ""}
+                                      onChange={(e) =>
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          ikai: e.target.value,
+                                        }))
+                                      }
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.ikai || item.unit || ""
                                   )}
                                 </td>
                               )}
@@ -2836,10 +2905,24 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("created_at") && (
+                              {selectedColumns.includes("bill_date") && (
                                 <td>
-                                  {billingTableColumnMapping.created_at.accessor(
-                                    item
+                                  {editingRowId === item.id ? (
+                                    <Form.Control
+                                      type="date"
+                                      value={editingValues.bill_date || ""}
+                                      onChange={(e) =>
+                                        setEditingValues((prev) => ({
+                                          ...prev,
+                                          bill_date: e.target.value,
+                                        }))
+                                      }
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    billingTableColumnMapping.bill_date.accessor(
+                                      item
+                                    )
                                   )}
                                 </td>
                               )}
@@ -3027,7 +3110,7 @@ const Registration = () => {
                               </strong>
                             </td>
                           )}
-                          {selectedColumns.includes("created_at") && <td></td>}
+                          {selectedColumns.includes("bill_date") && <td></td>}
                           <td></td>
                         </tr>
                       </tfoot>

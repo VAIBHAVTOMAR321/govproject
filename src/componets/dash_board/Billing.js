@@ -119,7 +119,7 @@ const translations = {
   dataError: "डेटा प्रोसेस करने में त्रुटि।",
   retry: "पुनः प्रयास करें",
   filterSeparator: " > ",
-  billId: "बिल आईडी",
+  billId: "बिल संख्या",
   updatedQuantity: "अपडेट की गई मात्रा",
   cutQuantity: "कटी हुई मात्रा",
   quantityLeft: "शेष मात्रा",
@@ -295,6 +295,7 @@ const Billing = () => {
             ...item,
             cut_quantity: "",
             billing_date: "", // Always start with empty billing date
+            bill_report_id: "",
           };
         });
         setBillingData(initializedData);
@@ -572,6 +573,17 @@ const Billing = () => {
     setModifiedItems((prev) => ({ ...prev, [id]: true }));
   };
 
+  // Handle bill_report_id change
+  const handleBillReportIdChange = (id, value) => {
+    const trimmed = value ? value.toString().trim() : "";
+    setBillingData((prevData) =>
+      prevData.map((item) => (item.id === id ? { ...item, bill_report_id: trimmed } : item))
+    );
+
+    // Track that this item has been modified
+    setModifiedItems((prev) => ({ ...prev, [id]: true }));
+  };
+
   // Calculate quantity left
   const calculateQuantityLeft = (allocated, updated, cut) => {
     const allocatedNum = parseFloat(allocated) || 0;
@@ -643,34 +655,45 @@ const Billing = () => {
         return;
       }
 
-      // Group items by user_id and billing_date
-      const itemsByUserAndDate = {};
+      // Group items by center_id and billing_date (send center_id instead of user_id)
+      const itemsByCenterAndDate = {};
       updatedItems.forEach((item) => {
-        const source = item.source_of_receipt;
-        const userId = sourceUserMap[source];
+        const centerId = item.center_id;
         const billingDate = item.billing_date;
 
-        if (!userId) {
-          console.warn(`No user_id found for source: ${source}`);
+        if (!centerId) {
+          console.warn(`No center_id found for item id: ${item.id}`);
           return;
         }
 
-        // Create composite key for user_id + billing_date
-        const compositeKey = `${userId}_${billingDate}`;
+        // Create composite key for center_id + billing_date
+        const compositeKey = `${centerId}_${billingDate}`;
 
-        if (!itemsByUserAndDate[compositeKey]) {
-          itemsByUserAndDate[compositeKey] = {
-            user_id: userId,
+        if (!itemsByCenterAndDate[compositeKey]) {
+          itemsByCenterAndDate[compositeKey] = {
+            center_id: centerId,
             billing_date: billingDate,
+            bill_report_id: item.bill_report_id || "",
             items: [],
           };
         }
-        itemsByUserAndDate[compositeKey].items.push(item);
+        itemsByCenterAndDate[compositeKey].items.push(item);
       });
 
-      // Create separate payloads for each user and billing date combination
-      const payloads = Object.keys(itemsByUserAndDate).map((compositeKey) => {
-        const group = itemsByUserAndDate[compositeKey];
+      // Ensure bill_report_id is provided for all updated items
+      const itemsWithoutReportId = updatedItems.filter(
+        (item) => !item.bill_report_id || item.bill_report_id.toString().trim() === ""
+      );
+      if (itemsWithoutReportId.length > 0) {
+        setSubmitError(
+          `Please enter Bill Report ID for all modified items. Missing for ${itemsWithoutReportId.length} item(s).`
+        );
+        return;
+      }
+
+      // Create separate payloads for each center and billing date combination
+      const payloads = Object.keys(itemsByCenterAndDate).map((compositeKey) => {
+        const group = itemsByCenterAndDate[compositeKey];
         const multiple_bills = group.items.map((item) => {
           const existingUpdated = parseFloat(item.updated_quantity) || 0;
           const newCut = parseFloat(item.cut_quantity) || 0;
@@ -679,7 +702,8 @@ const Billing = () => {
         });
 
         return {
-          user_id: group.user_id,
+          bill_report_id: group.bill_report_id || "",
+          center_id: group.center_id,
           billing_date: group.billing_date,
           multiple_bills: multiple_bills,
         };
@@ -1185,6 +1209,7 @@ const Billing = () => {
                                       <th>{translations.cutQuantity}</th>
                                       <th>{translations.rate}</th>
                                       <th>{translations.totalBill}</th>
+                                      <th>{translations.billId}</th>
                                       <th>{translations.billingDate}</th>
                                     </tr>
                                   </thead>
@@ -1297,6 +1322,23 @@ const Billing = () => {
                                               value={totalBill}
                                               disabled
                                               className="bg-light small-fonts"
+                                            />
+                                          </td>
+                                          <td data-label={translations.billId}>
+                                            <Form.Control
+                                              type="text"
+                                              value={item.bill_report_id || ""}
+                                              onChange={(e) =>
+                                                handleBillReportIdChange(
+                                                  item.id,
+                                                  e.target.value
+                                                )
+                                              }
+                                              className={`small-fonts ${
+                                                modifiedItems[item.id]
+                                                  ? "border-warning"
+                                                  : ""
+                                              }`}
                                             />
                                           </td>
                                           <td data-label={translations.billingDate}>

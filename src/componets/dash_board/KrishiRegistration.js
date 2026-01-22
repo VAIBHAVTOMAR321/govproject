@@ -75,6 +75,7 @@ const beneficiariesTableColumns = [
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
   { key: "vikas_khand_name", label: "विकास खंड का नाम" },
   { key: "scheme_name", label: "योजना का नाम" },
+  { key: "unit", label: "इकाई" },
   { key: "supplied_item_name", label: "आपूर्ति की गई वस्तु का नाम" },
   { key: "farmer_name", label: "किसान का नाम" },
   { key: "father_name", label: "पिता का नाम" },
@@ -84,10 +85,10 @@ const beneficiariesTableColumns = [
   { key: "aadhaar_number", label: "आधार नंबर" },
   { key: "bank_account_number", label: "बैंक खाता नंबर" },
   { key: "ifsc_code", label: "IFSC कोड" },
-  { key: "unit", label: "इकाई" },
   { key: "quantity", label: "मात्रा" },
   { key: "rate", label: "दर" },
   { key: "amount", label: "राशि" },
+  { key: "beneficiary_reg_date", label: "पंजीकरण तिथि" },
 ];
 
 // Column mapping for data access - Reordered to match the new sequence
@@ -131,6 +132,10 @@ const beneficiariesTableColumnMapping = {
   quantity: { header: "मात्रा", accessor: (item) => item.quantity },
   rate: { header: "दर", accessor: (item) => item.rate },
   amount: { header: "राशि", accessor: (item) => item.amount },
+  beneficiary_reg_date: {
+    header: "पंजीकरण तिथि",
+    accessor: (item) => item.beneficiary_reg_date || "",
+  },
 };
 
 // Hindi translations for form
@@ -174,6 +179,7 @@ const translations = {
   editBeneficiary: "लाभार्थी संपादित करें",
   saveChanges: "परिवर्तन सहेजें",
   cancel: "रद्द करें",
+  beneficiaryRegDate: "पंजीकरण तिथि",
 };
 
 const KrishiRegistration = () => {
@@ -266,6 +272,7 @@ const KrishiRegistration = () => {
     scheme_name: "",
     vikas_khand_name: "",
     vidhan_sabha_name: "",
+    beneficiary_reg_date: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -813,9 +820,9 @@ const KrishiRegistration = () => {
 
         // Check date range filters
         if (filters.start_date || filters.end_date) {
-          if (!item.created_at) return false; // Skip if no date field
+          if (!item.beneficiary_reg_date) return false; // Skip if no date field
 
-          const itemDate = new Date(item.created_at);
+          const itemDate = new Date(item.beneficiary_reg_date);
           const startDate = filters.start_date
             ? new Date(filters.start_date)
             : null;
@@ -872,16 +879,22 @@ const KrishiRegistration = () => {
   // Download Excel function
   const downloadExcel = (data, filename, columnMapping, selectedColumns) => {
     try {
+      const today = new Date().toISOString().slice(0, 10);
       // Prepare data for Excel export based on selected columns
       const excelData = data.map((item, index) => {
         const row = {};
         // Add serial number column
         row["क्र.सं."] = index + 1;
         selectedColumns.forEach((col) => {
-          row[columnMapping[col].header] = columnMapping[col].accessor(
-            item,
-            index
-          );
+          if (col === "beneficiary_reg_date") {
+            row[columnMapping[col].header] =
+              columnMapping[col].accessor(item, index) || today;
+          } else {
+            row[columnMapping[col].header] = columnMapping[col].accessor(
+              item,
+              index
+            );
+          }
         });
         return row;
       });
@@ -922,6 +935,7 @@ const KrishiRegistration = () => {
         { wch: 20 }, // विधानसभा का नाम
         { wch: 20 }, // विकास खंड का नाम
         { wch: 20 }, // योजना का नाम
+        { wch: 10 }, // इकाई
         { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
         { wch: 20 }, // किसान का नाम
         { wch: 20 }, // पिता का नाम
@@ -931,10 +945,10 @@ const KrishiRegistration = () => {
         { wch: 15 }, // आधार नंबर
         { wch: 20 }, // बैंक खाता नंबर
         { wch: 15 }, // IFSC कोड
-        { wch: 10 }, // इकाई
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
+        { wch: 15 }, // पंजीकरण तिथि
       ];
       ws["!cols"] = colWidths;
 
@@ -949,12 +963,14 @@ const KrishiRegistration = () => {
   // Download sample Excel template - Updated to match the new column order
   const downloadSampleTemplate = () => {
     try {
+      const today = new Date().toISOString().slice(0, 10);
       const sampleData = [
         {
           "केंद्र का नाम": "कोटद्वार",
           "विधानसभा का नाम": "कोटद्वार",
           "विकास खंड का नाम": "कोटद्वार",
           "योजना का नाम": "MGNREGA",
+          "इकाई": "नग",
           "आपूर्ति की गई वस्तु का नाम": "बीज",
           "किसान का नाम": "रामेश कुमार",
           "पिता का नाम": "सुरेश कुमार",
@@ -964,10 +980,10 @@ const KrishiRegistration = () => {
           "आधार नंबर": "123456789012",
           "बैंक खाता नंबर": "12345678901234",
           "IFSC कोड": "SBIN0001234",
-          "इकाई": "नग",
           "मात्रा": 50,
           "दर": 25,
           "राशि": 1250,
+          "पंजीकरण तिथि": today,
         },
       ];
 
@@ -980,6 +996,7 @@ const KrishiRegistration = () => {
         { wch: 20 }, // विधानसभा का नाम
         { wch: 20 }, // विकास खंड का नाम
         { wch: 20 }, // योजना का नाम
+        { wch: 10 }, // इकाई
         { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
         { wch: 20 }, // किसान का नाम
         { wch: 20 }, // पिता का नाम
@@ -989,10 +1006,10 @@ const KrishiRegistration = () => {
         { wch: 15 }, // आधार नंबर
         { wch: 20 }, // बैंक खाता नंबर
         { wch: 15 }, // IFSC कोड
-        { wch: 10 }, // इकाई
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
+        { wch: 15 }, // पंजीकरण तिथि
       ];
       ws["!cols"] = colWidths;
 
@@ -1172,6 +1189,7 @@ const KrishiRegistration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
+      beneficiary_reg_date: item.beneficiary_reg_date || "",
     });
 
     // Fetch vikas khand data for this center if available
@@ -1287,6 +1305,7 @@ const handleSave = async (item) => {
       scheme_name: editingValues.scheme_name,
       vikas_khand_name: editingValues.vikas_khand_name,
       vidhan_sabha_name: editingValues.vidhan_sabha_name,
+        beneficiary_reg_date: editingValues.beneficiary_reg_date,
     };
     
     // Make the PUT request to update the beneficiary
@@ -1296,6 +1315,11 @@ const handleSave = async (item) => {
     if (response.status >= 200 && response.status < 300) {
       // Update the item in the local state
       setAllBeneficiaries((prev) =>
+        prev.map((i) =>
+          i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
+        )
+      );
+      setBeneficiaries((prev) =>
         prev.map((i) =>
           i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
         )
@@ -1348,6 +1372,9 @@ const handleDelete = async (item) => {
       if (response.status >= 200 && response.status < 300) {
         // Remove the item from the local state
         setAllBeneficiaries((prev) =>
+          prev.filter((i) => i.beneficiary_id !== item.beneficiary_id)
+        );
+        setBeneficiaries((prev) =>
           prev.filter((i) => i.beneficiary_id !== item.beneficiary_id)
         );
         setApiResponse({ message: "लाभार्थी सफलतापूर्वक हटा दिया गया!" });
@@ -1456,88 +1483,149 @@ const handleDelete = async (item) => {
           const headerMapping = {};
           headers.forEach((header, index) => {
             if (header) {
-              headerMapping[header.trim().toLowerCase()] = index;
+              const key = header.trim();
+              headerMapping[key] = index;
+              headerMapping[key.toLowerCase()] = index;
+              headerMapping[key.replace(/\s+/g, "").toLowerCase()] = index;
             }
           });
 
+          // Helper to get cell value by trying multiple header name variants
+          const getCell = (row, names) => {
+            for (const name of names) {
+              if (!name) continue;
+              const keysToTry = [name, name.toLowerCase(), name.replace(/\s+/g, ""), name.replace(/\s+/g, "").toLowerCase()];
+              for (const k of keysToTry) {
+                if (typeof headerMapping[k] !== "undefined") {
+                  return row[headerMapping[k]];
+                }
+              }
+            }
+            return undefined;
+          };
+
+          const parseExcelDate = (val) => {
+            if (val === null || typeof val === 'undefined' || val === '') return "";
+            if (val instanceof Date) return val.toISOString().slice(0,10);
+            if (typeof val === 'number') {
+              // Excel stores dates as serial numbers (days since 1899-12-30)
+              try {
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                const ms = Math.round(val * 24 * 60 * 60 * 1000);
+                const d = new Date(excelEpoch.getTime() + ms);
+                return d.toISOString().slice(0,10);
+              } catch (e) {
+                return String(val);
+              }
+            }
+            // Try parsing string
+            const dt = new Date(val);
+            if (!isNaN(dt.getTime())) return dt.toISOString().slice(0,10);
+            // Try dd-mm-yyyy or dd/mm/yyyy
+            const parts = String(val).split(/[-\/\.]/).map(p=>p.trim());
+            if (parts.length === 3) {
+              // if first part looks like year
+              if (parts[0].length === 4) {
+                return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+              }
+              // assume dd-mm-yyyy
+              return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+            }
+            return String(val);
+          };
+
           // Parse data using header mapping - Updated to match the new column order
-          const payloads = dataRows.map((row) => ({
-            center_name:
-              row[headerMapping["केंद्र का नाम"]] ||
-              row[headerMapping["center_name"]] ||
-              "",
-            vidhan_sabha_name:
-              row[headerMapping["विधानसभा का नाम"]] ||
-              row[headerMapping["vidhan_sabha_name"]] ||
-              "",
-            vikas_khand_name:
-              row[headerMapping["विकास खंड का नाम"]] ||
-              row[headerMapping["vikas_khand_name"]] ||
-              "",
-            scheme_name:
-              row[headerMapping["योजना का नाम"]] ||
-              row[headerMapping["scheme_name"]] ||
-              "",
-            supplied_item_name:
-              row[headerMapping["आपूर्ति की गई वस्तु का नाम"]] ||
-              row[headerMapping["supplied_item_name"]] ||
-              "",
-            farmer_name:
-              row[headerMapping["किसान का नाम"]] ||
-              row[headerMapping["farmer_name"]] ||
-              "",
-            father_name:
-              row[headerMapping["पिता का नाम"]] ||
-              row[headerMapping["father_name"]] ||
-              "",
-            category:
-              row[headerMapping["श्रेणी"]] ||
-              row[headerMapping["category"]] ||
-              "",
-            address:
-              row[headerMapping["पता"]] || row[headerMapping["address"]] || "",
-            mobile_number:
-              row[headerMapping["मोबाइल नंबर"]] ||
-              row[headerMapping["mobile_number"]] ||
-              "",
-            aadhaar_number:
-              row[headerMapping["आधार नंबर"]] ||
-              row[headerMapping["aadhaar_number"]] ||
-              "",
-            bank_account_number:
-              row[headerMapping["बैंक खाता नंबर"]] ||
-              row[headerMapping["bank_account_number"]] ||
-              "",
-            ifsc_code:
-              row[headerMapping["ifsc कोड"]] ||
-              row[headerMapping["ifsc_code"]] ||
-              "",
-            unit:
-              row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "",
-            quantity: parseInt(
-              row[headerMapping["मात्रा"]] ||
-                row[headerMapping["quantity"]] ||
-                0
-            ),
-            rate: parseFloat(
-              row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0
-            ),
-            amount: parseFloat(
-              row[headerMapping["राशि"]] || row[headerMapping["amount"]] || 0
-            ),
-          }));
+          const payloads = dataRows.map((row) => {
+            const rawBeneficiaryDate = getCell(row, ["पंजीकरण तिथि", "beneficiary_reg_date", "registration_date"]);
+            const beneficiaryDate = parseExcelDate(rawBeneficiaryDate);
+
+            return {
+              center_name: getCell(row, ["केंद्र का नाम", "center_name"]) || "",
+              vidhan_sabha_name: getCell(row, ["विधानसभा का नाम", "vidhan_sabha_name"]) || "",
+              vikas_khand_name: getCell(row, ["विकास खंड का नाम", "vikas_khand_name"]) || "",
+              scheme_name: getCell(row, ["योजना का नाम", "scheme_name"]) || "",
+              unit: getCell(row, ["इकाई", "unit"]) || "",
+              supplied_item_name: getCell(row, ["आपूर्ति की गई वस्तु का नाम", "supplied_item_name"]) || "",
+              farmer_name: getCell(row, ["किसान का नाम", "farmer_name"]) || "",
+              father_name: getCell(row, ["पिता का नाम", "father_name"]) || "",
+              category: getCell(row, ["श्रेणी", "category"]) || "",
+              address: getCell(row, ["पता", "address"]) || "",
+              mobile_number: getCell(row, ["मोबाइल नंबर", "mobile_number"]) || "",
+              aadhaar_number: getCell(row, ["आधार नंबर", "aadhaar_number"]) || "",
+              bank_account_number: getCell(row, ["बैंक खाता नंबर", "bank_account_number"]) || "",
+              ifsc_code: getCell(row, ["IFSC कोड", "ifsc_code"]) || getCell(row, ["ifsc कोड"]) || "",
+              quantity: parseInt(getCell(row, ["मात्रा", "quantity"]) || 0),
+              rate: parseFloat(getCell(row, ["दर", "rate"]) || 0),
+              amount: parseFloat(getCell(row, ["राशि", "amount"]) || 0),
+              beneficiary_reg_date: beneficiaryDate || "",
+            };
+          });
 
           let successfulUploads = 0;
           const failedItems = [];
 
+          let needRefresh = false;
           for (let i = 0; i < payloads.length; i++) {
             try {
-              const payload = payloads[i];
+              const raw = payloads[i];
+              // Normalize types and fields to match single-form payload
+              const payload = {
+                farmer_name: raw.farmer_name || "",
+                father_name: raw.father_name || "",
+                address: raw.address || "",
+                center_name: raw.center_name || "",
+                supplied_item_name: raw.supplied_item_name || "",
+                unit: raw.unit || "",
+                quantity: Number.isFinite(Number(raw.quantity)) ? parseInt(raw.quantity) : 0,
+                rate: Number.isFinite(Number(raw.rate)) ? parseFloat(raw.rate) : 0,
+                amount: Number.isFinite(Number(raw.amount)) ? parseFloat(raw.amount) : 0,
+                aadhaar_number: raw.aadhaar_number || "",
+                bank_account_number: raw.bank_account_number || "",
+                ifsc_code: raw.ifsc_code || "",
+                mobile_number: raw.mobile_number || "",
+                category: raw.category || "",
+                scheme_name: raw.scheme_name || "",
+                vikas_khand_name: raw.vikas_khand_name || "",
+                vidhan_sabha_name: raw.vidhan_sabha_name || "",
+                beneficiary_reg_date: raw.beneficiary_reg_date || "",
+              };
+
+              console.log("Uploading payload row", i + 1, payload);
+
               const response = await axios.post(BENEFICIARIES_API_URL, payload);
 
               if (response.status === 200 || response.status === 201) {
-                setAllBeneficiaries((prev) => [payload, ...prev]);
+                // Prefer server returned object if available
+                const returned = response.data && response.data.data ? response.data.data : response.data;
+                const itemToAdd = returned || payload;
+                const normalized = {
+                  beneficiary_id: itemToAdd.beneficiary_id || null,
+                  center_name: itemToAdd.center_name || "",
+                  vidhan_sabha_name: itemToAdd.vidhan_sabha_name || "",
+                  vikas_khand_name: itemToAdd.vikas_khand_name || "",
+                  scheme_name: itemToAdd.scheme_name || "",
+                  unit: itemToAdd.unit || "",
+                  supplied_item_name: itemToAdd.supplied_item_name || "",
+                  farmer_name: itemToAdd.farmer_name || "",
+                  father_name: itemToAdd.father_name || "",
+                  category: itemToAdd.category || "",
+                  address: itemToAdd.address || "",
+                  mobile_number: itemToAdd.mobile_number || "",
+                  aadhaar_number: itemToAdd.aadhaar_number || "",
+                  bank_account_number: itemToAdd.bank_account_number || "",
+                  ifsc_code: itemToAdd.ifsc_code || "",
+                  quantity: itemToAdd.quantity || 0,
+                  rate: itemToAdd.rate || 0,
+                  amount: itemToAdd.amount || 0,
+                  beneficiary_reg_date: itemToAdd.beneficiary_reg_date || "",
+                };
+                setAllBeneficiaries((prev) => [normalized, ...prev]);
+                setBeneficiaries((prev) => [normalized, ...prev]);
                 successfulUploads++;
+
+                if (!normalized.beneficiary_id) {
+                  needRefresh = true;
+                }
               } else {
                 failedItems.push({
                   index: i + 1,
@@ -1545,11 +1633,18 @@ const handleDelete = async (item) => {
                 });
               }
             } catch (error) {
+              console.error("Bulk upload error for row", i + 1, error.response || error.message || error);
+              const serverMsg = error.response && (error.response.data?.message || error.response.data || JSON.stringify(error.response.data));
               failedItems.push({
                 index: i + 1,
-                reason: error.response?.data?.message || "Upload failed",
+                reason: serverMsg || error.message || "Upload failed",
               });
             }
+          }
+
+          // If any created items didn't return IDs, refresh the list once from server
+          if (needRefresh) {
+            await fetchBeneficiaries();
           }
 
           // Reset file input
@@ -1693,7 +1788,8 @@ const handleDelete = async (item) => {
         unit: formData.unit,
         quantity: parseInt(formData.quantity),
         rate: parseFloat(formData.rate),
-        amount: parseFloat(formData.amount),
+          amount: parseFloat(formData.amount),
+          beneficiary_reg_date: formData.beneficiary_reg_date,
         aadhaar_number: formData.aadhaar_number,
         bank_account_number: formData.bank_account_number,
         ifsc_code: formData.ifsc_code,
@@ -1732,6 +1828,7 @@ const handleDelete = async (item) => {
         scheme_name: "",
         vikas_khand_name: "",
         vidhan_sabha_name: "",
+        beneficiary_reg_date: "",
       });
 
       // Clear vikas khand data and other mode
@@ -1744,7 +1841,40 @@ const handleDelete = async (item) => {
       });
 
       // Add to table
-      setAllBeneficiaries((prev) => [payload, ...prev]);
+      const addedItem = responseData && Object.keys(responseData).length ? responseData : payload;
+      // Normalize fields to avoid undefined values causing blank cells
+      const normalized = {
+        beneficiary_id: addedItem.beneficiary_id || null,
+        center_name: addedItem.center_name || "",
+        vidhan_sabha_name: addedItem.vidhan_sabha_name || "",
+        vikas_khand_name: addedItem.vikas_khand_name || "",
+        scheme_name: addedItem.scheme_name || "",
+        unit: addedItem.unit || "",
+        supplied_item_name: addedItem.supplied_item_name || "",
+        farmer_name: addedItem.farmer_name || "",
+        father_name: addedItem.father_name || "",
+        category: addedItem.category || "",
+        address: addedItem.address || "",
+        mobile_number: addedItem.mobile_number || "",
+        aadhaar_number: addedItem.aadhaar_number || "",
+        bank_account_number: addedItem.bank_account_number || "",
+        ifsc_code: addedItem.ifsc_code || "",
+        quantity: addedItem.quantity || 0,
+        rate: addedItem.rate || 0,
+        amount: addedItem.amount || 0,
+        beneficiary_reg_date: addedItem.beneficiary_reg_date || "",
+        scheme_name: addedItem.scheme_name || "",
+        vikas_khand_name: addedItem.vikas_khand_name || "",
+        vidhan_sabha_name: addedItem.vidhan_sabha_name || "",
+      };
+
+      setAllBeneficiaries((prev) => [normalized, ...prev]);
+      setBeneficiaries((prev) => [normalized, ...prev]);
+
+      // If server didn't return an ID (created resource not returned), refresh list to get server-side data
+      if (!normalized.beneficiary_id) {
+        await fetchBeneficiaries();
+      }
     } catch (error) {
       // Handle different error response formats
       let errorMessage = translations.genericError;
@@ -2419,6 +2549,20 @@ const handleDelete = async (item) => {
                         </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
+                      <Col xs={12} sm={6} md={2}>
+                        <Form.Group className="mb-2" controlId="beneficiary_reg_date">
+                          <Form.Label className="small-fonts fw-bold">
+                            {translations.beneficiaryRegDate}
+                          </Form.Label>
+                          <Form.Control
+                            type="date"
+                            name="beneficiary_reg_date"
+                            value={formData.beneficiary_reg_date}
+                            onChange={handleChange}
+                            className="compact-input"
+                          />
+                        </Form.Group>
+                      </Col>
                     <Col
                       xs={12}
                       sm={6}
@@ -2885,6 +3029,9 @@ const handleDelete = async (item) => {
                           {selectedColumns.includes("amount") && (
                             <th>{translations.amount}</th>
                           )}
+                          {selectedColumns.includes("beneficiary_reg_date") && (
+                            <th>{translations.beneficiaryRegDate}</th>
+                          )}
                           <th>कार्रवाई</th>
                         </tr>
                       </thead>
@@ -3340,6 +3487,21 @@ const handleDelete = async (item) => {
                                   )}
                                 </td>
                               )}
+                              {selectedColumns.includes("beneficiary_reg_date") && (
+                                <td>
+                                  {editingRowId === item.beneficiary_id ? (
+                                    <Form.Control
+                                      type="date"
+                                      name="beneficiary_reg_date"
+                                      value={editingValues.beneficiary_reg_date}
+                                      onChange={handleEditChange}
+                                      size="sm"
+                                    />
+                                  ) : (
+                                    item.beneficiary_reg_date || ""
+                                  )}
+                                </td>
+                              )}
                               <td>
                                 {editingRowId === item.beneficiary_id ? (
                                   <>
@@ -3508,6 +3670,7 @@ const handleDelete = async (item) => {
                               </strong>
                             </td>
                           )}
+                          {selectedColumns.includes("beneficiary_reg_date") && <td></td>}
                           <td></td>
                         </tr>
                       </tfoot>
