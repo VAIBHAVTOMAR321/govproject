@@ -48,9 +48,9 @@ const translations = {
 
 // Define the table column order
 const tableColumnOrder = [
+  "vikas_khand_name",
   "center_name",
   "vidhan_sabha_name",
-  "vikas_khand_name",
   "scheme_name",
   "source_of_receipt",
   "investment_name",
@@ -149,6 +149,113 @@ const ColumnFilter = ({
         </div>
       </Dropdown.Menu>
     </Dropdown>
+  );
+};
+
+// Function to generate summary table for विकासखंड and केंद्र
+const generateVikasKhandSummary = (data) => {
+  if (!data || data.length === 0) return [];
+
+  // Group centers by विकासखंड
+  const groupedByVikasKhand = {};
+  data.forEach((item) => {
+    const vikasKhand = item.vikas_khand_name;
+    const center = item.center_name;
+    
+    if (vikasKhand && center) {
+      if (!groupedByVikasKhand[vikasKhand]) {
+        groupedByVikasKhand[vikasKhand] = new Set();
+      }
+      groupedByVikasKhand[vikasKhand].add(center);
+    }
+  });
+
+  // Convert to array format for the table
+  return Object.entries(groupedByVikasKhand).map(([vikasKhand, centers]) => ({
+    vikasKhand,
+    centers: Array.from(centers),
+  }));
+};
+
+// Function to render the summary table
+const renderVikasKhandSummaryTable = (summaryData) => {
+  if (!summaryData || summaryData.length === 0) return null;
+
+  return (
+    <div className="table-responsive mt-4">
+      <h5 className="mb-3">विकासखंड और केंद्र सारांश</h5>
+      <Table striped bordered hover className="table-thead-style">
+        <thead className="table-thead">
+          <tr>
+            <th style={{ width: '30%', verticalAlign: 'middle' }}>विकासखंड</th>
+            <th style={{ width: '70%' }}>केंद्र</th>
+          </tr>
+        </thead>
+        <tbody>
+          {summaryData.map((item, index) => {
+            // Split centers into two columns for better readability when many values exist
+            const centers = item.centers || [];
+            const mid = Math.ceil(centers.length / 2);
+            const left = centers.slice(0, mid);
+            const right = centers.slice(mid);
+
+            return (
+              <tr key={index}>
+                <td
+                  style={{
+                    verticalAlign: 'middle',
+                    fontWeight: 'bold',
+                    backgroundColor: '#f8f9fa',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {item.vikasKhand}
+                </td>
+                <td style={{ padding: '8px' }}>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      {left.map((center, ci) => (
+                        <div
+                          key={`L-${ci}`}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: ci % 2 === 0 ? '#ffffff' : '#f8f9fa',
+                            borderBottom: ci < left.length - 1 ? '1px solid #dee2e6' : 'none',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {center}
+                        </div>
+                      ))}
+                    </div>
+
+                    {right.length > 0 && (
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid #dee2e6', paddingLeft: '12px' }}>
+                        {right.map((center, ci) => (
+                          <div
+                            key={`R-${ci}`}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: ci % 2 === 0 ? '#ffffff' : '#f8f9fa',
+                              borderBottom: ci < right.length - 1 ? '1px solid #dee2e6' : 'none',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            {center}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+    </div>
   );
 };
 
@@ -255,6 +362,23 @@ const MainDashboard = () => {
   // State for summary table total breakdown filter
   // Options: center_name, vidhan_sabha_name, vikas_khand_name, scheme_name, source_of_receipt, investment_name, sub_investment_name
   const [summaryTotalBreakdownColumn, setSummaryTotalBreakdownColumn] = useState("scheme_name");
+
+  // State for report generation
+  const [reportDateStart, setReportDateStart] = useState('');
+  const [reportDateEnd, setReportDateEnd] = useState('');
+  const [reportType, setReportType] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportMultiSelectOptions, setReportMultiSelectOptions] = useState([]);
+  const [selectedReportValues, setSelectedReportValues] = useState([]);
+
+  // State for Vidhan Sabha table grouping
+  const [vidhanSabhaGrouping, setVidhanSabhaGrouping] = useState('vidhan_sabha_name');
+
+  // State for Vidhan Sabha table column type
+  const [vidhanSabhaColumnType, setVidhanSabhaColumnType] = useState('investment_name');
+
+  // State for Vidhan Sabha table scheme filter
+  const [vidhanSabhaSchemeFilter, setVidhanSabhaSchemeFilter] = useState([]);
 
   // Function to generate breakdown data for totals columns based on selected grouping
   const generateTotalBreakdown = (data, groupByColumn) => {
@@ -1615,6 +1739,48 @@ const MainDashboard = () => {
     setAdditionalTables([]);
   };
 
+  // Handle generate report
+  const handleGenerateReport = () => {
+    if (!reportDateStart || !reportDateEnd || !reportType) {
+      alert('कृपया सभी फ़ील्ड भरें');
+      return;
+    }
+    // Filter data by date range
+    const filteredByDate = tableData.filter(item => {
+      const itemDate = new Date(item.bill_date);
+      const start = new Date(reportDateStart);
+      const end = new Date(reportDateEnd);
+      return itemDate >= start && itemDate <= end;
+    });
+    // Get unique values for reportType
+    const uniqueValues = [...new Set(filteredByDate.map(item => item[reportType]).filter(Boolean))];
+    setReportMultiSelectOptions(uniqueValues);
+    setSelectedReportValues([]);
+    setShowReportModal(true);
+  };
+
+  // Confirm report generation
+  const confirmReportGeneration = () => {
+    if (selectedReportValues.length === 0) {
+      alert('कृपया कम से कम एक विकल्प चुनें');
+      return;
+    }
+    // Set filters
+    setFilters(prev => ({ ...prev, [reportType]: selectedReportValues }));
+    // Create checked object with selected values true
+    const checked = {};
+    selectedReportValues.forEach(val => checked[val] = true);
+    // Set filterStack
+    const newFilter = { column: reportType, checked };
+    setFilterStack([newFilter]);
+    // Set view to detail
+    setSelectedItem({ column: reportType, value: selectedReportValues.join(', ') });
+    setView("detail");
+    setShowReportModal(false);
+    // Apply filters
+    applyFilters();
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(filteredTableData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1820,39 +1986,6 @@ const MainDashboard = () => {
     };
   }, []);
 
-  // Handle checkbox change in dropdown
-  const handleCheckboxChange = (name, value) => {
-    if (value === "SELECT_ALL") {
-      // Toggle select all
-      setFilters((prev) => {
-        const allOptions = filterOptions[name] || [];
-        const currentValues = prev[name] || [];
-        const areAllSelected = allOptions.every((option) =>
-          currentValues.includes(option)
-        );
-        const newFilters = {
-          ...prev,
-          [name]: areAllSelected ? [] : allOptions,
-        };
-        // Immediately apply filters for better UX
-        applyFilters();
-        return newFilters;
-      });
-    } else {
-      setFilters((prev) => {
-        const currentValues = prev[name] || [];
-        const newValues = currentValues.includes(value)
-          ? currentValues.filter((v) => v !== value)
-          : [...currentValues, value];
-        const newFilters = { ...prev, [name]: newValues };
-        // Immediately apply filters for better UX
-        applyFilters();
-        return newFilters;
-      });
-    }
-  };
-
-
   // Apply filters (with date range)
   const applyFilters = () => {
     setIsApplyingFilters(true);
@@ -1896,6 +2029,39 @@ const MainDashboard = () => {
     checkIfTopFiltersApplied();
     setIsApplyingFilters(false);
   };
+
+  // Handle checkbox change in dropdown
+  const handleCheckboxChange = (name, value) => {
+    if (value === "SELECT_ALL") {
+      // Toggle select all
+      setFilters((prev) => {
+        const allOptions = filterOptions[name] || [];
+        const currentValues = prev[name] || [];
+        const areAllSelected = allOptions.every((option) =>
+          currentValues.includes(option)
+        );
+        const newFilters = {
+          ...prev,
+          [name]: areAllSelected ? [] : allOptions,
+        };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
+      });
+    } else {
+      setFilters((prev) => {
+        const currentValues = prev[name] || [];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter((v) => v !== value)
+          : [...currentValues, value];
+        const newFilters = { ...prev, [name]: newValues };
+        // Immediately apply filters for better UX
+        applyFilters();
+        return newFilters;
+      });
+    }
+  };
+
 
   // Apply filters whenever the filters state changes
   useEffect(() => {
@@ -2089,6 +2255,85 @@ const MainDashboard = () => {
     return { data: summaryData, columns, columnKey: column };
   };
 
+  // Generate Vidhan Sabha Investment table
+  const generateVidhanSabhaInvestmentTable = (data, grouping = 'vidhan_sabha_name', columnType = 'investment_name') => {
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
+
+    const groupLabel = grouping === 'center_name' ? 'केंद्र' : grouping === 'vidhan_sabha_name' ? 'विधानसभा' : 'विकास खंड';
+    const groups = [...new Set(data.map(item => item[grouping]).filter(Boolean))].sort();
+
+    const dynamicColumns = [...new Set(data.map(item => `${item.scheme_name} - ${item[columnType]}`).filter(Boolean))].sort();
+
+    const rows = groups.map(group => {
+      const row = { [groupLabel]: group };
+      dynamicColumns.forEach(col => {
+        const [scheme, val] = col.split(' - ');
+        const sum = data
+          .filter(item => item[grouping] === group && item.scheme_name === scheme && item[columnType] === val)
+          .reduce((acc, item) => acc + (parseFloat(item.allocated_quantity) || 0), 0);
+        row[col] = sum.toFixed(2);
+      });
+      // Add total columns
+      const groupData = data.filter(item => item[grouping] === group);
+      row['आवंटित मात्रा'] = groupData.reduce((acc, item) => acc + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2);
+      row['कृषक धनराशि'] = groupData.reduce((acc, item) => acc + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2);
+      row['सब्सिडी धनराशि'] = groupData.reduce((acc, item) => acc + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2);
+      row['कुल राशि'] = groupData.reduce((acc, item) => acc + (parseFloat(item.total_amount) || 0), 0).toFixed(2);
+      return row;
+    });
+
+    // Add total row
+    const totalRow = { [groupLabel]: 'कुल' };
+    dynamicColumns.forEach(col => {
+      totalRow[col] = rows.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0).toFixed(2);
+    });
+    totalRow['आवंटित मात्रा'] = rows.reduce((sum, row) => sum + (parseFloat(row['आवंटित मात्रा']) || 0), 0).toFixed(2);
+    totalRow['कृषक धनराशि'] = rows.reduce((sum, row) => sum + (parseFloat(row['कृषक धनराशि']) || 0), 0).toFixed(2);
+    totalRow['सब्सिडी धनराशि'] = rows.reduce((sum, row) => sum + (parseFloat(row['सब्सिडी धनराशि']) || 0), 0).toFixed(2);
+    totalRow['कुल राशि'] = rows.reduce((sum, row) => sum + (parseFloat(row['कुल राशि']) || 0), 0).toFixed(2);
+    rows.push(totalRow);
+
+    const columns = [groupLabel, ...dynamicColumns, 'आवंटित मात्रा', 'कृषक धनराशि', 'सब्सिडी धनराशि', 'कुल राशि'];
+
+    return { columns, data: rows };
+  };
+
+  // Generate Vidhan Sabha Investment table when summary is shown
+  useEffect(() => {
+    if (isFilterApplied && filteredTableData && filteredTableData.length > 0) {
+      const schemeFilteredData = vidhanSabhaSchemeFilter.length > 0 ? filteredTableData.filter(item => vidhanSabhaSchemeFilter.includes(item.scheme_name)) : filteredTableData;
+      const table = generateVidhanSabhaInvestmentTable(schemeFilteredData, vidhanSabhaGrouping, vidhanSabhaColumnType);
+      if (table) {
+        const groupLabel = vidhanSabhaGrouping === 'center_name' ? 'केंद्र' : vidhanSabhaGrouping === 'vidhan_sabha_name' ? 'विधानसभा' : 'विकास खंड';
+        const columnLabel = vidhanSabhaColumnType === 'investment_name' ? 'निवेश' : 'उप-निवेश';
+        const heading = `${groupLabel} ${columnLabel} तालिका`;
+        setAdditionalTables(prev => {
+          const existingIndex = prev.findIndex(t => t.type === 'vidhanSabhaInvestment');
+          const tableIndex = existingIndex !== -1 ? existingIndex : prev.length;
+          if (existingIndex !== -1) {
+            // Update existing
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], heading, columns: table.columns, data: table.data, isRotated: isRotated[tableIndex] || false };
+            return updated;
+          } else {
+            // Add new
+            return [...prev, {
+              type: 'vidhanSabhaInvestment',
+              heading,
+              columns: table.columns,
+              data: table.data,
+              isAllocationTable: false,
+              isRotated: isRotated[tableIndex] || false
+            }];
+          }
+        });
+      }
+    } else {
+      // Remove if no filters
+      setAdditionalTables(prev => prev.filter(t => t.type !== 'vidhanSabhaInvestment'));
+    }
+  }, [isFilterApplied, filteredTableData, vidhanSabhaGrouping, vidhanSabhaColumnType, vidhanSabhaSchemeFilter]);
+
   // Generate dynamic summary heading based on applied filters
   const getSummaryHeading = () => {
     const activeFilters = Object.entries(filters).filter(
@@ -2142,6 +2387,17 @@ const MainDashboard = () => {
       setFilterStack(previousState.filterStack);
       setAdditionalTables(previousState.additionalTables);
       setNavigationHistory((prev) => prev.slice(0, -1));
+      // If returning to main view, reset date filters
+      if (previousState.view === "main") {
+        setDateFilter({ start: '', end: '' });
+        setIsDateFilterApplied(false);
+        // Reset report generation states
+        setReportDateStart('');
+        setReportDateEnd('');
+        setReportType('');
+        setSelectedReportValues([]);
+        setShowReportModal(false);
+      }
       return;
     }
 
@@ -2153,6 +2409,15 @@ const MainDashboard = () => {
       setView("main");
       setFilterStack([]);
       setSelectedItem(null);
+      // Reset date filters
+      setDateFilter({ start: '', end: '' });
+      setIsDateFilterApplied(false);
+      // Reset report generation states
+      setReportDateStart('');
+      setReportDateEnd('');
+      setReportType('');
+      setSelectedReportValues([]);
+      setShowReportModal(false);
     }
     setShowDetailed(false);
   };
@@ -4544,78 +4809,7 @@ const MainDashboard = () => {
     </div>
   );
 
-  // Handle clicking on a value in the summary table to add a new filter
-  const handleSummaryValueClick = (column, value) => {
-    // Add to navigation history
-    setNavigationHistory((prev) => [
-      ...prev,
-      {
-        view,
-        filterStack: [...filterStack],
-        additionalTables: [...additionalTables],
-      },
-    ]);
 
-    // Start from top-filtered data if available so multi-filters are respected
-    const baseData =
-      filteredTableData && filteredTableData.length > 0
-        ? filteredTableData
-        : tableData;
-
-    // Get all unique values for this column from the currently filtered data
-    // (top filters + filterStack + header filters)
-    let currentFilteredData = baseData.filter((item) => {
-      for (let filter of filterStack) {
-        if (!filter.checked[item[filter.column]]) return false;
-      }
-      return true;
-    });
-
-    // Also apply header filters from the summary table so that
-    // drilling down respects the column header filter selections
-    currentFilteredData = applySummaryHeaderFilters(currentFilteredData);
-
-    const allValues = [
-      ...new Set(
-        currentFilteredData.map((item) => item[column]).filter(Boolean)
-      ),
-    ];
-
-    // Create checked object with all values initialized to false
-    // Then set the clicked value to true
-    const checked = {};
-    allValues.forEach((val) => {
-      checked[val] = false;
-    });
-    checked[value] = true;
-
-    // Add this filter to the stack
-    setFilterStack((prev) => [...prev, { column, checked }]);
-    setShowDetailed(false);
-    setAdditionalTables([]);
-    
-    // Update graph to show breakdown for this selection
-    // Get the breakdown data
-    const breakdownData = currentFilteredData.filter(
-      (item) => item[column] === value
-    );
-    if (breakdownData.length > 0) {
-      setCurrentDisplayedTable({
-        type: "breakdown",
-        data: breakdownData,
-        columns: Object.keys(columnDefs).filter(
-          (col) => col !== column && !columnDefs[col].hidden
-        ),
-      });
-      // Reset to first available column for the breakdown
-      const firstCol = Object.keys(columnDefs).find(
-        (col) => col !== column && !columnDefs[col].hidden
-      );
-      if (firstCol) {
-        setGraphColumn(firstCol);
-      }
-    }
-  };
 
   // Initialize filters for additional tables
   useEffect(() => {
@@ -5048,6 +5242,45 @@ const MainDashboard = () => {
     </Modal>
   );
 
+  // Report Modal Component
+  const ReportModal = () => (
+    <Modal show={showReportModal} onHide={() => setShowReportModal(false)}>
+      <Modal.Header closeButton>
+        <Modal.Title>विकल्प चुनें</Modal.Title>
+      </Modal.Header>
+      <Modal.Body onClick={(e) => e.stopPropagation()}>
+        <Form.Group>
+          <Form.Label>{columnDefs[reportType]?.label || reportType} चुनें</Form.Label>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              isMulti
+              options={[
+                { value: "ALL", label: "सभी चुनें" },
+                ...reportMultiSelectOptions.map(val => ({ value: val, label: val }))
+              ]}
+              value={selectedReportValues.map(val => ({ value: val, label: val }))}
+              onChange={(selected) => {
+                const selectedValues = selected ? selected.map(s => s.value) : [];
+                if (selectedValues.includes("ALL")) {
+                  // If "ALL" is selected, select all options
+                  setSelectedReportValues(reportMultiSelectOptions);
+                } else {
+                  // Remove "ALL" from selection and set the rest
+                  setSelectedReportValues(selectedValues.filter(val => val !== "ALL"));
+                }
+              }}
+              placeholder="विकल्प चुनें"
+            />
+          </div>
+        </Form.Group>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={() => setShowReportModal(false)}>रद्द करें</Button>
+        <Button variant="primary" onClick={confirmReportGeneration}>ठीक है</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+
   // Handle additional table filter change
   const handleAdditionalTableFilterChange = (tableIndex, value) => {
     setAdditionalTableFilters((prev) => {
@@ -5155,131 +5388,7 @@ const MainDashboard = () => {
     });
   };
 
-  // Handle clicking on "कुल" (Total) to generate a table with unique values
-  const handleTotalClick = (columnKey) => {
-    // Add to navigation history
-    setNavigationHistory((prev) => [
-      ...prev,
-      {
-        view,
-        filterStack: [...filterStack],
-        additionalTables: [...additionalTables],
-      },
-    ]);
 
-    // Start from top-filtered data if available so multi-filters are respected
-    const baseData =
-      filteredTableData && filteredTableData.length > 0
-        ? filteredTableData
-        : tableData;
-
-    // Get the current filtered data based on the filter stack
-    let currentFilteredData = baseData.filter((item) => {
-      for (let filter of filterStack) {
-        if (!filter.checked[item[filter.column]]) return false;
-      }
-      return true;
-    });
-
-    // Also apply header filters from the summary table so that the
-    // derived "कुल"-based table stays consistent with what is visible
-    // in the summary view (per-column header filter selections).
-    currentFilteredData = applySummaryHeaderFilters(currentFilteredData);
-
-    // Generate unique values for the selected column
-    const uniqueValues = [
-      ...new Set(
-        currentFilteredData.map((item) => item[columnKey]).filter(Boolean)
-      ),
-    ];
-
-    // Create summary data for each unique value
-    const summaryData = uniqueValues.map((value) => {
-      const dataForValue = currentFilteredData.filter(
-        (item) => item[columnKey] === value
-      );
-
-      // Create a row with columns in the specified order
-      const row = {
-        [columnDefs[columnKey]?.label]: value,
-        "कुल रिकॉर्ड": dataForValue.length,
-      };
-
-      // Add other columns in the specified order
-      tableColumnOrder.forEach((col) => {
-        if (
-          col !== columnKey &&
-          col !== "allocated_quantity" &&
-          col !== "rate" &&
-          col !== "amount_of_farmer_share" &&
-          col !== "amount_of_subsidy" &&
-          col !== "total_amount" &&
-          !columnDefs[col].hidden
-        ) {
-          row[columnDefs[col].label] = new Set(
-            dataForValue.map((item) => item[col])
-          ).size;
-        }
-      });
-
-      // Add monetary columns at the end
-      row["आवंटित मात्रा"] = dataForValue
-        .reduce(
-          (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
-          0
-        )
-        .toFixed(2);
-      row["कृषक धनराशि"] = dataForValue
-        .reduce(
-          (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
-          0
-        )
-        .toFixed(2);
-      row["सब्सिडी धनराशि"] = dataForValue
-        .reduce(
-          (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
-          0
-        )
-        .toFixed(2);
-      row["कुल राशि"] = dataForValue
-        .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
-        .toFixed(2);
-
-      return row;
-    });
-
-    // Create columns in the specified order
-    const visibleColumns = [
-      columnDefs[columnKey]?.label,
-      "कुल रिकॉर्ड",
-      ...tableColumnOrder
-        .filter(
-          (col) =>
-            col !== columnKey &&
-            col !== "allocated_quantity" &&
-            col !== "rate" &&
-            col !== "amount_of_farmer_share" &&
-            col !== "amount_of_subsidy" &&
-            col !== "total_amount" &&
-            !columnDefs[col].hidden
-        )
-        .map((key) => columnDefs[key].label),
-      "आवंटित मात्रा",
-      "कृषक धनराशि",
-      "सब्सिडी धनराशि",
-      "कुल राशि",
-    ];
-
-    // Add this table to additional tables
-    const newTable = {
-      heading: `${columnDefs[columnKey]?.label} - विस्तृत विवरण`,
-      data: summaryData,
-      columns: visibleColumns,
-      columnKey: columnKey,
-    };
-
-    setAdditionalTables((prev) => [newTable, ...prev]);
-  };
 
   return (
     <div>
@@ -5293,6 +5402,59 @@ const MainDashboard = () => {
         <Row className="left-top">
           <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
+              {/* Report Generation Section */}
+              {view === "main" && (
+                <div className="report-generation-section mb-3 p-3 border rounded bg-light">
+                  <h6 className="fw-bold">रिपोर्ट जनरेट करें</h6>
+                  <Row>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>दिनांक से</Form.Label>
+                        <Form.Control
+                          type="date"
+                          value={reportDateStart}
+                          onChange={(e) => setReportDateStart(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>दिनांक तक</Form.Label>
+                        <Form.Control
+                          type="date"
+                          value={reportDateEnd}
+                          onChange={(e) => setReportDateEnd(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>रिपोर्ट प्रकार</Form.Label>
+                        <Form.Select value={reportType} onChange={(e) => setReportType(e.target.value)}>
+                          <option value="">चुनें</option>
+                          <option value="center_name">केंद्र</option>
+                          <option value="vidhan_sabha_name">विधानसभा</option>
+                          <option value="vikas_khand_name">विकास खंड</option>
+                          <option value="scheme_name">योजना</option>
+                          <option value="source_of_receipt">सप्लायर</option>
+                          <option value="investment_name">निवेश</option>
+                          <option value="sub_investment_name">उप-निवेश</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Button
+                        onClick={handleGenerateReport}
+                        className="mt-4"
+                        disabled={!reportDateStart || !reportDateEnd || !reportType}
+                      >
+                        रिपोर्ट जनरेट करें
+                      </Button>
+                    </Col>
+                  </Row>
+                </div>
+              )}
+
               {/* Date Range Filter Section (above main table) */}
               {view === "main" && (
                 <div className="filter-section mb-3 p-3 border rounded bg-light dashboard-graphs">
@@ -5966,12 +6128,20 @@ const MainDashboard = () => {
                       </div>
                 </div>
               )}
+
               {view === "main" ? (
                 <Row>
                   <Col lg={isFilterApplied ? 12 : 12} md={12} sm={12}>
                     {/* Placeholder for Dashboard Graphs/Charts */}
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       <ExportSection />
+                      
+                      {/* Vikas Khand Summary Table */}
+                      {filters.vidhan_sabha_name.length > 0 && filters.center_name.length > 0 && (
+                        <div className="mt-4">
+                          {renderVikasKhandSummaryTable(generateVikasKhandSummary(filteredTableData))}
+                        </div>
+                      )}
                       {isApplyingFilters && (
                         <div className="text-center py-3">
                           <div
@@ -6075,21 +6245,8 @@ const MainDashboard = () => {
                                           <td
                                             key={col}
                                             style={{
-                                              cursor: isSpecial
-                                                ? "default"
-                                                : isFilterApplied
-                                                ? "default"
-                                                : "pointer",
-                                              color: isSpecial
-                                                ? "black"
-                                                : isFilterApplied
-                                                ? "black"
-                                                : "blue",
-                                            }}
-                                            onClick={() => {
-                                              if (!isSpecial && !isFilterApplied) {
-                                                handleCellClick(col, item[col]);
-                                              }
+                                              cursor: "default",
+                                              color: "black",
                                             }}
                                           >
                                             {col === "unit"
@@ -6142,24 +6299,9 @@ const MainDashboard = () => {
                                             key={col}
                                             style={{
                                               fontWeight: "bold",
-                                              cursor: isSpecial
-                                                ? "default"
-                                                : !isNumeric
-                                                ? "pointer"
-                                                : "default",
-                                              color: isSpecial
-                                                ? "black"
-                                                : !isNumeric
-                                                ? "blue"
-                                                : "black",
-                                              textDecoration: !isNumeric && !isSpecial
-                                                ? "underline"
-                                                : "none",
-                                            }}
-                                            onClick={() => {
-                                              if (!isSpecial && !isNumeric) {
-                                                handleTotalClick(col);
-                                              }
+                                              cursor: "default",
+                                              color: "black",
+                                              textDecoration: "none",
                                             }}
                                           >
                                             {isNumeric
@@ -7093,91 +7235,13 @@ const MainDashboard = () => {
                                           const tableDataForValue = applySummaryHeaderFilters(tableDataForValueBase);
                                           return (
                                             <tr key={checkedValue}>
-                                              <td
-                                                style={{
-                                                  cursor: "pointer",
-                                                  color: "blue",
-                                                  fontWeight: "bold",
-                                                }}
-                                                onClick={() => {
-                                                  // Add to navigation history
-                                                  setNavigationHistory(
-                                                    (prev) => [
-                                                      ...prev,
-                                                      {
-                                                        view,
-                                                        filterStack: [
-                                                          ...filterStack,
-                                                        ],
-                                                        additionalTables: [
-                                                          ...additionalTables,
-                                                        ],
-                                                      },
-                                                    ]
-                                                  );
-
-                                                  // Generate allocation table showing allocation for selected entries
-                                                  // Use the clicked column as the first column instead of hardcoded 'scheme_name'
-                                                  const allocationTable =
-                                                    generateAllocationTable(
-                                                      currentFilter.column,
-                                                      checkedValue,
-                                                      currentFilter.column
-                                                    );
-                                                  setAdditionalTables(
-                                                    (prev) => [
-                                                      allocationTable,
-                                                      ...prev,
-                                                    ]
-                                                  );
-                                                }}
-                                              >
+                                              <td>
                                                 {checkedValue}
                                               </td>
                                               {tableColumnFilters.summary.includes(
                                                 "कुल रिकॉर्ड"
                                               ) && (
-                                                <td
-                                                  style={{
-                                                    cursor: "pointer",
-                                                    color: "blue",
-                                                    fontWeight: "bold",
-                                                  }}
-                                                  onClick={() => {
-                                                    // Add to navigation history
-                                                    setNavigationHistory(
-                                                      (prev) => [
-                                                        ...prev,
-                                                        {
-                                                          view,
-                                                          filterStack: [
-                                                            ...filterStack,
-                                                          ],
-                                                          additionalTables: [
-                                                            ...additionalTables,
-                                                          ],
-                                                        },
-                                                      ]
-                                                    );
-
-                                                    // Create a new filter stack with only this value selected
-                                                    const newFilterStack =
-                                                      filterStack.slice(0, -1);
-                                                    const newChecked = {};
-                                                    newChecked[
-                                                      checkedValue
-                                                    ] = true;
-                                                    newFilterStack.push({
-                                                      column:
-                                                        currentFilter.column,
-                                                      checked: newChecked,
-                                                    });
-                                                    setFilterStack(
-                                                      newFilterStack
-                                                    );
-                                                    setShowDetailed(true);
-                                                  }}
-                                                >
+                                                <td>
                                                   {tableDataForValue.length}
                                                 </td>
                                               )}
@@ -7228,7 +7292,7 @@ const MainDashboard = () => {
                                                       const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
                                                       return (
                                                         <td key={col} style={{ maxWidth: "350px", verticalAlign: "top" }}>
-                                                          <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                          <div>
                                                             {breakdown.map((group, gIdx) => (
                                                               <div key={gIdx} style={{ marginBottom: "10px" }}>
                                                                 <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
@@ -7255,34 +7319,55 @@ const MainDashboard = () => {
 
                                                     // योजना column: show hierarchy -> योजना -> निवेश -> उप-निवेश (names only, no matra/dar)
                                                     if (col === "scheme_name") {
-                                                      // Only use filtered cellData for this row
-                                                      // Only show schemes that are currently selected in the filter
-                                                      const selectedSchemes = summaryColumnValueFilters.scheme_name || [];
-                                                      const hierarchy = getSchemeInvestmentHierarchy(checkedValue);
-                                                      // Filter hierarchy to only include schemes present in cellData and selected in filter
-                                                      const allowedSchemes = new Set(cellData.map((item) => item.scheme_name));
+                                                      // Render schemes grouped by center (and vikas) so each center shows its schemes
+                                                      // Build groups by vikas -> centers -> schemes from tableDataForValue
+                                                      const groupsByVikasForSchemes = {};
+                                                      tableDataForValue.forEach((it) => {
+                                                        const vk = it.vikas_khand_name || "अज्ञात";
+                                                        const cn = it.center_name || "अज्ञात केंद्र";
+                                                        const sch = it.scheme_name || "अज्ञात योजना";
+                                                        if (!groupsByVikasForSchemes[vk]) groupsByVikasForSchemes[vk] = {};
+                                                        if (!groupsByVikasForSchemes[vk][cn]) groupsByVikasForSchemes[vk][cn] = new Set();
+                                                        groupsByVikasForSchemes[vk][cn].add(sch);
+                                                      });
+                                                      const vikasOrderForSchemes = Object.keys(groupsByVikasForSchemes);
+
+                                                      // Render similar structure as center column: centers grouped by vikas
                                                       return (
-                                                        <td key={col} style={{ maxWidth: "350px" }}>
-                                                          <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                                                            {hierarchy
-                                                              .filter((schemeItem) => allowedSchemes.has(schemeItem.schemeName) && selectedSchemes.includes(schemeItem.schemeName))
-                                                              .map((schemeItem, sIdx) => (
-                                                                <div key={sIdx} style={{ marginBottom: "10px" }}>
-                                                                  <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>{schemeItem.schemeName}</div>
-                                                                  {schemeItem.investments.map((invItem, iIdx) => (
-                                                                    <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                      <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                        <span>{invItem.investmentName}</span>
-                                                                      </div>
-                                                                      {invItem.subInvestments.map((subItem, subIdx) => (
-                                                                        <div key={subIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                          <span>{subItem.name}</span>
+                                                        <td key={col} style={{ maxWidth: "520px", padding: '8px', verticalAlign: "top" }}>
+                                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                            {vikasOrderForSchemes.map((vk, vi) => {
+                                                              const centersObj = groupsByVikasForSchemes[vk] || {};
+                                                              const centerNames = Object.keys(centersObj);
+                                                              // compute group minHeight based on number of centers (to align with center column)
+                                                              const lineHeight = 22;
+                                                              const verticalPadding = 12;
+                                                              const borderBetween = Math.max(centerNames.length - 1, 0) * 1;
+                                                              const groupHeight = Math.max(centerNames.length * lineHeight + verticalPadding + borderBetween + 4, lineHeight + verticalPadding);
+
+                                                              return (
+                                                                <div key={`${vk}-schemes-${vi}`} style={{ paddingTop: 0, borderTop: vi === 0 ? 'none' : '2px solid #333', marginTop: 0 }}>
+                                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${groupHeight}px`, boxSizing: 'border-box', justifyContent: 'flex-start' }}>
+                                                                    {centerNames.map((cn, ci) => {
+                                                                      const schemes = Array.from(centersObj[cn] || []).sort();
+                                                                      return (
+                                                                        <div key={`${vk}-${cn}-${ci}`} style={{ padding: '4px 0', borderBottom: ci < centerNames.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word' }}>
+                                                                          {schemes.length > 0 ? (
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                                              {schemes.map((s, si) => (
+                                                                                <div key={s + si} style={{ padding: '2px 0' }}>{s}</div>
+                                                                              ))}
+                                                                            </div>
+                                                                          ) : (
+                                                                            <div style={{ color: '#666' }}>—</div>
+                                                                          )}
                                                                         </div>
-                                                                      ))}
-                                                                    </div>
-                                                                  ))}
+                                                                      );
+                                                                    })}
+                                                                  </div>
                                                                 </div>
-                                                              ))}
+                                                              );
+                                                            })}
                                                           </div>
                                                         </td>
                                                       );
@@ -7295,13 +7380,134 @@ const MainDashboard = () => {
                                                       col === "center_name" ||
                                                       col === "source_of_receipt"
                                                     ) {
-                                                      // Only use filtered cellData for this row
+                                                        // Build groups by vikas_khand for the current cellData
+                                                        const groupsByVikas = {};
+                                                        // Also compute a map of center -> Set(schemes)
+                                                        const centerToSchemes = {};
+                                                        cellData.forEach((it) => {
+                                                          const v = it.vikas_khand_name || "अज्ञात";
+                                                          const c = it.center_name || "अज्ञात केंद्र";
+                                                          const s = it.scheme_name || null;
+                                                          if (!groupsByVikas[v]) groupsByVikas[v] = new Set();
+                                                          groupsByVikas[v].add(c);
+                                                          if (!centerToSchemes[c]) centerToSchemes[c] = new Set();
+                                                          if (s) centerToSchemes[c].add(s);
+                                                        });
+                                                        const vikasOrder = Object.keys(groupsByVikas);
+
+                                                        // Compute per-center heights so all three columns can align
+                                                        const lineHeight = 22; // px per row of text
+                                                        const verticalPadding = 12; // px inner padding
+                                                        const interBorder = 1; // px between rows
+                                                        const perCenterHeight = {}; // center -> px
+                                                        vikasOrder.forEach((vk) => {
+                                                          const centers = Array.from(groupsByVikas[vk] || []);
+                                                          centers.forEach((cn) => {
+                                                            const schemesCount = centerToSchemes[cn] ? centerToSchemes[cn].size : 0;
+                                                            const rowsNeeded = Math.max(1, schemesCount);
+                                                            perCenterHeight[cn] = Math.max(rowsNeeded * lineHeight + verticalPadding + (rowsNeeded - 1) * interBorder, lineHeight + verticalPadding);
+                                                          });
+                                                        });
+
+                                                        const groupTotalHeight = (vk) => {
+                                                          const centers = Array.from(groupsByVikas[vk] || []);
+                                                          return centers.reduce((sum, cn) => sum + (perCenterHeight[cn] || (lineHeight + verticalPadding)), 0);
+                                                        };
+
+                                                        if (col === "vikas_khand_name") {
+                                                          // Render vikas_khand names (bold), stacked and aligned to center groups
+                                                          return (
+                                                            <td key={col} style={{ maxWidth: "260px", padding: 0, verticalAlign: "top" }}>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                                {vikasOrder.map((vk, i) => (
+                                                                  <div key={vk} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                    <div style={{
+                                                                      padding: '6px 8px',
+                                                                      fontWeight: '700',
+                                                                      borderTop: i === 0 ? 'none' : '2px solid #333',
+                                                                      background: '#fff',
+                                                                      wordBreak: 'break-word',
+                                                                      minHeight: `${groupTotalHeight(vk)}px`,
+                                                                      display: 'flex',
+                                                                      alignItems: 'flex-start',
+                                                                      boxSizing: 'border-box',
+                                                                      margin: 0
+                                                                    }}>
+                                                                      {vk}
+                                                                    </div>
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            </td>
+                                                          );
+                                                        }
+
+                                                        if (col === "center_name") {
+                                                          // Render centers grouped by vikas_khand, with a bold separator between groups
+                                                          return (
+                                                            <td key={col} style={{ maxWidth: "520px", padding: 0, verticalAlign: "top" }}>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                                {vikasOrder.map((vk, i) => {
+                                                                  const centers = Array.from(groupsByVikas[vk] || []);
+                                                                  return (
+                                                                    <div key={`${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${groupTotalHeight(vk)}px`, justifyContent: 'flex-start', boxSizing: 'border-box', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
+                                                                        {centers.length > 0 ? centers.map((cn, ci) => (
+                                                                          <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || lineHeight + verticalPadding}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', alignItems: 'flex-start' }}>
+                                                                            <div style={{ width: '100%' }}>{cn}</div>
+                                                                          </div>
+                                                                        )) : (
+                                                                          <div style={{ padding: '4px 0', fontSize: '12px', color: '#666' }}>—</div>
+                                                                        )}
+                                                                      </div>
+                                                                    </div>
+                                                                  );
+                                                                })}
+                                                              </div>
+                                                            </td>
+                                                          );
+                                                        }
+
+                                                        if (col === "scheme_name") {
+                                                          // Render schemes grouped by center, using same per-center heights
+                                                          return (
+                                                            <td key={col} style={{ maxWidth: "420px", padding: 0, verticalAlign: "top" }}>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                                {vikasOrder.map((vk, i) => {
+                                                                  const centers = Array.from(groupsByVikas[vk] || []);
+                                                                  return (
+                                                                    <div key={`scheme-${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${groupTotalHeight(vk)}px`, boxSizing: 'border-box', justifyContent: 'flex-start', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
+                                                                        {centers.length > 0 ? centers.map((cn, ci) => {
+                                                                          const schemes = Array.from(centerToSchemes[cn] || []);
+                                                                          return (
+                                                                            <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || lineHeight + verticalPadding}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                                                                              {schemes.length > 0 ? schemes.map((s, si) => (
+                                                                                <div key={s + si} style={{ padding: '2px 0', fontSize: '11px' }}>{s}</div>
+                                                                              )) : (
+                                                                                <div style={{ color: '#666' }}>—</div>
+                                                                              )}
+                                                                            </div>
+                                                                          );
+                                                                        }) : (
+                                                                          <div style={{ padding: '4px 0', fontSize: '12px', color: '#666' }}>—</div>
+                                                                        )}
+                                                                      </div>
+                                                                    </div>
+                                                                  );
+                                                                })}
+                                                              </div>
+                                                            </td>
+                                                          );
+                                                        }
+
+                                                      // Default behavior for other columns
                                                       const groupedData = getColumnInvestmentHierarchy(checkedValue, col);
                                                       // Only show groups present in cellData
                                                       const allowedGroups = new Set(cellData.map((item) => item[col]));
                                                       return (
                                                         <td key={col} style={{ maxWidth: "350px" }}>
-                                                          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                                                          <div>
                                                             {groupedData
                                                               .filter((group) => allowedGroups.has(group.groupValue))
                                                               .map((group, groupIdx) => (
@@ -7333,7 +7539,7 @@ const MainDashboard = () => {
                                                       const allowedInvestments = new Set(cellData.map((item) => item.investment_name));
                                                       return (
                                                         <td key={col} style={{ maxWidth: "300px" }}>
-                                                          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                                                          <div>
                                                             {groupedData
                                                               .filter((group) => allowedInvestments.has(group.investmentName))
                                                               .map((group, groupIdx) => (
@@ -7358,7 +7564,7 @@ const MainDashboard = () => {
                                                       const allowedInvestments = new Set(cellData.map((item) => item[col]));
                                                       return (
                                                         <td key={col} style={{ maxWidth: "250px" }}>
-                                                          <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+                                                          <div>
                                                             {valuesWithMatra
                                                               .filter((item) => allowedInvestments.has(item.name))
                                                               .map((item, valIdx) => (
@@ -7376,7 +7582,7 @@ const MainDashboard = () => {
                                                     ];
                                                     return (
                                                       <td key={col} style={{ maxWidth: "200px" }}>
-                                                        <div style={{ maxHeight: "100px", overflowY: "auto" }}>
+                                                        <div>
                                                           {uniqueValues.map((val, valIdx) => (
                                                             <div key={valIdx} style={{ fontSize: "11px" }}>{val}</div>
                                                           ))}
@@ -7385,46 +7591,7 @@ const MainDashboard = () => {
                                                     );
                                                   } else {
                                                     return (
-                                                      <td
-                                                        key={col}
-                                                        style={{
-                                                          cursor: "pointer",
-                                                          color: "blue",
-                                                          fontWeight: "bold",
-                                                        }}
-                                                        onClick={() => {
-                                                          // Add to navigation history
-                                                          setNavigationHistory(
-                                                            (prev) => [
-                                                              ...prev,
-                                                              {
-                                                                view,
-                                                                filterStack: [
-                                                                  ...filterStack,
-                                                                ],
-                                                                additionalTables:
-                                                                  [
-                                                                    ...additionalTables,
-                                                                  ],
-                                                              },
-                                                            ]
-                                                          );
-
-                                                          // Generate allocation table with the clicked column as the first column
-                                                          const allocationTable =
-                                                            generateAllocationTable(
-                                                              col,
-                                                              checkedValue,
-                                                              currentFilter.column
-                                                            );
-                                                          setAdditionalTables(
-                                                            (prev) => [
-                                                              allocationTable,
-                                                              ...prev,
-                                                            ]
-                                                          );
-                                                        }}
-                                                      >
+                                                      <td key={col}>
                                                         {
                                                           new Set(
                                                             tableDataForValue.map(
@@ -7449,7 +7616,7 @@ const MainDashboard = () => {
                                                       const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
                                                       return (
                                                         <td key={col} style={{ maxWidth: "350px", verticalAlign: "top" }}>
-                                                          <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                          <div>
                                                             {breakdown.map((group, gIdx) => (
                                                               <div key={gIdx} style={{ marginBottom: "10px" }}>
                                                                 <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
@@ -7521,7 +7688,7 @@ const MainDashboard = () => {
                                                       .toFixed(2);
                                                     
                                                     return (
-                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      <div>
                                                         {breakdown.map((group, gIdx) => (
                                                           <div key={gIdx} style={{ marginBottom: "10px" }}>
                                                             <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
@@ -7562,7 +7729,7 @@ const MainDashboard = () => {
                                                       .toFixed(2);
                                                     
                                                     return (
-                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      <div>
                                                         {breakdown.map((group, gIdx) => (
                                                           <div key={gIdx} style={{ marginBottom: "10px" }}>
                                                             <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
@@ -7603,7 +7770,7 @@ const MainDashboard = () => {
                                                       .toFixed(2);
                                                     
                                                     return (
-                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      <div>
                                                         {breakdown.map((group, gIdx) => (
                                                           <div key={gIdx} style={{ marginBottom: "10px" }}>
                                                             <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
@@ -7644,7 +7811,7 @@ const MainDashboard = () => {
                                                       .toFixed(2);
                                                     
                                                     return (
-                                                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                                                      <div>
                                                         {breakdown.map((group, gIdx) => (
                                                           <div key={gIdx} style={{ marginBottom: "10px" }}>
                                                             <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
@@ -8162,19 +8329,7 @@ const MainDashboard = () => {
                                                 );
                                               } else {
                                                 return (
-                                                  <td
-                                                    key={col}
-                                                    style={{
-                                                      fontWeight: "bold",
-                                                      cursor: "pointer",
-                                                      color: "blue",
-                                                      textDecoration:
-                                                        "underline",
-                                                    }}
-                                                    onClick={() =>
-                                                      handleTotalClick(col)
-                                                    }
-                                                  >
+                                                  <td key={col}>
                                                     {(() => {
                                                       // Apply header filters and restrict to displayCheckedValues groups
                                                       const displayCheckedValues = (() => {
@@ -8266,16 +8421,7 @@ const MainDashboard = () => {
                                                   );
                                                 } else {
                                                   return (
-                                                    <td
-                                                      key={col}
-                                                      style={{
-                                                        fontWeight: "bold",
-                                                        cursor: "pointer",
-                                                        color: "blue",
-                                                        textDecoration: "underline",
-                                                      }}
-                                                      onClick={() => handleTotalClick(col)}
-                                                    >
+                                                    <td key={col}>
                                                       {(() => {
                                                         const displayCheckedValues = (() => {
                                                           const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
@@ -8553,11 +8699,31 @@ const MainDashboard = () => {
                                     {/* Replace the additional tables rendering section with this updated version: */}
                                     {additionalTables.map((table, index) => (
                                       <div key={index} className="mt-4">
+                                        {/* Scheme filter for Vidhan Sabha Investment Table */}
+                                        {table.type === 'vidhanSabhaInvestment' && (
+                                          <div className="mb-3">
+                                            <Form.Group>
+                                              <Form.Label>योजना चुनें</Form.Label>
+                                              <Select
+                                                isMulti
+                                                options={filteredTableData ? [...new Set(filteredTableData.map(item => item.scheme_name).filter(Boolean))].map(scheme => ({ value: scheme, label: scheme })) : []}
+                                                value={vidhanSabhaSchemeFilter.map(scheme => ({ value: scheme, label: scheme }))}
+                                                onChange={(selected) => setVidhanSabhaSchemeFilter(selected ? selected.map(s => s.value) : [])}
+                                                placeholder="योजना चुनें"
+                                              />
+                                            </Form.Group>
+                                          </div>
+                                        )}
                                         <div className="d-flex justify-content-between align-items-center mb-3">
                                           <div className="d-flex align-items-center gap-2 table-heading">
                                             <h5 className="mb-0">
                                               {table.heading}
                                             </h5>
+                                            {table.type === 'vidhanSabhaInvestment' && vidhanSabhaSchemeFilter.length > 0 && (
+                                              <div className="mt-1">
+                                                <small className="text-muted">चयनित योजनाएं: {vidhanSabhaSchemeFilter.join(', ')}</small>
+                                              </div>
+                                            )}
                                             {table.isAllocationTable && (
                                               <small className="text-muted ms-2">
                                                 ({(() => {
@@ -8569,6 +8735,45 @@ const MainDashboard = () => {
                                                   return "";
                                                 })()})
                                               </small>
+                                            )}
+                                            {/* Grouping selector for Vidhan Sabha Investment Table */}
+                                            {table.type === 'vidhanSabhaInvestment' && (
+                                              <div className="ms-3 d-flex gap-2">
+                                                <Form.Select
+                                                  size="sm"
+                                                  value={vidhanSabhaGrouping}
+                                                  onChange={(e) => setVidhanSabhaGrouping(e.target.value)}
+                                                  style={{ minWidth: '150px' }}
+                                                >
+                                                  <option value="center_name">केंद्र</option>
+                                                  <option value="vidhan_sabha_name">विधानसभा</option>
+                                                  <option value="vikas_khand_name">विकास खंड</option>
+                                                </Form.Select>
+                                                <Form.Select
+                                                  size="sm"
+                                                  value={vidhanSabhaColumnType}
+                                                  onChange={(e) => setVidhanSabhaColumnType(e.target.value)}
+                                                  style={{ minWidth: '150px' }}
+                                                >
+                                                  <option value="investment_name">निवेश</option>
+                                                  <option value="sub_investment_name">उप-निवेश</option>
+                                                </Form.Select>
+                                              </div>
+                                            )}
+                                            {table.type === 'vidhanSabhaInvestment' && (
+                                              <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() =>
+                                                  setIsRotated((prev) => {
+                                                    const newArr = [...prev];
+                                                    newArr[index] = !newArr[index];
+                                                    return newArr;
+                                                  })
+                                                }
+                                              >
+                                                <RiRepeatLine /> Rotate
+                                              </Button>
                                             )}
                                             {/* Add toggle button for allocation tables */}
                                             {table.isAllocationTable && (
@@ -8878,6 +9083,7 @@ const MainDashboard = () => {
                                                             return "आवंटित मात्रा";
                                                           })()}
                                                           {!table.isAllocationTable &&
+                                                            table.type !== 'vidhanSabhaInvestment' &&
                                                             col !==
                                                               table
                                                                 .columns[0] &&
@@ -9122,20 +9328,14 @@ const MainDashboard = () => {
                                                     : table.columns.filter((c) => c !== table.columns[0] && !c.startsWith("कुल") && c !== "आवंटित मात्रा" && c !== "कृषक धनराशि" && c !== "सब्सिडी धनराशि");
 
                                                   return table.data
-                                                    .filter((row) => row[table.columns[0]] !== "कुल")
+                                                    .filter((row) => table.type === 'vidhanSabhaInvestment' || row[table.columns[0]] !== "कुल")
                                                     .map((row, rowIndex) => (
-                                                      <tr key={rowIndex}>
+                                                      <tr 
+                                                        key={rowIndex} 
+                                                        style={row[table.columns[0]] === "कुल" ? { fontWeight: "bold", backgroundColor: "#f2f2f2" } : {}}
+                                                      >
                                                         {visibleColumns.includes(table.columns[0]) && (
-                                                          <td
-                                                            style={{ cursor: "pointer", color: "blue", fontWeight: "bold" }}
-                                                            onClick={() => {
-                                                              setNavigationHistory((prev) => [
-                                                                ...prev,
-                                                                { view, filterStack: [...filterStack], additionalTables: [...additionalTables] },
-                                                              ]);
-                                                              handleSummaryValueClick(table.columnKey, row[table.columns[0]]);
-                                                            }}
-                                                          >
+                                                          <td>
                                                             {row[table.columns[0]]}
                                                           </td>
                                                         )}
@@ -9232,46 +9432,7 @@ const MainDashboard = () => {
                                                             {visibleColumns.includes(
                                                               "कुल रिकॉर्ड"
                                                             ) && (
-                                                              <td
-                                                                style={{
-                                                                  cursor:
-                                                                    "pointer",
-                                                                  color: "blue",
-                                                                  fontWeight:
-                                                                    "bold",
-                                                                }}
-                                                                onClick={() => {
-                                                                  // Add to navigation history
-                                                                  setNavigationHistory(
-                                                                    (prev) => [
-                                                                      ...prev,
-                                                                      {
-                                                                        view,
-                                                                        filterStack:
-                                                                          [
-                                                                            ...filterStack,
-                                                                          ],
-                                                                        additionalTables:
-                                                                          [
-                                                                            ...additionalTables,
-                                                                          ],
-                                                                      },
-                                                                    ]
-                                                                  );
-
-                                                                  // Add a new filter to the stack with this value and show detailed view
-                                                                  handleSummaryValueClick(
-                                                                    table.columnKey,
-                                                                    row[
-                                                                      table
-                                                                        .columns[0]
-                                                                    ]
-                                                                  );
-                                                                  setShowDetailed(
-                                                                    true
-                                                                  );
-                                                                }}
-                                                              >
+                                                              <td>
                                                                 {
                                                                   row[
                                                                     "कुल रिकॉर्ड"
@@ -9521,46 +9682,49 @@ const MainDashboard = () => {
 
                                                                     return (
                                                                       <td
-                                                                        key={
-                                                                          colIdx
-                                                                        }
+                                                                        key={colIdx}
                                                                         style={{
-                                                                          maxWidth:
-                                                                            "200px",
+                                                                          maxWidth: "200px",
+                                                                          height: "100%", // Ensure cell takes full height
                                                                         }}
                                                                       >
                                                                         <div
                                                                           style={{
-                                                                            maxHeight:
-                                                                              "100px",
-                                                                            overflowY:
-                                                                              "auto",
+                                                                            height: "100%",
+                                                                            display: "flex",
+                                                                            flexDirection: "column",
+                                                                            justifyContent: "space-between", // Evenly space centers
+                                                                            maxHeight: "150px",
+                                                                            overflowY: "auto",
                                                                           }}
                                                                         >
-                                                                          {uniqueValues.map(
-                                                                            (
-                                                                              val,
-                                                                              valIdx
-                                                                            ) => (
-                                                                              <div
-                                                                                key={
-                                                                                  valIdx
-                                                                                }
-                                                                                style={{
-                                                                                  fontSize:
-                                                                                    "11px",
-                                                                                }}
-                                                                              >
-                                                                                {
-                                                                                  val
-                                                                                }
-                                                                              </div>
-                                                                            )
-                                                                          )}
+                                                                          {uniqueValues.map((val, valIdx) => (
+                                                                            <div
+                                                                              key={valIdx}
+                                                                              style={{
+                                                                                fontSize: "11px",
+                                                                                padding: "4px 0",
+                                                                                borderBottom: valIdx < uniqueValues.length - 1 ? "1px solid #eee" : "none", // Separator between centers
+                                                                                flex: 1, // Each center takes equal height
+                                                                                display: "flex",
+                                                                                alignItems: "center",
+                                                                              }}
+                                                                            >
+                                                                              {val}
+                                                                            </div>
+                                                                          ))}
                                                                         </div>
                                                                       </td>
                                                                     );
                                                                   } else {
+                                                                    // For Vidhan Sabha Investment Table, don't make cells clickable
+                                                                    if (table.type === 'vidhanSabhaInvestment') {
+                                                                      return (
+                                                                        <td key={colIdx}>
+                                                                          {row[col]}
+                                                                        </td>
+                                                                      );
+                                                                    }
                                                                     return (
                                                                       <td
                                                                         key={
@@ -9751,7 +9915,7 @@ const MainDashboard = () => {
                                               const showMatra = table.isAllocationTable && allocationTableToggles[index]?.matra;
                                               const showIkai = table.isAllocationTable && allocationTableToggles[index]?.ikai;
                                               return (
-                                                !isTableRotated && (
+                                                !isTableRotated && table.type !== 'vidhanSabhaInvestment' && (
                                                   <tfoot>
                                                     <tr
                                                       style={{
@@ -10105,42 +10269,37 @@ const MainDashboard = () => {
 
                                                                     return (
                                                                       <td
-                                                                        key={
-                                                                          idx
-                                                                        }
+                                                                        key={idx}
                                                                         style={{
-                                                                          maxWidth:
-                                                                            "200px",
+                                                                          maxWidth: "200px",
+                                                                          height: "100%", // Ensure cell takes full height
                                                                         }}
                                                                       >
                                                                         <div
                                                                           style={{
-                                                                            maxHeight:
-                                                                              "100px",
-                                                                            overflowY:
-                                                                              "auto",
+                                                                            height: "100%",
+                                                                            display: "flex",
+                                                                            flexDirection: "column",
+                                                                            justifyContent: "space-between", // Evenly space centers
+                                                                            maxHeight: "150px",
+                                                                            overflowY: "auto",
                                                                           }}
                                                                         >
-                                                                          {uniqueValues.map(
-                                                                            (
-                                                                              val,
-                                                                              valIdx
-                                                                            ) => (
-                                                                              <div
-                                                                                key={
-                                                                                  valIdx
-                                                                                }
-                                                                                style={{
-                                                                                  fontSize:
-                                                                                    "11px",
-                                                                                }}
-                                                                              >
-                                                                                {
-                                                                                  val
-                                                                                }
-                                                                              </div>
-                                                                            )
-                                                                          )}
+                                                                          {uniqueValues.map((val, valIdx) => (
+                                                                            <div
+                                                                              key={valIdx}
+                                                                              style={{
+                                                                                fontSize: "11px",
+                                                                                padding: "4px 0",
+                                                                                borderBottom: valIdx < uniqueValues.length - 1 ? "1px solid #eee" : "none", // Separator between centers
+                                                                                flex: 1, // Each center takes equal height
+                                                                                display: "flex",
+                                                                                alignItems: "center",
+                                                                              }}
+                                                                            >
+                                                                              {val}
+                                                                            </div>
+                                                                          ))}
                                                                         </div>
                                                                       </td>
                                                                     );
@@ -10417,6 +10576,9 @@ const MainDashboard = () => {
 
       {/* Preview Modal */}
       <PreviewModal />
+
+      {/* Report Modal */}
+      <ReportModal />
     </div>
   );
 };

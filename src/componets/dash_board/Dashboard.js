@@ -382,46 +382,127 @@ const Dashboard = () => {
     };
   }, [filteredData]);
 
-  // Combined chart data (Scheme + Investment breakdown)
-  const combinedChartData = useMemo(() => {
-    const combinedData = {};
+  // Chart data for main investment-wise subsidy analysis
+  const investmentSubsidyChartData = useMemo(() => {
+    const investmentData = {};
     filteredData.forEach(item => {
-      const key = `${item.scheme_name || 'अन्य'} - ${item.sub_investment_name || 'अन्य'}`;
-      if (!combinedData[key]) {
-        combinedData[key] = { total: 0, farmerShare: 0, subsidy: 0 };
+      const investment = item.investment_name || 'अन्य';
+      if (!investmentData[investment]) {
+        investmentData[investment] = {
+          subsidy: 0
+        };
       }
-      combinedData[key].total += parseFloat(item.total_amount) || 0;
-      combinedData[key].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
-      combinedData[key].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      investmentData[investment].subsidy += parseFloat(item.amount_of_subsidy) || 0;
     });
 
-    // Sort by total and take top 10 for readability
-    const sortedEntries = Object.entries(combinedData)
-      .sort((a, b) => b[1].total - a[1].total)
-      .slice(0, 10);
+    const labels = Object.keys(investmentData).sort((a, b) => investmentData[b].subsidy - investmentData[a].subsidy);
+    const truncatedLabels = labels.map(label => label.length > 15 ? label.substring(0, 15) + '...' : label);
 
-    const labels = sortedEntries.map(([key]) => key.length > 25 ? key.substring(0, 25) + '...' : key);
-    
+    // Generate colors for the chart
+    const baseColors = [
+      'rgba(40, 167, 69, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(253, 126, 20, 0.8)',
+      'rgba(102, 16, 242, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(32, 201, 151, 0.8)',
+      'rgba(255, 193, 7, 0.8)', 'rgba(23, 162, 184, 0.8)', 'rgba(108, 117, 125, 0.8)',
+      'rgba(0, 123, 255, 0.8)', 'rgba(111, 66, 193, 0.8)', 'rgba(253, 51, 114, 0.8)',
+      'rgba(0, 200, 150, 0.8)', 'rgba(255, 120, 100, 0.8)', 'rgba(80, 180, 220, 0.8)',
+      'rgba(180, 100, 200, 0.8)', 'rgba(100, 200, 100, 0.8)', 'rgba(255, 160, 50, 0.8)'
+    ];
+    const colors = labels.map((_, i) => baseColors[i % baseColors.length]);
+
+    const data = labels.map(label => investmentData[label].subsidy);
+
     return {
-      labels,
-      datasets: [
-        {
-          label: translations.farmerShareAmount,
-          data: sortedEntries.map(([, val]) => val.farmerShare),
-          backgroundColor: 'rgba(255, 193, 7, 0.7)',
-          borderColor: 'rgba(255, 193, 7, 1)',
+      doughnut: {
+        labels: truncatedLabels,
+        fullLabels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: colors.slice(0, labels.length).map(c => c.replace('0.8', '1')),
           borderWidth: 1
-        },
-        {
-          label: translations.subsidyAmount,
-          data: sortedEntries.map(([, val]) => val.subsidy),
-          backgroundColor: 'rgba(23, 162, 184, 0.7)',
-          borderColor: 'rgba(23, 162, 184, 1)',
-          borderWidth: 1
-        }
-      ]
+        }]
+      },
+      rawData: investmentData,
+      itemCount: labels.length
     };
   }, [filteredData]);
+
+  // Combined table data (Investment-wise Scheme breakdown)
+  const combinedTableData = useMemo(() => {
+    const investmentSchemeData = {};
+    filteredData.forEach(item => {
+      const investment = item.investment_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      if (!investmentSchemeData[investment]) investmentSchemeData[investment] = {};
+      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = 0;
+      investmentSchemeData[investment][scheme] += subsidy;
+    });
+
+    const investments = Object.keys(investmentSchemeData).sort();
+    const allSchemes = new Set();
+    investments.forEach(inv => {
+      Object.keys(investmentSchemeData[inv]).forEach(sch => allSchemes.add(sch));
+    });
+    const schemes = Array.from(allSchemes).sort();
+
+    const totals = {};
+    investments.forEach(inv => {
+      totals[inv] = schemes.reduce((sum, sch) => sum + (investmentSchemeData[inv][sch] || 0), 0);
+    });
+    const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+
+    return { investments, schemes, data: investmentSchemeData, totals, grandTotal };
+  }, [filteredData]);
+
+  // Sub-investment table data (Sub-investment-wise Scheme breakdown)
+  const subCombinedTableData = useMemo(() => {
+    const subInvestmentSchemeData = {};
+    filteredData.forEach(item => {
+      const subInvestment = item.sub_investment_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      if (!subInvestmentSchemeData[subInvestment]) subInvestmentSchemeData[subInvestment] = {};
+      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = 0;
+      subInvestmentSchemeData[subInvestment][scheme] += subsidy;
+    });
+
+    const subInvestments = Object.keys(subInvestmentSchemeData).sort();
+    const allSchemes = new Set();
+    subInvestments.forEach(subInv => {
+      Object.keys(subInvestmentSchemeData[subInv]).forEach(sch => allSchemes.add(sch));
+    });
+    const schemes = Array.from(allSchemes).sort();
+
+    const data = subInvestmentSchemeData;
+    const totals = {};
+    subInvestments.forEach(subInv => {
+      totals[subInv] = schemes.reduce((sum, sch) => sum + (data[subInv][sch] || 0), 0);
+    });
+    const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+
+    return { subInvestments, schemes, data, totals, grandTotal };
+  }, [filteredData]);
+
+  // Combined chart data for pie chart (subsidy per investment)
+  const combinedChartData = useMemo(() => {
+    const colors = [
+      'rgba(102, 16, 242, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)',
+      'rgba(253, 126, 20, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)',
+      'rgba(255, 193, 7, 0.8)', 'rgba(32, 201, 151, 0.8)', 'rgba(111, 66, 193, 0.8)',
+      'rgba(253, 51, 114, 0.8)'
+    ];
+
+    return {
+      labels: combinedTableData.investments.slice(0, 10), // Top 10 investments
+      datasets: [{
+        data: combinedTableData.investments.slice(0, 10).map(inv => combinedTableData.totals[inv]),
+        backgroundColor: colors.slice(0, combinedTableData.investments.length),
+        borderColor: colors.slice(0, combinedTableData.investments.length).map(c => c.replace('0.8', '1')),
+        borderWidth: 2
+      }]
+    };
+  }, [combinedTableData]);
 
   // Chart options
   const barChartOptions = {
@@ -778,23 +859,158 @@ const Dashboard = () => {
     return { schemeWise, investmentWise };
   };
 
+  // Prepare main investment subsidy data
+  const getMainInvestmentSubsidyData = () => {
+    const mainInvestmentSubsidy = {};
+    filteredData.forEach(item => {
+      const investment = item.investment_name || 'अन्य';
+      if (!mainInvestmentSubsidy[investment]) {
+        mainInvestmentSubsidy[investment] = { subsidy: 0, count: 0 };
+      }
+      mainInvestmentSubsidy[investment].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      mainInvestmentSubsidy[investment].count += 1;
+    });
+    return mainInvestmentSubsidy;
+  };
+
+  // Prepare combined data (Investment-wise Scheme breakdown)
+  const getCombinedData = () => {
+    const investmentSchemeData = {};
+    filteredData.forEach(item => {
+      const investment = item.investment_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      if (!investmentSchemeData[investment]) investmentSchemeData[investment] = {};
+      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = 0;
+      investmentSchemeData[investment][scheme] += subsidy;
+    });
+
+    const investments = Object.keys(investmentSchemeData).sort();
+    const allSchemes = new Set();
+    investments.forEach(inv => {
+      Object.keys(investmentSchemeData[inv]).forEach(sch => allSchemes.add(sch));
+    });
+    const schemes = Array.from(allSchemes).sort();
+
+    const data = investmentSchemeData;
+    const totals = {};
+    investments.forEach(inv => {
+      totals[inv] = schemes.reduce((sum, sch) => sum + (data[inv][sch] || 0), 0);
+    });
+    const grandTotal = investments.reduce((sum, inv) => sum + totals[inv], 0);
+
+    return { investments, schemes, data, totals, grandTotal };
+  };
+
+  // Prepare sub-combined data (Sub-investment-wise Scheme breakdown)
+  const getSubCombinedData = () => {
+    const subInvestmentSchemeData = {};
+    filteredData.forEach(item => {
+      const subInvestment = item.sub_investment_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      if (!subInvestmentSchemeData[subInvestment]) subInvestmentSchemeData[subInvestment] = {};
+      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = 0;
+      subInvestmentSchemeData[subInvestment][scheme] += subsidy;
+    });
+
+    const subInvestments = Object.keys(subInvestmentSchemeData).sort();
+    const allSchemes = new Set();
+    subInvestments.forEach(subInv => {
+      Object.keys(subInvestmentSchemeData[subInv]).forEach(sch => allSchemes.add(sch));
+    });
+    const schemes = Array.from(allSchemes).sort();
+
+    const data = subInvestmentSchemeData;
+    const totals = {};
+    subInvestments.forEach(subInv => {
+      totals[subInv] = schemes.reduce((sum, sch) => sum + (data[subInv][sch] || 0), 0);
+    });
+    const grandTotal = subInvestments.reduce((sum, subInv) => sum + totals[subInv], 0);
+
+    return { subInvestments, schemes, data, totals, grandTotal };
+  };
+
   // Generate PDF Report using html2pdf for proper Hindi support
   const generatePDF = (action = 'download') => {
     const { schemeWise, investmentWise } = getReportData();
+    const { investments, schemes, data, totals, grandTotal } = getCombinedData();
+    const { subInvestments, schemes: subSchemes, data: subData, totals: subTotals, grandTotal: subGrandTotal } = getSubCombinedData();
+    const mainInvestmentSubsidy = getMainInvestmentSubsidyData();
     const currentDate = new Date().toLocaleDateString('hi-IN');
     
     // Create HTML content for PDF
     const pdfContent = `
+      <style>
+        @page {
+          margin: 15mm 10mm 15mm 10mm;
+          size: A4;
+        }
+        
+        /* Prevent headings from breaking across pages */
+        h1, h2 {
+          page-break-after: avoid;
+          page-break-inside: avoid;
+          margin-top: 20px !important;
+          margin-bottom: 10px !important;
+        }
+        
+        /* Prevent table headers from breaking */
+        thead {
+          page-break-inside: avoid;
+        }
+        
+        /* Allow table rows to break but prefer not to */
+        tbody tr {
+          page-break-inside: avoid;
+        }
+        
+        /* Ensure sections don't break awkwardly */
+        div[style*="margin-bottom"] {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        
+        /* Force page breaks before major sections if needed */
+        div[style*="margin-bottom"]:nth-child(n+3) {
+          page-break-before: auto;
+        }
+        
+        /* Keep table headers with their tables */
+        table {
+          page-break-inside: auto;
+        }
+        
+        /* Prevent table headers from being orphaned */
+        thead {
+          page-break-after: avoid;
+        }
+        
+        /* Allow table body to break but keep rows together when possible */
+        tbody {
+          page-break-inside: auto;
+        }
+        
+        /* Prevent single rows at bottom of page */
+        tbody tr:last-child {
+          page-break-inside: avoid;
+        }
+        
+        /* Ensure table captions/headings stay with their tables */
+        h2 + table {
+          page-break-before: avoid;
+        }
+      </style>
       <div style="font-family: 'Noto Sans Devanagari', 'Mangal', Arial, sans-serif; padding: 20px; color: #333;">
         <!-- Header -->
-        <div style="text-align: center; border-bottom: 3px solid #194e8b; padding-bottom: 15px; margin-bottom: 20px;">
+        <div style="text-align: center; border-bottom: 3px solid #194e8b; padding-bottom: 15px; margin-bottom: 20px; page-break-inside: avoid;">
           <h1 style="color: #194e8b; font-size: 24px; margin: 0;">DHO कोटद्वार बिलिंग रिपोर्ट</h1>
           <p style="color: #666; font-size: 12px; margin: 5px 0 0 0;">रिपोर्ट तिथि: ${currentDate}</p>
           <p style="color: #888; font-size: 11px; margin: 3px 0 0 0;">फ़िल्टर: ${getFilterStatusText()}</p>
         </div>
 
         <!-- Summary Section -->
-        <div style="margin-bottom: 25px;">
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
           <h2 style="color: #194e8b; font-size: 16px; border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-bottom: 10px;">सारांश</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
             <thead>
@@ -819,7 +1035,7 @@ const Dashboard = () => {
         </div>
 
         <!-- Scheme-wise Section -->
-        <div style="margin-bottom: 25px;">
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
           <h2 style="color: #28a745; font-size: 16px; border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-bottom: 10px;">योजना-वार विवरण</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
@@ -848,7 +1064,7 @@ const Dashboard = () => {
         </div>
 
         <!-- Investment-wise Section -->
-        <div style="margin-bottom: 25px;">
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
           <h2 style="color: #6610f2; font-size: 16px; border-bottom: 2px solid #6610f2; padding-bottom: 5px; margin-bottom: 10px;">उपनिवेश-वार विवरण</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
             <thead>
@@ -878,6 +1094,98 @@ const Dashboard = () => {
           </table>
         </div>
 
+        <!-- Sub-investment Scheme Section -->
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
+          <h2 style="color: #ffc107; font-size: 16px; border-bottom: 2px solid #ffc107; padding-bottom: 5px; margin-bottom: 10px;">उपनिवेश - योजना सब्सिडी तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #ffc107, #ffca2c);">
+                <th style="border: 1px solid #ddd; padding: 4px; color: black; text-align: left;">उपनिवेश</th>
+                ${subSchemes.map(scheme => `<th style="border: 1px solid #ddd; padding: 4px; color: black; text-align: center;">${scheme}</th>`).join('')}
+                <th style="border: 1px solid #ddd; padding: 4px; color: black; text-align: center;">कुल</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${subInvestments.map(subInvestment => `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 4px; font-weight: 500;">${subInvestment}</td>
+                  ${subSchemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center;">₹${(subData[subInvestment][scheme] || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
+                  <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${subTotals[subInvestment].toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight: 700; background-color: #f1f5f9;">
+                <td style="border: 1px solid #ddd; padding: 4px; font-weight: bold;">कुल</td>
+                ${subSchemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${subInvestments.reduce((sum, subInv) => sum + (subData[subInv][scheme] || 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
+                <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${subGrandTotal.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Main Investment Subsidy Section -->
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
+          <h2 style="color: #17a2b8; font-size: 16px; border-bottom: 2px solid #17a2b8; padding-bottom: 5px; margin-bottom: 10px;">निवेश के अनुसार सब्सिडी राशि</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #17a2b8, #20c997);">
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">निवेश</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">रिकॉर्ड</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">सब्सिडी राशि</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(mainInvestmentSubsidy)
+                .sort((a, b) => b[1].subsidy - a[1].subsidy)
+                .map(([name, data], idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${name}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${data.count}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">₹${data.subsidy.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight: 700; background-color: #f1f5f9;">
+                <td style="border: 1px solid #ddd; padding: 6px; font-weight: bold;">कुल</td>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.count, 0)}</td>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">₹${Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.subsidy, 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Combined Investment-Scheme Section -->
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
+          <h2 style="color: #6f42c1; font-size: 16px; border-bottom: 2px solid #6f42c1; padding-bottom: 5px; margin-bottom: 10px;">निवेश - योजना सब्सिडी तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #6f42c1, #8540f5);">
+                <th style="border: 1px solid #ddd; padding: 4px; color: white; text-align: left;">निवेश</th>
+                ${schemes.map(scheme => `<th style="border: 1px solid #ddd; padding: 4px; color: white; text-align: center;">${scheme}</th>`).join('')}
+                <th style="border: 1px solid #ddd; padding: 4px; color: white; text-align: center;">कुल</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${investments.map(investment => `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 4px; font-weight: 500;">${investment}</td>
+                  ${schemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center;">₹${(data[investment][scheme] || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
+                  <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${totals[investment].toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight: 700; background-color: #f1f5f9;">
+                <td style="border: 1px solid #ddd; padding: 4px; font-weight: bold;">कुल</td>
+                ${schemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${investments.reduce((sum, inv) => sum + (data[inv][scheme] || 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
+                <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${grandTotal.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
         <!-- Footer -->
         <div style="text-align: center; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px; color: #888; font-size: 9px;">
           <p>DHO कोटद्वार बिलिंग प्रणाली | रिपोर्ट जनरेट तिथि: ${currentDate}</p>
@@ -891,16 +1199,30 @@ const Dashboard = () => {
     document.body.appendChild(element);
 
     const opt = {
-      margin: [10, 10, 10, 10],
+      margin: [15, 10, 15, 10],
       filename: `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, 
         useCORS: true,
-        letterRendering: true
+        letterRendering: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff'
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true,
+        precision: 16,
+        userUnit: 1.0
+      },
+      pagebreak: { 
+        mode: ['css', 'legacy'],
+        before: '.page-break-before',
+        after: '.page-break-after',
+        avoid: ['h1', 'h2', 'thead', 'tr']
+      }
     };
 
     if (action === 'download') {
@@ -920,6 +1242,9 @@ const Dashboard = () => {
   // Generate Excel Report
   const generateExcel = (action = 'download') => {
     const { schemeWise, investmentWise } = getReportData();
+    const { investments, schemes, data, totals, grandTotal } = getCombinedData();
+    const { subInvestments, schemes: subSchemes, data: subData, totals: subTotals, grandTotal: subGrandTotal } = getSubCombinedData();
+    const mainInvestmentSubsidy = getMainInvestmentSubsidyData();
     const currentDate = new Date().toLocaleDateString('hi-IN');
     
     // Create workbook
@@ -965,12 +1290,62 @@ const Dashboard = () => {
     investmentWs['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, investmentWs, 'उपनिवेश-वार');
 
+    // Sub-investment Scheme Sheet
+    const subCombinedHeaders = ['उपनिवेश', ...subSchemes, 'कुल'];
+    const subCombinedRows = subInvestments.map(subInvestment => [
+      subInvestment,
+      ...subSchemes.map(scheme => (subData[subInvestment][scheme] || 0).toFixed(2)),
+      subTotals[subInvestment].toFixed(2)
+    ]);
+    // Add total row
+    subCombinedRows.push([
+      'कुल',
+      ...subSchemes.map(scheme => subInvestments.reduce((sum, subInv) => sum + (subData[subInv][scheme] || 0), 0).toFixed(2)),
+      subGrandTotal.toFixed(2)
+    ]);
+    const subCombinedWs = XLSX.utils.aoa_to_sheet([subCombinedHeaders, ...subCombinedRows]);
+    subCombinedWs['!cols'] = [{ wch: 30 }, ...subSchemes.map(() => ({ wch: 15 })), { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, subCombinedWs, 'उपनिवेश - योजना सब्सिडी');
+
+    // Main Investment Subsidy Sheet
+    const mainInvestmentHeaders = ['निवेश', 'रिकॉर्ड संख्या', 'सब्सिडी राशि'];
+    const mainInvestmentRows = Object.entries(mainInvestmentSubsidy)
+      .sort((a, b) => b[1].subsidy - a[1].subsidy)
+      .map(([name, data]) => [
+        name, data.count, data.subsidy.toFixed(2)
+      ]);
+    // Add total row
+    const totalCount = Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.count, 0);
+    const totalSubsidy = Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.subsidy, 0);
+    mainInvestmentRows.push(['कुल', totalCount, totalSubsidy.toFixed(2)]);
+    const mainInvestmentWs = XLSX.utils.aoa_to_sheet([mainInvestmentHeaders, ...mainInvestmentRows]);
+    mainInvestmentWs['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, mainInvestmentWs, 'निवेश सब्सिडी');
+
+    // Combined Investment-Scheme Sheet
+    const combinedHeaders = ['निवेश', ...schemes, 'कुल'];
+    const combinedRows = investments.map(investment => [
+      investment,
+      ...schemes.map(scheme => (data[investment][scheme] || 0).toFixed(2)),
+      totals[investment].toFixed(2)
+    ]);
+    // Add total row
+    combinedRows.push([
+      'कुल',
+      ...schemes.map(scheme => investments.reduce((sum, inv) => sum + (data[inv][scheme] || 0), 0).toFixed(2)),
+      grandTotal.toFixed(2)
+    ]);
+    const combinedWs = XLSX.utils.aoa_to_sheet([combinedHeaders, ...combinedRows]);
+    combinedWs['!cols'] = [{ wch: 30 }, ...schemes.map(() => ({ wch: 15 })), { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, combinedWs, 'निवेश - योजना सब्सिडी');
+
     // Detailed Data Sheet
-    const detailHeaders = ['क्र.सं.', 'योजना', 'उपनिवेश', 'बिल तिथि', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
+    const detailHeaders = ['क्र.सं.', 'योजना', 'उपनिवेश', 'निवेश', 'बिल तिथि', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
     const detailRows = filteredData.map((item, idx) => [
       idx + 1,
       item.scheme_name || '',
       item.sub_investment_name || '',
+      item.investment_name || '',
       item.bill_date || '',
       parseFloat(item.allocated_quantity) || 0,
       parseFloat(item.amount_of_farmer_share) || 0,
@@ -978,7 +1353,7 @@ const Dashboard = () => {
       parseFloat(item.total_amount) || 0
     ]);
     const detailWs = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
-    detailWs['!cols'] = [{ wch: 8 }, { wch: 25 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
+    detailWs['!cols'] = [{ wch: 8 }, { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, detailWs, 'विस्तृत डेटा');
 
     if (action === 'download') {
@@ -1408,9 +1783,39 @@ const Dashboard = () => {
                             </h6>
                           </Card.Header>
                           <Card.Body>
-                            <div className="chart-container" style={{ height: '280px' }}>
+                            <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
                               {schemeChartData.pie.labels.length > 0 ? (
-                                <Pie data={schemeChartData.pie} options={pieChartOptions} />
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                    <thead style={{ backgroundColor: '#194e8b', color: 'white' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th>योजना</th>
+                                        <th className="text-end">सब्सिडी</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {schemeChartData.pie.labels.map((label, idx) => {
+                                        const subsidy = (schemeChartData.rawData && schemeChartData.rawData[label] && schemeChartData.rawData[label].subsidy) || 0;
+                                        return (
+                                          <tr key={label}>
+                                            <td>{idx + 1}</td>
+                                            <td style={{ whiteSpace: 'nowrap', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</td>
+                                            <td className="text-end">{formatCurrency(subsidy)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        <td className="text-end">
+                                          {formatCurrency(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.subsidy) || 0), 0))}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
                               ) : (
                                 <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
                               )}
@@ -1463,81 +1868,71 @@ const Dashboard = () => {
                             </div>
                           </Col>
                           <Col lg={6} md={12}>
-                            <div className="upnivesh-legend-table" style={{ maxHeight: '450px', overflowY: 'auto' }}>
-                              <table className="table table-sm table-striped" style={{ fontSize: '0.8rem' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#28a745', color: 'white' }}>
-                                  <tr>
-                                    <th style={{width: '25px'}}>#</th>
-                                    <th>उपनिवेश नाम</th>
-                                    <th className="text-end">कुल राशि</th>
-                                    <th className="text-end">%</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {investmentChartData.doughnut.fullLabels.map((label, idx) => {
-                                    const value = investmentChartData.doughnut.datasets[0].data[idx];
-                                    const total = investmentChartData.doughnut.datasets[0].data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    const color = investmentChartData.doughnut.datasets[0].backgroundColor[idx];
-                                    return (
-                                      <tr key={idx}>
-                                        <td>
-                                          <span style={{ 
-                                            display: 'inline-block', 
-                                            width: '14px', 
-                                            height: '14px', 
-                                            backgroundColor: color,
-                                            borderRadius: '3px',
-                                            border: '1px solid rgba(0,0,0,0.1)'
-                                          }}></span>
-                                        </td>
-                                        <td title={label} style={{ fontSize: '0.75rem' }}>
-                                          {label}
-                                        </td>
-                                        <td className="text-end" style={{ fontWeight: '600', fontSize: '0.75rem' }}>
-                                          {formatCurrency(value)}
-                                        </td>
+                            <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                              {investmentChartData.doughnut && investmentChartData.doughnut.fullLabels && investmentChartData.doughnut.fullLabels.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#28a745', color: 'white' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th>उपनिवेश नाम</th>
+                                        <th className="text-end">कुल राशि</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {investmentChartData.doughnut.fullLabels.map((label, idx) => {
+                                        const total = (investmentChartData.rawData && investmentChartData.rawData[label] && investmentChartData.rawData[label].total) || 0;
+                                        return (
+                                          <tr key={label}>
+                                            <td>{idx + 1}</td>
+                                            <td title={label} style={{ fontSize: '0.85rem' }}>{label}</td>
+                                            <td className="text-end">{formatCurrency(total)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
                                         <td className="text-end">
-                                          <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>{percentage}%</span>
+                                          {formatCurrency(Object.values(investmentChartData.rawData || {}).reduce((s, v) => s + ((v && v.total) || 0), 0))}
                                         </td>
                                       </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
                             </div>
                           </Col>
                         </Row>
                       </Card.Body>
                     </Card>
 
-                    {/* Row 3: संयुक्त ग्राफ़ - योजना और उपनिवेश Pie Chart */}
+                    {/* Row 2.5: उपनिवेश - योजना सब्सिडी तुलना */}
                     <Card className="chart-card mb-4">
-                      <Card.Header className="chart-card-header bg-combined-gradient">
+                      <Card.Header className="chart-card-header bg-warning-gradient">
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
-                          {translations.combinedGraph} - योजना और उपनिवेश (शीर्ष 10)
+                          उपनिवेश - योजना सब्सिडी तुलना
                         </h6>
                       </Card.Header>
                       <Card.Body>
                         <Row>
                           <Col lg={6} md={12} className="mb-3">
                             <div className="chart-container" style={{ height: '400px' }}>
-                              {combinedChartData.labels.length > 0 ? (
-                                <Pie 
+                              {subCombinedTableData.subInvestments.length > 0 ? (
+                                <Pie
                                   data={{
-                                    labels: combinedChartData.labels,
+                                    labels: subCombinedTableData.subInvestments,
                                     datasets: [{
-                                      data: combinedChartData.datasets[0].data.map((v, i) => v + combinedChartData.datasets[1].data[i]),
-                                      backgroundColor: [
-                                        'rgba(102, 16, 242, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)',
-                                        'rgba(253, 126, 20, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)',
-                                        'rgba(255, 193, 7, 0.8)', 'rgba(32, 201, 151, 0.8)', 'rgba(111, 66, 193, 0.8)',
-                                        'rgba(253, 51, 114, 0.8)'
-                                      ],
-                                      borderWidth: 2
+                                      data: subCombinedTableData.subInvestments.map(subInv => subCombinedTableData.totals[subInv]),
+                                      backgroundColor: subCombinedTableData.subInvestments.map((_, idx) => `hsl(${(idx * 360) / subCombinedTableData.subInvestments.length}, 70%, 50%)`),
+                                      borderColor: subCombinedTableData.subInvestments.map((_, idx) => `hsl(${(idx * 360) / subCombinedTableData.subInvestments.length}, 70%, 30%)`),
+                                      borderWidth: 1
                                     }]
-                                  }} 
+                                  }}
                                   options={{
                                     responsive: true,
                                     maintainAspectRatio: false,
@@ -1550,12 +1945,12 @@ const Dashboard = () => {
                                           label: (context) => {
                                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                             const percentage = ((context.raw / total) * 100).toFixed(1);
-                                            return `कुल राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                            return `सब्सिडी: ${formatCurrency(context.raw)} (${percentage}%)`;
                                           }
                                         }
                                       }
                                     }
-                                  }} 
+                                  }}
                                 />
                               ) : (
                                 <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
@@ -1563,54 +1958,237 @@ const Dashboard = () => {
                             </div>
                           </Col>
                           <Col lg={6} md={12}>
-                            <div className="upnivesh-legend-table" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                              <table className="table table-sm table-striped" style={{ fontSize: '0.8rem' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6f42c1', color: 'white' }}>
-                                  <tr>
-                                    <th style={{width: '25px'}}>#</th>
-                                    <th>योजना - उपनिवेश</th>
-                                    <th className="text-end">कुल राशि</th>
-                                    <th className="text-end">%</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {combinedChartData.labels.map((label, idx) => {
-                                    const totalValue = combinedChartData.datasets[0].data[idx] + combinedChartData.datasets[1].data[idx];
-                                    const grandTotal = combinedChartData.datasets[0].data.reduce((a, b) => a + b, 0) + 
-                                                       combinedChartData.datasets[1].data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((totalValue / grandTotal) * 100).toFixed(1);
-                                    const colors = [
-                                      'rgba(102, 16, 242, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)',
-                                      'rgba(253, 126, 20, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)',
-                                      'rgba(255, 193, 7, 0.8)', 'rgba(32, 201, 151, 0.8)', 'rgba(111, 66, 193, 0.8)',
-                                      'rgba(253, 51, 114, 0.8)'
-                                    ];
-                                    return (
-                                      <tr key={idx}>
-                                        <td>
-                                          <span style={{ 
-                                            display: 'inline-block', 
-                                            width: '14px', 
-                                            height: '14px', 
-                                            backgroundColor: colors[idx],
-                                            borderRadius: '3px',
-                                            border: '1px solid rgba(0,0,0,0.1)'
-                                          }}></span>
-                                        </td>
-                                        <td title={label} style={{ fontSize: '0.75rem' }}>
-                                          {label}
-                                        </td>
-                                        <td className="text-end" style={{ fontWeight: '600', fontSize: '0.75rem' }}>
-                                          {formatCurrency(totalValue)}
-                                        </td>
+                            <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                              {subCombinedTableData.subInvestments.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffc107', color: 'black' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th style={{ minWidth: '120px' }}>उपनिवेश</th>
+                                        {subCombinedTableData.schemes.map(scheme => (
+                                          <th key={scheme} className="text-end" style={{ minWidth: '80px' }}>{scheme}</th>
+                                        ))}
+                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {subCombinedTableData.subInvestments.map((subInvestment, idx) => (
+                                        <tr key={subInvestment}>
+                                          <td>{idx + 1}</td>
+                                          <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={subInvestment}>
+                                            {subInvestment}
+                                          </td>
+                                          {subCombinedTableData.schemes.map(scheme => (
+                                            <td key={scheme} className="text-end">
+                                              {formatCurrency(subCombinedTableData.data[subInvestment][scheme] || 0)}
+                                            </td>
+                                          ))}
+                                          <td className="text-end font-weight-bold">
+                                            {formatCurrency(subCombinedTableData.totals[subInvestment])}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        {subCombinedTableData.schemes.map(scheme => (
+                                          <td key={scheme} className="text-end">
+                                            {formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + (subCombinedTableData.data[subInv][scheme] || 0), 0))}
+                                          </td>
+                                        ))}
                                         <td className="text-end">
-                                          <span className="badge" style={{ fontSize: '0.65rem', backgroundColor: '#6f42c1' }}>{percentage}%</span>
+                                          {formatCurrency(subCombinedTableData.grandTotal)}
                                         </td>
                                       </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+
+                    {/* Row 2.75: निवेश (Main Investment) - Pie Chart with Subsidy Table */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header className="chart-card-header bg-info-gradient">
+                        <h6 className="mb-0 text-white">
+                          <FaChartPie className="me-2" />
+                          निवेश के अनुसार ग्राफ़ - सब्सिडी राशि
+                          <span className="badge bg-light text-dark ms-2" style={{fontSize: '0.7rem'}}>
+                            {investmentSubsidyChartData.itemCount} निवेश
+                          </span>
+                        </h6>
+                      </Card.Header>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={6} md={12} className="mb-3">
+                            <div className="chart-container" style={{ height: '450px' }}>
+                              {investmentSubsidyChartData.doughnut.labels.length > 0 ? (
+                                <Pie data={investmentSubsidyChartData.doughnut} options={{
+                                  responsive: true,
+                                  maintainAspectRatio: false,
+                                  plugins: {
+                                    legend: {
+                                      display: false
+                                    },
+                                    tooltip: {
+                                      callbacks: {
+                                        title: (context) => {
+                                          return investmentSubsidyChartData.doughnut.fullLabels[context[0].dataIndex];
+                                        },
+                                        label: (context) => {
+                                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                          const percentage = ((context.raw / total) * 100).toFixed(1);
+                                          return `सब्सिडी राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                        }
+                                      }
+                                    }
+                                  }
+                                }} />
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                          <Col lg={6} md={12}>
+                            <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                              {investmentSubsidyChartData.doughnut && investmentSubsidyChartData.doughnut.fullLabels && investmentSubsidyChartData.doughnut.fullLabels.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#17a2b8', color: 'white' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th>निवेश नाम</th>
+                                        <th className="text-end">सब्सिडी राशि</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {investmentSubsidyChartData.doughnut.fullLabels.map((label, idx) => {
+                                        const subsidy = (investmentSubsidyChartData.rawData && investmentSubsidyChartData.rawData[label] && investmentSubsidyChartData.rawData[label].subsidy) || 0;
+                                        return (
+                                          <tr key={label}>
+                                            <td>{idx + 1}</td>
+                                            <td title={label} style={{ fontSize: '0.85rem' }}>{label}</td>
+                                            <td className="text-end">{formatCurrency(subsidy)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        <td className="text-end">
+                                          {formatCurrency(Object.values(investmentSubsidyChartData.rawData || {}).reduce((s, v) => s + ((v && v.subsidy) || 0), 0))}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+
+                    {/* Row 3: निवेश - योजना सब्सिडी तुलना */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header className="chart-card-header bg-combined-gradient">
+                        <h6 className="mb-0 text-white">
+                          <FaChartPie className="me-2" />
+                          निवेश - योजना सब्सिडी तुलना
+                        </h6>
+                      </Card.Header>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={6} md={12} className="mb-3">
+                            <div className="chart-container" style={{ height: '400px' }}>
+                              {combinedChartData.labels.length > 0 ? (
+                                <Pie
+                                  data={combinedChartData}
+                                  options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                      legend: {
+                                        display: false
+                                      },
+                                      tooltip: {
+                                        callbacks: {
+                                          label: (context) => {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((context.raw / total) * 100).toFixed(1);
+                                            return `सब्सिडी: ${formatCurrency(context.raw)} (${percentage}%)`;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                          <Col lg={6} md={12}>
+                            <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                              {combinedTableData.investments.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6f42c1', color: 'white' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th style={{ minWidth: '120px' }}>निवेश</th>
+                                        {combinedTableData.schemes.map(scheme => (
+                                          <th key={scheme} className="text-end" style={{ minWidth: '80px' }}>{scheme}</th>
+                                        ))}
+                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {combinedTableData.investments.map((investment, idx) => (
+                                        <tr key={investment}>
+                                          <td>{idx + 1}</td>
+                                          <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={investment}>
+                                            {investment}
+                                          </td>
+                                          {combinedTableData.schemes.map(scheme => (
+                                            <td key={scheme} className="text-end">
+                                              {formatCurrency(combinedTableData.data[investment][scheme] || 0)}
+                                            </td>
+                                          ))}
+                                          <td className="text-end font-weight-bold">
+                                            {formatCurrency(combinedTableData.totals[investment])}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        {combinedTableData.schemes.map(scheme => (
+                                          <td key={scheme} className="text-end">
+                                            {formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + (combinedTableData.data[inv][scheme] || 0), 0))}
+                                          </td>
+                                        ))}
+                                        <td className="text-end">
+                                          {formatCurrency(combinedTableData.grandTotal)}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
                             </div>
                           </Col>
                         </Row>
