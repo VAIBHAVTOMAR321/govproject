@@ -152,35 +152,43 @@ const ColumnFilter = ({
   );
 };
 
-// Function to generate summary table for विकासखंड and केंद्र
-// This groups data into: vikasKhand -> centers -> schemes -> investments
+// Function to generate summary table for विकासखंड और केंद्र
+// This groups data into: vikasKhand -> centers -> schemes -> investments -> subInvestments
 const generateVikasKhandSummary = (data) => {
   if (!data || data.length === 0) return [];
 
+  // Structure: vikasKhand -> center -> scheme -> { investmentsMap: { investmentName: Set(subInvestments) } }
   const groupedByVikasKhand = {};
 
   data.forEach((item) => {
     const vikasKhand = item.vikas_khand_name || "अनजान";
     const center = item.center_name || "अनजान";
     const scheme = item.scheme_name || "अनिर्दिष्ट योजना";
-    const investment = item.investment_name || null;
+    const investment = item.investment_name || "अनिर्दिष्ट निवेश";
+    const subInvestment = item.sub_investment_name || null;
 
     if (!groupedByVikasKhand[vikasKhand]) groupedByVikasKhand[vikasKhand] = {};
     if (!groupedByVikasKhand[vikasKhand][center]) groupedByVikasKhand[vikasKhand][center] = {};
-    if (!groupedByVikasKhand[vikasKhand][center][scheme])
-      groupedByVikasKhand[vikasKhand][center][scheme] = new Set();
+    if (!groupedByVikasKhand[vikasKhand][center][scheme]) {
+      groupedByVikasKhand[vikasKhand][center][scheme] = { investmentsMap: {} };
+    }
 
-    if (investment) groupedByVikasKhand[vikasKhand][center][scheme].add(investment);
+    const investmentsMap = groupedByVikasKhand[vikasKhand][center][scheme].investmentsMap;
+    if (!investmentsMap[investment]) investmentsMap[investment] = new Set();
+    if (subInvestment) investmentsMap[investment].add(subInvestment);
   });
 
-  // Convert to array format suitable for rendering
+  // Convert to array format suitable for rendering where each investment contains its subInvestments
   return Object.entries(groupedByVikasKhand).map(([vikasKhand, centersObj]) => ({
     vikasKhand,
     centers: Object.entries(centersObj).map(([centerName, schemesObj]) => ({
       centerName,
-      schemes: Object.entries(schemesObj).map(([schemeName, investmentsSet]) => ({
+      schemes: Object.entries(schemesObj).map(([schemeName, schemeObj]) => ({
         schemeName,
-        investments: Array.from(investmentsSet),
+        investments: Object.entries(schemeObj.investmentsMap || {}).map(([investmentName, subSet]) => ({
+          investmentName,
+          subInvestments: Array.from(subSet),
+        })),
       })),
     })),
   }));
@@ -223,29 +231,29 @@ const renderVikasKhandSummaryTable = (summaryData) => {
                         <div style={{ fontWeight: '600', color: '#495057' }}>{translations.investmentName}</div>
 
                         {center.schemes && center.schemes.length > 0 ? (
-                          center.schemes.map((sch, sidx) => {
-                            const invs = (sch.investments && sch.investments.length > 0) ? sch.investments : [];
-                            return (
-                              <div key={`scheme-block-${sidx}`} style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '6px', alignItems: 'start' }}>
-                                <div style={{ padding: '4px 6px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                  <div>{sch.schemeName}</div>
-                                  {invs.slice(1).map((_, blankIdx) => (
-                                    <div key={`blank-${sidx}-${blankIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>&nbsp;</div>
-                                  ))}
-                                  <div style={{ borderTop: '1px solid #f2f2f2', margin: '6px 0' }} />
-                                </div>
-                                <div style={{ padding: '4px 6px', fontSize: '12px' }}>
-                                  {invs.length > 0 ? (
-                                    invs.map((inv, ii) => (
-                                      <div key={ii} style={{ padding: '2px 0', fontSize: '12px' }}>{inv}</div>
-                                    ))
-                                  ) : (
-                                    <div>—</div>
-                                  )}
-                                </div>
+                          center.schemes.map((sch, sidx) => (
+                            <div key={`scheme-block-${sidx}`} style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '6px', alignItems: 'start' }}>
+                              <div style={{ padding: '4px 6px', fontSize: '12px' }}>
+                                <div style={{ fontWeight: 600 }}>{sch.schemeName}</div>
                               </div>
-                            );
-                          })
+                              <div style={{ padding: '4px 6px', fontSize: '12px' }}>
+                                {sch.investments && sch.investments.length > 0 ? (
+                                  sch.investments.map((inv, ii) => (
+                                    <div key={ii} style={{ marginBottom: 8 }}>
+                                      <div style={{ fontWeight: 600 }}>{inv.investmentName}</div>
+                                      {inv.subInvestments && inv.subInvestments.length > 0 ? (
+                                        <div style={{ marginLeft: 8, color: '#343a40' }}>{inv.subInvestments.join(', ')}</div>
+                                      ) : (
+                                        <div style={{ marginLeft: 8, color: '#6c757d' }}>—</div>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div>—</div>
+                                )}
+                              </div>
+                            </div>
+                          ))
                         ) : (
                           <>
                             <div>—</div>
@@ -6152,12 +6160,7 @@ const MainDashboard = () => {
                     <div className="dashboard-graphs p-3 border rounded bg-white">
                       <ExportSection />
                       
-                      {/* Vikas Khand Summary Table */}
-                      {filters.center_name.length > 0 && (
-                        <div className="mt-4">
-                          {renderVikasKhandSummaryTable(generateVikasKhandSummary(filteredTableData))}
-                        </div>
-                      )}
+                      {/* Vikas Khand Summary Table removed as per request */}
                       {isApplyingFilters && (
                         <div className="text-center py-3">
                           <div
