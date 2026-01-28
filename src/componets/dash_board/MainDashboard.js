@@ -153,106 +153,103 @@ const ColumnFilter = ({
 };
 
 // Function to generate summary table for विकासखंड and केंद्र
+// This groups data into: vikasKhand -> centers -> schemes -> investments
 const generateVikasKhandSummary = (data) => {
   if (!data || data.length === 0) return [];
 
-  // Group centers by विकासखंड
   const groupedByVikasKhand = {};
+
   data.forEach((item) => {
-    const vikasKhand = item.vikas_khand_name;
-    const center = item.center_name;
-    
-    if (vikasKhand && center) {
-      if (!groupedByVikasKhand[vikasKhand]) {
-        groupedByVikasKhand[vikasKhand] = new Set();
-      }
-      groupedByVikasKhand[vikasKhand].add(center);
-    }
+    const vikasKhand = item.vikas_khand_name || "अनजान";
+    const center = item.center_name || "अनजान";
+    const scheme = item.scheme_name || "अनिर्दिष्ट योजना";
+    const investment = item.investment_name || null;
+
+    if (!groupedByVikasKhand[vikasKhand]) groupedByVikasKhand[vikasKhand] = {};
+    if (!groupedByVikasKhand[vikasKhand][center]) groupedByVikasKhand[vikasKhand][center] = {};
+    if (!groupedByVikasKhand[vikasKhand][center][scheme])
+      groupedByVikasKhand[vikasKhand][center][scheme] = new Set();
+
+    if (investment) groupedByVikasKhand[vikasKhand][center][scheme].add(investment);
   });
 
-  // Convert to array format for the table
-  return Object.entries(groupedByVikasKhand).map(([vikasKhand, centers]) => ({
+  // Convert to array format suitable for rendering
+  return Object.entries(groupedByVikasKhand).map(([vikasKhand, centersObj]) => ({
     vikasKhand,
-    centers: Array.from(centers),
+    centers: Object.entries(centersObj).map(([centerName, schemesObj]) => ({
+      centerName,
+      schemes: Object.entries(schemesObj).map(([schemeName, investmentsSet]) => ({
+        schemeName,
+        investments: Array.from(investmentsSet),
+      })),
+    })),
   }));
 };
 
-// Function to render the summary table
+// Function to render the summary table (shows scheme -> investments per center)
 const renderVikasKhandSummaryTable = (summaryData) => {
   if (!summaryData || summaryData.length === 0) return null;
 
   return (
     <div className="table-responsive mt-4">
-      <h5 className="mb-3">विकासखंड और केंद्र सारांश</h5>
+      <h5 className="mb-3">विकासखंड, केंद्र और योजना/निवेश सारांश</h5>
       <Table striped bordered hover className="table-thead-style">
         <thead className="table-thead">
           <tr>
             <th style={{ width: '30%', verticalAlign: 'middle' }}>विकासखंड</th>
-            <th style={{ width: '70%' }}>केंद्र</th>
+            <th style={{ width: '70%' }}>केंद्र - योजना और निवेश</th>
           </tr>
         </thead>
         <tbody>
-          {summaryData.map((item, index) => {
-            // Split centers into two columns for better readability when many values exist
-            const centers = item.centers || [];
-            const mid = Math.ceil(centers.length / 2);
-            const left = centers.slice(0, mid);
-            const right = centers.slice(mid);
+          {summaryData.map((item, index) => (
+            <tr key={index}>
+              <td
+                style={{
+                  verticalAlign: 'top',
+                  fontWeight: 'bold',
+                  backgroundColor: '#f8f9fa',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {item.vikasKhand}
+              </td>
+              <td style={{ padding: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {item.centers.map((center, ci) => (
+                    <div key={`${index}-center-${ci}`} style={{ border: '1px solid #e9ecef', borderRadius: 6, padding: '8px', background: '#fff' }}>
+                      <div style={{ fontWeight: '600', marginBottom: 6 }}>{center.centerName}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '6px', alignItems: 'start' }}>
+                        <div style={{ fontWeight: '600', color: '#495057' }}>योजना</div>
+                        <div style={{ fontWeight: '600', color: '#495057' }}>{translations.investmentName}</div>
 
-            return (
-              <tr key={index}>
-                <td
-                  style={{
-                    verticalAlign: 'middle',
-                    fontWeight: 'bold',
-                    backgroundColor: '#f8f9fa',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {item.vikasKhand}
-                </td>
-                <td style={{ padding: '8px' }}>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      {left.map((center, ci) => (
-                        <div
-                          key={`L-${ci}`}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: ci % 2 === 0 ? '#ffffff' : '#f8f9fa',
-                            borderBottom: ci < left.length - 1 ? '1px solid #dee2e6' : 'none',
-                            display: 'flex',
-                            alignItems: 'center'
-                          }}
-                        >
-                          {center}
-                        </div>
-                      ))}
-                    </div>
-
-                    {right.length > 0 && (
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid #dee2e6', paddingLeft: '12px' }}>
-                        {right.map((center, ci) => (
-                          <div
-                            key={`R-${ci}`}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: ci % 2 === 0 ? '#ffffff' : '#f8f9fa',
-                              borderBottom: ci < right.length - 1 ? '1px solid #dee2e6' : 'none',
-                              display: 'flex',
-                              alignItems: 'center'
-                            }}
-                          >
-                            {center}
-                          </div>
-                        ))}
+                        {center.schemes && center.schemes.length > 0 ? (
+                          center.schemes.map((sch, sidx) => (
+                            <React.Fragment key={`scheme-${sidx}`}>
+                              <div style={{ padding: '4px 6px', borderBottom: '1px dashed #e9ecef', fontSize: '12px' }}>{sch.schemeName}</div>
+                              <div style={{ padding: '4px 6px', borderBottom: '1px dashed #e9ecef' }}>
+                                {sch.investments && sch.investments.length > 0 ? (
+                                  sch.investments.map((inv, ii) => (
+                                    <div key={ii} style={{ padding: '2px 0', fontSize: '12px' }}>{inv}</div>
+                                  ))
+                                ) : (
+                                  '—'
+                                )}
+                              </div>
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          <>
+                            <div>—</div>
+                            <div>—</div>
+                          </>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
+                    </div>
+                  ))}
+                </div>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </Table>
     </div>
@@ -2159,10 +2156,21 @@ const MainDashboard = () => {
                 col !== "total_amount" &&
                 !columnDefs[col].hidden // Exclude hidden columns
             )
-            .map((col) => [
-              columnDefs[col].label,
-              new Set(dataForValue.map((item) => item[col])).size,
-            ])
+            .map((col) => {
+              // If summary is grouped by scheme, show investments list instead of count
+              if (column === "scheme_name" && col === "investment_name") {
+                const investments = [
+                  ...new Set(
+                    dataForValue
+                      .map((item) => item[col])
+                      .filter(Boolean)
+                  ),
+                ];
+                return [columnDefs[col].label, investments.length > 0 ? investments.join("\n") : "—"];
+              }
+
+              return [columnDefs[col].label, new Set(dataForValue.map((item) => item[col])).size];
+            })
         ),
         "आवंटित मात्रा": dataForValue
           .reduce(
@@ -3917,7 +3925,7 @@ const MainDashboard = () => {
                   width: "100%",
                   borderCollapse: "collapse",
                   marginBottom: "20px",
-                  fontSize: "11px",
+                  fontSize: "12px",
                 }}
               >
                 <thead>
@@ -3927,7 +3935,7 @@ const MainDashboard = () => {
                         border: "1px solid #ddd",
                         padding: "6px",
                         textAlign: "left",
-                        fontSize: "11px",
+                        fontSize: "12px",
                       }}
                     >
                       S.No.
@@ -3939,7 +3947,7 @@ const MainDashboard = () => {
                           border: "1px solid #ddd",
                           padding: "6px",
                           textAlign: "left",
-                          fontSize: "11px",
+                          fontSize: "12px",
                         }}
                       >
                         {getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable, table.showIkai)}
@@ -4136,7 +4144,7 @@ const MainDashboard = () => {
                   width: "100%",
                   borderCollapse: "collapse",
                   marginBottom: "10px",
-                  fontSize: "11px",
+                  fontSize: "12px",
                 }}
               >
                 <thead>
@@ -4147,7 +4155,7 @@ const MainDashboard = () => {
                         padding: "6px",
                         textAlign: "left",
                         fontWeight: "bold",
-                        fontSize: "11px",
+                        fontSize: "12px",
                       }}
                     >
                       S.No.
@@ -4160,7 +4168,7 @@ const MainDashboard = () => {
                           padding: "6px",
                           textAlign: "left",
                           fontWeight: "bold",
-                          fontSize: "11px",
+                          fontSize: "12px",
                         }}
                       >
                         {getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable, table.showIkai)}
@@ -7279,6 +7287,57 @@ const MainDashboard = () => {
                                                       col
                                                     ];
 
+                                                  // Precompute grouping/height structures from the full cell dataset
+                                                  // so all columns use the same alignment baseline.
+                                                  const groupsByVikasCommon = {};
+                                                  const centerToSchemesCommon = {};
+                                                  const centerSchemeToInvestmentsCommon = {};
+                                                  tableDataForValue.forEach((it) => {
+                                                    const vk = it.vikas_khand_name || "अज्ञात";
+                                                    const cn = it.center_name || "अज्ञात केंद्र";
+                                                    const sch = it.scheme_name || null;
+                                                    const inv = it.investment_name || null;
+
+                                                    if (!groupsByVikasCommon[vk]) groupsByVikasCommon[vk] = new Set();
+                                                    if (cn) groupsByVikasCommon[vk].add(cn);
+
+                                                    if (!centerToSchemesCommon[cn]) centerToSchemesCommon[cn] = new Set();
+                                                    if (sch) centerToSchemesCommon[cn].add(sch);
+
+                                                    if (!centerSchemeToInvestmentsCommon[cn]) centerSchemeToInvestmentsCommon[cn] = {};
+                                                    if (sch && !centerSchemeToInvestmentsCommon[cn][sch]) centerSchemeToInvestmentsCommon[cn][sch] = new Set();
+                                                    if (inv) centerSchemeToInvestmentsCommon[cn][sch].add(inv);
+                                                  });
+
+                                                  const vikasOrderCommon = Object.keys(groupsByVikasCommon).sort();
+
+                                                  const _lineHeight = 22;
+                                                  const _verticalPadding = 12;
+                                                  const _interBorder = 1;
+                                                  const perCenterHeightCommon = {};
+                                                  vikasOrderCommon.forEach((vk) => {
+                                                    const centers = Array.from(groupsByVikasCommon[vk] || []).sort();
+                                                    centers.forEach((cn) => {
+                                                      const schemesSet = centerToSchemesCommon[cn] || new Set();
+                                                      const schemesCount = schemesSet.size;
+                                                      // compute number of investment rows for this center (sum of investments across schemes)
+                                                      let investmentsCount = 0;
+                                                      schemesSet.forEach((s) => {
+                                                        const invSet = (centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || new Set();
+                                                        investmentsCount += invSet.size || 0;
+                                                      });
+                                                      const rowsNeededForSchemes = Math.max(1, schemesCount);
+                                                      const rowsNeededForInvestments = Math.max(1, investmentsCount);
+                                                      const rowsNeeded = Math.max(rowsNeededForSchemes, rowsNeededForInvestments);
+                                                      perCenterHeightCommon[cn] = Math.max(rowsNeeded * _lineHeight + _verticalPadding + (rowsNeeded - 1) * _interBorder, _lineHeight + _verticalPadding);
+                                                    });
+                                                  });
+
+                                                  const groupTotalHeightCommon = (vk) => {
+                                                    const centers = Array.from(groupsByVikasCommon[vk] || []).sort();
+                                                    return centers.reduce((sum, cn) => sum + (perCenterHeightCommon[cn] || (_lineHeight + _verticalPadding)), 0);
+                                                  };
+
                                                   if (isExpanded) {
                                                     // Always apply summary header filters to the data for this cell
                                                     // so deselected values are removed from every row immediately
@@ -7300,7 +7359,7 @@ const MainDashboard = () => {
                                                                 </div>
                                                                 {group.investments.map((inv, iIdx) => (
                                                                   <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                    <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                    <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                       {inv.name}
                                                                     </div>
                                                                     {inv.subInvestments.map((sub, sIdx) => (
@@ -7319,44 +7378,38 @@ const MainDashboard = () => {
 
                                                     // योजना column: show hierarchy -> योजना -> निवेश -> उप-निवेश (names only, no matra/dar)
                                                     if (col === "scheme_name") {
-                                                      // Render schemes grouped by center (and vikas) so each center shows its schemes
-                                                      // Build groups by vikas -> centers -> schemes from tableDataForValue
-                                                      const groupsByVikasForSchemes = {};
-                                                      tableDataForValue.forEach((it) => {
-                                                        const vk = it.vikas_khand_name || "अज्ञात";
-                                                        const cn = it.center_name || "अज्ञात केंद्र";
-                                                        const sch = it.scheme_name || "अज्ञात योजना";
-                                                        if (!groupsByVikasForSchemes[vk]) groupsByVikasForSchemes[vk] = {};
-                                                        if (!groupsByVikasForSchemes[vk][cn]) groupsByVikasForSchemes[vk][cn] = new Set();
-                                                        groupsByVikasForSchemes[vk][cn].add(sch);
-                                                      });
-                                                      const vikasOrderForSchemes = Object.keys(groupsByVikasForSchemes);
+                                                      // Reuse common grouping structures so scheme column aligns
+                                                      const groupsByVikasForSchemes = groupsByVikasCommon;
+                                                      const vikasOrderForSchemes = vikasOrderCommon;
 
                                                       // Render similar structure as center column: centers grouped by vikas
                                                       return (
-                                                        <td key={col} style={{ maxWidth: "520px", padding: '8px', verticalAlign: "top" }}>
+                                                        <td key={col} style={{ maxWidth: "520px", padding: '0px', verticalAlign: "top" }}>
                                                           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                                                             {vikasOrderForSchemes.map((vk, vi) => {
-                                                              const centersObj = groupsByVikasForSchemes[vk] || {};
-                                                              const centerNames = Object.keys(centersObj);
-                                                              // compute group minHeight based on number of centers (to align with center column)
-                                                              const lineHeight = 22;
-                                                              const verticalPadding = 12;
-                                                              const borderBetween = Math.max(centerNames.length - 1, 0) * 1;
-                                                              const groupHeight = Math.max(centerNames.length * lineHeight + verticalPadding + borderBetween + 4, lineHeight + verticalPadding);
+                                                              const centers = Array.from(groupsByVikasForSchemes[vk] || []).sort();
+                                                              const groupHeight = groupTotalHeightCommon(vk);
 
                                                               return (
                                                                 <div key={`${vk}-schemes-${vi}`} style={{ paddingTop: 0, borderTop: vi === 0 ? 'none' : '2px solid #333', marginTop: 0 }}>
                                                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${groupHeight}px`, boxSizing: 'border-box', justifyContent: 'flex-start' }}>
-                                                                    {centerNames.map((cn, ci) => {
-                                                                      const schemes = Array.from(centersObj[cn] || []).sort();
+                                                                      {centers.map((cn, ci) => {
+                                                                      const schemes = Array.from(centerToSchemesCommon[cn] || []).sort();
                                                                       return (
-                                                                        <div key={`${vk}-${cn}-${ci}`} style={{ padding: '4px 0', borderBottom: ci < centerNames.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word' }}>
+                                                                          <div key={`${vk}-${cn}-${ci}`} style={{ padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word' }}>
                                                                           {schemes.length > 0 ? (
                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                                              {schemes.map((s, si) => (
-                                                                                <div key={s + si} style={{ padding: '2px 0' }}>{s}</div>
-                                                                              ))}
+                                                                              {schemes.map((s, si) => {
+                                                                                const invs = Array.from((centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || []);
+                                                                                if (invs.length > 0) {
+                                                                                  return invs.map((inv, inIdx) => (
+                                                                                    <div key={`${s}-${inIdx}`} style={{ padding: '2px 0' }}>{s}</div>
+                                                                                  ));
+                                                                                }
+                                                                                return (
+                                                                                  <div key={`${s}-none`} style={{ padding: '2px 0' }}>{s}</div>
+                                                                                );
+                                                                              })}
                                                                             </div>
                                                                           ) : (
                                                                             <div style={{ color: '#666' }}>—</div>
@@ -7380,39 +7433,12 @@ const MainDashboard = () => {
                                                       col === "center_name" ||
                                                       col === "source_of_receipt"
                                                     ) {
-                                                        // Build groups by vikas_khand for the current cellData
-                                                        const groupsByVikas = {};
-                                                        // Also compute a map of center -> Set(schemes)
-                                                        const centerToSchemes = {};
-                                                        cellData.forEach((it) => {
-                                                          const v = it.vikas_khand_name || "अज्ञात";
-                                                          const c = it.center_name || "अज्ञात केंद्र";
-                                                          const s = it.scheme_name || null;
-                                                          if (!groupsByVikas[v]) groupsByVikas[v] = new Set();
-                                                          groupsByVikas[v].add(c);
-                                                          if (!centerToSchemes[c]) centerToSchemes[c] = new Set();
-                                                          if (s) centerToSchemes[c].add(s);
-                                                        });
-                                                        const vikasOrder = Object.keys(groupsByVikas);
-
-                                                        // Compute per-center heights so all three columns can align
-                                                        const lineHeight = 22; // px per row of text
-                                                        const verticalPadding = 12; // px inner padding
-                                                        const interBorder = 1; // px between rows
-                                                        const perCenterHeight = {}; // center -> px
-                                                        vikasOrder.forEach((vk) => {
-                                                          const centers = Array.from(groupsByVikas[vk] || []);
-                                                          centers.forEach((cn) => {
-                                                            const schemesCount = centerToSchemes[cn] ? centerToSchemes[cn].size : 0;
-                                                            const rowsNeeded = Math.max(1, schemesCount);
-                                                            perCenterHeight[cn] = Math.max(rowsNeeded * lineHeight + verticalPadding + (rowsNeeded - 1) * interBorder, lineHeight + verticalPadding);
-                                                          });
-                                                        });
-
-                                                        const groupTotalHeight = (vk) => {
-                                                          const centers = Array.from(groupsByVikas[vk] || []);
-                                                          return centers.reduce((sum, cn) => sum + (perCenterHeight[cn] || (lineHeight + verticalPadding)), 0);
-                                                        };
+                                                        // Use precomputed grouping and heights so columns align
+                                                        const groupsByVikas = groupsByVikasCommon;
+                                                        const centerToSchemes = centerToSchemesCommon;
+                                                        const perCenterHeight = perCenterHeightCommon;
+                                                        const vikasOrder = vikasOrderCommon;
+                                                        const groupTotalHeight = groupTotalHeightCommon;
 
                                                         if (col === "vikas_khand_name") {
                                                           // Render vikas_khand names (bold), stacked and aligned to center groups
@@ -7453,7 +7479,7 @@ const MainDashboard = () => {
                                                                     <div key={`${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
                                                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${groupTotalHeight(vk)}px`, justifyContent: 'flex-start', boxSizing: 'border-box', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
                                                                         {centers.length > 0 ? centers.map((cn, ci) => (
-                                                                          <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || lineHeight + verticalPadding}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', alignItems: 'flex-start' }}>
+                                                                          <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || (_lineHeight + _verticalPadding)}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', alignItems: 'flex-start' }}>
                                                                             <div style={{ width: '100%' }}>{cn}</div>
                                                                           </div>
                                                                         )) : (
@@ -7470,21 +7496,29 @@ const MainDashboard = () => {
 
                                                         if (col === "scheme_name") {
                                                           // Render schemes grouped by center, using same per-center heights
-                                                          return (
+                                                            return (
                                                             <td key={col} style={{ maxWidth: "420px", padding: 0, verticalAlign: "top" }}>
                                                               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                                                                {vikasOrder.map((vk, i) => {
-                                                                  const centers = Array.from(groupsByVikas[vk] || []);
+                                                                  {vikasOrder.map((vk, i) => {
+                                                                    const centers = Array.from(groupsByVikas[vk] || []).sort();
                                                                   return (
                                                                     <div key={`scheme-${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
                                                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${groupTotalHeight(vk)}px`, boxSizing: 'border-box', justifyContent: 'flex-start', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
-                                                                        {centers.length > 0 ? centers.map((cn, ci) => {
-                                                                          const schemes = Array.from(centerToSchemes[cn] || []);
+                                                                          {centers.length > 0 ? centers.map((cn, ci) => {
+                                                                            const schemes = Array.from(centerToSchemes[cn] || []).sort();
                                                                           return (
-                                                                            <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || lineHeight + verticalPadding}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                                                                              {schemes.length > 0 ? schemes.map((s, si) => (
-                                                                                <div key={s + si} style={{ padding: '2px 0', fontSize: '11px' }}>{s}</div>
-                                                                              )) : (
+                                                                            <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || (_lineHeight + _verticalPadding)}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                                                                              {schemes.length > 0 ? schemes.map((s, si) => {
+                                                                                const invs = Array.from((centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || []);
+                                                                                if (invs.length > 0) {
+                                                                                  return invs.map((inv, inIdx) => (
+                                                                                    <div key={`${s}-${inIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                  ));
+                                                                                }
+                                                                                return (
+                                                                                  <div key={`${s}-none`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                );
+                                                                              }) : (
                                                                                 <div style={{ color: '#666' }}>—</div>
                                                                               )}
                                                                             </div>
@@ -7515,7 +7549,7 @@ const MainDashboard = () => {
                                                                   <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "4px 6px", borderRadius: "3px", color: "#495057" }}>{group.groupValue}</div>
                                                                   {group.investments.map((invItem, iIdx) => (
                                                                     <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                      <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                      <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                         <span>{invItem.investmentName}</span>
                                                                       </div>
                                                                       {invItem.subInvestments.map((subItem, subIdx) => (
@@ -7544,7 +7578,7 @@ const MainDashboard = () => {
                                                               .filter((group) => allowedInvestments.has(group.investmentName))
                                                               .map((group, groupIdx) => (
                                                                 <div key={groupIdx} style={{ marginBottom: "8px" }}>
-                                                                  <div style={{ fontSize: "11px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "3px 5px", borderRadius: "3px", color: "#495057" }}>{group.investmentName}</div>
+                                                                  <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "3px 5px", borderRadius: "3px", color: "#495057" }}>{group.investmentName}</div>
                                                                   {group.subInvestments.map((item, itemIdx) => (
                                                                     <div key={itemIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 5px 2px 15px" }}>
                                                                       <span>{item.name}</span>
@@ -7558,20 +7592,49 @@ const MainDashboard = () => {
                                                     }
                                                     // For investment_name, show names only (no matra/dar)
                                                     if (col === "investment_name") {
-                                                      // Only use filtered cellData for this row
-                                                      const valuesWithMatra = getUniqueValuesWithMatra(col, checkedValue);
-                                                      // Only show investments present in cellData
-                                                      const allowedInvestments = new Set(cellData.map((item) => item[col]));
+                                                      // Use precomputed grouping/height structures
+                                                      const groupsByVikas = groupsByVikasCommon;
+                                                      const centerToSchemes = centerToSchemesCommon;
+                                                      const centerSchemeToInvestments = centerSchemeToInvestmentsCommon;
+                                                      const vikasOrder = vikasOrderCommon;
+                                                      const perCenterHeight = perCenterHeightCommon;
+
                                                       return (
-                                                        <td key={col} style={{ maxWidth: "250px" }}>
-                                                          <div>
-                                                            {valuesWithMatra
-                                                              .filter((item) => allowedInvestments.has(item.name))
-                                                              .map((item, valIdx) => (
-                                                                <div key={valIdx} style={{ fontSize: "11px", borderBottom: "1px dotted #ccc", padding: "2px 0" }}>
-                                                                  <span style={{ fontWeight: "500" }}>{item.name}</span>
+                                                        <td key={col} style={{ maxWidth: "420px", padding: 0, verticalAlign: "top" }}>
+                                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                            {vikasOrder.map((vk, i) => {
+                                                              const centers = Array.from(groupsByVikas[vk] || []).sort();
+                                                              return (
+                                                                <div key={`inv-${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${centers.reduce((sum, cn) => sum + (perCenterHeight[cn] || (_lineHeight + _verticalPadding)), 0)}px`, boxSizing: 'border-box', justifyContent: 'flex-start', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
+                                                                    {centers.length > 0 ? centers.map((cn, ci) => {
+                                                                      const schemes = Array.from(centerToSchemes[cn] || []).sort();
+                                                                      return (
+                                                                        <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || (_lineHeight + _verticalPadding)}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                                                                          {schemes.length > 0 ? schemes.map((s, si) => (
+                                                                            <div key={`${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>
+                                                                              {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).length > 0 ? (
+                                                                                <div>
+                                                                                  {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => (
+                                                                                    <div key={inIdx} style={{ padding: '1px 0', fontSize: '12px' }}>{inv}</div>
+                                                                                  ))}
+                                                                                </div>
+                                                                              ) : (
+                                                                                <div style={{ color: '#666' }}>—</div>
+                                                                              )}
+                                                                            </div>
+                                                                          )) : (
+                                                                            <div style={{ color: '#666' }}>—</div>
+                                                                          )}
+                                                                        </div>
+                                                                      );
+                                                                    }) : (
+                                                                      <div style={{ padding: '4px 0', fontSize: '12px', color: '#666' }}>—</div>
+                                                                    )}
+                                                                  </div>
                                                                 </div>
-                                                              ))}
+                                                              );
+                                                            })}
                                                           </div>
                                                         </td>
                                                       );
@@ -7584,25 +7647,69 @@ const MainDashboard = () => {
                                                       <td key={col} style={{ maxWidth: "200px" }}>
                                                         <div>
                                                           {uniqueValues.map((val, valIdx) => (
-                                                            <div key={valIdx} style={{ fontSize: "11px" }}>{val}</div>
+                                                            <div key={valIdx} style={{ fontSize: "12px" }}>{val}</div>
                                                           ))}
                                                         </div>
                                                       </td>
                                                     );
-                                                  } else {
-                                                    return (
-                                                      <td key={col}>
-                                                        {
-                                                          new Set(
-                                                            tableDataForValue.map(
-                                                              (item) =>
-                                                                item[col]
-                                                            )
-                                                          ).size
-                                                        }
-                                                      </td>
-                                                    );
-                                                  }
+                                                    } else {
+                                                      // If investment column, render investments vertically aligned to schemes
+                                                      if (col === "investment_name") {
+                                                        // Reuse common grouping/height structures computed above so non-expanded
+                                                        // investment column aligns with the scheme and center columns.
+                                                        const groupsByVikas = groupsByVikasCommon;
+                                                        const centerToSchemes = centerToSchemesCommon;
+                                                        const centerSchemeToInvestments = centerSchemeToInvestmentsCommon;
+                                                        const vikasOrder = vikasOrderCommon;
+                                                        const perCenterHeight = perCenterHeightCommon;
+
+                                                        return (
+                                                          <td key={col} style={{ maxWidth: "420px", padding: 0, verticalAlign: "top" }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                              {vikasOrder.map((vk, i) => {
+                                                                const centers = Array.from(groupsByVikas[vk] || []).sort();
+                                                                return (
+                                                                  <div key={`inv-nonexp-${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${centers.reduce((sum, cn) => sum + (perCenterHeight[cn] || (_lineHeight + _verticalPadding)), 0)}px`, boxSizing: 'border-box', justifyContent: 'flex-start', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
+                                                                      {centers.length > 0 ? centers.map((cn, ci) => {
+                                                                        const schemes = Array.from(centerToSchemes[cn] || []).sort();
+                                                                        return (
+                                                                          <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || (_lineHeight + _verticalPadding)}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                                                                            {schemes.length > 0 ? schemes.map((s, si) => (
+                                                                              <div key={`${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>
+                                                                                {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).length > 0 ? (
+                                                                                  <div>
+                                                                                      {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => (
+                                                                                        <div key={inIdx} style={{ padding: '1px 0', fontSize: '12px' }}>{inv}</div>
+                                                                                      ))}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                  <div style={{ color: '#666' }}>—</div>
+                                                                                )}
+                                                                              </div>
+                                                                            )) : (
+                                                                              <div style={{ color: '#666' }}>—</div>
+                                                                            )}
+                                                                          </div>
+                                                                        );
+                                                                      }) : (
+                                                                        <div style={{ padding: '4px 0', fontSize: '12px', color: '#666' }}>—</div>
+                                                                      )}
+                                                                    </div>
+                                                                  </div>
+                                                                );
+                                                              })}
+                                                            </div>
+                                                          </td>
+                                                        );
+                                                      }
+
+                                                      return (
+                                                        <td key={col}>
+                                                          {new Set(tableDataForValue.map((item) => item[col])).size}
+                                                        </td>
+                                                      );
+                                                    }
                                                 })}
                                               {/* Breakdown Column Cell - positioned before आवंटित मात्रा */}
                                               {summaryTotalBreakdownColumn && 
@@ -7624,12 +7731,12 @@ const MainDashboard = () => {
                                                                 </div>
                                                                 {group.investments.map((inv, iIdx) => (
                                                                   <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                    <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                      {inv.name}
+                                                                    <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                      {inv.investmentName || inv.name || inv}
                                                                     </div>
-                                                                    {inv.subInvestments.map((sub, sIdx) => (
-                                                                      <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                        {sub.name}
+                                                                    {Array.isArray(inv.subInvestments) && inv.subInvestments.map((sub, sIdx) => (
+                                                                      <div key={sIdx} style={{ padding: '2px 0', fontSize: '12px' }}>
+                                                                        {sub.name || sub}
                                                                       </div>
                                                                     ))}
                                                                   </div>
@@ -7696,7 +7803,7 @@ const MainDashboard = () => {
                                                             </div>
                                                             {group.investments.map((inv, iIdx) => (
                                                               <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                   {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
                                                                 </div>
                                                                 {inv.subInvestments.map((sub, sIdx) => (
@@ -7737,7 +7844,7 @@ const MainDashboard = () => {
                                                             </div>
                                                             {group.investments.map((inv, iIdx) => (
                                                               <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                   {inv.totals.amount_of_farmer_share.toFixed(2)}
                                                                 </div>
                                                                 {inv.subInvestments.map((sub, sIdx) => (
@@ -7778,7 +7885,7 @@ const MainDashboard = () => {
                                                             </div>
                                                             {group.investments.map((inv, iIdx) => (
                                                               <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                   {inv.totals.amount_of_subsidy.toFixed(2)}
                                                                 </div>
                                                                 {inv.subInvestments.map((sub, sIdx) => (
@@ -7819,7 +7926,7 @@ const MainDashboard = () => {
                                                             </div>
                                                             {group.investments.map((inv, iIdx) => (
                                                               <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                   {inv.totals.total_amount.toFixed(2)}
                                                                 </div>
                                                                 {inv.subInvestments.map((sub, sIdx) => (
@@ -7961,10 +8068,10 @@ const MainDashboard = () => {
                                                                 {group.groupName}
                                                               </div>
                                                               {group.investments.map((inv, iIdx) => (
-                                                                <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                  <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                    {inv.name}
-                                                                  </div>
+                                                                        <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                      <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                      {inv.name}
+                                                                    </div>
                                                                   {inv.subInvestments.map((sub, sIdx) => (
                                                                     <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
                                                                       {sub.name}
@@ -8025,7 +8132,7 @@ const MainDashboard = () => {
                                                   }));
                                                   return (
                                                     <td key={col} style={{ maxWidth: "420px" }}>
-                                                      <div style={{ fontSize: "11px", marginBottom: "6px" }}>
+                                                      <div style={{ fontSize: "12px", marginBottom: "6px" }}>
                                                         <span style={{ fontWeight: 600 }}>सभी:</span> {allSchemes.join(", ") || "-"}
                                                       </div>
                                                       <div style={{ maxHeight: "240px", overflowY: "auto" }}>
@@ -8047,7 +8154,7 @@ const MainDashboard = () => {
                                                               <div key={iIdx} style={{ marginTop: "6px" }}>
                                                                 <div
                                                                   style={{
-                                                                    fontSize: "11px",
+                                                                    fontSize: "12px",
                                                                     fontWeight: 500,
                                                                     padding: "2px 6px 2px 12px",
                                                                   }}
@@ -8118,7 +8225,7 @@ const MainDashboard = () => {
                                                   }));
                                                   return (
                                                     <td key={col} style={{ maxWidth: "400px" }}>
-                                                      <div style={{ fontSize: "11px", marginBottom: "6px" }}>
+                                                      <div style={{ fontSize: "12px", marginBottom: "6px" }}>
                                                         <span style={{ fontWeight: 600 }}>सभी:</span> {allValues.join(", ") || "-"}
                                                       </div>
                                                       <div style={{ maxHeight: "220px", overflowY: "auto" }}>
@@ -8126,7 +8233,7 @@ const MainDashboard = () => {
                                                           <div key={iIdx} style={{ marginTop: "6px" }}>
                                                             <div
                                                               style={{
-                                                                fontSize: "11px",
+                                                                fontSize: "12px",
                                                                 fontWeight: 500,
                                                                 padding: "2px 6px 2px 12px",
                                                               }}
@@ -8205,7 +8312,7 @@ const MainDashboard = () => {
                                                             <div key={groupIdx} style={{ marginBottom: "8px" }}>
                                                               <div
                                                                 style={{
-                                                                  fontSize: "11px",
+                                                                  fontSize: "12px",
                                                                   fontWeight: "bold",
                                                                   backgroundColor: "#e9ecef",
                                                                   padding: "3px 5px",
@@ -8278,7 +8385,7 @@ const MainDashboard = () => {
                                                             <div
                                                               key={valIdx}
                                                               style={{
-                                                                fontSize: "11px",
+                                                                fontSize: "12px",
                                                                 borderBottom: "1px dotted #ccc",
                                                                 padding: "2px 0",
                                                               }}
@@ -8317,7 +8424,7 @@ const MainDashboard = () => {
                                                           <div
                                                             key={valIdx}
                                                             style={{
-                                                              fontSize: "11px",
+                                                              fontSize: "12px",
                                                             }}
                                                           >
                                                             {val}
@@ -8398,14 +8505,14 @@ const MainDashboard = () => {
                                                         <div style={{ maxHeight: "220px", overflowY: "auto" }}>
                                                           {breakdown.map((group, gIdx) => (
                                                             <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                                {group.groupName}
-                                                              </div>
-                                                              {group.investments.map((inv, iIdx) => (
-                                                                <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                  <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                    {inv.name}
-                                                                  </div>
+                                                                    <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              {group.groupName}
+                                                                </div>
+                                                                {group.investments.map((inv, iIdx) => (
+                                                                  <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                    <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                      {inv.name}
+                                                                    </div>
                                                                   {inv.subInvestments.map((sub, sIdx) => (
                                                                     <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
                                                                       {sub.name}
@@ -8492,14 +8599,14 @@ const MainDashboard = () => {
                                                     <div style={{ maxHeight: "220px", overflowY: "auto" }}>
                                                       {breakdown.map((group, gIdx) => (
                                                         <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                            {group.totals.allocated_quantity.toFixed(2)}
-                                                          </div>
-                                                          {group.investments.map((inv, iIdx) => (
-                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
-                                                              </div>
+                                                                <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              {group.totals.allocated_quantity.toFixed(2)}
+                                                            </div>
+                                                            {group.investments.map((inv, iIdx) => (
+                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
+                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                                  {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
+                                                                </div>
                                                               {inv.subInvestments.map((sub, sIdx) => (
                                                                 <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
                                                                   {sub.totals.allocated_quantity.toFixed(2)}{sub.unit && ` (${sub.unit})`}
@@ -8551,12 +8658,12 @@ const MainDashboard = () => {
                                                     <div style={{ maxHeight: "220px", overflowY: "auto" }}>
                                                       {breakdown.map((group, gIdx) => (
                                                         <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
                                                             {group.totals.amount_of_farmer_share.toFixed(2)}
                                                           </div>
                                                           {group.investments.map((inv, iIdx) => (
                                                             <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                 {inv.totals.amount_of_farmer_share.toFixed(2)}
                                                               </div>
                                                               {inv.subInvestments.map((sub, sIdx) => (
@@ -8610,12 +8717,12 @@ const MainDashboard = () => {
                                                     <div style={{ maxHeight: "220px", overflowY: "auto" }}>
                                                       {breakdown.map((group, gIdx) => (
                                                         <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
                                                             {group.totals.amount_of_subsidy.toFixed(2)}
                                                           </div>
                                                           {group.investments.map((inv, iIdx) => (
                                                             <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                 {inv.totals.amount_of_subsidy.toFixed(2)}
                                                               </div>
                                                               {inv.subInvestments.map((sub, sIdx) => (
@@ -8669,12 +8776,12 @@ const MainDashboard = () => {
                                                     <div style={{ maxHeight: "220px", overflowY: "auto" }}>
                                                       {breakdown.map((group, gIdx) => (
                                                         <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                          <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
                                                             {group.totals.total_amount.toFixed(2)}
                                                           </div>
                                                           {group.investments.map((inv, iIdx) => (
                                                             <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "11px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
+                                                              <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
                                                                 {inv.totals.total_amount.toFixed(2)}
                                                               </div>
                                                               {inv.subInvestments.map((sub, sIdx) => (
@@ -9571,7 +9678,7 @@ const MainDashboard = () => {
                                                                               <div key={groupIdx} style={{ marginBottom: "8px" }}>
                                                                                 <div
                                                                                   style={{
-                                                                                    fontSize: "11px",
+                                                                                    fontSize: "12px",
                                                                                     fontWeight: "bold",
                                                                                     backgroundColor: "#e9ecef",
                                                                                     padding: "3px 5px",
@@ -9648,7 +9755,7 @@ const MainDashboard = () => {
                                                                               <div
                                                                                 key={valIdx}
                                                                                 style={{
-                                                                                  fontSize: "11px",
+                                                                                  fontSize: "12px",
                                                                                   display: "flex",
                                                                                   justifyContent: "space-between",
                                                                                   borderBottom: "1px dotted #ccc",
@@ -9702,7 +9809,7 @@ const MainDashboard = () => {
                                                                             <div
                                                                               key={valIdx}
                                                                               style={{
-                                                                                fontSize: "11px",
+                                                                                fontSize: "12px",
                                                                                 padding: "4px 0",
                                                                                 borderBottom: valIdx < uniqueValues.length - 1 ? "1px solid #eee" : "none", // Separator between centers
                                                                                 flex: 1, // Each center takes equal height
@@ -10157,7 +10264,7 @@ const MainDashboard = () => {
                                                                               <div key={groupIdx} style={{ marginBottom: "8px" }}>
                                                                                 <div
                                                                                   style={{
-                                                                                    fontSize: "11px",
+                                                                                    fontSize: "12px",
                                                                                     fontWeight: "bold",
                                                                                     backgroundColor: "#e9ecef",
                                                                                     padding: "3px 5px",
@@ -10239,7 +10346,7 @@ const MainDashboard = () => {
                                                                               <div
                                                                                 key={valIdx}
                                                                                 style={{
-                                                                                  fontSize: "11px",
+                                                                                  fontSize: "12px",
                                                                                   display: "flex",
                                                                                   justifyContent: "space-between",
                                                                                   borderBottom: "1px dotted #ccc",
@@ -10289,7 +10396,7 @@ const MainDashboard = () => {
                                                                             <div
                                                                               key={valIdx}
                                                                               style={{
-                                                                                fontSize: "11px",
+                                                                                fontSize: "12px",
                                                                                 padding: "4px 0",
                                                                                 borderBottom: valIdx < uniqueValues.length - 1 ? "1px solid #eee" : "none", // Separator between centers
                                                                                 flex: 1, // Each center takes equal height
