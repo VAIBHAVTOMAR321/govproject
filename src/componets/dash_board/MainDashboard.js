@@ -223,20 +223,29 @@ const renderVikasKhandSummaryTable = (summaryData) => {
                         <div style={{ fontWeight: '600', color: '#495057' }}>{translations.investmentName}</div>
 
                         {center.schemes && center.schemes.length > 0 ? (
-                          center.schemes.map((sch, sidx) => (
-                            <React.Fragment key={`scheme-${sidx}`}>
-                              <div style={{ padding: '4px 6px', borderBottom: '1px dashed #e9ecef', fontSize: '12px' }}>{sch.schemeName}</div>
-                              <div style={{ padding: '4px 6px', borderBottom: '1px dashed #e9ecef' }}>
-                                {sch.investments && sch.investments.length > 0 ? (
-                                  sch.investments.map((inv, ii) => (
-                                    <div key={ii} style={{ padding: '2px 0', fontSize: '12px' }}>{inv}</div>
-                                  ))
-                                ) : (
-                                  '—'
-                                )}
+                          center.schemes.map((sch, sidx) => {
+                            const invs = (sch.investments && sch.investments.length > 0) ? sch.investments : [];
+                            return (
+                              <div key={`scheme-block-${sidx}`} style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '6px', alignItems: 'start' }}>
+                                <div style={{ padding: '4px 6px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <div>{sch.schemeName}</div>
+                                  {invs.slice(1).map((_, blankIdx) => (
+                                    <div key={`blank-${sidx}-${blankIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>&nbsp;</div>
+                                  ))}
+                                  <div style={{ borderTop: '1px solid #f2f2f2', margin: '6px 0' }} />
+                                </div>
+                                <div style={{ padding: '4px 6px', fontSize: '12px' }}>
+                                  {invs.length > 0 ? (
+                                    invs.map((inv, ii) => (
+                                      <div key={ii} style={{ padding: '2px 0', fontSize: '12px' }}>{inv}</div>
+                                    ))
+                                  ) : (
+                                    <div>—</div>
+                                  )}
+                                </div>
                               </div>
-                            </React.Fragment>
-                          ))
+                            );
+                          })
                         ) : (
                           <>
                             <div>—</div>
@@ -3522,11 +3531,10 @@ const MainDashboard = () => {
     // Include summary columns (आवंटित मात्रा, etc.) as rows in transposed view
     const allClickedCols = (table.visibleClickedCols && table.visibleClickedCols.length > 0)
       ? table.visibleClickedCols
-      : table.columns.slice(1).filter((col) => 
-          !(table.isAllocationTable && col.endsWith("_dar")) && 
-          !(table.isAllocationTable && col.endsWith("_farmer")) &&
-          !(table.isAllocationTable && col.endsWith("_subsidy"))
-        );
+      : table.columns.slice(1).filter((col) => {
+          if (!table.isAllocationTable) return true;
+          return !(col.endsWith("_dar") || col.endsWith("_farmer") || col.endsWith("_subsidy"));
+        });
 
     // Separate dynamic columns from summary columns
     const dynamicCols = allClickedCols.filter(col => !col.startsWith("कुल") && col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && col !== "सब्सिडी धनराशि");
@@ -7401,14 +7409,21 @@ const MainDashboard = () => {
                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                                                               {schemes.map((s, si) => {
                                                                                 const invs = Array.from((centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || []);
-                                                                                if (invs.length > 0) {
-                                                                                  return invs.map((inv, inIdx) => (
-                                                                                    <div key={`${s}-${inIdx}`} style={{ padding: '2px 0' }}>{s}</div>
-                                                                                  ));
-                                                                                }
-                                                                                return (
-                                                                                  <div key={`${s}-none`} style={{ padding: '2px 0' }}>{s}</div>
-                                                                                );
+                                                                                  if (invs.length > 0) {
+                                                                                    // Show the scheme name once, then add blanks for alignment
+                                                                                    return (
+                                                                                      <div key={`scheme-block-${s}-${si}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                        <div key={`scheme-${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                        {invs.slice(1).map((inv, inIdx) => (
+                                                                                          <div key={`${s}-blank-${inIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>&nbsp;</div>
+                                                                                        ))}
+                                                                                        <div style={{ borderTop: '1px solid #e9ecef', margin: '6px 0' }} />
+                                                                                      </div>
+                                                                                    );
+                                                                                  }
+                                                                                  return (
+                                                                                    <div key={`${s}-none`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                  );
                                                                               })}
                                                                             </div>
                                                                           ) : (
@@ -7553,9 +7568,16 @@ const MainDashboard = () => {
                                                                               {schemes.length > 0 ? schemes.map((s, si) => {
                                                                                 const invs = Array.from((centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || []);
                                                                                 if (invs.length > 0) {
-                                                                                  return invs.map((inv, inIdx) => (
-                                                                                    <div key={`${s}-${inIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
-                                                                                  ));
+                                                                                  // Show the scheme name once and a subtle separator after its block
+                                                                                  return (
+                                                                                    <div key={`scheme-block-${s}-${si}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                      <div key={`scheme-${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                      {invs.slice(1).map((inv, inIdx) => (
+                                                                                        <div key={`${s}-blank-${inIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>&nbsp;</div>
+                                                                                      ))}
+                                                                                      <div style={{ borderTop: '1px solid #eee', margin: '6px 0' }} />
+                                                                                    </div>
+                                                                                  );
                                                                                 }
                                                                                 return (
                                                                                   <div key={`${s}-none`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
@@ -7599,6 +7621,8 @@ const MainDashboard = () => {
                                                                           <span>{subItem.name}</span>
                                                                         </div>
                                                                       ))}
+                                                                      {/* subtle separator after each scheme's investment block */}
+                                                                      <div style={{ borderTop: '1px solid #f2f2f2', margin: '6px 0' }} />
                                                                     </div>
                                                                   ))}
                                                                 </div>
@@ -7673,6 +7697,7 @@ const MainDashboard = () => {
                                                                               ) : (
                                                                                 <div style={{ color: '#666' }}>—</div>
                                                                               )}
+                                                                              <div style={{ borderTop: '1px solid #f2f2f2', margin: '6px 0' }} />
                                                                             </div>
                                                                           )) : (
                                                                             <div style={{ color: '#666' }}>—</div>
@@ -8226,6 +8251,7 @@ const MainDashboard = () => {
                                                                 ))}
                                                               </div>
                                                             ))}
+                                                            <div style={{ borderTop: '1px solid #f2f2f2', marginTop: 8 }} />
                                                           </div>
                                                         ))}
                                                       </div>
