@@ -6145,7 +6145,7 @@ const MainDashboard = () => {
                       <ExportSection />
                       
                       {/* Vikas Khand Summary Table */}
-                      {filters.vidhan_sabha_name.length > 0 && filters.center_name.length > 0 && (
+                      {filters.center_name.length > 0 && (
                         <div className="mt-4">
                           {renderVikasKhandSummaryTable(generateVikasKhandSummary(filteredTableData))}
                         </div>
@@ -7440,6 +7440,48 @@ const MainDashboard = () => {
                                                         const vikasOrder = vikasOrderCommon;
                                                         const groupTotalHeight = groupTotalHeightCommon;
 
+                                                         if (col === "vidhan_sabha_name") {
+                                                          // Render vidhan_sabha names grouped by value, with bold separator between groups
+                                                          // Get unique vidhan_sabha values for this row
+                                                          const vidhanSabhaValues = [...new Set(tableDataForValue.map((item) => item.vidhan_sabha_name).filter(Boolean))].sort();
+                                                          
+                                                          // Calculate total height for all vidhan sabha groups
+                                                          const totalHeight = vidhanSabhaValues.reduce((sum, vs) => {
+                                                            const centers = [...new Set(tableDataForValue.filter((item) => item.vidhan_sabha_name === vs).map((item) => item.center_name).filter(Boolean))];
+                                                            return sum + centers.reduce((s, cn) => s + (perCenterHeight[cn] || (_lineHeight + _verticalPadding)), 0);
+                                                          }, 0);
+                                                          
+                                                          return (
+                                                            <td key={col} style={{ maxWidth: "260px", padding: 0, verticalAlign: "top" }}>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                                {vidhanSabhaValues.map((vs, i) => {
+                                                                  const centers = [...new Set(tableDataForValue.filter((item) => item.vidhan_sabha_name === vs).map((item) => item.center_name).filter(Boolean))].sort();
+                                                                  const groupHeight = centers.reduce((sum, cn) => sum + (perCenterHeight[cn] || (_lineHeight + _verticalPadding)), 0);
+                                                                  
+                                                                  return (
+                                                                    <div key={vs} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                      <div style={{
+                                                                        padding: '6px 8px',
+                                                                        fontWeight: '700',
+                                                                        borderTop: i === 0 ? 'none' : '2px solid #333',
+                                                                        background: '#fff',
+                                                                        wordBreak: 'break-word',
+                                                                        minHeight: `${groupHeight}px`,
+                                                                        display: 'flex',
+                                                                        alignItems: 'flex-start',
+                                                                        boxSizing: 'border-box',
+                                                                        margin: 0
+                                                                      }}>
+                                                                        {vs}
+                                                                      </div>
+                                                                    </div>
+                                                                  );
+                                                                })}
+                                                              </div>
+                                                            </td>
+                                                          );
+                                                        }
+
                                                         if (col === "vikas_khand_name") {
                                                           // Render vikas_khand names (bold), stacked and aligned to center groups
                                                           return (
@@ -7565,27 +7607,36 @@ const MainDashboard = () => {
                                                         </td>
                                                       );
                                                     }
-                                                    // For sub_investment_name, show grouped by investment_name (names only, no matra/dar)
+                                                    // For sub_investment_name, show only sub-investment names with proper separators
                                                     if (col === "sub_investment_name") {
-                                                      // Only use filtered cellData for this row
-                                                      const groupedData = getSubInvestmentGroupedByInvestment(checkedValue);
-                                                      // Only show investments present in cellData
-                                                      const allowedInvestments = new Set(cellData.map((item) => item.investment_name));
+                                                      // Get unique sub_investment values for this row
+                                                      const subInvValues = [...new Set(tableDataForValue.map((item) => item.sub_investment_name).filter(Boolean))].sort();
+                                                      
+                                                      // Calculate height based on number of sub-investments
+                                                      const subInvCount = subInvValues.length;
+                                                      const subInvHeight = Math.max(subInvCount, 1) * _lineHeight + _verticalPadding + (Math.max(subInvCount, 1) - 1) * _interBorder;
+                                                      
                                                       return (
-                                                        <td key={col} style={{ maxWidth: "300px" }}>
-                                                          <div>
-                                                            {groupedData
-                                                              .filter((group) => allowedInvestments.has(group.investmentName))
-                                                              .map((group, groupIdx) => (
-                                                                <div key={groupIdx} style={{ marginBottom: "8px" }}>
-                                                                  <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#e9ecef", padding: "3px 5px", borderRadius: "3px", color: "#495057" }}>{group.investmentName}</div>
-                                                                  {group.subInvestments.map((item, itemIdx) => (
-                                                                    <div key={itemIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 5px 2px 15px" }}>
-                                                                      <span>{item.name}</span>
-                                                                    </div>
-                                                                  ))}
+                                                        <td key={col} style={{ maxWidth: "300px", padding: 0, verticalAlign: "top" }}>
+                                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                            {subInvValues.map((si, i) => (
+                                                              <div key={si} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                <div style={{
+                                                                  padding: '4px 8px',
+                                                                  fontWeight: '500',
+                                                                  borderTop: i === 0 ? 'none' : '1px solid #ddd',
+                                                                  background: '#fff',
+                                                                  wordBreak: 'break-word',
+                                                                  minHeight: `${_lineHeight + _verticalPadding}px`,
+                                                                  display: 'flex',
+                                                                  alignItems: 'flex-start',
+                                                                  boxSizing: 'border-box',
+                                                                  margin: 0
+                                                                }}>
+                                                                  {si}
                                                                 </div>
-                                                              ))}
+                                                              </div>
+                                                            ))}
                                                           </div>
                                                         </td>
                                                       );
