@@ -2823,11 +2823,23 @@ const MainDashboard = () => {
           }
         });
 
-        // Add monetary columns with breakdown format
-        row["आवंटित मात्रा"] = formatBreakdownForExport(breakdown, "allocated_quantity");
-        row["कृषक धनराशि"] = formatBreakdownForExport(breakdown, "amount_of_farmer_share");
-        row["सब्सिडी धनराशि"] = formatBreakdownForExport(breakdown, "amount_of_subsidy");
-        row["कुल राशि"] = formatBreakdownForExport(breakdown, "total_amount");
+        // Add monetary columns with grand total only
+        const rowTotals = {
+          allocated_quantity: filteredRowData.reduce((sum, item) => {
+            const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+              ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+              : parseFloat(item.allocated_quantity) || 0;
+            return sum + qtyVal;
+          }, 0),
+          amount_of_farmer_share: filteredRowData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0),
+          amount_of_subsidy: filteredRowData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0),
+          total_amount: filteredRowData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0),
+        };
+        
+        row["आवंटित मात्रा"] = rowTotals.allocated_quantity.toFixed(2);
+        row["कृषक धनराशि"] = rowTotals.amount_of_farmer_share.toFixed(2);
+        row["सब्सिडी धनराशि"] = rowTotals.amount_of_subsidy.toFixed(2);
+        row["कुल राशि"] = rowTotals.total_amount.toFixed(2);
 
         summaryData.push(row);
       });
@@ -2883,11 +2895,11 @@ const MainDashboard = () => {
         }
       });
 
-      // Add monetary columns with breakdown format for totals
-      totalRow["आवंटित मात्रा"] = `कुल: ${grandTotals.allocated_quantity.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "allocated_quantity");
-      totalRow["कृषक धनराशि"] = `कुल: ${grandTotals.amount_of_farmer_share.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "amount_of_farmer_share");
-      totalRow["सब्सिडी धनराशि"] = `कुल: ${grandTotals.amount_of_subsidy.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "amount_of_subsidy");
-      totalRow["कुल राशि"] = `कुल: ${grandTotals.total_amount.toFixed(2)}\n` + formatBreakdownForExport(totalBreakdown, "total_amount");
+      // Add monetary columns with grand total only for totals
+      totalRow["आवंटित मात्रा"] = grandTotals.allocated_quantity.toFixed(2);
+      totalRow["कृषक धनराशि"] = grandTotals.amount_of_farmer_share.toFixed(2);
+      totalRow["सब्सिडी धनराशि"] = grandTotals.amount_of_subsidy.toFixed(2);
+      totalRow["कुल राशि"] = grandTotals.total_amount.toFixed(2);
 
       // Add total row to summary data
       summaryData.push(totalRow);
@@ -6779,31 +6791,7 @@ const MainDashboard = () => {
                                 return (
                                   <div>
                                     <ExportSection />
-                                    {/* Total Breakdown Filter for Summary Table */}
-                                    <div className="mb-3 p-2 border rounded bg-light">
-                                      <div className="d-flex align-items-center gap-3 flex-wrap">
-                                        <span className="fw-bold small">
-                                          <BiFilter /> कुल का विवरण देखें:
-                                        </span>
-                                        <Form.Select
-                                          size="sm"
-                                          style={{ width: "auto", minWidth: "180px" }}
-                                          value={summaryTotalBreakdownColumn}
-                                          onChange={(e) => setSummaryTotalBreakdownColumn(e.target.value)}
-                                        >
-                                          <option value="">कुल मात्र (केवल कुल)</option>
-                                          <option value="center_name">केंद्र</option>
-                                          <option value="vidhan_sabha_name">विधानसभा</option>
-                                          <option value="vikas_khand_name">विकास खंड</option>
-                                          <option value="scheme_name">योजना</option>
-                                          <option value="investment_name">निवेश</option>
-                                          <option value="sub_investment_name">उप-निवेश</option>
-                                        </Form.Select>
-                                        <span className="text-muted small">
-                                          (कुल मात्रा और राशि दिखाएं)
-                                        </span>
-                                      </div>
-                                    </div>
+
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                       <h5 className="mb-0">
                                         {columnDefs[currentFilter.column]?.label || "Summary Table"}
@@ -7229,35 +7217,7 @@ const MainDashboard = () => {
                                                     );
                                                     cellData = applySummaryHeaderFilters(cellData);
 
-                                                    // SPECIAL: If this column is the selected breakdown column, show names in same format as value columns
-                                                    if (col === summaryTotalBreakdownColumn) {
-                                                      const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
-                                                      return (
-                                                        <td key={col} style={{ maxWidth: "350px", verticalAlign: "top" }}>
-                                                          <div>
-                                                            {breakdown.map((group, gIdx) => (
-                                                              <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                                  {group.groupName}
-                                                                </div>
-                                                                {group.investments.map((inv, iIdx) => (
-                                                                  <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                    <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                      {inv.name}
-                                                                    </div>
-                                                                    {inv.subInvestments.map((sub, sIdx) => (
-                                                                      <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                        {sub.name}
-                                                                      </div>
-                                                                    ))}
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                          </div>
-                                                        </td>
-                                                      );
-                                                    }
+
 
                                                     // योजना column: show hierarchy -> योजना -> निवेश -> उप-निवेश (names only, no matra/dar)
                                                     if (col === "scheme_name") {
@@ -7721,7 +7681,6 @@ const MainDashboard = () => {
                                               ) && (
                                                 <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
                                                   {(() => {
-                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
                                                     const totalQty = tableDataForValue
                                                       .reduce((sum, item) => {
                                                         const qtyVal =
@@ -7731,30 +7690,8 @@ const MainDashboard = () => {
                                                         return sum + qtyVal;
                                                       }, 0)
                                                       .toFixed(2);
-                                                    
-                                                    return (
-                                                      <div>
-                                                        {breakdown.map((group, gIdx) => (
-                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                              {group.totals.allocated_quantity.toFixed(2)}
-                                                            </div>
-                                                            {group.investments.map((inv, iIdx) => (
-                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                  {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
-                                                                </div>
-                                                                {inv.subInvestments.map((sub, sIdx) => (
-                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                    {sub.totals.allocated_quantity.toFixed(2)}{sub.unit && ` (${sub.unit})`}
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    );
+                                                 
+                                                    return <div>{totalQty}</div>;
                                                   })()}
                                                 </td>
                                               )}
@@ -7763,7 +7700,6 @@ const MainDashboard = () => {
                                               ) && (
                                                 <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
                                                   {(() => {
-                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
                                                     const totalAmt = tableDataForValue
                                                       .reduce(
                                                         (sum, item) =>
@@ -7772,30 +7708,8 @@ const MainDashboard = () => {
                                                         0
                                                       )
                                                       .toFixed(2);
-                                                    
-                                                    return (
-                                                      <div>
-                                                        {breakdown.map((group, gIdx) => (
-                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                              {group.totals.amount_of_farmer_share.toFixed(2)}
-                                                            </div>
-                                                            {group.investments.map((inv, iIdx) => (
-                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                  {inv.totals.amount_of_farmer_share.toFixed(2)}
-                                                                </div>
-                                                                {inv.subInvestments.map((sub, sIdx) => (
-                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                    {sub.totals.amount_of_farmer_share.toFixed(2)}
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    );
+                                                 
+                                                    return <div>{totalAmt}</div>;
                                                   })()}
                                                 </td>
                                               )}
@@ -7804,7 +7718,6 @@ const MainDashboard = () => {
                                               ) && (
                                                 <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
                                                   {(() => {
-                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
                                                     const totalAmt = tableDataForValue
                                                       .reduce(
                                                         (sum, item) =>
@@ -7813,30 +7726,8 @@ const MainDashboard = () => {
                                                         0
                                                       )
                                                       .toFixed(2);
-                                                    
-                                                    return (
-                                                      <div>
-                                                        {breakdown.map((group, gIdx) => (
-                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                              {group.totals.amount_of_subsidy.toFixed(2)}
-                                                            </div>
-                                                            {group.investments.map((inv, iIdx) => (
-                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                  {inv.totals.amount_of_subsidy.toFixed(2)}
-                                                                </div>
-                                                                {inv.subInvestments.map((sub, sIdx) => (
-                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                    {sub.totals.amount_of_subsidy.toFixed(2)}
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    );
+                                                 
+                                                    return <div>{totalAmt}</div>;
                                                   })()}
                                                 </td>
                                               )}
@@ -7845,7 +7736,6 @@ const MainDashboard = () => {
                                               ) && (
                                                 <td style={{ maxWidth: "200px", verticalAlign: "top" }}>
                                                   {(() => {
-                                                    const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
                                                     const totalAmt = tableDataForValue
                                                       .reduce(
                                                         (sum, item) =>
@@ -7854,30 +7744,8 @@ const MainDashboard = () => {
                                                         0
                                                       )
                                                       .toFixed(2);
-                                                    
-                                                    return (
-                                                      <div>
-                                                        {breakdown.map((group, gIdx) => (
-                                                          <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                            <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                              {group.totals.total_amount.toFixed(2)}
-                                                            </div>
-                                                            {group.investments.map((inv, iIdx) => (
-                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                  {inv.totals.total_amount.toFixed(2)}
-                                                                </div>
-                                                                {inv.subInvestments.map((sub, sIdx) => (
-                                                                  <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                    {sub.totals.total_amount.toFixed(2)}
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    );
+                                                 
+                                                    return <div>{totalAmt}</div>;
                                                   })()}
                                                 </td>
                                               )}
@@ -8430,34 +8298,7 @@ const MainDashboard = () => {
                                                   return sum + qtyVal;
                                                 }, 0).toFixed(2);
                                                 const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
-                                                return (
-                                                  <div>
-                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
-                                                      कुल: {grandTotal}
-                                                    </div>
-                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                                                      {breakdown.map((group, gIdx) => (
-                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                              {group.totals.allocated_quantity.toFixed(2)}
-                                                            </div>
-                                                            {group.investments.map((inv, iIdx) => (
-                                                              <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                  {inv.totals.allocated_quantity.toFixed(2)}{inv.unit && ` (${inv.unit})`}
-                                                                </div>
-                                                              {inv.subInvestments.map((sub, sIdx) => (
-                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                  {sub.totals.allocated_quantity.toFixed(2)}{sub.unit && ` (${sub.unit})`}
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
+                                                return <div>{grandTotal}</div>;
                                               })()}
                                             </td>
                                           )}
@@ -8489,34 +8330,7 @@ const MainDashboard = () => {
                                                 const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
                                                 const grandTotal = headerFilteredAll.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2);
                                                 const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
-                                                return (
-                                                  <div>
-                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
-                                                      कुल: {grandTotal}
-                                                    </div>
-                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                                                      {breakdown.map((group, gIdx) => (
-                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                            {group.totals.amount_of_farmer_share.toFixed(2)}
-                                                          </div>
-                                                          {group.investments.map((inv, iIdx) => (
-                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                {inv.totals.amount_of_farmer_share.toFixed(2)}
-                                                              </div>
-                                                              {inv.subInvestments.map((sub, sIdx) => (
-                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                  {sub.totals.amount_of_farmer_share.toFixed(2)}
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
+                                                return <div>{grandTotal}</div>;
                                               })()}
                                             </td>
                                           )}
@@ -8548,34 +8362,7 @@ const MainDashboard = () => {
                                                 const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
                                                 const grandTotal = headerFilteredAll.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2);
                                                 const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
-                                                return (
-                                                  <div>
-                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
-                                                      कुल: {grandTotal}
-                                                    </div>
-                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                                                      {breakdown.map((group, gIdx) => (
-                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                            {group.totals.amount_of_subsidy.toFixed(2)}
-                                                          </div>
-                                                          {group.investments.map((inv, iIdx) => (
-                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                {inv.totals.amount_of_subsidy.toFixed(2)}
-                                                              </div>
-                                                              {inv.subInvestments.map((sub, sIdx) => (
-                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                  {sub.totals.amount_of_subsidy.toFixed(2)}
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
+                                                return <div>{grandTotal}</div>;
                                               })()}
                                             </td>
                                           )}
@@ -8607,34 +8394,7 @@ const MainDashboard = () => {
                                                 const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
                                                 const grandTotal = headerFilteredAll.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2);
                                                 const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
-                                                return (
-                                                  <div>
-                                                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
-                                                      कुल: {grandTotal}
-                                                    </div>
-                                                    <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                                                      {breakdown.map((group, gIdx) => (
-                                                        <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                            {group.totals.total_amount.toFixed(2)}
-                                                          </div>
-                                                          {group.investments.map((inv, iIdx) => (
-                                                            <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                              <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                {inv.totals.total_amount.toFixed(2)}
-                                                              </div>
-                                                              {inv.subInvestments.map((sub, sIdx) => (
-                                                                <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                  {sub.totals.total_amount.toFixed(2)}
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
+                                                return <div>{grandTotal}</div>;
                                               })()}
                                             </td>
                                           )}
