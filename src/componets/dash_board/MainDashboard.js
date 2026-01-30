@@ -195,82 +195,11 @@ const generateVikasKhandSummary = (data) => {
 };
 
 // Function to render the summary table (shows scheme -> investments per center)
+// NOTE: This render function has been removed as per user request.
+// The generateVikasKhandSummary logic is kept for use in other summary tables.
 const renderVikasKhandSummaryTable = (summaryData) => {
-  if (!summaryData || summaryData.length === 0) return null;
-
-  return (
-    <div className="table-responsive mt-4">
-      <h5 className="mb-3">विकासखंड, केंद्र और योजना/निवेश सारांश</h5>
-      <Table striped bordered hover className="table-thead-style">
-        <thead className="table-thead">
-          <tr>
-            <th style={{ width: '30%', verticalAlign: 'middle' }}>विकासखंड</th>
-            <th style={{ width: '70%' }}>केंद्र - योजना और निवेश</th>
-          </tr>
-        </thead>
-        <tbody>
-          {summaryData.map((item, index) => (
-            <tr key={index}>
-              <td
-                style={{
-                  verticalAlign: 'top',
-                  fontWeight: 'bold',
-                  backgroundColor: '#f8f9fa',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {item.vikasKhand}
-              </td>
-              <td style={{ padding: '8px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {item.centers.map((center, ci) => (
-                    <div key={`${index}-center-${ci}`} style={{ border: '1px solid #e9ecef', borderRadius: 6, padding: '8px', background: '#fff' }}>
-                      <div style={{ fontWeight: '600', marginBottom: 6 }}>{center.centerName}</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '6px', alignItems: 'start' }}>
-                        <div style={{ fontWeight: '600', color: '#495057' }}>योजना</div>
-                        <div style={{ fontWeight: '600', color: '#495057' }}>{translations.investmentName}</div>
-
-                        {center.schemes && center.schemes.length > 0 ? (
-                          center.schemes.map((sch, sidx) => (
-                            <div key={`scheme-block-${sidx}`} style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '6px', alignItems: 'start' }}>
-                              <div style={{ padding: '4px 6px', fontSize: '12px' }}>
-                                <div style={{ fontWeight: 600 }}>{sch.schemeName}</div>
-                              </div>
-                              <div style={{ padding: '4px 6px', fontSize: '12px' }}>
-                                {sch.investments && sch.investments.length > 0 ? (
-                                  sch.investments.map((inv, ii) => (
-                                    <div key={ii} style={{ marginBottom: 8 }}>
-                                      <div style={{ fontWeight: 600 }}>{inv.investmentName}</div>
-                                      {inv.subInvestments && inv.subInvestments.length > 0 ? (
-                                        <div style={{ marginLeft: 8, color: '#343a40' }}>{inv.subInvestments.join(', ')}</div>
-                                      ) : (
-                                        <div style={{ marginLeft: 8, color: '#6c757d' }}>—</div>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div>—</div>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <>
-                            <div>—</div>
-                            <div>—</div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    </div>
-  );
+  // This function is now disabled - UI removed but logic preserved in generateVikasKhandSummary
+  return null;
 };
 
 const MainDashboard = () => {
@@ -374,8 +303,8 @@ const MainDashboard = () => {
   });
 
   // State for summary table total breakdown filter
-  // Options: center_name, vidhan_sabha_name, vikas_khand_name, scheme_name, source_of_receipt, investment_name, sub_investment_name
-  const [summaryTotalBreakdownColumn, setSummaryTotalBreakdownColumn] = useState("scheme_name");
+  // Options: center_name, vidhan_sabha_name, vikas_khand_name, scheme_name, investment_name, sub_investment_name
+  const [summaryTotalBreakdownColumn, setSummaryTotalBreakdownColumn] = useState("");
 
   // State for report generation
   const [reportDateStart, setReportDateStart] = useState('');
@@ -576,7 +505,6 @@ const MainDashboard = () => {
       if (currentFilter) {
         const allSummaryColumns = [
           columnDefs[currentFilter.column]?.label,
-          "कुल रिकॉर्ड",
           ...tableColumnOrder
             .filter((col) => !columnDefs[col].hidden)
             .filter(
@@ -586,7 +514,8 @@ const MainDashboard = () => {
                 col !== "rate" &&
                 col !== "amount_of_farmer_share" &&
                 col !== "amount_of_subsidy" &&
-                col !== "total_amount"
+                col !== "total_amount" &&
+                col !== "source_of_receipt" // Exclude सप्लायर column
             )
             .sort(
               (a, b) =>
@@ -1402,7 +1331,6 @@ const MainDashboard = () => {
   const handleSummaryTableToggleAllColumns = () => {
     setTableColumnFilters((prev) => {
       const allColumns = [
-        "कुल रिकॉर्ड",
         ...tableColumnOrder
           .filter((col) => !columnDefs[col].hidden)
           .filter(
@@ -1411,7 +1339,8 @@ const MainDashboard = () => {
               col !== "rate" &&
               col !== "amount_of_farmer_share" &&
               col !== "amount_of_subsidy" &&
-              col !== "total_amount"
+              col !== "total_amount" &&
+              col !== "source_of_receipt" // Exclude सप्लायर column
           )
           .sort(
             (a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b)
@@ -2160,7 +2089,6 @@ const MainDashboard = () => {
       const dataForValue = data.filter((item) => item[column] === value);
       return {
         [columnDefs[column]?.label]: value,
-        "कुल रिकॉर्ड": dataForValue.length,
         ...Object.fromEntries(
           Object.keys(columnDefs)
             .filter(
@@ -2171,7 +2099,8 @@ const MainDashboard = () => {
                 col !== "amount_of_farmer_share" &&
                 col !== "amount_of_subsidy" &&
                 col !== "total_amount" &&
-                !columnDefs[col].hidden // Exclude hidden columns
+                !columnDefs[col].hidden && // Exclude hidden columns
+                col !== "source_of_receipt" // Exclude सप्लायर column
             )
             .map((col) => {
               // If summary is grouped by scheme, show investments list instead of count
@@ -2216,7 +2145,6 @@ const MainDashboard = () => {
     // Add total row
     const totalRow = {
       [columnDefs[column]?.label]: "कुल",
-      "कुल रिकॉर्ड": summaryData.reduce((sum, row) => sum + (row["कुल रिकॉर्ड"] || 0), 0),
     };
 
     // Add totals for monetary columns
@@ -2243,7 +2171,8 @@ const MainDashboard = () => {
           col !== "rate" &&
           col !== "amount_of_farmer_share" &&
           col !== "amount_of_subsidy" &&
-          col !== "total_amount"
+          col !== "total_amount" &&
+          col !== "source_of_receipt" // Exclude सप्लायर column
       )
       .forEach((col) => {
         const allValues = data.map((item) => item[col]).filter(Boolean);
@@ -2267,10 +2196,12 @@ const MainDashboard = () => {
       .sort((a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b))
       .map((key) => columnDefs[key].label);
 
+    // Filter out सप्लायर (source_of_receipt) from visibleColumns
+    const filteredVisibleColumns = visibleColumns.filter(col => col !== translations.sourceOfReceipt);
+
     const columns = [
       columnDefs[column]?.label,
-      "कुल रिकॉर्ड",
-      ...visibleColumns,
+      ...filteredVisibleColumns,
       "आवंटित मात्रा",
       "कृषक धनराशि",
       "सब्सिडी धनराशि",
@@ -5460,7 +5391,6 @@ const MainDashboard = () => {
                           <option value="vidhan_sabha_name">विधानसभा</option>
                           <option value="vikas_khand_name">विकास खंड</option>
                           <option value="scheme_name">योजना</option>
-                          <option value="source_of_receipt">सप्लायर</option>
                           <option value="investment_name">निवेश</option>
                           <option value="sub_investment_name">उप-निवेश</option>
                         </Form.Select>
@@ -6861,16 +6791,16 @@ const MainDashboard = () => {
                                           value={summaryTotalBreakdownColumn}
                                           onChange={(e) => setSummaryTotalBreakdownColumn(e.target.value)}
                                         >
+                                          <option value="">कुल मात्र (केवल कुल)</option>
                                           <option value="center_name">केंद्र</option>
                                           <option value="vidhan_sabha_name">विधानसभा</option>
                                           <option value="vikas_khand_name">विकास खंड</option>
                                           <option value="scheme_name">योजना</option>
-                                          <option value="source_of_receipt">सप्लायर</option>
                                           <option value="investment_name">निवेश</option>
                                           <option value="sub_investment_name">उप-निवेश</option>
                                         </Form.Select>
                                         <span className="text-muted small">
-                                          (आवंटित मात्रा, कृषक धनराशि, सब्सिडी धनराशि, कुल राशि में विवरण दिखाएं)
+                                          (कुल मात्रा और राशि दिखाएं)
                                         </span>
                                       </div>
                                     </div>
@@ -6945,7 +6875,6 @@ const MainDashboard = () => {
                                         <ColumnFilter
                                           tableId="summary"
                                           columns={[
-                                            "कुल रिकॉर्ड",
                                             ...tableColumnOrder
                                               .filter(
                                                 (col) =>
@@ -6962,7 +6891,8 @@ const MainDashboard = () => {
                                                     "amount_of_farmer_share" &&
                                                   col !==
                                                     "amount_of_subsidy" &&
-                                                  col !== "total_amount"
+                                                  col !== "total_amount" &&
+                                                  col !== "source_of_receipt" // Exclude सप्लायर column
                                               )
                                               .sort(
                                                 (a, b) =>
@@ -7005,15 +6935,13 @@ const MainDashboard = () => {
                                             {columnDefs[currentFilter.column]?.label || "Value"}
                                             {/* No filter icon or dropdown for the first column in summary table */}
                                           </th>
-                                          {tableColumnFilters.summary.includes(
-                                            "कुल रिकॉर्ड"
-                                          ) && <th>कुल रिकॉर्ड</th>}
                                           {tableColumnOrder
                                             .filter(
                                               (col) =>
                                                 col !== currentFilter.column &&
                                                 !columnDefs[col].hidden &&
-                                                col !== summaryTotalBreakdownColumn // Exclude breakdown column from normal position
+                                                col !== summaryTotalBreakdownColumn && // Exclude breakdown column from normal position
+                                                col !== "source_of_receipt" // Exclude सप्लायर column
                                             )
                                             .filter(
                                               (col) =>
@@ -7022,7 +6950,8 @@ const MainDashboard = () => {
                                                 col !==
                                                   "amount_of_farmer_share" &&
                                                 col !== "amount_of_subsidy" &&
-                                                col !== "total_amount"
+                                                col !== "total_amount" &&
+                                                col !== "source_of_receipt" // Exclude सप्लायर column
                                             )
                                             .sort(
                                               (a, b) =>
@@ -7326,6 +7255,20 @@ const MainDashboard = () => {
                                                   const _verticalPadding = 12;
                                                   const _interBorder = 1;
                                                   const perCenterHeightCommon = {};
+                                                  // Build sub-investment mapping for height calculation
+                                                  const centerSchemeToSubInvestmentsCommon = {};
+                                                  tableDataForValue.forEach((item) => {
+                                                    const cn = item.center_name || "अज्ञात केंद्र";
+                                                    const s = item.scheme_name || null;
+                                                    const inv = item.investment_name || null;
+                                                    const sub = item.sub_investment_name;
+                                                    if (!centerSchemeToSubInvestmentsCommon[cn]) centerSchemeToSubInvestmentsCommon[cn] = {};
+                                                    if (s && !centerSchemeToSubInvestmentsCommon[cn][s]) centerSchemeToSubInvestmentsCommon[cn][s] = {};
+                                                    if (inv && sub) {
+                                                      if (!centerSchemeToSubInvestmentsCommon[cn][s][inv]) centerSchemeToSubInvestmentsCommon[cn][s][inv] = new Set();
+                                                      centerSchemeToSubInvestmentsCommon[cn][s][inv].add(sub);
+                                                    }
+                                                  });
                                                   vikasOrderCommon.forEach((vk) => {
                                                     const centers = Array.from(groupsByVikasCommon[vk] || []).sort();
                                                     centers.forEach((cn) => {
@@ -7333,13 +7276,19 @@ const MainDashboard = () => {
                                                       const schemesCount = schemesSet.size;
                                                       // compute number of investment rows for this center (sum of investments across schemes)
                                                       let investmentsCount = 0;
+                                                      let subInvestmentsCount = 0;
                                                       schemesSet.forEach((s) => {
                                                         const invSet = (centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || new Set();
                                                         investmentsCount += invSet.size || 0;
+                                                        invSet.forEach((inv) => {
+                                                          const subSet = (centerSchemeToSubInvestmentsCommon[cn] && centerSchemeToSubInvestmentsCommon[cn][s] && centerSchemeToSubInvestmentsCommon[cn][s][inv]) || new Set();
+                                                          subInvestmentsCount += subSet.size || 0;
+                                                        });
                                                       });
                                                       const rowsNeededForSchemes = Math.max(1, schemesCount);
                                                       const rowsNeededForInvestments = Math.max(1, investmentsCount);
-                                                      const rowsNeeded = Math.max(rowsNeededForSchemes, rowsNeededForInvestments);
+                                                      const rowsNeededForSubInvestments = Math.max(1, subInvestmentsCount);
+                                                      const rowsNeeded = Math.max(rowsNeededForSchemes, rowsNeededForInvestments, rowsNeededForSubInvestments);
                                                       perCenterHeightCommon[cn] = Math.max(rowsNeeded * _lineHeight + _verticalPadding + (rowsNeeded - 1) * _interBorder, _lineHeight + _verticalPadding);
                                                     });
                                                   });
@@ -7410,24 +7359,30 @@ const MainDashboard = () => {
                                                                           <div key={`${vk}-${cn}-${ci}`} style={{ padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word' }}>
                                                                           {schemes.length > 0 ? (
                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                                              {schemes.map((s, si) => {
-                                                                                const invs = Array.from((centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || []);
-                                                                                  if (invs.length > 0) {
-                                                                                    // Show the scheme name once, then add blanks for alignment
-                                                                                    return (
-                                                                                      <div key={`scheme-block-${s}-${si}`} style={{ display: 'flex', flexDirection: 'column' }}>
-                                                                                        <div key={`scheme-${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
-                                                                                        {invs.slice(1).map((inv, inIdx) => (
-                                                                                          <div key={`${s}-blank-${inIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>&nbsp;</div>
-                                                                                        ))}
-                                                                                        <div style={{ borderTop: '1px solid #e9ecef', margin: '6px 0' }} />
-                                                                                      </div>
-                                                                                    );
-                                                                                  }
-                                                                                  return (
-                                                                                    <div key={`${s}-none`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
-                                                                                  );
-                                                                              })}
+                                                                               {schemes.map((s, si) => {
+                                                                                 const invs = Array.from((centerSchemeToInvestmentsCommon[cn] && centerSchemeToInvestmentsCommon[cn][s]) || []);
+                                                                                 // Calculate total sub-investment count for this scheme
+                                                                                 let subInvestmentsCount = 0;
+                                                                                 invs.forEach((inv) => {
+                                                                                   const subSet = (centerSchemeToSubInvestmentsCommon[cn] && centerSchemeToSubInvestmentsCommon[cn][s] && centerSchemeToSubInvestmentsCommon[cn][s][inv]) || new Set();
+                                                                                   subInvestmentsCount += subSet.size;
+                                                                                 });
+                                                                                   if (invs.length > 0) {
+                                                                                     // Show the scheme name once, then add blanks for alignment
+                                                                                     return (
+                                                                                       <div key={`scheme-block-${s}-${si}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                          <div key={`scheme-${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                          {Array(subInvestmentsCount - 1).fill(0).map((_, inIdx) => (
+                                                                                            <div key={`${s}-blank-${inIdx}`} style={{ padding: '2px 0', fontSize: '12px' }}>&nbsp;</div>
+                                                                                          ))}
+                                                                                         <div style={{ borderTop: '1px solid #e9ecef', margin: '6px 0' }} />
+                                                                                       </div>
+                                                                                     );
+                                                                                   }
+                                                                                   return (
+                                                                                     <div key={`${s}-none`} style={{ padding: '2px 0', fontSize: '12px' }}>{s}</div>
+                                                                                   );
+                                                                               })}
                                                                             </div>
                                                                           ) : (
                                                                             <div style={{ color: '#666' }}>—</div>
@@ -7634,36 +7589,65 @@ const MainDashboard = () => {
                                                         </td>
                                                       );
                                                     }
-                                                    // For sub_investment_name, show only sub-investment names with proper separators
+                                                     // For sub_investment_name, show comma-separated sub-investments aligned with investment column
                                                     if (col === "sub_investment_name") {
-                                                      // Get unique sub_investment values for this row
-                                                      const subInvValues = [...new Set(tableDataForValue.map((item) => item.sub_investment_name).filter(Boolean))].sort();
-                                                      
-                                                      // Calculate height based on number of sub-investments
-                                                      const subInvCount = subInvValues.length;
-                                                      const subInvHeight = Math.max(subInvCount, 1) * _lineHeight + _verticalPadding + (Math.max(subInvCount, 1) - 1) * _interBorder;
-                                                      
+                                                      // Use precomputed grouping/height structures (same as investment column)
+                                                      const groupsByVikas = groupsByVikasCommon;
+                                                      const centerToSchemes = centerToSchemesCommon;
+                                                      const centerSchemeToInvestments = centerSchemeToInvestmentsCommon;
+                                                      const centerSchemeToSubInvestments = centerSchemeToSubInvestmentsCommon;
+                                                      const vikasOrder = vikasOrderCommon;
+                                                      const perCenterHeight = perCenterHeightCommon;
+
                                                       return (
                                                         <td key={col} style={{ maxWidth: "300px", padding: 0, verticalAlign: "top" }}>
                                                           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                                                            {subInvValues.map((si, i) => (
-                                                              <div key={si} style={{ paddingTop: 0, marginTop: 0 }}>
-                                                                <div style={{
-                                                                  padding: '4px 8px',
-                                                                  fontWeight: '500',
-                                                                  borderTop: i === 0 ? 'none' : '1px solid #ddd',
-                                                                  background: '#fff',
-                                                                  wordBreak: 'break-word',
-                                                                  minHeight: `${_lineHeight + _verticalPadding}px`,
-                                                                  display: 'flex',
-                                                                  alignItems: 'flex-start',
-                                                                  boxSizing: 'border-box',
-                                                                  margin: 0
-                                                                }}>
-                                                                  {si}
+                                                            {vikasOrder.map((vk, i) => {
+                                                              const centers = Array.from(groupsByVikas[vk] || []).sort();
+                                                              return (
+                                                                <div key={`sub-${vk}-${i}`} style={{ paddingTop: 0, marginTop: 0 }}>
+                                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '6px 8px', background: '#fff', minHeight: `${centers.reduce((sum, cn) => sum + (perCenterHeight[cn] || (_lineHeight + _verticalPadding)), 0)}px`, boxSizing: 'border-box', justifyContent: 'flex-start', borderTop: i === 0 ? 'none' : '2px solid #333' }}>
+                                                                    {centers.length > 0 ? centers.map((cn, ci) => {
+                                                                      const schemes = Array.from(centerToSchemes[cn] || []).sort();
+                                                                      return (
+                                                                        <div key={cn + ci} style={{ minHeight: `${perCenterHeight[cn] || (_lineHeight + _verticalPadding)}px`, padding: '4px 0', borderBottom: ci < centers.length - 1 ? '1px solid #eee' : 'none', fontSize: '12px', wordBreak: 'break-word', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                                                                          {schemes.length > 0 ? schemes.map((s, si) => (
+                                                                            <div key={`${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>
+                                                                              {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).length > 0 ? (
+                                                                                <div>
+                                                                                  {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => {
+                                                                                    const subInvestments = centerSchemeToSubInvestments[cn]?.[s]?.[inv];
+                                                                                    const subInvArray = subInvestments ? Array.from(subInvestments).sort() : [];
+                                                                                    return (
+                                                                                      <div key={inIdx}>
+                                                                                        {subInvArray.length > 0 ? (
+                                                                                          subInvArray.map((sub, subIdx) => (
+                                                                                            <div key={subIdx} style={{ padding: '1px 0', fontSize: '12px' }}>{sub}</div>
+                                                                                          ))
+                                                                                        ) : (
+                                                                                          <div style={{ padding: '1px 0', fontSize: '12px', color: '#666' }}>—</div>
+                                                                                        )}
+                                                                                      </div>
+                                                                                    );
+                                                                                  })}
+                                                                                </div>
+                                                                              ) : (
+                                                                                <div style={{ color: '#666' }}>—</div>
+                                                                              )}
+                                                                              <div style={{ borderTop: '1px solid #f2f2f2', margin: '6px 0' }} />
+                                                                            </div>
+                                                                          )) : (
+                                                                            <div style={{ color: '#666' }}>—</div>
+                                                                          )}
+                                                                        </div>
+                                                                      );
+                                                                    }) : (
+                                                                      <div style={{ padding: '4px 0', fontSize: '12px', color: '#666' }}>—</div>
+                                                                    )}
+                                                                  </div>
                                                                 </div>
-                                                              </div>
-                                                            ))}
+                                                              );
+                                                            })}
                                                           </div>
                                                         </td>
                                                       );
@@ -7693,9 +7677,18 @@ const MainDashboard = () => {
                                                                             <div key={`${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>
                                                                               {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).length > 0 ? (
                                                                                 <div>
-                                                                                  {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => (
-                                                                                    <div key={inIdx} style={{ padding: '1px 0', fontSize: '12px' }}>{inv}</div>
-                                                                                  ))}
+                                                                                   {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => {
+                                                                                     const subInvestments = centerSchemeToSubInvestmentsCommon[cn]?.[s]?.[inv];
+                                                                                     const subInvArray = subInvestments ? Array.from(subInvestments).sort() : [];
+                                                                                     return (
+                                                                                       <div key={inIdx} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                         <div style={{ padding: '1px 0', fontSize: '12px' }}>{inv}</div>
+                                                                                         {subInvArray.slice(1).map((sub, subIdx) => (
+                                                                                           <div key={`${inv}-sub-blank-${subIdx}`} style={{ padding: '1px 0', fontSize: '12px' }}>&nbsp;</div>
+                                                                                         ))}
+                                                                                       </div>
+                                                                                     );
+                                                                                   })}
                                                                                 </div>
                                                                               ) : (
                                                                                 <div style={{ color: '#666' }}>—</div>
@@ -7758,9 +7751,18 @@ const MainDashboard = () => {
                                                                               <div key={`${s}-${si}`} style={{ padding: '2px 0', fontSize: '12px' }}>
                                                                                 {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).length > 0 ? (
                                                                                   <div>
-                                                                                      {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => (
-                                                                                        <div key={inIdx} style={{ padding: '1px 0', fontSize: '12px' }}>{inv}</div>
-                                                                                      ))}
+                                                                                   {Array.from((centerSchemeToInvestments[cn] && centerSchemeToInvestments[cn][s]) || []).map((inv, inIdx) => {
+                                                                                     const subInvestments = centerSchemeToSubInvestmentsCommon[cn]?.[s]?.[inv];
+                                                                                     const subInvArray = subInvestments ? Array.from(subInvestments).sort() : [];
+                                                                                     return (
+                                                                                       <div key={inIdx} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                         <div style={{ padding: '1px 0', fontSize: '12px' }}>{inv}</div>
+                                                                                         {subInvArray.slice(1).map((sub, subIdx) => (
+                                                                                           <div key={`${inv}-sub-blank-${subIdx}`} style={{ padding: '1px 0', fontSize: '12px' }}>&nbsp;</div>
+                                                                                         ))}
+                                                                                       </div>
+                                                                                     );
+                                                                                   })}
                                                                                     </div>
                                                                                 ) : (
                                                                                   <div style={{ color: '#666' }}>—</div>
@@ -8338,7 +8340,7 @@ const MainDashboard = () => {
                                                     </td>
                                                   );
                                                 }
-                                                // For sub_investment_name, show grouped by investment_name (names only, no matra/dar)
+                                                // For sub_investment_name, show comma-separated sub-investments aligned with investment column
                                                 if (col === "sub_investment_name") {
                                                   // Build header-filtered dataset across all visible groups
                                                   const displayCheckedValues = (() => {
@@ -8361,19 +8363,24 @@ const MainDashboard = () => {
                                                     });
                                                   })();
                                                   const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
-                                                  // Group sub_investment by investment_name (names only)
-                                                  const groupedMap = {};
+                                                  
+                                                  // Build investment -> sub-investment mapping
+                                                  const invToSubInvestments = {};
                                                   headerFilteredAll.forEach((item) => {
                                                     const inv = item.investment_name;
                                                     const sub = item.sub_investment_name;
                                                     if (!inv || !sub) return;
-                                                    if (!groupedMap[inv]) groupedMap[inv] = { subs: new Set() };
-                                                    groupedMap[inv].subs.add(sub);
+                                                    if (!invToSubInvestments[inv]) invToSubInvestments[inv] = new Set();
+                                                    invToSubInvestments[inv].add(sub);
                                                   });
-                                                  const groupedData = Object.entries(groupedMap).map(([investmentName, info]) => ({
-                                                    investmentName,
-                                                    subInvestments: [...info.subs].map((name) => ({ name })),
+                                                  
+                                                  // Get unique investments and show sub-investments one below the other
+                                                  const uniqueInvestments = [...new Set(headerFilteredAll.map((item) => item.investment_name).filter(Boolean))];
+                                                  const allSubInvestments = uniqueInvestments.map((inv) => ({
+                                                    investment: inv,
+                                                    subInvestments: invToSubInvestments[inv] ? Array.from(invToSubInvestments[inv]).sort() : [],
                                                   }));
+                                                  
                                                   return (
                                                     <td
                                                       key={col}
@@ -8387,36 +8394,22 @@ const MainDashboard = () => {
                                                           overflowY: "auto",
                                                         }}
                                                       >
-                                                        {groupedData.map(
-                                                          (group, groupIdx) => (
-                                                            <div key={groupIdx} style={{ marginBottom: "8px" }}>
+                                                        {allSubInvestments.map((group, groupIdx) => (
+                                                          <div key={groupIdx}>
+                                                            {group.subInvestments.map((sub, subIdx) => (
                                                               <div
+                                                                key={subIdx}
                                                                 style={{
-                                                                  fontSize: "12px",
-                                                                  fontWeight: "bold",
-                                                                  backgroundColor: "#e9ecef",
-                                                                  padding: "3px 5px",
-                                                                  borderRadius: "3px",
-                                                                  color: "#495057",
+                                                                  fontSize: "10px",
+                                                                  borderBottom: subIdx < group.subInvestments.length - 1 ? "1px solid #ddd" : "none",
+                                                                  padding: "2px 5px",
                                                                 }}
                                                               >
-                                                                {group.investmentName}
+                                                                <span>{sub}</span>
                                                               </div>
-                                                              {group.subInvestments.map((item, itemIdx) => (
-                                                                <div
-                                                                  key={itemIdx}
-                                                                  style={{
-                                                                    fontSize: "10px",
-                                                                    borderBottom: "1px dotted #ccc",
-                                                                    padding: "2px 5px 2px 15px",
-                                                                  }}
-                                                                >
-                                                                  <span>{item.name}</span>
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          )
-                                                        )}
+                                                            ))}
+                                                          </div>
+                                                        ))}
                                                       </div>
                                                     </td>
                                                   );
@@ -9616,17 +9609,6 @@ const MainDashboard = () => {
                                                           </>
                                                         ) : (
                                                           <>
-                                                            {visibleColumns.includes(
-                                                              "कुल रिकॉर्ड"
-                                                            ) && (
-                                                              <td>
-                                                                {
-                                                                  row[
-                                                                    "कुल रिकॉर्ड"
-                                                                  ]
-                                                                }
-                                                              </td>
-                                                            )}
                                                             {visibleColumns
                                                               .filter(
                                                                 (col) =>
@@ -10211,20 +10193,6 @@ const MainDashboard = () => {
                                                             {visibleColumns.includes(
                                                               table.columns[0]
                                                             ) && <td>{`कुल${detectedUnit ? ` (${detectedUnit})` : ""}:`}</td>}
-                                                            {visibleColumns.includes(
-                                                              "कुल रिकॉर्ड"
-                                                            ) && (
-                                                              <td>
-                                                                {filteredData.reduce(
-                                                                  (sum, row) =>
-                                                                    sum +
-                                                                    row[
-                                                                      "कुल रिकॉर्ड"
-                                                                    ],
-                                                                  0
-                                                                )}
-                                                              </td>
-                                                            )}
                                                             {visibleColumns
                                                               .filter(
                                                                 (col) =>
