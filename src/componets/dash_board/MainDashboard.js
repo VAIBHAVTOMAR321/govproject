@@ -6940,7 +6940,6 @@ const MainDashboard = () => {
                                               (col) =>
                                                 col !== currentFilter.column &&
                                                 !columnDefs[col].hidden &&
-                                                col !== summaryTotalBreakdownColumn && // Exclude breakdown column from normal position
                                                 col !== "source_of_receipt" // Exclude सप्लायर column
                                             )
                                             .filter(
@@ -7048,81 +7047,6 @@ const MainDashboard = () => {
                                                 )}
                                               </th>
                                             ))}
-                                          {/* Breakdown Column Header - positioned before आवंटित मात्रा */}
-                                          {summaryTotalBreakdownColumn && 
-                                            summaryTotalBreakdownColumn !== currentFilter.column &&
-                                            tableColumnFilters.summary.includes(columnDefs[summaryTotalBreakdownColumn]?.label) && (
-                                              <th style={{ position: "relative" }}>
-                                                {columnDefs[summaryTotalBreakdownColumn]?.label}
-                                                <Button
-                                                  variant="link"
-                                                  size="sm"
-                                                  className="p-0 ms-1"
-                                                  style={{
-                                                    fontSize: "10px",
-                                                    textDecoration: "underline",
-                                                  }}
-                                                  onClick={() =>
-                                                    toggleMainSummaryColumnExpansion(summaryTotalBreakdownColumn)
-                                                  }
-                                                >
-                                                  {mainSummaryExpandedColumns[summaryTotalBreakdownColumn] ? "Hide" : "Show"}
-                                                </Button>
-                                                {/* Filter icon and dropdown for breakdown column */}
-                                                <Button
-                                                  variant="link"
-                                                  size="sm"
-                                                  className="p-0 ms-1"
-                                                  onClick={() => toggleSummaryHeaderDropdown(summaryTotalBreakdownColumn)}
-                                                >
-                                                  <BiFilter />
-                                                </Button>
-                                                {summaryHeaderFilterOpen[summaryTotalBreakdownColumn] && (
-                                                  <div
-                                                    className="dropdown-menu show"
-                                                    style={{ position: "absolute", top: "100%", zIndex: 1000, padding: "6px", minWidth: "220px" }}
-                                                  >
-                                                    {(() => {
-                                                      const allValues = getUniqueValuesForColumn(filteredData, summaryTotalBreakdownColumn);
-                                                      const selected = summaryColumnValueFilters[summaryTotalBreakdownColumn] || [];
-                                                      const allSelected = selected.length === allValues.length && allValues.length > 0;
-                                                      return (
-                                                        <>
-                                                          <div className="dropdown-item">
-                                                            <FormCheck
-                                                              className="check-box"
-                                                              type="checkbox"
-                                                              id={`select_all_summary_${summaryTotalBreakdownColumn}`}
-                                                              label={allSelected ? "सभी हटाएं" : "सभी चुनें"}
-                                                              checked={allSelected}
-                                                              onChange={() => {
-                                                                if (allSelected) {
-                                                                  clearSummaryHeaderSelection(summaryTotalBreakdownColumn);
-                                                                } else {
-                                                                  setSummaryHeaderSelectAll(summaryTotalBreakdownColumn, allValues);
-                                                                }
-                                                              }}
-                                                            />
-                                                          </div>
-                                                          {allValues.map((val) => (
-                                                            <div key={val} className="dropdown-item">
-                                                              <FormCheck
-                                                                className="check-box"
-                                                                type="checkbox"
-                                                                id={`summary_${summaryTotalBreakdownColumn}_${val}`}
-                                                                label={String(val)}
-                                                                checked={selected.includes(val)}
-                                                                onChange={() => toggleSummaryHeaderValue(summaryTotalBreakdownColumn, val)}
-                                                              />
-                                                            </div>
-                                                          ))}
-                                                        </>
-                                                      );
-                                                    })()}
-                                                  </div>
-                                                )}
-                                              </th>
-                                            )}
                                           {tableColumnFilters.summary.includes(
                                             "आवंटित मात्रा"
                                           ) && <th>आवंटित मात्रा</th>}
@@ -7198,8 +7122,7 @@ const MainDashboard = () => {
                                                   (col) =>
                                                     col !==
                                                       currentFilter.column &&
-                                                    !columnDefs[col].hidden &&
-                                                    col !== summaryTotalBreakdownColumn // Exclude breakdown column from normal position
+                                                    !columnDefs[col].hidden
                                                 )
                                                 .filter(
                                                   (col) =>
@@ -7791,73 +7714,7 @@ const MainDashboard = () => {
                                                         </td>
                                                       );
                                                     }
-                                                })}
-                                              {/* Breakdown Column Cell - positioned before आवंटित मात्रा */}
-                                              {summaryTotalBreakdownColumn && 
-                                                summaryTotalBreakdownColumn !== currentFilter.column &&
-                                                tableColumnFilters.summary.includes(columnDefs[summaryTotalBreakdownColumn]?.label) &&
-                                                  (() => {
-                                                    const col = summaryTotalBreakdownColumn;
-                                                    const isExpanded = mainSummaryExpandedColumns[col];
-                                                    
-                                                    if (isExpanded) {
-                                                      const breakdown = generateTotalBreakdown(tableDataForValue, summaryTotalBreakdownColumn);
-                                                      return (
-                                                        <td key={col} style={{ maxWidth: "350px", verticalAlign: "top" }}>
-                                                          <div>
-                                                            {breakdown.map((group, gIdx) => (
-                                                              <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                                <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                                  {group.groupName}
-                                                                </div>
-                                                                {group.investments.map((inv, iIdx) => (
-                                                                  <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                    <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                      {inv.investmentName || inv.name || inv}
-                                                                    </div>
-                                                                    {Array.isArray(inv.subInvestments) && inv.subInvestments.map((sub, sIdx) => (
-                                                                      <div key={sIdx} style={{ padding: '2px 0', fontSize: '12px' }}>
-                                                                        {sub.name || sub}
-                                                                      </div>
-                                                                    ))}
-                                                                  </div>
-                                                                ))}
-                                                              </div>
-                                                            ))}
-                                                          </div>
-                                                        </td>
-                                                      );
-                                                    } else {
-                                                      return (
-                                                        <td
-                                                          key={col}
-                                                          style={{
-                                                            cursor: "pointer",
-                                                            color: "blue",
-                                                            fontWeight: "bold",
-                                                          }}
-                                                          onClick={() => {
-                                                            setNavigationHistory((prev) => [
-                                                              ...prev,
-                                                              {
-                                                                view,
-                                                                filterStack: [...filterStack],
-                                                                additionalTables: [...additionalTables],
-                                                              },
-                                                            ]);
-
-                                                            const allocationTable = generateAllocationTable(col, checkedValue, currentFilter.column);
-                                                            setAdditionalTables((prev) => [
-                                                              allocationTable,
-                                                              ...prev,
-                                                            ]);
-                                                          }}
-                                                        >
-                                                          {new Set(tableDataForValue.map((item) => item[col])).size}
-                                                        </td>
-                                                      );
-                                                    }
-                                                  })()}
+                                                 })}
                                               {/* Breakdown Column - Shows matra/values line by line matching group column */}
                                               {tableColumnFilters.summary.includes(
                                                 "आवंटित मात्रा"
@@ -8084,8 +7941,7 @@ const MainDashboard = () => {
                                             .filter(
                                               (col) =>
                                                 col !== currentFilter.column &&
-                                                !columnDefs[col].hidden &&
-                                                col !== summaryTotalBreakdownColumn // Exclude breakdown column from normal position
+                                                    !columnDefs[col].hidden
                                             )
                                             .filter(
                                               (col) =>
@@ -8538,97 +8394,7 @@ const MainDashboard = () => {
                                                 );
                                               }
                                             })}
-                                          {/* Breakdown Column Cell in Footer - positioned before आवंटित मात्रा */}
-                                          {summaryTotalBreakdownColumn && 
-                                            summaryTotalBreakdownColumn !== currentFilter.column &&
-                                            tableColumnFilters.summary.includes(columnDefs[summaryTotalBreakdownColumn]?.label) &&
-                                              (() => {
-                                                const col = summaryTotalBreakdownColumn;
-                                                const isExpanded = mainSummaryExpandedColumns[col];
-                                                
-                                                if (isExpanded) {
-                                                  const displayCheckedValues = (() => {
-                                                    const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
-                                                    return checkedValues.filter((checkedValue) => {
-                                                      const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
-                                                      const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
-                                                      if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
-                                                        return false;
-                                                      }
-                                                      for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
-                                                        if (k === currentFilter.column) continue;
-                                                        const sel = selectedVals || [];
-                                                        if (sel.length > 0) {
-                                                          const match = rowsForValue.some((row) => sel.includes(row[k]));
-                                                          if (!match) return false;
-                                                        }
-                                                      }
-                                                      return true;
-                                                    });
-                                                  })();
-                                                  const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
-                                                  const breakdown = generateTotalBreakdown(headerFilteredAll, summaryTotalBreakdownColumn);
-                                                  const totalCount = breakdown.length;
-                                                  return (
-                                                    <td key={col} style={{ maxWidth: "420px", verticalAlign: "top" }}>
-                                                      <div>
-                                                        <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "6px", padding: "3px 6px", backgroundColor: "#e7f1ff", borderRadius: "3px" }}>
-                                                          कुल: {totalCount} {columnDefs[col]?.label || col}
-                                                        </div>
-                                                        <div style={{ maxHeight: "220px", overflowY: "auto" }}>
-                                                          {breakdown.map((group, gIdx) => (
-                                                            <div key={gIdx} style={{ marginBottom: "10px" }}>
-                                                                    <div style={{ fontSize: "12px", fontWeight: "bold", backgroundColor: "#f1f3f5", padding: "4px 6px", borderRadius: "3px", color: "#343a40" }}>
-                                                              {group.groupName}
-                                                                </div>
-                                                                {group.investments.map((inv, iIdx) => (
-                                                                  <div key={iIdx} style={{ marginTop: "6px" }}>
-                                                                    <div style={{ fontSize: "12px", fontWeight: 500, padding: "2px 6px 2px 12px" }}>
-                                                                      {inv.name}
-                                                                    </div>
-                                                                  {inv.subInvestments.map((sub, sIdx) => (
-                                                                    <div key={sIdx} style={{ fontSize: "10px", borderBottom: "1px dotted #ccc", padding: "2px 6px 2px 22px" }}>
-                                                                      {sub.name}
-                                                                    </div>
-                                                                  ))}
-                                                                </div>
-                                                              ))}
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      </div>
-                                                    </td>
-                                                  );
-                                                } else {
-                                                  return (
-                                                    <td key={col}>
-                                                      {(() => {
-                                                        const displayCheckedValues = (() => {
-                                                          const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
-                                                          return checkedValues.filter((checkedValue) => {
-                                                            const rowsForValue = filteredData.filter((item) => item[currentFilter.column] === checkedValue);
-                                                            const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
-                                                            if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
-                                                              return false;
-                                                            }
-                                                            for (const [k, selectedVals] of Object.entries(summaryColumnValueFilters)) {
-                                                              if (k === currentFilter.column) continue;
-                                                              const sel = selectedVals || [];
-                                                              if (sel.length > 0) {
-                                                                const match = rowsForValue.some((row) => sel.includes(row[k]));
-                                                                if (!match) return false;
-                                                              }
-                                                            }
-                                                            return true;
-                                                          });
-                                                        })();
-                                                        const headerFiltered = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
-                                                        return new Set(headerFiltered.map((item) => item[col])).size;
-                                                      })()}
-                                                    </td>
-                                                  );
-                                                }
-                                              })()}
+
                                           {tableColumnFilters.summary.includes(
                                             "आवंटित मात्रा"
                                           ) && (
