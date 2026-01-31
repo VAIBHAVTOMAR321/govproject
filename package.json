@@ -26,7 +26,10 @@
     "react-scripts": "5.0.1",
     "react-select": "^5.10.2",
     "web-vitals": "^2.1.4",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "html2pdf.js": "^0.9.3"
   },
   "scripts": {
     "start": "react-scripts start",

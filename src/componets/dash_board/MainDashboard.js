@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import {
   Container,
   Row,
@@ -27,6 +27,8 @@ import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
 import * as XLSX from "xlsx";
 import html2pdf from "html2pdf.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { Bar, Pie, Doughnut } from "react-chartjs-2";
 import Chart from "chart.js/auto";
 import { HierarchicalTable, HierarchicalTableRows } from "../HierarchicalTable";
@@ -205,6 +207,17 @@ const renderVikasKhandSummaryTable = (summaryData) => {
 };
 
 const MainDashboard = () => {
+
+  // Ref to the dashboard root to locate rendered tables for DOM capture exports
+  const dashboardRef = useRef(null);
+
+  // Flag to trigger DOM-capture exports after view/table rendering
+  const [exportAfterRender, setExportAfterRender] = useState(false);
+
+  // Preview assets populated after DOM capture
+  const [previewImageSrc, setPreviewImageSrc] = useState(null);
+  const [previewHtml, setPreviewHtml] = useState(null);
+  const [excelPreviewUrl, setExcelPreviewUrl] = useState(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -1844,6 +1857,10 @@ const MainDashboard = () => {
     setShowReportModal(false);
     // Apply filters
     applyFilters();
+    // After filters are applied and view switches to detail, capture the
+    // rendered DOM table and export to PDF & Excel. The actual capture runs
+    // in a useEffect when the view/table has rendered.
+    setExportAfterRender(true);
   };
 
   // Pagination logic
@@ -3961,6 +3978,14 @@ const MainDashboard = () => {
 
   // Generate PDF preview
   const generatePDFPreview = () => {
+    if (previewImageSrc) {
+      return (
+        <div style={{ padding: 20, textAlign: "center" }}>
+          <img src={previewImageSrc} alt="PDF Preview" style={{ width: "100%" }} />
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
@@ -4167,6 +4192,17 @@ const MainDashboard = () => {
 
   // Generate Excel preview
   const generateExcelPreview = () => {
+    if (previewHtml) {
+      return (
+        <div style={{ padding: 20 }}>
+          <div
+            style={{ overflow: "auto" }}
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
@@ -4409,183 +4445,20 @@ const MainDashboard = () => {
 
   // Generate PDF
   const generatePDF = () => {
-    try {
-      // Create HTML content
-      let htmlContent = `
-        <div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">
-          <h1 style="text-align: center; margin-bottom: 15px; font-size: 14px;">निर्यातित टेबल रिपोर्ट</h1>
-      `;
-
-      tablesForExport.pdf.forEach((table, index) => {
-        // Transpose table if it's rotated
-        const displayTable = table.isRotated
-          ? transposeTableForRotation(table)
-          : table;
-
-        htmlContent += `
-          <div style="margin-bottom: 20px; page-break-inside: avoid;">
-            <h2 style="margin-top: 15px; margin-bottom: 8px; font-size: 12px;">${
-              index + 1
-            }. ${displayTable.heading}</h2>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9px;">
-              <thead>
-                <tr style="background-color: #2980b9; color: white;">
-                  <th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">S.No.</th>
-                  ${displayTable.columns
-                    .map(
-                      (col) =>
-                        `<th style="border: 1px solid #ddd; padding: 5px; text-align: left; font-size: 9px;">${getDynamicColumnHeader(col, table.showMatra, table.showDar, table.isAllocationTable)}</th>`
-                    )
-                    .join("")}
-                </tr>
-              </thead>
-              <tbody>
-        `;
-
-          // Insert CSS at top of each table block to help html2pdf avoid splitting rows
-          if (index === 0) {
-            // inject a global style block at top of the content
-            htmlContent = htmlContent.replace(
-              '<div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">',
-              '<div style="font-family: Arial, sans-serif; font-size: 10px; padding: 15px;">\n<style>table{page-break-inside:avoid;break-inside:avoid;} thead{display:table-header-group;} tfoot{display:table-row-group;} tr{page-break-inside:avoid;break-inside:avoid;} td,th{page-break-inside:avoid;break-inside:avoid;}</style>'
-            );
-          }
-
-        // Include all rows from the display table (including any appended 'कुल' row)
-        const dataToProcess = displayTable.data;
-        
-        dataToProcess.forEach((row, rowIndex) => {
-          const isTotalRow = row[displayTable.columns[0]] === "कुल";
-          htmlContent += `<tr${isTotalRow ? ' style="font-weight: bold;"' : ''}>`;
-          htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${
-            isTotalRow ? "" : rowIndex + 1
-          }</td>`;
-            displayTable.columns.forEach((col) => {
-            let cellValue = resolveCellValue(row, col);
-            // Fallback for investment/sub-investment expanded totals in HTML/pdf generation
-            if ((cellValue === "" || cellValue === null) && typeof col === "string") {
-              const colKey = Object.keys(columnDefs).find((k) => columnDefs[k].label === col);
-              if (colKey === "investment_name") {
-                const vals = getUniqueValuesWithMatra("investment_name", null);
-                cellValue = vals.map((v) => {
-                  const display = v.unit 
-                    ? `**${v.name} (${v.unit})**`
-                    : `**${v.name}**`;
-                  return v.matra ? `${display} (${v.matra})` : display;
-                }).join("\n");
-              } else if (colKey === "sub_investment_name") {
-                const grouped = getSubInvestmentGroupedByInvestment(null);
-                const formatted = [];
-                grouped.forEach((group) => {
-                  const investmentDisplay = group.unit 
-                    ? `**${group.investmentName} (${group.unit})**`
-                    : `**${group.investmentName}**`;
-                  formatted.push(investmentDisplay);
-                  group.subInvestments.forEach((item) => {
-                    formatted.push(`  • ${item.name} (${item.matra})`);
-                  });
-                });
-                cellValue = formatted.join("\n");
-              }
-            }
-            // Convert newlines to <br/> for PDF display
-            if (typeof cellValue === "string") {
-              cellValue = cellValue.replace(/\n/g, "<br/>");
-              // Convert **text** to bold for PDF
-              cellValue = cellValue.replace(/\*\*(.+?)\*\*/g, '<strong style="background-color: #e9ecef; padding: 2px 4px; border-radius: 3px;">$1</strong>');
-            }
-            htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${cellValue}</td>`;
-          });
-          htmlContent += "</tr>";
-        });
-
-        // Add footer row with totals only if the table doesn't already have a total row
-        // For rotated summary tables, "कुल" is a column name, not a data row, so don't add footer
-        const hasTotalRowInData =
-          displayTable.data.length > 0 &&
-          displayTable.data[displayTable.data.length - 1][
-            displayTable.columns[0]
-          ] === "कुल";
-        const hasKulAsColumn = displayTable.columns.includes("कुल") && table.isSummary;
-        
-        if (!hasTotalRowInData && !hasKulAsColumn) {
-          htmlContent += `
-              </tbody>
-              <tfoot>
-                <tr style="background-color: #f2f2f2; font-weight: bold;">
-                  <td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">कुल:</td>
-          `;
-
-          displayTable.columns.forEach((col) => {
-            // Use pre-calculated totals if available
-            let totalValue =
-              displayTable.totals && displayTable.totals[col] !== undefined
-                ? displayTable.totals[col]
-                : calculateColumnTotal(displayTable.data, col, columnDefs);
-
-            // Convert newlines to <br/> for PDF display
-            if (typeof totalValue === "string") {
-              totalValue = totalValue.replace(/\n/g, "<br/>");
-              // Convert **text** to bold for PDF
-              totalValue = totalValue.replace(/\*\*(.+?)\*\*/g, '<strong style="background-color: #e9ecef; padding: 2px 4px; border-radius: 3px;">$1</strong>');
-            }
-
-            htmlContent += `<td style="border: 1px solid #ddd; padding: 5px; font-size: 8px;">${totalValue}</td>`;
-          });
-
-          htmlContent += `
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        `;
-        } else {
-          htmlContent += `
-              </tbody>
-            </table>
-          </div>
-        `;
+    // For PDF download use DOM capture so preview & download match Excel/DOM exactly
+    (async () => {
+      try {
+        const tableEl = findExportTable();
+        if (!tableEl) {
+          alert("Unable to find the rendered report table for PDF export.");
+          return;
         }
-      });
-
-      htmlContent += "</div>";
-
-      // Use landscape orientation for all PDFs with rotated tables, otherwise portrait
-      const hasRotatedTable = tablesForExport.pdf.some((t) => t.isRotated);
-
-      // Configure html2pdf options
-      const options = {
-        margin: [8, 8, 8, 8],
-        filename: "exported-tables.pdf",
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 1.8,
-          useCORS: true,
-          letterRendering: true,
-          logging: false,
-          windowWidth: hasRotatedTable ? 1400 : 1200,
-        },
-        jsPDF: {
-          unit: "mm",
-          format: "a4",
-          orientation: hasRotatedTable ? "landscape" : "portrait",
-          compress: true,
-        },
-      };
-
-      // Generate and download PDF from HTML string
-      html2pdf()
-        .set(options)
-        .from(htmlContent)
-        .save()
-        .catch((error) => {
-          console.error("Error generating PDF:", error);
-          alert("Error generating PDF: " + error.message);
-        });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Error generating PDF: " + error.message);
-    }
+        await exportTableToPDF(tableEl, "exported-tables.pdf", { saveFile: true });
+      } catch (err) {
+        console.error(err);
+        alert("Error generating PDF: " + (err.message || err));
+      }
+    })();
   };
 
   // Generate Excel
@@ -4741,6 +4614,156 @@ const MainDashboard = () => {
 
     XLSX.writeFile(workbook, "exported-tables.xlsx");
   };
+
+    // --- DOM-capture export helpers (preserve on-screen layout, merged cells, rowspans) ---
+    const findExportTable = () => {
+      try {
+        const root = dashboardRef?.current || document;
+        const tables = Array.from(root.querySelectorAll("table"));
+        let best = null;
+        let maxRows = 0;
+        tables.forEach((t) => {
+          // only consider visible tables
+          if (!(t.offsetParent !== null)) return;
+          const rows = t.rows ? t.rows.length : t.querySelectorAll("tr").length;
+          if (rows > maxRows) {
+            maxRows = rows;
+            best = t;
+          }
+        });
+        return best;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const exportTableToExcel = async (tableEl, fileName = "report.xlsx") => {
+      try {
+        if (!tableEl) throw new Error("No table element found for Excel export");
+        const ws = XLSX.utils.table_to_sheet(tableEl, { raw: true });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Report");
+        const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+        const blob = new Blob([wbout], { type: "application/octet-stream" });
+        // create preview URL and capture HTML for visual preview
+        try {
+          const url = URL.createObjectURL(blob);
+          setExcelPreviewUrl(url);
+        } catch (e) {
+          // ignore
+        }
+        try {
+          setPreviewHtml(tableEl.outerHTML);
+        } catch (e) {
+          // ignore
+        }
+        XLSX.writeFile(wb, fileName);
+      } catch (error) {
+        console.error("Excel export failed:", error);
+        alert("Excel export failed: " + error.message);
+      }
+    };
+
+    const exportTableToPDF = async (tableEl, fileName = "report.pdf", options = { saveFile: true }) => {
+      try {
+        if (!tableEl) throw new Error("No table element found for PDF export");
+        // Capture rendered table as canvas (preserve CSS, merged cells, rowspan)
+        const canvas = await html2canvas(tableEl, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
+        setPreviewImageSrc(imgData);
+
+        // Create PDF with jsPDF and add image (handle multi-page if needed)
+        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // If image fits on one page
+        if (imgHeight <= pageHeight) {
+          pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+        } else {
+          // Add multiple pages by slicing the canvas vertically
+          let remainingHeight = canvas.height;
+          const pageCanvas = document.createElement("canvas");
+          const ctx = pageCanvas.getContext("2d");
+          pageCanvas.width = canvas.width;
+          const pxPerPage = Math.floor((canvas.width * pageHeight) / imgWidth);
+          let srcY = 0;
+          while (remainingHeight > 0) {
+            const h = Math.min(pxPerPage, remainingHeight);
+            pageCanvas.height = h;
+            ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+            ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
+            const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
+            if (srcY > 0) pdf.addPage();
+            const renderedHeight = (h * imgWidth) / canvas.width;
+            pdf.addImage(pageData, "JPEG", 0, 0, imgWidth, renderedHeight);
+            remainingHeight -= h;
+            srcY += h;
+          }
+        }
+
+        if (options && options.saveFile) {
+          pdf.save(fileName);
+        } else {
+          // return dataURI for preview usage
+          const dataUrl = pdf.output("datauristring");
+          return dataUrl;
+        }
+      } catch (error) {
+        console.error("PDF export failed:", error);
+        if (options && options.saveFile) alert("PDF export failed: " + error.message);
+        throw error;
+      }
+    };
+
+    // When exportAfterRender is set, wait briefly for DOM render then capture the visible table
+    useEffect(() => {
+      if (!exportAfterRender) return;
+      // small delay to allow React to render the detail table
+      const t = setTimeout(async () => {
+        try {
+          const tableEl = findExportTable();
+          if (!tableEl) {
+            alert("Unable to find the rendered report table for export.");
+            setExportAfterRender(false);
+            return;
+          }
+          // Capture preview image (do not immediately save PDF) and capture HTML for excel preview
+          await exportTableToPDF(tableEl, "preview.pdf", { saveFile: false });
+          await exportTableToExcel(tableEl, "preview.xlsx");
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setExportAfterRender(false);
+          // Show preview modal (prefer PDF preview image)
+          setPreviewType("pdf");
+          setShowPreviewModal(true);
+        }
+      }, 600);
+      return () => clearTimeout(t);
+    }, [exportAfterRender]);
+
+    // If the preview modal opens for PDF and we don't have a captured image yet,
+    // capture the DOM table for an accurate preview (preserve merged cells/rowspan).
+    useEffect(() => {
+      if (!showPreviewModal || previewType !== "pdf" || previewImageSrc) return;
+      (async () => {
+        try {
+          const tableEl = findExportTable();
+          if (!tableEl) return;
+          await exportTableToPDF(tableEl, "preview.pdf", { saveFile: false });
+        } catch (e) {
+          console.error("Preview capture failed:", e);
+        }
+      })();
+    }, [showPreviewModal, previewType, tablesForExport, dashboardRef.current]);
 
   // Export Section Component
   const ExportSection = () => (
@@ -5322,7 +5345,16 @@ const MainDashboard = () => {
           variant={previewType === "pdf" ? "danger" : "success"}
           onClick={() => {
             setShowPreviewModal(false);
-            previewType === "pdf" ? generatePDF() : generateExcel();
+            previewType === "pdf" ? (async () => {
+              // Ensure latest capture then download
+              const tableEl = findExportTable();
+              if (tableEl) {
+                await exportTableToPDF(tableEl, "exported-tables.pdf", { saveFile: true });
+              } else {
+                // fallback to older generatePDF function
+                generatePDF();
+              }
+            })() : generateExcel();
           }}
         >
           डाउनलोड करें
@@ -5480,7 +5512,7 @@ const MainDashboard = () => {
 
 
   return (
-    <div>
+    <div ref={dashboardRef}>
       <Container fluid className="p-4">
         <Row>
           <Col lg={12} md={12} sm={12}>
