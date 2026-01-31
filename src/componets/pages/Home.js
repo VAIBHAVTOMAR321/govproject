@@ -4,15 +4,19 @@ import { useAuth } from '../../context/AuthContext'
 import Login from '../all_login/Login'
 
 function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If user is already authenticated, redirect to Dashboard
+    // If user is already authenticated, redirect based on login type
     if (!isLoading && isAuthenticated) {
-      navigate('/Dashboard', { replace: true });
+      if (user && user.loginType === 'demand') {
+        navigate('/DemandGenerate', { replace: true });
+      } else {
+        navigate('/Dashboard', { replace: true });
+      }
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, user]);
 
   return (
     <div>

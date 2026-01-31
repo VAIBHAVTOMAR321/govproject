@@ -50,58 +50,58 @@ function App() {
             
             {/* PROTECTED ROUTES */}
             <Route path="/Dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <Dashboard />
               </ProtectedRoute>
             } />
            
             <Route path="/Registration" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <Registration />
               </ProtectedRoute>
             } />
             <Route path="/KrishiRegistration" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <KrishiRegistration />
               </ProtectedRoute>
             } />
             <Route path="/MainDashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <MainDashboard />
               </ProtectedRoute>
             } />
             <Route path="/Billing" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <Billing />
               </ProtectedRoute>
             } />
             <Route path="/AllBills" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <AllBills />
               </ProtectedRoute>
             } />
             <Route path="/MPR" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <MPR />
               </ProtectedRoute>
             } />
             <Route path="/AddEditComponent" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <AddEditComponent />
               </ProtectedRoute>
             } />
             <Route path="/DemandGenerate" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
               <DemandGenerate />
               </ProtectedRoute>
             } />
             <Route path="/KendraPasswordReset" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <KendraPasswordReset />
               </ProtectedRoute>
             } />
             <Route path="/DemandView" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <DemandView />
               </ProtectedRoute>
             } />

@@ -66,17 +66,17 @@ export default function Login() {
   useEffect(() => {
     if (isAuthenticated) {
       const timer = setTimeout(() => {
-        // Redirect based on login type
-        if (isDemandLogin) {
-          navigate("/DemandGenerate", { replace: true });
+        // Redirect based on loginType stored in auth user object
+        if (user && user.loginType === 'demand') {
+          navigate('/DemandGenerate', { replace: true });
         } else {
-          navigate("/Dashboard", { replace: true });
+          navigate('/Dashboard', { replace: true });
         }
       }, 1500); // 1.5 second delay
 
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, navigate, isDemandLogin]); // Added isDemandLogin to dependencies
+  }, [isAuthenticated, navigate, user]);
 
   // Handle Change for regular login
   const handleChange = (e) => {
