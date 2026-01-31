@@ -297,6 +297,7 @@ const MainDashboard = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewType, setPreviewType] = useState("pdf");
   const [isRotated, setIsRotated] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Add state to track navigation history for proper back button functionality
   const [navigationHistory, setNavigationHistory] = useState([]);
@@ -1857,10 +1858,7 @@ const MainDashboard = () => {
     setShowReportModal(false);
     // Apply filters
     applyFilters();
-    // After filters are applied and view switches to detail, capture the
-    // rendered DOM table and export to PDF & Excel. The actual capture runs
-    // in a useEffect when the view/table has rendered.
-    setExportAfterRender(true);
+    // Remove automatic export - user will manually download/preview if needed
   };
 
   // Pagination logic
@@ -4810,7 +4808,7 @@ const MainDashboard = () => {
       }
     };
 
-    const exportTableToExcel = async (tableEl, fileName = "report.xlsx") => {
+    const exportTableToExcel = async (tableEl, fileName = "report.xlsx", download = true) => {
       try {
         if (!tableEl) throw new Error("No table element found for Excel export");
         const ws = XLSX.utils.table_to_sheet(tableEl, { raw: true });
@@ -4830,14 +4828,16 @@ const MainDashboard = () => {
         } catch (e) {
           // ignore
         }
-        XLSX.writeFile(wb, fileName);
+        if (download) {
+          XLSX.writeFile(wb, fileName);
+        }
       } catch (error) {
         console.error("Excel export failed:", error);
         alert("Excel export failed: " + error.message);
       }
     };
 
-    const exportTableToPDF = async (tableEl, fileName = "report.pdf") => {
+    const exportTableToPDF = async (tableEl, fileName = "report.pdf", download = true) => {
       try {
         if (!tableEl) throw new Error("No table element found for PDF export");
         // Capture rendered table as canvas (preserve CSS, merged cells, rowspan)
@@ -4849,41 +4849,43 @@ const MainDashboard = () => {
         const imgData = canvas.toDataURL("image/jpeg", 1.0);
         setPreviewImageSrc(imgData);
 
-        // Create PDF with jsPDF and add image (handle multi-page if needed)
-        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
+        if (download) {
+          // Create PDF with jsPDF and add image (handle multi-page if needed)
+          const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
 
-        const imgWidth = pageWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          const imgWidth = pageWidth;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        let position = 0;
-        // If image fits on one page
-        if (imgHeight <= pageHeight) {
-          pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
-        } else {
-          // Add multiple pages by slicing the canvas vertically
-          let remainingHeight = canvas.height;
-          const pageCanvas = document.createElement("canvas");
-          const ctx = pageCanvas.getContext("2d");
-          pageCanvas.width = canvas.width;
-          const pxPerPage = Math.floor((canvas.width * pageHeight) / imgWidth);
-          let srcY = 0;
-          while (remainingHeight > 0) {
-            const h = Math.min(pxPerPage, remainingHeight);
-            pageCanvas.height = h;
-            ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-            ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
-            const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
-            if (srcY > 0) pdf.addPage();
-            const renderedHeight = (h * imgWidth) / canvas.width;
-            pdf.addImage(pageData, "JPEG", 0, 0, imgWidth, renderedHeight);
-            remainingHeight -= h;
-            srcY += h;
+          let position = 0;
+          // If image fits on one page
+          if (imgHeight <= pageHeight) {
+            pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+          } else {
+            // Add multiple pages by slicing the canvas vertically
+            let remainingHeight = canvas.height;
+            const pageCanvas = document.createElement("canvas");
+            const ctx = pageCanvas.getContext("2d");
+            pageCanvas.width = canvas.width;
+            const pxPerPage = Math.floor((canvas.width * pageHeight) / imgWidth);
+            let srcY = 0;
+            while (remainingHeight > 0) {
+              const h = Math.min(pxPerPage, remainingHeight);
+              pageCanvas.height = h;
+              ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+              ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
+              const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
+              if (srcY > 0) pdf.addPage();
+              const renderedHeight = (h * imgWidth) / canvas.width;
+              pdf.addImage(pageData, "JPEG", 0, 0, imgWidth, renderedHeight);
+              remainingHeight -= h;
+              srcY += h;
+            }
           }
-        }
 
-        pdf.save(fileName);
+          pdf.save(fileName);
+        }
       } catch (error) {
         console.error("PDF export failed:", error);
         alert("PDF export failed: " + error.message);
@@ -4891,7 +4893,7 @@ const MainDashboard = () => {
     };
 
     // When exportAfterRender is set, wait briefly for DOM render then capture the visible table
-    useEffect(() => {
+     useEffect(() => {
       if (!exportAfterRender) return;
       // small delay to allow React to render the detail table
       const t = setTimeout(async () => {
@@ -4903,8 +4905,8 @@ const MainDashboard = () => {
             return;
           }
           // Capture both PDF and Excel (downloads) and prepare previews
-          await exportTableToPDF(tableEl, "report.pdf");
-          await exportTableToExcel(tableEl, "report.xlsx");
+          await exportTableToPDF(tableEl, "report.pdf", true);
+          await exportTableToExcel(tableEl, "report.xlsx", true);
         } catch (e) {
           console.error(e);
         } finally {
@@ -4969,10 +4971,26 @@ const MainDashboard = () => {
                         className="pdf-add-btn"
                         variant="outline-danger"
                         size="sm"
-                        onClick={() => {
-                          setPreviewType("pdf");
-                          setShowPreviewModal(true);
+                        onClick={async () => {
+                          setIsExporting(true);
+                          try {
+                            const tableEl = findExportTable();
+                            if (!tableEl) {
+                              alert("Unable to find the rendered report table for export.");
+                              return;
+                            }
+                            setPreviewType("pdf");
+                            setShowPreviewModal(true);
+                            // Generate preview in background
+                            await exportTableToPDF(tableEl, "report.pdf", false);
+                          } catch (e) {
+                            console.error(e);
+                            alert("PDF preview failed: " + e.message);
+                          } finally {
+                            setIsExporting(false);
+                          }
                         }}
+                        disabled={isExporting}
                       >
                         <RiEyeLine /> पूर्वालोकन
                       </Button>
@@ -4980,7 +4998,23 @@ const MainDashboard = () => {
                         className="pdf-add-btn"
                         variant="outline-danger"
                         size="sm"
-                        onClick={generatePDF}
+                        onClick={async () => {
+                          setIsExporting(true);
+                          try {
+                            const tableEl = findExportTable();
+                            if (!tableEl) {
+                              alert("Unable to find the rendered report table for export.");
+                              return;
+                            }
+                            await exportTableToPDF(tableEl, "report.pdf", true);
+                          } catch (e) {
+                            console.error(e);
+                            alert("PDF download failed: " + e.message);
+                          } finally {
+                            setIsExporting(false);
+                          }
+                        }}
+                        disabled={isExporting}
                       >
                         डाउनलोड
                       </Button>
@@ -5024,10 +5058,26 @@ const MainDashboard = () => {
                         variant="outline-success"
                         className="pdf-add-btn"
                         size="sm"
-                        onClick={() => {
-                          setPreviewType("excel");
-                          setShowPreviewModal(true);
+                        onClick={async () => {
+                          setIsExporting(true);
+                          try {
+                            const tableEl = findExportTable();
+                            if (!tableEl) {
+                              alert("Unable to find the rendered report table for export.");
+                              return;
+                            }
+                            setPreviewType("excel");
+                            setShowPreviewModal(true);
+                            // Generate preview in background
+                            await exportTableToExcel(tableEl, "report.xlsx", false);
+                          } catch (e) {
+                            console.error(e);
+                            alert("Excel preview failed: " + e.message);
+                          } finally {
+                            setIsExporting(false);
+                          }
                         }}
+                        disabled={isExporting}
                       >
                         <RiEyeLine /> पूर्वालोकन
                       </Button>
@@ -5035,7 +5085,23 @@ const MainDashboard = () => {
                         variant="outline-success"
                         className="pdf-add-btn"
                         size="sm"
-                        onClick={generateExcel}
+                        onClick={async () => {
+                          setIsExporting(true);
+                          try {
+                            const tableEl = findExportTable();
+                            if (!tableEl) {
+                              alert("Unable to find the rendered report table for export.");
+                              return;
+                            }
+                            await exportTableToExcel(tableEl, "report.xlsx", true);
+                          } catch (e) {
+                            console.error(e);
+                            alert("Excel download failed: " + e.message);
+                          } finally {
+                            setIsExporting(false);
+                          }
+                        }}
+                        disabled={isExporting}
                       >
                         डाउनलोड
                       </Button>
