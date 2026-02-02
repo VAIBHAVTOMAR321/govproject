@@ -1,341 +1,280 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Form, Alert, Spinner } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Form,
+  Alert,
+  Spinner,
+  InputGroup
+} from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useCenter } from './all_login/CenterContext';
 import { useAuth } from '../context/AuthContext';
+import { RiAddLine } from 'react-icons/ri';
 
 const DemandGenerate = () => {
   const navigate = useNavigate();
-  const { centerData, clearCenter } = useCenter(); // Use CenterContext
-  const { logout } = useAuth(); // Use AuthContext to logout
-  const [billingData, setBillingData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [quantities, setQuantities] = useState({});
-  const [disabledItems, setDisabledItems] = useState({});
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const { centerData, clearCenter } = useCenter();
+  const { logout } = useAuth();
 
-  // Check if user is logged in
+  const [demands, setDemands] = useState([]);
+  const [centerDemands, setCenterDemands] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [centerLoading, setCenterLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // State for inline editing
+  const [editingId, setEditingId] = useState(null);
+  const [editingQuantity, setEditingQuantity] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /* 🔐 Auth check */
   useEffect(() => {
     if (!centerData.isLoggedIn) {
       navigate('/', { replace: true });
     }
   }, [centerData.isLoggedIn, navigate]);
 
-  // Fetch billing data first
-  useEffect(() => {
-    if (centerData.centerId) {
-      fetchBillingData();
-    }
-  }, [centerData.centerId]);
-
-  // Fetch submitted demands after billing data is loaded
-  useEffect(() => {
-    if (dataLoaded && filteredData.length > 0) {
-      fetchSubmittedDemands();
-    }
-  }, [dataLoaded, filteredData]);
-
-  const fetchBillingData = async () => {
-    setIsLoading(true);
+  /* 📥 GET demand-generation */
+  const fetchDemands = async () => {
+    setLoading(true);
     setError('');
-    
     try {
-      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch billing data');
-      }
-      
-      const data = await response.json();
-      setBillingData(data);
-      
-      // Process data to get unique investment names with their sub-investments
-      const uniqueInvestments = {};
-      data.forEach(item => {
-        if (!uniqueInvestments[item.investment_name]) {
-          uniqueInvestments[item.investment_name] = [];
-        }
-        
-        // Check if sub-investment already exists for this investment
-        const subInvestmentExists = uniqueInvestments[item.investment_name].some(
-          subItem => subItem.sub_investment_name === item.sub_investment_name
-        );
-        
-        if (!subInvestmentExists) {
-          uniqueInvestments[item.investment_name].push({
-            sub_investment_name: item.sub_investment_name,
-            rate: parseFloat(item.rate),
-            unit: item.unit
-          });
-        }
-      });
-      
-      // Convert to array format for rendering
-      const processedData = Object.keys(uniqueInvestments).map(investmentName => ({
-        investment_name: investmentName,
-        sub_investments: uniqueInvestments[investmentName]
-      }));
-      
-      setFilteredData(processedData);
-      setDataLoaded(true);
-    } catch (err) {
-      console.error('Error fetching billing data:', err);
-      setError('डेटा लाने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
+      const res = await fetch(
+        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/'
+      );
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      setDemands(data);
+    } catch {
+      setError('डिमांड लाने में त्रुटि');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchSubmittedDemands = async () => {
+  /* 📥 GET demand-by-center */
+  const fetchCenterDemands = async () => {
+    setCenterLoading(true);
     try {
-      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch submitted demands');
-      }
-      
-      const data = await response.json();
-      
-      // Filter demands for the current center
-      const centerDemands = data.filter(demand => demand.center_id === centerData.centerId);
-      
-      // Initialize quantities object with 0 for all items
-      const initialQuantities = {};
-      const initialDisabledItems = {};
-      
-      filteredData.forEach(investment => {
-        investment.sub_investments.forEach(subInvestment => {
-          const key = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
-          initialQuantities[key] = 0;
-          initialDisabledItems[key] = false;
-        });
-      });
-      
-      // Update quantities and disabled items for submitted demands
-      centerDemands.forEach(demand => {
-        demand.demand_list.forEach(item => {
-          const productName = item[0];
-          const quantity = parseFloat(item[1]) || 0;
-          
-          // Find the sub-investment for this product
-          filteredData.forEach(investment => {
-            const subInvestment = investment.sub_investments.find(
-              sub => sub.sub_investment_name === productName
-            );
-            
-            if (subInvestment) {
-              const key = `${investment.investment_name}-${productName}`;
-              initialQuantities[key] = quantity;
-              initialDisabledItems[key] = true;
-            }
-          });
-        });
-      });
-      
-      setQuantities(initialQuantities);
-      setDisabledItems(initialDisabledItems);
-      
-      // Calculate total amount
-      let total = 0;
-      filteredData.forEach(investment => {
-        investment.sub_investments.forEach(subInvestment => {
-          const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
-          total += (initialQuantities[quantityKey] || 0) * subInvestment.rate;
-        });
-      });
-      setTotalAmount(total);
-      
-    } catch (err) {
-      console.error('Error fetching submitted demands:', err);
-      setError('पहले से सबमिट किए गए डिमांड लाने में त्रुटि।');
+      const res = await fetch(
+        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/'
+      );
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      setCenterDemands(data);
+    } catch {
+      console.error('सेंटर डिमांड लाने में त्रुटि');
+    } finally {
+      setCenterLoading(false);
     }
   };
 
-  const handleQuantityChange = (investmentName, subInvestmentName, rate, value) => {
-    const key = `${investmentName}-${subInvestmentName}`;
-    
-    // Skip if this item is disabled
-    if (disabledItems[key]) {
+  useEffect(() => {
+    fetchDemands();
+    fetchCenterDemands();
+  }, []);
+
+  /* 📤 POST demand-by-center */
+  const handleSaveDemand = async (demandId) => {
+    if (!editingQuantity || parseFloat(editingQuantity) <= 0) {
+      setError('कृपया सही मात्रा दर्ज करें');
       return;
     }
-    
-    const newQuantities = { ...quantities, [key]: parseFloat(value) || 0 };
-    setQuantities(newQuantities);
-    
-    // Calculate total amount
-    let total = 0;
-    filteredData.forEach(investment => {
-      investment.sub_investments.forEach(subInvestment => {
-        const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
-        total += (newQuantities[quantityKey] || 0) * subInvestment.rate;
-      });
-    });
-    setTotalAmount(total);
-  };
 
-  const handleSubmit = async () => {
-    // Prepare demand list in the required format: [["product 1","5454","unit"]]
-    const demandList = [];
-    filteredData.forEach(investment => {
-      investment.sub_investments.forEach(subInvestment => {
-        const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
-        const quantity = quantities[quantityKey] || 0;
-        
-        // Only include items that are not disabled and have a quantity > 0
-        if (quantity > 0 && !disabledItems[quantityKey]) {
-          demandList.push([subInvestment.sub_investment_name, quantity.toString(), subInvestment.unit]);
-        }
-      });
-    });
-    
-    if (demandList.length === 0) {
-      setError('कृपया कम से कम एक नए उत्पाद के लिए मात्रा दर्ज करें।');
-      return;
-    }
-    
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    const payload = {
+      demand_id: demandId,
+      center_name: centerData.centerName,
+      demanded_quantity: parseFloat(editingQuantity)
+    };
+
     try {
-      const requestData = {
-        center_id: centerData.centerId,
-        center_name: centerData.centerName,
-        demand_list: demandList
-      };
+      const url = 'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/';
       
-      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
+
+      if (!res.ok) throw new Error();
+
+      setSuccess('डिमांड सफलतापूर्वक सेव की गई');
+      setEditingId(null);
+      setEditingQuantity('');
       
-      if (!response.ok) {
-        throw new Error('Failed to submit demand');
-      }
+      // Refresh the center demands after successful save
+      await fetchCenterDemands();
       
-      // Refresh submitted demands after successful submission
-      await fetchSubmittedDemands();
-      
-      alert('डिमांड सफलतापूर्वक सबमिट की गई!');
-    } catch (err) {
-      console.error('Error submitting demand:', err);
-      setError('डिमांड सबमिट करने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch {
+      setError('डिमांड सेव करने में त्रुटि');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  /* 🚪 Logout */
   const handleLogout = () => {
-    // Clear both center data and authentication state
-    clearCenter(); // Clear context data
-    logout(); // Clear authentication state
+    clearCenter();
+    logout();
     navigate('/', { replace: true });
+  };
+
+  // Function to get demanded quantity for a specific demand_id
+  const getDemandedQuantity = (demandId) => {
+    const centerDemand = centerDemands.find(
+      cd => cd.demand_id === demandId && cd.center_name === centerData.centerName
+    );
+    return centerDemand ? centerDemand.demanded_quantity : null;
+  };
+
+  // Start editing a demand
+  const startEditing = (demandId) => {
+    setEditingId(demandId);
+    setEditingQuantity('');
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingQuantity('');
+  };
+
+  // Calculate demanded amount (rate * demanded quantity)
+  const calculateDemandedAmount = (rate, demandedQuantity) => {
+    if (!rate || !demandedQuantity) return 0;
+    return (parseFloat(rate) * parseFloat(demandedQuantity)).toFixed(2);
   };
 
   return (
     <Container fluid className="py-4">
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <h2>डिमांड जनरेट - {centerData.centerName}</h2>
-            <Button variant="danger" onClick={handleLogout}>लॉगआउट</Button>
-          </div>
+      <Row className="mb-3">
+        <Col className="d-flex justify-content-between align-items-center">
+          <h4>डिमांड जनरेशन - {centerData.centerName}</h4>
+          <Button variant="danger" onClick={handleLogout}>लॉगआउट</Button>
         </Col>
       </Row>
-      
-      {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
-      
-      <Row className="mb-4">
+
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {/* 📋 Demand List */}
+      <Row>
         <Col>
           <Card>
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">डिमांड जनरेशन</h5>
-              <Button 
-                variant="primary" 
-                onClick={handleSubmit}
-                disabled={totalAmount === 0}
-              >
-                सबमिट करें
-              </Button>
-            </Card.Header>
+            <Card.Header>सभी डिमांड</Card.Header>
             <Card.Body>
-              {isLoading ? (
-                <div className="text-center py-4">
-                  <Spinner animation="border" role="status">
-                    <span className="visually-hidden">लोड हो रहा है...</span>
-                  </Spinner>
-                </div>
+              {loading ? (
+                <div className="text-center"><Spinner animation="border" /></div>
               ) : (
-                <>
-                  <Table striped bordered hover responsive>
-                    <thead>
-                      <tr>
-                        <th>निवेश</th>
-                        <th>उपनिवेश</th>
-                        <th>इकाई (Unit)</th>
-                        <th>मात्रा (Quantity)</th>
-                        <th>दर (Rate)</th>
-                        <th>योग (Total)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredData.length > 0 ? (
-                        filteredData.map((investment, index) => (
-                          investment.sub_investments.map((subInvestment, subIndex) => {
-                            const quantityKey = `${investment.investment_name}-${subInvestment.sub_investment_name}`;
-                            const quantity = quantities[quantityKey] || 0;
-                            const total = quantity * subInvestment.rate;
-                            const isDisabled = disabledItems[quantityKey] || false;
-                            
-                            return (
-                              <tr key={`${index}-${subIndex}`} className={isDisabled ? 'table-secondary' : ''}>
-                                {subIndex === 0 && (
-                                  <td rowSpan={investment.sub_investments.length}>
-                                    {investment.investment_name}
-                                  </td>
-                                )}
-                                <td>{subInvestment.sub_investment_name}</td>
-                                <td>{subInvestment.unit}</td>
-                                <td>
+                <Table bordered striped hover responsive>
+                  <thead>
+                    <tr>
+                      <th>Demand ID</th>
+                      <th>उपनिवेश</th>
+                      <th>आवंटित मात्रा</th>
+                      <th>दर</th>
+                      <th>राशि</th>
+                      <th>मांगी गई मात्रा</th>
+                      <th>कूल राशि</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {demands.length > 0 ? (
+                      demands.map(d => {
+                        const demandedQty = getDemandedQuantity(d.demand_id);
+                        const isEditing = editingId === d.demand_id;
+                        
+                        return (
+                          <tr key={d.id}>
+                            <td>{d.demand_id}</td>
+                            <td>{d.sub_investment_name}</td>
+                            <td>{d.allocated_quantity}</td>
+                            <td>{d.rate}</td>
+                            <td>{d.amount}</td>
+                            <td>
+                              {isEditing ? (
+                                <div className="d-flex align-items-center">
                                   <Form.Control
                                     type="number"
-                                    min="0"
                                     step="0.01"
-                                    value={quantity}
-                                    onChange={(e) => handleQuantityChange(
-                                      investment.investment_name, 
-                                      subInvestment.sub_investment_name, 
-                                      subInvestment.rate, 
-                                      e.target.value
-                                    )}
-                                    disabled={isDisabled}
+                                    value={editingQuantity}
+                                    onChange={(e) => setEditingQuantity(e.target.value)}
+                                    placeholder="मात्रा दर्ज करें"
+                                    className="me-2"
                                   />
-                                  {isDisabled && (
-                                    <Form.Text className="text-muted">
-                                      पहले से सबमिट किया गया
-                                    </Form.Text>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => handleSaveDemand(d.demand_id)}
+                                    disabled={isSubmitting}
+                                  >
+                                    {isSubmitting ? (
+                                      <Spinner animation="border" size="sm" />
+                                    ) : (
+                                      <>सबमिट <RiAddLine /></>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={cancelEditing}
+                                    className="ms-1"
+                                  >
+                                    रद्द करें
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="d-flex align-items-center">
+                                  {demandedQty ? (
+                                    <span className="text-success fw-bold">{demandedQty}</span>
+                                  ) : (
+                                    <>
+                                      <span className="text-muted me-2">-</span>
+                                      <Button
+                                        variant="primary"
+                                        size="sm"
+                                        onClick={() => startEditing(d.demand_id)}
+                                      >
+                                        <RiAddLine />
+                                      </Button>
+                                    </>
                                   )}
-                                </td>
-                                <td>{subInvestment.rate}</td>
-                                <td>{total.toFixed(2)}</td>
-                              </tr>
-                            );
-                          })
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="6" className="text-center">कोई डेटा नहीं मिला</td>
-                        </tr>
-                      )}
-                    </tbody>
-                    <tfoot>
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              {demandedQty ? (
+                                <span className="text-info fw-bold">
+                                  {calculateDemandedAmount(d.rate, demandedQty)}
+                                </span>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
                       <tr>
-                        <td colSpan="5" className="text-end fw-bold">कुल योग (Total):</td>
-                        <td className="fw-bold">{totalAmount.toFixed(2)}</td>
+                        <td colSpan="7" className="text-center">कोई डाटा नहीं</td>
                       </tr>
-                    </tfoot>
-                  </Table>
-                </>
+                    )}
+                  </tbody>
+                </Table>
               )}
             </Card.Body>
           </Card>
