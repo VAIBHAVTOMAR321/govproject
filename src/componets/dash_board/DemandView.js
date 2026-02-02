@@ -700,12 +700,22 @@ const DemandView = () => {
                     <Col md={6}>
                       <Form.Group controlId="centerFilter">
                         <Form.Label>केंद्र फ़िल्टर</Form.Label>
-                        <Form.Select
-                          multiple
-                          value={selectedCenters}
-                          onChange={(e) => setSelectedCenters([...e.target.selectedOptions].map(option => option.value))}
-                          style={{ height: '120px' }}
-                        >
+                         <Form.Select
+                            multiple
+                            value={selectedCenters}
+                            style={{ height: '120px', cursor: 'pointer' }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const value = e.target.value;
+
+                              setSelectedCenters((prev) =>
+                                prev.includes(value)
+                                  ? prev.filter((v) => v !== value) // unselect
+                                  : [...prev, value]               // select
+                              );
+                            }}
+                          >
+
                           {uniqueCenters.map(center => (
                             <option key={center} value={center}>
                               {center}
@@ -718,11 +728,20 @@ const DemandView = () => {
                       <Form.Group controlId="subInvestmentFilter">
                         <Form.Label>उप-निवेश फ़िल्टर</Form.Label>
                         <Form.Select
-                          multiple
-                          value={selectedSubInvestments}
-                          onChange={(e) => setSelectedSubInvestments([...e.target.selectedOptions].map(option => option.value))}
-                          style={{ height: '120px' }}
-                        >
+  multiple
+  value={selectedSubInvestments}
+  style={{ height: '120px', cursor: 'pointer' }}
+  onMouseDown={(e) => {
+    e.preventDefault();
+    const value = e.target.value;
+
+    setSelectedSubInvestments((prev) =>
+      prev.includes(value)
+        ? prev.filter((v) => v !== value)
+        : [...prev, value]
+    );
+  }}
+>
                           {uniqueSubInvestments.map(subInvestment => (
                             <option key={subInvestment} value={subInvestment}>
                               {subInvestment}
