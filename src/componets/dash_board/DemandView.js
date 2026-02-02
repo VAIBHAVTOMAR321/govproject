@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useCenter } from '../all_login/CenterContext';
 import { useAuth } from '../../context/AuthContext';
 import DashBoardHeader from './DashBoardHeader';
-import { RiAddLine, RiEditLine, RiDeleteBinLine, RiSaveLine, RiCloseLine, RiEyeLine, RiSearchLine, RiFileDownloadLine, RiFileExcel2Line } from 'react-icons/ri';
+import { RiAddLine, RiEditLine, RiDeleteBinLine, RiSaveLine, RiCloseLine, RiEyeLine, RiSearchLine, RiFileDownloadLine, RiFileExcel2Line, RiFilePdfLine } from 'react-icons/ri';
 import * as XLSX from 'xlsx';
+import html2pdf from 'html2pdf.js';
 
 const DemandView = () => {
   const navigate = useNavigate();
@@ -40,6 +41,10 @@ const DemandView = () => {
   
   // State for search
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // State for center demands filters
+  const [selectedCenters, setSelectedCenters] = useState([]);
+  const [selectedSubInvestments, setSelectedSubInvestments] = useState([]);
   
   // Ref for table elements
   const demandsTableRef = useRef(null);
@@ -86,6 +91,17 @@ const DemandView = () => {
       setFilteredDemands(filtered);
     }
   }, [searchTerm, demands]);
+
+  // Get unique centers and sub-investments for filters
+  const uniqueCenters = Array.from(new Set(centerDemands.map(item => item.center_name))).filter(Boolean);
+  const uniqueSubInvestments = Array.from(new Set(centerDemands.map(item => item?.demand?.sub_investment_name))).filter(Boolean);
+
+  // Filter center demands based on selected filters
+  const filteredCenterDemands = centerDemands.filter(item => {
+    const matchesCenter = selectedCenters.length === 0 || selectedCenters.includes(item.center_name);
+    const matchesSubInvestment = selectedSubInvestments.length === 0 || selectedSubInvestments.includes(item?.demand?.sub_investment_name);
+    return matchesCenter && matchesSubInvestment;
+  });
   
   // GET: Fetch all demands
   const fetchDemands = async () => {
@@ -382,14 +398,29 @@ const DemandView = () => {
   const exportCenterDemandsToExcel = () => {
     // Prepare data for export
     const exportData = [];
+    let totalAmount = 0;
     
     centerDemands.forEach(item => {
+      const amount = item.demanded_quantity * (item?.demand?.rate || 0);
+      totalAmount += amount;
       exportData.push({
         'सेंटर नाम': item.center_name,
         'उप-निवेश नाम': item?.demand?.sub_investment_name,
         'इकाई': item?.demand?.unit,
-        'मांगी गई मात्रा': item.demanded_quantity
+        'मांगी गई मात्रा': item.demanded_quantity,
+        'दर': item?.demand?.rate,
+        'कुल राशि': amount
       });
+    });
+    
+    // Add total row
+    exportData.push({
+      'सेंटर नाम': 'कुल',
+      'उप-निवेश नाम': '',
+      'इकाई': '',
+      'मांगी गई मात्रा': '',
+      'दर': '',
+      'कुल राशि': totalAmount
     });
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -411,6 +442,121 @@ const DemandView = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // Export demands table to PDF
+  const exportDemandsToPDF = () => {
+    const element = demandsTableRef.current;
+    if (!element) return;
+
+    // Hide action column before generating PDF
+    const actionColumns = element.querySelectorAll('th:nth-child(5), td:nth-child(5)');
+    actionColumns.forEach(col => col.style.display = 'none');
+
+    // Create a wrapper element with proper table styling for PDF
+    const wrapper = document.createElement('div');
+    wrapper.style.padding = '20px';
+    wrapper.style.fontFamily = 'Arial, sans-serif';
+    
+    // Add table title
+    const title = document.createElement('h3');
+    title.textContent = 'डिमांड रिकॉर्ड्स';
+    title.style.textAlign = 'center';
+    title.style.marginBottom = '20px';
+    wrapper.appendChild(title);
+
+    // Clone the table with styles
+    const tableClone = element.cloneNode(true);
+    
+    // Ensure table has proper borders
+    const table = tableClone.querySelector('table');
+    table.style.borderCollapse = 'collapse';
+    table.style.width = '100%';
+    
+    // Style all cells
+    const allCells = table.querySelectorAll('th, td');
+    allCells.forEach(cell => {
+      cell.style.border = '1px solid #000';
+      cell.style.padding = '8px';
+      cell.style.textAlign = 'left';
+    });
+    
+    // Style table headers
+    const headers = table.querySelectorAll('th');
+    headers.forEach(header => {
+      header.style.backgroundColor = '#f0f0f0';
+      header.style.fontWeight = 'bold';
+      header.style.textAlign = 'center';
+    });
+
+    wrapper.appendChild(tableClone);
+
+    const opt = {
+      margin: 10,
+      filename: `डिमांड_रिकॉर्ड्स_${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(wrapper).save().then(() => {
+      // Show action column again
+      actionColumns.forEach(col => col.style.display = 'table-cell');
+    });
+  };
+
+  // Export center demands table to PDF
+  const exportCenterDemandsToPDF = () => {
+    const element = centerDemandsTableRef.current;
+    if (!element) return;
+
+    // Create a wrapper element with proper table styling for PDF
+    const wrapper = document.createElement('div');
+    wrapper.style.padding = '20px';
+    wrapper.style.fontFamily = 'Arial, sans-serif';
+    
+    // Add table title
+    const title = document.createElement('h3');
+    title.textContent = 'सेंटर अनुसार डिमांड';
+    title.style.textAlign = 'center';
+    title.style.marginBottom = '20px';
+    wrapper.appendChild(title);
+
+    // Clone the table with styles
+    const tableClone = element.cloneNode(true);
+    
+    // Ensure table has proper borders
+    const table = tableClone.querySelector('table');
+    table.style.borderCollapse = 'collapse';
+    table.style.width = '100%';
+    
+    // Style all cells
+    const allCells = table.querySelectorAll('th, td');
+    allCells.forEach(cell => {
+      cell.style.border = '1px solid #000';
+      cell.style.padding = '8px';
+      cell.style.textAlign = 'left';
+    });
+    
+    // Style table headers
+    const headers = table.querySelectorAll('th');
+    headers.forEach(header => {
+      header.style.backgroundColor = '#f0f0f0';
+      header.style.fontWeight = 'bold';
+      header.style.textAlign = 'center';
+    });
+
+    wrapper.appendChild(tableClone);
+
+    const opt = {
+      margin: 10,
+      filename: `सेंटर_डिमांड_${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(wrapper).save();
   };
   
   return (
@@ -447,13 +593,16 @@ const DemandView = () => {
                     </InputGroup.Text>
                     <Form.Control
                       type="text"
-                      placeholder="डिमांड ID या उप-निवेश खोजें..."
+                      placeholder="उप-निवेश खोजें..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </InputGroup>
                   <Button variant="outline-success" onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
+                  </Button>
+                  <Button variant="outline-danger" onClick={exportDemandsToPDF}>
+                    <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
               </Card.Header>
@@ -535,18 +684,75 @@ const DemandView = () => {
             <Card>
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
-                <Button variant="outline-success" onClick={exportCenterDemandsToExcel}>
-                  <RiFileExcel2Line /> Excel निर्यात करें
-                </Button>
+                <div className="d-flex gap-2">
+                  <Button variant="outline-success" onClick={exportCenterDemandsToExcel}>
+                    <RiFileExcel2Line /> Excel निर्यात करें
+                  </Button>
+                  <Button variant="outline-danger" onClick={exportCenterDemandsToPDF}>
+                    <RiFilePdfLine /> PDF निर्यात करें
+                  </Button>
+                </div>
               </Card.Header>
               <Card.Body>
+                {/* Filters */}
+                <div className="mb-4">
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group controlId="centerFilter">
+                        <Form.Label>केंद्र फ़िल्टर</Form.Label>
+                        <Form.Select
+                          multiple
+                          value={selectedCenters}
+                          onChange={(e) => setSelectedCenters([...e.target.selectedOptions].map(option => option.value))}
+                          style={{ height: '120px' }}
+                        >
+                          {uniqueCenters.map(center => (
+                            <option key={center} value={center}>
+                              {center}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="subInvestmentFilter">
+                        <Form.Label>उप-निवेश फ़िल्टर</Form.Label>
+                        <Form.Select
+                          multiple
+                          value={selectedSubInvestments}
+                          onChange={(e) => setSelectedSubInvestments([...e.target.selectedOptions].map(option => option.value))}
+                          style={{ height: '120px' }}
+                        >
+                          {uniqueSubInvestments.map(subInvestment => (
+                            <option key={subInvestment} value={subInvestment}>
+                              {subInvestment}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  {/* Clear Filters Button */}
+                  <div className="mt-3 text-center">
+                    <Button
+                      variant="outline-secondary"
+                      onClick={() => {
+                        setSelectedCenters([]);
+                        setSelectedSubInvestments([]);
+                      }}
+                    >
+                      फ़िल्टर साफ़ करें
+                    </Button>
+                  </div>
+                </div>
+
                 {centerLoading ? (
                   <div className="text-center py-4">
                     <Spinner animation="border" />
                   </div>
                 ) : centerError ? (
                   <Alert variant="danger">{centerError}</Alert>
-                ) : centerDemands?.length > 0 ? (
+                ) : filteredCenterDemands?.length > 0 ? (
                   <div style={{ maxHeight: '450px', overflowY: 'auto' }} ref={centerDemandsTableRef}>
                     <Table striped bordered hover responsive>
                       <thead>
@@ -555,11 +761,13 @@ const DemandView = () => {
                           <th>उप-निवेश नाम</th>
                           <th>इकाई</th>
                           <th>मांगी गई मात्रा</th>
+                          <th>दर</th>
+                          <th>कुल राशि</th>
                         </tr>
                       </thead>
                       <tbody>
                         {Object.values(
-                          centerDemands.reduce((acc, item) => {
+                          filteredCenterDemands.reduce((acc, item) => {
                             if (!acc[item.center_name]) acc[item.center_name] = [];
                             acc[item.center_name].push(item);
                             return acc;
@@ -575,9 +783,18 @@ const DemandView = () => {
                               <td>{item?.demand?.sub_investment_name || '-'}</td>
                               <td>{item?.demand?.unit || '-'}</td>
                               <td>{item.demanded_quantity ?? '-'}</td>
+                              <td>{item?.demand?.rate ?? '-'}</td>
+                              <td>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</td>
                             </tr>
                           ))
                         )}
+                        {/* Total Row */}
+                        <tr style={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}>
+                          <td colSpan={3}>कुल</td>
+                          <td>{(filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0)).toFixed(2)}</td>
+                          <td></td>
+                          <td>{(filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0)).toFixed(2)}</td>
+                        </tr>
                       </tbody>
                     </Table>
                   </div>
