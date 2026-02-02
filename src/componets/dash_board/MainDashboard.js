@@ -8163,70 +8163,7 @@ const MainDashboard = () => {
                                         >
                                           <RiFileExcelLine /> Excel डाउनलोड
                                         </Button>
-                                        <Button
-                                          variant="outline-secondary"
-                                          size="sm"
-                                          style={{ height: 36, display: 'flex', alignItems: 'center' }}
-                                          onClick={() => {
-                                            // Toggle all columns
-                                            const expandableColumns = tableColumnOrder
-                                              .filter(
-                                                (col) =>
-                                                  col !==
-                                                    primaryColumn &&
-                                                  !columnDefs[col].hidden
-                                              )
-                                              .filter(
-                                                (col) =>
-                                                  col !==
-                                                    "allocated_quantity" &&
-                                                  col !== "rate" &&
-                                                  col !==
-                                                    "amount_of_farmer_share" &&
-                                                  col !==
-                                                    "amount_of_subsidy" &&
-                                                  col !== "total_amount"
-                                              );
 
-                                            // Check if all expandable columns are currently expanded
-                                            const allExpanded = expandableColumns.every(
-                                              (col) => mainSummaryExpandedColumns[col] === true
-                                            );
-
-                                            const newExpandedState = {};
-                                            expandableColumns.forEach((col) => {
-                                              newExpandedState[col] = !allExpanded;
-                                            });
-                                            setMainSummaryExpandedColumns(
-                                              newExpandedState
-                                            );
-                                          }}
-                                        >
-                                          {(() => {
-                                            const expandableColumns = tableColumnOrder
-                                              .filter(
-                                                (col) =>
-                                                  col !==
-                                                    primaryColumn &&
-                                                  !columnDefs[col].hidden
-                                              )
-                                              .filter(
-                                                (col) =>
-                                                  col !==
-                                                    "allocated_quantity" &&
-                                                  col !== "rate" &&
-                                                  col !==
-                                                    "amount_of_farmer_share" &&
-                                                  col !==
-                                                    "amount_of_subsidy" &&
-                                                  col !== "total_amount"
-                                              );
-                                            const allExpanded = expandableColumns.every(
-                                              (col) => mainSummaryExpandedColumns[col] === true
-                                            );
-                                            return allExpanded ? "Hide All Values" : "Show All Values";
-                                          })()}
-                                        </Button>
                                         <ColumnFilter
                                           tableId="summary"
                                           columns={[
@@ -8359,31 +8296,11 @@ const MainDashboard = () => {
                                               return colIndex >= selIndex && tableColumnFilters.summary.includes(columnDefs[col].label);
                                             })
                                             .map((col) => (
-                                              <th
+                                               <th
                                                 key={col}
                                                 style={{ position: "relative" }}
                                               >
                                                 {columnDefs[col].label}
-                                                <Button
-                                                  variant="link"
-                                                  size="sm"
-                                                  className="p-0 ms-1"
-                                                  style={{
-                                                    fontSize: "10px",
-                                                    textDecoration: "underline",
-                                                  }}
-                                                  onClick={() =>
-                                                    toggleMainSummaryColumnExpansion(
-                                                      col
-                                                    )
-                                                  }
-                                                >
-                                                  {mainSummaryExpandedColumns[
-                                                    col
-                                                  ]
-                                                    ? "Hide"
-                                                    : "Show"}
-                                                </Button>
                                                 {/* Only show filter icon and dropdown for columns other than the first column */}
                                                 {col !== primaryColumn && (
                                                   <>
