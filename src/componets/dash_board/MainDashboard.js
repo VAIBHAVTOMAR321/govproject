@@ -29,6 +29,7 @@ import * as XLSX from "xlsx";
 import html2pdf from "html2pdf.js";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import "jspdf-autotable";
 import { Bar, Pie, Doughnut } from "react-chartjs-2";
 import Chart from "chart.js/auto";
 import { HierarchicalTable, HierarchicalTableRows } from "../HierarchicalTable";
@@ -335,6 +336,15 @@ const MainDashboard = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportMultiSelectOptions, setReportMultiSelectOptions] = useState([]);
   const [selectedReportValues, setSelectedReportValues] = useState([]);
+
+  // State for preview modals
+  const [showDetailPreviewModal, setShowDetailPreviewModal] = useState(false);
+  const [detailPreviewType, setDetailPreviewType] = useState('pdf');
+  const [detailPreviewContent, setDetailPreviewContent] = useState(null);
+  const [showAllocationPreviewModal, setShowAllocationPreviewModal] = useState(false);
+  const [allocationPreviewType, setAllocationPreviewType] = useState('pdf');
+  const [allocationPreviewContent, setAllocationPreviewContent] = useState(null);
+  const [currentPreviewTableIndex, setCurrentPreviewTableIndex] = useState(null);
 
   // State for Vidhan Sabha table grouping
   const [vidhanSabhaGrouping, setVidhanSabhaGrouping] = useState('vidhan_sabha_name');
@@ -4919,6 +4929,964 @@ const MainDashboard = () => {
       return () => clearTimeout(t);
     }, [exportAfterRender]);
 
+  // Helper function to flatten hierarchy with rowspan information
+  const flattenHierarchyWithRowspans = (hierarchy, visible, levels, numericLevel) => {
+    const flat = [];
+    
+    const traverse = (nodes, levelIdx, nodesRef = [], path = []) => {
+      nodes.forEach((node) => {
+        const newNodesRef = [...nodesRef, node];
+        const newPath = [...path, node.name];
+
+        if (levelIdx === levels.length - 1) {
+          if (Array.isArray(node.subInvestments) && node.subInvestments.length > 0) {
+            node.subInvestments.forEach((sub) => {
+              flat.push({ path: newPath, nodesRef: newNodesRef, sub });
+            });
+          } else {
+            flat.push({ path: newPath, nodesRef: newNodesRef, sub: null });
+          }
+        } else {
+          if (Array.isArray(node.children) && node.children.length > 0) {
+            traverse(node.children, levelIdx + 1, newNodesRef, newPath);
+          } else {
+            if (Array.isArray(node.subInvestments) && node.subInvestments.length > 0) {
+              node.subInvestments.forEach((sub) => {
+                flat.push({ path: newPath, nodesRef: newNodesRef, sub });
+              });
+            } else {
+              flat.push({ path: newPath, nodesRef: newNodesRef, sub: null });
+            }
+          }
+        }
+      });
+    };
+
+    traverse(hierarchy, 0, [], []);
+
+    // Compute rowspan for each cell
+    const computeRowSpan = (rowIndex, levelIdx) => {
+      const base = flat[rowIndex].path.slice(0, levelIdx + 1).join('|');
+      let count = 0;
+      for (let k = rowIndex; k < flat.length; k++) {
+        const candidate = flat[k].path.slice(0, levelIdx + 1).join('|');
+        if (candidate === base) count++;
+        else break;
+      }
+      return Math.max(1, count);
+    };
+
+    // Build rows with rowspan info
+    const rows = flat.map((r, idx) => {
+      const cells = [];
+      
+      for (let li = 0; li < levels.length; li++) {
+        const levelKey = levels[li];
+        const showFlagKey = {
+          'vidhan_sabha_name': 'showVidhansabha',
+          'vikas_khand_name': 'showVikasKhand',
+          'center_name': 'showKendra',
+          'scheme_name': 'showYojana',
+          'investment_name': 'showNivesh',
+          'sub_investment_name': 'showUpNivesh'
+        }[levelKey];
+        
+        if (!visible[showFlagKey]) continue;
+
+        const currPrefix = r.path.slice(0, li + 1).join('|');
+        const prevPrefix = idx > 0 ? flat[idx - 1].path.slice(0, li + 1).join('|') : null;
+        const isFirst = idx === 0 || prevPrefix !== currPrefix;
+        
+        if (isFirst) {
+          const rowSpan = computeRowSpan(idx, li);
+          cells.push({
+            value: r.path[li] || '',
+            rowSpan: rowSpan,
+            isFirst: true,
+            level: li
+          });
+        } else {
+          cells.push({
+            value: '',
+            rowSpan: 0,
+            isFirst: false,
+            level: li
+          });
+        }
+      }
+
+      // Determine numeric values
+      const numericLevelToUse = numericLevel;
+      const numAggIndex = levels.indexOf(numericLevelToUse);
+      let numAgg = null;
+      
+      if (numericLevelToUse === 'sub_investment_name') {
+        numAgg = r.sub || null;
+      } else if (numAggIndex >= 0) {
+        const nodeRef = r.nodesRef[numAggIndex];
+        if (nodeRef) numAgg = nodeRef.aggregates || null;
+      }
+
+      const numericShownOnThisRow = (numAggIndex >= 0) ? 
+        (idx === 0 ? true : flat[idx - 1].path.slice(0, numAggIndex + 1).join('|') !== r.path.slice(0, numAggIndex + 1).join('|')) : 
+        (numericLevelToUse === 'sub_investment_name');
+
+      if (visible.showAllocated) {
+        cells.push({ value: numericShownOnThisRow && numAgg && numAgg.allocated_quantity !== undefined ? numAgg.allocated_quantity : '', rowSpan: 1, isFirst: true });
+      }
+      if (visible.showFarmer) {
+        cells.push({ value: numericShownOnThisRow && numAgg && numAgg.amount_of_farmer_share !== undefined ? numAgg.amount_of_farmer_share : '', rowSpan: 1, isFirst: true, isCurrency: true });
+      }
+      if (visible.showSubsidy) {
+        cells.push({ value: numericShownOnThisRow && numAgg && numAgg.amount_of_subsidy !== undefined ? numAgg.amount_of_subsidy : '', rowSpan: 1, isFirst: true, isCurrency: true });
+      }
+      if (visible.showTotal) {
+        cells.push({ value: numericShownOnThisRow && numAgg && numAgg.total_amount !== undefined ? numAgg.total_amount : '', rowSpan: 1, isFirst: true, isCurrency: true });
+      }
+
+      return cells.filter(c => c.rowSpan !== 0);
+    });
+
+    return rows;
+  };
+
+  // Export functions for Hierarchical Summary Table
+  const exportDetailTableToPDF = async () => {
+    try {
+      // Get hierarchy data same as displayed
+      const baseData = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+      const filteredData = baseData.filter((item) => {
+        for (let filter of filterStack) {
+          if (!filter.checked[item[filter.column]]) return false;
+        }
+        return true;
+      });
+      
+      const headerFilteredData = applySummaryHeaderFilters(filteredData);
+      const hierarchy = convertToHierarchy(headerFilteredData, selectedHierarchyLevel || 'vidhan_sabha_name');
+      
+      // Determine visible columns
+      const levels = ['vidhan_sabha_name', 'vikas_khand_name', 'center_name', 'scheme_name', 'investment_name', 'sub_investment_name'];
+      const selectedCol = filterStack.length > 0 ? filterStack[filterStack.length - 1].column : 'vidhan_sabha_name';
+      const selIndex = Math.max(0, levels.indexOf(selectedCol));
+      
+      const visible = {
+        showVidhansabha: selIndex <= 0 && tableColumnFilters.summary.includes(columnDefs.vidhan_sabha_name.label),
+        showVikasKhand: selIndex <= 1 && tableColumnFilters.summary.includes(columnDefs.vikas_khand_name.label),
+        showKendra: selIndex <= 2 && tableColumnFilters.summary.includes(columnDefs.center_name.label),
+        showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
+        showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
+        showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
+        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showTotal: tableColumnFilters.summary.includes("कुल राशि"),
+      };
+      
+      // Build headers
+      const headers = [];
+      if (visible.showVidhansabha) headers.push('विधानसभा');
+      if (visible.showVikasKhand) headers.push('विकास खंड');
+      if (visible.showKendra) headers.push('केंद्र');
+      if (visible.showYojana) headers.push('योजना');
+      if (visible.showNivesh) headers.push('निवेश');
+      if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showAllocated) headers.push('आवंटित मात्रा');
+      if (visible.showFarmer) headers.push('कृषक धनराशि');
+      if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
+      if (visible.showTotal) headers.push('कुल राशि');
+      
+      // Get flattened rows with rowspan info
+      const displayLevels = levels.slice(selIndex);
+      const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
+      
+      // Create a temporary hidden div with the table HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      tempDiv.style.background = 'white';
+      tempDiv.style.padding = '20px';
+      
+      // Generate HTML rows with proper rowspans
+      const htmlRows = rowsWithSpans.map(rowCells => {
+        const cellsHtml = rowCells.map(cell => {
+          const value = cell.isCurrency && cell.value ? `₹${cell.value.toLocaleString()}` : (cell.value || '');
+          if (cell.rowSpan > 1) {
+            return `<td rowspan="${cell.rowSpan}" style="border: 1px solid #ddd; padding: 8px; vertical-align: middle; font-family: Arial, sans-serif;">${value}</td>`;
+          } else if (cell.rowSpan === 1) {
+            return `<td style="border: 1px solid #ddd; padding: 8px; font-family: Arial, sans-serif;">${value}</td>`;
+          }
+          return '';
+        }).filter(html => html !== '').join('');
+        return `<tr>${cellsHtml}</tr>`;
+      }).join('');
+      
+      tempDiv.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; font-family: Arial, sans-serif;">
+          <thead>
+            <tr style="background-color: #428bca; color: white;">
+              ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 10px; font-family: Arial, sans-serif;">${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${htmlRows}
+          </tbody>
+        </table>
+      `;
+      
+      document.body.appendChild(tempDiv);
+      
+      // Capture as image using html2canvas
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      // Remove temp div
+      document.body.removeChild(tempDiv);
+      
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      
+      // Create PDF
+      const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pageWidth - 40; // 20pt margin on each side
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      if (imgHeight <= pageHeight - 40) {
+        // Fits on one page
+        pdf.addImage(imgData, "JPEG", 20, 20, imgWidth, imgHeight);
+      } else {
+        // Multiple pages
+        let remainingHeight = canvas.height;
+        const pageCanvas = document.createElement("canvas");
+        const ctx = pageCanvas.getContext("2d");
+        pageCanvas.width = canvas.width;
+        const pxPerPage = Math.floor((canvas.width * (pageHeight - 40)) / imgWidth);
+        let srcY = 0;
+        
+        while (remainingHeight > 0) {
+          const h = Math.min(pxPerPage, remainingHeight);
+          pageCanvas.height = h;
+          ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
+          const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
+          if (srcY > 0) pdf.addPage();
+          const renderedHeight = (h * imgWidth) / canvas.width;
+          pdf.addImage(pageData, "JPEG", 20, 20, imgWidth, renderedHeight);
+          remainingHeight -= h;
+          srcY += h;
+        }
+      }
+      
+      pdf.save('Summary_Table.pdf');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('PDF निर्यात में त्रुटि हुई: ' + error.message);
+    }
+  };
+
+  const exportDetailTableToExcel = async () => {
+    try {
+      // Get hierarchy data same as displayed
+      const baseData = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+      const filteredData = baseData.filter((item) => {
+        for (let filter of filterStack) {
+          if (!filter.checked[item[filter.column]]) return false;
+        }
+        return true;
+      });
+      
+      const headerFilteredData = applySummaryHeaderFilters(filteredData);
+      const hierarchy = convertToHierarchy(headerFilteredData, selectedHierarchyLevel || 'vidhan_sabha_name');
+      
+      // Determine visible columns
+      const levels = ['vidhan_sabha_name', 'vikas_khand_name', 'center_name', 'scheme_name', 'investment_name', 'sub_investment_name'];
+      const selectedCol = filterStack.length > 0 ? filterStack[filterStack.length - 1].column : 'vidhan_sabha_name';
+      const selIndex = Math.max(0, levels.indexOf(selectedCol));
+      
+      const visible = {
+        showVidhansabha: selIndex <= 0 && tableColumnFilters.summary.includes(columnDefs.vidhan_sabha_name.label),
+        showVikasKhand: selIndex <= 1 && tableColumnFilters.summary.includes(columnDefs.vikas_khand_name.label),
+        showKendra: selIndex <= 2 && tableColumnFilters.summary.includes(columnDefs.center_name.label),
+        showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
+        showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
+        showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
+        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showTotal: tableColumnFilters.summary.includes("कुल राशि"),
+      };
+      
+      // Build headers
+      const headers = [];
+      if (visible.showVidhansabha) headers.push('विधानसभा');
+      if (visible.showVikasKhand) headers.push('विकास खंड');
+      if (visible.showKendra) headers.push('केंद्र');
+      if (visible.showYojana) headers.push('योजना');
+      if (visible.showNivesh) headers.push('निवेश');
+      if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showAllocated) headers.push('आवंटित मात्रा');
+      if (visible.showFarmer) headers.push('कृषक धनराशि');
+      if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
+      if (visible.showTotal) headers.push('कुल राशि');
+      
+      const numCols = headers.length;
+      
+      // Get flattened rows with rowspan info
+      const displayLevels = levels.slice(selIndex);
+      const topNodes = hierarchy;
+      const flat = [];
+      
+      const traverse = (nodes, levelIdx, nodesRef = [], path = []) => {
+        nodes.forEach((node) => {
+          const newNodesRef = [...nodesRef, node];
+          const newPath = [...path, node.name];
+
+          if (levelIdx === displayLevels.length - 1) {
+            if (Array.isArray(node.subInvestments) && node.subInvestments.length > 0) {
+              node.subInvestments.forEach((sub) => {
+                flat.push({ path: newPath, nodesRef: newNodesRef, sub });
+              });
+            } else {
+              flat.push({ path: newPath, nodesRef: newNodesRef, sub: null });
+            }
+          } else {
+            if (Array.isArray(node.children) && node.children.length > 0) {
+              traverse(node.children, levelIdx + 1, newNodesRef, newPath);
+            } else {
+              if (Array.isArray(node.subInvestments) && node.subInvestments.length > 0) {
+                node.subInvestments.forEach((sub) => {
+                  flat.push({ path: newPath, nodesRef: newNodesRef, sub });
+                });
+              } else {
+                flat.push({ path: newPath, nodesRef: newNodesRef, sub: null });
+              }
+            }
+          }
+        });
+      };
+
+      traverse(topNodes, 0, [], []);
+      
+      // Compute rowspan for each level
+      const computeRowSpan = (rowIndex, levelIdx) => {
+        const base = flat[rowIndex].path.slice(0, levelIdx + 1).join('|');
+        let count = 0;
+        for (let k = rowIndex; k < flat.length; k++) {
+          const candidate = flat[k].path.slice(0, levelIdx + 1).join('|');
+          if (candidate === base) count++;
+          else break;
+        }
+        return Math.max(1, count);
+      };
+      
+      // Build worksheet data
+      const wsData = [headers];
+      const merges = [];
+      
+      flat.forEach((r, idx) => {
+        const row = new Array(numCols).fill('');
+        let colIdx = 0;
+        
+        // Fill hierarchy columns
+        for (let li = 0; li < displayLevels.length; li++) {
+          const levelKey = displayLevels[li];
+          const showFlagKey = {
+            'vidhan_sabha_name': 'showVidhansabha',
+            'vikas_khand_name': 'showVikasKhand',
+            'center_name': 'showKendra',
+            'scheme_name': 'showYojana',
+            'investment_name': 'showNivesh',
+            'sub_investment_name': 'showUpNivesh'
+          }[levelKey];
+          
+          if (!visible[showFlagKey]) continue;
+
+          const currPrefix = r.path.slice(0, li + 1).join('|');
+          const prevPrefix = idx > 0 ? flat[idx - 1].path.slice(0, li + 1).join('|') : null;
+          const isFirst = idx === 0 || prevPrefix !== currPrefix;
+          
+          if (isFirst) {
+            row[colIdx] = r.path[li] || '';
+            const rowSpan = computeRowSpan(idx, li);
+            if (rowSpan > 1) {
+              merges.push({
+                s: { r: idx + 1, c: colIdx },
+                e: { r: idx + rowSpan, c: colIdx }
+              });
+            }
+          }
+          colIdx++;
+        }
+        
+        // Fill numeric columns
+        const numericLevelToUse = numericDisplayLevel || selectedHierarchyLevel;
+        const numAggIndex = displayLevels.indexOf(numericLevelToUse);
+        let numAgg = null;
+        
+        if (numericLevelToUse === 'sub_investment_name') {
+          numAgg = r.sub || null;
+        } else if (numAggIndex >= 0) {
+          const nodeRef = r.nodesRef[numAggIndex];
+          if (nodeRef) numAgg = nodeRef.aggregates || null;
+        }
+
+        const numericShownOnThisRow = (numAggIndex >= 0) ? 
+          (idx === 0 ? true : flat[idx - 1].path.slice(0, numAggIndex + 1).join('|') !== r.path.slice(0, numAggIndex + 1).join('|')) : 
+          (numericLevelToUse === 'sub_investment_name');
+
+        if (visible.showAllocated) {
+          row[colIdx] = numericShownOnThisRow && numAgg && numAgg.allocated_quantity !== undefined ? numAgg.allocated_quantity : '';
+          colIdx++;
+        }
+        if (visible.showFarmer) {
+          row[colIdx] = numericShownOnThisRow && numAgg && numAgg.amount_of_farmer_share !== undefined ? numAgg.amount_of_farmer_share : '';
+          colIdx++;
+        }
+        if (visible.showSubsidy) {
+          row[colIdx] = numericShownOnThisRow && numAgg && numAgg.amount_of_subsidy !== undefined ? numAgg.amount_of_subsidy : '';
+          colIdx++;
+        }
+        if (visible.showTotal) {
+          row[colIdx] = numericShownOnThisRow && numAgg && numAgg.total_amount !== undefined ? numAgg.total_amount : '';
+          colIdx++;
+        }
+        
+        wsData.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Apply merges
+      if (merges.length > 0) {
+        ws['!merges'] = merges;
+      }
+      
+      // Set column widths for better readability
+      const colWidths = headers.map((h) => {
+        if (h === 'विधानसभा' || h === 'विकास खंड' || h === 'केंद्र' || h === 'योजना') return { wch: 25 };
+        if (h === 'निवेश' || h === 'उप-निवेश') return { wch: 30 };
+        return { wch: 18 };
+      });
+      ws['!cols'] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Summary Table");
+      XLSX.writeFile(wb, 'Summary_Table.xlsx');
+    } catch (error) {
+      console.error('Excel export error:', error);
+      alert('Excel निर्यात में त्रुटि हुई: ' + error.message);
+    }
+  };
+
+  // Preview functions for Hierarchical Summary Table
+  const previewDetailTablePDF = async () => {
+    try {
+      // Get hierarchy data same as displayed
+      const baseData = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+      const filteredData = baseData.filter((item) => {
+        for (let filter of filterStack) {
+          if (!filter.checked[item[filter.column]]) return false;
+        }
+        return true;
+      });
+      
+      const headerFilteredData = applySummaryHeaderFilters(filteredData);
+      const hierarchy = convertToHierarchy(headerFilteredData, selectedHierarchyLevel || 'vidhan_sabha_name');
+      
+      // Determine visible columns
+      const levels = ['vidhan_sabha_name', 'vikas_khand_name', 'center_name', 'scheme_name', 'investment_name', 'sub_investment_name'];
+      const selectedCol = filterStack.length > 0 ? filterStack[filterStack.length - 1].column : 'vidhan_sabha_name';
+      const selIndex = Math.max(0, levels.indexOf(selectedCol));
+      
+      const visible = {
+        showVidhansabha: selIndex <= 0 && tableColumnFilters.summary.includes(columnDefs.vidhan_sabha_name.label),
+        showVikasKhand: selIndex <= 1 && tableColumnFilters.summary.includes(columnDefs.vikas_khand_name.label),
+        showKendra: selIndex <= 2 && tableColumnFilters.summary.includes(columnDefs.center_name.label),
+        showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
+        showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
+        showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
+        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showTotal: tableColumnFilters.summary.includes("कुल राशि"),
+      };
+      
+      // Build headers
+      const headers = [];
+      if (visible.showVidhansabha) headers.push('विधानसभा');
+      if (visible.showVikasKhand) headers.push('विकास खंड');
+      if (visible.showKendra) headers.push('केंद्र');
+      if (visible.showYojana) headers.push('योजना');
+      if (visible.showNivesh) headers.push('निवेश');
+      if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showAllocated) headers.push('आवंटित मात्रा');
+      if (visible.showFarmer) headers.push('कृषक धनराशि');
+      if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
+      if (visible.showTotal) headers.push('कुल राशि');
+      
+      // Get flattened rows with rowspan info
+      const displayLevels = levels.slice(selIndex);
+      const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
+
+      // Generate HTML preview with proper rowspans
+      const htmlRows = rowsWithSpans.map(rowCells => {
+        const cellsHtml = rowCells.map(cell => {
+          const value = cell.isCurrency && cell.value ? `₹${cell.value.toLocaleString()}` : (cell.value || '');
+          if (cell.rowSpan > 1) {
+            return `<td rowspan="${cell.rowSpan}" style="border: 1px solid #ddd; padding: 8px; vertical-align: middle;">${value}</td>`;
+          } else if (cell.rowSpan === 1) {
+            return `<td style="border: 1px solid #ddd; padding: 8px;">${value}</td>`;
+          }
+          return ''; // Skip cells that are part of a rowspan
+        }).filter(html => html !== '').join('');
+        return `<tr>${cellsHtml}</tr>`;
+      }).join('');
+
+      const htmlContent = `
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background-color: #428bca; color: white;">
+                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 8px;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${htmlRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      setDetailPreviewContent(htmlContent);
+      setDetailPreviewType('pdf');
+      setShowDetailPreviewModal(true);
+    } catch (error) {
+      console.error('PDF preview error:', error);
+      alert('PDF पूर्वालोकन में त्रुटि हुई');
+    }
+  };
+
+  const previewDetailTableExcel = async () => {
+    try {
+      // Get hierarchy data same as displayed
+      const baseData = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+      const filteredData = baseData.filter((item) => {
+        for (let filter of filterStack) {
+          if (!filter.checked[item[filter.column]]) return false;
+        }
+        return true;
+      });
+      
+      const headerFilteredData = applySummaryHeaderFilters(filteredData);
+      const hierarchy = convertToHierarchy(headerFilteredData, selectedHierarchyLevel || 'vidhan_sabha_name');
+      
+      // Determine visible columns
+      const levels = ['vidhan_sabha_name', 'vikas_khand_name', 'center_name', 'scheme_name', 'investment_name', 'sub_investment_name'];
+      const selectedCol = filterStack.length > 0 ? filterStack[filterStack.length - 1].column : 'vidhan_sabha_name';
+      const selIndex = Math.max(0, levels.indexOf(selectedCol));
+      
+      const visible = {
+        showVidhansabha: selIndex <= 0 && tableColumnFilters.summary.includes(columnDefs.vidhan_sabha_name.label),
+        showVikasKhand: selIndex <= 1 && tableColumnFilters.summary.includes(columnDefs.vikas_khand_name.label),
+        showKendra: selIndex <= 2 && tableColumnFilters.summary.includes(columnDefs.center_name.label),
+        showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
+        showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
+        showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
+        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showTotal: tableColumnFilters.summary.includes("कुल राशि"),
+      };
+      
+      // Build headers
+      const headers = [];
+      if (visible.showVidhansabha) headers.push('विधानसभा');
+      if (visible.showVikasKhand) headers.push('विकास खंड');
+      if (visible.showKendra) headers.push('केंद्र');
+      if (visible.showYojana) headers.push('योजना');
+      if (visible.showNivesh) headers.push('निवेश');
+      if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showAllocated) headers.push('आवंटित मात्रा');
+      if (visible.showFarmer) headers.push('कृषक धनराशि');
+      if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
+      if (visible.showTotal) headers.push('कुल राशि');
+      
+      // Get flattened rows with rowspan info
+      const displayLevels = levels.slice(selIndex);
+      const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
+
+      // Generate HTML preview with proper rowspans
+      const htmlRows = rowsWithSpans.map(rowCells => {
+        const cellsHtml = rowCells.map(cell => {
+          const value = cell.isCurrency && cell.value ? `₹${cell.value.toLocaleString()}` : (cell.value || '');
+          if (cell.rowSpan > 1) {
+            return `<td rowspan="${cell.rowSpan}" style="border: 1px solid #ddd; padding: 8px; vertical-align: middle;">${value}</td>`;
+          } else if (cell.rowSpan === 1) {
+            return `<td style="border: 1px solid #ddd; padding: 8px;">${value}</td>`;
+          }
+          return ''; // Skip cells that are part of a rowspan
+        }).filter(html => html !== '').join('');
+        return `<tr>${cellsHtml}</tr>`;
+      }).join('');
+
+      const htmlContent = `
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background-color: #5cb85c; color: white;">
+                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 8px;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${htmlRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      setDetailPreviewContent(htmlContent);
+      setDetailPreviewType('excel');
+      setShowDetailPreviewModal(true);
+    } catch (error) {
+      console.error('Excel preview error:', error);
+      alert('Excel पूर्वालोकन में त्रुटि हुई');
+    }
+  };
+
+  // Preview functions for Allocation Tables
+  const previewAllocationTablePDF = async (table, tableIndex) => {
+    try {
+      const isTableRotated = isRotated[tableIndex] || false;
+      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
+      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
+      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
+
+      let headers, rows;
+
+      if (isTableRotated) {
+        const transposedTable = transposeTableForRotation(table);
+        const visibleColumns = transposedTable.columns;
+        headers = visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        });
+        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
+      } else {
+        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
+        headers = visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        });
+        
+        const filteredData = table.data;
+        rows = filteredData.map(row => visibleColumns.map(col => {
+          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
+              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
+              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
+            let matraVal = row[col];
+            let darVal = row[`${col}_dar`];
+            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
+            
+            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+              const parts = String(matraVal).split(" / ");
+              matraVal = parts[0];
+              if (darVal === undefined) darVal = parts[1] || parts[0];
+            } else {
+              matraVal = matraVal !== undefined ? String(matraVal) : "0";
+            }
+            
+            if (darVal === undefined) {
+              darVal = matraVal;
+            } else if (String(darVal).includes(" / ")) {
+              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+            } else {
+              darVal = String(darVal);
+            }
+            
+            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
+          }
+          return row[col] || "";
+        }));
+      }
+
+      // Generate HTML preview
+      const htmlContent = `
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background-color: #428bca; color: white;">
+                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td style="border: 1px solid #ddd; padding: 6px;">${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      setAllocationPreviewContent(htmlContent);
+      setAllocationPreviewType('pdf');
+      setCurrentPreviewTableIndex(tableIndex);
+      setShowAllocationPreviewModal(true);
+    } catch (error) {
+      console.error('PDF preview error:', error);
+      alert('PDF पूर्वालोकन में त्रुटि हुई');
+    }
+  };
+
+  const previewAllocationTableExcel = async (table, tableIndex) => {
+    try {
+      const isTableRotated = isRotated[tableIndex] || false;
+      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
+      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
+      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
+
+      let headers, rows;
+
+      if (isTableRotated) {
+        const transposedTable = transposeTableForRotation(table);
+        const visibleColumns = transposedTable.columns;
+        headers = visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        });
+        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
+      } else {
+        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
+        headers = visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        });
+        
+        const filteredData = table.data;
+        rows = filteredData.map(row => visibleColumns.map(col => {
+          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
+              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
+              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
+            let matraVal = row[col];
+            let darVal = row[`${col}_dar`];
+            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
+            
+            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+              const parts = String(matraVal).split(" / ");
+              matraVal = parts[0];
+              if (darVal === undefined) darVal = parts[1] || parts[0];
+            } else {
+              matraVal = matraVal !== undefined ? String(matraVal) : "0";
+            }
+            
+            if (darVal === undefined) {
+              darVal = matraVal;
+            } else if (String(darVal).includes(" / ")) {
+              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+            } else {
+              darVal = String(darVal);
+            }
+            
+            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
+          }
+          return row[col] || "";
+        }));
+      }
+
+      // Generate HTML preview
+      const htmlContent = `
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background-color: #5cb85c; color: white;">
+                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td style="border: 1px solid #ddd; padding: 6px;">${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      setAllocationPreviewContent(htmlContent);
+      setAllocationPreviewType('excel');
+      setCurrentPreviewTableIndex(tableIndex);
+      setShowAllocationPreviewModal(true);
+    } catch (error) {
+      console.error('Excel preview error:', error);
+      alert('Excel पूर्वालोकन में त्रुटि हुई');
+    }
+  };
+
+  // Simple export functions for Allocation/Avantan Tables
+  const exportAllocationTableToPDF = async (table, tableIndex) => {
+    try {
+      const doc = new jsPDF({ orientation: 'landscape' });
+      
+      const isTableRotated = isRotated[tableIndex] || false;
+      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
+      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
+      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
+
+      let headers, rows;
+
+      if (isTableRotated) {
+        // Rotated table export
+        const transposedTable = transposeTableForRotation(table);
+        const visibleColumns = transposedTable.columns;
+        headers = [visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        })];
+        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
+      } else {
+        // Normal table export - Include all data including total row
+        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
+        headers = [visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        })];
+        
+        const filteredData = table.data;
+        rows = filteredData.map(row => visibleColumns.map(col => {
+          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
+              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
+              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
+            let matraVal = row[col];
+            let darVal = row[`${col}_dar`];
+            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
+            
+            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+              const parts = String(matraVal).split(" / ");
+              matraVal = parts[0];
+              if (darVal === undefined) darVal = parts[1] || parts[0];
+            } else {
+              matraVal = matraVal !== undefined ? String(matraVal) : "0";
+            }
+            
+            if (darVal === undefined) {
+              darVal = matraVal;
+            } else if (String(darVal).includes(" / ")) {
+              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+            } else {
+              darVal = String(darVal);
+            }
+            
+            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
+          }
+          return row[col] || "";
+        }));
+      }
+
+      doc.autoTable({
+        head: headers,
+        body: rows,
+        startY: 20,
+        styles: { fontSize: 7 },
+        headStyles: { fillColor: [66, 139, 202] }
+      });
+
+      doc.save(`${table.heading || 'Allocation_Table'}.pdf`);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('PDF निर्यात में त्रुटि हुई');
+    }
+  };
+
+  const exportAllocationTableToExcel = async (table, tableIndex) => {
+    try {
+      const isTableRotated = isRotated[tableIndex] || false;
+      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
+      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
+      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
+
+      let headers, rows;
+
+      if (isTableRotated) {
+        const transposedTable = transposeTableForRotation(table);
+        const visibleColumns = transposedTable.columns;
+        headers = visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        });
+        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
+      } else {
+        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
+        headers = visibleColumns.map(col => {
+          if (table.isAllocationTable && col === "आवंटित मात्रा") {
+            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
+          }
+          return col;
+        });
+        
+        const filteredData = table.data;
+        rows = filteredData.map(row => visibleColumns.map(col => {
+          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
+              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
+              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
+            let matraVal = row[col];
+            let darVal = row[`${col}_dar`];
+            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
+            
+            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
+              const parts = String(matraVal).split(" / ");
+              matraVal = parts[0];
+              if (darVal === undefined) darVal = parts[1] || parts[0];
+            } else {
+              matraVal = matraVal !== undefined ? String(matraVal) : "0";
+            }
+            
+            if (darVal === undefined) {
+              darVal = matraVal;
+            } else if (String(darVal).includes(" / ")) {
+              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
+            } else {
+              darVal = String(darVal);
+            }
+            
+            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
+          }
+          return row[col] || "";
+        }));
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Allocation Table");
+      XLSX.writeFile(wb, `${table.heading || 'Allocation_Table'}.xlsx`);
+    } catch (error) {
+      console.error('Excel export error:', error);
+      alert('Excel निर्यात में त्रुटि हुई');
+    }
+  };
+
   // Export Section Component
   const ExportSection = () => (
     <div
@@ -7002,9 +7970,11 @@ const MainDashboard = () => {
                               if (showDetailed && checkedValues.length === 1) {
                                 return (
                                   <div>
-                                    <ExportSection />
-                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
                                       <h5 className="mb-0">Detail Table</h5>
+                                    </div>
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                      <div></div>
                                       <ColumnFilter
                                         tableId="detail"
                                         columns={tableColumnOrder
@@ -7156,13 +8126,43 @@ const MainDashboard = () => {
                               } else {
                                 return (
                                   <div>
-                                    <ExportSection />
-
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                       <h5 className="mb-0">
                                         {columnDefs[primaryColumn]?.label || "Summary Table"}
                                       </h5>
                                       <div className="d-flex gap-2 align-items-center">
+                                        <Button
+                                          variant="outline-danger"
+                                          size="sm"
+                                          onClick={previewDetailTablePDF}
+                                          className="d-flex align-items-center gap-1"
+                                        >
+                                          <RiEyeLine /> PDF पूर्वालोकन
+                                        </Button>
+                                        <Button
+                                          variant="danger"
+                                          size="sm"
+                                          onClick={exportDetailTableToPDF}
+                                          className="d-flex align-items-center pdf-add-btn gap-1"
+                                        >
+                                          <RiFilePdfLine /> PDF डाउनलोड
+                                        </Button>
+                                        <Button
+                                          variant="outline-success"
+                                          size="sm"
+                                          onClick={previewDetailTableExcel}
+                                          className="d-flex align-items-center gap-1"
+                                        >
+                                          <RiEyeLine /> Excel पूर्वालोकन
+                                        </Button>
+                                        <Button
+                                          variant="success"
+                                          size="sm"
+                                          onClick={exportDetailTableToExcel}
+                                          className="d-flex align-items-center exel-add-btn gap-1"
+                                        >
+                                          <RiFileExcelLine /> Excel डाउनलोड
+                                        </Button>
                                         <Button
                                           variant="outline-secondary"
                                           size="sm"
@@ -8473,33 +9473,36 @@ const MainDashboard = () => {
                                           </div>
                                           <div className="d-flex gap-2">
                                             <Button
+                                              variant="outline-danger"
+                                              size="sm"
+                                              onClick={() => previewAllocationTablePDF(table, index)}
+                                              className="d-flex align-items-center gap-1"
+                                            >
+                                              <RiEyeLine /> PDF पूर्वालोकन
+                                            </Button>
+                                            <Button
                                               variant="danger"
                                               size="sm"
-                                              onClick={() =>
-                                                addAdditionalTableToExport(
-                                                  table,
-                                                  "pdf",
-                                                  index
-                                                )
-                                              }
+                                              onClick={() => exportAllocationTableToPDF(table, index)}
                                               className="d-flex align-items-center pdf-add-btn gap-1"
                                             >
-                                              <RiFilePdfLine /> PDF में जोड़ें
+                                              <RiFilePdfLine /> PDF डाउनलोड
+                                            </Button>
+                                            <Button
+                                              variant="outline-success"
+                                              size="sm"
+                                              onClick={() => previewAllocationTableExcel(table, index)}
+                                              className="d-flex align-items-center gap-1"
+                                            >
+                                              <RiEyeLine /> Excel पूर्वालोकन
                                             </Button>
                                             <Button
                                               variant="success"
                                               size="sm"
-                                              onClick={() =>
-                                                addAdditionalTableToExport(
-                                                  table,
-                                                  "excel",
-                                                  index
-                                                )
-                                              }
+                                              onClick={() => exportAllocationTableToExcel(table, index)}
                                               className="d-flex align-items-center exel-add-btn gap-1"
                                             >
-                                              <RiFileExcelLine /> Excel में
-                                              जोड़ें
+                                              <RiFileExcelLine /> Excel डाउनलोड
                                             </Button>
                                             <Button
                                               variant="link"
@@ -10055,6 +11058,77 @@ const MainDashboard = () => {
 
       {/* Report Modal */}
       <ReportModal />
+
+      {/* Detail Table Preview Modal */}
+      <Modal
+        show={showDetailPreviewModal}
+        onHide={() => setShowDetailPreviewModal(false)}
+        size="xl"
+        centered
+      >
+        <Modal.Header closeButton className="modal-header-style">
+          <div>
+            {detailPreviewType === 'pdf' ? 'Detail Table - PDF पूर्वालोकन' : 'Detail Table - Excel पूर्वालोकन'}
+          </div>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "70vh", overflow: "auto" }}>
+          <div dangerouslySetInnerHTML={{ __html: detailPreviewContent }} />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailPreviewModal(false)}>
+            बंद करें
+          </Button>
+          <Button
+            variant={detailPreviewType === 'pdf' ? 'danger' : 'success'}
+            onClick={() => {
+              setShowDetailPreviewModal(false);
+              if (detailPreviewType === 'pdf') {
+                exportDetailTableToPDF();
+              } else {
+                exportDetailTableToExcel();
+              }
+            }}
+          >
+            डाउनलोड करें
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Allocation Table Preview Modal */}
+      <Modal
+        show={showAllocationPreviewModal}
+        onHide={() => setShowAllocationPreviewModal(false)}
+        size="xl"
+        centered
+      >
+        <Modal.Header closeButton className="modal-header-style">
+          <div>
+            {allocationPreviewType === 'pdf' ? 'Allocation Table - PDF पूर्वालोकन' : 'Allocation Table - Excel पूर्वालोकन'}
+          </div>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "70vh", overflow: "auto" }}>
+          <div dangerouslySetInnerHTML={{ __html: allocationPreviewContent }} />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAllocationPreviewModal(false)}>
+            बंद करें
+          </Button>
+          <Button
+            variant={allocationPreviewType === 'pdf' ? 'danger' : 'success'}
+            onClick={() => {
+              setShowAllocationPreviewModal(false);
+              const table = additionalTables[currentPreviewTableIndex];
+              if (allocationPreviewType === 'pdf') {
+                exportAllocationTableToPDF(table, currentPreviewTableIndex);
+              } else {
+                exportAllocationTableToExcel(table, currentPreviewTableIndex);
+              }
+            }}
+          >
+            डाउनलोड करें
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
