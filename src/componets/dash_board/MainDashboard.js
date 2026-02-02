@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Container,
   Row,
@@ -9,6 +9,8 @@ import {
   FormCheck,
   Modal,
   Dropdown,
+  Card,
+  Collapse,
 } from "react-bootstrap";
 import Select from "react-select";
 import "../../assets/css/registration.css";
@@ -23,6 +25,7 @@ import {
   RiEyeLine,
   RiRepeatLine,
 } from "react-icons/ri";
+import { FaTable, FaChartPie } from "react-icons/fa";
 import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
 import * as XLSX from "xlsx";
@@ -345,6 +348,30 @@ const MainDashboard = () => {
   const [allocationPreviewType, setAllocationPreviewType] = useState('pdf');
   const [allocationPreviewContent, setAllocationPreviewContent] = useState(null);
   const [currentPreviewTableIndex, setCurrentPreviewTableIndex] = useState(null);
+
+  // State for collapsible tables
+  const [openCollapses, setOpenCollapses] = useState({
+    scheme: false,
+    investment: false,
+    subInvestment: false
+  });
+
+  // Toggle collapse for tables
+  const toggleCollapse = (collapseKey) => {
+    setOpenCollapses(prev => ({
+      ...prev,
+      [collapseKey]: !prev[collapseKey]
+    }));
+  };
+
+  // Format currency for display
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('hi-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
 
   // State for Vidhan Sabha table grouping
   const [vidhanSabhaGrouping, setVidhanSabhaGrouping] = useState('vidhan_sabha_name');
@@ -689,6 +716,22 @@ const MainDashboard = () => {
   const [summaryColumnValueFilters, setSummaryColumnValueFilters] = useState({});
   const [summaryHeaderFilterOpen, setSummaryHeaderFilterOpen] = useState({});
 
+  // Apply header filters to a dataset of rows for summary table
+  const applySummaryHeaderFilters = (rows) => {
+    if (!rows || rows.length === 0) return [];
+    const entries = Object.entries(summaryColumnValueFilters || {});
+    if (entries.length === 0) return rows;
+    return rows.filter((row) => {
+      for (const [col, selectedVals] of entries) {
+        const sel = selectedVals || [];
+        if (sel.length > 0) {
+          if (!sel.includes(row[col])) return false;
+        }
+      }
+      return true;
+    });
+  };
+
   const toggleSummaryHeaderDropdown = (columnKey) => {
     setSummaryHeaderFilterOpen((prev) => ({
       ...prev,
@@ -755,21 +798,107 @@ const MainDashboard = () => {
     }));
   };
 
-  // Apply header filters to a dataset of rows for summary table
-  const applySummaryHeaderFilters = (rows) => {
-    if (!rows || rows.length === 0) return [];
-    const entries = Object.entries(summaryColumnValueFilters || {});
-    if (entries.length === 0) return rows;
-    return rows.filter((row) => {
-      for (const [col, selectedVals] of entries) {
-        const sel = selectedVals || [];
-        if (sel.length > 0) {
-          if (!sel.includes(row[col])) return false;
-        }
+
+
+  // Data preparation for scheme-wise total subsidy comparison
+  const schemeChartData = useMemo(() => {
+    const dataForHierarchy = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+    const headerFilteredData = applySummaryHeaderFilters(dataForHierarchy || []);
+    
+    const schemeData = {};
+    headerFilteredData.forEach(item => {
+      const scheme = item.scheme_name || 'अन्य';
+      if (!schemeData[scheme]) {
+        schemeData[scheme] = {
+          farmerShare: 0,
+          subsidy: 0,
+          total: 0,
+          quantity: 0
+        };
       }
-      return true;
+      schemeData[scheme].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      schemeData[scheme].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      schemeData[scheme].total += parseFloat(item.total_amount) || 0;
+      schemeData[scheme].quantity += parseFloat(item.allocated_quantity) || 0;
     });
-  };
+
+    return {
+      rawData: schemeData
+    };
+  }, [filteredTableData, summaryColumnValueFilters, tableData]);
+
+  // Data preparation for investment-wise scheme subsidy comparison
+  const combinedTableData = useMemo(() => {
+    const dataForHierarchy = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+    const headerFilteredData = applySummaryHeaderFilters(dataForHierarchy || []);
+    
+    const investmentSchemeData = {};
+    headerFilteredData.forEach(item => {
+      const investment = item.investment_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const qty = parseFloat(item.allocated_quantity) || 0;
+      if (!investmentSchemeData[investment]) investmentSchemeData[investment] = {};
+      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = { subsidy: 0, quantity: 0 };
+      investmentSchemeData[investment][scheme].subsidy += subsidy;
+      investmentSchemeData[investment][scheme].quantity += qty;
+    });
+
+    const investments = Object.keys(investmentSchemeData).sort();
+    const allSchemes = new Set();
+    investments.forEach(inv => {
+      Object.keys(investmentSchemeData[inv]).forEach(sch => allSchemes.add(sch));
+    });
+    const schemes = Array.from(allSchemes).sort();
+
+    const totals = {};
+    const quantities = {};
+    investments.forEach(inv => {
+      totals[inv] = schemes.reduce((sum, sch) => sum + ((investmentSchemeData[inv][sch] && investmentSchemeData[inv][sch].subsidy) || 0), 0);
+      quantities[inv] = schemes.reduce((sum, sch) => sum + ((investmentSchemeData[inv][sch] && investmentSchemeData[inv][sch].quantity) || 0), 0);
+    });
+    const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    const grandQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
+
+    return { investments, schemes, data: investmentSchemeData, totals, quantities, grandTotal, grandQuantity };
+  }, [filteredTableData, summaryColumnValueFilters, tableData]);
+
+  // Data preparation for sub-investment-wise scheme subsidy comparison
+  const subCombinedTableData = useMemo(() => {
+    const dataForHierarchy = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
+    const headerFilteredData = applySummaryHeaderFilters(dataForHierarchy || []);
+    
+    const subInvestmentSchemeData = {};
+    headerFilteredData.forEach(item => {
+      const subInvestment = item.sub_investment_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const qty = parseFloat(item.allocated_quantity) || 0;
+      if (!subInvestmentSchemeData[subInvestment]) subInvestmentSchemeData[subInvestment] = {};
+      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = { subsidy: 0, quantity: 0 };
+      subInvestmentSchemeData[subInvestment][scheme].subsidy += subsidy;
+      subInvestmentSchemeData[subInvestment][scheme].quantity += qty;
+    });
+
+    const subInvestments = Object.keys(subInvestmentSchemeData).sort();
+    const allSchemes = new Set();
+    subInvestments.forEach(subInv => {
+      Object.keys(subInvestmentSchemeData[subInv]).forEach(sch => allSchemes.add(sch));
+    });
+    const schemes = Array.from(allSchemes).sort();
+
+    const data = subInvestmentSchemeData;
+    const totals = {};
+    const quantities = {};
+    subInvestments.forEach(subInv => {
+      totals[subInv] = schemes.reduce((sum, sch) => sum + ((data[subInv][sch] && data[subInv][sch].subsidy) || 0), 0);
+      quantities[subInv] = schemes.reduce((sum, sch) => sum + ((data[subInv][sch] && data[subInv][sch].quantity) || 0), 0);
+    });
+    const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    const grandQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
+
+    return { subInvestments, schemes, data, totals, quantities, grandTotal, grandQuantity };
+  }, [filteredTableData, summaryColumnValueFilters, tableData]);
 
   // Initialize summary header filters to 'all selected' for each column
   useEffect(() => {
@@ -4902,6 +5031,206 @@ const MainDashboard = () => {
       } catch (error) {
         console.error("PDF export failed:", error);
         alert("PDF export failed: " + error.message);
+      }
+    };
+
+    // Export open collapsible tables to PDF
+    const exportOpenCollapsibleTablesToPDF = async () => {
+      try {
+        const openTables = [];
+        
+        // Check which tables are open and collect their DOM elements with names
+        if (openCollapses.scheme) {
+          const schemeTable = document.getElementById('scheme-table');
+          if (schemeTable) openTables.push({ element: schemeTable, name: 'योजना-वार कुल सब्सिडी तुलना' });
+        }
+        
+        if (openCollapses.investment) {
+          const investmentTable = document.getElementById('investment-table');
+          if (investmentTable) openTables.push({ element: investmentTable, name: 'निवेश - योजना सब्सिडी तुलना' });
+        }
+        
+        if (openCollapses.subInvestment) {
+          const subInvestmentTable = document.getElementById('subinvestment-table');
+          if (subInvestmentTable) openTables.push({ element: subInvestmentTable, name: 'उपनिवेश - योजना सब्सिडी तुलना' });
+        }
+        
+        if (openTables.length === 0) {
+          alert('कृपया कम से कम एक तालिका खोलें जिसे निर्यात करना है');
+          return;
+        }
+        
+        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 20;
+        const contentWidth = pageWidth - 2 * margin;
+        
+        // Add each open table to PDF
+        for (let i = 0; i < openTables.length; i++) {
+          const { element, name } = openTables[i];
+          
+          // Add new page for subsequent tables
+          if (i > 0) pdf.addPage();
+          
+          // Create a temporary container to wrap table with heading
+          const tempContainer = document.createElement('div');
+          tempContainer.style.padding = '10px';
+          tempContainer.style.backgroundColor = 'white';
+          
+          // Add heading to container
+          const heading = document.createElement('h3');
+          heading.textContent = name;
+          heading.style.fontWeight = 'bold';
+          heading.style.fontSize = '18px';
+          heading.style.marginBottom = '15px';
+          heading.style.color = '#000';
+          heading.style.textAlign = 'center';
+          tempContainer.appendChild(heading);
+          
+          // Add table to container
+          try {
+            const tableClone = element.cloneNode(true);
+            tempContainer.appendChild(tableClone);
+          } catch (cloneError) {
+            console.error("Error cloning table:", cloneError);
+            alert("तालिका क्लोन करने में 오류: " + cloneError.message);
+            return;
+          }
+          
+          // Append container to body temporarily for html2canvas to work correctly
+          document.body.appendChild(tempContainer);
+          
+          // Capture entire container as canvas
+          let canvas;
+          try {
+            canvas = await html2canvas(tempContainer, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#ffffff',
+            });
+          } catch (canvasError) {
+            console.error("Canvas capture error:", canvasError);
+            alert("कैनवास कैप्चर में 오류: " + canvasError.message);
+            document.body.removeChild(tempContainer);
+            return;
+          }
+          
+          // Remove temporary container from body
+          document.body.removeChild(tempContainer);
+          
+          const imgData = canvas.toDataURL("image/jpeg", 1.0);
+          
+          // Calculate image dimensions to fit page with margins
+          const imgWidth = contentWidth;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          const availableHeight = pageHeight - 2 * margin;
+          
+          // Handle multi-page tables
+          if (imgHeight <= availableHeight) {
+            pdf.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight);
+          } else {
+            let remainingHeight = canvas.height;
+            const pageCanvas = document.createElement("canvas");
+            const ctx = pageCanvas.getContext("2d");
+            pageCanvas.width = canvas.width;
+            const pxPerPage = Math.floor((canvas.width * availableHeight) / imgWidth);
+            let srcY = 0;
+            
+            while (remainingHeight > 0) {
+              const h = Math.min(pxPerPage, remainingHeight);
+              pageCanvas.height = h;
+              ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+              ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
+              const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
+              
+              if (srcY > 0) pdf.addPage();
+              
+              const renderedHeight = (h * imgWidth) / canvas.width;
+              pdf.addImage(pageData, "JPEG", margin, margin, imgWidth, renderedHeight);
+              
+              remainingHeight -= h;
+              srcY += h;
+            }
+          }
+        }
+        
+        pdf.save("collapsible-tables.pdf");
+      } catch (error) {
+        console.error("PDF export failed:", error);
+        alert("PDF निर्यात विफल: " + (error.message || "अज्ञात त्रुटि"));
+      }
+    };
+
+    // Export open collapsible tables to Excel
+    const exportOpenCollapsibleTablesToExcel = async () => {
+      try {
+        const openTables = [];
+        
+        // Check which tables are open and collect their DOM elements with names
+        if (openCollapses.scheme) {
+          const schemeTable = document.getElementById('scheme-table');
+          if (schemeTable) openTables.push({ element: schemeTable, name: 'योजना-वार कुल सब्सिडी तुलना' });
+        }
+        
+        if (openCollapses.investment) {
+          const investmentTable = document.getElementById('investment-table');
+          if (investmentTable) openTables.push({ element: investmentTable, name: 'निवेश - योजना सब्सिडी तुलना' });
+        }
+        
+        if (openCollapses.subInvestment) {
+          const subInvestmentTable = document.getElementById('subinvestment-table');
+          if (subInvestmentTable) openTables.push({ element: subInvestmentTable, name: 'उपनिवेश - योजना सब्सिडी तुलना' });
+        }
+        
+        if (openTables.length === 0) {
+          alert('कृपया कम से कम एक तालिका खोलें जिसे निर्यात करना है');
+          return;
+        }
+        
+        const wb = XLSX.utils.book_new();
+        
+        // Add each open table as a separate sheet
+        openTables.forEach(({ element, name }) => {
+          const ws = XLSX.utils.table_to_sheet(element, { raw: true });
+          
+          // Set sheet name (Excel has sheet name length limit of 31 characters)
+          const sheetName = name.length > 31 ? name.substring(0, 28) + "..." : name;
+          
+          // Add table border lines
+          const range = XLSX.utils.decode_range(ws['!ref']);
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+              const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+              if (!ws[cellAddress]) continue;
+              
+              // Set cell border styles (thin border for all sides)
+              ws[cellAddress].s = ws[cellAddress].s || {};
+              ws[cellAddress].s.border = ws[cellAddress].s.border || {};
+              ws[cellAddress].s.border.top = { style: 'thin' };
+              ws[cellAddress].s.border.bottom = { style: 'thin' };
+              ws[cellAddress].s.border.left = { style: 'thin' };
+              ws[cellAddress].s.border.right = { style: 'thin' };
+              
+              // Set header cell styles (bold)
+              if (R === 0) {
+                ws[cellAddress].s.font = ws[cellAddress].s.font || {};
+                ws[cellAddress].s.font.bold = true;
+                ws[cellAddress].s.fill = ws[cellAddress].s.fill || {};
+                ws[cellAddress].s.fill.patternType = 'solid';
+                ws[cellAddress].s.fill.fgColor = { rgb: 'CCCCCC' }; // Light gray background
+              }
+            }
+          }
+          
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        });
+        
+        XLSX.writeFile(wb, "collapsible-tables.xlsx");
+      } catch (error) {
+        console.error("Excel export failed:", error);
+        alert("Excel निर्यात विफल: " + error.message);
       }
     };
 
@@ -9120,6 +9449,260 @@ const MainDashboard = () => {
                                       </tfoot>
                                       </Table>
                                     </div>
+
+                                    {/* Export Buttons for Collapsible Tables */}
+                                    <div className="d-flex gap-2 mb-3">
+                                      <Button 
+                                        variant="danger" 
+                                        size="sm"
+                                        onClick={exportOpenCollapsibleTablesToPDF}
+                                        disabled={!openCollapses.scheme && !openCollapses.investment && !openCollapses.subInvestment}
+                                      >
+                                        <RiFilePdfLine className="me-1" /> PDF निर्यात करें
+                                      </Button>
+                                      <Button 
+                                        variant="success" 
+                                        size="sm"
+                                        onClick={exportOpenCollapsibleTablesToExcel}
+                                        disabled={!openCollapses.scheme && !openCollapses.investment && !openCollapses.subInvestment}
+                                      >
+                                        <RiFileExcelLine className="me-1" /> Excel निर्यात करें
+                                      </Button>
+                                    </div>
+
+                                    {/* Collapsible Tables Section */}
+                                    {/* 1. योजना-वार कुल सब्सिडी तुलना */}
+                                    <Card className="chart-card mb-4">
+                                      <Card.Header 
+                                        onClick={() => toggleCollapse('scheme')} 
+                                        style={{cursor: 'pointer'}} 
+                                        className="chart-card-header bg-primary-gradient"
+                                      >
+                                        <h6 className="mb-0 text-white">
+                                          <FaTable className="me-2" />
+                                          योजना-वार कुल सब्सिडी तुलना
+                                          <span className="float-end">{openCollapses.scheme ? '▼' : '▶'}</span>
+                                        </h6>
+                                      </Card.Header>
+                                      <Collapse in={openCollapses.scheme}>
+                                        <div>
+                                      <Card.Body>
+                                        <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                                           {schemeChartData && schemeChartData.rawData && Object.keys(schemeChartData.rawData).length > 0 ? (
+                                            <div className="table-responsive">
+                                              <table id="scheme-table" className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', color: 'white' }}>
+                                                  <tr>
+                                                    <th style={{ width: '40px' }}>#</th>
+                                                    <th>योजना</th>
+                                                    <th className="text-end">आवंटित मात्रा</th>
+                                                    <th className="text-end">सब्सिडी की राशि</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {Object.entries(schemeChartData.rawData).sort((a,b)=> ((b[1].subsidy||0) - (a[1].subsidy||0))).map(([label, val], idx) => (
+                                                    <tr key={label}>
+                                                      <td>{idx+1}</td>
+                                                      <td title={label} style={{ whiteSpace: 'nowrap', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</td>
+                                                      <td className="text-end">{((val && val.quantity) || 0).toFixed(2)}</td>
+                                                      <td className="text-end">{formatCurrency((val && val.subsidy) || 0)}</td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                                <tfoot>
+                                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                                    <td colSpan={2}>कुल</td>
+                                                    <td className="text-end">{(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
+                                                    <td className="text-end">{formatCurrency(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.subsidy) || 0), 0))}</td>
+                                                  </tr>
+                                                </tfoot>
+                                              </table>
+                                            </div>
+                                          ) : (
+                                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                                          )}
+                                        </div>
+                                      </Card.Body>
+                                        </div>
+                                      </Collapse>
+                                    </Card>
+
+                                    {/* 2. निवेश - योजना सब्सिडी तुलना */}
+                                    <Card className="chart-card mb-4">
+                                      <Card.Header 
+                                        onClick={() => toggleCollapse('investment')} 
+                                        style={{cursor: 'pointer'}} 
+                                        className="chart-card-header bg-primary-gradient"
+                                      >
+                                        <h6 className="mb-0 text-white">
+                                          <FaTable className="me-2" />
+                                          निवेश - योजना सब्सिडी तुलना
+                                          <span className="float-end">{openCollapses.investment ? '▼' : '▶'}</span>
+                                        </h6>
+                                      </Card.Header>
+                                      <Collapse in={openCollapses.investment}>
+                                        <div>
+                                      <Card.Body>
+                                        <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                                           {combinedTableData.investments.length > 0 ? (
+                                            <div className="table-responsive">
+                                              <table id="investment-table" className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6f42c1', color: 'white' }}>
+                                                  <tr>
+                                                    <th style={{ width: '40px' }}>#</th>
+                                                    <th style={{ minWidth: '120px' }}>निवेश</th>
+                                                    {combinedTableData.schemes.map(scheme => (
+                                                      <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
+                                                    ))}
+                                                    <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                                  </tr>
+                                                  <tr>
+                                                    <th style={{ width: '40px' }}></th>
+                                                    <th></th>
+                                                    {combinedTableData.schemes.map(scheme => (
+                                                      <>
+                                                        <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>सब्सिडी</th>
+                                                      </>
+                                                    ))}
+                                                    <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल सब्सिडी</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {combinedTableData.investments.map((investment, idx) => (
+                                                    <tr key={investment}>
+                                                      <td>{idx + 1}</td>
+                                                      <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={investment}>
+                                                        {investment}
+                                                      </td>
+                                                      {combinedTableData.schemes.map(scheme => (
+                                                        <>
+                                                          <td key={scheme + '_qty'} className="text-end">{((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme].quantity) || 0).toFixed(2)}</td>
+                                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme].subsidy) || 0)}</td>
+                                                        </>
+                                                      ))}
+                                                      <td className="text-end">{(combinedTableData.quantities && (combinedTableData.quantities[investment] || 0)).toFixed(2)}</td>
+                                                      <td className="text-end font-weight-bold">
+                                                        {formatCurrency(combinedTableData.totals[investment])}
+                                                      </td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                                <tfoot>
+                                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                                    <td colSpan={2}>कुल</td>
+                                                    {combinedTableData.schemes.map(scheme => (
+                                                      <>
+                                                        <td key={scheme + '_qty_foot'} className="text-end">{(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme].subsidy) || 0), 0))}</td>
+                                                      </>
+                                                    ))}
+                                                    <td className="text-end">{(combinedTableData.grandQuantity || 0).toFixed(2)}</td>
+                                                    <td className="text-end">
+                                                      {formatCurrency(combinedTableData.grandTotal)}
+                                                    </td>
+                                                  </tr>
+                                                </tfoot>
+                                              </table>
+                                            </div>
+                                          ) : (
+                                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                                          )}
+                                        </div>
+                                      </Card.Body>
+                                        </div>
+                                      </Collapse>
+                                    </Card>
+
+                                    {/* 3. उपनिवेश - योजना सब्सिडी तुलना */}
+                                    <Card className="chart-card mb-4">
+                                      <Card.Header 
+                                        onClick={() => toggleCollapse('subInvestment')} 
+                                        style={{cursor: 'pointer'}} 
+                                        className="chart-card-header bg-primary-gradient"
+                                      >
+                                        <h6 className="mb-0 text-white">
+                                          <FaChartPie className="me-2" />
+                                          उपनिवेश - योजना सब्सिडी तुलना
+                                          <span className="float-end">{openCollapses.subInvestment ? '▼' : '▶'}</span>
+                                        </h6>
+                                      </Card.Header>
+                                      <Collapse in={openCollapses.subInvestment}>
+                                        <div>
+                                      <Card.Body>
+                                        <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                                           {subCombinedTableData.subInvestments.length > 0 ? (
+                                            <div className="table-responsive">
+                                              <table id="subinvestment-table" className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffc107', color: 'black' }}>
+                                                  <tr>
+                                                    <th style={{ width: '40px' }}>#</th>
+                                                    <th style={{ minWidth: '120px' }}>उपनिवेश</th>
+                                                    {subCombinedTableData.schemes.map(scheme => (
+                                                      <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
+                                                    ))}
+                                                    <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                                  </tr>
+                                                  <tr>
+                                                    <th style={{ width: '40px' }}></th>
+                                                    <th></th>
+                                                    {subCombinedTableData.schemes.map(scheme => (
+                                                      <>
+                                                        <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>सब्सिडी</th>
+                                                      </>
+                                                    ))}
+                                                    <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल सब्सिडी</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {subCombinedTableData.subInvestments.map((subInvestment, idx) => (
+                                                    <tr key={subInvestment}>
+                                                      <td>{idx + 1}</td>
+                                                      <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={subInvestment}>
+                                                        {subInvestment}
+                                                      </td>
+                                                      {subCombinedTableData.schemes.map(scheme => (
+                                                        <>
+                                                          <td key={scheme + '_qty'} className="text-end">{((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme].quantity) || 0).toFixed(2)}</td>
+                                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme].subsidy) || 0)}</td>
+                                                        </>
+                                                      ))}
+                                                      <td className="text-end">{(subCombinedTableData.quantities && (subCombinedTableData.quantities[subInvestment] || 0)).toFixed(2)}</td>
+                                                      <td className="text-end font-weight-bold">
+                                                        {formatCurrency(subCombinedTableData.totals[subInvestment])}
+                                                      </td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                                <tfoot>
+                                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                                    <td colSpan={2}>कुल</td>
+                                                    {subCombinedTableData.schemes.map(scheme => (
+                                                      <>
+                                                        <td key={scheme + '_qty_foot'} className="text-end">{(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme].subsidy) || 0), 0))}</td>
+                                                      </>
+                                                    ))}
+                                                    <td className="text-end">{(subCombinedTableData.grandQuantity || 0).toFixed(2)}</td>
+                                                    <td className="text-end">
+                                                      {formatCurrency(subCombinedTableData.grandTotal)}
+                                                    </td>
+                                                  </tr>
+                                                </tfoot>
+                                              </table>
+                                            </div>
+                                          ) : (
+                                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                                          )}
+                                        </div>
+                                      </Card.Body>
+                                        </div>
+                                      </Collapse>
+                                    </Card>
+
                                     {/* Replace the additional tables rendering section with this updated version: */}
                                     {additionalTables.map((table, index) => (
                                       <div key={index} className="mt-4">

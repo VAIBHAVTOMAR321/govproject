@@ -4,6 +4,32 @@
   margin: 0px;
 }
 
+/* Table border styles for export */
+#scheme-table,
+#investment-table,
+#subinvestment-table {
+  border-collapse: collapse !important;
+  width: 100%;
+}
+
+#scheme-table th,
+#scheme-table td,
+#investment-table th,
+#investment-table td,
+#subinvestment-table th,
+#subinvestment-table td {
+  border: 1px solid #ddd !important;
+  padding: 8px !important;
+  text-align: left !important;
+}
+
+#scheme-table th,
+#investment-table th,
+#subinvestment-table th {
+  background-color: #f2f2f2 !important;
+  font-weight: bold !important;
+}
+
 .gov-edit-btn {
   font-size: 10px;
 }
