@@ -6074,79 +6074,106 @@ const MainDashboard = () => {
   // Simple export functions for Allocation/Avantan Tables
   const exportAllocationTableToPDF = async (table, tableIndex) => {
     try {
-      const doc = new jsPDF({ orientation: 'landscape' });
+      // Get the table element by id
+      const tableEl = document.getElementById(`additional-table-${tableIndex}`);
       
-      const isTableRotated = isRotated[tableIndex] || false;
-      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
-      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
-      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
-
-      let headers, rows;
-
-      if (isTableRotated) {
-        // Rotated table export
-        const transposedTable = transposeTableForRotation(table);
-        const visibleColumns = transposedTable.columns;
-        headers = [visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        })];
-        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
-      } else {
-        // Normal table export - Include all data including total row
-        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
-        headers = [visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        })];
-        
-        const filteredData = table.data;
-        rows = filteredData.map(row => visibleColumns.map(col => {
-          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
-              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
-              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
-            let matraVal = row[col];
-            let darVal = row[`${col}_dar`];
-            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
-            
-            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
-              const parts = String(matraVal).split(" / ");
-              matraVal = parts[0];
-              if (darVal === undefined) darVal = parts[1] || parts[0];
-            } else {
-              matraVal = matraVal !== undefined ? String(matraVal) : "0";
-            }
-            
-            if (darVal === undefined) {
-              darVal = matraVal;
-            } else if (String(darVal).includes(" / ")) {
-              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
-            } else {
-              darVal = String(darVal);
-            }
-            
-            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
-          }
-          return row[col] || "";
-        }));
+      if (!tableEl) {
+        throw new Error('Table element not found');
       }
 
-      doc.autoTable({
-        head: headers,
-        body: rows,
-        startY: 20,
-        styles: { fontSize: 7 },
-        headStyles: { fillColor: [66, 139, 202] }
-      });
-
-      doc.save(`${table.heading || 'Allocation_Table'}.pdf`);
+      // Create a temporary container to wrap table with heading
+      const tempContainer = document.createElement('div');
+      tempContainer.style.padding = '10px';
+      tempContainer.style.backgroundColor = 'white';
+      
+      // Add heading to container
+      const heading = document.createElement('h3');
+      heading.textContent = table.heading || 'Allocation Table';
+      heading.style.fontWeight = 'bold';
+      heading.style.fontSize = '18px';
+      heading.style.marginBottom = '15px';
+      heading.style.color = '#000';
+      heading.style.textAlign = 'center';
+      tempContainer.appendChild(heading);
+      
+      // Add table to container
+      try {
+        const tableClone = tableEl.cloneNode(true);
+        tempContainer.appendChild(tableClone);
+      } catch (cloneError) {
+        console.error("Error cloning table:", cloneError);
+        alert("तालिका क्लोन करने में 오류: " + cloneError.message);
+        return;
+      }
+      
+      // Append container to body temporarily for html2canvas to work correctly
+      document.body.appendChild(tempContainer);
+      
+      // Capture entire container as canvas
+      let canvas;
+      try {
+        canvas = await html2canvas(tempContainer, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+        });
+      } catch (canvasError) {
+        console.error("Canvas capture error:", canvasError);
+        alert("कैनवास कैप्चर में 오류: " + canvasError.message);
+        document.body.removeChild(tempContainer);
+        return;
+      }
+      
+      // Remove temporary container from body
+      document.body.removeChild(tempContainer);
+      
+      // Create PDF
+      const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentWidth = pageWidth - 2 * margin;
+      
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      
+      // Calculate image dimensions to fit page with margins
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const availableHeight = pageHeight - 2 * margin;
+      
+      // Handle multi-page tables
+      if (imgHeight <= availableHeight) {
+        pdf.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight);
+      } else {
+        let remainingHeight = canvas.height;
+        const pageCanvas = document.createElement("canvas");
+        const ctx = pageCanvas.getContext("2d");
+        pageCanvas.width = canvas.width;
+        const pxPerPage = Math.floor((canvas.width * availableHeight) / imgWidth);
+        let srcY = 0;
+        
+        while (remainingHeight > 0) {
+          const h = Math.min(pxPerPage, remainingHeight);
+          pageCanvas.height = h;
+          ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+          ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
+          const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
+          
+          if (srcY > 0) pdf.addPage();
+          
+          const renderedHeight = (h * imgWidth) / canvas.width;
+          pdf.addImage(pageData, "JPEG", margin, margin, imgWidth, renderedHeight);
+          
+          remainingHeight -= h;
+          srcY += h;
+        }
+      }
+      
+      pdf.save(`${table.heading || 'Allocation_Table'}.pdf`);
     } catch (error) {
       console.error('PDF export error:', error);
-      alert('PDF निर्यात में त्रुटि हुई');
+      alert('PDF निर्यात में त्रुटि हुई: ' + (error.message || 'अज्ञात त्रुटि'));
     }
   };
 
@@ -10031,6 +10058,7 @@ const MainDashboard = () => {
                                           style={{ overflowX: "auto" }}
                                         >
                                           <Table
+                                            id={`additional-table-${index}`}
                                             striped
                                             bordered
                                             hover
