@@ -2262,7 +2262,8 @@ const MainDashboard = () => {
                 return [columnDefs[col].label, investments.length > 0 ? investments.join("\n") : "—"];
               }
 
-              return [columnDefs[col].label, new Set(dataForValue.map((item) => item[col])).size];
+              const uniqueValues = [...new Set(dataForValue.map((item) => item[col]).filter(Boolean))];
+              return [columnDefs[col].label, uniqueValues.join(", ")];
             })
         ),
         "आवंटित मात्रा": dataForValue
@@ -2323,7 +2324,7 @@ const MainDashboard = () => {
       )
       .forEach((col) => {
         const allValues = data.map((item) => item[col]).filter(Boolean);
-        totalRow[columnDefs[col].label] = new Set(allValues).size;
+        totalRow[columnDefs[col].label] = allValues.join(", ");
       });
 
     summaryData.push(totalRow);
@@ -3037,7 +3038,8 @@ const MainDashboard = () => {
             const uniqueValues = [...new Set(totalRowData.map((item) => item[col]).filter(Boolean))];
             totalRow[columnDefs[col].label] = uniqueValues.join("\n");
           } else {
-            totalRow[columnDefs[col].label] = new Set(totalRowData.map((item) => item[col])).size;
+            const uniqueValues = [...new Set(totalRowData.map((item) => item[col]).filter(Boolean))];
+            totalRow[columnDefs[col].label] = uniqueValues.join(", ");
           }
         }
       });
@@ -3521,7 +3523,7 @@ const MainDashboard = () => {
           }
         } else {
           // Otherwise, count unique values
-          totals[col] = new Set(
+          const uniqueValues = [...new Set(
             filteredTableData.flatMap((row) =>
               tableData
                 .filter(
@@ -3535,8 +3537,9 @@ const MainDashboard = () => {
                       )
                     ]
                 )
-            )
-          ).size;
+            ).filter(Boolean)
+          )];
+          totals[col] = uniqueValues.join(", ");
         }
       }
     });
@@ -4440,7 +4443,7 @@ const MainDashboard = () => {
         .reduce((sum, row) => sum + parseFloat(row[column] || 0), 0)
         .toFixed(2);
     } else {
-      // For other columns, count unique values
+      // For other columns, show unique values separated by commas
       const uniqueValues = new Set();
       tableData.forEach((row) => {
         let value = "";
@@ -4457,7 +4460,7 @@ const MainDashboard = () => {
         }
         if (value) uniqueValues.add(value);
       });
-      return uniqueValues.size;
+      return [...uniqueValues].filter(Boolean).join(", ");
     }
   };
 
@@ -6174,10 +6177,11 @@ const MainDashboard = () => {
         return row;
       });
 
-      // Add total row with unique count for each column
+      // Add total row with unique values for each column
       const totalRow = { SNo: "कुल" };
       showColumns.forEach((label) => {
-        totalRow[label] = new Set(newTableData.map((row) => row[label])).size;
+        const uniqueValues = [...new Set(newTableData.map((row) => row[label]).filter(Boolean))];
+        totalRow[label] = uniqueValues.join(", ");
       });
       newTableData.push(totalRow);
 
@@ -6235,13 +6239,14 @@ const MainDashboard = () => {
     // Create columns for the new table
     const newColumns = [columnDefs[columnKey]?.label, ...clickedValues];
 
-    // Add total row with unique count for each column
+    // Add total row with unique values for each column
     const totalRow = {};
     totalRow[columnDefs[columnKey]?.label] = "कुल";
     newColumns.forEach((col) => {
       if (col === columnDefs[columnKey]?.label) return;
-      // Unique count for each column (clicked value)
-      totalRow[col] = new Set(newTableData.map((row) => row[col])).size;
+      // Unique values for each column (clicked value)
+      const uniqueValues = [...new Set(newTableData.map((row) => row[col]).filter(Boolean))];
+      totalRow[col] = uniqueValues.join(", ");
     });
     newTableData.push(totalRow);
 
@@ -8968,7 +8973,8 @@ const MainDashboard = () => {
                                                         });
                                                       })();
                                                       const headerFiltered = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
-                                                      return new Set(headerFiltered.map((item) => item[col])).size;
+                                                      const uniqueValues = [...new Set(headerFiltered.map((item) => item[col]).filter(Boolean))];
+                                                      return uniqueValues.join(", ");
                                                     })()}
                                                   </td>
                                                 );
