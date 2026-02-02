@@ -598,10 +598,10 @@ const DemandView = () => {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </InputGroup>
-                  <Button variant="outline-success" onClick={exportDemandsToExcel}>
+                  <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" onClick={exportDemandsToPDF}>
+                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white'}} onClick={exportDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
@@ -685,10 +685,10 @@ const DemandView = () => {
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
                 <div className="d-flex gap-2">
-                  <Button variant="outline-success" onClick={exportCenterDemandsToExcel}>
+                  <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportCenterDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" onClick={exportCenterDemandsToPDF}>
+                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white'}} onClick={exportCenterDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
