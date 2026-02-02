@@ -57,7 +57,7 @@ function DashBoardHeader() {
                 डिमांड देखें
               </NavDropdown.Item>
             </NavDropdown>
-            <Nav.Link as={Link} to="/MPR">एमपीआर</Nav.Link>
+            {/* <Nav.Link as={Link} to="/MPR">एमपीआर</Nav.Link> */}
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
