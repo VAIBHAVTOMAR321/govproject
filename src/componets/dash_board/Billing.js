@@ -74,7 +74,7 @@ const customSelectStyles = {
   }),
 };
 
-// Hindi translations
+  // Hindi translations
 const translations = {
   dashboard: "डैशबोर्ड",
   billingItems: "बिलिंग आइटम्स",
@@ -136,6 +136,11 @@ const translations = {
   billingDate: "बिलिंग तारीख", // New translation for billing date column
   selectColumns: "कॉलम चुनें",
   for: "के लिए",
+  // Date range filter translations
+  fromDate: "तारीख से (कब से)",
+  toDate: "तारीख तक (कब तक)",
+  selectDateRange: "तारीख की सीमा चुनें",
+  pleaseSelectDateRange: "कृपया तारीख की सीमा चुनें ताकि डेटा दिखाई दे",
 };
 
 // Available columns for download
@@ -192,6 +197,10 @@ const Billing = () => {
     subnivesh_name: [], // Multi-select
     scheme_name: [], // Multi-select
   });
+
+  // State for date range filter
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -324,7 +333,7 @@ const Billing = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters, fromDate, toDate]);
 
   // Get unique values for filters
   const filterOptions = useMemo(() => {
@@ -372,7 +381,7 @@ const Billing = () => {
     };
   }, [billingData]);
 
-  // Filter data based on selected filters
+  // Filter data based on selected filters and date range
   const filteredData = useMemo(() => {
     return billingData.filter((item) => {
       const matchesCenter =
@@ -394,15 +403,42 @@ const Billing = () => {
         filters.subnivesh_name.some(
           (sub) => sub.value === item.sub_investment_name
         );
+
+      // Date range filter
+      let matchesDateRange = true;
+      if (fromDate || toDate) {
+        const itemDate = item.bill_date ? new Date(item.bill_date) : null;
+        if (itemDate && !isNaN(itemDate.getTime())) {
+          if (fromDate) {
+            const from = new Date(fromDate);
+            from.setHours(0, 0, 0, 0);
+            if (itemDate < from) {
+              matchesDateRange = false;
+            }
+          }
+          if (toDate) {
+            const to = new Date(toDate);
+            to.setHours(23, 59, 59, 999);
+            if (itemDate > to) {
+              matchesDateRange = false;
+            }
+          }
+        } else {
+          // If item doesn't have a valid bill_date, exclude it when date filter is applied
+          matchesDateRange = false;
+        }
+      }
+
       return (
         matchesCenter &&
         matchesSource &&
         matchesScheme &&
         matchesNivesh &&
-        matchesSubnivesh
+        matchesSubnivesh &&
+        matchesDateRange
       );
     });
-  }, [billingData, filters]);
+  }, [billingData, filters, fromDate, toDate]);
 
   // Calculate paginated data based on filtered data
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -807,6 +843,8 @@ const Billing = () => {
       subnivesh_name: [],
       scheme_name: [],
     });
+    setFromDate("");
+    setToDate("");
   };
 
   // Function to handle page change
@@ -957,7 +995,9 @@ const Billing = () => {
                         filters.source_of_receipt.length > 0 ||
                         filters.nivesh.length > 0 ||
                         filters.subnivesh_name.length > 0 ||
-                        filters.scheme_name.length > 0) && (
+                        filters.scheme_name.length > 0 ||
+                        fromDate ||
+                        toDate) && (
                         <Button
                           variant="outline-secondary"
                           size="sm"
@@ -1082,6 +1122,35 @@ const Billing = () => {
                         />
                       </FormGroup>
                     </Col>
+
+                    {/* Date Range Filters */}
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.fromDate}
+                        </FormLabel>
+                        <Form.Control
+                          type="date"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                          className="small-fonts compact-input"
+                        />
+                      </FormGroup>
+                    </Col>
+
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.toDate}
+                        </FormLabel>
+                        <Form.Control
+                          type="date"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                          className="small-fonts compact-input"
+                        />
+                      </FormGroup>
+                    </Col>
                   </Row>
                 </div>
                 <div>
@@ -1090,7 +1159,13 @@ const Billing = () => {
                       <Row className="mt-3">
                         <div className="col-md-12">
                           <div className="table-wrapper">
-                            {filteredData.length > 0 ? (
+                            {/* Show message if no date range is selected */}
+                            {!fromDate && !toDate ? (
+                              <Alert variant="info" className="text-center">
+                                <h5>{translations.selectDateRange}</h5>
+                                <p className="mb-0">{translations.pleaseSelectDateRange}</p>
+                              </Alert>
+                            ) : filteredData.length > 0 ? (
                               <>
                                 <div className="d-flex justify-content-end mb-2">
                                   <Button
@@ -1388,11 +1463,11 @@ const Billing = () => {
                                   </div>
                                 )}
                               </>
-                            ) : (
+                            ) : fromDate || toDate ? (
                               <Alert variant="info">
                                 {translations.noMatchingItems}
                               </Alert>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </Row>

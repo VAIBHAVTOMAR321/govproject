@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal, Dropdown, ButtonGroup } from "react-bootstrap";
+import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal, Dropdown, ButtonGroup, Accordion, Collapse } from "react-bootstrap";
 import Select from "react-select";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
 import { Bar, Pie, Doughnut } from 'react-chartjs-2';
@@ -9,7 +9,7 @@ import "../../assets/css/dashboard.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
-import { FaClipboardList, FaRupeeSign, FaHandHoldingUsd, FaChartLine, FaCalendarAlt, FaFilter, FaChartBar, FaChartPie, FaFilePdf, FaFileExcel, FaDownload, FaEye } from 'react-icons/fa';
+import { FaClipboardList, FaRupeeSign, FaHandHoldingUsd, FaChartLine, FaCalendarAlt, FaFilter, FaChartBar, FaChartPie, FaFilePdf, FaFileExcel, FaDownload, FaEye, FaTable } from 'react-icons/fa';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement);
@@ -117,6 +117,13 @@ const customSelectStyles = {
   })
 };
 
+// Top-level: label map for all views
+const rashiColumnLabelExcel = {
+  farmerShare: 'किसान की हिस्सेदारी',
+  subsidy: 'सब्सिडी राशि',
+  total: 'कुल राशि'
+};
+
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -124,7 +131,15 @@ const Dashboard = () => {
   const [billingData, setBillingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
+  // राशि filter state
+  const [selectedRashi, setSelectedRashi] = useState('subsidy');
+  const rashiOptions = [
+    { value: 'farmerShare', label: 'किसान की हिस्सेदारी की राशि' },
+    { value: 'subsidy', label: 'सब्सिडी की राशि' },
+    { value: 'total', label: 'कुल राशि' }
+  ];
+
   // Date filter states
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -135,6 +150,20 @@ const Dashboard = () => {
   // Filter states - now arrays for multiple selection
   const [selectedSchemes, setSelectedSchemes] = useState([]);
   const [selectedInvestments, setSelectedInvestments] = useState([]);
+
+  // Track open collapsible tables by key
+  const [openCollapses, setOpenCollapses] = useState([]);
+
+  // Toggle collapsible handler
+  const toggleCollapse = (key) => {
+    setOpenCollapses(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  // Excel preview state
+  const [excelPreviewData, setExcelPreviewData] = useState(null);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
 
   // Filter data by date range first
   const dateFilteredData = useMemo(() => {
@@ -226,6 +255,91 @@ const Dashboard = () => {
     return stats;
   }, [filteredData]);
 
+  // Chart data for Center-wise analysis (केंद्र)
+  const centerChartData = useMemo(() => {
+    const centerData = {};
+    filteredData.forEach(item => {
+      const center = item.center_name || 'अन्य';
+      if (!centerData[center]) {
+        centerData[center] = { farmerShare: 0, subsidy: 0, total: 0, quantity: 0 };
+      }
+      centerData[center].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      centerData[center].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      centerData[center].total += parseFloat(item.total_amount) || 0;
+      centerData[center].quantity += parseFloat(item.allocated_quantity) || 0;
+    });
+
+    const sortedEntries = Object.entries(centerData).sort((a, b) => b[1].total - a[1].total);
+    const labels = sortedEntries.map(([key]) => key);
+    const truncated = labels.map(l => l.length > 20 ? l.substring(0, 18) + '...' : l);
+
+    const baseColors = [
+      'rgba(40, 167, 69, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(253, 126, 20, 0.8)',
+      'rgba(102, 16, 242, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(32, 201, 151, 0.8)'
+    ];
+    const colors = labels.map((_, i) => baseColors[i % baseColors.length]);
+
+    return {
+      doughnut: {
+        labels: truncated,
+        fullLabels: labels,
+        datasets: [{
+          data: sortedEntries.map(([, val]) => val.total),
+          backgroundColor: colors,
+          borderColor: colors.map(c => c.replace('0.8', '1')),
+          borderWidth: 1
+        }]
+      },
+      rawData: centerData,
+      itemCount: labels.length
+    };
+  }, [filteredData]);
+
+  // Chart data for Vidhan Sabha-wise analysis (विधानसभा)
+  const vidhanChartData = useMemo(() => {
+    const vidhanData = {};
+    filteredData.forEach(item => {
+      const vidhan = item.vidhan_sabha_name || item.vidhanasabha || 'अन्य';
+      if (!vidhanData[vidhan]) {
+        vidhanData[vidhan] = { farmerShare: 0, subsidy: 0, total: 0, quantity: 0 };
+      }
+      vidhanData[vidhan].farmerShare += parseFloat(item.amount_of_farmer_share) || 0;
+      vidhanData[vidhan].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      vidhanData[vidhan].total += parseFloat(item.total_amount) || 0;
+      vidhanData[vidhan].quantity += parseFloat(item.allocated_quantity) || 0;
+    });
+
+    const sortedEntries = Object.entries(vidhanData).sort((a, b) => b[1].total - a[1].total);
+    const fullLabels = sortedEntries.map(([key]) => key);
+    const truncatedLabels = fullLabels.map(l => l.length > 20 ? l.substring(0, 18) + '...' : l);
+
+    // generate colors
+    const baseColors = [
+      'rgba(40, 167, 69, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(253, 126, 20, 0.8)',
+      'rgba(102, 16, 242, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(32, 201, 151, 0.8)',
+      'rgba(255, 193, 7, 0.8)', 'rgba(23, 162, 184, 0.8)', 'rgba(108, 117, 125, 0.8)'
+    ];
+    const colors = fullLabels.map((_, i) => baseColors[i % baseColors.length]);
+
+    const limitedFull = fullLabels.slice(0, 50);
+    const limitedTruncated = truncatedLabels.slice(0, 50);
+
+    return {
+      doughnut: {
+        labels: limitedTruncated,
+        fullLabels: limitedFull,
+        datasets: [{
+          data: limitedFull.map(l => (vidhanData[l] && vidhanData[l].total) || 0),
+          backgroundColor: colors.slice(0, limitedFull.length),
+          borderColor: colors.slice(0, limitedFull.length).map(c => c.replace('0.8', '1')),
+          borderWidth: 1
+        }]
+      },
+      rawData: vidhanData,
+      itemCount: fullLabels.length
+    };
+  }, [filteredData]);
+
   // Format number to Indian currency format
   const formatCurrency = (num) => {
     return new Intl.NumberFormat('en-IN', {
@@ -234,6 +348,64 @@ const Dashboard = () => {
       minimumFractionDigits: 2
     }).format(num);
   };
+
+  // Collapse graphs section cards initially and toggle on header click
+  useEffect(() => {
+    const container = document.getElementById('graphsSection');
+    if (!container) return;
+    const cards = Array.from(container.querySelectorAll('.chart-card'));
+    cards.forEach(card => {
+      const header = card.querySelector('.chart-card-header');
+      const body = card.querySelector('.card-body');
+      if (header && body) {
+        body.style.display = 'none';
+        header.style.cursor = 'pointer';
+        const toggle = () => {
+          body.style.display = (body.style.display === 'none') ? '' : 'none';
+        };
+        header.addEventListener('click', toggle);
+        // store for cleanup
+        header.__toggle = toggle;
+      }
+    });
+
+    return () => {
+      cards.forEach(card => {
+        const header = card.querySelector('.chart-card-header');
+        if (header && header.__toggle) header.removeEventListener('click', header.__toggle);
+      });
+    };
+  }, [filteredData]);
+
+  // Reorder chart-cards inside graphsSection into a hierarchical order
+  useEffect(() => {
+    const container = document.getElementById('graphsSection');
+    if (!container) return;
+    const cardNodes = Array.from(container.querySelectorAll('.chart-card'));
+    const order = [
+      'योजना-वार', // scheme summary
+      'योजना-वार कुल सब्सिडी तुलना',
+      'उपनिवेश',
+      'उपनिवेश - योजना',
+      'निवेश',
+      'केंद्र के अनुसार',
+      'केंद्र के अनुसार योजना-वार',
+      'विधानसभा के अनुसार',
+      'विधानसभा के अनुसार योजना-वार'
+    ];
+
+    const getRank = (card) => {
+      const hdr = card.querySelector('.chart-card-header h6');
+      const text = hdr ? hdr.textContent.trim() : '';
+      for (let i = 0; i < order.length; i++) {
+        if (text.includes(order[i]) || text.startsWith(order[i])) return i;
+      }
+      return order.length + 1;
+    };
+
+    cardNodes.sort((a, b) => getRank(a) - getRank(b));
+    cardNodes.forEach(node => container.appendChild(node));
+  }, [filteredData]);
 
   const formatNumber = (num) => {
     return new Intl.NumberFormat('en-IN').format(num);
@@ -389,10 +561,12 @@ const Dashboard = () => {
       const investment = item.investment_name || 'अन्य';
       if (!investmentData[investment]) {
         investmentData[investment] = {
-          subsidy: 0
+          subsidy: 0,
+          quantity: 0
         };
       }
       investmentData[investment].subsidy += parseFloat(item.amount_of_subsidy) || 0;
+      investmentData[investment].quantity += parseFloat(item.allocated_quantity) || 0;
     });
 
     const labels = Object.keys(investmentData).sort((a, b) => investmentData[b].subsidy - investmentData[a].subsidy);
@@ -429,14 +603,17 @@ const Dashboard = () => {
 
   // Combined table data (Investment-wise Scheme breakdown)
   const combinedTableData = useMemo(() => {
+    // Build investment -> scheme -> { subsidy, quantity }
     const investmentSchemeData = {};
     filteredData.forEach(item => {
       const investment = item.investment_name || 'अन्य';
       const scheme = item.scheme_name || 'अन्य';
       const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const qty = parseFloat(item.allocated_quantity) || 0;
       if (!investmentSchemeData[investment]) investmentSchemeData[investment] = {};
-      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = 0;
-      investmentSchemeData[investment][scheme] += subsidy;
+      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = { subsidy: 0, quantity: 0 };
+      investmentSchemeData[investment][scheme].subsidy += subsidy;
+      investmentSchemeData[investment][scheme].quantity += qty;
     });
 
     const investments = Object.keys(investmentSchemeData).sort();
@@ -447,12 +624,15 @@ const Dashboard = () => {
     const schemes = Array.from(allSchemes).sort();
 
     const totals = {};
+    const quantities = {};
     investments.forEach(inv => {
-      totals[inv] = schemes.reduce((sum, sch) => sum + (investmentSchemeData[inv][sch] || 0), 0);
+      totals[inv] = schemes.reduce((sum, sch) => sum + ((investmentSchemeData[inv][sch] && investmentSchemeData[inv][sch].subsidy) || 0), 0);
+      quantities[inv] = schemes.reduce((sum, sch) => sum + ((investmentSchemeData[inv][sch] && investmentSchemeData[inv][sch].quantity) || 0), 0);
     });
     const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    const grandQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
 
-    return { investments, schemes, data: investmentSchemeData, totals, grandTotal };
+    return { investments, schemes, data: investmentSchemeData, totals, quantities, grandTotal, grandQuantity };
   }, [filteredData]);
 
   // Sub-investment table data (Sub-investment-wise Scheme breakdown)
@@ -462,9 +642,11 @@ const Dashboard = () => {
       const subInvestment = item.sub_investment_name || 'अन्य';
       const scheme = item.scheme_name || 'अन्य';
       const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const qty = parseFloat(item.allocated_quantity) || 0;
       if (!subInvestmentSchemeData[subInvestment]) subInvestmentSchemeData[subInvestment] = {};
-      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = 0;
-      subInvestmentSchemeData[subInvestment][scheme] += subsidy;
+      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = { subsidy: 0, quantity: 0 };
+      subInvestmentSchemeData[subInvestment][scheme].subsidy += subsidy;
+      subInvestmentSchemeData[subInvestment][scheme].quantity += qty;
     });
 
     const subInvestments = Object.keys(subInvestmentSchemeData).sort();
@@ -476,13 +658,84 @@ const Dashboard = () => {
 
     const data = subInvestmentSchemeData;
     const totals = {};
+    const quantities = {};
     subInvestments.forEach(subInv => {
-      totals[subInv] = schemes.reduce((sum, sch) => sum + (data[subInv][sch] || 0), 0);
+      totals[subInv] = schemes.reduce((sum, sch) => sum + ((data[subInv][sch] && data[subInv][sch].subsidy) || 0), 0);
+      quantities[subInv] = schemes.reduce((sum, sch) => sum + ((data[subInv][sch] && data[subInv][sch].quantity) || 0), 0);
     });
     const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    const grandQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
 
-    return { subInvestments, schemes, data, totals, grandTotal };
+    return { subInvestments, schemes, data, totals, quantities, grandTotal, grandQuantity };
   }, [filteredData]);
+
+  // Vidhan Sabha table data (Vidhan Sabha - Scheme breakdown)
+  const vidhanCombinedTableData = useMemo(() => {
+    const vidhanSchemeData = {};
+    const vidhanQuantities = {};
+    filteredData.forEach(item => {
+      const vidhan = item.vidhan_sabha_name || 'अन्य';
+      const scheme = item.scheme_name || 'अन्य';
+      const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const qty = parseFloat(item.allocated_quantity) || 0;
+      if (!vidhanSchemeData[vidhan]) vidhanSchemeData[vidhan] = {};
+      if (!vidhanSchemeData[vidhan][scheme]) vidhanSchemeData[vidhan][scheme] = { subsidy: 0, quantity: 0 };
+      vidhanSchemeData[vidhan][scheme].subsidy += subsidy;
+      vidhanSchemeData[vidhan][scheme].quantity += qty;
+      if (!vidhanQuantities[vidhan]) vidhanQuantities[vidhan] = 0;
+      vidhanQuantities[vidhan] += qty;
+    });
+
+    const vidhans = Object.keys(vidhanSchemeData).sort();
+    const allSchemes = new Set();
+    vidhans.forEach(v => Object.keys(vidhanSchemeData[v]).forEach(s => allSchemes.add(s)));
+    const schemes = Array.from(allSchemes).sort();
+
+    const totals = {};
+    const quantities = {};
+    vidhans.forEach(v => {
+      totals[v] = schemes.reduce((sum, sch) => sum + ((vidhanSchemeData[v][sch] && vidhanSchemeData[v][sch].subsidy) || 0), 0);
+      quantities[v] = vidhanQuantities[v] || 0;
+    });
+    const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    const grandQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
+
+    return { vidhans, schemes, data: vidhanSchemeData, totals, grandTotal, quantities, grandQuantity };
+  }, [filteredData]);
+
+    // Center (Kendra) table data (Center - Scheme breakdown)
+    const centerCombinedTableData = useMemo(() => {
+      const centerSchemeData = {};
+      const centerQuantities = {};
+      filteredData.forEach(item => {
+        const center = item.center_name || 'अन्य';
+        const scheme = item.scheme_name || 'अन्य';
+        const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+        const qty = parseFloat(item.allocated_quantity) || 0;
+        if (!centerSchemeData[center]) centerSchemeData[center] = {};
+        if (!centerSchemeData[center][scheme]) centerSchemeData[center][scheme] = { subsidy: 0, quantity: 0 };
+        centerSchemeData[center][scheme].subsidy += subsidy;
+        centerSchemeData[center][scheme].quantity += qty;
+        if (!centerQuantities[center]) centerQuantities[center] = 0;
+        centerQuantities[center] += qty;
+      });
+
+      const centers = Object.keys(centerSchemeData).sort();
+      const allSchemes = new Set();
+      centers.forEach(c => Object.keys(centerSchemeData[c]).forEach(s => allSchemes.add(s)));
+      const schemes = Array.from(allSchemes).sort();
+
+      const totals = {};
+      const quantities = {};
+      centers.forEach(c => {
+        totals[c] = schemes.reduce((sum, sch) => sum + ((centerSchemeData[c][sch] && centerSchemeData[c][sch].subsidy) || 0), 0);
+        quantities[c] = centerQuantities[c] || 0;
+      });
+      const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+      const grandQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
+
+      return { centers, schemes, data: centerSchemeData, totals, grandTotal, quantities, grandQuantity };
+    }, [filteredData]);
 
   // Combined chart data for pie chart (subsidy per investment)
   const combinedChartData = useMemo(() => {
@@ -933,13 +1186,17 @@ const Dashboard = () => {
 
   // Generate PDF Report using html2pdf for proper Hindi support
   const generatePDF = (action = 'download') => {
-    const { schemeWise, investmentWise } = getReportData();
-    const { investments, schemes, data, totals, grandTotal } = getCombinedData();
-    const { subInvestments, schemes: subSchemes, data: subData, totals: subTotals, grandTotal: subGrandTotal } = getSubCombinedData();
+    // Use UI aggregations so PDF mirrors the collapsible tables
+    const schemeData = schemeChartData && schemeChartData.rawData ? schemeChartData.rawData : {};
+    const investmentData = investmentChartData && investmentChartData.rawData ? investmentChartData.rawData : {};
+    const combined = combinedTableData || { investments: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const subCombined = subCombinedTableData || { subInvestments: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const centerCombined = centerCombinedTableData || { centers: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const vidhanCombined = vidhanCombinedTableData || { vidhans: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
     const mainInvestmentSubsidy = getMainInvestmentSubsidyData();
     const currentDate = new Date().toLocaleDateString('hi-IN');
-    
-    // Create HTML content for PDF
+
+    // Create HTML content for PDF (only include open collapsible tables)
     const pdfContent = `
       <style>
         @page {
@@ -1034,157 +1291,368 @@ const Dashboard = () => {
           </table>
         </div>
 
-        <!-- Scheme-wise Section -->
-        <div style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h2 style="color: #28a745; font-size: 16px; border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-bottom: 10px;">योजना-वार विवरण</h2>
+        <!-- Scheme-wise Section (from UI aggregations) -->
+        ${openCollapses.includes('scheme') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">योजना-वार कुल सब्सिडी तुलना</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
-              <tr style="background: linear-gradient(135deg, #28a745, #34ce57);">
-                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: left;">योजना</th>
-                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">रिकॉर्ड</th>
-                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">मात्रा</th>
-                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">किसान हिस्सेदारी</th>
-                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">सब्सिडी</th>
-                <th style="border: 1px solid #ddd; padding: 8px; color: white; text-align: center;">कुल राशि</th>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">#</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">योजना</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">आवंटित मात्रा</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
               </tr>
             </thead>
             <tbody>
-              ${Object.entries(schemeWise).map(([name, data], idx) => `
+              ${Object.entries(schemeData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => `
                 <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
-                  <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">${name}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${data.count}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${data.quantity.toFixed(2)}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">₹${data.farmerShare.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">₹${data.subsidy.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">₹${data.total.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Investment-wise Section -->
-        <div style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h2 style="color: #6610f2; font-size: 16px; border-bottom: 2px solid #6610f2; padding-bottom: 5px; margin-bottom: 10px;">उपनिवेश-वार विवरण</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-            <thead>
-              <tr style="background: linear-gradient(135deg, #6610f2, #8540f5);">
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">उपनिवेश</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">रिकॉर्ड</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">मात्रा</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">किसान हिस्सेदारी</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">सब्सिडी</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">कुल राशि</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${Object.entries(investmentWise)
-                .sort((a, b) => b[1].total - a[1].total)
-                .map(([name, data], idx) => `
-                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
-                  <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${name}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${data.count}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${data.quantity.toFixed(2)}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">₹${data.farmerShare.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">₹${data.subsidy.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">₹${data.total.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Sub-investment Scheme Section -->
-        <div style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h2 style="color: #ffc107; font-size: 16px; border-bottom: 2px solid #ffc107; padding-bottom: 5px; margin-bottom: 10px;">उपनिवेश - योजना सब्सिडी तुलना</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
-            <thead>
-              <tr style="background: linear-gradient(135deg, #ffc107, #ffca2c);">
-                <th style="border: 1px solid #ddd; padding: 4px; color: black; text-align: left;">उपनिवेश</th>
-                ${subSchemes.map(scheme => `<th style="border: 1px solid #ddd; padding: 4px; color: black; text-align: center;">${scheme}</th>`).join('')}
-                <th style="border: 1px solid #ddd; padding: 4px; color: black; text-align: center;">कुल</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${subInvestments.map(subInvestment => `
-                <tr>
-                  <td style="border: 1px solid #ddd; padding: 4px; font-weight: 500;">${subInvestment}</td>
-                  ${subSchemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center;">₹${(subData[subInvestment][scheme] || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
-                  <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${subTotals[subInvestment].toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx+1}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px;">${name}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${((val && val.quantity) || 0).toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">₹${((val && val[selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
               `).join('')}
             </tbody>
             <tfoot>
-              <tr style="font-weight: 700; background-color: #f1f5f9;">
-                <td style="border: 1px solid #ddd; padding: 4px; font-weight: bold;">कुल</td>
-                ${subSchemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${subInvestments.reduce((sum, subInv) => sum + (subData[subInv][scheme] || 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
-                <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${subGrandTotal.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(Object.values(schemeData || {}).reduce((s,v)=> s + ((v && v.quantity) || 0),0)).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(Object.values(schemeData || {}).reduce((s,v)=> s + ((v && v[selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
               </tr>
             </tfoot>
           </table>
         </div>
+        ` : ''}
 
-        <!-- Main Investment Subsidy Section -->
-        <div style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h2 style="color: #17a2b8; font-size: 16px; border-bottom: 2px solid #17a2b8; padding-bottom: 5px; margin-bottom: 10px;">निवेश के अनुसार सब्सिडी राशि</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+        <!-- Investment-wise Section (from UI aggregations) -->
+        ${openCollapses.includes('investment') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">उपनिवेश के अनुसार - कुल सब्सिडी तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
-              <tr style="background: linear-gradient(135deg, #17a2b8, #20c997);">
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">निवेश</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">रिकॉर्ड</th>
-                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: center;">सब्सिडी राशि</th>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">उपनिवेश</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">आवंटित मात्रा</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
               </tr>
             </thead>
             <tbody>
-              ${Object.entries(mainInvestmentSubsidy)
-                .sort((a, b) => b[1].subsidy - a[1].subsidy)
-                .map(([name, data], idx) => `
+              ${Object.entries(investmentData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name,val], idx) => `
                 <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${name}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${((val && val.quantity) || 0).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${((val && val[selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(Object.values(investmentData||{}).reduce((s,v)=> s + ((v && v.quantity) || 0),0)).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(Object.values(investmentData||{}).reduce((s,v)=> s + ((v && v[selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Sub-investment Scheme Section (matrix with मात्रा + selectedRashi) -->
+        ${openCollapses.includes('subInvestment') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">उपनिवेश - योजना तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">उपनिवेश</th>
+                ${subCombined.schemes.map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+              </tr>
+              <tr style="background:#e9eef8;">
+                <th></th>
+                <th></th>
+                ${subCombined.schemes.map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${subCombined.subInvestments.map((subInv, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${subInv}</td>
+                  ${subCombined.schemes.map(s => `
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(((subCombined.data[subInv] && subCombined.data[subInv][s]) && subCombined.data[subInv][s].quantity) || 0).toFixed(2)}</td>
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(((subCombined.data[subInv] && subCombined.data[subInv][s]) && subCombined.data[subInv][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  `).join('')}
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(subCombined.quantities && (subCombined.quantities[subInv] || 0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(subCombined.totals && (subCombined.totals[subInv] || 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                ${subCombined.schemes.map(s => `
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(subCombined.subInvestments.reduce((sum, si) => sum + (((subCombined.data[si] && subCombined.data[si][s]) && subCombined.data[si][s].quantity) || 0),0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(subCombined.subInvestments.reduce((sum, si) => sum + (((subCombined.data[si] && subCombined.data[si][s]) && subCombined.data[si][s][selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                `).join('')}
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(subCombined.grandQuantity || 0).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(subCombined.grandTotal || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Center-wise Subsidy Comparison Table -->
+        ${openCollapses.includes('center') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार राशि तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">केंद्र</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">आवंटित मात्रा</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(centerChartData.rawData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${name}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${((val && val.quantity) || 0).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${((val && val[selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(Object.values(centerChartData.rawData || {}).reduce((s,v)=> s + ((v && v.quantity) || 0),0)).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(Object.values(centerChartData.rawData || {}).reduce((s,v)=> s + ((v && v[selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Center-Scheme Combined Section (matrix with मात्रा + selectedRashi) -->
+        ${openCollapses.includes('centerCombined') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार योजना-वार तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">केंद्र</th>
+                ${centerCombined.schemes.map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+              </tr>
+              <tr style="background:#e9eef8;">
+                <th></th>
+                <th></th>
+                ${centerCombined.schemes.map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${centerCombined.centers.map((c, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${c}</td>
+                  ${centerCombined.schemes.map(s => `
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0).toFixed(2)}</td>
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  `).join('')}
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(centerCombined.quantities && (centerCombined.quantities[c] || 0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(centerCombined.totals && (centerCombined.totals[c] || 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                ${centerCombined.schemes.map(s => `
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(centerCombined.centers.reduce((sum, c) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0),0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(centerCombined.centers.reduce((sum, c) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                `).join('')}
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(centerCombined.grandQuantity || 0).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(centerCombined.grandTotal || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Vidhan Sabha-wise Subsidy Comparison Table -->
+        ${openCollapses.includes('vidhan') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार राशि तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">विधानसभा</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">आवंटित मात्रा</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(vidhanChartData.rawData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${name}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${((val && val.quantity) || 0).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${((val && val[selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(Object.values(vidhanChartData.rawData || {}).reduce((s,v)=> s + ((v && v.quantity) || 0),0)).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(Object.values(vidhanChartData.rawData || {}).reduce((s,v)=> s + ((v && v[selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Vidhan Sabha Section (from UI aggregations) -->
+        ${openCollapses.includes('vidhanCombined') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार - योजना-वार तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">विधानसभा</th>
+                ${vidhanCombined.schemes.map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+              </tr>
+              <tr style="background:#e9eef8;">
+                <th></th>
+                <th></th>
+                ${vidhanCombined.schemes.map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${vidhanCombined.vidhans.map((v, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${v}</td>
+                  ${vidhanCombined.schemes.map(s => `
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0).toFixed(2)}</td>
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  `).join('')}
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(vidhanCombined.quantities && (vidhanCombined.quantities[v] || 0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(vidhanCombined.totals && (vidhanCombined.totals[v] || 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                ${vidhanCombined.schemes.map(s => `
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(vidhanCombined.vidhans.reduce((sum, v) => sum + (((vidhanCombined.data[v][s] && vidhanCombined.data[v][s].quantity) || 0)), 0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(vidhanCombined.vidhans.reduce((sum, v) => sum + (((vidhanCombined.data[v][s] && vidhanCombined.data[v][s][selectedRashi]) || 0)), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                `).join('')}
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(vidhanCombined.grandQuantity || 0).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(vidhanCombined.grandTotal || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Main Investment Subsidy Section (match UI: name, quantity, subsidy) -->
+        ${openCollapses.includes('mainInvestment') ? `
+        <div style="margin-bottom: 25px; page-break-inside: avoid;">
+          <h2 style="color: #17a2b8; font-size: 16px; border-bottom: 2px solid #17a2b8; padding-bottom: 5px; margin-bottom: 10px;">निवेश के अनुसार ग्राफ़ - ${rashiColumnLabelExcel[selectedRashi]}</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #17a2b8, #20c997);">
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">#</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">निवेश नाम</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: right;">आवंटित मात्रा</th>
+                <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: right;">${rashiColumnLabelExcel[selectedRashi]}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(investmentChartData.rawData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${idx + 1}</td>
                   <td style="border: 1px solid #ddd; padding: 6px; font-size: 8px;">${name}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${data.count}</td>
-                  <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">₹${data.subsidy.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${((val && val.quantity) || 0).toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: bold;">₹${((val && val[selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
               `).join('')}
             </tbody>
             <tfoot>
               <tr style="font-weight: 700; background-color: #f1f5f9;">
                 <td style="border: 1px solid #ddd; padding: 6px; font-weight: bold;">कुल</td>
-                <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.count, 0)}</td>
-                <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">₹${Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.subsidy, 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                <td style="border: 1px solid #ddd; padding: 6px;"></td>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: bold;">${(Object.values(investmentChartData.rawData || {}).reduce((s,v)=> s + ((v && v.quantity) || 0),0)).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: right; font-weight: bold;">₹${(Object.values(investmentChartData.rawData || {}).reduce((s,v)=> s + ((v && v[selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
               </tr>
             </tfoot>
           </table>
         </div>
+        ` : ''}
 
-        <!-- Combined Investment-Scheme Section -->
-        <div style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h2 style="color: #6f42c1; font-size: 16px; border-bottom: 2px solid #6f42c1; padding-bottom: 5px; margin-bottom: 10px;">निवेश - योजना सब्सिडी तुलना</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
+        <!-- Combined Investment-Scheme Section (matrix with मात्रा + सब्सिडी) -->
+        ${openCollapses.includes('investmentCombined') ? `
+        <div style="margin-bottom: 20px; page-break-inside: avoid;">
+          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">निवेश - योजना तुलना</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
             <thead>
-              <tr style="background: linear-gradient(135deg, #6f42c1, #8540f5);">
-                <th style="border: 1px solid #ddd; padding: 4px; color: white; text-align: left;">निवेश</th>
-                ${schemes.map(scheme => `<th style="border: 1px solid #ddd; padding: 4px; color: white; text-align: center;">${scheme}</th>`).join('')}
-                <th style="border: 1px solid #ddd; padding: 4px; color: white; text-align: center;">कुल</th>
+              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+                <th style="border:1px solid #ddd; padding:6px;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:left;">निवेश</th>
+                ${combined.schemes.map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+              </tr>
+              <tr style="background:#e9eef8;">
+                <th></th>
+                <th></th>
+                ${combined.schemes.map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
               </tr>
             </thead>
             <tbody>
-              ${investments.map(investment => `
-                <tr>
-                  <td style="border: 1px solid #ddd; padding: 4px; font-weight: 500;">${investment}</td>
-                  ${schemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center;">₹${(data[investment][scheme] || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
-                  <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${totals[investment].toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              ${combined.investments.map((inv, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+                  <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
+                  <td style="border:1px solid #ddd; padding:6px;">${inv}</td>
+                  ${combined.schemes.map(s => `
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(((combined.data[inv] && combined.data[inv][s]) && combined.data[inv][s].quantity) || 0).toFixed(2)}</td>
+                    <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(((combined.data[inv] && combined.data[inv][s]) && combined.data[inv][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                  `).join('')}
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(combined.quantities && (combined.quantities[inv] || 0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(combined.totals && (combined.totals[inv] || 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
               `).join('')}
             </tbody>
             <tfoot>
-              <tr style="font-weight: 700; background-color: #f1f5f9;">
-                <td style="border: 1px solid #ddd; padding: 4px; font-weight: bold;">कुल</td>
-                ${schemes.map(scheme => `<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${investments.reduce((sum, inv) => sum + (data[inv][scheme] || 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>`).join('')}
-                <td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-weight: bold;">₹${grandTotal.toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+              <tr style="font-weight:700; background:#f1f5f9;">
+                <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                ${combined.schemes.map(s => `
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(combined.investments.reduce((sum, inv) => sum + (((combined.data[inv] && combined.data[inv][s]) && combined.data[inv][s].quantity) || 0),0)).toFixed(2)}</td>
+                  <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(combined.investments.reduce((sum, inv) => sum + (((combined.data[inv] && combined.data[inv][s]) && combined.data[inv][s][selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                `).join('')}
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(combined.grandQuantity || 0).toFixed(2)}</td>
+                <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(combined.grandTotal || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
               </tr>
             </tfoot>
           </table>
         </div>
+        ` : ''}
 
         <!-- Footer -->
         <div style="text-align: center; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px; color: #888; font-size: 9px;">
@@ -1270,74 +1738,160 @@ const Dashboard = () => {
     summaryWs['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, summaryWs, 'सारांश');
 
-    // Scheme-wise Sheet
-    const schemeHeaders = ['योजना', 'रिकॉर्ड संख्या', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
-    const schemeRows = Object.entries(schemeWise).map(([name, data]) => [
-      name, data.count, data.quantity.toFixed(2), data.farmerShare.toFixed(2), data.subsidy.toFixed(2), data.total.toFixed(2)
+    // Top-level: label map for all views
+    const rashiColumnLabelExcel = {
+      farmerShare: 'किसान की हिस्सेदारी',
+      subsidy: 'सब्सिडी राशि',
+      total: 'कुल राशि'
+    };
+    // Scheme-wise Sheet (use UI aggregation order)
+    if (openCollapses.includes('scheme')) {
+    const schemeData = schemeChartData && schemeChartData.rawData ? schemeChartData.rawData : {};
+    const schemeHeaders = ['#', 'योजना', 'आवंटित मात्रा', rashiColumnLabelExcel[selectedRashi]];
+    const schemeRows = Object.entries(schemeData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => [
+      idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
     ]);
     const schemeWs = XLSX.utils.aoa_to_sheet([schemeHeaders, ...schemeRows]);
-    schemeWs['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
+    schemeWs['!cols'] = [{ wch: 6 }, { wch: 40 }, { wch: 15 }, { wch: 18 }];
     XLSX.utils.book_append_sheet(wb, schemeWs, 'योजना-वार');
+    }
 
-    // Investment-wise Sheet
-    const investmentHeaders = ['उपनिवेश', 'रिकॉर्ड संख्या', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
-    const investmentRows = Object.entries(investmentWise)
-      .sort((a, b) => b[1].total - a[1].total)
-      .map(([name, data]) => [
-        name, data.count, data.quantity.toFixed(2), data.farmerShare.toFixed(2), data.subsidy.toFixed(2), data.total.toFixed(2)
-      ]);
+    // Investment-wise Sheet (from UI aggregation)
+    if (openCollapses.includes('investment')) {
+    const invData = investmentChartData && investmentChartData.rawData ? investmentChartData.rawData : {};
+    const investmentHeaders = ['#', 'उपनिवेश', 'आवंटित मात्रा', rashiColumnLabelExcel[selectedRashi]];
+    const investmentRows = Object.entries(invData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => [
+      idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
+    ]);
     const investmentWs = XLSX.utils.aoa_to_sheet([investmentHeaders, ...investmentRows]);
-    investmentWs['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }];
+    investmentWs['!cols'] = [{ wch: 6 }, { wch: 40 }, { wch: 15 }, { wch: 18 }];
     XLSX.utils.book_append_sheet(wb, investmentWs, 'उपनिवेश-वार');
+    }
 
-    // Sub-investment Scheme Sheet
-    const subCombinedHeaders = ['उपनिवेश', ...subSchemes, 'कुल'];
-    const subCombinedRows = subInvestments.map(subInvestment => [
-      subInvestment,
-      ...subSchemes.map(scheme => (subData[subInvestment][scheme] || 0).toFixed(2)),
-      subTotals[subInvestment].toFixed(2)
+    // Sub-investment Scheme Sheet (flattened columns: for each scheme show मात्रा and selectedRashi)
+    if (openCollapses.includes('subInvestment')) {
+    const sub = subCombinedTableData || { subInvestments: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const subHeaders = ['#', 'उपनिवेश', ...sub.schemes.flatMap(s => [`${s} - मात्रा`, `${s} - ${rashiColumnLabelExcel[selectedRashi]}`]), 'कुल मात्रा', `कुल ${rashiColumnLabelExcel[selectedRashi]}`];
+    const subRows = sub.subInvestments.map((si, idx) => [
+      idx + 1,
+      si,
+      ...sub.schemes.flatMap(s => [((sub.data[si] && sub.data[si][s] && sub.data[si][s].quantity) || 0).toFixed(2), ((sub.data[si] && sub.data[si][s] && sub.data[si][s][selectedRashi]) || 0).toFixed(2)]),
+      (sub.quantities && (sub.quantities[si] || 0)).toFixed(2),
+      (sub.totals && (sub.totals[si] || 0)).toFixed(2)
     ]);
-    // Add total row
-    subCombinedRows.push([
+    subRows.push([
       'कुल',
-      ...subSchemes.map(scheme => subInvestments.reduce((sum, subInv) => sum + (subData[subInv][scheme] || 0), 0).toFixed(2)),
-      subGrandTotal.toFixed(2)
+      '',
+      ...sub.schemes.flatMap(s => [
+        (sub.subInvestments.reduce((sum, si) => sum + (((sub.data[si] && sub.data[si][s]) && sub.data[si][s].quantity) || 0), 0)).toFixed(2),
+        (sub.subInvestments.reduce((sum, si) => sum + (((sub.data[si] && sub.data[si][s]) && sub.data[si][s][selectedRashi]) || 0), 0)).toFixed(2)
+      ]),
+      (sub.grandQuantity || 0).toFixed(2),
+      (sub.grandTotal || 0).toFixed(2)
     ]);
-    const subCombinedWs = XLSX.utils.aoa_to_sheet([subCombinedHeaders, ...subCombinedRows]);
-    subCombinedWs['!cols'] = [{ wch: 30 }, ...subSchemes.map(() => ({ wch: 15 })), { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, subCombinedWs, 'उपनिवेश - योजना सब्सिडी');
+    const subCombinedWs = XLSX.utils.aoa_to_sheet([subHeaders, ...subRows]);
+    subCombinedWs['!cols'] = [{ wch: 6 }, { wch: 30 }, ...sub.schemes.flatMap(() => [{ wch: 12 }, { wch: 15 }]), { wch: 15 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, subCombinedWs, 'उपनिवेश - योजना');
+    }
 
-    // Main Investment Subsidy Sheet
-    const mainInvestmentHeaders = ['निवेश', 'रिकॉर्ड संख्या', 'सब्सिडी राशि'];
-    const mainInvestmentRows = Object.entries(mainInvestmentSubsidy)
-      .sort((a, b) => b[1].subsidy - a[1].subsidy)
-      .map(([name, data]) => [
-        name, data.count, data.subsidy.toFixed(2)
+    // Main Investment Subsidy Sheet (match UI: name, quantity, subsidy)
+    if (openCollapses.includes('mainInvestment')) {
+    const mainInvestmentHeaders = ['#', 'निवेश नाम', 'आवंटित मात्रा', rashiColumnLabelExcel[selectedRashi]];
+    const mainInvestmentRows = Object.entries(investmentChartData.rawData)
+      .sort((a, b) => ((b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0)))
+      .map(([name, val], idx) => [
+        idx + 1,
+        name,
+        ((val && val.quantity) || 0).toFixed(2),
+        ((val && val[selectedRashi]) || 0).toFixed(2)
       ]);
-    // Add total row
-    const totalCount = Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.count, 0);
-    const totalSubsidy = Object.values(mainInvestmentSubsidy).reduce((sum, data) => sum + data.subsidy, 0);
-    mainInvestmentRows.push(['कुल', totalCount, totalSubsidy.toFixed(2)]);
-    const mainInvestmentWs = XLSX.utils.aoa_to_sheet([mainInvestmentHeaders, ...mainInvestmentRows]);
-    mainInvestmentWs['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, mainInvestmentWs, 'निवेश सब्सिडी');
-
-    // Combined Investment-Scheme Sheet
-    const combinedHeaders = ['निवेश', ...schemes, 'कुल'];
-    const combinedRows = investments.map(investment => [
-      investment,
-      ...schemes.map(scheme => (data[investment][scheme] || 0).toFixed(2)),
-      totals[investment].toFixed(2)
-    ]);
-    // Add total row
-    combinedRows.push([
+    mainInvestmentRows.push([
       'कुल',
-      ...schemes.map(scheme => investments.reduce((sum, inv) => sum + (data[inv][scheme] || 0), 0).toFixed(2)),
-      grandTotal.toFixed(2)
+      '',
+      (Object.values(investmentChartData.rawData || {}).reduce((s,v)=> s + ((v && v.quantity) || 0),0)).toFixed(2),
+      (Object.values(investmentChartData.rawData || {}).reduce((s,v)=> s + ((v && v[selectedRashi]) || 0),0)).toFixed(2)
+    ]);
+    const mainInvestmentWs = XLSX.utils.aoa_to_sheet([mainInvestmentHeaders, ...mainInvestmentRows]);
+    mainInvestmentWs['!cols'] = [{ wch: 6 }, { wch: 40 }, { wch: 15 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, mainInvestmentWs, 'निवेश सब्सिडी');
+    }
+
+    // Center (Kendra) Sheet (matrix flattened: for each scheme show मात्रा + selectedRashi)
+    if (openCollapses.includes('center')) {
+    const center = centerCombinedTableData || { centers: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const centerHeaders = ['#', 'केंद्र', ...center.schemes.flatMap(s => [`${s} - मात्रा`, `${s} - ${rashiColumnLabelExcel[selectedRashi]}`]), 'कुल मात्रा', `कुल ${rashiColumnLabelExcel[selectedRashi]}`];
+    const centerRows = center.centers.map((c, idx) => [
+      idx + 1,
+      c,
+      ...center.schemes.flatMap(s => [((center.data[c] && center.data[c][s] && center.data[c][s].quantity) || 0).toFixed(2), ((center.data[c] && center.data[c][s] && center.data[c][s][selectedRashi]) || 0).toFixed(2)]),
+      (center.quantities && (center.quantities[c] || 0)).toFixed(2),
+      (center.totals && (center.totals[c] || 0)).toFixed(2)
+    ]);
+    centerRows.push([
+      'कुल',
+      '',
+      ...center.schemes.flatMap(s => [
+        (center.centers.reduce((sum, c) => sum + (((center.data[c] && center.data[c][s]) && center.data[c][s].quantity) || 0),0)).toFixed(2),
+        (center.centers.reduce((sum, c) => sum + (((center.data[c] && center.data[c][s]) && center.data[c][s][selectedRashi]) || 0),0)).toFixed(2)
+      ]),
+      (center.grandQuantity || 0).toFixed(2),
+      (center.grandTotal || 0).toFixed(2)
+    ]);
+    const centerWs = XLSX.utils.aoa_to_sheet([centerHeaders, ...centerRows]);
+    centerWs['!cols'] = [{ wch: 6 }, { wch: 30 }, ...center.schemes.flatMap(() => [{ wch: 12 }, { wch: 15 }]), { wch: 15 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, centerWs, 'केंद्र - योजना');
+    }
+
+    // Vidhan Sabha Sheet (matrix flattened: for each scheme show मात्रा + selectedRashi)
+    if (openCollapses.includes('vidhan')) {
+    const vidhan = vidhanCombinedTableData || { vidhans: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const vidhanHeaders = ['#', 'विधानसभा', ...vidhan.schemes.flatMap(s => [`${s} - मात्रा`, `${s} - ${rashiColumnLabelExcel[selectedRashi]}`]), 'कुल मात्रा', `कुल ${rashiColumnLabelExcel[selectedRashi]}`];
+    const vidhanRows = vidhan.vidhans.map((v, idx) => [
+      idx + 1,
+      v,
+      ...vidhan.schemes.flatMap(s => [((vidhan.data[v] && vidhan.data[v][s] && vidhan.data[v][s].quantity) || 0).toFixed(2), ((vidhan.data[v] && vidhan.data[v][s] && vidhan.data[v][s][selectedRashi]) || 0).toFixed(2)]),
+      (vidhan.quantities && (vidhan.quantities[v] || 0)).toFixed(2),
+      (vidhan.totals && (vidhan.totals[v] || 0)).toFixed(2)
+    ]);
+    vidhanRows.push([
+      'कुल',
+      '',
+      ...vidhan.schemes.flatMap(s => [
+        (vidhan.vidhans.reduce((sum, v) => sum + (((vidhan.data[v] && vidhan.data[v][s]) && vidhan.data[v][s].quantity) || 0),0)).toFixed(2),
+        (vidhan.vidhans.reduce((sum, v) => sum + (((vidhan.data[v] && vidhan.data[v][s]) && vidhan.data[v][s][selectedRashi]) || 0),0)).toFixed(2)
+      ]),
+      (vidhan.grandQuantity || 0).toFixed(2),
+      (vidhan.grandTotal || 0).toFixed(2)
+    ]);
+    const vidhanWs = XLSX.utils.aoa_to_sheet([vidhanHeaders, ...vidhanRows]);
+    vidhanWs['!cols'] = [{ wch: 6 }, { wch: 30 }, ...vidhan.schemes.flatMap(() => [{ wch: 12 }, { wch: 15 }]), { wch: 15 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, vidhanWs, 'विधानसभा - योजना');
+    }
+
+    // Combined Investment-Scheme Sheet (matrix with मात्रा + selectedRashi flattened)
+    if (openCollapses.includes('investmentCombined')) {
+    const comb = combinedTableData || { investments: [], schemes: [], data: {}, totals: {}, quantities: {}, grandTotal: 0, grandQuantity: 0 };
+    const combinedHeaders = ['#', 'निवेश', ...comb.schemes.flatMap(s => [`${s} - मात्रा`, `${s} - ${rashiColumnLabelExcel[selectedRashi]}`]), 'कुल मात्रा', `कुल ${rashiColumnLabelExcel[selectedRashi]}`];
+    const combinedRows = comb.investments.map((inv, idx) => [
+      idx + 1,
+      inv,
+      ...comb.schemes.flatMap(s => [((comb.data[inv] && comb.data[inv][s] && comb.data[inv][s].quantity) || 0).toFixed(2), ((comb.data[inv] && comb.data[inv][s] && comb.data[inv][s][selectedRashi]) || 0).toFixed(2)]),
+      (comb.quantities && (comb.quantities[inv] || 0)).toFixed(2),
+      (comb.totals && (comb.totals[inv] || 0)).toFixed(2)
+    ]);
+    combinedRows.push([
+      'कुल', '',
+      ...comb.schemes.flatMap(s => [
+        (comb.investments.reduce((sum, inv) => sum + (((comb.data[inv] && comb.data[inv][s]) && comb.data[inv][s].quantity) || 0),0)).toFixed(2),
+        (comb.investments.reduce((sum, inv) => sum + (((comb.data[inv] && comb.data[inv][s]) && comb.data[inv][s][selectedRashi]) || 0),0)).toFixed(2)
+      ]),
+      (comb.grandQuantity || 0).toFixed(2),
+      (comb.grandTotal || 0).toFixed(2)
     ]);
     const combinedWs = XLSX.utils.aoa_to_sheet([combinedHeaders, ...combinedRows]);
-    combinedWs['!cols'] = [{ wch: 30 }, ...schemes.map(() => ({ wch: 15 })), { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, combinedWs, 'निवेश - योजना सब्सिडी');
+    combinedWs['!cols'] = [{ wch: 6 }, { wch: 30 }, ...comb.schemes.flatMap(() => [{ wch: 12 }, { wch: 15 }]), { wch: 15 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, combinedWs, 'निवेश - योजना');
+    }
 
     // Detailed Data Sheet
     const detailHeaders = ['क्र.सं.', 'योजना', 'उपनिवेश', 'निवेश', 'बिल तिथि', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'];
@@ -1359,9 +1913,13 @@ const Dashboard = () => {
     if (action === 'download') {
       XLSX.writeFile(wb, `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`);
     } else {
-      // For view, download and open
-      XLSX.writeFile(wb, `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`);
-      alert('एक्सेल फ़ाइल डाउनलोड हो गई है। कृपया इसे खोलें।');
+      // For view, display preview modal with sheet data
+      const sheetData = {};
+      wb.SheetNames.forEach(sheetName => {
+        sheetData[sheetName] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 });
+      });
+      setExcelPreviewData({ sheets: sheetData, filename: `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx` });
+      setShowExcelPreview(true);
     }
   };
 
@@ -1752,141 +2310,123 @@ const Dashboard = () => {
                       </h4>
                       <p className="text-muted small mb-0">चयनित फ़िल्टर के आधार पर ग्राफ़ प्रदर्शित</p>
                     </div>
+                    {/* राशि filter dropdown */}
+                    <div className="mb-3" style={{ maxWidth: 320 }}>
+                      <Form.Label htmlFor="rashiFilter" style={{ fontWeight: 600 }}>राशि फ़िल्टर चुनें:</Form.Label>
+                      <Form.Select
+                        id="rashiFilter"
+                        value={selectedRashi}
+                        onChange={e => setSelectedRashi(e.target.value)}
+                        style={{ fontSize: '1rem', fontWeight: 500 }}
+                      >
+                        {rashiOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </Form.Select>
+                    </div>
+                    <div id="graphsSection">
 
-                    {/* Row 1: Scheme-wise Charts */}
-                    <Row className="mb-4">
-                      <Col lg={7} md={12} className="mb-3">
-                        <Card className="chart-card h-100">
-                          <Card.Header className="chart-card-header">
-                            <h6 className="mb-0">
-                              <FaChartBar className="me-2" />
-                              {translations.graphsByScheme} - {translations.amountComparison}
-                            </h6>
-                          </Card.Header>
-                          <Card.Body>
-                            <div className="chart-container" style={{ height: '280px' }}>
-                              {schemeChartData.bar.labels.length > 0 ? (
-                                <Bar data={schemeChartData.bar} options={barChartOptions} />
-                              ) : (
-                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
-                              )}
-                            </div>
-                          </Card.Body>
-                        </Card>
-                      </Col>
-                      <Col lg={5} md={12} className="mb-3">
-                        <Card className="chart-card h-100">
-                          <Card.Header className="chart-card-header">
-                            <h6 className="mb-0">
-                              <FaChartPie className="me-2" />
-                              {translations.schemeWiseDistribution}
-                            </h6>
-                          </Card.Header>
-                          <Card.Body>
-                            <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
-                              {schemeChartData.pie.labels.length > 0 ? (
-                                <div className="table-responsive">
-                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
-                                    <thead style={{ backgroundColor: '#194e8b', color: 'white' }}>
-                                      <tr>
-                                        <th style={{ width: '40px' }}>#</th>
-                                        <th>योजना</th>
-                                        <th className="text-end">सब्सिडी</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {schemeChartData.pie.labels.map((label, idx) => {
-                                        const subsidy = (schemeChartData.rawData && schemeChartData.rawData[label] && schemeChartData.rawData[label].subsidy) || 0;
-                                        return (
-                                          <tr key={label}>
-                                            <td>{idx + 1}</td>
-                                            <td style={{ whiteSpace: 'nowrap', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</td>
-                                            <td className="text-end">{formatCurrency(subsidy)}</td>
-                                          </tr>
-                                        );
-                                      })}
-                                    </tbody>
-                                    <tfoot>
-                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
-                                        <td colSpan={2}>कुल</td>
-                                        <td className="text-end">
-                                          {formatCurrency(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.subsidy) || 0), 0))}
-                                        </td>
-                                      </tr>
-                                    </tfoot>
-                                  </table>
-                                </div>
-                              ) : (
-                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
-                              )}
-                            </div>
-                          </Card.Body>
-                        </Card>
-                      </Col>
-                    </Row>
-
-                    {/* Row 2: उपनिवेश (Investment) - Pie Chart with Table */}
+                    {/* Scheme-wise summary (recreated on top) */}
                     <Card className="chart-card mb-4">
-                      <Card.Header className="chart-card-header bg-success-gradient">
+                      <Card.Header 
+                        className="chart-card-header bg-primary-gradient" 
+                        onClick={() => toggleCollapse('scheme')}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <h6 className="mb-0 text-white">
+                          <FaTable className="me-2" />
+                          योजना-वार कुल सब्सिडी तुलना
+                          <span className="float-end">{openCollapses.includes('scheme') ? '▼' : '▶'}</span>
+                        </h6>
+                      </Card.Header>
+                      <Collapse in={openCollapses.includes('scheme')}>
+                        <div>
+                      <Card.Body>
+                        <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                          {schemeChartData && schemeChartData.rawData && Object.keys(schemeChartData.rawData).length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', color: 'white' }}>
+                                  <tr>
+                                    <th style={{ width: '40px' }}>#</th>
+                                    <th>योजना</th>
+                                    <th className="text-end">आवंटित मात्रा</th>
+                                    <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Object.entries(schemeChartData.rawData).sort((a,b)=> ((b[1][selectedRashi]||0) - (a[1][selectedRashi]||0))).map(([label, val], idx) => (
+                                    <tr key={label}>
+                                      <td>{idx+1}</td>
+                                      <td title={label} style={{ whiteSpace: 'nowrap', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</td>
+                                      <td className="text-end">{((val && val.quantity) || 0).toFixed(2)}</td>
+                                      <td className="text-end">{formatCurrency((val && val[selectedRashi]) || 0)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                    <td colSpan={2}>कुल</td>
+                                    <td className="text-end">{(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
+                                    <td className="text-end">{formatCurrency(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v[selectedRashi]) || 0), 0))}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                          )}
+                        </div>
+                      </Card.Body>
+                        </div>
+                      </Collapse>
+                    </Card>
+
+                    {/* Row: विधानसभा (Vidhan Sabha) - Pie Chart with Table */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('vidhan')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
-                          {translations.graphsByInvestment} - {translations.amountComparison}
+                          विधानसभा के अनुसार ग्राफ़ - राशि तुलना
                           <span className="badge bg-light text-dark ms-2" style={{fontSize: '0.7rem'}}>
-                            {investmentChartData.itemCount} उपनिवेश
+                            {vidhanChartData.itemCount} विधानसभा
+                          </span>
+                          <span className="float-end">
+                            {openCollapses.includes('vidhan') ? '▼' : '▶'}
                           </span>
                         </h6>
                       </Card.Header>
+                      <Collapse in={openCollapses.includes('vidhan')}>
+                        <div>
                       <Card.Body>
                         <Row>
-                          <Col lg={6} md={12} className="mb-3">
-                            <div className="chart-container" style={{ height: '450px' }}>
-                              {investmentChartData.doughnut.labels.length > 0 ? (
-                                <Pie data={investmentChartData.doughnut} options={{
-                                  responsive: true,
-                                  maintainAspectRatio: false,
-                                  plugins: {
-                                    legend: {
-                                      display: false
-                                    },
-                                    tooltip: {
-                                      callbacks: {
-                                        title: (context) => {
-                                          return investmentChartData.doughnut.fullLabels[context[0].dataIndex];
-                                        },
-                                        label: (context) => {
-                                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                          const percentage = ((context.raw / total) * 100).toFixed(1);
-                                          return `कुल राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
-                                        }
-                                      }
-                                    }
-                                  }
-                                }} />
-                              ) : (
-                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
-                              )}
-                            </div>
-                          </Col>
-                          <Col lg={6} md={12}>
+                          <Col lg={12} md={12}>
                             <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
-                              {investmentChartData.doughnut && investmentChartData.doughnut.fullLabels && investmentChartData.doughnut.fullLabels.length > 0 ? (
+                              {vidhanChartData.doughnut && vidhanChartData.doughnut.fullLabels && vidhanChartData.doughnut.fullLabels.length > 0 ? (
                                 <div className="table-responsive">
                                   <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
-                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#28a745', color: 'white' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#0d6efd', color: 'white' }}>
                                       <tr>
                                         <th style={{ width: '40px' }}>#</th>
-                                        <th>उपनिवेश नाम</th>
-                                        <th className="text-end">कुल राशि</th>
+                                        <th>विधानसभा नाम</th>
+                                        <th className="text-end">आवंटित मात्रा</th>
+                                        <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {investmentChartData.doughnut.fullLabels.map((label, idx) => {
-                                        const total = (investmentChartData.rawData && investmentChartData.rawData[label] && investmentChartData.rawData[label].total) || 0;
+                                      {vidhanChartData.doughnut.fullLabels.map((label, idx) => {
+                                        const rashiVal = (vidhanChartData.rawData && vidhanChartData.rawData[label] && vidhanChartData.rawData[label][selectedRashi]) || 0;
+                                        const qty = (vidhanChartData.rawData && vidhanChartData.rawData[label] && vidhanChartData.rawData[label].quantity) || (vidhanCombinedTableData.quantities && vidhanCombinedTableData.quantities[label]) || 0;
                                         return (
                                           <tr key={label}>
                                             <td>{idx + 1}</td>
                                             <td title={label} style={{ fontSize: '0.85rem' }}>{label}</td>
-                                            <td className="text-end">{formatCurrency(total)}</td>
+                                            <td className="text-end">{qty.toFixed(2)}</td>
+                                            <td className="text-end">{formatCurrency(rashiVal)}</td>
                                           </tr>
                                         );
                                       })}
@@ -1894,8 +2434,9 @@ const Dashboard = () => {
                                     <tfoot>
                                       <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
                                         <td colSpan={2}>कुल</td>
+                                        <td className="text-end">{(Object.values(vidhanChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
                                         <td className="text-end">
-                                          {formatCurrency(Object.values(investmentChartData.rawData || {}).reduce((s, v) => s + ((v && v.total) || 0), 0))}
+                                          {formatCurrency(Object.values(vidhanChartData.rawData || {}).reduce((s, v) => s + ((v && v[selectedRashi]) || 0), 0))}
                                         </td>
                                       </tr>
                                     </tfoot>
@@ -1908,56 +2449,353 @@ const Dashboard = () => {
                           </Col>
                         </Row>
                       </Card.Body>
+                        </div>
+                      </Collapse>
                     </Card>
 
-                    {/* Row 2.5: उपनिवेश - योजना सब्सिडी तुलना */}
+                    {/* Row: केंद्र (Center) - Pie Chart with Table */}
                     <Card className="chart-card mb-4">
-                      <Card.Header className="chart-card-header bg-warning-gradient">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('center')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
-                          उपनिवेश - योजना सब्सिडी तुलना
+                          केंद्र के अनुसार ग्राफ़ - राशि तुलना
+                          <span className="badge bg-light text-dark ms-2" style={{fontSize: '0.7rem'}}>
+                            {centerChartData.itemCount} केंद्र
+                          </span>
+                          <span className="float-end">
+                            {openCollapses.includes('center') ? '▼' : '▶'}
+                          </span>
                         </h6>
                       </Card.Header>
+                      <Collapse in={openCollapses.includes('center')}>
+                        <div>
                       <Card.Body>
                         <Row>
-                          <Col lg={6} md={12} className="mb-3">
-                            <div className="chart-container" style={{ height: '400px' }}>
-                              {subCombinedTableData.subInvestments.length > 0 ? (
-                                <Pie
-                                  data={{
-                                    labels: subCombinedTableData.subInvestments,
-                                    datasets: [{
-                                      data: subCombinedTableData.subInvestments.map(subInv => subCombinedTableData.totals[subInv]),
-                                      backgroundColor: subCombinedTableData.subInvestments.map((_, idx) => `hsl(${(idx * 360) / subCombinedTableData.subInvestments.length}, 70%, 50%)`),
-                                      borderColor: subCombinedTableData.subInvestments.map((_, idx) => `hsl(${(idx * 360) / subCombinedTableData.subInvestments.length}, 70%, 30%)`),
-                                      borderWidth: 1
-                                    }]
-                                  }}
-                                  options={{
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                      legend: {
-                                        display: false
-                                      },
-                                      tooltip: {
-                                        callbacks: {
-                                          label: (context) => {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.raw / total) * 100).toFixed(1);
-                                            return `सब्सिडी: ${formatCurrency(context.raw)} (${percentage}%)`;
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }}
-                                />
+                          <Col lg={12} md={12}>
+                            <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                              {centerChartData.doughnut && centerChartData.doughnut.fullLabels && centerChartData.doughnut.fullLabels.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#17a2b8', color: 'white' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th>केंद्र नाम</th>
+                                        <th className="text-end">आवंटित मात्रा</th>
+                                        <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {centerChartData.doughnut.fullLabels.map((label, idx) => {
+                                        const rashiVal = (centerChartData.rawData && centerChartData.rawData[label] && centerChartData.rawData[label][selectedRashi]) || 0;
+                                        const qty = (centerChartData.rawData && centerChartData.rawData[label] && centerChartData.rawData[label].quantity) || (centerCombinedTableData.quantities && centerCombinedTableData.quantities[label]) || 0;
+                                        return (
+                                          <tr key={label}>
+                                            <td>{idx + 1}</td>
+                                            <td title={label} style={{ fontSize: '0.85rem' }}>{label}</td>
+                                            <td className="text-end">{qty.toFixed(2)}</td>
+                                            <td className="text-end">{formatCurrency(rashiVal)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        <td className="text-end">{(Object.values(centerChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
+                                        <td className="text-end">
+                                          {formatCurrency(Object.values(centerChartData.rawData || {}).reduce((s, v) => s + ((v && v[selectedRashi]) || 0), 0))}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
                               ) : (
                                 <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
                               )}
                             </div>
                           </Col>
-                          <Col lg={6} md={12}>
+                        </Row>
+                      </Card.Body>
+                        </div>
+                      </Collapse>
+                    </Card>
+
+                    {/* Row: केंद्र योजना-वार तालिका (Center - Yojna-wise) */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('centerCombined')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
+                        <h6 className="mb-0 text-white">
+                          <FaTable className="me-2" />
+                          केंद्र के अनुसार योजना-वार तुलना
+                          <span className="float-end">
+                            {openCollapses.includes('centerCombined') ? '▼' : '▶'}
+                          </span>
+                        </h6>
+                      </Card.Header>
+                      <Collapse in={openCollapses.includes('centerCombined')}>
+                        <div>
+                      <Card.Body>
+                        <div style={{ maxHeight: '420px', overflow: 'auto' }}>
+                          {centerCombinedTableData.centers && centerCombinedTableData.centers.length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }}>
+                                  <tr>
+                                    <th style={{ width: '40px' }}>#</th>
+                                    <th style={{ minWidth: '120px' }}>केंद्र</th>
+                                    {centerCombinedTableData.schemes.map(scheme => (
+                                      <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
+                                    ))}
+                                    <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                  </tr>
+                                  <tr>
+                                    <th></th>
+                                    <th></th>
+                                    {centerCombinedTableData.schemes.map(scheme => (
+                                      <>
+                                        <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                      </>
+                                    ))}
+                                    <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {centerCombinedTableData.centers.map((center, idx) => (
+                                    <tr key={center}>
+                                      <td>{idx + 1}</td>
+                                      <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={center}>
+                                        {center}
+                                      </td>
+                                      {centerCombinedTableData.schemes.map(scheme => (
+                                        <>
+                                          <td key={scheme + '_qty'} className="text-end">{((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme].quantity) || 0).toFixed(2)}</td>
+                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme][selectedRashi]) || 0)}</td>
+                                        </>
+                                      ))}
+                                      <td className="text-end">{(((centerCombinedTableData.quantities && (centerCombinedTableData.quantities[center] || 0)) || 0)).toFixed(2)}</td>
+                                      <td className="text-end font-weight-bold">
+                                        {formatCurrency(centerCombinedTableData.totals[center])}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                    <td colSpan={2}>कुल</td>
+                                    {centerCombinedTableData.schemes.map(scheme => (
+                                      <>
+                                        <td key={scheme + '_qty_foot'} className="text-end">{(centerCombinedTableData.centers.reduce((sum, c) => sum + ((centerCombinedTableData.data[c][scheme] && centerCombinedTableData.data[c][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(centerCombinedTableData.centers.reduce((sum, c) => sum + ((centerCombinedTableData.data[c][scheme] && centerCombinedTableData.data[c][scheme][selectedRashi]) || 0), 0))}</td>
+                                      </>
+                                    ))}
+                                    <td className="text-end">{(centerCombinedTableData.grandQuantity || 0).toFixed(2)}</td>
+                                    <td className="text-end">
+                                      {formatCurrency(centerCombinedTableData.grandTotal)}
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                          )}
+                        </div>
+                      </Card.Body>
+                        </div>
+                      </Collapse>
+                    </Card>
+                    {/* Row: विधानसभा योजना-वार तालिका (Vidhan Sabha - Yojna-wise) */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('vidhanCombined')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
+                        <h6 className="mb-0 text-white">
+                          <FaTable className="me-2" />
+                          विधानसभा के अनुसार योजना-वार तुलना
+                          <span className="float-end">
+                            {openCollapses.includes('vidhanCombined') ? '▼' : '▶'}
+                          </span>
+                        </h6>
+                      </Card.Header>
+                      <Collapse in={openCollapses.includes('vidhanCombined')}>
+                        <div>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={12} md={12}>
+                            <div style={{ maxHeight: '420px', overflow: 'auto' }}>
+                              {vidhanCombinedTableData.vidhans && vidhanCombinedTableData.vidhans.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }}>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>#</th>
+                                        <th style={{ minWidth: '120px' }}>विधानसभा</th>
+                                        {vidhanCombinedTableData.schemes.map(scheme => (
+                                          <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
+                                        ))}
+                                        <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                      </tr>
+                                      <tr>
+                                        <th style={{ width: '40px' }}></th>
+                                        <th></th>
+                                        {vidhanCombinedTableData.schemes.map(scheme => (
+                                          <>
+                                            <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                            <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                          </>
+                                        ))}
+                                        <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {vidhanCombinedTableData.vidhans.map((vidhan, idx) => (
+                                        <tr key={vidhan}>
+                                          <td>{idx + 1}</td>
+                                          <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={vidhan}>
+                                            {vidhan}
+                                          </td>
+                                          {vidhanCombinedTableData.schemes.map(scheme => (
+                                            <>
+                                              <td key={scheme + '_qty'} className="text-end">{((vidhanCombinedTableData.data[vidhan][scheme] && vidhanCombinedTableData.data[vidhan][scheme].quantity) || 0).toFixed(2)}</td>
+                                              <td key={scheme + '_sub'} className="text-end">{formatCurrency((vidhanCombinedTableData.data[vidhan][scheme] && vidhanCombinedTableData.data[vidhan][scheme][selectedRashi]) || 0)}</td>
+                                            </>
+                                          ))}
+                                          <td className="text-end">{(((vidhanCombinedTableData.quantities && (vidhanCombinedTableData.quantities[vidhan] || 0)) || 0)).toFixed(2)}</td>
+                                          <td className="text-end font-weight-bold">
+                                            {formatCurrency(vidhanCombinedTableData.totals[vidhan])}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        {vidhanCombinedTableData.schemes.map(scheme => (
+                                          <>
+                                            <td key={scheme + '_qty_foot'} className="text-end">{(vidhanCombinedTableData.vidhans.reduce((sum, v) => sum + ((vidhanCombinedTableData.data[v][scheme] && vidhanCombinedTableData.data[v][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                            <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(vidhanCombinedTableData.vidhans.reduce((sum, v) => sum + ((vidhanCombinedTableData.data[v][scheme] && vidhanCombinedTableData.data[v][scheme][selectedRashi]) || 0), 0))}</td>
+                                          </>
+                                        ))}
+                                        <td className="text-end">{(vidhanCombinedTableData.grandQuantity || 0).toFixed(2)}</td>
+                                        <td className="text-end">
+                                          {formatCurrency(vidhanCombinedTableData.grandTotal)}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                        </div>
+                      </Collapse>
+                    </Card>
+                    <Card className="chart-card mb-4">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('investment')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
+                        <h6 className="mb-0 text-white">
+                          <FaChartPie className="me-2" />
+                          {translations.graphsByInvestment} - {translations.amountComparison}
+                          <span className="badge bg-light text-dark ms-2" style={{fontSize: '0.7rem'}}>
+                            {investmentChartData.itemCount} उपनिवेश
+                          </span>
+                          <span className="float-end">
+                            {openCollapses.includes('investment') ? '▼' : '▶'}
+                          </span>
+                        </h6>
+                      </Card.Header>
+                      <Collapse in={openCollapses.includes('investment')}>
+                        <div>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={12} md={12}>
+                            <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                              {investmentChartData.doughnut && investmentChartData.doughnut.fullLabels && investmentChartData.doughnut.fullLabels.length > 0 ? (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#28a745', color: 'white' }}>
+                                      <tr>
+                                          <th style={{ width: '40px' }}>#</th>
+                                          <th>उपनिवेश नाम</th>
+                                          <th className="text-end">आवंटित मात्रा</th>
+                                          <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                      {investmentChartData.doughnut.fullLabels.map((label, idx) => {
+                                        const rashiValue = (investmentChartData.rawData && investmentChartData.rawData[label] && investmentChartData.rawData[label][selectedRashi]) || 0;
+                                        const qty = (investmentChartData.rawData && investmentChartData.rawData[label] && investmentChartData.rawData[label].quantity) || 0;
+                                        return (
+                                          <tr key={label}>
+                                            <td>{idx + 1}</td>
+                                            <td title={label} style={{ fontSize: '0.85rem' }}>{label}</td>
+                                            <td className="text-end">{qty.toFixed(2)}</td>
+                                            <td className="text-end">{formatCurrency(rashiValue)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                        <td colSpan={2}>कुल</td>
+                                        <td className="text-end">{(Object.values(investmentChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
+                                        <td className="text-end">
+                                          {formatCurrency(Object.values(investmentChartData.rawData || {}).reduce((s, v) => s + ((v && v[selectedRashi]) || 0), 0))}
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                              )}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                        </div>
+                      </Collapse>
+                    </Card>
+
+                    {/* Row 2.5: उपनिवेश - योजना सब्सिडी तुलना */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('subInvestment')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
+                        <h6 className="mb-0 text-white">
+                          <FaChartPie className="me-2" />
+                          उपनिवेश - योजना सब्सिडी तुलना
+                          <span className="float-end">
+                            {openCollapses.includes('subInvestment') ? '▼' : '▶'}
+                          </span>
+                        </h6>
+                      </Card.Header>
+                      <Collapse in={openCollapses.includes('subInvestment')}>
+                        <div>
+                      <Card.Body>
+                        <Row>
+                          <Col lg={12} md={12}>
                             <div style={{ maxHeight: '400px', overflow: 'auto' }}>
                               {subCombinedTableData.subInvestments.length > 0 ? (
                                 <div className="table-responsive">
@@ -1967,9 +2805,21 @@ const Dashboard = () => {
                                         <th style={{ width: '40px' }}>#</th>
                                         <th style={{ minWidth: '120px' }}>उपनिवेश</th>
                                         {subCombinedTableData.schemes.map(scheme => (
-                                          <th key={scheme} className="text-end" style={{ minWidth: '80px' }}>{scheme}</th>
+                                          <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
                                         ))}
-                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल</th>
+                                        <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                      </tr>
+                                      <tr>
+                                        <th style={{ width: '40px' }}></th>
+                                        <th></th>
+                                        {subCombinedTableData.schemes.map(scheme => (
+                                          <>
+                                            <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                            <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                          </>
+                                        ))}
+                                        <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -1980,10 +2830,12 @@ const Dashboard = () => {
                                             {subInvestment}
                                           </td>
                                           {subCombinedTableData.schemes.map(scheme => (
-                                            <td key={scheme} className="text-end">
-                                              {formatCurrency(subCombinedTableData.data[subInvestment][scheme] || 0)}
-                                            </td>
+                                            <>
+                                              <td key={scheme + '_qty'} className="text-end">{((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme].quantity) || 0).toFixed(2)}</td>
+                                              <td key={scheme + '_sub'} className="text-end">{formatCurrency((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme][selectedRashi]) || 0)}</td>
+                                            </>
                                           ))}
+                                          <td className="text-end">{(subCombinedTableData.quantities && (subCombinedTableData.quantities[subInvestment] || 0)).toFixed(2)}</td>
                                           <td className="text-end font-weight-bold">
                                             {formatCurrency(subCombinedTableData.totals[subInvestment])}
                                           </td>
@@ -1994,10 +2846,12 @@ const Dashboard = () => {
                                       <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
                                         <td colSpan={2}>कुल</td>
                                         {subCombinedTableData.schemes.map(scheme => (
-                                          <td key={scheme} className="text-end">
-                                            {formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + (subCombinedTableData.data[subInv][scheme] || 0), 0))}
-                                          </td>
+                                          <>
+                                            <td key={scheme + '_qty_foot'} className="text-end">{(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                            <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme][selectedRashi]) || 0), 0))}</td>
+                                          </>
                                         ))}
+                                        <td className="text-end">{(subCombinedTableData.grandQuantity || 0).toFixed(2)}</td>
                                         <td className="text-end">
                                           {formatCurrency(subCombinedTableData.grandTotal)}
                                         </td>
@@ -2012,51 +2866,33 @@ const Dashboard = () => {
                           </Col>
                         </Row>
                       </Card.Body>
+                        </div>
+                      </Collapse>
                     </Card>
 
                     {/* Row 2.75: निवेश (Main Investment) - Pie Chart with Subsidy Table */}
                     <Card className="chart-card mb-4">
-                      <Card.Header className="chart-card-header bg-info-gradient">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('mainInvestment')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
                           निवेश के अनुसार ग्राफ़ - सब्सिडी राशि
                           <span className="badge bg-light text-dark ms-2" style={{fontSize: '0.7rem'}}>
                             {investmentSubsidyChartData.itemCount} निवेश
                           </span>
+                          <span className="float-end">
+                            {openCollapses.includes('mainInvestment') ? '▼' : '▶'}
+                          </span>
                         </h6>
                       </Card.Header>
+                      <Collapse in={openCollapses.includes('mainInvestment')}>
+                        <div>
                       <Card.Body>
                         <Row>
-                          <Col lg={6} md={12} className="mb-3">
-                            <div className="chart-container" style={{ height: '450px' }}>
-                              {investmentSubsidyChartData.doughnut.labels.length > 0 ? (
-                                <Pie data={investmentSubsidyChartData.doughnut} options={{
-                                  responsive: true,
-                                  maintainAspectRatio: false,
-                                  plugins: {
-                                    legend: {
-                                      display: false
-                                    },
-                                    tooltip: {
-                                      callbacks: {
-                                        title: (context) => {
-                                          return investmentSubsidyChartData.doughnut.fullLabels[context[0].dataIndex];
-                                        },
-                                        label: (context) => {
-                                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                          const percentage = ((context.raw / total) * 100).toFixed(1);
-                                          return `सब्सिडी राशि: ${formatCurrency(context.raw)} (${percentage}%)`;
-                                        }
-                                      }
-                                    }
-                                  }
-                                }} />
-                              ) : (
-                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
-                              )}
-                            </div>
-                          </Col>
-                          <Col lg={6} md={12}>
+                          <Col lg={12} md={12}>
                             <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
                               {investmentSubsidyChartData.doughnut && investmentSubsidyChartData.doughnut.fullLabels && investmentSubsidyChartData.doughnut.fullLabels.length > 0 ? (
                                 <div className="table-responsive">
@@ -2065,17 +2901,20 @@ const Dashboard = () => {
                                       <tr>
                                         <th style={{ width: '40px' }}>#</th>
                                         <th>निवेश नाम</th>
-                                        <th className="text-end">सब्सिडी राशि</th>
+                                        <th className="text-end">आवंटित मात्रा</th>
+                                        <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {investmentSubsidyChartData.doughnut.fullLabels.map((label, idx) => {
-                                        const subsidy = (investmentSubsidyChartData.rawData && investmentSubsidyChartData.rawData[label] && investmentSubsidyChartData.rawData[label].subsidy) || 0;
+                                        const rashi = (investmentSubsidyChartData.rawData && investmentSubsidyChartData.rawData[label] && investmentSubsidyChartData.rawData[label][selectedRashi]) || 0;
+                                        const qty = (investmentSubsidyChartData.rawData && investmentSubsidyChartData.rawData[label] && investmentSubsidyChartData.rawData[label].quantity) || 0;
                                         return (
                                           <tr key={label}>
                                             <td>{idx + 1}</td>
                                             <td title={label} style={{ fontSize: '0.85rem' }}>{label}</td>
-                                            <td className="text-end">{formatCurrency(subsidy)}</td>
+                                            <td className="text-end">{qty.toFixed(2)}</td>
+                                            <td className="text-end">{formatCurrency(rashi)}</td>
                                           </tr>
                                         );
                                       })}
@@ -2083,8 +2922,9 @@ const Dashboard = () => {
                                     <tfoot>
                                       <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
                                         <td colSpan={2}>कुल</td>
+                                        <td className="text-end">{(Object.values(investmentSubsidyChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
                                         <td className="text-end">
-                                          {formatCurrency(Object.values(investmentSubsidyChartData.rawData || {}).reduce((s, v) => s + ((v && v.subsidy) || 0), 0))}
+                                          {formatCurrency(Object.values(investmentSubsidyChartData.rawData || {}).reduce((s, v) => s + ((v && v[selectedRashi]) || 0), 0))}
                                         </td>
                                       </tr>
                                     </tfoot>
@@ -2097,48 +2937,30 @@ const Dashboard = () => {
                           </Col>
                         </Row>
                       </Card.Body>
+                        </div>
+                      </Collapse>
                     </Card>
 
                     {/* Row 3: निवेश - योजना सब्सिडी तुलना */}
                     <Card className="chart-card mb-4">
-                      <Card.Header className="chart-card-header bg-combined-gradient">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('investmentCombined')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
                           निवेश - योजना सब्सिडी तुलना
+                          <span className="float-end">
+                            {openCollapses.includes('investmentCombined') ? '▼' : '▶'}
+                          </span>
                         </h6>
                       </Card.Header>
+                      <Collapse in={openCollapses.includes('investmentCombined')}>
+                        <div>
                       <Card.Body>
                         <Row>
-                          <Col lg={6} md={12} className="mb-3">
-                            <div className="chart-container" style={{ height: '400px' }}>
-                              {combinedChartData.labels.length > 0 ? (
-                                <Pie
-                                  data={combinedChartData}
-                                  options={{
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                      legend: {
-                                        display: false
-                                      },
-                                      tooltip: {
-                                        callbacks: {
-                                          label: (context) => {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.raw / total) * 100).toFixed(1);
-                                            return `सब्सिडी: ${formatCurrency(context.raw)} (${percentage}%)`;
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
-                              )}
-                            </div>
-                          </Col>
-                          <Col lg={6} md={12}>
+                          <Col lg={12} md={12}>
                             <div style={{ maxHeight: '400px', overflow: 'auto' }}>
                               {combinedTableData.investments.length > 0 ? (
                                 <div className="table-responsive">
@@ -2148,9 +2970,21 @@ const Dashboard = () => {
                                         <th style={{ width: '40px' }}>#</th>
                                         <th style={{ minWidth: '120px' }}>निवेश</th>
                                         {combinedTableData.schemes.map(scheme => (
-                                          <th key={scheme} className="text-end" style={{ minWidth: '80px' }}>{scheme}</th>
+                                          <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
                                         ))}
-                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल</th>
+                                        <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                      </tr>
+                                      <tr>
+                                        <th style={{ width: '40px' }}></th>
+                                        <th></th>
+                                        {combinedTableData.schemes.map(scheme => (
+                                          <>
+                                            <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                            <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                          </>
+                                        ))}
+                                        <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                        <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -2161,10 +2995,12 @@ const Dashboard = () => {
                                             {investment}
                                           </td>
                                           {combinedTableData.schemes.map(scheme => (
-                                            <td key={scheme} className="text-end">
-                                              {formatCurrency(combinedTableData.data[investment][scheme] || 0)}
-                                            </td>
+                                            <>
+                                              <td key={scheme + '_qty'} className="text-end">{((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme].quantity) || 0).toFixed(2)}</td>
+                                              <td key={scheme + '_sub'} className="text-end">{formatCurrency((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme][selectedRashi]) || 0)}</td>
+                                            </>
                                           ))}
+                                          <td className="text-end">{(combinedTableData.quantities && (combinedTableData.quantities[investment] || 0)).toFixed(2)}</td>
                                           <td className="text-end font-weight-bold">
                                             {formatCurrency(combinedTableData.totals[investment])}
                                           </td>
@@ -2175,10 +3011,12 @@ const Dashboard = () => {
                                       <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
                                         <td colSpan={2}>कुल</td>
                                         {combinedTableData.schemes.map(scheme => (
-                                          <td key={scheme} className="text-end">
-                                            {formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + (combinedTableData.data[inv][scheme] || 0), 0))}
-                                          </td>
+                                          <>
+                                            <td key={scheme + '_qty_foot'} className="text-end">{(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                            <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme][selectedRashi]) || 0), 0))}</td>
+                                          </>
                                         ))}
+                                        <td className="text-end">{(combinedTableData.grandQuantity || 0).toFixed(2)}</td>
                                         <td className="text-end">
                                           {formatCurrency(combinedTableData.grandTotal)}
                                         </td>
@@ -2193,7 +3031,10 @@ const Dashboard = () => {
                           </Col>
                         </Row>
                       </Card.Body>
+                        </div>
+                      </Collapse>
                     </Card>
+                    </div>
                   </>
                 )}
               </>
@@ -2202,6 +3043,77 @@ const Dashboard = () => {
         </div>
       </div>
       <Footer />
+
+      {/* Excel Preview Modal */}
+      <Modal show={showExcelPreview} onHide={() => setShowExcelPreview(false)} size="lg" scrollable>
+        <Modal.Header closeButton>
+          <Modal.Title>एक्सेल प्रिव्यू - {excelPreviewData?.filename}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          {excelPreviewData && (
+            <div>
+              {Object.entries(excelPreviewData.sheets).map(([sheetName, rows]) => (
+                <div key={sheetName} className="mb-4">
+                  <h6 style={{ backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '4px', marginBottom: '10px' }}>
+                    📄 {sheetName}
+                  </h6>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ 
+                      width: '100%', 
+                      borderCollapse: 'collapse', 
+                      fontSize: '0.85rem',
+                      border: '1px solid #ddd'
+                    }}>
+                      <tbody>
+                        {rows.slice(0, 50).map((row, rowIdx) => (
+                          <tr key={`${sheetName}-row-${rowIdx}`} style={{ 
+                            backgroundColor: rowIdx === 0 ? '#194e8b' : (rowIdx % 2 === 0 ? '#ffffff' : '#f8f9fa'),
+                            borderBottom: '1px solid #ddd'
+                          }}>
+                            {row.map((cell, cellIdx) => (
+                              <td 
+                                key={`${sheetName}-cell-${rowIdx}-${cellIdx}`}
+                                style={{ 
+                                  padding: '8px', 
+                                  border: '1px solid #ddd',
+                                  color: rowIdx === 0 ? 'white' : 'black',
+                                  fontWeight: rowIdx === 0 ? 'bold' : 'normal'
+                                }}
+                              >
+                                {cell !== null && cell !== undefined ? String(cell) : ''}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {rows.length > 50 && (
+                    <div style={{ color: '#666', fontSize: '0.85rem', marginTop: '10px' }}>
+                      ... और भी {rows.length - 50} पंक्तियाँ हैं। डाउनलोड करने के लिए "डाउनलोड" बटन का उपयोग करें।
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="success" 
+            onClick={() => {
+              setShowExcelPreview(false);
+              generateExcel('download');
+            }}
+          >
+            <FaDownload className="me-2" />
+            डाउनलोड
+          </Button>
+          <Button variant="secondary" onClick={() => setShowExcelPreview(false)}>
+            बंद करें
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };
