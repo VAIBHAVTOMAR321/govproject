@@ -71,7 +71,33 @@ img.logo-wecd {
 }
 
 
+.nav-link {
+    color: var(--gov-black);
+    font-weight: var(--gov-space-800) !important;
+    font-size: var(--gov-space-350);
+}
 
+/* Style for the active top-level link */
+.nav-link.active {
+    color: #F6B325; /* Your hover color */
+    font-weight: var(--gov-space-800) !important;
+}
+
+/* Style for the active dropdown item */
+.dropdown-item.active {
+    color: #F6B325; /* Your hover color */
+    background-color: transparent; /* Optional: removes the default blue background */
+    font-weight: bold;
+}
+
+.nav-link:hover {
+    color: #F6B325;
+}
+
+/* Optional: Ensure the dropdown toggle is also styled when its children are active */
+.nav-dropdown .nav-link.active {
+    color: #F6B325;
+}
 
 @media (max-width: 576px) {
 

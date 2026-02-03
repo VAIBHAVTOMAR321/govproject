@@ -7033,7 +7033,7 @@ const MainDashboard = () => {
   const ReportModal = () => (
     <Modal show={showReportModal} onHide={() => setShowReportModal(false)}>
       <Modal.Header closeButton>
-        <Modal.Title>विकल्प चुनें</Modal.Title>
+        <div className="">विकल्प चुनें</div>
       </Modal.Header>
       <Modal.Body onClick={(e) => e.stopPropagation()}>
         <Form.Group>

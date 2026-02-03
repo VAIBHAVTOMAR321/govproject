@@ -317,6 +317,9 @@ label.reset-label{
   border-color: #2196f3 !important;
   font-size: 12px !important;
 }
+.form-select{
+  font-size: 12px;
+}
 .home-welcome-section h1{
   font-size: 16px;
   margin-top: 8px;
