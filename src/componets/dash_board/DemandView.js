@@ -587,7 +587,7 @@ const DemandView = () => {
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">डिमांड रिकॉर्ड्स</h5>
                 <div className="d-flex gap-2">
-                  <InputGroup style={{ width: '300px' }}>
+                  <InputGroup style={{ width: '500px' }}>
                     <InputGroup.Text>
                       <RiSearchLine />
                     </InputGroup.Text>
@@ -597,6 +597,12 @@ const DemandView = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    <Button style={{marginLeft: '10px'}}
+                    variant="primary"
+                    onClick={() => setShowAddModal(true)}
+                  >
+                    <RiAddLine /> नई डिमांड जोड़ें
+                  </Button>
                   </InputGroup>
                   <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
@@ -685,6 +691,7 @@ const DemandView = () => {
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
                 <div className="d-flex gap-2">
+  
                   <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportCenterDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
@@ -891,7 +898,7 @@ const DemandView = () => {
           <Button variant="primary" onClick={handleAddDemand} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Spinner as="span" animation="border" size="sm" />
+                <Spinner as="span" animation="border" size="sm" />ज
                 <span className="ms-2">जोड़ा जा रहा है...</span>
               </>
             ) : (
