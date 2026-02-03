@@ -2492,208 +2492,6 @@ const Dashboard = () => {
                     </Card>
 
 
-
-
-
-                    {/* Row: केंद्र योजना-वार तालिका (Center - Yojna-wise) */}
-                    <Card className="chart-card mb-4">
-                      <Card.Header 
-                        onClick={() => toggleCollapse('centerCombined')} 
-                        style={{cursor: 'pointer'}} 
-                        className="chart-card-header bg-primary-gradient"
-                      >
-                        <h6 className="mb-0 text-white">
-                          <FaTable className="me-2" />
-                          केंद्र के अनुसार योजना-वार तुलना
-                          <span className="float-end">
-                            {openCollapses.includes('centerCombined') ? '▼' : '▶'}
-                          </span>
-                        </h6>
-                      </Card.Header>
-                       <Collapse in={openCollapses.includes('centerCombined')}>
-                        <div>
-                      <Card.Body>
-                        {/* Center and Scheme Filters */}
-                        <div className="mb-3 d-flex gap-3 flex-wrap">
-                          <div style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
-                            <Form.Label style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                              <FaFilter className="me-1" /> केंद्र:
-                            </Form.Label>
-                            <div className="d-flex gap-2 mb-2">
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => {
-                                  const allCenters = centerCombinedTableData.centers.map(center => ({
-                                    value: center,
-                                    label: center
-                                  }));
-                                  setSelectedCenters(allCenters);
-                                }}
-                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                              >
-                                सभी चुनें
-                              </Button>
-                              <Button
-                                variant="outline-secondary"
-                                size="sm"
-                                onClick={() => setSelectedCenters([])}
-                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                              >
-                                साफ़ करें
-                              </Button>
-                            </div>
-                            <Select
-                              isMulti
-                              options={centerCombinedTableData.centers.map(center => ({
-                                value: center,
-                                label: center
-                              }))}
-                              value={selectedCenters}
-                              onChange={setSelectedCenters}
-                              placeholder="सभी केंद्र"
-                              styles={customSelectStyles}
-                              closeMenuOnSelect={false}
-                              isClearable
-                            />
-                          </div>
-                          <div style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
-                            <Form.Label style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                              <FaFilter className="me-1" /> योजनाएं:
-                            </Form.Label>
-                            <div className="d-flex gap-2 mb-2">
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => {
-                                  const allSchemes = centerCombinedTableData.schemes.map(scheme => ({
-                                    value: scheme,
-                                    label: scheme
-                                  }));
-                                  setSelectedCenterSchemes(allSchemes);
-                                }}
-                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                              >
-                                सभी चुनें
-                              </Button>
-                              <Button
-                                variant="outline-secondary"
-                                size="sm"
-                                onClick={() => setSelectedCenterSchemes([])}
-                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                              >
-                                साफ़ करें
-                              </Button>
-                            </div>
-                            <Select
-                              isMulti
-                              options={centerCombinedTableData.schemes.map(scheme => ({
-                                value: scheme,
-                                label: scheme
-                              }))}
-                              value={selectedCenterSchemes}
-                              onChange={setSelectedCenterSchemes}
-                              placeholder="सभी योजनाएं"
-                              styles={customSelectStyles}
-                              closeMenuOnSelect={false}
-                              isClearable
-                            />
-                          </div>
-                        </div>
-
-                        <div style={{ maxHeight: '420px', overflow: 'auto' }}>
-                          {centerCombinedTableData.centers && centerCombinedTableData.centers.length > 0 ? (
-                            <div className="table-responsive">
-                              <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }} >
-                                  <tr>
-                                    <th style={{ width: '40px' }}>#</th>
-                                    <th style={{ minWidth: '120px' }}>केंद्र</th>
-                                    {centerCombinedTableData.schemes
-                                      .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
-                                      .map(scheme => (
-                                      <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
-                                    ))}
-                                    <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
-                                  </tr>
-                                  <tr>
-                                    <th></th>
-                                    <th></th>
-                                    {centerCombinedTableData.schemes
-                                      .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
-                                      .map(scheme => (
-                                      <>
-                                        <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
-                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
-                                      </>
-                                    ))}
-                                    <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
-                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {centerCombinedTableData.centers
-                                    .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
-                                    .map((center, idx) => (
-                                    <tr key={center}>
-                                      <td>{idx + 1}</td>
-                                      <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={center}>
-                                        {center}
-                                      </td>
-                                      {centerCombinedTableData.schemes
-                                        .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
-                                        .map(scheme => (
-                                        <>
-                                          <td key={scheme + '_qty'} className="text-end">{((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme].quantity) || 0).toFixed(2)}</td>
-                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme][selectedRashi]) || 0)}</td>
-                                        </>
-                                      ))}
-                                      <td className="text-end">{(centerCombinedTableData.schemes
-                                        .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
-                                        .reduce((sum, scheme) => sum + ((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme].quantity) || 0), 0)).toFixed(2)}</td>
-                                      <td className="text-end font-weight-bold">
-                                        {formatCurrency(centerCombinedTableData.schemes
-                                          .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
-                                          .reduce((sum, scheme) => sum + ((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme][selectedRashi]) || 0), 0))}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                                <tfoot>
-                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
-                                    <td colSpan={2}>कुल</td>
-                                    {centerCombinedTableData.schemes
-                                      .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
-                                      .map(scheme => (
-                                      <>
-                                        <td key={scheme + '_qty_foot'} className="text-end">{(centerCombinedTableData.centers
-                                          .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
-                                          .reduce((sum, c) => sum + ((centerCombinedTableData.data[c][scheme] && centerCombinedTableData.data[c][scheme].quantity) || 0), 0)).toFixed(2)}</td>
-                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(centerCombinedTableData.centers
-                                          .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
-                                          .reduce((sum, c) => sum + ((centerCombinedTableData.data[c][scheme] && centerCombinedTableData.data[c][scheme][selectedRashi]) || 0), 0))}</td>
-                                      </>
-                                    ))}
-                                    <td className="text-end">{(centerCombinedTableData.centers
-                                      .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
-                                      .reduce((sum, center) => sum + centerCombinedTableData.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(scheme => scheme.value === s)).reduce((schemeSum, s) => schemeSum + ((centerCombinedTableData.data[center] && centerCombinedTableData.data[center][s] && centerCombinedTableData.data[center][s].quantity) || 0), 0), 0)).toFixed(2)}</td>
-                                    <td className="text-end">
-                                      {formatCurrency(centerCombinedTableData.centers
-                                        .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
-                                        .reduce((sum, center) => sum + centerCombinedTableData.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(scheme => scheme.value === s)).reduce((schemeSum, s) => schemeSum + ((centerCombinedTableData.data[center] && centerCombinedTableData.data[center][s] && centerCombinedTableData.data[center][s][selectedRashi]) || 0), 0), 0))}
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-                          ) : (
-                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
-                          )}
-                        </div>
-                      </Card.Body>
-                        </div>
-                      </Collapse>
-                    </Card>
                     {/* Row: विधानसभा योजना-वार तालिका (Vidhan Sabha - Yojna-wise) */}
                     <Card className="chart-card mb-4">
                       <Card.Header 
@@ -2899,7 +2697,214 @@ const Dashboard = () => {
                     </Card>
 
 
-                    {/* Row 2.5: उपनिवेश - योजना सब्सिडी तुलना */}
+
+
+                    {/* Row: केंद्र योजना-वार तालिका (Center - Yojna-wise) */}
+                    <Card className="chart-card mb-4">
+                      <Card.Header 
+                        onClick={() => toggleCollapse('centerCombined')} 
+                        style={{cursor: 'pointer'}} 
+                        className="chart-card-header bg-primary-gradient"
+                      >
+                        <h6 className="mb-0 text-white">
+                          <FaTable className="me-2" />
+                          केंद्र के अनुसार योजना-वार तुलना
+                          <span className="float-end">
+                            {openCollapses.includes('centerCombined') ? '▼' : '▶'}
+                          </span>
+                        </h6>
+                      </Card.Header>
+                       <Collapse in={openCollapses.includes('centerCombined')}>
+                        <div>
+                      <Card.Body>
+                        {/* Center and Scheme Filters */}
+                        <div className="mb-3 d-flex gap-3 flex-wrap">
+                          <div style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+                            <Form.Label style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                              <FaFilter className="me-1" /> केंद्र:
+                            </Form.Label>
+                            <div className="d-flex gap-2 mb-2">
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => {
+                                  const allCenters = centerCombinedTableData.centers.map(center => ({
+                                    value: center,
+                                    label: center
+                                  }));
+                                  setSelectedCenters(allCenters);
+                                }}
+                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                              >
+                                सभी चुनें
+                              </Button>
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                onClick={() => setSelectedCenters([])}
+                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                              >
+                                साफ़ करें
+                              </Button>
+                            </div>
+                            <Select
+                              isMulti
+                              options={centerCombinedTableData.centers.map(center => ({
+                                value: center,
+                                label: center
+                              }))}
+                              value={selectedCenters}
+                              onChange={setSelectedCenters}
+                              placeholder="सभी केंद्र"
+                              styles={customSelectStyles}
+                              closeMenuOnSelect={false}
+                              isClearable
+                            />
+                          </div>
+                          <div style={{ flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+                            <Form.Label style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                              <FaFilter className="me-1" /> योजनाएं:
+                            </Form.Label>
+                            <div className="d-flex gap-2 mb-2">
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => {
+                                  const allSchemes = centerCombinedTableData.schemes.map(scheme => ({
+                                    value: scheme,
+                                    label: scheme
+                                  }));
+                                  setSelectedCenterSchemes(allSchemes);
+                                }}
+                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                              >
+                                सभी चुनें
+                              </Button>
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                onClick={() => setSelectedCenterSchemes([])}
+                                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                              >
+                                साफ़ करें
+                              </Button>
+                            </div>
+                            <Select
+                              isMulti
+                              options={centerCombinedTableData.schemes.map(scheme => ({
+                                value: scheme,
+                                label: scheme
+                              }))}
+                              value={selectedCenterSchemes}
+                              onChange={setSelectedCenterSchemes}
+                              placeholder="सभी योजनाएं"
+                              styles={customSelectStyles}
+                              closeMenuOnSelect={false}
+                              isClearable
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ maxHeight: '420px', overflow: 'auto' }}>
+                          {centerCombinedTableData.centers && centerCombinedTableData.centers.length > 0 ? (
+                            <div className="table-responsive">
+                              <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }} >
+                                  <tr>
+                                    <th style={{ width: '40px' }}>#</th>
+                                    <th style={{ minWidth: '120px' }}>केंद्र</th>
+                                    {centerCombinedTableData.schemes
+                                      .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
+                                      .map(scheme => (
+                                      <th key={scheme} className="text-center" colSpan={2} style={{ minWidth: '160px' }}>{scheme}</th>
+                                    ))}
+                                    <th className="text-center" colSpan={2} style={{ minWidth: '160px' }}>कुल</th>
+                                  </tr>
+                                  <tr>
+                                    <th></th>
+                                    <th></th>
+                                    {centerCombinedTableData.schemes
+                                      .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
+                                      .map(scheme => (
+                                      <>
+                                        <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                      </>
+                                    ))}
+                                    <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
+                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {centerCombinedTableData.centers
+                                    .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
+                                    .map((center, idx) => (
+                                    <tr key={center}>
+                                      <td>{idx + 1}</td>
+                                      <td style={{ whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={center}>
+                                        {center}
+                                      </td>
+                                      {centerCombinedTableData.schemes
+                                        .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
+                                        .map(scheme => (
+                                        <>
+                                          <td key={scheme + '_qty'} className="text-end">{((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme].quantity) || 0).toFixed(2)}</td>
+                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme][selectedRashi]) || 0)}</td>
+                                        </>
+                                      ))}
+                                      <td className="text-end">{(centerCombinedTableData.schemes
+                                        .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
+                                        .reduce((sum, scheme) => sum + ((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                      <td className="text-end font-weight-bold">
+                                        {formatCurrency(centerCombinedTableData.schemes
+                                          .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
+                                          .reduce((sum, scheme) => sum + ((centerCombinedTableData.data[center][scheme] && centerCombinedTableData.data[center][scheme][selectedRashi]) || 0), 0))}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
+                                    <td colSpan={2}>कुल</td>
+                                    {centerCombinedTableData.schemes
+                                      .filter(scheme => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(s => s.value === scheme))
+                                      .map(scheme => (
+                                      <>
+                                        <td key={scheme + '_qty_foot'} className="text-end">{(centerCombinedTableData.centers
+                                          .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
+                                          .reduce((sum, c) => sum + ((centerCombinedTableData.data[c][scheme] && centerCombinedTableData.data[c][scheme].quantity) || 0), 0)).toFixed(2)}</td>
+                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(centerCombinedTableData.centers
+                                          .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
+                                          .reduce((sum, c) => sum + ((centerCombinedTableData.data[c][scheme] && centerCombinedTableData.data[c][scheme][selectedRashi]) || 0), 0))}</td>
+                                      </>
+                                    ))}
+                                    <td className="text-end">{(centerCombinedTableData.centers
+                                      .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
+                                      .reduce((sum, center) => sum + centerCombinedTableData.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(scheme => scheme.value === s)).reduce((schemeSum, s) => schemeSum + ((centerCombinedTableData.data[center] && centerCombinedTableData.data[center][s] && centerCombinedTableData.data[center][s].quantity) || 0), 0), 0)).toFixed(2)}</td>
+                                    <td className="text-end">
+                                      {formatCurrency(centerCombinedTableData.centers
+                                        .filter(center => selectedCenters.length === 0 || selectedCenters.some(c => c.value === center))
+                                        .reduce((sum, center) => sum + centerCombinedTableData.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(scheme => scheme.value === s)).reduce((schemeSum, s) => schemeSum + ((centerCombinedTableData.data[center] && centerCombinedTableData.data[center][s] && centerCombinedTableData.data[center][s][selectedRashi]) || 0), 0), 0))}
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="no-data-message">कोई डेटा उपलब्ध नहीं</div>
+                          )}
+                        </div>
+                      </Card.Body>
+                        </div>
+                      </Collapse>
+                    </Card>
+
+
+                    {/* Row 4: निवेश - योजना सब्सिडी तुलना */}
+                    {/* TO BE MOVED HERE FROM BELOW */}
+
+
+                    {/* Row 5: उपनिवेश - योजना सब्सिडी तुलना */}
                     <Card className="chart-card mb-4">
                       <Card.Header 
                         onClick={() => toggleCollapse('subInvestment')} 
