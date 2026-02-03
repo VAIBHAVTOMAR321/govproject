@@ -720,17 +720,17 @@ const DemandView = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Button style={{marginLeft: '10px'}}
+                    <Button style={{marginLeft: '10px', fontSize: '10px'}}
                     variant="primary"
                     onClick={() => setShowAddModal(true)}
                   >
                     <RiAddLine /> नई डिमांड जोड़ें
                   </Button>
                   </InputGroup>
-                  <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportDemandsToExcel}>
+                  <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px'}} onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white'}} onClick={exportDemandsToPDF}>
+                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white', fontSize: '10px'}} onClick={exportDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
@@ -817,10 +817,10 @@ const DemandView = () => {
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
                 <div className="d-flex gap-2">
   
-                  <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportCenterDemandsToExcel}>
+                  <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white'}} onClick={exportCenterDemandsToPDF}>
+                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
