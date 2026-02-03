@@ -886,7 +886,7 @@ const DemandView = () => {
                   {/* Clear Filters Button */}
                   <div className="mt-3 text-center">
                     <Button
-                      variant="outline-secondary"
+                      variant=" clear-btn-primary"
                       onClick={() => {
                         setSelectedCenters([]);
                         setSelectedSubInvestments([]);

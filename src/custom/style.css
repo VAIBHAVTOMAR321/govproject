@@ -311,6 +311,12 @@ label.reset-label{
   border-color: #2196f3 !important;
   font-size: 12px !important;
 }
+.clear-btn-primary:hover {
+  color: #fff ;
+  background-color: #2196f3 !important;
+  border-color: #2196f3 !important;
+  font-size: 12px !important;
+}
 .home-welcome-section h1{
   font-size: 16px;
   margin-top: 8px;
