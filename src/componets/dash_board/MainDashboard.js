@@ -124,7 +124,7 @@ const ColumnFilter = ({
         size="sm"
         id="column-filter-dropdown"
         className="column-filter-toggle"
-        style={{ height: 36, display: 'flex', alignItems: 'center' }}
+        style={{ height: 32 , fontSize: '12px', display: 'flex', alignItems: 'center' }}
       >
         <BiFilter /> Columns ({selectedColumns.length}/{columns.length})
       </Dropdown.Toggle>
@@ -7163,7 +7163,7 @@ const MainDashboard = () => {
 
   return (
     <div ref={dashboardRef}>
-      <Container fluid className="p-4">
+      <Container fluid className="p-4 bg-home">
         <Row>
           <Col lg={12} md={12} sm={12}>
             <DashBoardHeader />
@@ -7177,7 +7177,7 @@ const MainDashboard = () => {
             <Container fluid className="dashboard-body-main">
               {/* Report Generation Section */}
               {view === "main" && (
-                <div className="report-generation-section mb-3 p-3 border rounded bg-light">
+                <div className="report-generation-section mb-3 p-3 border rounded  dash-board">
                   <h6 className="fw-bold">रिपोर्ट जनरेट करें</h6>
                   <Row>
                     <Col md={3}>
@@ -7217,7 +7217,7 @@ const MainDashboard = () => {
                     <Col md={3}>
                       <Button
                         onClick={handleGenerateReport}
-                        className="mt-4"
+                        className="mt-4 bt-report"
                         disabled={!reportDateStart || !reportDateEnd || !reportType}
                       >
                         रिपोर्ट जनरेट करें
@@ -7260,7 +7260,7 @@ const MainDashboard = () => {
                   </div>
                   {/* Date Range Filter UI */}
                   <div className="date-range-filter mb-3 p-2 bg-white border rounded d-flex align-items-center gap-3">
-                    <span className="fw-bold">दिनांक से</span>
+                    <span className="fw-bold form-label">दिनांक से</span>
                     <input
                       type="date"
                       className="form-control"
@@ -7268,7 +7268,7 @@ const MainDashboard = () => {
                       value={dateFilter.start}
                       onChange={e => setDateFilter(df => ({ ...df, start: e.target.value }))}
                     />
-                    <span className="fw-bold">दिनांक तक</span>
+                    <span className="fw-bold form-label">दिनांक तक</span>
                     <input
                       type="date"
                       className="form-control"
@@ -7279,7 +7279,7 @@ const MainDashboard = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      className="ms-2"
+                      className="ms-2 bt-report"
                       onClick={applyFilters}
                       disabled={!(dateFilter.start && dateFilter.end) || isApplyingFilters}
                     >
@@ -7924,7 +7924,7 @@ const MainDashboard = () => {
                       )}
                       {!isApplyingFilters && (
                         <>
-                          <div className="d-flex justify-content-between align-items-center mb-2">
+                          <div className="d-flex justify-content-between align-items-center mb-2 main-table">
                             <h5 className="mb-0">Main Table</h5>
                             <ColumnFilter
                               tableId="main"
@@ -7933,7 +7933,7 @@ const MainDashboard = () => {
                                 .map((col) => columnDefs[col].label)}
                               selectedColumns={tableColumnFilters.main}
                               onColumnToggle={handleMainTableColumnToggle}
-                              onToggleAll={handleMainTableToggleAllColumns}
+                              onToggleAll={handleMainTableToggleAllColumns} 
                             />
                           </div>
                           <div
@@ -8434,6 +8434,38 @@ const MainDashboard = () => {
                                 >
                                   डैशबोर्ड
                                 </Button>
+                                 <Button
+                                          variant="outline-danger"
+                                          size="sm"
+                                          onClick={previewDetailTablePDF}
+                                          className="d-flex align-items-center gap-1"
+                                        >
+                                          <RiEyeLine />
+                                        </Button>
+                                        <Button
+                                          variant="danger"
+                                          size="sm"
+                                          onClick={exportDetailTableToPDF}
+                                          className="d-flex align-items-center pdf-add-btn gap-1"
+                                        >
+                                          <RiFilePdfLine />
+                                        </Button>
+                                        <Button
+                                          variant="outline-success"
+                                          size="sm"
+                                          onClick={previewDetailTableExcel}
+                                          className="d-flex align-items-center gap-1"
+                                        >
+                                          <RiEyeLine />
+                                        </Button>
+                                        <Button
+                                          variant="success"
+                                          size="sm"
+                                          onClick={exportDetailTableToExcel}
+                                          className="d-flex align-items-center exel-add-btn gap-1"
+                                        >
+                                          <RiFileExcelLine />
+                                        </Button>
                               </div>
                               <h5 className="mb-0">
                                 {appliedFilters || selectedItem.value}
@@ -8599,7 +8631,7 @@ const MainDashboard = () => {
                               } else {
                                 return (
                                   <div>
-                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <div className="d-flex justify-content-between align-items-center mb-3 dash-center-name">
                                       <h5 className="mb-0">
                                         {columnDefs[primaryColumn]?.label || "Summary Table"}
                                       </h5>
@@ -8657,7 +8689,7 @@ const MainDashboard = () => {
                                             size="sm"
                                             value={selectedHierarchyLevel}
                                             onChange={(e) => setSelectedHierarchyLevel(e.target.value)}
-                                            style={{ width: 180, height: 36 }}
+                                            style={{ width: 180, height: 32 , fontSize: '12px'}}
                                           >
                                             <option value="sub_investment_name">उप-निवेश</option>
                                             <option value="investment_name">निवेश</option>
@@ -8673,7 +8705,7 @@ const MainDashboard = () => {
                                             size="sm"
                                             value={numericDisplayLevel}
                                             onChange={(e) => setNumericDisplayLevel(e.target.value)}
-                                            style={{ width: 200, height: 36 }}
+                                            style={{ width: 200, height: 32 , fontSize: '12px' }}
                                           >
                                             <option value="vidhan_sabha_name">विधानसभा</option>
                                             <option value="vikas_khand_name">विकास खंड</option>
@@ -8683,38 +8715,7 @@ const MainDashboard = () => {
                                             <option value="sub_investment_name">उप-निवेश</option>
                                           </Form.Select>
                                         </div>
- <Button
-                                          variant="outline-danger"
-                                          size="sm"
-                                          onClick={previewDetailTablePDF}
-                                          className="d-flex align-items-center gap-1"
-                                        >
-                                          <RiEyeLine />
-                                        </Button>
-                                        <Button
-                                          variant="danger"
-                                          size="sm"
-                                          onClick={exportDetailTableToPDF}
-                                          className="d-flex align-items-center pdf-add-btn gap-1"
-                                        >
-                                          <RiFilePdfLine />
-                                        </Button>
-                                        <Button
-                                          variant="outline-success"
-                                          size="sm"
-                                          onClick={previewDetailTableExcel}
-                                          className="d-flex align-items-center gap-1"
-                                        >
-                                          <RiEyeLine />
-                                        </Button>
-                                        <Button
-                                          variant="success"
-                                          size="sm"
-                                          onClick={exportDetailTableToExcel}
-                                          className="d-flex align-items-center exel-add-btn gap-1"
-                                        >
-                                          <RiFileExcelLine />
-                                        </Button>
+                                        
                                       </div>
                                     </div>
                                     <div
@@ -9866,7 +9867,7 @@ const MainDashboard = () => {
                                             </Form.Group>
                                           </div>
                                         )}
-                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <div className="d-flex justify-content-between align-items-center  mb-3">
                                           <div className="d-flex align-items-center gap-2 table-heading">
                                             <h5 className="mb-0">
                                               {table.heading}

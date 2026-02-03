@@ -278,8 +278,11 @@
   font-size: 16px;
   font-weight: 600;
 
-  color: #2196f3 !important;
+  
   margin-bottom: 15px;
+}
+.column-filter-dropdown{
+  font-size: 8px !important;
 }
 /* Hide selected tags/chips in react-select */
 .government-select .css-1rhbuit-MultiValue {

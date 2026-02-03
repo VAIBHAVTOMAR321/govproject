@@ -442,6 +442,7 @@ font-weight: 700;
 /* Adjust the table container to ensure it's scrollable if needed */
 .back-btn h5 {
   font-size: 12px !important;
+  margin-left: 12px;
 }
 
 .back-btn-style {
@@ -479,6 +480,34 @@ font-weight: 700;
   background-color: #f4ede4;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+.dash-center-name h5{
+  font-size: 12px;
+  color: #0B488F;
+  font-weight: 700;
+}
+.main-table h5{
+  font-size: 14px;
+  color: #0B488F;
+  font-weight: 600;
+}
+.bg-filter{
+  background-color: #f4ede4 !important;
+}
+.bt-report{
+  background-color: #2196f3 !important;
+  font-size: 12px !important;
+  border: 1px solid #2196f3;
+}
+.reset-heading {
+    background-color: #0B488F !important;
+    color: #fff !important;
+    font-size: 10px;
+    padding: 15px;
+}
+ 
+ .reset-heading h4 {
+font-size: 18px;
+ }
 .dash-board{
   background-color:#c9d4e7;
 }
