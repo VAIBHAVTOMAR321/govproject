@@ -16,7 +16,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 // Hindi translations
 const translations = {
-  home: "होम",
+  home: "Home",
   welcomeMessage: "DHO कोटद्वार बिलिंग प्रणाली में आपका स्वागत है",
   selectScheme: "योजना चुनें",
   selectInvestment: "उपनिवेश चुनें",
@@ -1938,9 +1938,9 @@ const Dashboard = () => {
         <div className="main-content">
           <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-          <Container fluid className="dashboard-body">
+          <Container fluid className="dashboard-body bg-home">
             {/* Welcome Section */}
-            <div className="home-welcome-section text-center mb-4">
+            <div className="home-welcome-section d-flex justify-content-between text-center mb-4">
               <h1 className="home-title">{translations.home}</h1>
               <p className="home-subtitle">{translations.welcomeMessage}</p>
             </div>
@@ -2092,21 +2092,20 @@ const Dashboard = () => {
                         <Col lg={6} md={4} sm={12} className="mb-2">
                           <div className="d-flex gap-2 flex-wrap">
                             <Button 
-                              variant="primary" 
-                              size="sm"
+                             
+                             
                               onClick={handleApplyDateFilter}
                               disabled={!startDate && !endDate}
-                              className="apply-filter-btn-sm"
+                              className="btn-filter-submit"
                             >
                               <FaFilter className="me-1" />
                               {translations.applyFilter}
                             </Button>
                             <Button 
-                              variant="outline-secondary" 
-                              size="sm"
+                            
                               onClick={handleClearDateFilter}
                               disabled={!isDateFilterApplied && !startDate && !endDate}
-                              className="clear-filter-btn-sm"
+                              className="clear-btn-primary"
                             >
                               {translations.clearFilter}
                             </Button>
@@ -2303,21 +2302,21 @@ const Dashboard = () => {
                 {filteredData.length > 0 && (
                   <>
                     {/* Section Title */}
-                    <div className="graphs-section-title mb-3">
+                    <div className="graphs-section-title d-flex justify-content-between mb-3">
                       <h4 className="text-primary">
                         <FaChartBar className="me-2" />
-                        डेटा विश्लेषण ग्राफ़
+                        डेटा विश्लेषण
                       </h4>
-                      <p className="text-muted small mb-0">चयनित फ़िल्टर के आधार पर ग्राफ़ प्रदर्शित</p>
+                      <p className=" small mb-0">चयनित फ़िल्टर के आधार पर डेटा प्रदर्शित</p>
                     </div>
                     {/* राशि filter dropdown */}
                     <div className="mb-3" style={{ maxWidth: 320 }}>
-                      <Form.Label htmlFor="rashiFilter" style={{ fontWeight: 600 }}>राशि फ़िल्टर चुनें:</Form.Label>
+                      <Form.Label htmlFor="rashiFilter" style={{ fontWeight: 600 , color: '#000' }}>राशि फ़िल्टर चुनें:</Form.Label>
                       <Form.Select
                         id="rashiFilter"
                         value={selectedRashi}
                         onChange={e => setSelectedRashi(e.target.value)}
-                        style={{ fontSize: '1rem', fontWeight: 500 }}
+                        style={{ fontSize: '12px', fontWeight: 500 }}
                       >
                         {rashiOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -2346,7 +2345,7 @@ const Dashboard = () => {
                           {schemeChartData && schemeChartData.rawData && Object.keys(schemeChartData.rawData).length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', color: 'white' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', color: 'white' }} className="table-th-heading">
                                   <tr>
                                     <th style={{ width: '40px' }}>#</th>
                                     <th>योजना</th>
@@ -2546,7 +2545,7 @@ const Dashboard = () => {
                           {centerCombinedTableData.centers && centerCombinedTableData.centers.length > 0 ? (
                             <div className="table-responsive">
                               <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }}>
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }} >
                                   <tr>
                                     <th style={{ width: '40px' }}>#</th>
                                     <th style={{ minWidth: '120px' }}>केंद्र</th>
@@ -2800,7 +2799,7 @@ const Dashboard = () => {
                               {subCombinedTableData.subInvestments.length > 0 ? (
                                 <div className="table-responsive">
                                   <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffc107', color: 'black' }}>
+                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffc107', color: 'black' }} >
                                       <tr>
                                         <th style={{ width: '40px' }}>#</th>
                                         <th style={{ minWidth: '120px' }}>उपनिवेश</th>
