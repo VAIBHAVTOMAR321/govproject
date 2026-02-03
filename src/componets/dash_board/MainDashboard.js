@@ -25,7 +25,7 @@ import {
   RiEyeLine,
   RiRepeatLine,
 } from "react-icons/ri";
-import { FaTable, FaChartPie } from "react-icons/fa";
+import { FaTable, FaChartPie, FaFilter, FaInfoCircle } from "react-icons/fa";
 import "../../assets/css/MainDashBoard.css";
 import { IoMdRefresh } from "react-icons/io";
 import * as XLSX from "xlsx";
@@ -355,6 +355,14 @@ const MainDashboard = () => {
     investment: false,
     subInvestment: false
   });
+
+  // राशि filter state
+  const [selectedRashi, setSelectedRashi] = useState('subsidy');
+  const rashiOptions = [
+    { value: 'farmerShare', label: 'किसान की हिस्सेदारी की राशि' },
+    { value: 'subsidy', label: 'सब्सिडी की राशि' },
+    { value: 'total', label: 'कुल राशि' }
+  ];
 
   // Toggle collapse for tables
   const toggleCollapse = (collapseKey) => {
@@ -840,10 +848,14 @@ const MainDashboard = () => {
       const investment = item.investment_name || 'अन्य';
       const scheme = item.scheme_name || 'अन्य';
       const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const farmerShare = parseFloat(item.amount_of_farmer_share) || 0;
+      const total = parseFloat(item.total_amount) || 0;
       const qty = parseFloat(item.allocated_quantity) || 0;
       if (!investmentSchemeData[investment]) investmentSchemeData[investment] = {};
-      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = { subsidy: 0, quantity: 0 };
+      if (!investmentSchemeData[investment][scheme]) investmentSchemeData[investment][scheme] = { subsidy: 0, farmerShare: 0, total: 0, quantity: 0 };
       investmentSchemeData[investment][scheme].subsidy += subsidy;
+      investmentSchemeData[investment][scheme].farmerShare += farmerShare;
+      investmentSchemeData[investment][scheme].total += total;
       investmentSchemeData[investment][scheme].quantity += qty;
     });
 
@@ -876,10 +888,14 @@ const MainDashboard = () => {
       const subInvestment = item.sub_investment_name || 'अन्य';
       const scheme = item.scheme_name || 'अन्य';
       const subsidy = parseFloat(item.amount_of_subsidy) || 0;
+      const farmerShare = parseFloat(item.amount_of_farmer_share) || 0;
+      const total = parseFloat(item.total_amount) || 0;
       const qty = parseFloat(item.allocated_quantity) || 0;
       if (!subInvestmentSchemeData[subInvestment]) subInvestmentSchemeData[subInvestment] = {};
-      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = { subsidy: 0, quantity: 0 };
+      if (!subInvestmentSchemeData[subInvestment][scheme]) subInvestmentSchemeData[subInvestment][scheme] = { subsidy: 0, farmerShare: 0, total: 0, quantity: 0 };
       subInvestmentSchemeData[subInvestment][scheme].subsidy += subsidy;
+      subInvestmentSchemeData[subInvestment][scheme].farmerShare += farmerShare;
+      subInvestmentSchemeData[subInvestment][scheme].total += total;
       subInvestmentSchemeData[subInvestment][scheme].quantity += qty;
     });
 
@@ -9591,6 +9607,38 @@ const MainDashboard = () => {
                                       </Table>
                                     </div>
 
+                                    {/* राशि filter dropdown */}
+                                    <Card className="mb-3" style={{ border: '2px solid #194e8b', backgroundColor: '#f8f9fa' }}>
+                                      <Card.Body className="py-2">
+                                        <Row className="align-items-center">
+                                          <Col md={3}>
+                                            <Form.Label htmlFor="rashiFilter" className="mb-0" style={{ fontWeight: 600, color: '#194e8b', fontSize: '0.9rem' }}>
+                                              <FaFilter className="me-1" />
+                                              राशि फ़िल्टर चुनें:
+                                            </Form.Label>
+                                          </Col>
+                                          <Col md={4}>
+                                            <Form.Select
+                                              id="rashiFilter"
+                                              value={selectedRashi}
+                                              onChange={e => setSelectedRashi(e.target.value)}
+                                              style={{ fontSize: '13px', fontWeight: 600, borderColor: '#194e8b', borderWidth: '2px' }}
+                                            >
+                                              {rashiOptions.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                              ))}
+                                            </Form.Select>
+                                          </Col>
+                                          <Col md={5}>
+                                            <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                              <FaInfoCircle className="me-1" />
+                                              यह फ़िल्टर नीचे दी गई सभी तालिकाओं पर लागू होता है
+                                            </small>
+                                          </Col>
+                                        </Row>
+                                      </Card.Body>
+                                    </Card>
+
                                     {/* Export Buttons for Collapsible Tables */}
                                     <div className="d-flex gap-2 mb-3">
                                       <Button 
@@ -9637,16 +9685,16 @@ const MainDashboard = () => {
                                                     <th style={{ width: '40px' }}>#</th>
                                                     <th>योजना</th>
                                                     <th className="text-end">आवंटित मात्रा</th>
-                                                    <th className="text-end">सब्सिडी की राशि</th>
+                                                    <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'सब्सिडी की राशि'}</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody>
-                                                  {Object.entries(schemeChartData.rawData).sort((a,b)=> ((b[1].subsidy||0) - (a[1].subsidy||0))).map(([label, val], idx) => (
+                                                  {Object.entries(schemeChartData.rawData).sort((a,b)=> ((b[1][selectedRashi]||0) - (a[1][selectedRashi]||0))).map(([label, val], idx) => (
                                                     <tr key={label}>
                                                       <td>{idx+1}</td>
                                                       <td title={label} style={{ whiteSpace: 'nowrap', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</td>
                                                       <td className="text-end">{((val && val.quantity) || 0).toFixed(2)}</td>
-                                                      <td className="text-end">{formatCurrency((val && val.subsidy) || 0)}</td>
+                                                      <td className="text-end">{formatCurrency((val && val[selectedRashi]) || 0)}</td>
                                                     </tr>
                                                   ))}
                                                 </tbody>
@@ -9654,7 +9702,7 @@ const MainDashboard = () => {
                                                   <tr style={{ fontWeight: 700, backgroundColor: '#f1f5f9' }}>
                                                     <td colSpan={2}>कुल</td>
                                                     <td className="text-end">{(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.quantity) || 0), 0)).toFixed(2)}</td>
-                                                    <td className="text-end">{formatCurrency(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v.subsidy) || 0), 0))}</td>
+                                                    <td className="text-end">{formatCurrency(Object.values(schemeChartData.rawData || {}).reduce((s, v) => s + ((v && v[selectedRashi]) || 0), 0))}</td>
                                                   </tr>
                                                 </tfoot>
                                               </table>
@@ -9703,11 +9751,11 @@ const MainDashboard = () => {
                                                     {combinedTableData.schemes.map(scheme => (
                                                       <>
                                                         <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
-                                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>सब्सिडी</th>
+                                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                                       </>
                                                     ))}
                                                     <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
-                                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल सब्सिडी</th>
+                                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody>
@@ -9720,12 +9768,12 @@ const MainDashboard = () => {
                                                       {combinedTableData.schemes.map(scheme => (
                                                         <>
                                                           <td key={scheme + '_qty'} className="text-end">{((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme].quantity) || 0).toFixed(2)}</td>
-                                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme].subsidy) || 0)}</td>
+                                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((combinedTableData.data[investment][scheme] && combinedTableData.data[investment][scheme][selectedRashi]) || 0)}</td>
                                                         </>
                                                       ))}
                                                       <td className="text-end">{(combinedTableData.quantities && (combinedTableData.quantities[investment] || 0)).toFixed(2)}</td>
                                                       <td className="text-end font-weight-bold">
-                                                        {formatCurrency(combinedTableData.totals[investment])}
+                                                        {formatCurrency(combinedTableData.schemes.reduce((sum, s) => sum + ((combinedTableData.data[investment][s] && combinedTableData.data[investment][s][selectedRashi]) || 0), 0))}
                                                       </td>
                                                     </tr>
                                                   ))}
@@ -9736,12 +9784,12 @@ const MainDashboard = () => {
                                                     {combinedTableData.schemes.map(scheme => (
                                                       <>
                                                         <td key={scheme + '_qty_foot'} className="text-end">{(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme].quantity) || 0), 0)).toFixed(2)}</td>
-                                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme].subsidy) || 0), 0))}</td>
+                                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + ((combinedTableData.data[inv][scheme] && combinedTableData.data[inv][scheme][selectedRashi]) || 0), 0))}</td>
                                                       </>
                                                     ))}
                                                     <td className="text-end">{(combinedTableData.grandQuantity || 0).toFixed(2)}</td>
                                                     <td className="text-end">
-                                                      {formatCurrency(combinedTableData.grandTotal)}
+                                                      {formatCurrency(combinedTableData.investments.reduce((sum, inv) => sum + combinedTableData.schemes.reduce((schemeSum, s) => schemeSum + ((combinedTableData.data[inv][s] && combinedTableData.data[inv][s][selectedRashi]) || 0), 0), 0))}
                                                     </td>
                                                   </tr>
                                                 </tfoot>
@@ -9791,11 +9839,11 @@ const MainDashboard = () => {
                                                     {subCombinedTableData.schemes.map(scheme => (
                                                       <>
                                                         <th key={scheme + '_qty'} className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
-                                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>सब्सिडी</th>
+                                                        <th key={scheme + '_sub'} className="text-end" style={{ minWidth: '80px' }}>{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                                       </>
                                                     ))}
                                                     <th className="text-end" style={{ minWidth: '80px' }}>आवंटित मात्रा</th>
-                                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल सब्सिडी</th>
+                                                    <th className="text-end" style={{ minWidth: '80px' }}>कुल {rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody>
@@ -9808,12 +9856,12 @@ const MainDashboard = () => {
                                                       {subCombinedTableData.schemes.map(scheme => (
                                                         <>
                                                           <td key={scheme + '_qty'} className="text-end">{((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme].quantity) || 0).toFixed(2)}</td>
-                                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme].subsidy) || 0)}</td>
+                                                          <td key={scheme + '_sub'} className="text-end">{formatCurrency((subCombinedTableData.data[subInvestment][scheme] && subCombinedTableData.data[subInvestment][scheme][selectedRashi]) || 0)}</td>
                                                         </>
                                                       ))}
                                                       <td className="text-end">{(subCombinedTableData.quantities && (subCombinedTableData.quantities[subInvestment] || 0)).toFixed(2)}</td>
                                                       <td className="text-end font-weight-bold">
-                                                        {formatCurrency(subCombinedTableData.totals[subInvestment])}
+                                                        {formatCurrency(subCombinedTableData.schemes.reduce((sum, s) => sum + ((subCombinedTableData.data[subInvestment][s] && subCombinedTableData.data[subInvestment][s][selectedRashi]) || 0), 0))}
                                                       </td>
                                                     </tr>
                                                   ))}
@@ -9824,12 +9872,12 @@ const MainDashboard = () => {
                                                     {subCombinedTableData.schemes.map(scheme => (
                                                       <>
                                                         <td key={scheme + '_qty_foot'} className="text-end">{(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme].quantity) || 0), 0)).toFixed(2)}</td>
-                                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme].subsidy) || 0), 0))}</td>
+                                                        <td key={scheme + '_sub_foot'} className="text-end">{formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + ((subCombinedTableData.data[subInv][scheme] && subCombinedTableData.data[subInv][scheme][selectedRashi]) || 0), 0))}</td>
                                                       </>
                                                     ))}
                                                     <td className="text-end">{(subCombinedTableData.grandQuantity || 0).toFixed(2)}</td>
                                                     <td className="text-end">
-                                                      {formatCurrency(subCombinedTableData.grandTotal)}
+                                                      {formatCurrency(subCombinedTableData.subInvestments.reduce((sum, subInv) => sum + subCombinedTableData.schemes.reduce((schemeSum, s) => schemeSum + ((subCombinedTableData.data[subInv][s] && subCombinedTableData.data[subInv][s][selectedRashi]) || 0), 0), 0))}
                                                     </td>
                                                   </tr>
                                                 </tfoot>
