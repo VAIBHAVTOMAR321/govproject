@@ -1011,6 +1011,34 @@ const Billing = () => {
                   </Row>
 
                   <Row>
+                    {/* Date Range Filters */}
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.fromDate}
+                        </FormLabel>
+                        <Form.Control
+                          type="date"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                          className="small-fonts compact-input"
+                        />
+                      </FormGroup>
+                    </Col>
+
+                    <Col xs={12} sm={6} md={3} className="mb-2">
+                      <FormGroup>
+                        <FormLabel className="small-fonts fw-bold">
+                          {translations.toDate}
+                        </FormLabel>
+                        <Form.Control
+                          type="date"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                          className="small-fonts compact-input"
+                        />
+                      </FormGroup>
+                    </Col>
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
                         <FormLabel className="small-fonts fw-bold">
@@ -1123,34 +1151,7 @@ const Billing = () => {
                       </FormGroup>
                     </Col>
 
-                    {/* Date Range Filters */}
-                    <Col xs={12} sm={6} md={3} className="mb-2">
-                      <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
-                          {translations.fromDate}
-                        </FormLabel>
-                        <Form.Control
-                          type="date"
-                          value={fromDate}
-                          onChange={(e) => setFromDate(e.target.value)}
-                          className="small-fonts compact-input"
-                        />
-                      </FormGroup>
-                    </Col>
-
-                    <Col xs={12} sm={6} md={3} className="mb-2">
-                      <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
-                          {translations.toDate}
-                        </FormLabel>
-                        <Form.Control
-                          type="date"
-                          value={toDate}
-                          onChange={(e) => setToDate(e.target.value)}
-                          className="small-fonts compact-input"
-                        />
-                      </FormGroup>
-                    </Col>
+                    
                   </Row>
                 </div>
                 <div>
