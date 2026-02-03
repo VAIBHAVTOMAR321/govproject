@@ -32,6 +32,7 @@ const DemandGenerate = () => {
   const [editingId, setEditingId] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   /* 🔐 Auth check */
   useEffect(() => {
@@ -82,16 +83,37 @@ const DemandGenerate = () => {
     fetchCenterDemands();
   }, []);
 
+  // Custom onChange handler for real-time validation
+  const handleDemandedQuantityChange = (e, maxQuantity) => {
+    const value = parseFloat(e.target.value) || 0;
+    const maxQty = parseFloat(maxQuantity) || 0;
+
+    if (value > maxQty) {
+      setValidationError(`मांगी गई मात्रा (${value}) आवंटित मात्रा (${maxQty}) से अधिक नहीं हो सकती`);
+      return;
+    }
+
+    setValidationError('');
+    setEditingQuantity(e.target.value);
+  };
+
   /* 📤 POST demand-by-center */
-  const handleSaveDemand = async (demandId) => {
+  const handleSaveDemand = async (demandId, allocatedQuantity) => {
     if (!editingQuantity || parseFloat(editingQuantity) <= 0) {
-      setError('कृपया सही मात्रा दर्ज करें');
+      setValidationError('कृपया सही मात्रा दर्ज करें');
+      return;
+    }
+
+    // Validate that demanded quantity is less than allocated quantity
+    if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
+      setValidationError(`मांगी गई मात्रा आवंटित मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
       return;
     }
 
     setIsSubmitting(true);
     setError('');
     setSuccess('');
+    setValidationError('');
 
     const payload = {
       demand_id: demandId,
@@ -145,12 +167,14 @@ const DemandGenerate = () => {
   const startEditing = (demandId) => {
     setEditingId(demandId);
     setEditingQuantity('');
+    setValidationError('');
   };
 
   // Cancel editing
   const cancelEditing = () => {
     setEditingId(null);
     setEditingQuantity('');
+    setValidationError('');
   };
 
   // Calculate demanded amount (rate * demanded quantity)
@@ -198,6 +222,11 @@ const DemandGenerate = () => {
                         const demandedQty = getDemandedQuantity(d.demand_id);
                         const isEditing = editingId === d.demand_id;
                         
+                        // Calculate the temporary amount while editing
+                        const tempAmount = isEditing && editingQuantity 
+                          ? calculateDemandedAmount(d.rate, editingQuantity) 
+                          : null;
+                        
                         return (
                           <tr key={d.id}>
                             <td>{d.demand_id}</td>
@@ -207,35 +236,47 @@ const DemandGenerate = () => {
                             <td>{d.amount}</td>
                             <td>
                               {isEditing ? (
-                                <div className="d-flex align-items-center">
-                                  <Form.Control
-                                    type="number"
-                                    step="0.01"
-                                    value={editingQuantity}
-                                    onChange={(e) => setEditingQuantity(e.target.value)}
-                                    placeholder="मात्रा दर्ज करें"
-                                    className="me-2"
-                                  />
-                                  <Button
-                                    variant="primary"
-                                    size="sm"
-                                    onClick={() => handleSaveDemand(d.demand_id)}
-                                    disabled={isSubmitting}
-                                  >
-                                    {isSubmitting ? (
-                                      <Spinner animation="border" size="sm" />
-                                    ) : (
-                                      <>सबमिट <RiAddLine /></>
-                                    )}
-                                  </Button>
-                                  <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={cancelEditing}
-                                    className="ms-1"
-                                  >
-                                    रद्द करें
-                                  </Button>
+                                <div>
+                                  <div className="d-flex align-items-center mb-2">
+                                    <Form.Control
+                                      type="number"
+                                      step="0.01"
+                                      value={editingQuantity}
+                                      onChange={(e) => handleDemandedQuantityChange(e, d.allocated_quantity)}
+                                      placeholder="मात्रा दर्ज करें"
+                                      className="me-2"
+                                      isInvalid={!!validationError}
+                                      max={d.allocated_quantity}
+                                    />
+                                    <Button
+                                      variant="primary"
+                                      size="sm"
+                                      onClick={() => handleSaveDemand(d.demand_id, d.allocated_quantity)}
+                                      disabled={isSubmitting || !!validationError}
+                                    >
+                                      {isSubmitting ? (
+                                        <Spinner animation="border" size="sm" />
+                                      ) : (
+                                        <>सबमिट <RiAddLine /></>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      onClick={cancelEditing}
+                                      className="ms-1"
+                                    >
+                                      रद्द करें
+                                    </Button>
+                                  </div>
+                                  {validationError && (
+                                    <Form.Control.Feedback type="invalid" className="d-block">
+                                      {validationError}
+                                    </Form.Control.Feedback>
+                                  )}
+                                  <Form.Text className="text-muted">
+                                    अधिकतम अनुमत मात्रा: {d.allocated_quantity}
+                                  </Form.Text>
                                 </div>
                               ) : (
                                 <div className="d-flex align-items-center">
@@ -257,7 +298,11 @@ const DemandGenerate = () => {
                               )}
                             </td>
                             <td>
-                              {demandedQty ? (
+                              {isEditing && tempAmount ? (
+                                <span className="text-primary fw-bold">
+                                  {tempAmount}
+                                </span>
+                              ) : demandedQty ? (
                                 <span className="text-info fw-bold">
                                   {calculateDemandedAmount(d.rate, demandedQty)}
                                 </span>

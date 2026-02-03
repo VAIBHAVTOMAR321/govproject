@@ -382,6 +382,9 @@ const MainDashboard = () => {
   // State for Vidhan Sabha table scheme filter
   const [vidhanSabhaSchemeFilter, setVidhanSabhaSchemeFilter] = useState([]);
 
+  // State for Vidhan Sabha table राशि type
+  const [vidhanSabhaRashiType, setVidhanSabhaRashiType] = useState('कुल राशि');
+
   // Function to generate breakdown data for totals columns based on selected grouping
   const generateTotalBreakdown = (data, groupByColumn) => {
     if (!data || data.length === 0) return [];
@@ -2489,7 +2492,7 @@ const MainDashboard = () => {
   };
 
   // Generate Vidhan Sabha Investment table
-  const generateVidhanSabhaInvestmentTable = (data, grouping = 'vidhan_sabha_name', columnType = 'investment_name') => {
+  const generateVidhanSabhaInvestmentTable = (data, grouping = 'vidhan_sabha_name', columnType = 'investment_name', rashiType = 'कुल राशि') => {
     if (!data || !Array.isArray(data) || data.length === 0) return null;
 
     const groupLabel = grouping === 'center_name' ? 'केंद्र' : grouping === 'vidhan_sabha_name' ? 'विधानसभा' : 'विकास खंड';
@@ -2497,15 +2500,26 @@ const MainDashboard = () => {
 
     const dynamicColumns = [...new Set(data.map(item => `${item.scheme_name} - ${item[columnType]}`).filter(Boolean))].sort();
 
+    // Determine which amount field to use based on rashiType
+    const amountField = rashiType === 'कृषक धनराशि' ? 'amount_of_farmer_share' : 
+                        rashiType === 'सब्सिडी धनराशि' ? 'amount_of_subsidy' : 'total_amount';
+
     const rows = groups.map(group => {
       const row = { [groupLabel]: group };
       dynamicColumns.forEach(col => {
         const [scheme, val] = col.split(' - ');
-        const sum = data
-          .filter(item => item[grouping] === group && item.scheme_name === scheme && item[columnType] === val)
-          .reduce((acc, item) => acc + (parseFloat(item.allocated_quantity) || 0), 0);
-        row[col] = sum.toFixed(2);
+        const filteredData = data.filter(item => item[grouping] === group && item.scheme_name === scheme && item[columnType] === val);
+        
+        // Calculate मात्रा (quantity)
+        const quantity = filteredData.reduce((acc, item) => acc + (parseFloat(item.allocated_quantity) || 0), 0);
+        
+        // Calculate राशि based on selected rashiType
+        const amount = filteredData.reduce((acc, item) => acc + (parseFloat(item[amountField]) || 0), 0);
+        
+        row[`${col}_मात्रा`] = quantity.toFixed(2);
+        row[`${col}_राशि`] = amount.toFixed(2);
       });
+      
       // Add total columns
       const groupData = data.filter(item => item[grouping] === group);
       row['आवंटित मात्रा'] = groupData.reduce((acc, item) => acc + (parseFloat(item.allocated_quantity) || 0), 0).toFixed(2);
@@ -2518,7 +2532,8 @@ const MainDashboard = () => {
     // Add total row
     const totalRow = { [groupLabel]: 'कुल' };
     dynamicColumns.forEach(col => {
-      totalRow[col] = rows.reduce((sum, row) => sum + (parseFloat(row[col]) || 0), 0).toFixed(2);
+      totalRow[`${col}_मात्रा`] = rows.reduce((sum, row) => sum + (parseFloat(row[`${col}_मात्रा`]) || 0), 0).toFixed(2);
+      totalRow[`${col}_राशि`] = rows.reduce((sum, row) => sum + (parseFloat(row[`${col}_राशि`]) || 0), 0).toFixed(2);
     });
     totalRow['आवंटित मात्रा'] = rows.reduce((sum, row) => sum + (parseFloat(row['आवंटित मात्रा']) || 0), 0).toFixed(2);
     totalRow['कृषक धनराशि'] = rows.reduce((sum, row) => sum + (parseFloat(row['कृषक धनराशि']) || 0), 0).toFixed(2);
@@ -2526,16 +2541,32 @@ const MainDashboard = () => {
     totalRow['कुल राशि'] = rows.reduce((sum, row) => sum + (parseFloat(row['कुल राशि']) || 0), 0).toFixed(2);
     rows.push(totalRow);
 
-    const columns = [groupLabel, ...dynamicColumns, 'आवंटित मात्रा', 'कृषक धनराशि', 'सब्सिडी धनराशि', 'कुल राशि'];
+    // Create column structure with sub-columns for मात्रा and राशि
+    const columns = [
+      groupLabel, 
+      ...dynamicColumns.flatMap(col => [`${col}_मात्रा`, `${col}_राशि`]), 
+      'आवंटित मात्रा', 
+      'कृषक धनराशि', 
+      'सब्सिडी धनराशि', 
+      'कुल राशि'
+    ];
 
-    return { columns, data: rows };
+    // Return with column groups for rendering with dynamic राशि label
+    const rashiLabel = rashiType === 'कुल राशि' ? 'राशि' : rashiType;
+    const columnGroups = dynamicColumns.map(col => ({
+      name: col,
+      subColumns: [`${col}_मात्रा`, `${col}_राशि`],
+      rashiLabel: rashiLabel
+    }));
+
+    return { columns, data: rows, columnGroups, rashiType, rashiLabel };
   };
 
   // Generate Vidhan Sabha Investment table when summary is shown
   useEffect(() => {
     if (isFilterApplied && filteredTableData && filteredTableData.length > 0) {
       const schemeFilteredData = vidhanSabhaSchemeFilter.length > 0 ? filteredTableData.filter(item => vidhanSabhaSchemeFilter.includes(item.scheme_name)) : filteredTableData;
-      const table = generateVidhanSabhaInvestmentTable(schemeFilteredData, vidhanSabhaGrouping, vidhanSabhaColumnType);
+      const table = generateVidhanSabhaInvestmentTable(schemeFilteredData, vidhanSabhaGrouping, vidhanSabhaColumnType, vidhanSabhaRashiType);
       if (table) {
         const groupLabel = vidhanSabhaGrouping === 'center_name' ? 'केंद्र' : vidhanSabhaGrouping === 'vidhan_sabha_name' ? 'विधानसभा' : 'विकास खंड';
         const columnLabel = vidhanSabhaColumnType === 'investment_name' ? 'निवेश' : 'उप-निवेश';
@@ -2546,7 +2577,7 @@ const MainDashboard = () => {
           if (existingIndex !== -1) {
             // Update existing
             const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], heading, columns: table.columns, data: table.data, isRotated: isRotated[tableIndex] || false };
+            updated[existingIndex] = { ...updated[existingIndex], heading, columns: table.columns, data: table.data, columnGroups: table.columnGroups, rashiLabel: table.rashiLabel, isRotated: isRotated[tableIndex] || false };
             return updated;
           } else {
             // Add new
@@ -2555,6 +2586,8 @@ const MainDashboard = () => {
               heading,
               columns: table.columns,
               data: table.data,
+              columnGroups: table.columnGroups,
+              rashiLabel: table.rashiLabel,
               isAllocationTable: false,
               isRotated: isRotated[tableIndex] || false
             }];
@@ -2565,7 +2598,7 @@ const MainDashboard = () => {
       // Remove if no filters
       setAdditionalTables(prev => prev.filter(t => t.type !== 'vidhanSabhaInvestment'));
     }
-  }, [isFilterApplied, filteredTableData, vidhanSabhaGrouping, vidhanSabhaColumnType, vidhanSabhaSchemeFilter]);
+  }, [isFilterApplied, filteredTableData, vidhanSabhaGrouping, vidhanSabhaColumnType, vidhanSabhaSchemeFilter, vidhanSabhaRashiType]);
 
   // Generate dynamic summary heading based on applied filters
   const getSummaryHeading = () => {
@@ -5432,6 +5465,19 @@ const MainDashboard = () => {
       const displayLevels = levels.slice(selIndex);
       const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
       
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+      
       // Create a temporary hidden div with the table HTML
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
@@ -5454,6 +5500,39 @@ const MainDashboard = () => {
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
       
+      // Generate footer row with totals
+      const footerCells = [];
+      footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">कुल:</td>`);
+      // Add unique values for hierarchy columns (except the first one which has "कुल:")
+      const hierarchyColumns = [];
+      if (visible.showVidhansabha) hierarchyColumns.push('vidhan_sabha_name');
+      if (visible.showVikasKhand) hierarchyColumns.push('vikas_khand_name');
+      if (visible.showKendra) hierarchyColumns.push('center_name');
+      if (visible.showYojana) hierarchyColumns.push('scheme_name');
+      if (visible.showNivesh) hierarchyColumns.push('investment_name');
+      if (visible.showUpNivesh) hierarchyColumns.push('sub_investment_name');
+      
+      for (let i = 1; i < hierarchyColumns.length; i++) {
+        const col = hierarchyColumns[i];
+        const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
+        const displayValue = uniqueValues.join(', ');
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-family: Arial, sans-serif; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add numeric total cells
+      if (visible.showAllocated) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">${grandTotals.allocated_quantity}</td>`);
+      }
+      if (visible.showFarmer) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">₹${parseFloat(grandTotals.amount_of_farmer_share).toLocaleString()}</td>`);
+      }
+      if (visible.showSubsidy) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">₹${parseFloat(grandTotals.amount_of_subsidy).toLocaleString()}</td>`);
+      }
+      if (visible.showTotal) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">₹${parseFloat(grandTotals.total_amount).toLocaleString()}</td>`);
+      }
+      const footerRow = `<tr>${footerCells.join('')}</tr>`;
+      
       tempDiv.innerHTML = `
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; font-family: Arial, sans-serif;">
           <thead>
@@ -5464,6 +5543,9 @@ const MainDashboard = () => {
           <tbody>
             ${htmlRows}
           </tbody>
+          <tfoot>
+            ${footerRow}
+          </tfoot>
         </table>
       `;
       
@@ -5693,6 +5775,62 @@ const MainDashboard = () => {
         wsData.push(row);
       });
 
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+
+      // Add footer row with totals
+      const footerRow = new Array(numCols).fill('');
+      footerRow[0] = 'कुल:';
+      let colIdx = 0;
+      // Fill hierarchy columns with unique values
+      for (let li = 0; li < displayLevels.length; li++) {
+        const levelKey = displayLevels[li];
+        const showFlagKey = {
+          'vidhan_sabha_name': 'showVidhansabha',
+          'vikas_khand_name': 'showVikasKhand',
+          'center_name': 'showKendra',
+          'scheme_name': 'showYojana',
+          'investment_name': 'showNivesh',
+          'sub_investment_name': 'showUpNivesh'
+        }[levelKey];
+        if (visible[showFlagKey]) {
+          if (colIdx > 0) {
+            // Add unique values for non-first hierarchy columns
+            const uniqueValues = [...new Set(headerFilteredData.map((item) => item[levelKey]).filter(Boolean))];
+            footerRow[colIdx] = uniqueValues.join(', ');
+          }
+          colIdx++;
+        }
+      }
+      // Fill numeric totals
+      if (visible.showAllocated) {
+        footerRow[colIdx] = parseFloat(grandTotals.allocated_quantity);
+        colIdx++;
+      }
+      if (visible.showFarmer) {
+        footerRow[colIdx] = parseFloat(grandTotals.amount_of_farmer_share);
+        colIdx++;
+      }
+      if (visible.showSubsidy) {
+        footerRow[colIdx] = parseFloat(grandTotals.amount_of_subsidy);
+        colIdx++;
+      }
+      if (visible.showTotal) {
+        footerRow[colIdx] = parseFloat(grandTotals.total_amount);
+        colIdx++;
+      }
+      wsData.push(footerRow);
+
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       
       // Apply merges
@@ -5767,6 +5905,19 @@ const MainDashboard = () => {
       const displayLevels = levels.slice(selIndex);
       const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
 
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+
       // Generate HTML preview with proper rowspans
       const htmlRows = rowsWithSpans.map(rowCells => {
         const cellsHtml = rowCells.map(cell => {
@@ -5781,6 +5932,39 @@ const MainDashboard = () => {
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
 
+      // Generate footer row with totals
+      const footerCells = [];
+      footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">कुल:</td>`);
+      // Add unique values for hierarchy columns (except the first one which has "कुल:")
+      const hierarchyColumns = [];
+      if (visible.showVidhansabha) hierarchyColumns.push('vidhan_sabha_name');
+      if (visible.showVikasKhand) hierarchyColumns.push('vikas_khand_name');
+      if (visible.showKendra) hierarchyColumns.push('center_name');
+      if (visible.showYojana) hierarchyColumns.push('scheme_name');
+      if (visible.showNivesh) hierarchyColumns.push('investment_name');
+      if (visible.showUpNivesh) hierarchyColumns.push('sub_investment_name');
+      
+      for (let i = 1; i < hierarchyColumns.length; i++) {
+        const col = hierarchyColumns[i];
+        const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
+        const displayValue = uniqueValues.join(', ');
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add numeric total cells
+      if (visible.showAllocated) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${grandTotals.allocated_quantity}</td>`);
+      }
+      if (visible.showFarmer) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_farmer_share).toLocaleString()}</td>`);
+      }
+      if (visible.showSubsidy) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_subsidy).toLocaleString()}</td>`);
+      }
+      if (visible.showTotal) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.total_amount).toLocaleString()}</td>`);
+      }
+      const footerRow = `<tr>${footerCells.join('')}</tr>`;
+
       const htmlContent = `
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -5792,6 +5976,9 @@ const MainDashboard = () => {
             <tbody>
               ${htmlRows}
             </tbody>
+            <tfoot>
+              ${footerRow}
+            </tfoot>
           </table>
         </div>
       `;
@@ -5854,6 +6041,19 @@ const MainDashboard = () => {
       const displayLevels = levels.slice(selIndex);
       const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
 
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+
       // Generate HTML preview with proper rowspans
       const htmlRows = rowsWithSpans.map(rowCells => {
         const cellsHtml = rowCells.map(cell => {
@@ -5868,6 +6068,39 @@ const MainDashboard = () => {
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
 
+      // Generate footer row with totals
+      const footerCells = [];
+      footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">कुल:</td>`);
+      // Add unique values for hierarchy columns (except the first one which has "कुल:")
+      const hierarchyColumns = [];
+      if (visible.showVidhansabha) hierarchyColumns.push('vidhan_sabha_name');
+      if (visible.showVikasKhand) hierarchyColumns.push('vikas_khand_name');
+      if (visible.showKendra) hierarchyColumns.push('center_name');
+      if (visible.showYojana) hierarchyColumns.push('scheme_name');
+      if (visible.showNivesh) hierarchyColumns.push('investment_name');
+      if (visible.showUpNivesh) hierarchyColumns.push('sub_investment_name');
+      
+      for (let i = 1; i < hierarchyColumns.length; i++) {
+        const col = hierarchyColumns[i];
+        const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
+        const displayValue = uniqueValues.join(', ');
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add numeric total cells
+      if (visible.showAllocated) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${grandTotals.allocated_quantity}</td>`);
+      }
+      if (visible.showFarmer) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_farmer_share).toLocaleString()}</td>`);
+      }
+      if (visible.showSubsidy) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_subsidy).toLocaleString()}</td>`);
+      }
+      if (visible.showTotal) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.total_amount).toLocaleString()}</td>`);
+      }
+      const footerRow = `<tr>${footerCells.join('')}</tr>`;
+
       const htmlContent = `
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -5879,6 +6112,9 @@ const MainDashboard = () => {
             <tbody>
               ${htmlRows}
             </tbody>
+            <tfoot>
+              ${footerRow}
+            </tfoot>
           </table>
         </div>
       `;
@@ -6663,7 +6899,7 @@ const MainDashboard = () => {
 
     // Find the existing table
     const existingTable = tablesForExport[type].find(
-      (t) => t.id === existingTableId
+      (t) => t.id === existingTableId 
     );
     if (!existingTable) return;
 
@@ -9622,6 +9858,11 @@ const MainDashboard = () => {
                                                 onChange={(selected) => setVidhanSabhaSchemeFilter(selected ? selected.map(s => s.value) : [])}
                                                 placeholder="योजना चुनें"
                                               />
+                                              {vidhanSabhaSchemeFilter.length > 0 && (
+                                                <div className="mt-2">
+                                                  <small className="text-muted">चयनित योजनाएं: {vidhanSabhaSchemeFilter.join(', ')}</small>
+                                                </div>
+                                              )}
                                             </Form.Group>
                                           </div>
                                         )}
@@ -9630,11 +9871,6 @@ const MainDashboard = () => {
                                             <h5 className="mb-0">
                                               {table.heading}
                                             </h5>
-                                            {table.type === 'vidhanSabhaInvestment' && vidhanSabhaSchemeFilter.length > 0 && (
-                                              <div className="mt-1">
-                                                <small className="text-muted">चयनित योजनाएं: {vidhanSabhaSchemeFilter.join(', ')}</small>
-                                              </div>
-                                            )}
                                             {table.isAllocationTable && (
                                               <small className="text-muted ms-2">
                                                 ({(() => {
@@ -9649,29 +9885,59 @@ const MainDashboard = () => {
                                             )}
                                             {/* Grouping selector for Vidhan Sabha Investment Table */}
                                             {table.type === 'vidhanSabhaInvestment' && (
-                                              <div className="ms-3 d-flex gap-2">
-                                                <Form.Select
-                                                  size="sm"
-                                                  value={vidhanSabhaGrouping}
-                                                  onChange={(e) => setVidhanSabhaGrouping(e.target.value)}
-                                                  style={{ minWidth: '150px' }}
-                                                >
-                                                  <option value="center_name">केंद्र</option>
-                                                  <option value="vidhan_sabha_name">विधानसभा</option>
-                                                  <option value="vikas_khand_name">विकास खंड</option>
-                                                </Form.Select>
-                                                <Form.Select
-                                                  size="sm"
-                                                  value={vidhanSabhaColumnType}
-                                                  onChange={(e) => setVidhanSabhaColumnType(e.target.value)}
-                                                  style={{ minWidth: '150px' }}
-                                                >
-                                                  <option value="investment_name">निवेश</option>
-                                                  <option value="sub_investment_name">उप-निवेश</option>
-                                                </Form.Select>
+                                              <div className="ms-3 d-flex flex-column gap-2" style={{ minWidth: '500px' }}>
+                                                {/* First row - Dropdowns */}
+                                                <div className="d-flex gap-2 align-items-center">
+                                                  <Form.Select
+                                                    size="sm"
+                                                    value={vidhanSabhaGrouping}
+                                                    onChange={(e) => setVidhanSabhaGrouping(e.target.value)}
+                                                    style={{ width: '140px' }}
+                                                  >
+                                                    <option value="center_name">केंद्र</option>
+                                                    <option value="vidhan_sabha_name">विधानसभा</option>
+                                                    <option value="vikas_khand_name">विकास खंड</option>
+                                                  </Form.Select>
+                                                  <Form.Select
+                                                    size="sm"
+                                                    value={vidhanSabhaColumnType}
+                                                    onChange={(e) => setVidhanSabhaColumnType(e.target.value)}
+                                                    style={{ width: '140px' }}
+                                                  >
+                                                    <option value="investment_name">निवेश</option>
+                                                    <option value="sub_investment_name">उप-निवेश</option>
+                                                  </Form.Select>
+                                                  <Form.Select
+                                                    size="sm"
+                                                    value={vidhanSabhaRashiType}
+                                                    onChange={(e) => setVidhanSabhaRashiType(e.target.value)}
+                                                    style={{ width: '140px' }}
+                                                  >
+                                                    <option value="कुल राशि">कुल राशि</option>
+                                                    <option value="कृषक धनराशि">कृषक धनराशि</option>
+                                                    <option value="सब्सिडी धनराशि">सब्सिडी धनराशि</option>
+                                                  </Form.Select>
+                                                </div>
+                                                {/* Second row - Rotate button */}
+                                                <div className="d-flex gap-2 align-items-center">
+                                                  <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                      setIsRotated((prev) => {
+                                                        const newArr = [...prev];
+                                                        newArr[index] = !newArr[index];
+                                                        return newArr;
+                                                      })
+                                                    }
+                                                    style={{ width: '140px' }}
+                                                  >
+                                                    <i className="bi bi-arrow-repeat"></i> Rotate
+                                                  </Button>
+                                                </div>
                                               </div>
                                             )}
-                                            {table.type === 'vidhanSabhaInvestment' && (
+                                            {table.type === 'vidhanSabhaInvestment' && false && (
                                               <Button
                                                 variant="secondary"
                                                 size="sm"
@@ -9942,6 +10208,22 @@ const MainDashboard = () => {
                                             className="table-thead-style"
                                           >
                                             <thead className="table-thead">
+                                              {/* First row: Main column headers with colspan for grouped columns */}
+                                              {table.type === 'vidhanSabhaInvestment' && table.columnGroups && !isRotated[index] && (
+                                                <tr>
+                                                  <th rowSpan="2">{table.columns[0]}</th>
+                                                  {table.columnGroups.map((group, idx) => (
+                                                    <th key={idx} colSpan="2" style={{ textAlign: 'center' }}>
+                                                      {group.name}
+                                                    </th>
+                                                  ))}
+                                                  <th rowSpan="2">आवंटित मात्रा</th>
+                                                  <th rowSpan="2">कृषक धनराशि</th>
+                                                  <th rowSpan="2">सब्सिडी धनराशि</th>
+                                                  <th rowSpan="2">कुल राशि</th>
+                                                </tr>
+                                              )}
+                                              {/* Second row: Sub-column headers (मात्रा/राशि) or regular headers */}
                                               <tr>
                                                 {(() => {
                                                   const isTableRotated =
@@ -9958,6 +10240,19 @@ const MainDashboard = () => {
 
                                                     // All transposed columns are visible (no filtering after rotation)
                                                     const visibleTransposed = transposedTableColumns;
+
+                                                    // For Vidhan Sabha Investment table, add extra column header
+                                                    if (table.type === 'vidhanSabhaInvestment') {
+                                                      return (
+                                                        <>
+                                                          <th key={0}>{table.columns[0]}</th>
+                                                          <th key="type">मात्रा/राशि</th>
+                                                          {visibleTransposed.slice(1).map((col, idx) => (
+                                                            <th key={idx + 1}>{col}</th>
+                                                          ))}
+                                                        </>
+                                                      );
+                                                    }
 
                                                     return visibleTransposed.map((col, idx) => (
                                                       <th key={idx}>
@@ -9977,6 +10272,22 @@ const MainDashboard = () => {
                                                       </th>
                                                     ));
                                                   } else {
+                                                    // For Vidhan Sabha Investment table with column groups, show sub-headers
+                                                    if (table.type === 'vidhanSabhaInvestment' && table.columnGroups) {
+                                                      const rashiLabel = table.rashiLabel || 'राशि';
+                                                      return (
+                                                        <>
+                                                          {/* Skip first column as it has rowSpan=2 in first row */}
+                                                          {table.columnGroups.flatMap(group => [
+                                                            <th key={`${group.name}_मात्रा`} style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>मात्रा</th>,
+                                                            <th key={`${group.name}_राशि`} style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>{rashiLabel}</th>
+                                                          ])}
+                                                          {/* Total columns are handled by rowSpan=2 in first row, so skip them here */}
+                                                        </>
+                                                      );
+                                                    }
+                                                    
+                                                    // For regular tables, show normal headers
                                                     const visibleColumns =
                                                       tableColumnFilters
                                                         .additional[index] ||
@@ -9985,7 +10296,13 @@ const MainDashboard = () => {
                                                       (col, idx) => (
                                                         <th key={idx}>
                                                           {(() => {
-                                                            if (!table.isAllocationTable || col !== "आवंटित मात्रा") return col;
+                                                            if (!table.isAllocationTable || col !== "आवंटित मात्रा") {
+                                                              // For Vidhan Sabha table, extract display name from column key
+                                                              if (table.type === 'vidhanSabhaInvestment' && (col.endsWith('_मात्रा') || col.endsWith('_राशि'))) {
+                                                                return col.endsWith('_मात्रा') ? 'मात्रा' : 'राशि';
+                                                              }
+                                                              return col;
+                                                            }
                                                             const darSel = allocationTableToggles[index]?.dar;
                                                             const matraSel = allocationTableToggles[index]?.matra;
                                                             const ikaiSel = allocationTableToggles[index]?.ikai;
@@ -10081,14 +10398,97 @@ const MainDashboard = () => {
                                                   // Get the visible dynamic columns (non-summary columns) for calculating summary values
                                                   const visibleDynamicCols = visibleClickedCols.filter(col => !col.startsWith("कुल") && col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && col !== "सब्सिडी धनराशि");
 
-                                                  const transposedData = visibleClickedCols.map((col) => {
-                                                    const row = { [table.columns[0]]: col };
+                                                  // Special handling for Vidhan Sabha Investment table - split मात्रा and राशि into separate rows
+                                                  let transposedData = [];
+                                                  
+                                                  if (table.type === 'vidhanSabhaInvestment') {
+                                                    // Get the dynamic राशि label
+                                                    const rashiLabel = table.rashiLabel || 'राशि';
                                                     
-                                                    // Check if this is a summary column
-                                                    const isSummaryCol = col.startsWith("कुल") || col === "आवंटित मात्रा" || col === "कृषक धनराशि" || col === "सब्सिडी धनराशि";
+                                                    // Group columns by their base name (without _मात्रा or _राशि suffix)
+                                                    const columnPairs = new Map();
+                                                    visibleClickedCols.forEach(col => {
+                                                      if (col.endsWith('_मात्रा') || col.endsWith('_राशि')) {
+                                                        const baseName = col.replace(/_मात्रा$|_राशि$/, '');
+                                                        if (!columnPairs.has(baseName)) {
+                                                          columnPairs.set(baseName, { मात्रा: null, राशि: null });
+                                                        }
+                                                        if (col.endsWith('_मात्रा')) {
+                                                          columnPairs.get(baseName).मात्रा = col;
+                                                        } else {
+                                                          columnPairs.get(baseName).राशि = col;
+                                                        }
+                                                      }
+                                                    });
 
-                                                    // For each visible transposed column (i.e., visible original rows), map value
-                                                    visibleTransposed.forEach((newCol) => {
+                                                    // Create two rows for each column pair (one for मात्रा, one for राशि)
+                                                    columnPairs.forEach((pair, baseName) => {
+                                                      // मात्रा row
+                                                      if (pair.मात्रा) {
+                                                        const matraRow = { [table.columns[0]]: `${baseName}\nमात्रा`, _rowType: 'मात्रा', _baseName: baseName };
+                                                        visibleTransposed.forEach((newCol) => {
+                                                          if (newCol === table.columns[0] || newCol === "कुल") return;
+                                                          const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
+                                                          if (dataRow) {
+                                                            matraRow[newCol] = dataRow[pair.मात्रा] || "0";
+                                                          }
+                                                        });
+                                                        // Add total for मात्रा
+                                                        if (visibleTransposed.includes("कुल")) {
+                                                          const totalRow = table.data.find((r) => r[table.columns[0]] === "कुल");
+                                                          matraRow["कुल"] = totalRow ? (totalRow[pair.मात्रा] || "0") : "0";
+                                                        }
+                                                        transposedData.push(matraRow);
+                                                      }
+
+                                                      // राशि row - use dynamic rashiLabel
+                                                      if (pair.राशि) {
+                                                        const rashiRow = { [table.columns[0]]: `${baseName}\n${rashiLabel}`, _rowType: 'राशि', _baseName: baseName };
+                                                        visibleTransposed.forEach((newCol) => {
+                                                          if (newCol === table.columns[0] || newCol === "कुल") return;
+                                                          const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
+                                                          if (dataRow) {
+                                                            rashiRow[newCol] = dataRow[pair.राशि] || "0";
+                                                          }
+                                                        });
+                                                        // Add total for राशि
+                                                        if (visibleTransposed.includes("कुल")) {
+                                                          const totalRow = table.data.find((r) => r[table.columns[0]] === "कुल");
+                                                          rashiRow["कुल"] = totalRow ? (totalRow[pair.राशि] || "0") : "0";
+                                                        }
+                                                        transposedData.push(rashiRow);
+                                                      }
+                                                    });
+
+                                                    // Handle summary columns that don't have pairs
+                                                    visibleClickedCols.filter(col => 
+                                                      !col.endsWith('_मात्रा') && !col.endsWith('_राशि')
+                                                    ).forEach(col => {
+                                                      const row = { [table.columns[0]]: col };
+                                                      visibleTransposed.forEach((newCol) => {
+                                                        if (newCol === table.columns[0]) return;
+                                                        if (newCol === "कुल") {
+                                                          const totalRow = table.data.find((r) => r[table.columns[0]] === "कुल");
+                                                          row[newCol] = totalRow ? (totalRow[col] || "") : "";
+                                                        } else {
+                                                          const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
+                                                          if (dataRow) {
+                                                            row[newCol] = dataRow[col] || "";
+                                                          }
+                                                        }
+                                                      });
+                                                      transposedData.push(row);
+                                                    });
+                                                  } else {
+                                                    // Original logic for non-Vidhan Sabha tables
+                                                    transposedData = visibleClickedCols.map((col) => {
+                                                      const row = { [table.columns[0]]: col };
+                                                      
+                                                      // Check if this is a summary column
+                                                      const isSummaryCol = col.startsWith("कुल") || col === "आवंटित मात्रा" || col === "कृषक धनराशि" || col === "सब्सिडी धनराशि";
+
+                                                      // For each visible transposed column (i.e., visible original rows), map value
+                                                      visibleTransposed.forEach((newCol) => {
                                                       if (newCol === table.columns[0] || newCol === "कुल") return; // skip header label and total placeholder
                                                       const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
                                                       if (!dataRow) return;
@@ -10221,17 +10621,63 @@ const MainDashboard = () => {
 
                                                     return row;
                                                   });
-                                                  return transposedData.map((row, rowIndex) => (
-                                                    <tr key={rowIndex}>
-                                                      {(visibleTransposed || []).map((col, colIdx) => (
-                                                        <td key={colIdx}>
-                                                          {col === table.columns[0] 
-                                                            ? getDynamicColumnHeader(row[col], showMatra, showDar, table.isAllocationTable)
-                                                            : (row[col] !== undefined ? row[col] : "")}
-                                                        </td>
-                                                      ))}
-                                                    </tr>
-                                                  ));
+                                                  } // End of else block for non-Vidhan Sabha tables
+                                                  
+                                                  return transposedData.map((row, rowIndex) => {
+                                                    const isMatraRow = row._rowType === 'मात्रा';
+                                                    const isRashiRow = row._rowType === 'राशि';
+                                                    const baseName = row._baseName;
+                                                    
+                                                    return (
+                                                      <tr key={rowIndex} style={isRashiRow ? { borderBottom: '2px solid #dee2e6' } : {}}>
+                                                        {/* First column - row label */}
+                                                        {(() => {
+                                                          const label = row[table.columns[0]];
+                                                          
+                                                          if (table.type === 'vidhanSabhaInvestment') {
+                                                            if (isMatraRow || isRashiRow) {
+                                                              // Split rows with मात्रा/राशि
+                                                              const parts = label.split('\n');
+                                                              if (isMatraRow) {
+                                                                return (
+                                                                  <React.Fragment key="first-cols">
+                                                                    <td rowSpan="2" style={{ verticalAlign: 'middle' }}>
+                                                                      {parts[0]}
+                                                                    </td>
+                                                                    <td>{parts[1]}</td>
+                                                                  </React.Fragment>
+                                                                );
+                                                              } else {
+                                                                // राशि row - skip first column (rowspan), just show type
+                                                                return <td key="type-col">{parts[1]}</td>;
+                                                              }
+                                                            } else {
+                                                              // Summary rows (आवंटित मात्रा, etc.)
+                                                              return (
+                                                                <React.Fragment key="first-cols">
+                                                                  <td>{label}</td>
+                                                                  <td></td>
+                                                                </React.Fragment>
+                                                              );
+                                                            }
+                                                          } else {
+                                                            return (
+                                                              <td key="first-col">
+                                                                {getDynamicColumnHeader(label, showMatra, showDar, table.isAllocationTable)}
+                                                              </td>
+                                                            );
+                                                          }
+                                                        })()}
+                                                        
+                                                        {/* Data columns */}
+                                                        {visibleTransposed.slice(1).map((col, colIdx) => (
+                                                          <td key={colIdx}>
+                                                            {row[col] !== undefined ? row[col] : ""}
+                                                          </td>
+                                                        ))}
+                                                      </tr>
+                                                    );
+                                                  });
                                                 } else {
                                                   const visibleColumns =
                                                     tableColumnFilters
