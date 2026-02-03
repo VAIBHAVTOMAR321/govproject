@@ -306,12 +306,28 @@ label.reset-label{
 }
 
 .clear-btn-primary {
-  color: #fff;
-  background-color: #2196f3;
-  border-color: #2196f3;
-  font-size: 12px;
+  color: #fff ;
+  background-color: #2196f3 !important;
+  border-color: #2196f3 !important;
+  font-size: 12px !important;
 }
-
+.home-welcome-section h1{
+  font-size: 16px;
+  margin-top: 8px;
+  color: #0B488F;
+  font-weight: 700;
+}
+.home-welcome-section p{
+  font-size: 12px;
+  margin-top: 8px;
+  color: #0B488F;
+  font-weight: 700;
+}
+.table-th-heading th{
+color: #0B488F;
+font-weight: 700;
+}
+                                 
 .drop-option {
   background-color: #fff !important;
   color: #000 !important;
@@ -350,17 +366,17 @@ label.reset-label{
 }
 
 .btn-filter-submit {
-  font-size: 12px !important;
-  background-color: #822431;
-  border: 1px solid #822431;
-  padding: 2px 4px 0px 2px;
+  font-size: 8px !important;
+  background-color: #822431 !important;
+  border: 1px solid #822431 !important;
+  padding: 2px 4px 0px 2px !important;
 }
 
 .btn-filter-submit:hover {
-  font-size: 12px !important;
-  background-color: #0B488F;
-  border: 1px solid #0B488F;
-  padding: 2px 4px 0px 2px;
+  font-size: 8px !important;
+  background-color: #0B488F !important;
+  border: 1px solid #0B488F !important;
+  padding: 2px 4px 0px 2px !important;
 }
 .page-info{
   font-size: 12px !important;
@@ -450,19 +466,22 @@ label.reset-label{
   font-size: 10px !important;
 }
 
-.clear-btn-primary {
-  font-size: 12px !important;
-    padding: 2px 4px 0px 2px;
-}
+
 
 .clear-btn-primary:hover {
   color: #fff;
-  background-color: #0c83e2;
+  background-color: #0c83e2 !important;
   font-size: 12px !important;
-  border-color: #0c7cd5;
-    padding: 2px 4px 0px 2px;
+  border-color: #0c7cd5 !important;
+    padding: 2px 4px 0px 2px !important;
 }
-
+.bg-home{
+  background-color: #f4ede4;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dash-board{
+  background-color:#c9d4e7;
+}
 /* Print-safe: keep selection visible in print */
 @media print {
   .compact-detail-item {
