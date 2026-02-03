@@ -5432,6 +5432,19 @@ const MainDashboard = () => {
       const displayLevels = levels.slice(selIndex);
       const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
       
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+      
       // Create a temporary hidden div with the table HTML
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
@@ -5454,6 +5467,39 @@ const MainDashboard = () => {
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
       
+      // Generate footer row with totals
+      const footerCells = [];
+      footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">कुल:</td>`);
+      // Add unique values for hierarchy columns (except the first one which has "कुल:")
+      const hierarchyColumns = [];
+      if (visible.showVidhansabha) hierarchyColumns.push('vidhan_sabha_name');
+      if (visible.showVikasKhand) hierarchyColumns.push('vikas_khand_name');
+      if (visible.showKendra) hierarchyColumns.push('center_name');
+      if (visible.showYojana) hierarchyColumns.push('scheme_name');
+      if (visible.showNivesh) hierarchyColumns.push('investment_name');
+      if (visible.showUpNivesh) hierarchyColumns.push('sub_investment_name');
+      
+      for (let i = 1; i < hierarchyColumns.length; i++) {
+        const col = hierarchyColumns[i];
+        const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
+        const displayValue = uniqueValues.join(', ');
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-family: Arial, sans-serif; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add numeric total cells
+      if (visible.showAllocated) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">${grandTotals.allocated_quantity}</td>`);
+      }
+      if (visible.showFarmer) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">₹${parseFloat(grandTotals.amount_of_farmer_share).toLocaleString()}</td>`);
+      }
+      if (visible.showSubsidy) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">₹${parseFloat(grandTotals.amount_of_subsidy).toLocaleString()}</td>`);
+      }
+      if (visible.showTotal) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">₹${parseFloat(grandTotals.total_amount).toLocaleString()}</td>`);
+      }
+      const footerRow = `<tr>${footerCells.join('')}</tr>`;
+      
       tempDiv.innerHTML = `
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; font-family: Arial, sans-serif;">
           <thead>
@@ -5464,6 +5510,9 @@ const MainDashboard = () => {
           <tbody>
             ${htmlRows}
           </tbody>
+          <tfoot>
+            ${footerRow}
+          </tfoot>
         </table>
       `;
       
@@ -5693,6 +5742,62 @@ const MainDashboard = () => {
         wsData.push(row);
       });
 
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+
+      // Add footer row with totals
+      const footerRow = new Array(numCols).fill('');
+      footerRow[0] = 'कुल:';
+      let colIdx = 0;
+      // Fill hierarchy columns with unique values
+      for (let li = 0; li < displayLevels.length; li++) {
+        const levelKey = displayLevels[li];
+        const showFlagKey = {
+          'vidhan_sabha_name': 'showVidhansabha',
+          'vikas_khand_name': 'showVikasKhand',
+          'center_name': 'showKendra',
+          'scheme_name': 'showYojana',
+          'investment_name': 'showNivesh',
+          'sub_investment_name': 'showUpNivesh'
+        }[levelKey];
+        if (visible[showFlagKey]) {
+          if (colIdx > 0) {
+            // Add unique values for non-first hierarchy columns
+            const uniqueValues = [...new Set(headerFilteredData.map((item) => item[levelKey]).filter(Boolean))];
+            footerRow[colIdx] = uniqueValues.join(', ');
+          }
+          colIdx++;
+        }
+      }
+      // Fill numeric totals
+      if (visible.showAllocated) {
+        footerRow[colIdx] = parseFloat(grandTotals.allocated_quantity);
+        colIdx++;
+      }
+      if (visible.showFarmer) {
+        footerRow[colIdx] = parseFloat(grandTotals.amount_of_farmer_share);
+        colIdx++;
+      }
+      if (visible.showSubsidy) {
+        footerRow[colIdx] = parseFloat(grandTotals.amount_of_subsidy);
+        colIdx++;
+      }
+      if (visible.showTotal) {
+        footerRow[colIdx] = parseFloat(grandTotals.total_amount);
+        colIdx++;
+      }
+      wsData.push(footerRow);
+
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       
       // Apply merges
@@ -5767,6 +5872,19 @@ const MainDashboard = () => {
       const displayLevels = levels.slice(selIndex);
       const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
 
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+
       // Generate HTML preview with proper rowspans
       const htmlRows = rowsWithSpans.map(rowCells => {
         const cellsHtml = rowCells.map(cell => {
@@ -5781,6 +5899,39 @@ const MainDashboard = () => {
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
 
+      // Generate footer row with totals
+      const footerCells = [];
+      footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">कुल:</td>`);
+      // Add unique values for hierarchy columns (except the first one which has "कुल:")
+      const hierarchyColumns = [];
+      if (visible.showVidhansabha) hierarchyColumns.push('vidhan_sabha_name');
+      if (visible.showVikasKhand) hierarchyColumns.push('vikas_khand_name');
+      if (visible.showKendra) hierarchyColumns.push('center_name');
+      if (visible.showYojana) hierarchyColumns.push('scheme_name');
+      if (visible.showNivesh) hierarchyColumns.push('investment_name');
+      if (visible.showUpNivesh) hierarchyColumns.push('sub_investment_name');
+      
+      for (let i = 1; i < hierarchyColumns.length; i++) {
+        const col = hierarchyColumns[i];
+        const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
+        const displayValue = uniqueValues.join(', ');
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add numeric total cells
+      if (visible.showAllocated) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${grandTotals.allocated_quantity}</td>`);
+      }
+      if (visible.showFarmer) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_farmer_share).toLocaleString()}</td>`);
+      }
+      if (visible.showSubsidy) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_subsidy).toLocaleString()}</td>`);
+      }
+      if (visible.showTotal) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.total_amount).toLocaleString()}</td>`);
+      }
+      const footerRow = `<tr>${footerCells.join('')}</tr>`;
+
       const htmlContent = `
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -5792,6 +5943,9 @@ const MainDashboard = () => {
             <tbody>
               ${htmlRows}
             </tbody>
+            <tfoot>
+              ${footerRow}
+            </tfoot>
           </table>
         </div>
       `;
@@ -5854,6 +6008,19 @@ const MainDashboard = () => {
       const displayLevels = levels.slice(selIndex);
       const rowsWithSpans = flattenHierarchyWithRowspans(hierarchy, visible, displayLevels, numericDisplayLevel || selectedHierarchyLevel);
 
+      // Calculate grand totals for footer
+      const grandTotals = {
+        allocated_quantity: headerFilteredData.reduce((sum, item) => {
+          const qtyVal = typeof item.allocated_quantity === "string" && item.allocated_quantity.includes(" / ")
+            ? parseFloat(item.allocated_quantity.split(" / ")[0]) || 0
+            : parseFloat(item.allocated_quantity) || 0;
+          return sum + qtyVal;
+        }, 0).toFixed(2),
+        amount_of_farmer_share: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0), 0).toFixed(2),
+        amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
+        total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
+      };
+
       // Generate HTML preview with proper rowspans
       const htmlRows = rowsWithSpans.map(rowCells => {
         const cellsHtml = rowCells.map(cell => {
@@ -5868,6 +6035,39 @@ const MainDashboard = () => {
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
 
+      // Generate footer row with totals
+      const footerCells = [];
+      footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">कुल:</td>`);
+      // Add unique values for hierarchy columns (except the first one which has "कुल:")
+      const hierarchyColumns = [];
+      if (visible.showVidhansabha) hierarchyColumns.push('vidhan_sabha_name');
+      if (visible.showVikasKhand) hierarchyColumns.push('vikas_khand_name');
+      if (visible.showKendra) hierarchyColumns.push('center_name');
+      if (visible.showYojana) hierarchyColumns.push('scheme_name');
+      if (visible.showNivesh) hierarchyColumns.push('investment_name');
+      if (visible.showUpNivesh) hierarchyColumns.push('sub_investment_name');
+      
+      for (let i = 1; i < hierarchyColumns.length; i++) {
+        const col = hierarchyColumns[i];
+        const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
+        const displayValue = uniqueValues.join(', ');
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add numeric total cells
+      if (visible.showAllocated) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${grandTotals.allocated_quantity}</td>`);
+      }
+      if (visible.showFarmer) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_farmer_share).toLocaleString()}</td>`);
+      }
+      if (visible.showSubsidy) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.amount_of_subsidy).toLocaleString()}</td>`);
+      }
+      if (visible.showTotal) {
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">₹${parseFloat(grandTotals.total_amount).toLocaleString()}</td>`);
+      }
+      const footerRow = `<tr>${footerCells.join('')}</tr>`;
+
       const htmlContent = `
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -5879,6 +6079,9 @@ const MainDashboard = () => {
             <tbody>
               ${htmlRows}
             </tbody>
+            <tfoot>
+              ${footerRow}
+            </tfoot>
           </table>
         </div>
       `;
