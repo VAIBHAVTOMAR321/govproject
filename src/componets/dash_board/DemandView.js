@@ -685,7 +685,7 @@ const DemandView = () => {
   return (
     <>
       <DashBoardHeader />
-      <Container fluid className="py-4">
+      <Container fluid className="py-4 bg-home">
         <Row className="mb-4">
           <Col>
             <div className="d-flex justify-content-between align-items-center">

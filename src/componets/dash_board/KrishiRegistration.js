@@ -1954,7 +1954,7 @@ const handleDelete = async (item) => {
           </Col> */}
 
           <Col lg={12} md={12} sm={12}>
-            <Container fluid className="dashboard-body-main">
+            <Container fluid className="dashboard-body-main bg-home">
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Bulk Upload Section */}
