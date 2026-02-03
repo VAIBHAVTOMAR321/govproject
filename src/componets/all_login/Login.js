@@ -333,11 +333,11 @@ export default function Login() {
                             label="मुझे याद रखें"
                             className="remember-me"
                           />
-                          <p className="mb-0">
+                          {/* <p className="mb-0">
                             <Link to="/ForgotPassword" className="text-decoration-none">
                               पासवर्ड भूल गए?
                             </Link>
-                          </p>
+                          </p> */}
                         </div>
                         <div className="text-center">
                           <Button 
