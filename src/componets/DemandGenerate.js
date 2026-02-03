@@ -207,7 +207,7 @@ const DemandGenerate = () => {
                 <Table bordered striped hover responsive>
                   <thead>
                     <tr>
-                      <th>Demand ID</th>
+                      <th>S.No.</th>
                       <th>उपनिवेश</th>
                       <th>आवंटित मात्रा</th>
                       <th>दर</th>
@@ -218,7 +218,7 @@ const DemandGenerate = () => {
                   </thead>
                   <tbody>
                     {demands.length > 0 ? (
-                      demands.map(d => {
+                      demands.map((d, index) => {
                         const demandedQty = getDemandedQuantity(d.demand_id);
                         const isEditing = editingId === d.demand_id;
                         
@@ -229,7 +229,7 @@ const DemandGenerate = () => {
                         
                         return (
                           <tr key={d.id}>
-                            <td>{d.demand_id}</td>
+                            <td>{index + 1}</td>
                             <td>{d.sub_investment_name}</td>
                             <td>{d.allocated_quantity}</td>
                             <td>{d.rate}</td>
