@@ -1076,9 +1076,9 @@ const AllBills = () => {
                   <Row className="mb-3">
                     <Col
                       md={12}
-                      className="d-flex justify-content-between align-items-center"
+                      className="d-flex justify-content-between align-items-center main-table"
                     >
-                      <h5 className="mb-0 small-fonts">
+                      <h5 className="mb-0 ">
                         {translations.filters}
                       </h5>
                       {(filters.center_name.length > 0 ||
@@ -1101,7 +1101,7 @@ const AllBills = () => {
                   <Row>
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
+                        <FormLabel className="form-label">
                           {translations.centerName}
                         </FormLabel>
                         <Select
@@ -1125,7 +1125,7 @@ const AllBills = () => {
 
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
+                        <FormLabel className="form-label">
                           {translations.billId}
                         </FormLabel>
                         <Select
@@ -1147,7 +1147,7 @@ const AllBills = () => {
 
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
+                        <FormLabel className="form-label">
                           {translations.status}
                         </FormLabel>
                         <Select
@@ -1171,7 +1171,7 @@ const AllBills = () => {
                   <Row>
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
+                        <FormLabel className="form-label">
                           From Date
                         </FormLabel>
                         <input
@@ -1187,7 +1187,7 @@ const AllBills = () => {
 
                     <Col xs={12} sm={6} md={3} className="mb-2">
                       <FormGroup>
-                        <FormLabel className="small-fonts fw-bold">
+                        <FormLabel className="form-label">
                           To Date
                         </FormLabel>
                         <input
@@ -1283,7 +1283,7 @@ const AllBills = () => {
                               </Button>
                             </div>
                             <table className="responsive-table small-fonts">
-                              <thead>
+                              <thead className="table-thead">
                                 <tr>
                                   {selectedColumns.map((col) => (
                                     <th key={col}>

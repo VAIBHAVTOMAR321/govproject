@@ -234,9 +234,14 @@ padding: 6px 6px !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e9ecef;
 }
+.bg-home h1{
+  font-size: 14px !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
 
+}
 .filter-section h5 {
-  color: #495057;
+  color: #006edc;
   font-weight: 600;
   margin-bottom: 15px;
   display: flex;

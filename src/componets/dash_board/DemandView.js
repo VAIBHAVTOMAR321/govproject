@@ -746,8 +746,8 @@ const DemandView = () => {
                   <>
                     {filteredDemands.length > 0 ? (
                       <div style={{ maxHeight: '400px', overflowY: 'auto' }} ref={demandsTableRef}>
-                        <Table striped bordered hover responsive className="mb-0">
-                          <thead>
+                        <Table striped bordered hover responsive className="mb-0 table-thead-style">
+                          <thead className='table-thead'>
                             <tr>
                                <th>S.No.</th>
                               <th>उप निवेश नाम</th>
@@ -835,7 +835,7 @@ const DemandView = () => {
                          <Form.Select
                             multiple
                             value={selectedCenters}
-                            style={{ height: '120px', cursor: 'pointer' }}
+                            style={{ height: '120px', cursor: 'pointer', fontSize: '12px'  }}
                             onMouseDown={(e) => {
                               e.preventDefault();
                               const value = e.target.value;
@@ -862,7 +862,7 @@ const DemandView = () => {
                         <Form.Select
   multiple
   value={selectedSubInvestments}
-  style={{ height: '120px', cursor: 'pointer' }}
+  style={{ height: '120px', cursor: 'pointer', fontSize: '12px'  }}
   onMouseDown={(e) => {
     e.preventDefault();
     const value = e.target.value;
@@ -905,8 +905,8 @@ const DemandView = () => {
                   <Alert variant="danger">{centerError}</Alert>
                 ) : filteredCenterDemands?.length > 0 ? (
                   <div style={{ maxHeight: '450px', overflowY: 'auto' }} ref={centerDemandsTableRef}>
-                    <Table striped bordered hover responsive>
-                      <thead>
+                    <Table striped bordered hover responsive className='table-thead-style'>
+                      <thead className='table-thead'>
                         <tr>
                           <th>S.No.</th>
                           <th>सेंटर नाम</th>
