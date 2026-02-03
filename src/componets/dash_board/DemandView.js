@@ -366,14 +366,16 @@ const DemandView = () => {
   
   // Export demands table to Excel
   const exportDemandsToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredDemands.map(demand => ({
+    // Create a new array with the exact structure as displayed in the table
+    const exportData = filteredDemands.map((demand, index) => ({
+      'S.No.': index + 1,
       'उप निवेश नाम': demand.sub_investment_name,
       'आवंटित मात्रा': demand.allocated_quantity,
       'इकाई': demand.unit,
-      'दर': demand.rate,
-      'कुल राशि': demand.amount || (demand.allocated_quantity * demand.rate)
-    })));
+      'दर': demand.rate
+    }));
     
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "डिमांड रिकॉर्ड्स");
     
@@ -396,31 +398,42 @@ const DemandView = () => {
   
   // Export center demands table to Excel
   const exportCenterDemandsToExcel = () => {
-    // Prepare data for export
+    // Group demands by center
+    const groupedByCenter = {};
+    filteredCenterDemands.forEach(item => {
+      if (!groupedByCenter[item.center_name]) {
+        groupedByCenter[item.center_name] = [];
+      }
+      groupedByCenter[item.center_name].push(item);
+    });
+
+    // Create a new array with the exact structure as displayed in the table
     const exportData = [];
-    let totalAmount = 0;
-    
-    centerDemands.forEach(item => {
-      const amount = item.demanded_quantity * (item?.demand?.rate || 0);
-      totalAmount += amount;
-      exportData.push({
-        'सेंटर नाम': item.center_name,
-        'उप-निवेश नाम': item?.demand?.sub_investment_name,
-        'इकाई': item?.demand?.unit,
-        'मांगी गई मात्रा': item.demanded_quantity,
-        'दर': item?.demand?.rate,
-        'कुल राशि': amount
+    let sNo = 1;
+
+    Object.keys(groupedByCenter).forEach(centerName => {
+      groupedByCenter[centerName].forEach((item, index) => {
+        exportData.push({
+          'S.No.': index === 0 ? sNo++ : '',
+          'सेंटर नाम': index === 0 ? item.center_name : '',
+          'उप-निवेश नाम': item?.demand?.sub_investment_name || '',
+          'इकाई': item?.demand?.unit || '',
+          'मांगी गई मात्रा': item.demanded_quantity,
+          'दर': item?.demand?.rate || 0,
+          'कुल राशि': (item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)
+        });
       });
     });
-    
+
     // Add total row
     exportData.push({
+      'S.No.': '',
       'सेंटर नाम': 'कुल',
       'उप-निवेश नाम': '',
       'इकाई': '',
-      'मांगी गई मात्रा': '',
+      'मांगी गई मात्रा': filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2),
       'दर': '',
-      'कुल राशि': totalAmount
+      'कुल राशि': filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0).toFixed(2)
     });
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -446,13 +459,6 @@ const DemandView = () => {
 
   // Export demands table to PDF
   const exportDemandsToPDF = () => {
-    const element = demandsTableRef.current;
-    if (!element) return;
-
-    // Hide action column before generating PDF
-    const actionColumns = element.querySelectorAll('th:nth-child(5), td:nth-child(5)');
-    actionColumns.forEach(col => col.style.display = 'none');
-
     // Create a wrapper element with proper table styling for PDF
     const wrapper = document.createElement('div');
     wrapper.style.padding = '20px';
@@ -465,31 +471,60 @@ const DemandView = () => {
     title.style.marginBottom = '20px';
     wrapper.appendChild(title);
 
-    // Clone the table with styles
-    const tableClone = element.cloneNode(true);
-    
-    // Ensure table has proper borders
-    const table = tableClone.querySelector('table');
+    // Create a new table without the action column
+    const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
     
-    // Style all cells
-    const allCells = table.querySelectorAll('th, td');
-    allCells.forEach(cell => {
-      cell.style.border = '1px solid #000';
-      cell.style.padding = '8px';
-      cell.style.textAlign = 'left';
+    // Create table header
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    // Add headers
+    const headers = ['S.No.', 'उप निवेश नाम', 'आवंटित मात्रा', 'इकाई', 'दर'];
+    headers.forEach(headerText => {
+      const th = document.createElement('th');
+      th.textContent = headerText;
+      th.style.border = '1px solid #000';
+      th.style.padding = '8px';
+      th.style.backgroundColor = '#f0f0f0';
+      th.style.fontWeight = 'bold';
+      th.style.textAlign = 'center';
+      headerRow.appendChild(th);
     });
     
-    // Style table headers
-    const headers = table.querySelectorAll('th');
-    headers.forEach(header => {
-      header.style.backgroundColor = '#f0f0f0';
-      header.style.fontWeight = 'bold';
-      header.style.textAlign = 'center';
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Create table body
+    const tbody = document.createElement('tbody');
+    
+    filteredDemands.forEach((demand, index) => {
+      const row = document.createElement('tr');
+      
+      // Add cells
+      const cellData = [
+        index + 1,
+        demand.sub_investment_name,
+        demand.allocated_quantity,
+        demand.unit,
+        demand.rate
+      ];
+      
+      cellData.forEach(cellText => {
+        const td = document.createElement('td');
+        td.textContent = cellText;
+        td.style.border = '1px solid #000';
+        td.style.padding = '8px';
+        td.style.textAlign = 'left';
+        row.appendChild(td);
+      });
+      
+      tbody.appendChild(row);
     });
-
-    wrapper.appendChild(tableClone);
+    
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
 
     const opt = {
       margin: 10,
@@ -499,17 +534,11 @@ const DemandView = () => {
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(wrapper).save().then(() => {
-      // Show action column again
-      actionColumns.forEach(col => col.style.display = 'table-cell');
-    });
+    html2pdf().set(opt).from(wrapper).save();
   };
 
   // Export center demands table to PDF
   const exportCenterDemandsToPDF = () => {
-    const element = centerDemandsTableRef.current;
-    if (!element) return;
-
     // Create a wrapper element with proper table styling for PDF
     const wrapper = document.createElement('div');
     wrapper.style.padding = '20px';
@@ -522,31 +551,125 @@ const DemandView = () => {
     title.style.marginBottom = '20px';
     wrapper.appendChild(title);
 
-    // Clone the table with styles
-    const tableClone = element.cloneNode(true);
-    
-    // Ensure table has proper borders
-    const table = tableClone.querySelector('table');
+    // Create a new table
+    const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
     
-    // Style all cells
-    const allCells = table.querySelectorAll('th, td');
-    allCells.forEach(cell => {
-      cell.style.border = '1px solid #000';
-      cell.style.padding = '8px';
-      cell.style.textAlign = 'left';
+    // Create table header
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    // Add headers
+    const headers = ['S.No.', 'सेंटर नाम', 'उप-निवेश नाम', 'इकाई', 'मांगी गई मात्रा', 'दर', 'कुल राशि'];
+    headers.forEach(headerText => {
+      const th = document.createElement('th');
+      th.textContent = headerText;
+      th.style.border = '1px solid #000';
+      th.style.padding = '8px';
+      th.style.backgroundColor = '#f0f0f0';
+      th.style.fontWeight = 'bold';
+      th.style.textAlign = 'center';
+      headerRow.appendChild(th);
     });
     
-    // Style table headers
-    const headers = table.querySelectorAll('th');
-    headers.forEach(header => {
-      header.style.backgroundColor = '#f0f0f0';
-      header.style.fontWeight = 'bold';
-      header.style.textAlign = 'center';
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Create table body
+    const tbody = document.createElement('tbody');
+    
+    // Group demands by center
+    const groupedByCenter = {};
+    filteredCenterDemands.forEach(item => {
+      if (!groupedByCenter[item.center_name]) {
+        groupedByCenter[item.center_name] = [];
+      }
+      groupedByCenter[item.center_name].push(item);
     });
 
-    wrapper.appendChild(tableClone);
+    let sNo = 1;
+    
+    Object.keys(groupedByCenter).forEach(centerName => {
+      groupedByCenter[centerName].forEach((item, index) => {
+        const row = document.createElement('tr');
+        
+        // S.No. - only for first row of each center
+        const sNoCell = document.createElement('td');
+        sNoCell.textContent = index === 0 ? sNo++ : '';
+        sNoCell.style.border = '1px solid #000';
+        sNoCell.style.padding = '8px';
+        sNoCell.style.textAlign = 'left';
+        row.appendChild(sNoCell);
+        
+        // Center name - only for first row of each center
+        const centerCell = document.createElement('td');
+        centerCell.textContent = index === 0 ? item.center_name : '';
+        centerCell.style.border = '1px solid #000';
+        centerCell.style.padding = '8px';
+        centerCell.style.textAlign = 'left';
+        row.appendChild(centerCell);
+        
+        // Other cells
+        const cellData = [
+          item?.demand?.sub_investment_name || '',
+          item?.demand?.unit || '',
+          item.demanded_quantity,
+          item?.demand?.rate || 0,
+          (item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)
+        ];
+        
+        cellData.forEach(cellText => {
+          const td = document.createElement('td');
+          td.textContent = cellText;
+          td.style.border = '1px solid #000';
+          td.style.padding = '8px';
+          td.style.textAlign = 'left';
+          row.appendChild(td);
+        });
+        
+        tbody.appendChild(row);
+      });
+    });
+    
+    // Add total row
+    const totalRow = document.createElement('tr');
+    totalRow.style.fontWeight = 'bold';
+    totalRow.style.backgroundColor = '#f8f9fa';
+    
+    // Empty cells for first 4 columns
+    for (let i = 0; i < 4; i++) {
+      const td = document.createElement('td');
+      td.textContent = i === 0 ? 'कुल' : '';
+      td.style.border = '1px solid #000';
+      td.style.padding = '8px';
+      totalRow.appendChild(td);
+    }
+    
+    // Total quantity
+    const totalQuantityCell = document.createElement('td');
+    totalQuantityCell.textContent = filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2);
+    totalQuantityCell.style.border = '1px solid #000';
+    totalQuantityCell.style.padding = '8px';
+    totalRow.appendChild(totalQuantityCell);
+    
+    // Empty cell for rate
+    const emptyRateCell = document.createElement('td');
+    emptyRateCell.textContent = '';
+    emptyRateCell.style.border = '1px solid #000';
+    emptyRateCell.style.padding = '8px';
+    totalRow.appendChild(emptyRateCell);
+    
+    // Total amount
+    const totalAmountCell = document.createElement('td');
+    totalAmountCell.textContent = filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0).toFixed(2);
+    totalAmountCell.style.border = '1px solid #000';
+    totalAmountCell.style.padding = '8px';
+    totalRow.appendChild(totalAmountCell);
+    
+    tbody.appendChild(totalRow);
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
 
     const opt = {
       margin: 10,
@@ -562,7 +685,7 @@ const DemandView = () => {
   return (
     <>
       <DashBoardHeader />
-      <Container fluid className="py-4">
+      <Container fluid className="py-4 bg-home">
         <Row className="mb-4">
           <Col>
             <div className="d-flex justify-content-between align-items-center">
@@ -597,17 +720,17 @@ const DemandView = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Button style={{marginLeft: '10px'}}
+                    <Button style={{marginLeft: '10px', fontSize: '10px'}}
                     variant="primary"
                     onClick={() => setShowAddModal(true)}
                   >
                     <RiAddLine /> नई डिमांड जोड़ें
                   </Button>
                   </InputGroup>
-                  <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportDemandsToExcel}>
+                  <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px'}} onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white'}} onClick={exportDemandsToPDF}>
+                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white', fontSize: '10px'}} onClick={exportDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
@@ -626,6 +749,7 @@ const DemandView = () => {
                         <Table striped bordered hover responsive className="mb-0">
                           <thead>
                             <tr>
+                               <th>S.No.</th>
                               <th>उप निवेश नाम</th>
                               <th>आवंटित मात्रा</th>
                               <th>इकाई</th>
@@ -634,8 +758,9 @@ const DemandView = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredDemands.map((demand) => (
+                            {filteredDemands.map((demand,index) => (
                               <tr key={demand.id}>
+                                <td>{index + 1}</td>
                                 <td>{demand.sub_investment_name}</td>
                                 <td>{demand.allocated_quantity}</td>
                                 <td>{demand.unit}</td>
@@ -692,10 +817,10 @@ const DemandView = () => {
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
                 <div className="d-flex gap-2">
   
-                  <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white'}} onClick={exportCenterDemandsToExcel}>
+                  <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
-                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white'}} onClick={exportCenterDemandsToPDF}>
+                  <Button variant="outline-danger" style={{backgroundColor: '#dc3545', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToPDF}>
                     <RiFilePdfLine /> PDF निर्यात करें
                   </Button>
                 </div>
@@ -783,6 +908,7 @@ const DemandView = () => {
                     <Table striped bordered hover responsive>
                       <thead>
                         <tr>
+                          <th>S.No.</th>
                           <th>सेंटर नाम</th>
                           <th>उप-निवेश नाम</th>
                           <th>इकाई</th>
@@ -792,36 +918,47 @@ const DemandView = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.values(
-                          filteredCenterDemands.reduce((acc, item) => {
-                            if (!acc[item.center_name]) acc[item.center_name] = [];
-                            acc[item.center_name].push(item);
-                            return acc;
-                          }, {})
-                        ).map((centerItems) =>
-                          centerItems.map((item, idx) => (
-                            <tr key={item.id}>
-                              {idx === 0 && (
-                                <td rowSpan={centerItems.length}>
-                                  {item.center_name || '-'}
-                                </td>
-                              )}
-                              <td>{item?.demand?.sub_investment_name || '-'}</td>
-                              <td>{item?.demand?.unit || '-'}</td>
-                              <td>{item.demanded_quantity ?? '-'}</td>
-                              <td>{item?.demand?.rate ?? '-'}</td>
-                              <td>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</td>
-                            </tr>
-                          ))
-                        )}
-                        {/* Total Row */}
-                        <tr style={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}>
-                          <td colSpan={3}>कुल</td>
-                          <td>{(filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0)).toFixed(2)}</td>
-                          <td></td>
-                          <td>{(filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0)).toFixed(2)}</td>
-                        </tr>
-                      </tbody>
+  {(() => {
+    let serial = 1; // global serial number per center
+    return Object.values(
+      filteredCenterDemands.reduce((acc, item) => {
+        if (!acc[item.center_name]) acc[item.center_name] = [];
+        acc[item.center_name].push(item);
+        return acc;
+      }, {})
+    ).map((centerItems) =>
+      centerItems.map((item, idx) => (
+        <tr key={item.id}>
+          {/* S.No only for the first row of the center */}
+          {idx === 0 && (
+            <td rowSpan={centerItems.length}>{serial++}</td>
+          )}
+
+          {/* Center name with rowSpan */}
+          {idx === 0 && (
+            <td rowSpan={centerItems.length}>
+              {item.center_name || '-'}
+            </td>
+          )}
+
+          <td>{item?.demand?.sub_investment_name || '-'}</td>
+          <td>{item?.demand?.unit || '-'}</td>
+          <td>{item.demanded_quantity ?? '-'}</td>
+          <td>{item?.demand?.rate ?? '-'}</td>
+          <td>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</td>
+        </tr>
+      ))
+    );
+  })()}
+
+  {/* Total Row */}
+  <tr style={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}>
+    <td colSpan={4}>कुल</td>
+    <td>{(filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0)).toFixed(2)}</td>
+    <td></td>
+    <td>{(filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0)).toFixed(2)}</td>
+  </tr>
+</tbody>
                     </Table>
                   </div>
                 ) : (
@@ -898,7 +1035,7 @@ const DemandView = () => {
           <Button variant="primary" onClick={handleAddDemand} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Spinner as="span" animation="border" size="sm" />ज
+                <Spinner as="span" animation="border" size="sm" />
                 <span className="ms-2">जोड़ा जा रहा है...</span>
               </>
             ) : (

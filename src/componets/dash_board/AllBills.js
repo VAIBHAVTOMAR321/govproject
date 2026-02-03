@@ -1020,7 +1020,7 @@ const AllBills = () => {
             </Col> */}
 
             <Col lg={12} md={12} sm={10}>
-              <Container fluid className="dashboard-body-main">
+              <Container fluid className="dashboard-body-main bg-home">
                 <h1 className="page-title small-fonts">
                   {translations.allBills}
                 </h1>

@@ -1540,7 +1540,7 @@ const Registration = () => {
 
   return (
     <div>
-      <Container fluid className="p-4">
+      <Container fluid className="p-4 ">
         <Row>
           <Col lg={12} md={12} sm={12}>
             <DashBoardHeader />
@@ -1549,7 +1549,7 @@ const Registration = () => {
 
         <Row className="left-top">
           <Col lg={12} md={12} sm={10}>
-            <Container fluid className="dashboard-body-main">
+            <Container fluid className="dashboard-body-main bg-home">
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Bulk Upload Section */}
