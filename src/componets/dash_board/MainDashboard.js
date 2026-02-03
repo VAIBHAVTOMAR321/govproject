@@ -5895,169 +5895,90 @@ const MainDashboard = () => {
   // Preview functions for Allocation Tables
   const previewAllocationTablePDF = async (table, tableIndex) => {
     try {
-      const isTableRotated = isRotated[tableIndex] || false;
-      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
-      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
-      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
-
-      let headers, rows;
-
-      if (isTableRotated) {
-        const transposedTable = transposeTableForRotation(table);
-        const visibleColumns = transposedTable.columns;
-        headers = visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        });
-        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
-      } else {
-        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
-        headers = visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        });
-        
-        const filteredData = table.data;
-        rows = filteredData.map(row => visibleColumns.map(col => {
-          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
-              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
-              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
-            let matraVal = row[col];
-            let darVal = row[`${col}_dar`];
-            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
-            
-            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
-              const parts = String(matraVal).split(" / ");
-              matraVal = parts[0];
-              if (darVal === undefined) darVal = parts[1] || parts[0];
-            } else {
-              matraVal = matraVal !== undefined ? String(matraVal) : "0";
-            }
-            
-            if (darVal === undefined) {
-              darVal = matraVal;
-            } else if (String(darVal).includes(" / ")) {
-              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
-            } else {
-              darVal = String(darVal);
-            }
-            
-            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
-          }
-          return row[col] || "";
-        }));
+      // Get the table element by id
+      const tableEl = document.getElementById(`additional-table-${tableIndex}`);
+      
+      if (!tableEl) {
+        throw new Error('Table element not found');
       }
 
-      // Generate HTML preview
-      const htmlContent = `
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-            <thead>
-              <tr style="background-color: #428bca; color: white;">
-                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${h}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(row => `
-                <tr>
-                  ${row.map(cell => `<td style="border: 1px solid #ddd; padding: 6px;">${cell}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      setAllocationPreviewContent(htmlContent);
+      // Create a temporary container to wrap table with heading
+      const tempContainer = document.createElement('div');
+      tempContainer.style.padding = '10px';
+      tempContainer.style.backgroundColor = 'white';
+      
+      // Add heading to container
+      const heading = document.createElement('h3');
+      heading.textContent = table.heading || 'Allocation Table';
+      heading.style.fontWeight = 'bold';
+      heading.style.fontSize = '18px';
+      heading.style.marginBottom = '15px';
+      heading.style.color = '#000';
+      heading.style.textAlign = 'center';
+      tempContainer.appendChild(heading);
+      
+      // Add table to container
+      try {
+        const tableClone = tableEl.cloneNode(true);
+        tempContainer.appendChild(tableClone);
+      } catch (cloneError) {
+        console.error("Error cloning table:", cloneError);
+        alert("तालिका क्लोन करने में 오류: " + cloneError.message);
+        return;
+      }
+      
+      // Append container to body temporarily for html2canvas to work correctly
+      document.body.appendChild(tempContainer);
+      
+      // Capture entire container as canvas
+      let canvas;
+      try {
+        canvas = await html2canvas(tempContainer, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+        });
+      } catch (canvasError) {
+        console.error("Canvas capture error:", canvasError);
+        alert("कैनवास कैप्चर में 오류: " + canvasError.message);
+        document.body.removeChild(tempContainer);
+        return;
+      }
+      
+      // Remove temporary container from body
+      document.body.removeChild(tempContainer);
+      
+      // Set preview image
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      setPreviewImageSrc(imgData);
+      
+      setAllocationPreviewContent(null); // Clear any previous HTML content
       setAllocationPreviewType('pdf');
       setCurrentPreviewTableIndex(tableIndex);
       setShowAllocationPreviewModal(true);
     } catch (error) {
       console.error('PDF preview error:', error);
-      alert('PDF पूर्वालोकन में त्रुटि हुई');
+      alert('PDF पूर्वालोकन में त्रुटि हुई: ' + (error.message || 'अज्ञात त्रुटि'));
     }
   };
 
   const previewAllocationTableExcel = async (table, tableIndex) => {
     try {
-      const isTableRotated = isRotated[tableIndex] || false;
-      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
-      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
-      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
-
-      let headers, rows;
-
-      if (isTableRotated) {
-        const transposedTable = transposeTableForRotation(table);
-        const visibleColumns = transposedTable.columns;
-        headers = visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        });
-        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
-      } else {
-        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
-        headers = visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        });
-        
-        const filteredData = table.data;
-        rows = filteredData.map(row => visibleColumns.map(col => {
-          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
-              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
-              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
-            let matraVal = row[col];
-            let darVal = row[`${col}_dar`];
-            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
-            
-            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
-              const parts = String(matraVal).split(" / ");
-              matraVal = parts[0];
-              if (darVal === undefined) darVal = parts[1] || parts[0];
-            } else {
-              matraVal = matraVal !== undefined ? String(matraVal) : "0";
-            }
-            
-            if (darVal === undefined) {
-              darVal = matraVal;
-            } else if (String(darVal).includes(" / ")) {
-              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
-            } else {
-              darVal = String(darVal);
-            }
-            
-            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
-          }
-          return row[col] || "";
-        }));
+      // Get the table element by id
+      const tableEl = document.getElementById(`additional-table-${tableIndex}`);
+      
+      if (!tableEl) {
+        throw new Error('Table element not found');
       }
-
-      // Generate HTML preview
+      
+      // Set preview HTML directly from table
       const htmlContent = `
         <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-            <thead>
-              <tr style="background-color: #5cb85c; color: white;">
-                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 6px; white-space: nowrap;">${h}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(row => `
-                <tr>
-                  ${row.map(cell => `<td style="border: 1px solid #ddd; padding: 6px;">${cell}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+          <h3 style="text-align: center; margin-bottom: 15px; color: #000; font-weight: bold; font-size: 18px;">
+            ${table.heading || 'Allocation Table'}
+          </h3>
+          ${tableEl.outerHTML}
         </div>
       `;
 
@@ -6067,7 +5988,7 @@ const MainDashboard = () => {
       setShowAllocationPreviewModal(true);
     } catch (error) {
       console.error('Excel preview error:', error);
-      alert('Excel पूर्वालोकन में त्रुटि हुई');
+      alert('Excel पूर्वालोकन में त्रुटि हुई: ' + (error.message || 'अज्ञात त्रुटि'));
     }
   };
 
@@ -6179,70 +6100,25 @@ const MainDashboard = () => {
 
   const exportAllocationTableToExcel = async (table, tableIndex) => {
     try {
-      const isTableRotated = isRotated[tableIndex] || false;
-      const showDar = table.isAllocationTable && allocationTableToggles[tableIndex]?.dar;
-      const showMatra = table.isAllocationTable && allocationTableToggles[tableIndex]?.matra;
-      const showIkai = table.isAllocationTable && allocationTableToggles[tableIndex]?.ikai;
-
-      let headers, rows;
-
-      if (isTableRotated) {
-        const transposedTable = transposeTableForRotation(table);
-        const visibleColumns = transposedTable.columns;
-        headers = visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        });
-        rows = transposedTable.data.map(row => visibleColumns.map(col => row[col] || ""));
-      } else {
-        const visibleColumns = tableColumnFilters.additional[tableIndex] || table.columns;
-        headers = visibleColumns.map(col => {
-          if (table.isAllocationTable && col === "आवंटित मात्रा") {
-            return getDynamicColumnHeader(col, showMatra, showDar, table.isAllocationTable, showIkai);
-          }
-          return col;
-        });
-        
-        const filteredData = table.data;
-        rows = filteredData.map(row => visibleColumns.map(col => {
-          if (table.isAllocationTable && visibleColumns.indexOf(col) > 0 && 
-              col !== "आवंटित मात्रा" && col !== "कृषक धनराशि" && 
-              col !== "सब्सिडी धनराशि" && col !== "कुल राशि") {
-            let matraVal = row[col];
-            let darVal = row[`${col}_dar`];
-            let ikaiVal = row[`${col}_ikai`] || row[`${col}_unit`] || "";
-            
-            if (matraVal !== undefined && String(matraVal).includes(" / ")) {
-              const parts = String(matraVal).split(" / ");
-              matraVal = parts[0];
-              if (darVal === undefined) darVal = parts[1] || parts[0];
-            } else {
-              matraVal = matraVal !== undefined ? String(matraVal) : "0";
-            }
-            
-            if (darVal === undefined) {
-              darVal = matraVal;
-            } else if (String(darVal).includes(" / ")) {
-              darVal = String(darVal).split(" / ")[1] || String(darVal).split(" / ")[0];
-            } else {
-              darVal = String(darVal);
-            }
-            
-            return formatAllocationValue(matraVal, ikaiVal, darVal, showMatra, showIkai, showDar);
-          }
-          return row[col] || "";
-        }));
+      // Get the table element by id
+      const tableEl = document.getElementById(`additional-table-${tableIndex}`);
+      
+      if (!tableEl) {
+        throw new Error('Table element not found');
       }
-
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      
+      // Use XLSX to directly read the table from DOM
+      const ws = XLSX.utils.table_to_sheet(tableEl);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Allocation Table");
+      
+      // Set sheet name with proper length (Excel limit is 31 characters)
+      const sheetName = table.heading ? (table.heading.length > 31 ? table.heading.substring(0, 28) + "..." : table.heading) : "Allocation Table";
+      
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
       XLSX.writeFile(wb, `${table.heading || 'Allocation_Table'}.xlsx`);
     } catch (error) {
       console.error('Excel export error:', error);
-      alert('Excel निर्यात में त्रुटि हुई');
+      alert('Excel निर्यात में त्रुटि हुई: ' + (error.message || 'अज्ञात त्रुटि'));
     }
   };
 
@@ -8491,39 +8367,8 @@ const MainDashboard = () => {
                                       <h5 className="mb-0">
                                         {columnDefs[primaryColumn]?.label || "Summary Table"}
                                       </h5>
-                                      <div className="d-flex gap-2 align-items-center">
-                                        <Button
-                                          variant="outline-danger"
-                                          size="sm"
-                                          onClick={previewDetailTablePDF}
-                                          className="d-flex align-items-center gap-1"
-                                        >
-                                          <RiEyeLine /> PDF पूर्वालोकन
-                                        </Button>
-                                        <Button
-                                          variant="danger"
-                                          size="sm"
-                                          onClick={exportDetailTableToPDF}
-                                          className="d-flex align-items-center pdf-add-btn gap-1"
-                                        >
-                                          <RiFilePdfLine /> PDF डाउनलोड
-                                        </Button>
-                                        <Button
-                                          variant="outline-success"
-                                          size="sm"
-                                          onClick={previewDetailTableExcel}
-                                          className="d-flex align-items-center gap-1"
-                                        >
-                                          <RiEyeLine /> Excel पूर्वालोकन
-                                        </Button>
-                                        <Button
-                                          variant="success"
-                                          size="sm"
-                                          onClick={exportDetailTableToExcel}
-                                          className="d-flex align-items-center exel-add-btn gap-1"
-                                        >
-                                          <RiFileExcelLine /> Excel डाउनलोड
-                                        </Button>
+                                      <div className="d-flex gap-1 align-items-center">
+                                       
 
                                         <ColumnFilter
                                           tableId="summary"
@@ -8602,6 +8447,38 @@ const MainDashboard = () => {
                                             <option value="sub_investment_name">उप-निवेश</option>
                                           </Form.Select>
                                         </div>
+ <Button
+                                          variant="outline-danger"
+                                          size="sm"
+                                          onClick={previewDetailTablePDF}
+                                          className="d-flex align-items-center gap-1"
+                                        >
+                                          <RiEyeLine />
+                                        </Button>
+                                        <Button
+                                          variant="danger"
+                                          size="sm"
+                                          onClick={exportDetailTableToPDF}
+                                          className="d-flex align-items-center pdf-add-btn gap-1"
+                                        >
+                                          <RiFilePdfLine />
+                                        </Button>
+                                        <Button
+                                          variant="outline-success"
+                                          size="sm"
+                                          onClick={previewDetailTableExcel}
+                                          className="d-flex align-items-center gap-1"
+                                        >
+                                          <RiEyeLine />
+                                        </Button>
+                                        <Button
+                                          variant="success"
+                                          size="sm"
+                                          onClick={exportDetailTableToExcel}
+                                          className="d-flex align-items-center exel-add-btn gap-1"
+                                        >
+                                          <RiFileExcelLine />
+                                        </Button>
                                       </div>
                                     </div>
                                     <div
@@ -10004,14 +9881,14 @@ const MainDashboard = () => {
                                               </Button>
                                             )}
                                           </div>
-                                          <div className="d-flex gap-2">
+                                          <div className="d-flex gap-1">
                                             <Button
                                               variant="outline-danger"
                                               size="sm"
                                               onClick={() => previewAllocationTablePDF(table, index)}
                                               className="d-flex align-items-center gap-1"
                                             >
-                                              <RiEyeLine /> PDF पूर्वालोकन
+                                              <RiEyeLine />
                                             </Button>
                                             <Button
                                               variant="danger"
@@ -10019,7 +9896,7 @@ const MainDashboard = () => {
                                               onClick={() => exportAllocationTableToPDF(table, index)}
                                               className="d-flex align-items-center pdf-add-btn gap-1"
                                             >
-                                              <RiFilePdfLine /> PDF डाउनलोड
+                                              <RiFilePdfLine />
                                             </Button>
                                             <Button
                                               variant="outline-success"
@@ -10027,7 +9904,7 @@ const MainDashboard = () => {
                                               onClick={() => previewAllocationTableExcel(table, index)}
                                               className="d-flex align-items-center gap-1"
                                             >
-                                              <RiEyeLine /> Excel पूर्वालोकन
+                                              <RiEyeLine />
                                             </Button>
                                             <Button
                                               variant="success"
@@ -10035,7 +9912,7 @@ const MainDashboard = () => {
                                               onClick={() => exportAllocationTableToExcel(table, index)}
                                               className="d-flex align-items-center exel-add-btn gap-1"
                                             >
-                                              <RiFileExcelLine /> Excel डाउनलोड
+                                              <RiFileExcelLine />
                                             </Button>
                                             <Button
                                               variant="link"
@@ -11641,7 +11518,15 @@ const MainDashboard = () => {
           </div>
         </Modal.Header>
         <Modal.Body style={{ maxHeight: "70vh", overflow: "auto" }}>
-          <div dangerouslySetInnerHTML={{ __html: allocationPreviewContent }} />
+          {allocationPreviewType === 'pdf' ? (
+            previewImageSrc ? (
+              <img src={previewImageSrc} style={{ width: '100%', height: 'auto' }} alt="PDF Preview" />
+            ) : (
+              <p>Loading preview...</p>
+            )
+          ) : (
+            <div dangerouslySetInnerHTML={{ __html: allocationPreviewContent }} />
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowAllocationPreviewModal(false)}>
