@@ -68,6 +68,29 @@ const staticCategoryOptions = [
 
 const staticUnitOptions = ["नग", "किलोग्राम", "लीटर", "मीटर", "बैग"];
 
+// Complete list of Vidhan Sabha options
+const staticVidhanSabhaOptions = [
+  "कोटद्वार",
+  "श्रीनगर",
+  "यमकेश्वर",
+  "लैन्सडाउन",
+  "चौबट्टाखाल"
+];
+
+// Complete list of Vikas Khand options
+const staticVikasKhandOptions = [
+  "नैनीडांडा",
+  "द्वारीखाल",
+  "पोखड़ा",
+  "बीरोंखाल",
+  "यमकेश्वर",
+  "दुगड्डा",
+  "रिखणीखाल",
+  "जयहरीखाल",
+  "नगर निगम कोटद्वार",
+  "चौबट्टाखाल"
+];
+
 // Available columns for table (excluding sno which is always shown)
 // Reordered according to the requested sequence
 const beneficiariesTableColumns = [
@@ -166,6 +189,7 @@ const translations = {
   bulkUpload: "बल्क अपलोड (Excel)",
   uploadFile: "फाइल चुनें",
   uploadButton: "अपलोड करें",
+  downloadTemplate: "टेम्पलेट डाउनलोड करें",
   required: "यह फ़ील्ड आवश्यक है",
   selectOption: "चुनें",
   genericError:
@@ -301,6 +325,8 @@ const KrishiRegistration = () => {
     unit: staticUnitOptions,
     category: staticCategoryOptions,
     scheme_name: [],
+    vidhan_sabha_name: staticVidhanSabhaOptions,
+    vikas_khand_name: staticVikasKhandOptions,
   });
 
   // Track which fields are in "Other" mode (text input instead of dropdown)
@@ -312,6 +338,65 @@ const KrishiRegistration = () => {
   });
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+
+  // Function to download Excel template or uploaded file
+  const downloadTemplate = () => {
+    try {
+      if (excelFile) {
+        // If user has uploaded a file, download that file
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(excelFile);
+        link.download = excelFile.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } else {
+        // If no file uploaded, download the default template
+        // Create a new workbook
+        const wb = XLSX.utils.book_new();
+        
+        // Define template columns with Hindi headers
+        const templateColumns = [
+          { key: "center_name", header: "केंद्र का नाम" },
+          { key: "vidhan_sabha_name", header: "विधानसभा का नाम" },
+          { key: "vikas_khand_name", header: "विकास खंड का नाम" },
+          { key: "scheme_name", header: "योजना का नाम" },
+          { key: "unit", header: "इकाई" },
+          { key: "supplied_item_name", header: "आपूर्ति की गई वस्तु का नाम" },
+          { key: "farmer_name", header: "किसान का नाम" },
+          { key: "father_name", header: "पिता का नाम" },
+          { key: "category", header: "श्रेणी" },
+          { key: "address", header: "पता" },
+          { key: "mobile_number", header: "मोबाइल नंबर" },
+          { key: "aadhaar_number", header: "आधार नंबर" },
+          { key: "bank_account_number", header: "बैंक खाता नंबर" },
+          { key: "ifsc_code", header: "IFSC कोड" },
+          { key: "quantity", header: "मात्रा" },
+          { key: "rate", header: "दर" },
+          { key: "amount", header: "राशि" },
+          { key: "beneficiary_reg_date", header: "पंजीकरण तिथि" },
+        ];
+
+        // Create worksheet data with headers
+        const worksheetData = [
+          templateColumns.map(col => col.header)
+        ];
+
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, "Beneficiaries_Registration");
+        
+        // Generate Excel file and download
+        XLSX.writeFile(wb, "Beneficiaries_Registration_Template.xlsx");
+      }
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      setApiError("टेम्पलेट डाउनलोड करने में त्रुटि हुई।");
+    }
+  };
 
   // State for inline editing
   const [editingRowId, setEditingRowId] = useState(null);
@@ -410,14 +495,18 @@ const KrishiRegistration = () => {
     const units = [...new Set(data.map(item => item.unit).filter(Boolean))];
     const categories = [...new Set(data.map(item => item.category).filter(Boolean))];
     const schemes = [...new Set(data.map(item => item.scheme_name).filter(Boolean))];
+    const vidhanSabhaNames = [...new Set(data.map(item => item.vidhan_sabha_name).filter(Boolean))];
+    const vikasKhandNames = [...new Set(data.map(item => item.vikas_khand_name).filter(Boolean))];
     
-    // Update form options with merged static and dynamic values
+     // Update form options with merged static and dynamic values
     setFormOptions(prev => ({
       ...prev,
       supplied_item_name: mergeStaticAndDynamicOptions([], suppliedItems, []),
       unit: mergeStaticAndDynamicOptions(staticUnitOptions, units, []),
       category: mergeStaticAndDynamicOptions(staticCategoryOptions, categories, []),
       scheme_name: mergeStaticAndDynamicOptions([], schemes, []),
+      vidhan_sabha_name: mergeStaticAndDynamicOptions(staticVidhanSabhaOptions, vidhanSabhaNames, []),
+      vikas_khand_name: mergeStaticAndDynamicOptions(staticVikasKhandOptions, vikasKhandNames, []),
     }));
   };
 
@@ -475,11 +564,26 @@ const KrishiRegistration = () => {
       
       if (vikasData) {
         if (isEditMode) {
+          console.log("Updating edit mode with vikas khand data:", vikasData);
           setEditingVikasKhandData(vikasData);
-          setEditingValues(prev => ({
+          setEditingValues(prev => {
+            const updated = {
+              ...prev,
+              vikas_khand_name: vikasData.vikas_khand_name || "",
+              vidhan_sabha_name: vikasData.vidhan_sabha_name || ""
+            };
+            console.log("Updated editing values:", updated);
+            return updated;
+          });
+          // Add fetched values to formOptions if not already present to ensure dropdowns have the options
+          setFormOptions(prev => ({
             ...prev,
-            vikas_khand_name: vikasData.vikas_khand_name || "",
-            vidhan_sabha_name: vikasData.vidhan_sabha_name || ""
+            vidhan_sabha_name: prev.vidhan_sabha_name.includes(vikasData.vidhan_sabha_name) 
+              ? prev.vidhan_sabha_name 
+              : [...prev.vidhan_sabha_name, vikasData.vidhan_sabha_name],
+            vikas_khand_name: prev.vikas_khand_name.includes(vikasData.vikas_khand_name) 
+              ? prev.vikas_khand_name 
+              : [...prev.vikas_khand_name, vikasData.vikas_khand_name]
           }));
         } else {
           setVikasKhandData(vikasData);
@@ -487,6 +591,16 @@ const KrishiRegistration = () => {
             ...prev,
             vikas_khand_name: vikasData.vikas_khand_name || "",
             vidhan_sabha_name: vikasData.vidhan_sabha_name || ""
+          }));
+          // Add fetched values to formOptions if not already present
+          setFormOptions(prev => ({
+            ...prev,
+            vidhan_sabha_name: prev.vidhan_sabha_name.includes(vikasData.vidhan_sabha_name) 
+              ? prev.vidhan_sabha_name 
+              : [...prev.vidhan_sabha_name, vikasData.vidhan_sabha_name],
+            vikas_khand_name: prev.vikas_khand_name.includes(vikasData.vikas_khand_name) 
+              ? prev.vikas_khand_name 
+              : [...prev.vikas_khand_name, vikasData.vikas_khand_name]
           }));
         }
         console.log("Successfully fetched vikas khand data:", vikasData);
@@ -784,18 +898,20 @@ const KrishiRegistration = () => {
           ),
         ],
         vikas_khand_name: [
-          ...new Set(
-            allBeneficiaries
+          ...new Set([
+            ...staticVikasKhandOptions,
+            ...allBeneficiaries
               .map((item) => item.vikas_khand_name)
               .filter(Boolean)
-          ),
+          ]),
         ],
         vidhan_sabha_name: [
-          ...new Set(
-            allBeneficiaries
+          ...new Set([
+            ...staticVidhanSabhaOptions,
+            ...allBeneficiaries
               .map((item) => item.vidhan_sabha_name)
               .filter(Boolean)
-          ),
+          ]),
         ],
       });
     }
@@ -1255,7 +1371,9 @@ const KrishiRegistration = () => {
 
         // If center changes, fetch vikas khand data and reset related fields
         if (name === "center_name") {
+          console.log("Center name changed to:", value);
           if (value) {
+            // Call fetchVikasKhandData to get corresponding vikas khand and vidhan sabha
             fetchVikasKhandData(value, true);
             // Fetch supplied item options for this center
             fetchSuppliedItemsForCenter(value);
@@ -3073,14 +3191,23 @@ const handleDelete = async (item) => {
                               {selectedColumns.includes("vidhan_sabha_name") && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
+                                    <Form.Select
                                       name="vidhan_sabha_name"
                                       value={editingValues.vidhan_sabha_name}
                                       onChange={handleEditChange}
                                       size="sm"
-                                      disabled
-                                    />
+                                    >
+                                      <option value="">
+                                        {translations.selectOption}
+                                      </option>
+                                      {formOptions.vidhan_sabha_name.map(
+                                        (vidhanSabha, index) => (
+                                          <option key={index} value={vidhanSabha}>
+                                            {vidhanSabha}
+                                          </option>
+                                        )
+                                      )}
+                                    </Form.Select>
                                   ) : (
                                     item.vidhan_sabha_name
                                   )}
@@ -3089,14 +3216,23 @@ const handleDelete = async (item) => {
                               {selectedColumns.includes("vikas_khand_name") && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
-                                    <Form.Control
-                                      type="text"
+                                    <Form.Select
                                       name="vikas_khand_name"
                                       value={editingValues.vikas_khand_name}
                                       onChange={handleEditChange}
                                       size="sm"
-                                      disabled
-                                    />
+                                    >
+                                      <option value="">
+                                        {translations.selectOption}
+                                      </option>
+                                      {formOptions.vikas_khand_name.map(
+                                        (vikasKhand, index) => (
+                                          <option key={index} value={vikasKhand}>
+                                            {vikasKhand}
+                                          </option>
+                                        )
+                                      )}
+                                    </Form.Select>
                                   ) : (
                                     item.vikas_khand_name
                                   )}
