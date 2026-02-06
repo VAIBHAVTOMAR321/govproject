@@ -79,7 +79,7 @@ const billingTableColumns = [
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
   { key: "total_amount", label: "कुल राशि" },
-  { key: "bill_date", label: "लाभार्थी पंजीकरण तिथि" },
+  { key: "bill_date", label: "पंजीकरण तिथि" },
 ];
 
 // Column mapping for data access
@@ -130,7 +130,7 @@ const billingTableColumnMapping = {
     accessor: (item) => item.total_amount || 0,
   },
   bill_date: {
-    header: "लाभार्थी पंजीकरण तिथि",
+    header: "पंजीकरण तिथि",
     accessor: (item) => {
       if (!item.bill_date) return "";
       const date = new Date(item.bill_date);
@@ -272,6 +272,10 @@ const Registration = () => {
   const [allBillingItems, setAllBillingItems] = useState([]);
   const [excelFile, setExcelFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadTotal, setUploadTotal] = useState(0);
+  const [uploadErrors, setUploadErrors] = useState([]);
+  const [uploadSuccessCount, setUploadSuccessCount] = useState(0);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     billingTableColumns.map((col) => col.key)
@@ -910,7 +914,7 @@ const Registration = () => {
           "किसान का हिस्सा": 10000,
           "सब्सिडी राशि": 20000,
           "कुल राशि": 30000,
-          "लाभार्थी पंजीकरण तिथि": new Date().toISOString().slice(0,10),
+          "पंजीकरण तिथि": new Date().toISOString().slice(0,10),
         },
       ];
 
@@ -931,7 +935,7 @@ const Registration = () => {
         { wch: 15 }, // किसान का हिस्सा
         { wch: 15 }, // सब्सिडी राशि
         { wch: 15 }, // कुल राशि
-        { wch: 12 }, // लाभार्थी पंजीकरण तिथि (last)
+        { wch: 12 }, // पंजीकरण तिथि (last)
       ];
       ws["!cols"] = colWidths;
 
@@ -1224,48 +1228,139 @@ const Registration = () => {
     );
   }
 
+  // Convert Excel date serial number to YYYY-MM-DD format
+  const convertExcelDateToISO = (excelDateValue) => {
+    if (!excelDateValue) return "";
+    
+    // If it's already a string in YYYY-MM-DD format, return it
+    if (typeof excelDateValue === "string") {
+      // Check if it's already in YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(excelDateValue)) {
+        return excelDateValue;
+      }
+      // Try to parse as date string (handles various formats)
+      try {
+        const date = new Date(excelDateValue);
+        if (!isNaN(date.getTime())) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        }
+      } catch (e) {
+        console.error("Error parsing date string:", excelDateValue, e);
+      }
+    }
+    
+    // If it's a number (Excel date serial)
+    if (typeof excelDateValue === "number") {
+      // Excel date serial: Days since January 0, 1900 (with 1900 leap year bug)
+      const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
+      const date = new Date(excelEpoch.getTime() + excelDateValue * 24 * 60 * 60 * 1000);
+      
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+    }
+    
+    return "";
+  };
+
+  // Validate a single row of data
+  const validateRow = (rowData, rowIndex) => {
+    const errors = [];
+    
+    if (!rowData.center_name || !rowData.center_name.toString().trim()) {
+      errors.push(`Row ${rowIndex}: केंद्र का नाम आवश्यक है`);
+    }
+    if (!rowData.investment_name || !rowData.investment_name.toString().trim()) {
+      errors.push(`Row ${rowIndex}: निवेश का नाम आवश्यक है`);
+    }
+    if (!rowData.unit || !rowData.unit.toString().trim()) {
+      errors.push(`Row ${rowIndex}: इकाई आवश्यक है`);
+    }
+    if (rowData.allocated_quantity === "" || rowData.allocated_quantity === null || rowData.allocated_quantity === undefined) {
+      errors.push(`Row ${rowIndex}: आवंटित मात्रा आवश्यक है`);
+    } else if (isNaN(parseInt(rowData.allocated_quantity))) {
+      errors.push(`Row ${rowIndex}: आवंटित मात्रा एक संख्या होनी चाहिए`);
+    }
+    if (rowData.rate === "" || rowData.rate === null || rowData.rate === undefined) {
+      errors.push(`Row ${rowIndex}: दर आवश्यक है`);
+    } else if (isNaN(parseFloat(rowData.rate))) {
+      errors.push(`Row ${rowIndex}: दर एक संख्या होनी चाहिए`);
+    }
+    if (!rowData.source_of_receipt || !rowData.source_of_receipt.toString().trim()) {
+      errors.push(`Row ${rowIndex}: सप्लायर आवश्यक है`);
+    }
+    if (!rowData.scheme_name || !rowData.scheme_name.toString().trim()) {
+      errors.push(`Row ${rowIndex}: योजना का नाम आवश्यक है`);
+    }
+    if (!rowData.vikas_khand_name || !rowData.vikas_khand_name.toString().trim()) {
+      errors.push(`Row ${rowIndex}: विकास खंड का नाम आवश्यक है`);
+    }
+    if (!rowData.vidhan_sabha_name || !rowData.vidhan_sabha_name.toString().trim()) {
+      errors.push(`Row ${rowIndex}: विधानसभा का नाम आवश्यक है`);
+    }
+    
+    return errors;
+  };
+
   // Handle file change
   const handleFileChange = (e) => {
     setExcelFile(e.target.files[0]);
   };
 
-  // Handle bulk upload
+  // Handle bulk upload with improved validation, date handling, and batch processing
   const handleBulkUpload = async () => {
     if (!excelFile) return;
 
     setIsUploading(true);
     setApiError(null);
     setApiResponse(null);
+    setUploadProgress(0);
+    setUploadErrors([]);
+    setUploadSuccessCount(0);
 
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
+          console.log("[BULK UPLOAD] Starting Excel file processing...");
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
+          
+          // Read without header: 1 to get raw data including headers
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           if (jsonData.length <= 1) {
-            setApiError("Excel file contains no data");
+            setApiError("Excel फाइल में कोई डेटा नहीं है");
             setIsUploading(false);
+            console.error("[BULK UPLOAD] No data rows found in Excel");
             return;
           }
 
           const dataRows = jsonData.slice(1);
           const headers = jsonData[0];
+          console.log("[BULK UPLOAD] Headers found:", headers);
+          console.log("[BULK UPLOAD] Total data rows:", dataRows.length);
 
           const headerMapping = {};
           headers.forEach((header, index) => {
             if (header) {
-              headerMapping[header.trim().toLowerCase()] = index;
+              headerMapping[header.toString().trim().toLowerCase()] = index;
             }
           });
 
+          console.log("[BULK UPLOAD] Header mapping:", headerMapping);
+
           // Determine bill_date column index. Support named headers, otherwise assume last column.
           const billDateHeaderKeys = [
-            "लाभार्थी पंजीकरण तिथि",
+            "पंजीकरण तिथि",
             "beneficiary registration date",
             "bill_date",
             "registration_tithi",
@@ -1275,97 +1370,159 @@ const Registration = () => {
 
           let billDateIndex = null;
           for (const key of billDateHeaderKeys) {
-            const idx = headerMapping[key.trim().toLowerCase()];
+            const idx = headerMapping[key.toString().trim().toLowerCase()];
             if (typeof idx !== "undefined") {
               billDateIndex = idx;
+              console.log("[BULK UPLOAD] Found bill_date column at index:", billDateIndex, "with key:", key);
               break;
             }
           }
           if (billDateIndex === null) {
             billDateIndex = headers.length - 1; // default to last column
+            console.log("[BULK UPLOAD] Using default bill_date index:", billDateIndex);
           }
 
-          // Updated to match the new column order
-          const payloads = dataRows.map((row) => ({
-            center_name:
-              row[headerMapping["केंद्र का नाम"]] ||
-              row[headerMapping["center_name"]] ||
-              "",
-            vidhan_sabha_name:
-              row[headerMapping["विधानसभा का नाम"]] ||
-              row[headerMapping["vidhan_sabha_name"]] ||
-              "",
-            vikas_khand_name:
-              row[headerMapping["विकास खंड का नाम"]] ||
-              row[headerMapping["vikas_khand_name"]] ||
-              "",
-            scheme_name:
-              row[headerMapping["योजना का नाम"]] ||
-              row[headerMapping["scheme_name"]] ||
-              "",
-            source_of_receipt:
-              row[headerMapping["सप्लायर"]] ||
-              row[headerMapping["source_of_receipt"]] ||
-              "",
-            investment_name:
-              row[headerMapping["निवेश का नाम"]] ||
-              row[headerMapping["investment_name"]] ||
-              "",
-            sub_investment_name:
-              row[headerMapping["उप-निवेश का नाम"]] ||
-              row[headerMapping["sub_investment_name"]] ||
-              "",
-            unit:
-              row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "",
-            allocated_quantity: parseInt(
-              row[headerMapping["आवंटित मात्रा"]] ||
-                row[headerMapping["allocated_quantity"]] ||
-                0
-            ),
-            rate: parseFloat(
-              row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0
-            ),
-            amount_of_farmer_share: parseFloat(
-              row[headerMapping["किसान का हिस्सा"]] ||
-                row[headerMapping["amount_of_farmer_share"]] ||
-                0
-            ),
-            amount_of_subsidy: parseFloat(
-              row[headerMapping["सब्सिडी राशि"]] ||
-                row[headerMapping["amount_of_subsidy"]] ||
-                0
-            ),
-            total_amount: parseFloat(
-              row[headerMapping["कुल राशि"]] ||
-                row[headerMapping["total_amount"]] ||
-                0
-            ),
-            bill_date: row[billDateIndex] || "",
-          }));
+          // Parse all rows with proper data type handling
+          const parsedRows = dataRows.map((row, rowIndex) => {
+            const billDateRaw = row[billDateIndex] || "";
+            const billDateISO = convertExcelDateToISO(billDateRaw);
+            
+            return {
+              center_name: (row[headerMapping["केंद्र का नाम"]] || row[headerMapping["center_name"]] || "").toString().trim(),
+              vidhan_sabha_name: (row[headerMapping["विधानसभा का नाम"]] || row[headerMapping["vidhan_sabha_name"]] || "").toString().trim(),
+              vikas_khand_name: (row[headerMapping["विकास खंड का नाम"]] || row[headerMapping["vikas_khand_name"]] || "").toString().trim(),
+              scheme_name: (row[headerMapping["योजना का नाम"]] || row[headerMapping["scheme_name"]] || "").toString().trim(),
+              source_of_receipt: (row[headerMapping["सप्लायर"]] || row[headerMapping["source_of_receipt"]] || "").toString().trim(),
+              investment_name: (row[headerMapping["निवेश का नाम"]] || row[headerMapping["investment_name"]] || "").toString().trim(),
+              sub_investment_name: (row[headerMapping["उप-निवेश का नाम"]] || row[headerMapping["sub_investment_name"]] || "").toString().trim(),
+              unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
+              allocated_quantity: parseInt(row[headerMapping["आवंटित मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
+              rate: parseFloat(row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0),
+              amount_of_farmer_share: parseFloat(row[headerMapping["किसान का हिस्सा"]] || row[headerMapping["amount_of_farmer_share"]] || 0),
+              amount_of_subsidy: parseFloat(row[headerMapping["सब्सिडी राशि"]] || row[headerMapping["amount_of_subsidy"]] || 0),
+              total_amount: parseFloat(row[headerMapping["कुल राशि"]] || row[headerMapping["total_amount"]] || 0),
+              bill_date: billDateISO,
+              rowIndex: rowIndex + 2, // +2 because data starts at row 2 (row 1 is headers)
+            };
+          });
 
-          let successfulUploads = 0;
-          const failedItems = [];
+          // Validate all rows first
+          const allErrors = [];
+          const validRows = [];
 
-          for (let i = 0; i < payloads.length; i++) {
-            try {
-              const payload = payloads[i];
-              const response = await axios.post(BILLING_API_URL, payload);
-
-              if (response.status === 200 || response.status === 201) {
-                setAllBillingItems((prev) => [payload, ...prev]);
-                successfulUploads++;
-              } else {
-                failedItems.push({
-                  index: i + 1,
-                  reason: `Server error: ${response.status}`,
-                });
-              }
-            } catch (error) {
-              failedItems.push({
-                index: i + 1,
-                reason: error.response?.data?.message || "Upload failed",
-              });
+          parsedRows.forEach((rowData) => {
+            const rowErrors = validateRow(rowData, rowData.rowIndex);
+            if (rowErrors.length > 0) {
+              allErrors.push(...rowErrors);
+            } else {
+              validRows.push(rowData);
             }
+          });
+
+          console.log("[BULK UPLOAD] Validation complete. Valid rows:", validRows.length, "Invalid rows:", allErrors.length);
+
+          if (validRows.length === 0) {
+            const errorMessage = `कोई मान्य डेटा नहीं मिला:\n${allErrors.slice(0, 5).join("\n")}${allErrors.length > 5 ? `\n... और ${allErrors.length - 5} अन्य त्रुटियां` : ""}`;
+            setApiError(errorMessage);
+            setUploadErrors(allErrors);
+            setIsUploading(false);
+            console.error("[BULK UPLOAD] Validation failed:", allErrors);
+            return;
+          }
+
+          setUploadTotal(validRows.length);
+          setUploadSuccessCount(0);
+          setUploadErrors(allErrors);
+
+          // Try batch insert first, fall back to individual inserts
+          let successCount = 0;
+          const failedIndices = [];
+          
+          console.log("[BULK UPLOAD] Attempting batch upload of", validRows.length, "records...");
+          try {
+            // Try to send data as batch to backend
+            const batchPayload = {
+              records: validRows.map(row => {
+                const { rowIndex, ...payload } = row;
+                return payload;
+              }),
+              totalCount: validRows.length,
+            };
+
+            // Check if backend supports batch endpoint
+            try {
+              const batchResponse = await axios.post(
+                `${BILLING_API_URL}batch/`,
+                batchPayload,
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+
+              if (batchResponse.status === 200 || batchResponse.status === 201) {
+                console.log("[BULK UPLOAD] Batch upload successful", batchResponse.data);
+                successCount = validRows.length;
+                setUploadSuccessCount(successCount);
+                setUploadProgress(100);
+              }
+            } catch (batchError) {
+              // If batch endpoint doesn't exist, fall back to individual inserts
+              if (batchError.response?.status === 404) {
+                console.log("[BULK UPLOAD] Batch endpoint not found, switching to individual inserts...");
+                
+                // Process rows individually
+                for (let i = 0; i < validRows.length; i++) {
+                  try {
+                    const rowData = validRows[i];
+                    const { rowIndex, ...payload } = rowData;
+                    
+                    console.log(`[BULK UPLOAD] Uploading row ${i + 1}/${validRows.length}`, payload);
+                    
+                    const response = await axios.post(BILLING_API_URL, payload);
+
+                    if (response.status === 200 || response.status === 201) {
+                      successCount++;
+                      setAllBillingItems((prev) => [payload, ...prev]);
+                      console.log(`[BULK UPLOAD] Row ${rowIndex} uploaded successfully`);
+                    } else {
+                      failedIndices.push(rowIndex);
+                      console.warn(`[BULK UPLOAD] Row ${rowIndex} failed with status ${response.status}`);
+                    }
+                  } catch (error) {
+                    const rowIndex = validRows[i].rowIndex;
+                    const errorMsg = error.response?.data?.message || 
+                                   error.response?.data?.error || 
+                                   error.message || 
+                                   "Upload failed";
+                    
+                    console.error(`[BULK UPLOAD] Row ${rowIndex} error:`, errorMsg);
+                    
+                    // Check if error is related to date format
+                    if (errorMsg.includes("bill_date") || errorMsg.includes("Date has wrong format")) {
+                      allErrors.push(`Row ${rowIndex}: तिथि का प्रारूप गलत है। यह YYYY-MM-DD प्रारूप में होनी चाहिए। कनवर्टेड मान: ${validRows[i].bill_date}`);
+                      console.error(`[BULK UPLOAD] Date format issue for row ${rowIndex}:`, validRows[i].bill_date);
+                    } else {
+                      allErrors.push(`Row ${rowIndex}: ${errorMsg}`);
+                    }
+                    failedIndices.push(rowIndex);
+                  }
+
+                  // Update progress
+                  const progress = Math.round(((i + 1) / validRows.length) * 100);
+                  setUploadProgress(progress);
+                  console.log(`[BULK UPLOAD] Progress: ${progress}%`);
+                }
+              } else {
+                throw batchError;
+              }
+            }
+          } catch (error) {
+            console.error("[BULK UPLOAD] Batch upload error:", error);
+            setApiError(`अपलोड में त्रुटि: ${error.message}`);
+            setIsUploading(false);
+            return;
           }
 
           setExcelFile(null);
@@ -1373,24 +1530,31 @@ const Registration = () => {
             fileInputRef.current.value = "";
           }
 
-          if (failedItems.length > 0) {
-            setApiError(
-              `${successfulUploads} items uploaded successfully, ${failedItems.length} items failed.`
-            );
-          } else {
+          // Generate final response message
+          const totalErrors = allErrors.length;
+          if (successCount > 0 && totalErrors === 0) {
             setApiResponse({
-              message: `${successfulUploads} items uploaded successfully`,
+              message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
             });
+            console.log(`[BULK UPLOAD] Completed successfully: ${successCount} records uploaded`);
+          } else if (successCount > 0 && totalErrors > 0) {
+            const errorMsg = `⚠️ आंशिक अपलोड: ${successCount} सफल, ${totalErrors} विफल।\n\nविफल रिकॉर्ड:\n${allErrors.slice(0, 10).join("\n")}${totalErrors > 10 ? `\n... और ${totalErrors - 10} अन्य त्रुटियां` : ""}`;
+            setApiError(errorMsg);
+            console.log(`[BULK UPLOAD] Partial success: ${successCount} uploaded, ${totalErrors} failed`);
+          } else if (totalErrors > 0) {
+            const errorMsg = `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।\n\nत्रुटियां:\n${allErrors.slice(0, 10).join("\n")}${totalErrors > 10 ? `\n... और ${totalErrors - 10} अन्य त्रुटियां` : ""}`;
+            setApiError(errorMsg);
+            console.error(`[BULK UPLOAD] All records failed`, allErrors);
           }
         } catch (parseError) {
-          console.error("Error parsing Excel file:", parseError);
-          setApiError("Error parsing Excel file: " + parseError.message);
+          console.error("[BULK UPLOAD] Error parsing Excel file:", parseError);
+          setApiError(`Excel फाइल पार्सिंग में त्रुटि: ${parseError.message}`);
         }
       };
       reader.readAsArrayBuffer(excelFile);
     } catch (error) {
-      console.error("Error reading file:", error);
-      setApiError("Error reading file: " + error.message);
+      console.error("[BULK UPLOAD] Error reading file:", error);
+      setApiError(`फाइल पढ़ने में त्रुटि: ${error.message}`);
     } finally {
       setIsUploading(false);
     }
@@ -1600,6 +1764,62 @@ const Registration = () => {
             <Container fluid className="dashboard-body-main bg-home">
               <h1 className="page-title">{translations.pageTitle}</h1>
 
+              {/* Progress Bar Section - Displayed at top during upload */}
+              {isUploading && uploadTotal > 0 && (
+                <Row className="mb-4">
+                  <Col xs={12}>
+                    <div className="p-3 border rounded bg-light">
+                      <div className="mb-3">
+                        <h6 className="small-fonts mb-3">📊 अपलोड प्रगति विवरण</h6>
+                        <div className="d-flex justify-content-around mb-3">
+                          <div className="text-center">
+                            <small className="text-dark fw-bold d-block mb-2">✅ पूर्ण</small>
+                            <span className="badge bg-success" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                              {Math.round((uploadProgress / 100) * uploadTotal)}
+                            </span>
+                          </div>
+                          <div className="text-center">
+                            <small className="text-dark fw-bold d-block mb-2">⏳ शेष</small>
+                            <span className="badge bg-warning text-dark" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                              {uploadTotal - Math.round((uploadProgress / 100) * uploadTotal)}
+                            </span>
+                          </div>
+                          <div className="text-center">
+                            <small className="text-dark fw-bold d-block mb-2">📁 कुल</small>
+                            <span className="badge bg-primary" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                              {uploadTotal}
+                            </span>
+                          </div>
+                          <div className="text-center">
+                            <small className="text-dark fw-bold d-block mb-2">⚡ प्रगति</small>
+                            <span className="badge bg-info text-white" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                              {uploadProgress}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="progress" style={{ height: "30px" }}>
+                        <div
+                          className="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                          role="progressbar"
+                          style={{ width: `${uploadProgress}%` }}
+                          aria-valuenow={uploadProgress}
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        >
+                          <small className="fw-bold text-white">{uploadProgress}%</small>
+                        </div>
+                      </div>
+                      <small className="text-muted mt-2 d-block text-center">
+                        {uploadProgress > 0 && uploadProgress < 100
+                          ? `${Math.round((uploadProgress / 100) * uploadTotal)}/${uploadTotal} रिकॉर्ड अपलोड किए जा रहे हैं...`
+                          : "तैयारी..."}
+                      </small>
+                    </div>
+                  </Col>
+                </Row>
+              )}
+
               {/* Bulk Upload Section */}
               <Row className="mb-3">
                 <Col xs={12} md={6}>
@@ -1617,16 +1837,18 @@ const Registration = () => {
                   </Form.Group>
                 </Col>
                 <Col xs={12} md={3} className="d-flex align-items-end">
-                  <Button
-                    variant="secondary"
-                    onClick={handleBulkUpload}
-                    disabled={!excelFile || isUploading}
-                    className="compact-submit-btn w-100"
-                  >
-                    {isUploading
-                      ? "अपलोड हो रहा है..."
-                      : translations.uploadButton}
-                  </Button>
+                  <div className="w-100">
+                    <Button
+                      variant="secondary"
+                      onClick={handleBulkUpload}
+                      disabled={!excelFile || isUploading}
+                      className="compact-submit-btn w-100"
+                    >
+                      {isUploading
+                        ? `अपलोड हो रहा है... ${uploadProgress}%`
+                        : translations.uploadButton}
+                    </Button>
+                  </div>
                 </Col>
                 <Col xs={12} md={3} className="d-flex align-items-end">
                   <Button
@@ -1642,12 +1864,26 @@ const Registration = () => {
 
               {apiResponse && (
                 <Alert variant="success" className="small-fonts">
-                  {translations.successMessage}
+                  <div style={{ whiteSpace: "pre-wrap" }}>{apiResponse.message}</div>
                 </Alert>
               )}
               {apiError && (
                 <Alert variant="danger" className="small-fonts">
-                  {apiError}
+                  <div style={{ whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
+                    {apiError}
+                  </div>
+                </Alert>
+              )}
+              {uploadErrors.length > 0 && !isUploading && (
+                <Alert variant="warning" className="small-fonts">
+                  <strong>📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):</strong>
+                  <div style={{ maxHeight: "400px", overflowY: "auto", marginTop: "10px" }}>
+                    {uploadErrors.map((error, idx) => (
+                      <div key={idx} style={{ marginBottom: "5px", fontSize: "12px" }}>
+                        • {error}
+                      </div>
+                    ))}
+                  </div>
                 </Alert>
               )}
 

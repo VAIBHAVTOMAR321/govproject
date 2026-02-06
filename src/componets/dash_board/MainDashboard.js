@@ -93,7 +93,7 @@ const columnDefs = {
     key: "sub_investment_name",
   },
   unit: { label: "इकाई", key: "unit", hidden: true },
-  bill_date: { label: "लाभार्थी पंजीकरण तिथि", key: "bill_date", hidden: true },
+  bill_date: { label: "पंजीकरण तिथि", key: "bill_date", hidden: true },
   allocated_quantity: { label: "आवंटित मात्रा", key: "allocated_quantity" },
   rate: { label: "दर", key: "rate", hidden: true },
   amount_of_farmer_share: {

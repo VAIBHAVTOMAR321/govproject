@@ -48,7 +48,7 @@ function DashBoardHeader() {
               active={location.pathname === '/Registration' || location.pathname === '/KrishiRegistration'}
             >
               <NavDropdown.Item as={Link} to="/Registration" active={location.pathname === '/Registration'}>
-                सप्लायर डेटा एंट्री
+                केंद्रवार एंट्री
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/KrishiRegistration" active={location.pathname === '/KrishiRegistration'}>
                 कृषि डेटा एंट्री
