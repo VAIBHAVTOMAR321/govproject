@@ -339,6 +339,13 @@ const KrishiRegistration = () => {
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
 
+  // State for form field editing (Vidhan Sabha and Vikas Khand)
+  const [isFormFieldsEditMode, setIsFormFieldsEditMode] = useState(false);
+  const [tempFormFields, setTempFormFields] = useState({
+    vidhan_sabha_name: "",
+    vikas_khand_name: "",
+  });
+
   // Function to download Excel template or uploaded file
   const downloadTemplate = () => {
     try {
@@ -359,8 +366,6 @@ const KrishiRegistration = () => {
         // Define template columns with Hindi headers
         const templateColumns = [
           { key: "center_name", header: "केंद्र का नाम" },
-          { key: "vidhan_sabha_name", header: "विधानसभा का नाम" },
-          { key: "vikas_khand_name", header: "विकास खंड का नाम" },
           { key: "scheme_name", header: "योजना का नाम" },
           { key: "unit", header: "इकाई" },
           { key: "supplied_item_name", header: "आपूर्ति की गई वस्तु का नाम" },
@@ -968,6 +973,43 @@ const KrishiRegistration = () => {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
+  // Handler for editing Vidhan Sabha and Vikas Khand fields
+  const handleFormFieldsEditStart = () => {
+    setTempFormFields({
+      vidhan_sabha_name: formData.vidhan_sabha_name,
+      vikas_khand_name: formData.vikas_khand_name,
+    });
+    setIsFormFieldsEditMode(true);
+  };
+
+  // Handler for changing temp form field values
+  const handleFormFieldsEditChange = (e) => {
+    const { name, value } = e.target;
+    setTempFormFields((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handler for saving form field changes
+  const handleFormFieldsSaveEdit = () => {
+    setFormData((prev) => ({
+      ...prev,
+      vidhan_sabha_name: tempFormFields.vidhan_sabha_name,
+      vikas_khand_name: tempFormFields.vikas_khand_name,
+    }));
+    setIsFormFieldsEditMode(false);
+  };
+
+  // Handler for canceling form field edit
+  const handleFormFieldsCancelEdit = () => {
+    setIsFormFieldsEditMode(false);
+    setTempFormFields({
+      vidhan_sabha_name: "",
+      vikas_khand_name: "",
+    });
+  };
+
   // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -1083,8 +1125,6 @@ const KrishiRegistration = () => {
       const sampleData = [
         {
           "केंद्र का नाम": "कोटद्वार",
-          "विधानसभा का नाम": "कोटद्वार",
-          "विकास खंड का नाम": "कोटद्वार",
           "योजना का नाम": "MGNREGA",
           "इकाई": "नग",
           "आपूर्ति की गई वस्तु का नाम": "बीज",
@@ -1109,8 +1149,6 @@ const KrishiRegistration = () => {
       // Set column widths based on the new column order
       const colWidths = [
         { wch: 20 }, // केंद्र का नाम
-        { wch: 20 }, // विधानसभा का नाम
-        { wch: 20 }, // विकास खंड का नाम
         { wch: 20 }, // योजना का नाम
         { wch: 10 }, // इकाई
         { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
@@ -2616,30 +2654,48 @@ const handleDelete = async (item) => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.vikasKhandName}
                         </Form.Label>
-                        <div className="d-flex">
-                          <Form.Control
-                            type="text"
+                        {isFormFieldsEditMode ? (
+                          <Form.Select
                             name="vikas_khand_name"
-                            value={formData.vikas_khand_name}
-                            onChange={handleChange}
-                            isInvalid={!!errors.vikas_khand_name}
+                            value={tempFormFields.vikas_khand_name}
+                            onChange={handleFormFieldsEditChange}
                             className="compact-input"
-                            disabled
-                            placeholder={
-                              isFetchingVikasKhand ? "लोड हो रहा है..." : ""
-                            }
-                          />
-                          <Button 
-                            variant="outline-secondary" 
-                            size="sm" 
-                            onClick={refreshVikasKhandData}
-                            disabled={!formData.center_name || isFetchingVikasKhand}
-                            className="ms-1"
-                            title="Refresh Vikas Khand Data"
                           >
-                            <FaSync className={isFetchingVikasKhand ? "fa-spin" : ""} />
-                          </Button>
-                        </div>
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.vikas_khand_name.map(
+                              (vikasKhand, index) => (
+                                <option key={index} value={vikasKhand}>
+                                  {vikasKhand}
+                                </option>
+                              )
+                            )}
+                          </Form.Select>
+                        ) : (
+                          <div className="d-flex">
+                            <Form.Control
+                              type="text"
+                              name="vikas_khand_name"
+                              value={formData.vikas_khand_name}
+                              onChange={handleChange}
+                              isInvalid={!!errors.vikas_khand_name}
+                              className="compact-input"
+                              disabled
+                              placeholder={
+                                isFetchingVikasKhand ? "लोड हो रहा है..." : ""
+                              }
+                            />
+                            <Button 
+                              variant="outline-secondary" 
+                              size="sm" 
+                              onClick={refreshVikasKhandData}
+                              disabled={!formData.center_name || isFetchingVikasKhand}
+                              className="ms-1"
+                              title="Refresh Vikas Khand Data"
+                            >
+                              <FaSync className={isFetchingVikasKhand ? "fa-spin" : ""} />
+                            </Button>
+                          </div>
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.vikas_khand_name}
                         </Form.Control.Feedback>
@@ -2650,21 +2706,79 @@ const handleDelete = async (item) => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.vidhanSabhaName}
                         </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="vidhan_sabha_name"
-                          value={formData.vidhan_sabha_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.vidhan_sabha_name}
-                          className="compact-input"
-                          disabled
-                          placeholder={
-                            isFetchingVikasKhand ? "लोड हो रहा है..." : ""
-                          }
-                        />
+                        {isFormFieldsEditMode ? (
+                          <Form.Select
+                            name="vidhan_sabha_name"
+                            value={tempFormFields.vidhan_sabha_name}
+                            onChange={handleFormFieldsEditChange}
+                            className="compact-input"
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.vidhan_sabha_name.map(
+                              (vidhanSabha, index) => (
+                                <option key={index} value={vidhanSabha}>
+                                  {vidhanSabha}
+                                </option>
+                              )
+                            )}
+                          </Form.Select>
+                        ) : (
+                          <Form.Control
+                            type="text"
+                            name="vidhan_sabha_name"
+                            value={formData.vidhan_sabha_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.vidhan_sabha_name}
+                            className="compact-input"
+                            disabled
+                            placeholder={
+                              isFetchingVikasKhand ? "लोड हो रहा है..." : ""
+                            }
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.vidhan_sabha_name}
                         </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group className="mb-2">
+                        <Form.Label className="small-fonts fw-bold">
+                          {/* Placeholder for alignment */}
+                        </Form.Label>
+                        {isFormFieldsEditMode ? (
+                          <div className="d-flex gap-2">
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              onClick={handleFormFieldsSaveEdit}
+                              className="w-100"
+                              title="परिवर्तन सहेजें"
+                            >
+                              सहेजें
+                            </Button>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={handleFormFieldsCancelEdit}
+                              className="w-100"
+                              title="रद्द करें"
+                            >
+                              रद्द करें
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={handleFormFieldsEditStart}
+                            className="w-100 d-flex justify-content-center mt-2"
+                            disabled={!formData.center_name}
+                            title="विधान साभा विकास खंड संपादित करें"
+                          >
+                            विधान साभा विकास खंड संपादित करें
+                          </Button>
+                        )}
                       </Form.Group>
                     </Col>
                       <Col xs={12} sm={6} md={2}>

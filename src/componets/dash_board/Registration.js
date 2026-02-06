@@ -316,6 +316,8 @@ const Registration = () => {
     unit: unitOptions,
     source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
+    vikas_khand_name: vikasKhandOptions,
+    vidhan_sabha_name: vidhanSabhaOptions,
   });
 
   // Dynamic edit options
@@ -325,11 +327,20 @@ const Registration = () => {
     unit: unitOptions,
     source_of_receipt: sourceOptions,
     scheme_name: schemeOptions,
+    vikas_khand_name: vikasKhandOptions,
+    vidhan_sabha_name: vidhanSabhaOptions,
   });
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
+
+  // State for form field editing (Vidhan Sabha and Vikas Khand)
+  const [isFormFieldsEditMode, setIsFormFieldsEditMode] = useState(false);
+  const [tempFormFields, setTempFormFields] = useState({
+    vidhan_sabha_name: "",
+    vikas_khand_name: "",
+  });
 
   // Track which fields are in "Other" mode (text input instead of dropdown)
   const [otherMode, setOtherMode] = useState({
@@ -787,6 +798,43 @@ const Registration = () => {
   const filteredItems = billingItems;
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  // Handler for editing Vidhan Sabha and Vikas Khand fields
+  const handleFormFieldsEditStart = () => {
+    setTempFormFields({
+      vidhan_sabha_name: formData.vidhan_sabha_name,
+      vikas_khand_name: formData.vikas_khand_name,
+    });
+    setIsFormFieldsEditMode(true);
+  };
+
+  // Handler for changing temp form field values
+  const handleFormFieldsEditChange = (e) => {
+    const { name, value } = e.target;
+    setTempFormFields((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handler for saving form field changes
+  const handleFormFieldsSaveEdit = () => {
+    setFormData((prev) => ({
+      ...prev,
+      vidhan_sabha_name: tempFormFields.vidhan_sabha_name,
+      vikas_khand_name: tempFormFields.vikas_khand_name,
+    }));
+    setIsFormFieldsEditMode(false);
+  };
+
+  // Handler for canceling form field edit
+  const handleFormFieldsCancelEdit = () => {
+    setIsFormFieldsEditMode(false);
+    setTempFormFields({
+      vidhan_sabha_name: "",
+      vikas_khand_name: "",
+    });
+  };
 
   // Download Excel function
   const downloadExcel = (data, filename, columnMapping, selectedColumns) => {
@@ -2006,18 +2054,36 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.vikasKhandName}
                         </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="vikas_khand_name"
-                          value={formData.vikas_khand_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.vikas_khand_name}
-                          className="compact-input"
-                          disabled
-                          placeholder={
-                            isFetchingVikasKhand ? "लोड हो रहा है..." : ""
-                          }
-                        />
+                        {isFormFieldsEditMode ? (
+                          <Form.Select
+                            name="vikas_khand_name"
+                            value={tempFormFields.vikas_khand_name}
+                            onChange={handleFormFieldsEditChange}
+                            className="compact-input"
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.vikas_khand_name.map(
+                              (vikasKhand, index) => (
+                                <option key={index} value={vikasKhand}>
+                                  {vikasKhand}
+                                </option>
+                              )
+                            )}
+                          </Form.Select>
+                        ) : (
+                          <Form.Control
+                            type="text"
+                            name="vikas_khand_name"
+                            value={formData.vikas_khand_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.vikas_khand_name}
+                            className="compact-input"
+                            disabled
+                            placeholder={
+                              isFetchingVikasKhand ? "लोड हो रहा है..." : ""
+                            }
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.vikas_khand_name}
                         </Form.Control.Feedback>
@@ -2028,21 +2094,79 @@ const Registration = () => {
                         <Form.Label className="small-fonts fw-bold">
                           {translations.vidhanSabhaName}
                         </Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="vidhan_sabha_name"
-                          value={formData.vidhan_sabha_name}
-                          onChange={handleChange}
-                          isInvalid={!!errors.vidhan_sabha_name}
-                          className="compact-input"
-                          disabled
-                          placeholder={
-                            isFetchingVikasKhand ? "लोड हो रहा है..." : ""
-                          }
-                        />
+                        {isFormFieldsEditMode ? (
+                          <Form.Select
+                            name="vidhan_sabha_name"
+                            value={tempFormFields.vidhan_sabha_name}
+                            onChange={handleFormFieldsEditChange}
+                            className="compact-input"
+                          >
+                            <option value="">{translations.selectOption}</option>
+                            {formOptions.vidhan_sabha_name.map(
+                              (vidhanSabha, index) => (
+                                <option key={index} value={vidhanSabha}>
+                                  {vidhanSabha}
+                                </option>
+                              )
+                            )}
+                          </Form.Select>
+                        ) : (
+                          <Form.Control
+                            type="text"
+                            name="vidhan_sabha_name"
+                            value={formData.vidhan_sabha_name}
+                            onChange={handleChange}
+                            isInvalid={!!errors.vidhan_sabha_name}
+                            className="compact-input"
+                            disabled
+                            placeholder={
+                              isFetchingVikasKhand ? "लोड हो रहा है..." : ""
+                            }
+                          />
+                        )}
                         <Form.Control.Feedback type="invalid">
                           {errors.vidhan_sabha_name}
                         </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group className="mb-2 ">
+                        <Form.Label className="small-fonts fw-bold ">
+                          {/* Placeholder for alignment */}
+                        </Form.Label>
+                        {isFormFieldsEditMode ? (
+                          <div className="d-flex gap-2">
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              onClick={handleFormFieldsSaveEdit}
+                              className="w-100"
+                              title="परिवर्तन सहेजें"
+                            >
+                              सहेजें
+                            </Button>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={handleFormFieldsCancelEdit}
+                              className="w-100"
+                              title="रद्द करें"
+                            >
+                              रद्द करें
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={handleFormFieldsEditStart}
+                            className="w-100 d-flex justify-content-center mt-2"
+                            disabled={!formData.center_name}
+                            title="विधान साभा विकास खंड संपादित करें"
+                          >
+                            विधान साभा विकास खंड संपादित करें
+                          </Button>
+                        )}
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
@@ -3011,6 +3135,17 @@ const Registration = () => {
                                 {filteredItems.reduce((unique, item) => {
                                   const set = new Set(unique);
                                   if (item.scheme_name) set.add(item.scheme_name);
+                                  return Array.from(set);
+                                }, []).length}
+                              </strong>
+                            </td>
+                          )}
+                          {selectedColumns.includes("ikai") && (
+                            <td>
+                              <strong>
+                                {filteredItems.reduce((unique, item) => {
+                                  const set = new Set(unique);
+                                  if (item.ikai) set.add(item.ikai);
                                   return Array.from(set);
                                 }, []).length}
                               </strong>
