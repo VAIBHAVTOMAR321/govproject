@@ -33,6 +33,7 @@ const DemandGenerate = () => {
   const [editingQuantity, setEditingQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [editingDemandByCenter, setEditingDemandByCenter] = useState(null); // For editing existing center demands
 
   /* 🔐 Auth check */
   useEffect(() => {
@@ -89,7 +90,7 @@ const DemandGenerate = () => {
     const maxQty = parseFloat(maxQuantity) || 0;
 
     if (value > maxQty) {
-      setValidationError(`मांगी गई मात्रा (${value}) आवंटित मात्रा (${maxQty}) से अधिक नहीं हो सकती`);
+      setValidationError(`मांगी गई मात्रा (${value}) विभाग में समग्र आवंटन मात्रा (${maxQty}) से अधिक नहीं हो सकती`);
       return;
     }
 
@@ -106,7 +107,7 @@ const DemandGenerate = () => {
 
     // Validate that demanded quantity is less than allocated quantity
     if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
-      setValidationError(`मांगी गई मात्रा आवंटित मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
+      setValidationError(`मांगी गई मात्रा विभाग में समग्र आवंटन मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
       return;
     }
 
@@ -148,6 +149,56 @@ const DemandGenerate = () => {
     }
   };
 
+  /* � PUT demand-by-center - Edit existing demand */
+  const handleEditDemand = async (demandBycenterId, allocatedQuantity) => {
+    if (!editingQuantity || parseFloat(editingQuantity) <= 0) {
+      setValidationError('कृपया सही मात्रा दर्ज करें');
+      return;
+    }
+
+    // Validate that demanded quantity is less than allocated quantity
+    if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
+      setValidationError(`मांगी गई मात्रा विभाग में समग्र आवंटन मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+    setValidationError('');
+
+    const payload = {
+      id: demandBycenterId,
+      demanded_quantity: parseFloat(editingQuantity)
+    };
+
+    try {
+      const url = 'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/';
+      
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error();
+
+      setSuccess('डिमांड सफलतापूर्वक अपडेट की गई');
+      setEditingDemandByCenter(null);
+      setEditingQuantity('');
+      
+      // Refresh the center demands after successful save
+      await fetchCenterDemands();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch {
+      setError('डिमांड अपडेट करने में त्रुटि');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   /* 🚪 Logout */
   const handleLogout = () => {
     clearCenter();
@@ -163,10 +214,24 @@ const DemandGenerate = () => {
     return centerDemand ? centerDemand.demanded_quantity : null;
   };
 
+  // Function to get the full demand-by-center record
+  const getDemandBycentRecord = (demandId) => {
+    return centerDemands.find(
+      cd => cd.demand_id === demandId && cd.center_name === centerData.centerName
+    );
+  };
+
   // Start editing a demand
   const startEditing = (demandId) => {
     setEditingId(demandId);
     setEditingQuantity('');
+    setValidationError('');
+  };
+
+  // Start editing an existing demand-by-center record
+  const startEditingDemandByCenter = (record) => {
+    setEditingDemandByCenter(record.id);
+    setEditingQuantity(record.demanded_quantity);
     setValidationError('');
   };
 
@@ -175,6 +240,7 @@ const DemandGenerate = () => {
     setEditingId(null);
     setEditingQuantity('');
     setValidationError('');
+    setEditingDemandByCenter(null);
   };
 
   // Calculate demanded amount (rate * demanded quantity)
@@ -209,7 +275,7 @@ const DemandGenerate = () => {
                     <tr>
                       <th>S.No.</th>
                       <th>उपनिवेश</th>
-                      <th>आवंटित मात्रा</th>
+                      <th>विभाग में समग्र आवंटन मात्रा</th>
                       <th>दर</th>
                       <th>राशि</th>
                       <th>मांगी गई मात्रा</th>
@@ -279,9 +345,56 @@ const DemandGenerate = () => {
                                   </Form.Text>
                                 </div>
                               ) : (
-                                <div className="d-flex align-items-center">
+                                <div className="d-flex align-items-center gap-2 flex-wrap">
                                   {demandedQty ? (
-                                    <span className="text-success fw-bold">{demandedQty}</span>
+                                    <>
+                                      {editingDemandByCenter === getDemandBycentRecord(d.demand_id)?.id ? (
+                                        <div className="d-flex align-items-center gap-2 flex-wrap w-100">
+                                          <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={editingQuantity}
+                                            onChange={(e) => handleDemandedQuantityChange(e, d.allocated_quantity)}
+                                            placeholder="मात्रा दर्ज करें"
+                                            isInvalid={!!validationError}
+                                            max={d.allocated_quantity}
+                                            style={{ width: '120px' }}
+                                          />
+                                          <Button
+                                            variant="success"
+                                            size="sm"
+                                            onClick={() => handleEditDemand(getDemandBycentRecord(d.demand_id).id, d.allocated_quantity)}
+                                            disabled={isSubmitting || !!validationError}
+                                          >
+                                            {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
+                                          </Button>
+                                          <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={cancelEditing}
+                                          >
+                                            ✕
+                                          </Button>
+                                          {validationError && (
+                                            <Form.Control.Feedback type="invalid" className="d-block w-100">
+                                              {validationError}
+                                            </Form.Control.Feedback>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <span className="text-success fw-bold">{demandedQty}</span>
+                                          <Button
+                                            variant="outline-primary"
+                                            size="sm"
+                                            onClick={() => startEditingDemandByCenter(getDemandBycentRecord(d.demand_id))}
+                                            title="संपादित करें"
+                                          >
+                                            ✎
+                                          </Button>
+                                        </>
+                                      )}
+                                    </>
                                   ) : (
                                     <>
                                       <span className="text-muted me-2">-</span>

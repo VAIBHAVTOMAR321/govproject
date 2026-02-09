@@ -46,6 +46,11 @@ const DemandView = () => {
   const [selectedCenters, setSelectedCenters] = useState([]);
   const [selectedSubInvestments, setSelectedSubInvestments] = useState([]);
   
+  // State for editing center demands
+  const [editingCenterDemandId, setEditingCenterDemandId] = useState(null);
+  const [editingQuantity, setEditingQuantity] = useState('');
+  const [editValidationError, setEditValidationError] = useState('');
+  
   // Ref for table elements
   const demandsTableRef = useRef(null);
   const centerDemandsTableRef = useRef(null);
@@ -310,6 +315,88 @@ const DemandView = () => {
     setCurrentDemand(demand);
     setShowDeleteModal(true);
   };
+
+  // PUT: Edit existing center demand
+  const handleEditCenterDemand = async (recordId, allocatedQuantity) => {
+    if (!editingQuantity || parseFloat(editingQuantity) <= 0) {
+      setEditValidationError('कृपया सही मात्रा दर्ज करें');
+      return;
+    }
+
+    if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
+      setEditValidationError(`मांगी गई मात्रा विभाग में समग्र आवंटन मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+    setEditValidationError('');
+
+    const payload = {
+      id: recordId,
+      demanded_quantity: parseFloat(editingQuantity)
+    };
+
+    try {
+      const response = await fetch(
+        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'डिमांड अपडेट करने में विफल');
+      }
+
+      setSuccess('डिमांड सफलतापूर्वक अपडेट की गई!');
+      setEditingCenterDemandId(null);
+      setEditingQuantity('');
+
+      await fetchDemandByCenter();
+
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error editing center demand:', err);
+      setError(err.message || 'डिमांड अपडेट करने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Start editing a center demand
+  const startEditingCenterDemand = (record) => {
+    setEditingCenterDemandId(record.id);
+    setEditingQuantity(record.demanded_quantity);
+    setEditValidationError('');
+  };
+
+  // Cancel editing center demand
+  const cancelEditingCenterDemand = () => {
+    setEditingCenterDemandId(null);
+    setEditingQuantity('');
+    setEditValidationError('');
+  };
+
+  // Handle edit quantity change with validation
+  const handleEditQuantityChange = (e, maxQuantity) => {
+    const value = parseFloat(e.target.value) || 0;
+    const maxQty = parseFloat(maxQuantity) || 0;
+
+    if (value > maxQty) {
+      setEditValidationError(`मांगी गई मात्रा (${value}) विभाग में समग्र आवंटन मात्रा (${maxQty}) से अधिक नहीं हो सकती`);
+      return;
+    }
+
+    setEditValidationError('');
+    setEditingQuantity(e.target.value);
+  };
   
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -370,7 +457,7 @@ const DemandView = () => {
     const exportData = filteredDemands.map((demand, index) => ({
       'S.No.': index + 1,
       'उप निवेश नाम': demand.sub_investment_name,
-      'आवंटित मात्रा': demand.allocated_quantity,
+      'विभाग में समग्र आवंटन मात्रा': demand.allocated_quantity,
       'इकाई': demand.unit,
       'दर': demand.rate
     }));
@@ -481,7 +568,7 @@ const DemandView = () => {
     const headerRow = document.createElement('tr');
     
     // Add headers
-    const headers = ['S.No.', 'उप निवेश नाम', 'आवंटित मात्रा', 'इकाई', 'दर'];
+    const headers = ['S.No.', 'उप निवेश नाम', 'विभाग में समग्र आवंटन मात्रा', 'इकाई', 'दर'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
       th.textContent = headerText;
@@ -751,7 +838,7 @@ const DemandView = () => {
                             <tr>
                                <th>S.No.</th>
                               <th>उप निवेश नाम</th>
-                              <th>आवंटित मात्रा</th>
+                              <th>विभाग में समग्र आवंटन मात्रा</th>
                               <th>इकाई</th>
                               <th>दर</th>
                               <th>कार्यवाही</th>
@@ -943,7 +1030,53 @@ const DemandView = () => {
 
           <td>{item?.demand?.sub_investment_name || '-'}</td>
           <td>{item?.demand?.unit || '-'}</td>
-          <td>{item.demanded_quantity ?? '-'}</td>
+          <td>
+            {editingCenterDemandId === item.id ? (
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  value={editingQuantity}
+                  onChange={(e) => handleEditQuantityChange(e, item?.demand?.allocated_quantity || 0)}
+                  placeholder="मात्रा दर्ज करें"
+                  isInvalid={!!editValidationError}
+                  style={{ width: '120px' }}
+                />
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={() => handleEditCenterDemand(item.id, item?.demand?.allocated_quantity || 0)}
+                  disabled={isSubmitting || !!editValidationError}
+                >
+                  {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelEditingCenterDemand}
+                >
+                  ✕
+                </Button>
+                {editValidationError && (
+                  <Form.Control.Feedback type="invalid" className="d-block w-100">
+                    {editValidationError}
+                  </Form.Control.Feedback>
+                )}
+              </div>
+            ) : (
+              <div className="d-flex align-items-center gap-2">
+                <span>{item.demanded_quantity ?? '-'}</span>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => startEditingCenterDemand(item)}
+                  title="संपादित करें"
+                >
+                  ✎
+                </Button>
+              </div>
+            )}
+          </td>
           <td>{item?.demand?.rate ?? '-'}</td>
           <td>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</td>
         </tr>
@@ -1003,7 +1136,7 @@ const DemandView = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>आवंटित मात्रा <span className="text-danger">*</span></Form.Label>
+              <Form.Label>विभाग में समग्र आवंटन मात्रा <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -1078,7 +1211,7 @@ const DemandView = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>आवंटित मात्रा <span className="text-danger">*</span></Form.Label>
+              <Form.Label>विभाग में समग्र आवंटन मात्रा <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -1137,7 +1270,7 @@ const DemandView = () => {
               </Row>
               <Row className="mb-3">
                 <Col md={6}>
-                  <strong>आवंटित मात्रा:</strong> {currentDemand.allocated_quantity}
+                  <strong>विभाग में समग्र आवंटन मात्रा:</strong> {currentDemand.allocated_quantity}
                 </Col>
                 <Col md={6}>
                   <strong>इकाई:</strong> {currentDemand.unit}
@@ -1172,7 +1305,7 @@ const DemandView = () => {
           {currentDemand && (
             <div className="border rounded p-3 bg-light">
               <p><strong>उप-निवेश नाम:</strong> {currentDemand.sub_investment_name}</p>
-              <p><strong>आवंटित मात्रा:</strong> {currentDemand.allocated_quantity}</p>
+              <p><strong>विभाग में समग्र आवंटन मात्रा:</strong> {currentDemand.allocated_quantity}</p>
               <p><strong>इकाई:</strong> {currentDemand.unit}</p>
               <p><strong>दर:</strong> {currentDemand.rate}</p>
             </div>

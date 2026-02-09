@@ -898,12 +898,10 @@ const Registration = () => {
   // Download sample Excel template
   const downloadSampleTemplate = () => {
     try {
-      // Updated to match the new column order
+      // Updated to match the new column order (without vikas_khand and vidhan_sabha - set in backend)
       const sampleData = [
         {
           "केंद्र का नाम": "किनगोड़िखाल",
-          "विधानसभा का नाम": "लैन्सडाउन",
-          "विकास खंड का नाम": "नैनीडांडा",
           "योजना का नाम": "MGNREGA",
           "सप्लायर": "PWD",
           "निवेश का नाम": "भवन निर्माण",
@@ -923,8 +921,6 @@ const Registration = () => {
 
       const colWidths = [
         { wch: 20 }, // केंद्र का नाम
-        { wch: 20 }, // विधानसभा का नाम
-        { wch: 20 }, // विकास खंड का नाम
         { wch: 15 }, // योजना का नाम
         { wch: 15 }, // सप्लायर
         { wch: 20 }, // निवेश का नाम
@@ -1269,7 +1265,7 @@ const Registration = () => {
     return "";
   };
 
-  // Validate a single row of data
+  // Validate a single row of data (for bulk upload, vikas_khand and vidhan_sabha are set in backend)
   const validateRow = (rowData, rowIndex) => {
     const errors = [];
     
@@ -1298,12 +1294,7 @@ const Registration = () => {
     if (!rowData.scheme_name || !rowData.scheme_name.toString().trim()) {
       errors.push(`Row ${rowIndex}: योजना का नाम आवश्यक है`);
     }
-    if (!rowData.vikas_khand_name || !rowData.vikas_khand_name.toString().trim()) {
-      errors.push(`Row ${rowIndex}: विकास खंड का नाम आवश्यक है`);
-    }
-    if (!rowData.vidhan_sabha_name || !rowData.vidhan_sabha_name.toString().trim()) {
-      errors.push(`Row ${rowIndex}: विधानसभा का नाम आवश्यक है`);
-    }
+    // NOTE: vikas_khand_name and vidhan_sabha_name are NOT required for bulk upload - they are set in backend
     
     return errors;
   };
@@ -1893,9 +1884,12 @@ const Registration = () => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    अनिवार्य फ़ील्ड: विकास खंड का नाम, विधानसभा का नाम, केंद्र का नाम, निवेश का नाम, 
+                    <strong>अनिवार्य फ़ील्ड:</strong> केंद्र का नाम, निवेश का नाम, 
                     उप-निवेश का नाम, इकाई, आवंटित मात्रा, दर, सप्लायर, योजना का नाम, 
-                    किसान का हिस्सा, सब्सिडी राशि, कुल राशि
+                    किसान का हिस्सा, सब्सिडी राशि, कुल राशि, पंजीकरण तिथि
+                  </li>
+                  <li>
+                    <strong>स्वचालित:</strong> विकास खंड और विधानसभा स्वचालित रूप से बैकएंड से सेट किए जाते हैं (Excel में शामिल न करें)
                   </li>
                   <li>आवंटित मात्रा, दर, किसान का हिस्सा, सब्सिडी राशि और कुल राशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
