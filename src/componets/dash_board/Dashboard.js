@@ -124,6 +124,31 @@ const rashiColumnLabelExcel = {
   total: 'कुल राशि'
 };
 
+// Helper function to calculate financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed (0 = January, 3 = April)
+
+  let startYear, endYear;
+  
+  // If current month is April (3) or later, financial year starts this year
+  // Otherwise, it started last year
+  if (currentMonth >= 3) { // April onwards
+    startYear = currentYear;
+    endYear = currentYear + 1;
+  } else { // January to March
+    startYear = currentYear - 1;
+    endYear = currentYear;
+  }
+
+  // Format dates as YYYY-MM-DD
+  const startDate = `${startYear}-04-01`;
+  const endDate = `${endYear}-03-31`;
+
+  return { startDate, endDate };
+};
+
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -131,6 +156,9 @@ const Dashboard = () => {
   const [billingData, setBillingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Get initial financial year dates
+  const { startDate: initialStartDate, endDate: initialEndDate } = getFinancialYearDates();
 
   // राशि filter state
   const [selectedRashi, setSelectedRashi] = useState('subsidy');
@@ -140,12 +168,12 @@ const Dashboard = () => {
     { value: 'total', label: 'कुल राशि' }
   ];
 
-  // Date filter states
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [appliedStartDate, setAppliedStartDate] = useState("");
-  const [appliedEndDate, setAppliedEndDate] = useState("");
-  const [isDateFilterApplied, setIsDateFilterApplied] = useState(false);
+  // Date filter states - Initialize with current financial year
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
+  const [appliedStartDate, setAppliedStartDate] = useState(initialStartDate);
+  const [appliedEndDate, setAppliedEndDate] = useState(initialEndDate);
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(true);
   
   // Filter states - now arrays for multiple selection
   const [selectedSchemes, setSelectedSchemes] = useState([]);
@@ -1071,11 +1099,12 @@ const Dashboard = () => {
 
   // Handle clear date filter
   const handleClearDateFilter = () => {
-    setStartDate("");
-    setEndDate("");
-    setAppliedStartDate("");
-    setAppliedEndDate("");
-    setIsDateFilterApplied(false);
+    const { startDate: fyStartDate, endDate: fyEndDate } = getFinancialYearDates();
+    setStartDate(fyStartDate);
+    setEndDate(fyEndDate);
+    setAppliedStartDate(fyStartDate);
+    setAppliedEndDate(fyEndDate);
+    setIsDateFilterApplied(true);
     setSelectedSchemes([]);
     setSelectedInvestments([]);
   };
