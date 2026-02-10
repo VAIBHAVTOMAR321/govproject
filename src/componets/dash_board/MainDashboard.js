@@ -222,6 +222,7 @@ const MainDashboard = () => {
   const [previewImageSrc, setPreviewImageSrc] = useState(null);
   const [previewHtml, setPreviewHtml] = useState(null);
   const [excelPreviewUrl, setExcelPreviewUrl] = useState(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -539,6 +540,7 @@ const MainDashboard = () => {
           if (!node.subInvestments) node.subInvestments = [];
           node.subInvestments.push({
             name: vals['sub_investment_name'],
+            unit: r.unit || '',
             allocated_quantity: r.allocated_quantity !== undefined && r.allocated_quantity !== null && r.allocated_quantity !== '' ? parseFloat(r.allocated_quantity) : undefined,
             amount_of_farmer_share: r.amount_of_farmer_share !== undefined && r.amount_of_farmer_share !== null && r.amount_of_farmer_share !== '' ? parseFloat(r.amount_of_farmer_share) : undefined,
             amount_of_subsidy: r.amount_of_subsidy !== undefined && r.amount_of_subsidy !== null && r.amount_of_subsidy !== '' ? parseFloat(r.amount_of_subsidy) : undefined,
@@ -692,6 +694,7 @@ const MainDashboard = () => {
                 tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b)
             )
             .map((key) => columnDefs[key].label),
+          "इकाई",
           "आवंटित मात्रा",
           "कृषक धनराशि",
           "सब्सिडी धनराशि",
@@ -2520,6 +2523,23 @@ const MainDashboard = () => {
     const amountField = rashiType === 'कृषक धनराशि' ? 'amount_of_farmer_share' : 
                         rashiType === 'सब्सिडी धनराशि' ? 'amount_of_subsidy' : 'total_amount';
 
+    // Detect इकाई (unit) per "योजना - निवेश/उप-निवेश" संयोजन from backend data
+    // This is used to render the second header row: "इकाई - <unit>"
+    const columnUnits = {};
+    dynamicColumns.forEach(col => {
+      const [scheme, val] = col.split(' - ');
+      const matchingItems = data.filter(item => item.scheme_name === scheme && item[columnType] === val);
+      let unitValue = '';
+      for (const item of matchingItems) {
+        const detectedUnit = getUnitFromItem(item);
+        if (detectedUnit) {
+          unitValue = detectedUnit;
+          break;
+        }
+      }
+      columnUnits[col] = unitValue;
+    });
+
     const rows = groups.map(group => {
       const row = { [groupLabel]: group };
       dynamicColumns.forEach(col => {
@@ -2572,10 +2592,12 @@ const MainDashboard = () => {
     const columnGroups = dynamicColumns.map(col => ({
       name: col,
       subColumns: [`${col}_मात्रा`, `${col}_राशि`],
-      rashiLabel: rashiLabel
+      rashiLabel: rashiLabel,
+      unit: columnUnits[col] || ''
     }));
 
-    return { columns, data: rows, columnGroups, rashiType, rashiLabel };
+    // Include columnType so consumers can enable इकाई-specific layouts only for उप-निवेश
+    return { columns, data: rows, columnGroups, rashiType, rashiLabel, columnType };
   };
 
   // Generate Vidhan Sabha Investment table when summary is shown
@@ -2593,7 +2615,16 @@ const MainDashboard = () => {
           if (existingIndex !== -1) {
             // Update existing
             const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], heading, columns: table.columns, data: table.data, columnGroups: table.columnGroups, rashiLabel: table.rashiLabel, isRotated: isRotated[tableIndex] || false };
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              heading,
+              columns: table.columns,
+              data: table.data,
+              columnGroups: table.columnGroups,
+              rashiLabel: table.rashiLabel,
+              columnType: table.columnType,
+              isRotated: isRotated[tableIndex] || false,
+            };
             return updated;
           } else {
             // Add new
@@ -2604,6 +2635,7 @@ const MainDashboard = () => {
               data: table.data,
               columnGroups: table.columnGroups,
               rashiLabel: table.rashiLabel,
+              columnType: table.columnType,
               isAllocationTable: false,
               isRotated: isRotated[tableIndex] || false
             }];
@@ -5412,6 +5444,11 @@ const MainDashboard = () => {
         (idx === 0 ? true : flat[idx - 1].path.slice(0, numAggIndex + 1).join('|') !== r.path.slice(0, numAggIndex + 1).join('|')) : 
         (numericLevelToUse === 'sub_investment_name');
 
+      // Add ikai (unit) column for sub-investment level
+      if (visible.showIkai && r.sub) {
+        cells.push({ value: r.sub.unit || '', rowSpan: 1, isFirst: true });
+      }
+
       if (visible.showAllocated) {
         cells.push({ value: numericShownOnThisRow && numAgg && numAgg.allocated_quantity !== undefined ? numAgg.allocated_quantity : '', rowSpan: 1, isFirst: true });
       }
@@ -5434,6 +5471,8 @@ const MainDashboard = () => {
   // Export functions for Hierarchical Summary Table
   const exportDetailTableToPDF = async () => {
     try {
+      setIsExportingPdf(true);
+      
       // Get hierarchy data same as displayed
       const baseData = filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData;
       const filteredData = baseData.filter((item) => {
@@ -5458,6 +5497,7 @@ const MainDashboard = () => {
         showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
         showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
         showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showIkai: selIndex <= 5 && tableColumnFilters.summary.includes('इकाई'),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
         showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
         showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
@@ -5472,6 +5512,7 @@ const MainDashboard = () => {
       if (visible.showYojana) headers.push('योजना');
       if (visible.showNivesh) headers.push('निवेश');
       if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showIkai) headers.push('इकाई');
       if (visible.showAllocated) headers.push('आवंटित मात्रा');
       if (visible.showFarmer) headers.push('कृषक धनराशि');
       if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
@@ -5493,14 +5534,6 @@ const MainDashboard = () => {
         amount_of_subsidy: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0), 0).toFixed(2),
         total_amount: headerFilteredData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toFixed(2)
       };
-      
-      // Create a temporary hidden div with the table HTML
-      const tempDiv = document.createElement('div');
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '0';
-      tempDiv.style.background = 'white';
-      tempDiv.style.padding = '20px';
       
       // Generate HTML rows with proper rowspans
       const htmlRows = rowsWithSpans.map(rowCells => {
@@ -5534,6 +5567,12 @@ const MainDashboard = () => {
         const displayValue = uniqueValues.join(', ');
         footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-family: Arial, sans-serif; font-size: 10px;">${displayValue}</td>`);
       }
+      // Add ikai column cell with unique unit values
+      if (visible.showIkai) {
+        const uniqueUnits = [...new Set(headerFilteredData.map((item) => item.unit).filter(Boolean))];
+        const ikaiFinalValue = uniqueUnits.length > 0 ? uniqueUnits.join(', ') : '';
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-family: Arial, sans-serif; font-size: 10px;">${ikaiFinalValue}</td>`);
+      }
       // Add numeric total cells
       if (visible.showAllocated) {
         footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; font-family: Arial, sans-serif;">${grandTotals.allocated_quantity}</td>`);
@@ -5549,75 +5588,147 @@ const MainDashboard = () => {
       }
       const footerRow = `<tr>${footerCells.join('')}</tr>`;
       
-      tempDiv.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; font-family: Arial, sans-serif;">
-          <thead>
-            <tr style="background-color: #428bca; color: white;">
-              ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 10px; font-family: Arial, sans-serif;">${h}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${htmlRows}
-          </tbody>
-          <tfoot>
-            ${footerRow}
-          </tfoot>
-        </table>
+      // Create temporary DOM element for rendering
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-10000px';
+      tempContainer.style.top = '0';
+      tempContainer.style.width = '1100px';
+      tempContainer.style.background = 'white';
+      tempContainer.style.padding = '30px 25px';
+      tempContainer.style.margin = '0';
+      tempContainer.style.boxSizing = 'border-box';
+      
+      // Use complete HTML with proper styles and row breaking prevention
+      tempContainer.innerHTML = `
+        <div style="font-family: Arial, sans-serif; background: white; padding: 0;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px; font-family: Arial, sans-serif; page-break-inside: avoid;">
+            <thead>
+              <tr style="background-color: #428bca; color: white; page-break-after: avoid;">
+                ${headers.map(h => `<th style="border: 1px solid #000; padding: 8px 6px; text-align: left; font-weight: bold;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${htmlRows}
+            </tbody>
+            <tfoot>
+              ${footerRow}
+            </tfoot>
+          </table>
+        </div>
       `;
       
-      document.body.appendChild(tempDiv);
+      // Append to document body and wait for render
+      document.body.appendChild(tempContainer);
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Capture as image using html2canvas
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      
-      // Remove temp div
-      document.body.removeChild(tempDiv);
-      
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-      
-      // Create PDF
-      const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      const imgWidth = pageWidth - 40; // 20pt margin on each side
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      if (imgHeight <= pageHeight - 40) {
-        // Fits on one page
-        pdf.addImage(imgData, "JPEG", 20, 20, imgWidth, imgHeight);
-      } else {
-        // Multiple pages
-        let remainingHeight = canvas.height;
-        const pageCanvas = document.createElement("canvas");
-        const ctx = pageCanvas.getContext("2d");
-        pageCanvas.width = canvas.width;
-        const pxPerPage = Math.floor((canvas.width * (pageHeight - 40)) / imgWidth);
-        let srcY = 0;
+      try {
+        // Capture with html2canvas - lower scale for faster processing
+        const canvas = await html2canvas(tempContainer, {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          allowTaint: true,
+          removeContainer: false,
+          width: tempContainer.offsetWidth,
+          height: tempContainer.offsetHeight
+        });
         
-        while (remainingHeight > 0) {
-          const h = Math.min(pxPerPage, remainingHeight);
-          pageCanvas.height = h;
-          ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-          ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
-          const pageData = pageCanvas.toDataURL("image/jpeg", 1.0);
-          if (srcY > 0) pdf.addPage();
-          const renderedHeight = (h * imgWidth) / canvas.width;
-          pdf.addImage(pageData, "JPEG", 20, 20, imgWidth, renderedHeight);
-          remainingHeight -= h;
-          srcY += h;
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+          throw new Error('Canvas rendering resulted in empty content');
         }
+        
+        // Create PDF from canvas
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4',
+          compress: true
+        });
+        
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const marginTop = 12;
+        const marginBottom = 12;
+        const marginLeft = 10;
+        const marginRight = 10;
+        const safePageHeight = pageHeight - marginTop - marginBottom;
+        const imgWidth = pageWidth - marginLeft - marginRight;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        if (imgHeight <= safePageHeight) {
+          // Fits on single page
+          pdf.addImage(imgData, 'PNG', marginLeft, marginTop, imgWidth, imgHeight);
+        } else {
+          // Multiple pages - calculate with better page break handling
+          let heightLeft = canvas.height;
+          let position = 0;
+          let isFirstPage = true;
+          
+          // Calculate pixel height of safe area
+          const safePageHeightPixels = safePageHeight * canvas.width / imgWidth;
+          
+          while (heightLeft > 0) {
+            if (!isFirstPage) {
+              pdf.addPage();
+            }
+            
+            // Calculate slice for this page - with buffer to avoid cutting text
+            const sliceHeight = Math.min(heightLeft, safePageHeightPixels);
+            
+            // Create a new canvas for this page with extra bottom buffer
+            const pageCanvas = document.createElement('canvas');
+            pageCanvas.width = canvas.width;
+            pageCanvas.height = sliceHeight;
+            pageCanvas.style.background = 'white';
+            
+            const ctx = pageCanvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+            
+            // Draw the portion from main canvas
+            ctx.drawImage(
+              canvas,
+              0, position,
+              canvas.width, sliceHeight,
+              0, 0,
+              canvas.width, sliceHeight
+            );
+            
+            // Convert to image and add to PDF
+            const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
+            const pageImgHeight = (sliceHeight * imgWidth) / canvas.width;
+            
+            pdf.addImage(pageImgData, 'PNG', marginLeft, marginTop, imgWidth, pageImgHeight);
+            
+            // Update for next iteration
+            heightLeft -= sliceHeight;
+            position += sliceHeight;
+            isFirstPage = false;
+          }
+        }
+        
+        // Clean up and save
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+        
+        pdf.save('Summary_Table.pdf');
+        
+      } catch (canvasError) {
+        console.error('Canvas and PDF generation error:', canvasError);
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+        alert('PDF generation failed. Please check browser console and try again.');
       }
-      
-      pdf.save('Summary_Table.pdf');
     } catch (error) {
       console.error('PDF export error:', error);
       alert('PDF निर्यात में त्रुटि हुई: ' + error.message);
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -5647,6 +5758,7 @@ const MainDashboard = () => {
         showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
         showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
         showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showIkai: selIndex <= 5 && tableColumnFilters.summary.includes('इकाई'),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
         showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
         showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
@@ -5661,6 +5773,7 @@ const MainDashboard = () => {
       if (visible.showYojana) headers.push('योजना');
       if (visible.showNivesh) headers.push('निवेश');
       if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showIkai) headers.push('इकाई');
       if (visible.showAllocated) headers.push('आवंटित मात्रा');
       if (visible.showFarmer) headers.push('कृषक धनराशि');
       if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
@@ -5755,6 +5868,15 @@ const MainDashboard = () => {
           colIdx++;
         }
         
+        // Fill ikai (unit) column
+        if (visible.showIkai && r.sub) {
+          row[colIdx] = r.sub.unit || '';
+          colIdx++;
+        } else if (visible.showIkai) {
+          row[colIdx] = '';
+          colIdx++;
+        }
+        
         // Fill numeric columns
         const numericLevelToUse = numericDisplayLevel || selectedHierarchyLevel;
         const numAggIndex = displayLevels.indexOf(numericLevelToUse);
@@ -5828,6 +5950,12 @@ const MainDashboard = () => {
           colIdx++;
         }
       }
+      // ikai column in footer with unique unit values
+      if (visible.showIkai) {
+        const uniqueUnits = [...new Set(headerFilteredData.map((item) => item.unit).filter(Boolean))];
+        footerRow[colIdx] = uniqueUnits.length > 0 ? uniqueUnits.join(', ') : '';
+        colIdx++;
+      }
       // Fill numeric totals
       if (visible.showAllocated) {
         footerRow[colIdx] = parseFloat(grandTotals.allocated_quantity);
@@ -5857,7 +5985,7 @@ const MainDashboard = () => {
       // Set column widths for better readability
       const colWidths = headers.map((h) => {
         if (h === 'विधानसभा' || h === 'विकास खंड' || h === 'केंद्र' || h === 'योजना') return { wch: 25 };
-        if (h === 'निवेश' || h === 'उप-निवेश') return { wch: 30 };
+        if (h === 'निवेश' || h === 'उप-निवेश' || h === 'इकाई') return { wch: 20 };
         return { wch: 18 };
       });
       ws['!cols'] = colWidths;
@@ -5898,6 +6026,7 @@ const MainDashboard = () => {
         showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
         showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
         showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showIkai: selIndex <= 5 && tableColumnFilters.summary.includes('इकाई'),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
         showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
         showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
@@ -5912,6 +6041,7 @@ const MainDashboard = () => {
       if (visible.showYojana) headers.push('योजना');
       if (visible.showNivesh) headers.push('निवेश');
       if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showIkai) headers.push('इकाई');
       if (visible.showAllocated) headers.push('आवंटित मात्रा');
       if (visible.showFarmer) headers.push('कृषक धनराशि');
       if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
@@ -5965,6 +6095,12 @@ const MainDashboard = () => {
         const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
         const displayValue = uniqueValues.join(', ');
         footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add ikai column cell with unique unit values
+      if (visible.showIkai) {
+        const uniqueUnits = [...new Set(headerFilteredData.map((item) => item.unit).filter(Boolean))];
+        const ikaiFinalValue = uniqueUnits.length > 0 ? uniqueUnits.join(', ') : '';
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${ikaiFinalValue}</td>`);
       }
       // Add numeric total cells
       if (visible.showAllocated) {
@@ -6034,6 +6170,7 @@ const MainDashboard = () => {
         showYojana: selIndex <= 3 && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
         showNivesh: selIndex <= 4 && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
         showUpNivesh: selIndex <= 5 && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+        showIkai: selIndex <= 5 && tableColumnFilters.summary.includes('इकाई'),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
         showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
         showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
@@ -6048,6 +6185,7 @@ const MainDashboard = () => {
       if (visible.showYojana) headers.push('योजना');
       if (visible.showNivesh) headers.push('निवेश');
       if (visible.showUpNivesh) headers.push('उप-निवेश');
+      if (visible.showIkai) headers.push('इकाई');
       if (visible.showAllocated) headers.push('आवंटित मात्रा');
       if (visible.showFarmer) headers.push('कृषक धनराशि');
       if (visible.showSubsidy) headers.push('सब्सिडी धनराशि');
@@ -6101,6 +6239,12 @@ const MainDashboard = () => {
         const uniqueValues = [...new Set(headerFilteredData.map((item) => item[col]).filter(Boolean))];
         const displayValue = uniqueValues.join(', ');
         footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${displayValue}</td>`);
+      }
+      // Add ikai column cell with unique unit values
+      if (visible.showIkai) {
+        const uniqueUnits = [...new Set(headerFilteredData.map((item) => item.unit).filter(Boolean))];
+        const ikaiFinalValue = uniqueUnits.length > 0 ? uniqueUnits.join(', ') : '';
+        footerCells.push(`<td style="border: 1px solid #ddd; padding: 8px; font-size: 10px;">${ikaiFinalValue}</td>`);
       }
       // Add numeric total cells
       if (visible.showAllocated) {
@@ -8853,6 +8997,9 @@ const MainDashboard = () => {
                                               </th>
                                             ))}
                                           {tableColumnFilters.summary.includes(
+                                            "इकाई"
+                                          ) && <th>इकाई</th>}
+                                          {tableColumnFilters.summary.includes(
                                             "आवंटित मात्रा"
                                           ) && <th>आवंटित मात्रा</th>}
                                           {tableColumnFilters.summary.includes(
@@ -8897,7 +9044,7 @@ const MainDashboard = () => {
                                               .filter((col) => col !== primaryColumn && !columnDefs[col].hidden)
                                               .filter((col) => col !== "allocated_quantity" && col !== "rate" && col !== "amount_of_farmer_share" && col !== "amount_of_subsidy" && col !== "total_amount")
                                               .filter((col) => tableColumnFilters.summary.includes(columnDefs[col].label));
-                                            const extraCols = ["आवंटित मात्रा", "कृषक धनराशि", "सब्सिडी धनराशि", "कुल राशि"].filter((c) => tableColumnFilters.summary.includes(c));
+                                            const extraCols = ["इकाई", "आवंटित मात्रा", "कृषक धनराशि", "सब्सिडी धनराशि", "कुल राशि"].filter((c) => tableColumnFilters.summary.includes(c));
                                             const colSpan = 1 + dynamicCols.length + extraCols.length + (tableColumnFilters.summary.includes("कुल रिकॉर्ड") ? 1 : 0);
 
                                             return (
@@ -8931,6 +9078,7 @@ const MainDashboard = () => {
                                                         showYojana: selIndex <= 3 && levels.indexOf('scheme_name') >= selIndex && tableColumnFilters.summary.includes(columnDefs.scheme_name.label),
                                                         showNivesh: selIndex <= 4 && levels.indexOf('investment_name') >= selIndex && tableColumnFilters.summary.includes(columnDefs.investment_name.label),
                                                         showUpNivesh: selIndex <= 5 && levels.indexOf('sub_investment_name') >= selIndex && tableColumnFilters.summary.includes(columnDefs.sub_investment_name.label),
+                                                        showIkai: selIndex <= 5 && levels.indexOf('sub_investment_name') >= selIndex && tableColumnFilters.summary.includes('इकाई'),
                                                         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
                                                         showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
                                                         showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
@@ -9466,6 +9614,40 @@ const MainDashboard = () => {
                                                 );
                                               }
                                             })}
+
+                                          {tableColumnFilters.summary.includes(
+                                            "इकाई"
+                                          ) && (
+                                            <td style={{ fontWeight: "bold", verticalAlign: "top", maxWidth: "200px" }}>
+                                              {(() => {
+                                                const displayCheckedValues = (() => {
+                                                  const checkedValues = Object.keys(currentFilter.checked).filter((val) => currentFilter.checked[val]);
+                                                  if (checkedValues.length === 0) return [];
+                                                  return checkedValues.filter((checkedValue) => {
+                                                    const rowsForValue = filteredData.filter(
+                                                      (item) => item[currentFilter.column] === checkedValue
+                                                    );
+                                                    const selfSelected = summaryColumnValueFilters[currentFilter.column] || [];
+                                                    if (selfSelected.length > 0 && !selfSelected.includes(checkedValue)) {
+                                                      return false;
+                                                    }
+                                                    for (const [col, selectedVals] of Object.entries(summaryColumnValueFilters)) {
+                                                      if (col === currentFilter.column) continue;
+                                                      const sel = selectedVals || [];
+                                                      if (sel.length > 0) {
+                                                        const match = rowsForValue.some((row) => sel.includes(row[col]));
+                                                        if (!match) return false;
+                                                      }
+                                                    }
+                                                    return true;
+                                                  });
+                                                })();
+                                                const headerFilteredAll = applySummaryHeaderFilters(filteredData).filter((row) => displayCheckedValues.includes(row[currentFilter.column]));
+                                                const uniqueUnits = [...new Set(headerFilteredAll.map((item) => item.unit).filter(Boolean))];
+                                                return <div>{uniqueUnits.join(", ") || "-"}</div>;
+                                              })()}
+                                            </td>
+                                          )}
 
                                           {tableColumnFilters.summary.includes(
                                             "आवंटित मात्रा"
@@ -10257,27 +10439,134 @@ const MainDashboard = () => {
                                             className="table-thead-style"
                                           >
                                             <thead className="table-thead">
-                                              {/* First row: Main column headers with colspan for grouped columns */}
-                                              {table.type === 'vidhanSabhaInvestment' && table.columnGroups && !isRotated[index] && (
-                                                <tr>
-                                                  <th rowSpan="2">{table.columns[0]}</th>
-                                                  {table.columnGroups.map((group, idx) => (
-                                                    <th key={idx} colSpan="2" style={{ textAlign: 'center' }}>
-                                                      {group.name}
-                                                    </th>
-                                                  ))}
-                                                  <th rowSpan="2">आवंटित मात्रा</th>
-                                                  <th rowSpan="2">कृषक धनराशि</th>
-                                                  <th rowSpan="2">सब्सिडी धनराशि</th>
-                                                  <th rowSpan="2">कुल राशि</th>
-                                                </tr>
-                                              )}
-                                              {/* Second row: Sub-column headers (मात्रा/राशि) or regular headers */}
-                                              <tr>
-                                                {(() => {
-                                                  const isTableRotated =
-                                                    isRotated[index] || false;
-                                                  if (isTableRotated) {
+                                              {(() => {
+                                                const isTableRotated = isRotated[index] || false;
+
+                                                // Special 3-row header only when Vidhan Sabha table is based on उप-निवेश
+                                                if (
+                                                  !isTableRotated &&
+                                                  table.type === 'vidhanSabhaInvestment' &&
+                                                  table.columnGroups &&
+                                                  table.columnType === 'sub_investment_name'
+                                                ) {
+                                                  const rashiLabel = table.rashiLabel || 'राशि';
+                                                  return (
+                                                    <>
+                                                      {/* Row 1: योजना - उप-निवेश शीर्षक */}
+                                                      <tr>
+                                                        <th rowSpan="3">{table.columns[0]}</th>
+                                                        {table.columnGroups.map((group, idx) => (
+                                                          <th
+                                                            key={`grp-${idx}`}
+                                                            colSpan="2"
+                                                            style={{ textAlign: 'center' }}
+                                                          >
+                                                            {group.name}
+                                                          </th>
+                                                        ))}
+                                                        <th rowSpan="3">आवंटित मात्रा</th>
+                                                        <th rowSpan="3">कृषक धनराशि</th>
+                                                        <th rowSpan="3">सब्सिडी धनराशि</th>
+                                                        <th rowSpan="3">कुल राशि</th>
+                                                      </tr>
+                                                      {/* Row 2: इकाई - <unit> (full-width under each group) */}
+                                                      <tr>
+                                                        {table.columnGroups.map((group, idx) => (
+                                                          <th
+                                                            key={`unit-${idx}`}
+                                                            colSpan="2"
+                                                            style={{
+                                                              textAlign: 'center',
+                                                              fontSize: '0.75rem',
+                                                              fontWeight: 'normal',
+                                                            }}
+                                                          >
+                                                            {group.unit
+                                                              ? `इकाई - ${group.unit}`
+                                                              : 'इकाई'}
+                                                          </th>
+                                                        ))}
+                                                      </tr>
+                                                      {/* Row 3: मात्रा / राशि sub-headers */}
+                                                      <tr>
+                                                        {table.columnGroups.flatMap((group, gIdx) => [
+                                                          <th
+                                                            key={`qty-${gIdx}`}
+                                                            style={{
+                                                              textAlign: 'center',
+                                                              fontSize: '0.9rem',
+                                                              fontWeight: 'bold',
+                                                            }}
+                                                          >
+                                                            मात्रा
+                                                          </th>,
+                                                          <th
+                                                            key={`amt-${gIdx}`}
+                                                            style={{
+                                                              textAlign: 'center',
+                                                              fontSize: '0.9rem',
+                                                              fontWeight: 'bold',
+                                                            }}
+                                                          >
+                                                            {rashiLabel}
+                                                          </th>,
+                                                        ])}
+                                                      </tr>
+                                                    </>
+                                                  );
+                                                }
+
+                                                // Original 2-row grouped header for other Vidhan Sabha cases (e.g., निवेश)
+                                                if (
+                                                  !isTableRotated &&
+                                                  table.type === 'vidhanSabhaInvestment' &&
+                                                  table.columnGroups
+                                                ) {
+                                                  const rashiLabel = table.rashiLabel || 'राशि';
+                                                  return (
+                                                    <>
+                                                      <tr>
+                                                        <th rowSpan="2">{table.columns[0]}</th>
+                                                        {table.columnGroups.map((group, idx) => (
+                                                          <th
+                                                            key={`grp-${idx}`}
+                                                            colSpan="2"
+                                                            style={{ textAlign: 'center' }}
+                                                          >
+                                                            {group.name}
+                                                          </th>
+                                                        ))}
+                                                        <th rowSpan="2">आवंटित मात्रा</th>
+                                                        <th rowSpan="2">कृषक धनराशि</th>
+                                                        <th rowSpan="2">सब्सिडी धनराशि</th>
+                                                        <th rowSpan="2">कुल राशि</th>
+                                                      </tr>
+                                                      <tr>
+                                                        {table.columnGroups.flatMap((group) => [
+                                                          <th
+                                                            key={`${group.name}_मात्रा`}
+                                                            style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}
+                                                          >
+                                                            मात्रा
+                                                          </th>,
+                                                          <th
+                                                            key={`${group.name}_राशि`}
+                                                            style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}
+                                                          >
+                                                            {rashiLabel}
+                                                          </th>,
+                                                        ])}
+                                                      </tr>
+                                                    </>
+                                                  );
+                                                }
+
+                                                // Existing single-row header logic for rotated or non-VidhanSabha tables
+                                                return (
+                                                  <tr>
+                                                    {(() => {
+                                                      const isRot = isTableRotated;
+                                                      if (isRot) {
                                                     // Use table.data directly (already filtered by row filter before rotation)
                                                     const filteredData = table.data.filter((row) => row[table.columns[0]] !== "कुल");
                                                     
@@ -10321,21 +10610,6 @@ const MainDashboard = () => {
                                                       </th>
                                                     ));
                                                   } else {
-                                                    // For Vidhan Sabha Investment table with column groups, show sub-headers
-                                                    if (table.type === 'vidhanSabhaInvestment' && table.columnGroups) {
-                                                      const rashiLabel = table.rashiLabel || 'राशि';
-                                                      return (
-                                                        <>
-                                                          {/* Skip first column as it has rowSpan=2 in first row */}
-                                                          {table.columnGroups.flatMap(group => [
-                                                            <th key={`${group.name}_मात्रा`} style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>मात्रा</th>,
-                                                            <th key={`${group.name}_राशि`} style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>{rashiLabel}</th>
-                                                          ])}
-                                                          {/* Total columns are handled by rowSpan=2 in first row, so skip them here */}
-                                                        </>
-                                                      );
-                                                    }
-                                                    
                                                     // For regular tables, show normal headers
                                                     const visibleColumns =
                                                       tableColumnFilters
@@ -10346,7 +10620,7 @@ const MainDashboard = () => {
                                                         <th key={idx}>
                                                           {(() => {
                                                             if (!table.isAllocationTable || col !== "आवंटित मात्रा") {
-                                                              // For Vidhan Sabha table, extract display name from column key
+                                                              // For Vidhan Sabha table (non-grouped case), extract display name from column key
                                                               if (table.type === 'vidhanSabhaInvestment' && (col.endsWith('_मात्रा') || col.endsWith('_राशि'))) {
                                                                 return col.endsWith('_मात्रा') ? 'मात्रा' : 'राशि';
                                                               }
@@ -10407,7 +10681,9 @@ const MainDashboard = () => {
                                                     );
                                                   }
                                                 })()}
-                                              </tr>
+                                                  </tr>
+                                                );
+                                              })()}
                                             </thead>
                                             <tbody>
                                               {(() => {
@@ -10472,9 +10748,20 @@ const MainDashboard = () => {
 
                                                     // Create two rows for each column pair (one for मात्रा, one for राशि)
                                                     columnPairs.forEach((pair, baseName) => {
+                                                      // Detect इकाई for this baseName from columnGroups (योजना – निवेश/उप-निवेश स्तर)
+                                                      // Only show इकाई for उप-निवेश-based tables
+                                                      let baseUnit = '';
+                                                      if (table.columnType === 'sub_investment_name') {
+                                                        const groupMeta =
+                                                          (table.columnGroups || []).find(
+                                                            (g) => g.name === baseName
+                                                          );
+                                                        baseUnit = groupMeta && groupMeta.unit ? groupMeta.unit : '';
+                                                      }
+
                                                       // मात्रा row
                                                       if (pair.मात्रा) {
-                                                        const matraRow = { [table.columns[0]]: `${baseName}\nमात्रा`, _rowType: 'मात्रा', _baseName: baseName };
+                                                        const matraRow = { [table.columns[0]]: `${baseName}\nमात्रा`, _rowType: 'मात्रा', _baseName: baseName, _unit: baseUnit };
                                                         visibleTransposed.forEach((newCol) => {
                                                           if (newCol === table.columns[0] || newCol === "कुल") return;
                                                           const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
@@ -10492,7 +10779,7 @@ const MainDashboard = () => {
 
                                                       // राशि row - use dynamic rashiLabel
                                                       if (pair.राशि) {
-                                                        const rashiRow = { [table.columns[0]]: `${baseName}\n${rashiLabel}`, _rowType: 'राशि', _baseName: baseName };
+                                                        const rashiRow = { [table.columns[0]]: `${baseName}\n${rashiLabel}`, _rowType: 'राशि', _baseName: baseName, _unit: baseUnit };
                                                         visibleTransposed.forEach((newCol) => {
                                                           if (newCol === table.columns[0] || newCol === "कुल") return;
                                                           const dataRow = filteredData.find((r) => r[table.columns[0]] === newCol);
@@ -10687,11 +10974,30 @@ const MainDashboard = () => {
                                                             if (isMatraRow || isRashiRow) {
                                                               // Split rows with मात्रा/राशि
                                                               const parts = label.split('\n');
+                                                              const baseUnit =
+                                                                table.columnType === 'sub_investment_name'
+                                                                  ? row._unit || ''
+                                                                  : '';
                                                               if (isMatraRow) {
+                                                                // First (rowSpan) cell shows योजना–उप-निवेश and इकाई, second shows "मात्रा"
                                                                 return (
                                                                   <React.Fragment key="first-cols">
-                                                                    <td rowSpan="2" style={{ verticalAlign: 'middle' }}>
-                                                                      {parts[0]}
+                                                                    <td
+                                                                      rowSpan="2"
+                                                                      style={{ verticalAlign: 'middle' }}
+                                                                    >
+                                                                      <div>{parts[0]}</div>
+                                                                      {baseUnit && (
+                                                                        <div
+                                                                          style={{
+                                                                            fontSize: '0.8rem',
+                                                                            color: '#555',
+                                                                            marginTop: 2,
+                                                                          }}
+                                                                        >
+                                                                          {`इकाई - ${baseUnit}`}
+                                                                        </div>
+                                                                      )}
                                                                     </td>
                                                                     <td>{parts[1]}</td>
                                                                   </React.Fragment>
@@ -12043,6 +12349,40 @@ const MainDashboard = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* PDF Export Loading Modal */}
+      <Modal
+        show={isExportingPdf}
+        onHide={() => {}}
+        backdrop="static"
+        keyboard={false}
+        centered
+      >
+        <Modal.Body style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <div
+              style={{
+                border: '4px solid #f3f3f3',
+                borderTop: '4px solid #3498db',
+                borderRadius: '50%',
+                width: '50px',
+                height: '50px',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto',
+              }}
+            />
+          </div>
+          <h5 style={{ marginTop: '20px', color: '#333' }}>PDF तैयार किया जा रहा है...</h5>
+          <p style={{ color: '#666', fontSize: '14px' }}>कृपया प्रतीक्षा करें</p>
+        </Modal.Body>
+      </Modal>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

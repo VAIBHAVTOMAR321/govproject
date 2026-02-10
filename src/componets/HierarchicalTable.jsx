@@ -205,6 +205,7 @@ export function HierarchicalTableRows({ data = [], visible = {}, aggregateLevel 
   const showFarmerFlag = vis.showFarmer !== false;
   const showSubsidyFlag = vis.showSubsidy !== false;
   const showTotalFlag = vis.showTotal !== false;
+  const showIkaiFlag = vis.showIkai !== false;
 
   const allLevels = ['vidhan_sabha_name','vikas_khand_name','center_name','scheme_name','investment_name','sub_investment_name'];
   const startIndex = Math.max(0, allLevels.indexOf(startLevel));
@@ -295,6 +296,11 @@ export function HierarchicalTableRows({ data = [], visible = {}, aggregateLevel 
 
     // Show numeric cells only on the row where the numeric-level cell is rendered
     const numericShownOnThisRow = (numAggIndex >= 0) ? (idx === 0 ? true : flat[idx - 1].path.slice(0, numAggIndex + 1).join('|') !== r.path.slice(0, numAggIndex + 1).join('|')) : (numericLevelToUse === 'sub_investment_name');
+
+    // Add ikai (unit) column for sub-investment level
+    if (showIkaiFlag && r.sub) {
+      cells.push(<td key={`ikai-${idx}`} style={styles.td}>{r.sub.unit || ''}</td>);
+    }
 
     if (showAllocatedFlag) cells.push(<td key={`alloc-${idx}`} style={styles.td}>{numericShownOnThisRow && numAgg && numAgg.allocated_quantity !== undefined ? numAgg.allocated_quantity : ''}</td>);
     if (showFarmerFlag) cells.push(<td key={`farmer-${idx}`} style={styles.td}>{numericShownOnThisRow && numAgg && numAgg.amount_of_farmer_share !== undefined ? `₹ ${numAgg.amount_of_farmer_share.toLocaleString()}` : ''}</td>);
