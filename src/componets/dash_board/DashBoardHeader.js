@@ -42,16 +42,22 @@ function DashBoardHeader() {
             <Nav.Link as={Link} to="/MainDashboard" active={location.pathname === '/MainDashboard'}>डैशबोर्ड</Nav.Link>
             
             {/* 4. For dropdowns, check if the current path is one of its children */}
-            <NavDropdown 
-              title="डेटा एंट्री" 
+            <NavDropdown
+              title="डेटा एंट्री"
               id="basic-nav-dropdown"
-              active={location.pathname === '/Registration' || location.pathname === '/KrishiRegistration'}
+              active={location.pathname === '/Registration' || location.pathname === '/KrishiRegistration' || location.pathname === '/NurseryFinancialEntry' || location.pathname === '/NurseryPhysicalEntry'}
             >
               <NavDropdown.Item as={Link} to="/Registration" active={location.pathname === '/Registration'}>
                 केंद्रवार एंट्री
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/KrishiRegistration" active={location.pathname === '/KrishiRegistration'}>
                 कृषि डेटा एंट्री
+              </NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/NurseryFinancialEntry" active={location.pathname === '/NurseryFinancialEntry'}>
+                नर्सरी वित्तीय प्रविष्टि
+              </NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/NurseryPhysicalEntry" active={location.pathname === '/NurseryPhysicalEntry'}>
+                नर्सरी भौतिक प्रविष्टि
               </NavDropdown.Item>
             </NavDropdown>
 

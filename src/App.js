@@ -26,13 +26,17 @@ import MPR from "./componets/dash_board/MPR";
 import AddEditComponent from "./componets/dash_board/AddEditComponent";
 import ForgotPassword from "./componets/all_login/ForgotPassword";
 import DemandGenerate from "./componets/DemandGenerate";
+import DemandCenterwiseEntry from "./componets/DemandCenterwiseEntry";
+import DemandKrishiwiseEntry from "./componets/DemandKrishiwiseEntry";
 import { CenterProvider } from "./componets/all_login/CenterContext";
 import KendraPasswordReset from "./componets/dash_board/KendraPasswordReset";
 import DemandView from "./componets/dash_board/DemandView";
+import NurseryFinancialEntry from "./componets/dash_board/NurseryFinancialEntry";
+import NurseryPhysicalEntry from "./componets/dash_board/NurseryPhysicalEntry";
 function App() {
   const location = useLocation();
 
-  const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/KendraPasswordReset","/DemandView"]);
+  const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/DemandGenerate/CenterwiseEntry","/DemandGenerate/KrishiwiseEntry","/KendraPasswordReset","/DemandView","/NurseryFinancialEntry","/NurseryPhysicalEntry"]);
 
   const shouldHideNavbar = hiddenPaths.has(location.pathname);
   
@@ -90,11 +94,21 @@ function App() {
                 <AddEditComponent />
               </ProtectedRoute>
             } />
-            <Route path="/DemandGenerate" element={
-              <ProtectedRoute allowedLoginTypes={["demand"]}>
-              <DemandGenerate />
-              </ProtectedRoute>
-            } />
+             <Route path="/DemandGenerate" element={
+               <ProtectedRoute allowedLoginTypes={["demand"]}>
+               <DemandGenerate />
+               </ProtectedRoute>
+             } />
+             <Route path="/DemandGenerate/CenterwiseEntry" element={
+               <ProtectedRoute allowedLoginTypes={["demand"]}>
+               <DemandCenterwiseEntry />
+               </ProtectedRoute>
+             } />
+             <Route path="/DemandGenerate/KrishiwiseEntry" element={
+               <ProtectedRoute allowedLoginTypes={["demand"]}>
+               <DemandKrishiwiseEntry />
+               </ProtectedRoute>
+             } />
             <Route path="/KendraPasswordReset" element={
               <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <KendraPasswordReset />
@@ -103,6 +117,16 @@ function App() {
             <Route path="/DemandView" element={
               <ProtectedRoute allowedLoginTypes={["regular"]}>
                 <DemandView />
+              </ProtectedRoute>
+            } />
+            <Route path="/NurseryFinancialEntry" element={
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
+                <NurseryFinancialEntry />
+              </ProtectedRoute>
+            } />
+            <Route path="/NurseryPhysicalEntry" element={
+              <ProtectedRoute allowedLoginTypes={["regular"]}>
+                <NurseryPhysicalEntry />
               </ProtectedRoute>
             } />
           </Routes>

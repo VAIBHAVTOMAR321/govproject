@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCenter } from './all_login/CenterContext';
 import { useAuth } from '../context/AuthContext';
 import { RiAddLine } from 'react-icons/ri';
+import DemandNavigation from './DemandNavigation';
 
 const DemandGenerate = () => {
   const navigate = useNavigate();
@@ -251,10 +252,10 @@ const DemandGenerate = () => {
 
   return (
     <Container fluid className="py-4">
+      <DemandNavigation />
       <Row className="mb-3">
-        <Col className="d-flex justify-content-between align-items-center">
+        <Col>
           <h4>डिमांड जनरेशन - {centerData.centerName}</h4>
-          <Button variant="danger" onClick={handleLogout}>लॉगआउट</Button>
         </Col>
       </Row>
 
