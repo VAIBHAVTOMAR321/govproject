@@ -319,6 +319,20 @@ const MainDashboard = () => {
   const [graphType, setGraphType] = useState("bar"); // bar, pie, doughnut
   const [graphColumn, setGraphColumn] = useState("center_name");
   
+  // State for graph-specific filters (separate from main table filters)
+  const [graphFilters, setGraphFilters] = useState({
+    center_name: [],
+    vidhan_sabha_name: [],
+    vikas_khand_name: [],
+    scheme_name: [],
+    source_of_receipt: [],
+    investment_name: [],
+    sub_investment_name: [],
+  });
+  
+  // State for graph filter dropdown visibility
+  const [graphFilterDropdowns, setGraphFilterDropdowns] = useState({});
+  
   // State to track currently displayed table for graph synchronization
   const [currentDisplayedTable, setCurrentDisplayedTable] = useState({
     type: "main", // main, summary, detail, breakdown
@@ -2736,12 +2750,85 @@ const MainDashboard = () => {
     setShowDetailed(false);
   };
 
+  // Toggle graph filter dropdown
+  const toggleGraphFilterDropdown = (columnKey) => {
+    setGraphFilterDropdowns(prev => ({
+      ...prev,
+      [columnKey]: !prev[columnKey]
+    }));
+  };
+
+  // Handle graph filter selection
+  const handleGraphFilterChange = (columnKey, value) => {
+    setGraphFilters(prev => {
+      const currentFilters = prev[columnKey] || [];
+      const newFilters = currentFilters.includes(value)
+        ? currentFilters.filter(v => v !== value)
+        : [...currentFilters, value];
+      return {
+        ...prev,
+        [columnKey]: newFilters
+      };
+    });
+  };
+
+  // Handle select all for graph filter
+  const handleGraphFilterSelectAll = (columnKey, allValues) => {
+    setGraphFilters(prev => {
+      const currentFilters = prev[columnKey] || [];
+      const allSelected = currentFilters.length === allValues.length;
+      return {
+        ...prev,
+        [columnKey]: allSelected ? [] : [...allValues]
+      };
+    });
+  };
+
+  // Clear all graph filters
+  const clearGraphFilters = () => {
+    setGraphFilters({
+      center_name: [],
+      vidhan_sabha_name: [],
+      vikas_khand_name: [],
+      scheme_name: [],
+      source_of_receipt: [],
+      investment_name: [],
+      sub_investment_name: [],
+    });
+  };
+
+  // Apply graph filters to data
+  const applyGraphFilters = (data) => {
+    if (!data || data.length === 0) return data;
+    
+    return data.filter(item => {
+      for (const [columnKey, selectedValues] of Object.entries(graphFilters)) {
+        if (selectedValues && selectedValues.length > 0) {
+          const itemValue = item[columnKey];
+          if (!selectedValues.includes(itemValue)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  };
+
+  // Get unique values for a column from data
+  const getUniqueColumnValues = (data, columnKey) => {
+    if (!data || data.length === 0) return [];
+    return [...new Set(data.map(item => item[columnKey]).filter(Boolean))].sort();
+  };
+
   // Generate chart data based on selected column and type
   const generateChartData = () => {
     // Use current displayed table data
-    let dataToVisualize = currentDisplayedTable.data && currentDisplayedTable.data.length > 0 
-      ? currentDisplayedTable.data 
+    let baseData = currentDisplayedTable.data && currentDisplayedTable.data.length > 0
+      ? currentDisplayedTable.data
       : (view === "main" ? filteredTableData : tableData);
+    
+    // Apply graph-specific filters
+    let dataToVisualize = applyGraphFilters(baseData);
     
     if (dataToVisualize.length === 0) {
       return null;
@@ -8322,219 +8409,137 @@ const MainDashboard = () => {
                 </Row>
               ) : (
                 <Row>
-                  <Col lg={3} md={3} sm={12}>
+                  <Col lg={12} md={12} sm={12}>
                     <div className="dashboard-graphs p-3 border rounded bg-white">
-                      {filterStack
-                        .slice()
-                        .reverse()
-                        .map((filter, index) => {
-                          const filterIndex = filterStack.length - 1 - index;
-                          // Get all unique values from filtered data for this column
-                          // Use filteredTableData as base to respect top-level filters
-                          const baseData =
-                            filteredTableData && filteredTableData.length > 0
-                              ? filteredTableData
-                              : tableData;
+                      {/* Filter Section - Above the first table */}
+                      <div className="filter-dropdowns-section mb-3 p-3 border rounded bg-light">
+                        <Row>
+                          {filterStack
+                            .slice()
+                            .reverse()
+                            .map((filter, index) => {
+                              const filterIndex = filterStack.length - 1 - index;
+                              // Get all unique values from filtered data for this column
+                              // Use filteredTableData as base to respect top-level filters
+                              const baseData =
+                                filteredTableData && filteredTableData.length > 0
+                                  ? filteredTableData
+                                  : tableData;
 
-                          const currentFilteredData = baseData.filter(
-                            (item) => {
-                              // Apply all filters except the current one
-                              for (let i = 0; i < filterStack.length; i++) {
-                                if (i === filterIndex) continue;
-                                const f = filterStack[i];
-                                if (!f.checked[item[f.column]]) return false;
-                              }
-                              return true;
-                            }
-                          );
-
-                          const allValues = [
-                            ...new Set(
-                              currentFilteredData
-                                .map((item) => item[filter.column])
-                                .filter(Boolean)
-                            ),
-                          ];
-                          const selectedValues = allValues
-                            .filter((val) => filter.checked[val])
-                            .sort();
-                          const unselectedValues = allValues
-                            .filter((val) => !filter.checked[val])
-                            .sort();
-                          const sortedValues = [
-                            ...selectedValues,
-                            ...unselectedValues,
-                          ];
-                          return (
-                            <Form.Group key={filterIndex} className="mb-2">
-                              <Form.Label className="form-label fw-bold">
-                                {columnDefs[filter.column]?.label} चुनें
-                              </Form.Label>
-                              <div className="dropdown">
-                                <button
-                                  className="btn btn-secondary dropdown-toggle drop-option"
-                                  type="button"
-                                  onClick={() =>
-                                    toggleDetailedDropdown(filterIndex)
+                              const currentFilteredData = baseData.filter(
+                                (item) => {
+                                  // Apply all filters except the current one
+                                  for (let i = 0; i < filterStack.length; i++) {
+                                    if (i === filterIndex) continue;
+                                    const f = filterStack[i];
+                                    if (!f.checked[item[f.column]]) return false;
                                   }
-                                >
-                                  {
-                                    Object.values(filter.checked).filter(
-                                      Boolean
-                                    ).length
-                                  }{" "}
-                                  selected
-                                </button>
-                                {detailedDropdownOpen[filterIndex] && (
-                                  <div
-                                    className="dropdown-menu show"
-                                    style={{
-                                      position: "absolute",
-                                      top: "100%",
-                                      zIndex: 1000,
-                                      maxHeight: "250px",
-                                      overflowY: "auto",
-                                    }}
-                                  >
-                                    <div
-                                      key="select_all"
-                                      className="dropdown-item"
-                                    >
-                                      <FormCheck
-                                        className="check-box"
-                                        type="checkbox"
-                                        id={`select_all_${filterIndex}`}
-                                        label={
-                                          Object.values(filter.checked).every(
-                                            Boolean
-                                          )
-                                            ? "सभी हटाएं"
-                                            : "सभी चुनें"
-                                        }
-                                        checked={Object.values(
-                                          filter.checked
-                                        ).every(Boolean)}
-                                        onChange={() =>
-                                          handleDetailedCheckboxChange(
-                                            filterIndex,
-                                            "SELECT_ALL"
-                                          )
-                                        }
-                                      />
-                                    </div>
-                                    {sortedValues.map((val) => (
-                                      <div key={val} className="dropdown-item">
-                                        <FormCheck
-                                          className="check-box"
-                                          type="checkbox"
-                                          id={`${filterIndex}_${val}`}
-                                          label={val}
-                                          checked={filter.checked[val] || false}
-                                          onChange={() =>
-                                            handleDetailedCheckboxChange(
-                                              filterIndex,
-                                              val
-                                            )
-                                          }
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </Form.Group>
-                          );
-                        })}
-                      
-                      {/* Graph Visualization Section */}
-                      <div className="graph-visualization-section">
-                        <h6>डेटा विज़ुअलाइज़ेशन</h6>
-                        
-                        {/* Graph Type Selector */}
-                        <div className="mb-3 graph-type-selector">
-                          <Button
-                            size="sm"
-                            variant={graphType === "bar" ? "primary" : "outline-primary"}
-                            onClick={() => setGraphType("bar")}
-                          >
-                            📊 बार ग्राफ
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={graphType === "pie" ? "success" : "outline-success"}
-                            onClick={() => setGraphType("pie")}
-                          >
-                            🥧 पाई चार्ट
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={graphType === "doughnut" ? "warning" : "outline-warning"}
-                            onClick={() => setGraphType("doughnut")}
-                          >
-                            🍩 डोनट चार्ट
-                          </Button>
-                        </div>
+                                  return true;
+                                }
+                              );
 
-                        {/* Graph Column Selector */}
-                        <div className="mb-3 graph-column-selector">
-                          <Form.Label className="form-label fw-bold small mb-2">
-                            📋 दिखाने के लिए कॉलम चुनें
-                          </Form.Label>
-                          <Form.Select
-                            size="sm"
-                            value={graphColumn}
-                            onChange={(e) => setGraphColumn(e.target.value)}
-                          >
-                            {/* Show all available columns, mark selected ones from main table */}
-                            {[
-                              { key: "center_name", label: columnDefs.center_name.label },
-                              { key: "vidhan_sabha_name", label: columnDefs.vidhan_sabha_name.label },
-                              { key: "vikas_khand_name", label: columnDefs.vikas_khand_name.label },
-                              { key: "scheme_name", label: columnDefs.scheme_name.label },
-                              { key: "source_of_receipt", label: columnDefs.source_of_receipt.label },
-                              { key: "investment_name", label: columnDefs.investment_name.label },
-                              { key: "sub_investment_name", label: columnDefs.sub_investment_name.label },
-                              { key: "allocated_quantity", label: columnDefs.allocated_quantity.label },
-                              { key: "amount_of_farmer_share", label: columnDefs.amount_of_farmer_share.label },
-                              { key: "amount_of_subsidy", label: columnDefs.amount_of_subsidy.label },
-                              { key: "total_amount", label: columnDefs.total_amount.label },
-                            ].map((col) => {
-                              const isSelected = tableColumnFilters.main && tableColumnFilters.main.includes(col.key);
+                              const allValues = [
+                                ...new Set(
+                                  currentFilteredData
+                                    .map((item) => item[filter.column])
+                                    .filter(Boolean)
+                                ),
+                              ];
+                              const selectedValues = allValues
+                                .filter((val) => filter.checked[val])
+                                .sort();
+                              const unselectedValues = allValues
+                                .filter((val) => !filter.checked[val])
+                                .sort();
+                              const sortedValues = [
+                                ...selectedValues,
+                                ...unselectedValues,
+                              ];
                               return (
-                                <option key={col.key} value={col.key}>
-                                  {isSelected ? "✓ " : ""}{col.label}
-                                </option>
+                                <Col key={filterIndex} lg={3} md={4} sm={6} className="mb-2">
+                                  <Form.Group>
+                                    <Form.Label className="form-label fw-bold">
+                                      {columnDefs[filter.column]?.label} चुनें
+                                    </Form.Label>
+                                    <div className="dropdown">
+                                      <button
+                                        className="btn btn-secondary dropdown-toggle drop-option w-100"
+                                        type="button"
+                                        onClick={() =>
+                                          toggleDetailedDropdown(filterIndex)
+                                        }
+                                      >
+                                        {
+                                          Object.values(filter.checked).filter(
+                                            Boolean
+                                          ).length
+                                        }{" "}
+                                        selected
+                                      </button>
+                                      {detailedDropdownOpen[filterIndex] && (
+                                        <div
+                                          className="dropdown-menu show"
+                                          style={{
+                                            position: "absolute",
+                                            top: "100%",
+                                            zIndex: 1000,
+                                            maxHeight: "250px",
+                                            overflowY: "auto",
+                                          }}
+                                        >
+                                          <div
+                                            key="select_all"
+                                            className="dropdown-item"
+                                          >
+                                            <FormCheck
+                                              className="check-box"
+                                              type="checkbox"
+                                              id={`select_all_${filterIndex}`}
+                                              label={
+                                                Object.values(filter.checked).every(
+                                                  Boolean
+                                                )
+                                                  ? "सभी हटाएं"
+                                                  : "सभी चुनें"
+                                              }
+                                              checked={Object.values(
+                                                filter.checked
+                                              ).every(Boolean)}
+                                              onChange={() =>
+                                                handleDetailedCheckboxChange(
+                                                  filterIndex,
+                                                  "SELECT_ALL"
+                                                )
+                                              }
+                                            />
+                                          </div>
+                                          {sortedValues.map((val) => (
+                                            <div key={val} className="dropdown-item">
+                                              <FormCheck
+                                                className="check-box"
+                                                type="checkbox"
+                                                id={`${filterIndex}_${val}`}
+                                                label={val}
+                                                checked={filter.checked[val] || false}
+                                                onChange={() =>
+                                                  handleDetailedCheckboxChange(
+                                                    filterIndex,
+                                                    val
+                                                  )
+                                                }
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Form.Group>
+                                </Col>
                               );
                             })}
-                          </Form.Select>
-                        </div>
-
-                        {/* Chart Rendering with Scrolling */}
-                        <div className="chart-scroll-wrapper">
-                          <div 
-                            className="chart-container"
-                            style={{ width: calculateChartWidth() }}
-                          >
-                            {generateChartData() ? (
-                              graphType === "bar" ? (
-                                <Bar data={generateChartData()} options={chartOptions} />
-                              ) : graphType === "pie" ? (
-                                <Pie data={generateChartData()} options={chartOptions} />
-                              ) : (
-                                <Doughnut data={generateChartData()} options={chartOptions} />
-                              )
-                            ) : (
-                              <div className="chart-no-data">
-                                <p>📊 डेटा उपलब्ध नहीं है</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        </Row>
                       </div>
-                    </div>
-                  </Col>
-                  <Col lg={9} md={9} sm={12}>
-                    <div className="dashboard-graphs p-3 border rounded bg-white">
+                      
                       {(() => {
                         // Use filteredTableData as base to respect top-level filters
                         const baseData =
@@ -12217,6 +12222,210 @@ const MainDashboard = () => {
                           </div>
                         );
                       })()}
+
+                      {/* Graph Visualization Section - At the bottom */}
+                      <div className="graph-visualization-section mt-4 p-3 border rounded bg-light">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="mb-0">डेटा विज़ुअलाइज़ेशन</h6>
+                          {/* Clear Filters Button */}
+                          {Object.values(graphFilters).some(arr => arr && arr.length > 0) && (
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={clearGraphFilters}
+                            >
+                              🗑️ फ़िल्टर साफ़ करें
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {/* Graph Filters Section */}
+                        <div className="mb-3 p-3 border rounded bg-white">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <Form.Label className="form-label fw-bold mb-0">
+                              🔍 ग्राफ़ फ़िल्टर (Graph Filters)
+                            </Form.Label>
+                          </div>
+                          <Row>
+                            {[
+                              { key: "center_name", label: columnDefs.center_name.label },
+                              { key: "vidhan_sabha_name", label: columnDefs.vidhan_sabha_name.label },
+                              { key: "vikas_khand_name", label: columnDefs.vikas_khand_name.label },
+                              { key: "scheme_name", label: columnDefs.scheme_name.label },
+                              { key: "source_of_receipt", label: columnDefs.source_of_receipt.label },
+                              { key: "investment_name", label: columnDefs.investment_name.label },
+                              { key: "sub_investment_name", label: columnDefs.sub_investment_name.label },
+                            ].map((col) => {
+                              // Get base data
+                              const baseData = view === "main" ? (filteredTableData && filteredTableData.length > 0 ? filteredTableData : tableData) : tableData;
+                              
+                              // Apply OTHER graph filters (excluding current column) to get cascaded data
+                              const cascadedData = baseData.filter(item => {
+                                for (const [filterKey, selectedValues] of Object.entries(graphFilters)) {
+                                  // Skip the current column's filter to show all available options
+                                  if (filterKey === col.key) continue;
+                                  if (selectedValues && selectedValues.length > 0) {
+                                    if (!selectedValues.includes(item[filterKey])) {
+                                      return false;
+                                    }
+                                  }
+                                }
+                                return true;
+                              });
+                              
+                              // Get unique values from cascaded data
+                              const allValues = getUniqueColumnValues(cascadedData, col.key);
+                              const selectedValues = graphFilters[col.key] || [];
+                              const isFilterActive = selectedValues.length > 0;
+                              
+                              return (
+                                <Col key={col.key} lg={3} md={4} sm={6} className="mb-2">
+                                  <Form.Group>
+                                    <Form.Label className="form-label small mb-1">
+                                      {col.label} {isFilterActive && <span className="badge bg-primary">{selectedValues.length}</span>}
+                                    </Form.Label>
+                                    <div className="dropdown">
+                                      <button
+                                        className={`btn ${isFilterActive ? 'btn-primary' : 'btn-outline-secondary'} dropdown-toggle w-100`}
+                                        type="button"
+                                        style={{ fontSize: '12px' }}
+                                        onClick={() => toggleGraphFilterDropdown(col.key)}
+                                      >
+                                        {selectedValues.length > 0 ? `${selectedValues.length} चयनित` : 'सभी'}
+                                      </button>
+                                      {graphFilterDropdowns[col.key] && (
+                                        <div
+                                          className="dropdown-menu show"
+                                          style={{
+                                            position: "absolute",
+                                            top: "100%",
+                                            zIndex: 1050,
+                                            maxHeight: "250px",
+                                            overflowY: "auto",
+                                            minWidth: "200px"
+                                          }}
+                                        >
+                                          <div className="dropdown-item">
+                                            <FormCheck
+                                              className="check-box"
+                                              type="checkbox"
+                                              id={`graph_select_all_${col.key}`}
+                                              label={selectedValues.length === allValues.length && allValues.length > 0 ? "सभी हटाएं" : "सभी चुनें"}
+                                              checked={selectedValues.length === allValues.length && allValues.length > 0}
+                                              onChange={() => handleGraphFilterSelectAll(col.key, allValues)}
+                                            />
+                                          </div>
+                                          <div className="dropdown-divider"></div>
+                                          {allValues.length > 0 ? (
+                                            allValues.map((val) => (
+                                              <div key={val} className="dropdown-item">
+                                                <FormCheck
+                                                  className="check-box"
+                                                  type="checkbox"
+                                                  id={`graph_${col.key}_${val}`}
+                                                  label={val}
+                                                  checked={selectedValues.includes(val)}
+                                                  onChange={() => handleGraphFilterChange(col.key, val)}
+                                                />
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <div className="dropdown-item text-muted">
+                                              कोई डेटा उपलब्ध नहीं
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Form.Group>
+                                </Col>
+                              );
+                            })}
+                          </Row>
+                        </div>
+                        
+                        {/* Graph Type Selector */}
+                        <div className="mb-3 graph-type-selector d-flex gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            variant={graphType === "bar" ? "primary" : "outline-primary"}
+                            onClick={() => setGraphType("bar")}
+                          >
+                            📊 बार ग्राफ
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={graphType === "pie" ? "success" : "outline-success"}
+                            onClick={() => setGraphType("pie")}
+                          >
+                            🥧 पाई चार्ट
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={graphType === "doughnut" ? "warning" : "outline-warning"}
+                            onClick={() => setGraphType("doughnut")}
+                          >
+                            🍩 डोनट चार्ट
+                          </Button>
+                        </div>
+
+                        {/* Graph Column Selector */}
+                        <div className="mb-3 graph-column-selector">
+                          <Form.Label className="form-label fw-bold small mb-2">
+                            📋 दिखाने के लिए कॉलम चुनें
+                          </Form.Label>
+                          <Form.Select
+                            size="sm"
+                            value={graphColumn}
+                            onChange={(e) => setGraphColumn(e.target.value)}
+                            style={{ maxWidth: '300px' }}
+                          >
+                            {/* Show all available columns, mark selected ones from main table */}
+                            {[
+                              { key: "center_name", label: columnDefs.center_name.label },
+                              { key: "vidhan_sabha_name", label: columnDefs.vidhan_sabha_name.label },
+                              { key: "vikas_khand_name", label: columnDefs.vikas_khand_name.label },
+                              { key: "scheme_name", label: columnDefs.scheme_name.label },
+                              { key: "source_of_receipt", label: columnDefs.source_of_receipt.label },
+                              { key: "investment_name", label: columnDefs.investment_name.label },
+                              { key: "sub_investment_name", label: columnDefs.sub_investment_name.label },
+                              { key: "allocated_quantity", label: columnDefs.allocated_quantity.label },
+                              { key: "amount_of_farmer_share", label: columnDefs.amount_of_farmer_share.label },
+                              { key: "amount_of_subsidy", label: columnDefs.amount_of_subsidy.label },
+                              { key: "total_amount", label: columnDefs.total_amount.label },
+                            ].map((col) => {
+                              const isSelected = tableColumnFilters.main && tableColumnFilters.main.includes(col.key);
+                              return (
+                                <option key={col.key} value={col.key}>
+                                  {isSelected ? "✓ " : ""}{col.label}
+                                </option>
+                              );
+                            })}
+                          </Form.Select>
+                        </div>
+
+                        {/* Chart Rendering with Scrolling */}
+                        <div className="chart-scroll-wrapper">
+                          <div
+                            className="chart-container"
+                            style={{ width: calculateChartWidth() }}
+                          >
+                            {generateChartData() ? (
+                              graphType === "bar" ? (
+                                <Bar data={generateChartData()} options={chartOptions} />
+                              ) : graphType === "pie" ? (
+                                <Pie data={generateChartData()} options={chartOptions} />
+                              ) : (
+                                <Doughnut data={generateChartData()} options={chartOptions} />
+                              )
+                            ) : (
+                              <div className="chart-no-data">
+                                <p>📊 डेटा उपलब्ध नहीं है</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </Col>
                 </Row>
