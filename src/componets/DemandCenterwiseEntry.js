@@ -95,6 +95,76 @@ const billingTableColumnMapping = {
 const DemandCenterwiseEntry = () => {
   const { centerData } = useCenter();
   
+  // Reusable Column Selection Component
+  const ColumnSelection = ({
+    columns,
+    selectedColumns,
+    setSelectedColumns,
+    title,
+  }) => {
+    const handleColumnToggle = (columnKey) => {
+      if (selectedColumns.includes(columnKey)) {
+        setSelectedColumns(selectedColumns.filter((col) => col !== columnKey));
+      } else {
+        setSelectedColumns([...selectedColumns, columnKey]);
+      }
+    };
+
+    const handleSelectAll = () => {
+      setSelectedColumns(columns.map((col) => col.key));
+    };
+
+    const handleDeselectAll = () => {
+      setSelectedColumns([]);
+    };
+
+    return (
+      <div className="column-selection mb-3 p-3 border rounded bg-light">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <h6 className="small-fonts mb-0">{title}</h6>
+          <div>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleSelectAll}
+              className="me-2"
+            >
+              सभी चुनें
+            </Button>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleDeselectAll}
+            >
+              सभी हटाएं
+            </Button>
+          </div>
+        </div>
+        <Row>
+          <Col>
+            <div className="d-flex flex-wrap">
+              {columns.map((col) => (
+                <Form.Check
+                  key={col.key}
+                  type="checkbox"
+                  id={`col-${col.key}`}
+                  checked={selectedColumns.includes(col.key)}
+                  onChange={() => handleColumnToggle(col.key)}
+                  className="me-3 mb-2"
+                  label={<span className="small-fonts">{col.label}</span>}
+                />
+              ))}
+            </div>
+          </Col>
+        </Row>
+      </div>
+    );
+  };
+
+  const [selectedColumns, setSelectedColumns] = useState(
+    billingTableColumns.map((col) => col.key)
+  );
+  
   const [billingItems, setBillingItems] = useState([]);
   const [filteredBillingItems, setFilteredBillingItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -608,17 +678,24 @@ const DemandCenterwiseEntry = () => {
             </Row>
           </div>
 
+          <ColumnSelection
+            columns={billingTableColumns}
+            selectedColumns={selectedColumns}
+            setSelectedColumns={setSelectedColumns}
+            title="स्तंभ चयन करें"
+          />
+
           <div className="mb-3 d-flex gap-2">
             <Button
               variant="success"
-              onClick={() => downloadExcel(filteredData, "CenterwiseEntry", billingTableColumnMapping, billingTableColumns.map(col => col.key))}
+              onClick={() => downloadExcel(filteredData, "CenterwiseEntry", billingTableColumnMapping, selectedColumns)}
               className="d-flex align-items-center gap-2"
             >
               <FaFileExcel /> Excel डाउनलोड करें
             </Button>
             <Button
               variant="danger"
-              onClick={() => downloadPdf(filteredData, "CenterwiseEntry", billingTableColumnMapping, billingTableColumns.map(col => col.key), `${centerData.centerName} - सेंटरवाइज एंट्री`)}
+              onClick={() => downloadPdf(filteredData, "CenterwiseEntry", billingTableColumnMapping, selectedColumns, `${centerData.centerName} - सेंटरवाइज एंट्री`)}
               className="d-flex align-items-center gap-2"
             >
               <FaFilePdf /> PDF डाउनलोड करें
@@ -629,7 +706,7 @@ const DemandCenterwiseEntry = () => {
             <thead className="table-light">
               <tr>
                 <th>क्र.सं.</th>
-                {billingTableColumns.map((col) => (
+                {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => (
                   <th key={col.key}>{col.label}</th>
                 ))}
               </tr>
@@ -640,7 +717,7 @@ const DemandCenterwiseEntry = () => {
                   <td>
                     {indexOfFirstItem + index + 1}
                   </td>
-                  {billingTableColumns.map((col) => (
+                  {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => (
                     <td key={col.key}>
                       {billingTableColumnMapping[col.key].accessor(item, index)}
                     </td>
@@ -651,7 +728,7 @@ const DemandCenterwiseEntry = () => {
             <tfoot>
               <tr className="table-total-row">
                 <td><strong>कुल</strong></td>
-                 {billingTableColumns.map((col) => {
+                {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => {
                   if (col.key === "amount_of_farmer_share" || col.key === "amount_of_subsidy" || col.key === "total_amount" || col.key === "allocated_quantity") {
                     const sum = filteredData.reduce((acc, item) => {
                       const value = parseFloat(item[col.key]) || 0;
