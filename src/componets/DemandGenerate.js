@@ -91,7 +91,7 @@ const DemandGenerate = () => {
     const maxQty = parseFloat(maxQuantity) || 0;
 
     if (value > maxQty) {
-      setValidationError(`मांगी गई मात्रा (${value}) विभाग में समग्र आवंटन मात्रा (${maxQty}) से अधिक नहीं हो सकती`);
+      setValidationError(`मांगी गई मात्रा (${value}) DHO, कोटद्वार का कुल लक्ष्य (${maxQty}) से अधिक नहीं हो सकती`);
       return;
     }
 
@@ -108,7 +108,7 @@ const DemandGenerate = () => {
 
     // Validate that demanded quantity is less than allocated quantity
     if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
-      setValidationError(`मांगी गई मात्रा विभाग में समग्र आवंटन मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
+      setValidationError(`मांगी गई मात्रा DHO, कोटद्वार का कुल लक्ष्य (${allocatedQuantity}) से कम होनी चाहिए`);
       return;
     }
 
@@ -159,7 +159,7 @@ const DemandGenerate = () => {
 
     // Validate that demanded quantity is less than allocated quantity
     if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
-      setValidationError(`मांगी गई मात्रा विभाग में समग्र आवंटन मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
+      setValidationError(`मांगी गई मात्रा DHO, कोटद्वार का कुल लक्ष्य (${allocatedQuantity}) से कम होनी चाहिए`);
       return;
     }
 
@@ -276,7 +276,7 @@ const DemandGenerate = () => {
                     <tr>
                       <th>S.No.</th>
                       <th>उपनिवेश</th>
-                      <th>विभाग में समग्र आवंटन मात्रा</th>
+                      <th>DHO, कोटद्वार का कुल लक्ष्य</th>
                       <th>दर</th>
                       <th>राशि</th>
                       <th>मांगी गई मात्रा</th>
