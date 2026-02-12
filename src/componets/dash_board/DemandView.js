@@ -324,7 +324,7 @@ const DemandView = () => {
     }
 
     if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
-      setEditValidationError(`मांगी गई मात्रा विभाग में समग्र आवंटन मात्रा (${allocatedQuantity}) से कम होनी चाहिए`);
+      setEditValidationError(`मांगी गई मात्रा DHO, कोटद्वार का कुल लक्ष्य (${allocatedQuantity}) से कम होनी चाहिए`);
       return;
     }
 
@@ -390,7 +390,7 @@ const DemandView = () => {
     const maxQty = parseFloat(maxQuantity) || 0;
 
     if (value > maxQty) {
-      setEditValidationError(`मांगी गई मात्रा (${value}) विभाग में समग्र आवंटन मात्रा (${maxQty}) से अधिक नहीं हो सकती`);
+      setEditValidationError(`मांगी गई मात्रा (${value}) DHO, कोटद्वार का कुल लक्ष्य (${maxQty}) से अधिक नहीं हो सकती`);
       return;
     }
 
@@ -457,7 +457,7 @@ const DemandView = () => {
     const exportData = filteredDemands.map((demand, index) => ({
       'S.No.': index + 1,
       'उप निवेश नाम': demand.sub_investment_name,
-      'विभाग में समग्र आवंटन मात्रा': demand.allocated_quantity,
+      'DHO, कोटद्वार का कुल लक्ष्य': demand.allocated_quantity,
       'इकाई': demand.unit,
       'दर': demand.rate
     }));
@@ -568,7 +568,7 @@ const DemandView = () => {
     const headerRow = document.createElement('tr');
     
     // Add headers
-    const headers = ['S.No.', 'उप निवेश नाम', 'विभाग में समग्र आवंटन मात्रा', 'इकाई', 'दर'];
+    const headers = ['S.No.', 'उप निवेश नाम', 'DHO, कोटद्वार का कुल लक्ष्य', 'इकाई', 'दर'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
       th.textContent = headerText;
@@ -838,7 +838,7 @@ const DemandView = () => {
                             <tr>
                                <th>S.No.</th>
                               <th>उप निवेश नाम</th>
-                              <th>विभाग में समग्र आवंटन मात्रा</th>
+                              <th>DHO, कोटद्वार का कुल लक्ष्य</th>
                               <th>इकाई</th>
                               <th>दर</th>
                               <th>कार्यवाही</th>
@@ -1136,7 +1136,7 @@ const DemandView = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>विभाग में समग्र आवंटन मात्रा <span className="text-danger">*</span></Form.Label>
+              <Form.Label>DHO, कोटद्वार का कुल लक्ष्य <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -1211,7 +1211,7 @@ const DemandView = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>विभाग में समग्र आवंटन मात्रा <span className="text-danger">*</span></Form.Label>
+              <Form.Label>DHO, कोटद्वार का कुल लक्ष्य <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -1270,7 +1270,7 @@ const DemandView = () => {
               </Row>
               <Row className="mb-3">
                 <Col md={6}>
-                  <strong>विभाग में समग्र आवंटन मात्रा:</strong> {currentDemand.allocated_quantity}
+                  <strong>DHO, कोटद्वार का कुल लक्ष्य:</strong> {currentDemand.allocated_quantity}
                 </Col>
                 <Col md={6}>
                   <strong>इकाई:</strong> {currentDemand.unit}
@@ -1305,7 +1305,7 @@ const DemandView = () => {
           {currentDemand && (
             <div className="border rounded p-3 bg-light">
               <p><strong>उप-निवेश नाम:</strong> {currentDemand.sub_investment_name}</p>
-              <p><strong>विभाग में समग्र आवंटन मात्रा:</strong> {currentDemand.allocated_quantity}</p>
+              <p><strong>DHO, कोटद्वार का कुल लक्ष्य:</strong> {currentDemand.allocated_quantity}</p>
               <p><strong>इकाई:</strong> {currentDemand.unit}</p>
               <p><strong>दर:</strong> {currentDemand.rate}</p>
             </div>
