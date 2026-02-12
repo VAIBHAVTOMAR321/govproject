@@ -1082,13 +1082,12 @@ const handleSaveRecipient = async (item) => {
     
     await axios.put(NURSERY_PHYSICAL_RECIPIENTS_API_URL, payload);
     
-    setAllRecipientItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i))
-    );
-    
     setEditingRecipientRowId(null);
     setEditingRecipientValues({});
     setModalApiResponse({ message: "प्राप्तकर्ता डेटा सफलतापूर्वक अपडेट किया गया!" });
+    
+    // Automatically fetch the latest recipient data from the server
+    await fetchRecipientItems();
   } catch (error) {
     console.error("Error updating recipient item:", error);
     setModalApiError("प्राप्तकर्ता आइटम अपडेट करने में त्रुटि हुई।");
@@ -1108,8 +1107,10 @@ const handleDeleteRecipient = async (item) => {
         data: { id: item.id }
       });
       
-      setAllRecipientItems((prev) => prev.filter((i) => i.id !== item.id));
       setModalApiResponse({ message: "प्राप्तकर्ता आइटम सफलतापूर्वक हटा दिया गया!" });
+      
+      // Automatically fetch the latest recipient data from the server
+      await fetchRecipientItems();
     } catch (error) {
       console.error("Error deleting recipient item:", error);
       setModalApiError("प्राप्तकर्ता आइटम हटाने में त्रुटि हुई।");
@@ -1432,7 +1433,12 @@ const handleDeleteRecipient = async (item) => {
       bill_date: new Date().toISOString().split('T')[0],
     });
 
-    setAllRecipientItems((prev) => [payload, ...prev]);
+    // Automatically fetch the latest recipient data from the server
+    await fetchRecipientItems();
+    
+    // Reset pagination to show the new item on page 1
+    setRecipientCurrentPage(1);
+    setRecipientErrors({});
   } catch (error) {
     let errorMessage = translations.genericError;
     if (error.response) {
