@@ -52,7 +52,7 @@ const NurseryNavigation = () => {
             </Nav.Link>
           </Nav>
           <Nav className="ms-auto">
-            <NavDropdown title={user?.username || "खाता"} id="account-nav-dropdown" align="end">
+            <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={handleLogout}>
                 लॉगआउट

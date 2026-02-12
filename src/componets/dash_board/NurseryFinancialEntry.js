@@ -951,10 +951,10 @@ const NurseryFinancialEntry = () => {
   return (
     <div>
       {isAdmin && <DashBoardHeader />}
-      <Container fluid className={isAdmin ? "p-4" : "p-0 mt-5 pt-3"}>
+      <Container fluid className={isAdmin ? "p-4" : "p-0"} style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}>
         <Row className={isAdmin ? "left-top" : "w-100 m-0"}>
-          <Col lg={12} md={12} sm={12} className="p-0">
-            <Container fluid className={isAdmin ? "dashboard-body-main bg-home" : "dashboard-body-main bg-home"}>
+          <Col lg={12} md={12} sm={12} className={isAdmin ? "p-0" : "p-3"}>
+            <Container fluid className={isAdmin ? "dashboard-body-main bg-home" : "dashboard-body-main bg-home"} style={isAdmin ? {} : { paddingTop: "10px" }}>
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Progress Bar Section - Displayed at top during upload */}

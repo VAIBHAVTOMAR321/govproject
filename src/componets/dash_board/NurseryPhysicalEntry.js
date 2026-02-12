@@ -14,6 +14,8 @@ import {
   Modal,
   Dropdown,
   FormCheck,
+  Navbar,
+  Nav,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaSync } from "react-icons/fa";
 import { RiFilePdfLine, RiFileExcelLine, RiDeleteBinLine } from "react-icons/ri";
@@ -21,7 +23,8 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import Select from "react-select";
 import "../../assets/css/registration.css";
-
+import { useAuth } from "../../context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 import DashBoardHeader from "./DashBoardHeader";
 
 // API URLs
@@ -162,6 +165,48 @@ const unitOptions = [
   "अन्य",
 ];
 const NurseryPhysicalEntry = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = user && user.loginType === "admin";
+
+  // Nursery Navigation Component
+  const NurseryNavigation = () => {
+    const handleLogout = () => {
+      logout();
+      navigate('/', { replace: true });
+    };
+
+    return (
+      <Navbar expand="lg" className="bg-body-tertiary" style={{ marginBottom: "20px" }}>
+        <Container fluid>
+          <Navbar.Brand as={Link} to="/Dashboard" className="fw-bold">
+            <span style={{ color: "#333" }}>नर्सरी एंट्री सिस्टम</span>
+          </Navbar.Brand>
+          <Navbar.Toggle aria-controls="nursery-nav" />
+          <Navbar.Collapse id="nursery-nav">
+            <Nav className="me-auto">
+              <Nav.Link as={Link} to="/NurseryPhysicalEntry" className="me-3">
+                भौतिक प्रविष्टि
+              </Nav.Link>
+              <Nav.Link as={Link} to="/NurseryFinancialEntry" className="me-3">
+                वित्तीय प्रविष्टि
+              </Nav.Link>
+            </Nav>
+            <Nav className="ms-auto">
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={handleLogout}
+              >
+                लॉगआउट
+              </Button>
+            </Nav>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
+    );
+  };
+  
   // Column Selection Component
   const ColumnSelection = ({
     columns,
@@ -1280,16 +1325,12 @@ const handleDeleteRecipient = async (item) => {
 
   return (
     <div>
-      <Container fluid className="p-4">
-        <Row>
-          <Col lg={12} md={12} sm={12}>
-            <DashBoardHeader />
-          </Col>
-        </Row>
-
-        <Row className="left-top">
-          <Col lg={12} md={12} sm={12}>
-            <Container fluid className="dashboard-body-main bg-home">
+      {isAdmin && <DashBoardHeader />}
+      {!isAdmin && <NurseryNavigation />}
+      <Container fluid className={isAdmin ? "p-4" : "p-0"} style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}>
+        <Row className={isAdmin ? "left-top" : "w-100 m-0"}>
+          <Col lg={12} md={12} sm={12} className={isAdmin ? "p-0" : "p-3"}>
+            <Container fluid className={isAdmin ? "dashboard-body-main bg-home" : "dashboard-body-main bg-home"} style={isAdmin ? {} : { paddingTop: "10px" }}>
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Progress Bar Section - Displayed at top during upload */}
