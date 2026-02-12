@@ -485,8 +485,24 @@ const NurseryPhysicalEntry = () => {
     });
   };
 
-  // Filtered items
-  const filteredItems = nurseryPhysicalItems;
+  // Filtered items - Apply date range filtering
+  const filteredItems = (() => {
+    // Only show items if both date range filters are selected
+    if (!filters.from_date || !filters.to_date) {
+      return [];
+    }
+    
+    // Filter items by date range
+    return nurseryPhysicalItems.filter((item) => {
+      const itemDate = new Date(item.created_at);
+      const fromDate = new Date(filters.from_date);
+      const toDate = new Date(filters.to_date);
+      toDate.setHours(23, 59, 59, 999); // Set to end of day
+      
+      return itemDate >= fromDate && itemDate <= toDate;
+    });
+  })();
+
   const filteredRecipientItems = recipientItems.filter(
     (item) => selectedNurseryPhysical && item.nursery_physical === selectedNurseryPhysical.id
   );
@@ -1926,17 +1942,21 @@ const handleDeleteRecipient = async (item) => {
                   </div>
                 )}
 
-                {/* Table is visible regardless of date range selection */}
-                {isLoading ? (
+                {/* Table is only visible when date range is selected */}
+                {!filters.from_date || !filters.to_date ? (
+                  <Alert variant="info" className="text-center">
+                    कृपया तिथि रेंज चुनें ताकि डेटा दिखाई दे
+                  </Alert>
+                ) : isLoading ? (
                   <div className="text-center py-4">
                     <div className="spinner-border text-primary" role="status">
                       <span className="visually-hidden">लोड हो रहा है...</span>
                     </div>
                     <p className="mt-2 small-fonts">डेटा लोड हो रहा है...</p>
                   </div>
-                ) : nurseryPhysicalItems.length === 0 ? (
+                ) : filteredItems.length === 0 ? (
                   <Alert variant="info" className="text-center">
-                    कोई नर्सरी भौतिक डेटा उपलब्ध नहीं है।
+                    चयनित तिथि रेंज में कोई नर्सरी भौतिक डेटा उपलब्ध नहीं है।
                   </Alert>
                 ) : (
                   <>
