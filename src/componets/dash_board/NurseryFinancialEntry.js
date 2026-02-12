@@ -1740,6 +1740,49 @@ const NurseryFinancialEntry = () => {
                               </td>
                             </tr>
                           ))}
+                        {/* Total Row */}
+                        {currentPage === Math.ceil(filteredItems.length / itemsPerPage) && filteredItems.length > 0 && (
+                          <tr style={{ backgroundColor: "#e8e8e8", fontWeight: "bold" }}>
+                            <td><strong>कुल</strong></td>
+                            {selectedColumns.includes("nursery_name") && (
+                              <td>
+                                <strong>{new Set(filteredItems.map(item => item.nursery_name)).size}</strong>
+                              </td>
+                            )}
+                            {selectedColumns.includes("standard_item") && (
+                              <td>
+                                <strong>{new Set(filteredItems.map(item => item.standard_item)).size}</strong>
+                              </td>
+                            )}
+                            {selectedColumns.includes("allocated_amount") && (
+                              <td>
+                                <strong>
+                                  {filteredItems.reduce((total, item) => {
+                                    const value = parseFloat(item.allocated_amount) || 0;
+                                    return total + value;
+                                  }, 0).toFixed(2)}
+                                </strong>
+                              </td>
+                            )}
+                            {selectedColumns.includes("spent_amount") && (
+                              <td>
+                                <strong>
+                                  {filteredItems.reduce((total, item) => {
+                                    const value = parseFloat(item.spent_amount) || 0;
+                                    return total + value;
+                                  }, 0).toFixed(2)}
+                                </strong>
+                              </td>
+                            )}
+                            {selectedColumns.includes("description") && (
+                              <td></td>
+                            )}
+                            {selectedColumns.includes("registration_date") && (
+                              <td></td>
+                            )}
+                            <td></td>
+                          </tr>
+                        )}
                       </tbody>
                     </Table>
 

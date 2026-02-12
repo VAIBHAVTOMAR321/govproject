@@ -426,6 +426,14 @@ const NurseryPhysicalEntry = () => {
     setCurrentPage(1);
   }, [filters]);
 
+  // Fetch data when date filters change
+  useEffect(() => {
+    if (filters.from_date && filters.to_date) {
+      fetchNurseryPhysicalItems(filters);
+      fetchRecipientItems();
+    }
+  }, [filters.from_date, filters.to_date]);
+
   // Fetch nursery physical items data
   const fetchNurseryPhysicalItems = async (appliedFilters = {}) => {
     try {
@@ -507,44 +515,218 @@ const NurseryPhysicalEntry = () => {
     (item) => selectedNurseryPhysical && item.nursery_physical === selectedNurseryPhysical.id
   );
 
-  // Download Excel function
-  const downloadExcel = (data, filename, columnMapping, selectedColumns) => {
-    try {
-      const excelData = data.map((item, index) => {
-        const row = {};
-        row["क्र.सं."] = index + 1;
-        selectedColumns.forEach((col) => {
-          row[columnMapping[col].header] = columnMapping[col].accessor(
-            item,
-            index
-          );
+  // Helper function to expand data with recipients for export
+  const expandDataWithRecipients = (items, selectedRecipientCols) => {
+    const hasRecipientColumns = selectedRecipientCols && selectedRecipientCols.length > 0;
+    
+    if (!hasRecipientColumns) {
+      return items;
+    }
+
+    const expandedData = [];
+    items.forEach((item) => {
+      const itemRecipients = recipientItems.filter(
+        (r) => r.nursery_physical === item.id
+      );
+
+      if (itemRecipients.length > 0) {
+        itemRecipients.forEach((recipient, idx) => {
+          expandedData.push({
+            ...item,
+            _recipient: recipient,
+            _isRecipientRow: true,
+            _isFirstRecipient: idx === 0,
+            _isSubtotalRow: false,
+          });
         });
+
+        // Add subtotal row for this nursery
+        const totalQuantity = itemRecipients.reduce(
+          (sum, r) => sum + (parseFloat(r.recipient_quantity) || 0),
+          0
+        );
+        const totalAmount = itemRecipients.reduce(
+          (sum, r) => sum + (parseFloat(r.recipient_amount) || 0),
+          0
+        );
+
+        expandedData.push({
+          ...item,
+          _recipient: {
+            recipient_quantity: totalQuantity,
+            recipient_amount: totalAmount,
+          },
+          _isSubtotalRow: true,
+          _nurserySubtotal: true,
+          _subtotalLabel: `${item.nursery_name} - उप-योग`,
+        });
+      } else {
+        expandedData.push({
+          ...item,
+          _recipient: null,
+          _isRecipientRow: false,
+          _isSubtotalRow: false,
+        });
+      }
+    });
+
+    // Add grand total row
+    const grandTotalQuantity = items.reduce((sum, item) => {
+      const itemRecipients = recipientItems.filter(
+        (r) => r.nursery_physical === item.id
+      );
+      return (
+        sum +
+        itemRecipients.reduce(
+          (qSum, r) => qSum + (parseFloat(r.recipient_quantity) || 0),
+          0
+        )
+      );
+    }, 0);
+
+    const grandTotalAmount = items.reduce((sum, item) => {
+      const itemRecipients = recipientItems.filter(
+        (r) => r.nursery_physical === item.id
+      );
+      return (
+        sum +
+        itemRecipients.reduce(
+          (aSum, r) => aSum + (parseFloat(r.recipient_amount) || 0),
+          0
+        )
+      );
+    }, 0);
+
+    expandedData.push({
+      _isGrandTotalRow: true,
+      _recipient: {
+        recipient_quantity: grandTotalQuantity,
+        recipient_amount: grandTotalAmount,
+      },
+    });
+
+    return expandedData;
+  };
+
+  // Download Excel function
+  const downloadExcel = (data, filename, columnMapping, selectedColumns, selectedRecipientCols, withRecipients = true) => {
+    try {
+      const expandedData = withRecipients ? expandDataWithRecipients(data, selectedRecipientCols) : data;
+
+      let nurserySerialNumber = 0; // Track serial number based on nursery groups
+      const excelData = expandedData.map((item, index) => {
+        const row = {};
+        
+        // Calculate serial number - increment for first recipient of each nursery or items without recipients
+        if ((item._isFirstRecipient || (!item._isRecipientRow && !item._isSubtotalRow && !item._isGrandTotalRow))) {
+          nurserySerialNumber++;
+        }
+        
+        // Handle subtotal rows
+        if (item._isSubtotalRow) {
+          row["क्र.सं."] = ""; // No serial number for subtotal
+          selectedColumns.forEach((col) => {
+            if (col === "nursery_name") {
+              row[columnMapping[col].header] = item._subtotalLabel || "उप-योग";
+            } else {
+              row[columnMapping[col].header] = "";
+            }
+          });
+          
+          // Add recipient totals
+          if (selectedRecipientCols) {
+            selectedRecipientCols.forEach((col) => {
+              if (col === "recipient_quantity") {
+                row[recipientColumnMapping.recipient_quantity.header] = parseFloat(item._recipient.recipient_quantity).toFixed(2);
+              } else if (col === "recipient_amount") {
+                row[recipientColumnMapping.recipient_amount.header] = parseFloat(item._recipient.recipient_amount).toFixed(2);
+              } else {
+                row[recipientColumnMapping[col].header] = "";
+              }
+            });
+          }
+          
+          return row;
+        }
+
+        // Handle grand total row
+        if (item._isGrandTotalRow) {
+          row["क्र.सं."] = ""; // No serial number for grand total
+          selectedColumns.forEach((col) => {
+            if (col === "nursery_name") {
+              row[columnMapping[col].header] = "कुल योग";
+            } else {
+              row[columnMapping[col].header] = "";
+            }
+          });
+          
+          // Add grand total values
+          if (selectedRecipientCols) {
+            selectedRecipientCols.forEach((col) => {
+              if (col === "recipient_quantity") {
+                row[recipientColumnMapping.recipient_quantity.header] = parseFloat(item._recipient.recipient_quantity).toFixed(2);
+              } else if (col === "recipient_amount") {
+                row[recipientColumnMapping.recipient_amount.header] = parseFloat(item._recipient.recipient_amount).toFixed(2);
+              } else {
+                row[recipientColumnMapping[col].header] = "";
+              }
+            });
+          }
+          
+          return row;
+        }
+
+        // Handle regular rows - show serial number only for first recipient or items without recipients
+        if (item._isFirstRecipient || !item._isRecipientRow) {
+          row["क्र.सं."] = nurserySerialNumber;
+        } else {
+          row["क्र.सं."] = ""; // Empty for non-first recipients (rowspan effect)
+        }
+        
+        // Add nursery columns only for first recipient or items without recipients (rowspan effect)
+        selectedColumns.forEach((col) => {
+          if (item._isFirstRecipient || !item._isRecipientRow) {
+            row[columnMapping[col].header] = columnMapping[col].accessor(
+              item,
+              index
+            );
+          } else {
+            // Leave empty for non-first recipients (rowspan effect)
+            row[columnMapping[col].header] = "";
+          }
+        });
+        
+        // Add recipient columns if available
+        if (item._recipient && selectedRecipientCols && !item._isSubtotalRow && !item._isGrandTotalRow) {
+          if (selectedRecipientCols.includes("recipient_name")) {
+            row[recipientColumnMapping.recipient_name.header] = item._recipient.recipient_name || "-";
+          }
+          if (selectedRecipientCols.includes("recipient_quantity")) {
+            row[recipientColumnMapping.recipient_quantity.header] = parseFloat(item._recipient.recipient_quantity).toFixed(2) || "-";
+          }
+          if (selectedRecipientCols.includes("recipient_amount")) {
+            row[recipientColumnMapping.recipient_amount.header] = parseFloat(item._recipient.recipient_amount).toFixed(2) || "-";
+          }
+          if (selectedRecipientCols.includes("bill_number")) {
+            row[recipientColumnMapping.bill_number.header] = item._recipient.bill_number || "-";
+          }
+          if (selectedRecipientCols.includes("bill_date")) {
+            row[recipientColumnMapping.bill_date.header] = item._recipient.bill_date || "-";
+          }
+        } else if (selectedRecipientCols && !item._isSubtotalRow && !item._isGrandTotalRow) {
+          // Add empty recipient columns
+          selectedRecipientCols.forEach((col) => {
+            row[recipientColumnMapping[col].header] = "-";
+          });
+        }
+
         return row;
       });
-
-      // Add total row
-      const totalRow = {};
-      totalRow["क्र.सं."] = "कुल";
-      selectedColumns.forEach((col) => {
-        if (col === "nursery_name" || col === "crop_name") {
-          const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
-          totalRow[columnMapping[col].header] = uniqueValues.size;
-        } else if (col === "allocated_quantity" || col === "allocated_amount") {
-          const sum = data.reduce((total, item) => {
-            const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
-            return total + value;
-          }, 0);
-          totalRow[columnMapping[col].header] = sum.toFixed(2);
-        } else {
-          totalRow[columnMapping[col].header] = "";
-        }
-      });
-      excelData.push(totalRow);
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
-      const colWidths = selectedColumns.map(() => ({ wch: 15 }));
+      const colWidths = Array(selectedColumns.length + (selectedRecipientCols ? selectedRecipientCols.length : 0)).fill({ wch: 15 });
       ws["!cols"] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, "Data");
@@ -594,42 +776,106 @@ const NurseryPhysicalEntry = () => {
     filename,
     columnMapping,
     selectedColumns,
-    title
+    selectedRecipientCols,
+    title,
+    withRecipients = true
   ) => {
     try {
-      const headers = `<th>क्र.सं.</th>${selectedColumns
+      const expandedData = withRecipients ? expandDataWithRecipients(data, selectedRecipientCols) : data;
+
+      let headers = `<th>क्र.सं.</th>${selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
         .join("")}`;
       
-      const rows = data
-        .map((item, index) => {
-          const cells = `<td>${index + 1}</td>${selectedColumns
-            .map(
-              (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`
-            )
-            .join("")}`;
-          return `<tr>${cells}</tr>`;
-        })
-        .join("");
+      // Add recipient column headers if selected
+      if (selectedRecipientCols) {
+        selectedRecipientCols.forEach((col) => {
+          headers += `<th>${recipientColumnMapping[col].header}</th>`;
+        });
+      }
+      
+      // Create rows with proper serial number tracking
+      let nurserySerialNumber = 0;
+      const rowsHtml = (() => {
+        return expandedData
+          .map((item, index) => {
+            // Calculate serial number - increment for first recipient of each nursery or items without recipients
+            if ((item._isFirstRecipient || (!item._isRecipientRow && !item._isSubtotalRow && !item._isGrandTotalRow))) {
+              nurserySerialNumber++;
+            }
+            
+            // Subtotal/grand total handling
+            if (item._isSubtotalRow) {
+              let cells = `<td></td>`;
+              selectedColumns.forEach((col) => {
+                cells += col === "nursery_name" ? `<td><strong>${item._subtotalLabel}</strong></td>` : `<td></td>`;
+              });
+              if (selectedRecipientCols) {
+                selectedRecipientCols.forEach((col) => {
+                  if (col === "recipient_quantity") {
+                    cells += `<td><strong>${parseFloat(item._recipient.recipient_quantity).toFixed(2)}</strong></td>`;
+                  } else if (col === "recipient_amount") {
+                    cells += `<td><strong>${parseFloat(item._recipient.recipient_amount).toFixed(2)}</strong></td>`;
+                  } else {
+                    cells += `<td></td>`;
+                  }
+                });
+              }
+              return `<tr style="background-color: #f9f9f9; font-weight: bold;">${cells}</tr>`;
+            }
+            if (item._isGrandTotalRow) {
+              let cells = `<td></td>`;
+              selectedColumns.forEach((col) => {
+                cells += col === "nursery_name" ? `<td><strong>कुल योग</strong></td>` : `<td></td>`;
+              });
+              if (selectedRecipientCols) {
+                selectedRecipientCols.forEach((col) => {
+                  if (col === "recipient_quantity") {
+                    cells += `<td><strong>${parseFloat(item._recipient.recipient_quantity).toFixed(2)}</strong></td>`;
+                  } else if (col === "recipient_amount") {
+                    cells += `<td><strong>${parseFloat(item._recipient.recipient_amount).toFixed(2)}</strong></td>`;
+                  } else {
+                    cells += `<td></td>`;
+                  }
+                });
+              }
+              return `<tr style="background-color: #e8e8e8; font-weight: bold;">${cells}</tr>`;
+            }
+            // Regular row - show serial number only for first recipient or items without recipients (rowspan effect)
+            let cells = `<td>${item._isFirstRecipient || !item._isRecipientRow ? nurserySerialNumber : ""}</td>`;
+            
+            // Add nursery columns only for first recipient or items without recipients (rowspan effect)
+            selectedColumns.forEach((col) => {
+              if (item._isFirstRecipient || !item._isRecipientRow) {
+                cells += `<td>${columnMapping[col].accessor(item, index)}</td>`;
+              } else {
+                // Empty for non-first recipients (rowspan effect)
+                cells += `<td></td>`;
+              }
+            });
+            
+            // Add recipient column data if available
+            if (item._recipient && selectedRecipientCols) {
+              selectedRecipientCols.forEach((col) => {
+                let cellValue = "-";
+                if (col === "recipient_name") cellValue = item._recipient.recipient_name || "-";
+                else if (col === "recipient_quantity") cellValue = parseFloat(item._recipient.recipient_quantity).toFixed(2) || "-";
+                else if (col === "recipient_amount") cellValue = parseFloat(item._recipient.recipient_amount).toFixed(2) || "-";
+                else if (col === "bill_number") cellValue = item._recipient.bill_number || "-";
+                else if (col === "bill_date") cellValue = item._recipient.bill_date || "-";
+                cells += `<td>${cellValue}</td>`;
+              });
+            } else if (selectedRecipientCols) {
+              // Add empty cells for recipient columns when no recipient
+              selectedRecipientCols.forEach(() => {
+                cells += `<td>-</td>`;
+              });
+            }
 
-      // Add total row
-      const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
-        .map((col) => {
-          if (col === "nursery_name" || col === "crop_name") {
-            const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
-            return `<td><strong>${uniqueValues.size}</strong></td>`;
-          } else if (col === "allocated_quantity" || col === "allocated_amount") {
-            const sum = data.reduce((total, item) => {
-              const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
-              return total + value;
-            }, 0);
-            return `<td><strong>${sum.toFixed(2)}</strong></td>`;
-          } else {
-            return `<td></td>`;
-          }
-        })
-        .join("")}`;
-      const totalRow = `<tr class="table-total-row">${totalCells}</tr>`;
+            return `<tr>${cells}</tr>`;
+          })
+          .join("");
+      })();
 
       const tableHtml = `
         <html>
@@ -695,8 +941,7 @@ const NurseryPhysicalEntry = () => {
                 <tr>${headers}</tr>
               </thead>
               <tbody>
-                ${rows}
-                ${totalRow}
+                ${rowsHtml}
               </tbody>
             </table>
           </body>
@@ -1771,7 +2016,8 @@ const handleDeleteRecipient = async (item) => {
                                     .toISOString()
                                     .slice(0, 10)}`,
                                   nurseryPhysicalColumnMapping,
-                                  selectedColumns
+                                  selectedColumns,
+                                  selectedRecipientColumns
                                 )
                               }
                               className="me-2"
@@ -1797,6 +2043,7 @@ const handleDeleteRecipient = async (item) => {
                                     .slice(0, 10)}`,
                                   nurseryPhysicalColumnMapping,
                                   selectedColumns,
+                                  selectedRecipientColumns,
                                   "नर्सरी भौतिक प्रविष्टि डेटा"
                                 )
                               }
@@ -1812,14 +2059,24 @@ const handleDeleteRecipient = async (item) => {
                 </div>
 
                 {/* Column Selection Section */}
-                {true && (
-                  <ColumnSelection
-                    columns={nurseryPhysicalTableColumns}
-                    selectedColumns={selectedColumns}
-                    setSelectedColumns={setSelectedColumns}
-                    title="कॉलम चुनें"
-                  />
-                )}
+                <div className="row">
+                  <div className="col-md-6">
+                    <ColumnSelection
+                      columns={nurseryPhysicalTableColumns}
+                      selectedColumns={selectedColumns}
+                      setSelectedColumns={setSelectedColumns}
+                      title="नर्सरी कॉलम चुनें"
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <ColumnSelection
+                      columns={recipientTableColumns}
+                      selectedColumns={selectedRecipientColumns}
+                      setSelectedColumns={setSelectedRecipientColumns}
+                      title="प्राप्तकर्ता कॉलम चुनें"
+                    />
+                  </div>
+                </div>
 
                 {/* Table info with pagination details */}
                 {filteredItems.length > 0 && (
@@ -1979,169 +2236,344 @@ const handleDeleteRecipient = async (item) => {
                           {selectedColumns.includes("allocated_amount") && (
                             <th>{translations.allocatedAmount}</th>
                           )}
+                          {selectedRecipientColumns.includes("recipient_name") && (
+                            <th>{translations.recipientName}</th>
+                          )}
+                          {selectedRecipientColumns.includes("recipient_quantity") && (
+                            <th>{translations.recipientQuantity}</th>
+                          )}
+                          {selectedRecipientColumns.includes("recipient_amount") && (
+                            <th>{translations.recipientAmount}</th>
+                          )}
+                          {selectedRecipientColumns.includes("bill_number") && (
+                            <th>{translations.billNumber}</th>
+                          )}
+                          {selectedRecipientColumns.includes("bill_date") && (
+                            <th>{translations.billDate}</th>
+                          )}
                           <th>कार्रवाई</th>
                         </tr>
                       </thead>
                       <tbody className="tbl-body">
-                        {filteredItems
-                          .slice(
+                        {(() => {
+                          // Get expanded data with subtotals and grand total for current page items
+                          const pageItems = filteredItems.slice(
                             (currentPage - 1) * itemsPerPage,
                             currentPage * itemsPerPage
-                          )
-                          .map((item, index) => (
-                            <tr key={item.id || index}>
-                              <td>
-                                {(currentPage - 1) * itemsPerPage + index + 1}
-                              </td>
-                              {selectedColumns.includes("nursery_name") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.nursery_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          nursery_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.nursery_name
+                          );
+                          const expandedPageData = expandDataWithRecipients(pageItems, selectedRecipientColumns);
+                          
+                          // Track serial numbers for nursery items on this page
+                          const pageStartIndex = (currentPage - 1) * itemsPerPage;
+                          const nurserySerialMap = new Map();
+                          pageItems.forEach((item, idx) => {
+                            nurserySerialMap.set(item.id, pageStartIndex + idx + 1);
+                          });
+
+                          // Filter expandedPageData to exclude grand total if not on last page
+                          const isLastPage = currentPage === totalPages;
+                          const displayData = expandedPageData.filter(item => {
+                            if (item._isGrandTotalRow && !isLastPage) {
+                              return false;
+                            }
+                            return true;
+                          });
+
+                          return displayData.map((item, index) => {
+                            // Handle subtotal row
+                            if (item._isSubtotalRow) {
+                              return (
+                                <tr 
+                                  key={`subtotal-${item.id}-${index}`}
+                                  style={{ backgroundColor: '#f9f9f9', fontWeight: 'bold' }}
+                                >
+                                  <td colSpan={1}></td>
+                                  {selectedColumns.includes("nursery_name") && (
+                                    <td colSpan={1}>{item._subtotalLabel}</td>
                                   )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("crop_name") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.crop_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          crop_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.crop_name
+                                  {selectedColumns.includes("crop_name") && (
+                                    <td></td>
                                   )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("unit") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.unit}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          unit: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {unitOptions.map((opt, idx) => (
-                                        <option key={idx} value={opt}>
-                                          {opt}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
-                                  ) : (
-                                    item.unit
+                                  {selectedColumns.includes("unit") && (
+                                    <td></td>
                                   )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("allocated_quantity") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Control
-                                      type="number"
-                                      step="0.01"
-                                      value={editingValues.allocated_quantity}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          allocated_quantity: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    parseFloat(item.allocated_quantity).toFixed(2)
+                                  {selectedColumns.includes("allocated_quantity") && (
+                                    <td></td>
                                   )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("allocated_amount") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Control
-                                      type="number"
-                                      step="0.01"
-                                      value={editingValues.allocated_amount}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          allocated_amount: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    parseFloat(item.allocated_amount).toFixed(2)
+                                  {selectedColumns.includes("allocated_amount") && (
+                                    <td></td>
                                   )}
-                                </td>
-                              )}
-                              <td>
-                                {editingRowId === item.id ? (
-                                  <div className="d-flex gap-1">
-                                    <Button
-                                      variant="outline-success"
-                                      size="sm"
-                                      onClick={() => handleSave(item)}
-                                    >
-                                      सहेजें
-                                    </Button>
-                                    <Button
-                                      variant="outline-secondary"
-                                      size="sm"
-                                      onClick={handleCancel}
-                                    >
-                                      रद्द करें
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="d-flex gap-1">
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      onClick={() => handleEdit(item)}
-                                    >
-                                      संपादित करें
-                                    </Button>
-                                    <Button
-                                      variant="outline-info"
-                                      size="sm"
-                                      onClick={() => handleManageRecipients(item)}
-                                    >
-                                      प्राप्तकर्ता
-                                    </Button>
-                                    <Button
-                                      variant="outline-danger"
-                                      size="sm"
-                                      onClick={() => handleDelete(item)}
-                                    >
-                                      <RiDeleteBinLine />
-                                    </Button>
-                                  </div>
+                                  {selectedRecipientColumns.includes("recipient_name") && (
+                                    <td></td>
+                                  )}
+                                  {selectedRecipientColumns.includes("recipient_quantity") && (
+                                    <td>
+                                      {item._recipient?.recipient_quantity
+                                        ? parseFloat(item._recipient.recipient_quantity).toFixed(2)
+                                        : "-"}
+                                    </td>
+                                  )}
+                                  {selectedRecipientColumns.includes("recipient_amount") && (
+                                    <td>
+                                      {item._recipient?.recipient_amount
+                                        ? parseFloat(item._recipient.recipient_amount).toFixed(2)
+                                        : "-"}
+                                    </td>
+                                  )}
+                                  {selectedRecipientColumns.includes("bill_number") && (
+                                    <td></td>
+                                  )}
+                                  {selectedRecipientColumns.includes("bill_date") && (
+                                    <td></td>
+                                  )}
+                                  <td></td>
+                                </tr>
+                              );
+                            }
+
+                            // Handle grand total row
+                            if (item._isGrandTotalRow) {
+                              return (
+                                <tr 
+                                  key={`grand-total-${index}`}
+                                  style={{ backgroundColor: '#e8e8e8', fontWeight: 'bold' }}
+                                >
+                                  <td colSpan={1}></td>
+                                  {selectedColumns.includes("nursery_name") && (
+                                    <td colSpan={1}>कुल योग</td>
+                                  )}
+                                  {selectedColumns.includes("crop_name") && (
+                                    <td></td>
+                                  )}
+                                  {selectedColumns.includes("unit") && (
+                                    <td></td>
+                                  )}
+                                  {selectedColumns.includes("allocated_quantity") && (
+                                    <td></td>
+                                  )}
+                                  {selectedColumns.includes("allocated_amount") && (
+                                    <td></td>
+                                  )}
+                                  {selectedRecipientColumns.includes("recipient_name") && (
+                                    <td></td>
+                                  )}
+                                  {selectedRecipientColumns.includes("recipient_quantity") && (
+                                    <td>
+                                      {item._recipient?.recipient_quantity
+                                        ? parseFloat(item._recipient.recipient_quantity).toFixed(2)
+                                        : "-"}
+                                    </td>
+                                  )}
+                                  {selectedRecipientColumns.includes("recipient_amount") && (
+                                    <td>
+                                      {item._recipient?.recipient_amount
+                                        ? parseFloat(item._recipient.recipient_amount).toFixed(2)
+                                        : "-"}
+                                    </td>
+                                  )}
+                                  {selectedRecipientColumns.includes("bill_number") && (
+                                    <td></td>
+                                  )}
+                                  {selectedRecipientColumns.includes("bill_date") && (
+                                    <td></td>
+                                  )}
+                                  <td></td>
+                                </tr>
+                              );
+                            }
+
+                            // Handle regular row (could be original item or recipient row)
+                            const originalItem = item;
+                            const recipient = item._recipient;
+                            // For items without recipients, treat as first recipient
+                            const isFirstRecipient = item._isFirstRecipient || !item._isRecipientRow;
+                            const itemRecipients = recipientItems.filter(
+                              (r) => r.nursery_physical === originalItem.id
+                            );
+                            const recipientRowCount = Math.max(itemRecipients.length, 1);
+                            const serialNumber = nurserySerialMap.get(originalItem.id);
+
+                            return (
+                              <tr key={`${originalItem.id}-${recipient?.id || 'no-recipient'}`}>
+                                {isFirstRecipient && (
+                                  <>
+                                    <td rowSpan={recipientRowCount}>
+                                      {serialNumber}
+                                    </td>
+                                    {selectedColumns.includes("nursery_name") && (
+                                      <td rowSpan={recipientRowCount}>
+                                        {editingRowId === originalItem.id
+                                          ? <Form.Control
+                                              type="text"
+                                              value={editingValues.nursery_name}
+                                              onChange={(e) =>
+                                                setEditingValues((prev) => ({
+                                                  ...prev,
+                                                  nursery_name: e.target.value,
+                                                }))
+                                              }
+                                              size="sm"
+                                            />
+                                          : originalItem.nursery_name
+                                        }
+                                      </td>
+                                    )}
+                                    {selectedColumns.includes("crop_name") && (
+                                      <td rowSpan={recipientRowCount}>
+                                        {editingRowId === originalItem.id
+                                          ? <Form.Control
+                                              type="text"
+                                              value={editingValues.crop_name}
+                                              onChange={(e) =>
+                                                setEditingValues((prev) => ({
+                                                  ...prev,
+                                                  crop_name: e.target.value,
+                                                }))
+                                              }
+                                              size="sm"
+                                            />
+                                          : originalItem.crop_name
+                                        }
+                                      </td>
+                                    )}
+                                    {selectedColumns.includes("unit") && (
+                                      <td rowSpan={recipientRowCount}>
+                                        {editingRowId === originalItem.id
+                                          ? <Form.Select
+                                              value={editingValues.unit}
+                                              onChange={(e) =>
+                                                setEditingValues((prev) => ({
+                                                  ...prev,
+                                                  unit: e.target.value,
+                                                }))
+                                              }
+                                              size="sm"
+                                            >
+                                              <option value="">चुनें</option>
+                                              {unitOptions.map((opt, idx) => (
+                                                <option key={idx} value={opt}>
+                                                  {opt}
+                                                </option>
+                                              ))}
+                                            </Form.Select>
+                                          : originalItem.unit
+                                        }
+                                      </td>
+                                    )}
+                                    {selectedColumns.includes("allocated_quantity") && (
+                                      <td rowSpan={recipientRowCount}>
+                                        {editingRowId === originalItem.id
+                                          ? <Form.Control
+                                              type="number"
+                                              step="0.01"
+                                              value={editingValues.allocated_quantity}
+                                              onChange={(e) =>
+                                                setEditingValues((prev) => ({
+                                                  ...prev,
+                                                  allocated_quantity: e.target.value,
+                                                }))
+                                              }
+                                              size="sm"
+                                            />
+                                          : parseFloat(originalItem.allocated_quantity).toFixed(2)
+                                        }
+                                      </td>
+                                    )}
+                                    {selectedColumns.includes("allocated_amount") && (
+                                      <td rowSpan={recipientRowCount}>
+                                        {editingRowId === originalItem.id
+                                          ? <Form.Control
+                                              type="number"
+                                              step="0.01"
+                                              value={editingValues.allocated_amount}
+                                              onChange={(e) =>
+                                                setEditingValues((prev) => ({
+                                                  ...prev,
+                                                  allocated_amount: e.target.value,
+                                                }))
+                                              }
+                                              size="sm"
+                                            />
+                                          : parseFloat(originalItem.allocated_amount).toFixed(2)
+                                        }
+                                      </td>
+                                    )}
+                                  </>
                                 )}
-                              </td>
-                            </tr>
-                          ))}
+                                {/* Recipient columns */}
+                                {selectedRecipientColumns.includes("recipient_name") && (
+                                  <td>{recipient?.recipient_name || "-"}</td>
+                                )}
+                                {selectedRecipientColumns.includes("recipient_quantity") && (
+                                  <td>
+                                    {recipient?.recipient_quantity
+                                      ? parseFloat(recipient.recipient_quantity).toFixed(2)
+                                      : "-"}
+                                  </td>
+                                )}
+                                {selectedRecipientColumns.includes("recipient_amount") && (
+                                  <td>
+                                    {recipient?.recipient_amount
+                                      ? parseFloat(recipient.recipient_amount).toFixed(2)
+                                      : "-"}
+                                  </td>
+                                )}
+                                {selectedRecipientColumns.includes("bill_number") && (
+                                  <td>{recipient?.bill_number || "-"}</td>
+                                )}
+                                {selectedRecipientColumns.includes("bill_date") && (
+                                  <td>{recipient?.bill_date || "-"}</td>
+                                )}
+                                {isFirstRecipient && (
+                                  <td rowSpan={recipientRowCount}>
+                                    {editingRowId === originalItem.id ? (
+                                      <div className="d-flex gap-1">
+                                        <Button
+                                          variant="outline-success"
+                                          size="sm"
+                                          onClick={() => handleSave(originalItem)}
+                                        >
+                                          सहेजें
+                                        </Button>
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          onClick={handleCancel}
+                                        >
+                                          रद्द करें
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="d-flex gap-1">
+                                        <Button
+                                          variant="outline-primary"
+                                          size="sm"
+                                          onClick={() => handleEdit(originalItem)}
+                                        >
+                                          संपादित करें
+                                        </Button>
+                                        <Button
+                                          variant="outline-info"
+                                          size="sm"
+                                          onClick={() => handleManageRecipients(originalItem)}
+                                        >
+                                          प्राप्तकर्ता
+                                        </Button>
+                                        <Button
+                                          variant="outline-danger"
+                                          size="sm"
+                                          onClick={() => handleDelete(originalItem)}
+                                        >
+                                          <RiDeleteBinLine />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </Table>
 
