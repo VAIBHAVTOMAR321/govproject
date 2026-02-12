@@ -581,6 +581,20 @@ const DemandCenterwiseEntry = () => {
       
       {apiError && <Alert variant="danger">{apiError}</Alert>}
       
+      {isLoading && (
+        <div className="text-center py-5">
+          <Spinner animation="border" variant="primary" />
+          <p className="mt-2">डेटा लोड हो रहा है...</p>
+        </div>
+      )}
+      
+      {/* No data message when no billing items available for the center */}
+      {!isLoading && billingItems.length === 0 && (
+        <Alert variant="info" className="text-center">
+          इस केंद्र के लिए कोई बिलिंग आइटम डेटा उपलब्ध नहीं है।
+        </Alert>
+      )}
+      
       {!isLoading && billingItems.length > 0 && (
         <div className="mb-4">
           <h5>सेंटर विवरण:</h5>
