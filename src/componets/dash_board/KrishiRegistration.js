@@ -138,6 +138,30 @@ const beneficiariesTableColumnMapping = {
   },
 };
 
+// Helper function to calculate financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  
+  let fromDate, toDate;
+  
+  // If current month is April (3) or later, FY is current year April to next year March
+  // If current month is before April (Jan-Mar), FY is previous year April to current year March
+  if (currentMonth >= 3) {
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    start_date: fromDate.toISOString().split('T')[0],
+    end_date: toDate.toISOString().split('T')[0],
+  };
+};
+
 // Hindi translations for form
 const translations = {
   pageTitle: "कृषि डेटा एंट्री",
@@ -158,8 +182,8 @@ const translations = {
   schemeName: "योजना का नाम",
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
-  startDate: "प्रारंभ तिथि",
-  endDate: "अंतिम तिथि",
+  startDate: "कब से",
+  endDate: "कब तक",
   submitButton: "जमा करें",
   submitting: "जमा कर रहे हैं...",
   successMessage: "लाभार्थी सफलतापूर्वक जोड़ा गया!",
@@ -734,8 +758,14 @@ const KrishiRegistration = () => {
     }
   };
 
-  // Fetch data on component mount
+  // Fetch data on component mount and set default financial year filters
   useEffect(() => {
+    const { start_date, end_date } = getFinancialYearDates();
+    setFilters((prev) => ({
+      ...prev,
+      start_date,
+      end_date,
+    }));
     fetchBeneficiaries();
     fetchFormFilters();
   }, []);
@@ -861,8 +891,9 @@ const KrishiRegistration = () => {
     }));
   };
 
-  // Clear all filters
+  // Clear all filters - Reset to financial year dates
   const clearFilters = () => {
+    const { start_date, end_date } = getFinancialYearDates();
     setFilters({
       farmer_name: [],
       center_name: [],
@@ -871,8 +902,8 @@ const KrishiRegistration = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
-      start_date: "",
-      end_date: "",
+      start_date,
+      end_date,
     });
   };
 

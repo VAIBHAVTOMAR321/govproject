@@ -164,6 +164,31 @@ const unitOptions = [
   "डिब्बा",
   "अन्य",
 ];
+
+// Helper function to get financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed: January = 0, April = 3, March = 2
+  
+  let fromDate, toDate;
+  
+  if (currentMonth >= 3) {
+    // April (month 3) onwards: FY is April of current year to March of next year
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    // January, February, March: FY is April of previous year to March of current year
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    from_date: fromDate.toISOString().split('T')[0],
+    to_date: toDate.toISOString().split('T')[0],
+  };
+};
+
 const NurseryPhysicalEntry = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -354,8 +379,15 @@ const NurseryPhysicalEntry = () => {
   const [editingRecipientRowId, setEditingRecipientRowId] = useState(null);
   const [editingRecipientValues, setEditingRecipientValues] = useState({});
 
-  // Fetch data on component mount
+  // Fetch data on component mount and set default financial year filters
   useEffect(() => {
+    const financialYearDates = getFinancialYearDates();
+    setFilters({
+      from_date: financialYearDates.from_date,
+      to_date: financialYearDates.to_date,
+      nursery_name: [],
+      crop_name: [],
+    });
     fetchNurseryPhysicalItems();
     fetchRecipientItems();
   }, []);
@@ -387,22 +419,34 @@ const NurseryPhysicalEntry = () => {
     }
   }, [allNurseryPhysicalItems]);
 
-  // Apply local filtering when filters change
+  // Apply local filtering when filters change (based on bill_date from recipients)
   useEffect(() => {
     // Only apply filters when both dates are selected
     if (filters.from_date && filters.to_date) {
+      const fromDate = new Date(filters.from_date);
+      const toDate = new Date(filters.to_date);
+      toDate.setHours(23, 59, 59, 999); // Set to end of day
+
       const filtered = allNurseryPhysicalItems.filter((item) => {
-        // Date range filter
-        const itemDate = new Date(item.created_at);
-        const fromDate = new Date(filters.from_date);
-        const toDate = new Date(filters.to_date);
-        toDate.setHours(23, 59, 59, 999); // Set to end of day
+        // Check if item has any associated recipients with bill_date in range
+        const hasRecipientInRange = allRecipientItems.some((recipient) => {
+          if (recipient.nursery_physical !== item.id) {
+            return false;
+          }
+          
+          if (!recipient.bill_date) {
+            return false;
+          }
+          
+          const billDate = new Date(recipient.bill_date);
+          return billDate >= fromDate && billDate <= toDate;
+        });
         
-        if (itemDate < fromDate || itemDate > toDate) {
+        if (!hasRecipientInRange) {
           return false;
         }
         
-        // Other filters
+        // Other filters (nursery_name, crop_name)
         for (const key in filters) {
           if (key === "from_date" || key === "to_date") {
             continue;
@@ -419,7 +463,7 @@ const NurseryPhysicalEntry = () => {
       // If no date range selected, show all data
       setNurseryPhysicalItems(allNurseryPhysicalItems);
     }
-  }, [filters, allNurseryPhysicalItems]);
+  }, [filters, allNurseryPhysicalItems, allRecipientItems]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -483,11 +527,12 @@ const NurseryPhysicalEntry = () => {
     }
   };
 
-  // Clear all filters
+  // Clear all filters and reset to financial year
   const clearFilters = () => {
+    const financialYearDates = getFinancialYearDates();
     setFilters({
-      from_date: "",
-      to_date: "",
+      from_date: financialYearDates.from_date,
+      to_date: financialYearDates.to_date,
       nursery_name: [],
       crop_name: [],
     });
@@ -511,9 +556,25 @@ const NurseryPhysicalEntry = () => {
     });
   })();
 
-  const filteredRecipientItems = recipientItems.filter(
-    (item) => selectedNurseryPhysical && item.nursery_physical === selectedNurseryPhysical.id
-  );
+  const filteredRecipientItems = recipientItems.filter((item) => {
+    // Filter by selected nursery physical
+    if (!selectedNurseryPhysical || item.nursery_physical !== selectedNurseryPhysical.id) {
+      return false;
+    }
+    
+    // Filter by date range - only show recipients with bill date in selected range
+    if (filters.from_date && filters.to_date && item.bill_date) {
+      const billDate = new Date(item.bill_date);
+      const fromDate = new Date(filters.from_date);
+      const toDate = new Date(filters.to_date);
+      toDate.setHours(23, 59, 59, 999);
+      
+      return billDate >= fromDate && billDate <= toDate;
+    }
+    
+    // If no date filters are set, show all
+    return filters.from_date && filters.to_date;
+  });
 
   // Helper function to expand data with recipients for export
   const expandDataWithRecipients = (items, selectedRecipientCols) => {
@@ -525,9 +586,24 @@ const NurseryPhysicalEntry = () => {
 
     const expandedData = [];
     items.forEach((item) => {
-      const itemRecipients = recipientItems.filter(
-        (r) => r.nursery_physical === item.id
-      );
+      // Filter recipients by nursery_physical ID and date range (bill_date within financial year)
+      const itemRecipients = recipientItems.filter((r) => {
+        if (r.nursery_physical !== item.id) {
+          return false;
+        }
+        
+        // Only include recipients with bill_date in the selected date range
+        if (filters.from_date && filters.to_date && r.bill_date) {
+          const billDate = new Date(r.bill_date);
+          const fromDate = new Date(filters.from_date);
+          const toDate = new Date(filters.to_date);
+          toDate.setHours(23, 59, 59, 999);
+          
+          return billDate >= fromDate && billDate <= toDate;
+        }
+        
+        return filters.from_date && filters.to_date;
+      });
 
       if (itemRecipients.length > 0) {
         itemRecipients.forEach((recipient, idx) => {
@@ -572,9 +648,23 @@ const NurseryPhysicalEntry = () => {
 
     // Add grand total row
     const grandTotalQuantity = items.reduce((sum, item) => {
-      const itemRecipients = recipientItems.filter(
-        (r) => r.nursery_physical === item.id
-      );
+      const itemRecipients = recipientItems.filter((r) => {
+        if (r.nursery_physical !== item.id) {
+          return false;
+        }
+        
+        // Only include recipients with bill_date in the selected date range
+        if (filters.from_date && filters.to_date && r.bill_date) {
+          const billDate = new Date(r.bill_date);
+          const fromDate = new Date(filters.from_date);
+          const toDate = new Date(filters.to_date);
+          toDate.setHours(23, 59, 59, 999);
+          
+          return billDate >= fromDate && billDate <= toDate;
+        }
+        
+        return filters.from_date && filters.to_date;
+      });
       return (
         sum +
         itemRecipients.reduce(
@@ -585,9 +675,23 @@ const NurseryPhysicalEntry = () => {
     }, 0);
 
     const grandTotalAmount = items.reduce((sum, item) => {
-      const itemRecipients = recipientItems.filter(
-        (r) => r.nursery_physical === item.id
-      );
+      const itemRecipients = recipientItems.filter((r) => {
+        if (r.nursery_physical !== item.id) {
+          return false;
+        }
+        
+        // Only include recipients with bill_date in the selected date range
+        if (filters.from_date && filters.to_date && r.bill_date) {
+          const billDate = new Date(r.bill_date);
+          const fromDate = new Date(filters.from_date);
+          const toDate = new Date(filters.to_date);
+          toDate.setHours(23, 59, 59, 999);
+          
+          return billDate >= fromDate && billDate <= toDate;
+        }
+        
+        return filters.from_date && filters.to_date;
+      });
       return (
         sum +
         itemRecipients.reduce(
@@ -2298,19 +2402,19 @@ const handleDeleteRecipient = async (item) => {
                                     <td colSpan={1}>{item._subtotalLabel}</td>
                                   )}
                                   {selectedColumns.includes("crop_name") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
                                   {selectedColumns.includes("unit") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
                                   {selectedColumns.includes("allocated_quantity") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
                                   {selectedColumns.includes("allocated_amount") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
                                   {selectedRecipientColumns.includes("recipient_name") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
                                   {selectedRecipientColumns.includes("recipient_quantity") && (
                                     <td>
@@ -2327,12 +2431,12 @@ const handleDeleteRecipient = async (item) => {
                                     </td>
                                   )}
                                   {selectedRecipientColumns.includes("bill_number") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
                                   {selectedRecipientColumns.includes("bill_date") && (
-                                    <td></td>
+                                    <td colSpan={1}></td>
                                   )}
-                                  <td></td>
+                                  <td colSpan={1}></td>
                                 </tr>
                               );
                             }
@@ -2401,110 +2505,111 @@ const handleDeleteRecipient = async (item) => {
 
                             return (
                               <tr key={`${originalItem.id}-${recipient?.id || 'no-recipient'}`}>
-                                {isFirstRecipient && (
-                                  <>
-                                    <td rowSpan={recipientRowCount}>
-                                      {serialNumber}
-                                    </td>
-                                    {selectedColumns.includes("nursery_name") && (
-                                      <td rowSpan={recipientRowCount}>
-                                        {editingRowId === originalItem.id
-                                          ? <Form.Control
-                                              type="text"
-                                              value={editingValues.nursery_name}
-                                              onChange={(e) =>
-                                                setEditingValues((prev) => ({
-                                                  ...prev,
-                                                  nursery_name: e.target.value,
-                                                }))
-                                              }
-                                              size="sm"
-                                            />
-                                          : originalItem.nursery_name
-                                        }
-                                      </td>
-                                    )}
-                                    {selectedColumns.includes("crop_name") && (
-                                      <td rowSpan={recipientRowCount}>
-                                        {editingRowId === originalItem.id
-                                          ? <Form.Control
-                                              type="text"
-                                              value={editingValues.crop_name}
-                                              onChange={(e) =>
-                                                setEditingValues((prev) => ({
-                                                  ...prev,
-                                                  crop_name: e.target.value,
-                                                }))
-                                              }
-                                              size="sm"
-                                            />
-                                          : originalItem.crop_name
-                                        }
-                                      </td>
-                                    )}
-                                    {selectedColumns.includes("unit") && (
-                                      <td rowSpan={recipientRowCount}>
-                                        {editingRowId === originalItem.id
-                                          ? <Form.Select
-                                              value={editingValues.unit}
-                                              onChange={(e) =>
-                                                setEditingValues((prev) => ({
-                                                  ...prev,
-                                                  unit: e.target.value,
-                                                }))
-                                              }
-                                              size="sm"
-                                            >
-                                              <option value="">चुनें</option>
-                                              {unitOptions.map((opt, idx) => (
-                                                <option key={idx} value={opt}>
-                                                  {opt}
-                                                </option>
-                                              ))}
-                                            </Form.Select>
-                                          : originalItem.unit
-                                        }
-                                      </td>
-                                    )}
-                                    {selectedColumns.includes("allocated_quantity") && (
-                                      <td rowSpan={recipientRowCount}>
-                                        {editingRowId === originalItem.id
-                                          ? <Form.Control
-                                              type="number"
-                                              step="0.01"
-                                              value={editingValues.allocated_quantity}
-                                              onChange={(e) =>
-                                                setEditingValues((prev) => ({
-                                                  ...prev,
-                                                  allocated_quantity: e.target.value,
-                                                }))
-                                              }
-                                              size="sm"
-                                            />
-                                          : parseFloat(originalItem.allocated_quantity).toFixed(2)
-                                        }
-                                      </td>
-                                    )}
-                                    {selectedColumns.includes("allocated_amount") && (
-                                      <td rowSpan={recipientRowCount}>
-                                        {editingRowId === originalItem.id
-                                          ? <Form.Control
-                                              type="number"
-                                              step="0.01"
-                                              value={editingValues.allocated_amount}
-                                              onChange={(e) =>
-                                                setEditingValues((prev) => ({
-                                                  ...prev,
-                                                  allocated_amount: e.target.value,
-                                                }))
-                                              }
-                                              size="sm"
-                                            />
-                                          : parseFloat(originalItem.allocated_amount).toFixed(2)
-                                        }
-                                      </td>
-                                    )}
-                                  </>
+                                <td>
+                                  {isFirstRecipient ? serialNumber : ''}
+                                </td>
+                                {selectedColumns.includes("nursery_name") && (
+                                  <td>
+                                    {isFirstRecipient ? (
+                                      editingRowId === originalItem.id
+                                        ? <Form.Control
+                                            type="text"
+                                            value={editingValues.nursery_name}
+                                            onChange={(e) =>
+                                              setEditingValues((prev) => ({
+                                                ...prev,
+                                                nursery_name: e.target.value,
+                                              }))
+                                            }
+                                            size="sm"
+                                          />
+                                        : originalItem.nursery_name
+                                    ) : ''}
+                                  </td>
+                                )}
+                                {selectedColumns.includes("crop_name") && (
+                                  <td>
+                                    {isFirstRecipient ? (
+                                      editingRowId === originalItem.id
+                                        ? <Form.Control
+                                            type="text"
+                                            value={editingValues.crop_name}
+                                            onChange={(e) =>
+                                              setEditingValues((prev) => ({
+                                                ...prev,
+                                                crop_name: e.target.value,
+                                              }))
+                                            }
+                                            size="sm"
+                                          />
+                                        : originalItem.crop_name
+                                    ) : ''}
+                                  </td>
+                                )}
+                                {selectedColumns.includes("unit") && (
+                                  <td>
+                                    {isFirstRecipient ? (
+                                      editingRowId === originalItem.id
+                                        ? <Form.Select
+                                            value={editingValues.unit}
+                                            onChange={(e) =>
+                                              setEditingValues((prev) => ({
+                                                ...prev,
+                                                unit: e.target.value,
+                                              }))
+                                            }
+                                            size="sm"
+                                          >
+                                            <option value="">चुनें</option>
+                                            {unitOptions.map((opt, idx) => (
+                                              <option key={idx} value={opt}>
+                                                {opt}
+                                              </option>
+                                            ))}
+                                          </Form.Select>
+                                        : originalItem.unit
+                                    ) : ''}
+                                  </td>
+                                )}
+                                {selectedColumns.includes("allocated_quantity") && (
+                                  <td>
+                                    {isFirstRecipient ? (
+                                      editingRowId === originalItem.id
+                                        ? <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={editingValues.allocated_quantity}
+                                            onChange={(e) =>
+                                              setEditingValues((prev) => ({
+                                                ...prev,
+                                                allocated_quantity: e.target.value,
+                                              }))
+                                            }
+                                            size="sm"
+                                          />
+                                        : parseFloat(originalItem.allocated_quantity).toFixed(2)
+                                    ) : ''}
+                                  </td>
+                                )}
+                                {selectedColumns.includes("allocated_amount") && (
+                                  <td>
+                                    {isFirstRecipient ? (
+                                      editingRowId === originalItem.id
+                                        ? <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={editingValues.allocated_amount}
+                                            onChange={(e) =>
+                                              setEditingValues((prev) => ({
+                                                ...prev,
+                                                allocated_amount: e.target.value,
+                                              }))
+                                            }
+                                            size="sm"
+                                          />
+                                        : parseFloat(originalItem.allocated_amount).toFixed(2)
+                                    ) : ''}
+                                  </td>
                                 )}
                                 {/* Recipient columns */}
                                 {selectedRecipientColumns.includes("recipient_name") && (
@@ -2530,9 +2635,9 @@ const handleDeleteRecipient = async (item) => {
                                 {selectedRecipientColumns.includes("bill_date") && (
                                   <td>{recipient?.bill_date || "-"}</td>
                                 )}
-                                {isFirstRecipient && (
-                                  <td rowSpan={recipientRowCount}>
-                                    {editingRowId === originalItem.id ? (
+                                <td>
+                                  {isFirstRecipient ? (
+                                    editingRowId === originalItem.id ? (
                                       <div className="d-flex gap-1">
                                         <Button
                                           variant="outline-success"
@@ -2573,9 +2678,11 @@ const handleDeleteRecipient = async (item) => {
                                           <RiDeleteBinLine />
                                         </Button>
                                       </div>
-                                    )}
-                                  </td>
-                                )}
+                                    )
+                                  ) : (
+                                    ''
+                                  )}
+                                </td>
                               </tr>
                             );
                           });

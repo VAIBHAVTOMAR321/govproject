@@ -88,6 +88,30 @@ const beneficiariesTableColumnMapping = {
   },
 };
 
+// Helper function to calculate financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  
+  let fromDate, toDate;
+  
+  // If current month is April (3) or later, FY is current year April to next year March
+  // If current month is before April (Jan-Mar), FY is previous year April to current year March
+  if (currentMonth >= 3) {
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    fromDate: fromDate.toISOString().split('T')[0],
+    toDate: toDate.toISOString().split('T')[0],
+  };
+};
+
 const DemandKrishiwiseEntry = () => {
   const { centerData } = useCenter();
   
@@ -247,6 +271,30 @@ const DemandKrishiwiseEntry = () => {
       setIsLoading(false);
     }
   };
+
+  // Initialize component and set financial year dates by default
+  useEffect(() => {
+    const { fromDate, toDate } = getFinancialYearDates();
+    setDateRange({
+      fromDate,
+      toDate
+    });
+    fetchBeneficiaries();
+  }, []);
+
+  // Auto-apply financial year filter when data is loaded
+  useEffect(() => {
+    if (beneficiaries.length > 0 && dateRange.fromDate && dateRange.toDate && !tableVisible) {
+      applyDateRangeFilter();
+    }
+  }, [beneficiaries]);
+
+  // Re-apply date range filter when date range changes while table is visible
+  useEffect(() => {
+    if (tableVisible && beneficiaries.length > 0 && dateRange.fromDate && dateRange.toDate) {
+      applyDateRangeFilter();
+    }
+  }, [dateRange.fromDate, dateRange.toDate, tableVisible]);
 
   // Handle date range change
   const handleDateRangeChange = (e) => {
@@ -659,6 +707,28 @@ const DemandKrishiwiseEntry = () => {
           <div className="mb-4 p-4 border rounded bg-light">
             <h5 className="mb-3">फिल्टर्स:</h5>
             <Row>
+              <Col md={6} className="mb-3">
+                <Form.Group controlId="fromDate">
+                  <Form.Label>कब से</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="fromDate"
+                    value={dateRange.fromDate}
+                    onChange={handleDateRangeChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6} className="mb-3">
+                <Form.Group controlId="toDate">
+                  <Form.Label>कब तक</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="toDate"
+                    value={dateRange.toDate}
+                    onChange={handleDateRangeChange}
+                  />
+                </Form.Group>
+              </Col>
               <Col md={4} className="mb-3">
                 <Form.Group controlId="schemeName">
                   <Form.Label>योजना का नाम</Form.Label>

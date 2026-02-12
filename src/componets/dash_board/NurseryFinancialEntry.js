@@ -30,7 +30,7 @@ const NURSERY_FINANCIAL_API_URL =
 const nurseryFinancialTableColumns = [
   { key: "nursery_name", label: "नर्सरी का नाम" },
   { key: "standard_item", label: "मानक आइटम" },
-  { key: "allocated_amount", label: "आवंटित राशि" },
+  { key: "allocated_amount", label: "धनराशि" },
   { key: "spent_amount", label: "व्यय राशि" },
   { key: "description", label: "विवरण" },
   { key: "registration_date", label: "पंजीकरण तिथि" },
@@ -48,7 +48,7 @@ const nurseryFinancialColumnMapping = {
     accessor: (item) => item.standard_item,
   },
   allocated_amount: {
-    header: "आवंटित राशि",
+    header: "धनराशि",
     accessor: (item) => parseFloat(item.allocated_amount) || 0,
   },
   spent_amount: {
@@ -74,7 +74,7 @@ const translations = {
   pageTitle: "नर्सरी वित्तीय प्रविष्टि",
   nurseryName: "नर्सरी का नाम",
   standardItem: "मानक आइटम",
-  allocatedAmount: "आवंटित राशि",
+  allocatedAmount: "धनराशि",
   spentAmount: "व्यय राशि",
   description: "विवरण",
   registrationDate: "पंजीकरण तिथि",
@@ -96,6 +96,30 @@ const translations = {
   entries: "प्रविष्टियां",
   page: "पृष्ठ",
   itemsPerPage: "प्रति पृष्ठ आइटम",
+};
+
+// Helper function to get financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed: January = 0, April = 3, March = 2
+  
+  let fromDate, toDate;
+  
+  if (currentMonth >= 3) {
+    // April (month 3) onwards: FY is April of current year to March of next year
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    // January, February, March: FY is April of previous year to March of current year
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    from_date: fromDate.toISOString().split('T')[0],
+    to_date: toDate.toISOString().split('T')[0],
+  };
 };
 
 const NurseryFinancialEntry = () => {
@@ -223,8 +247,15 @@ const NurseryFinancialEntry = () => {
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
 
-  // Fetch data on component mount
+  // Fetch data on component mount and set default financial year filters
   useEffect(() => {
+    const financialYearDates = getFinancialYearDates();
+    setFilters({
+      from_date: financialYearDates.from_date,
+      to_date: financialYearDates.to_date,
+      nursery_name: [],
+      standard_item: [],
+    });
     fetchNurseryFinancialItems();
   }, []);
 
@@ -322,11 +353,12 @@ const NurseryFinancialEntry = () => {
     }
   };
 
-  // Clear all filters
+  // Clear all filters and reset to financial year
   const clearFilters = () => {
+    const financialYearDates = getFinancialYearDates();
     setFilters({
-      from_date: "",
-      to_date: "",
+      from_date: financialYearDates.from_date,
+      to_date: financialYearDates.to_date,
       nursery_name: [],
       standard_item: [],
     });
@@ -390,7 +422,7 @@ const NurseryFinancialEntry = () => {
         {
           "नर्सरी का नाम": "राजकीय उद्यान चमेठा",
           "मानक आइटम": "06 – मजदूरी",
-          "आवंटित राशि": "5000.00",
+          "धनराशि": "5000.00",
           "व्यय राशि": "1000.00",
           "विवरण": "note typing detail",
           "पंजीकरण तिथि": new Date().toISOString().split('T')[0],
@@ -403,7 +435,7 @@ const NurseryFinancialEntry = () => {
       const colWidths = [
         { wch: 25 }, // नर्सरी का नाम
         { wch: 20 }, // मानक आइटम
-        { wch: 15 }, // आवंटित राशि
+        { wch: 15 }, // धनराशि
         { wch: 15 }, // व्यय राशि
         { wch: 20 }, // विवरण
         { wch: 12 }, // पंजीकरण तिथि
@@ -630,9 +662,9 @@ const NurseryFinancialEntry = () => {
       errors.push(`Row ${rowIndex}: मानक आइटम आवश्यक है`);
     }
     if (rowData.allocated_amount === "" || rowData.allocated_amount === null || rowData.allocated_amount === undefined) {
-      errors.push(`Row ${rowIndex}: आवंटित राशि आवश्यक है`);
+      errors.push(`Row ${rowIndex}: धनराशि आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.allocated_amount))) {
-      errors.push(`Row ${rowIndex}: आवंटित राशि एक संख्या होनी चाहिए`);
+      errors.push(`Row ${rowIndex}: धनराशि एक संख्या होनी चाहिए`);
     }
     if (rowData.spent_amount === "" || rowData.spent_amount === null || rowData.spent_amount === undefined) {
       errors.push(`Row ${rowIndex}: व्यय राशि आवश्यक है`);
@@ -694,7 +726,7 @@ const NurseryFinancialEntry = () => {
             return {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               standard_item: (row[headerMapping["मानक आइटम"]] || row[headerMapping["standard_item"]] || "").toString().trim(),
-              allocated_amount: parseFloat(row[headerMapping["आवंटित राशि"]] || row[headerMapping["allocated_amount"]] || 0),
+              allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               spent_amount: parseFloat(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
               description: (row[headerMapping["विवरण"]] || row[headerMapping["description"]] || "").toString().trim(),
               registration_date: row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || new Date().toISOString().split('T')[0],
@@ -1086,9 +1118,9 @@ const NurseryFinancialEntry = () => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, मानक आइटम, आवंटित राशि, व्यय राशि, पंजीकरण तिथि
+                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, मानक आइटम, धनराशि, व्यय राशि, पंजीकरण तिथि
                   </li>
-                  <li>आवंटित राशि और व्यय राशि संख्यात्मक होनी चाहिए</li>
+                  <li>धनराशि और व्यय राशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
                 </ul>
               </Alert>
@@ -1247,7 +1279,7 @@ const NurseryFinancialEntry = () => {
                         onChange={handleChange}
                         isInvalid={!!errors.allocated_amount}
                         className="compact-input"
-                        placeholder="आवंटित राशि दर्ज करें"
+                        placeholder="धनराशि दर्ज करें"
                       />
                       <Form.Control.Feedback type="invalid">
                         {errors.allocated_amount}

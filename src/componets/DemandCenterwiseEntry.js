@@ -24,6 +24,7 @@ const BILLING_API_URL =
 
 // Available columns for the table (excluding sno which is always shown)
 const billingTableColumns = [
+  { key: "scheme_name", label: "योजना का नाम" },
   { key: "investment_name", label: "निवेश का नाम" },
   { key: "sub_investment_name", label: "उप-निवेश का नाम" },
   { key: "unit", label: "इकाई" },
@@ -90,6 +91,30 @@ const billingTableColumnMapping = {
       return date.toLocaleDateString("hi-IN");
     },
   },
+};
+
+// Helper function to calculate financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  
+  let fromDate, toDate;
+  
+  // If current month is April (3) or later, FY is current year April to next year March
+  // If current month is before April (Jan-Mar), FY is previous year April to current year March
+  if (currentMonth >= 3) {
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    fromDate: fromDate.toISOString().split('T')[0],
+    toDate: toDate.toISOString().split('T')[0],
+  };
 };
 
 const DemandCenterwiseEntry = () => {
@@ -182,8 +207,10 @@ const DemandCenterwiseEntry = () => {
   });
   const [selectedInvestments, setSelectedInvestments] = useState([]);
   const [selectedSubInvestments, setSelectedSubInvestments] = useState([]);
+  const [selectedSchemes, setSelectedSchemes] = useState([]);
   const [investmentOptions, setInvestmentOptions] = useState([]);
   const [subInvestmentOptions, setSubInvestmentOptions] = useState([]);
+  const [schemeOptions, setSchemeOptions] = useState([]);
   const [tableVisible, setTableVisible] = useState(false);
   
   // State for pagination
@@ -233,9 +260,11 @@ const DemandCenterwiseEntry = () => {
         });
       }
       
-      // Extract unique investment and sub-investment options
+      // Extract unique investment, sub-investment and scheme options
       const investments = [...new Set(filteredItems.map(item => item.investment_name))].filter(Boolean);
+      const schemes = [...new Set(filteredItems.map(item => item.scheme_name))].filter(Boolean);
       setInvestmentOptions(investments);
+      setSchemeOptions(schemes);
       
     } catch (error) {
       console.error("Error fetching billing items:", error);
@@ -274,13 +303,16 @@ const DemandCenterwiseEntry = () => {
     setFilteredBillingItems(filtered);
     setTableVisible(true);
 
-    // Update investment and sub-investment options based on date range
+    // Update investment, sub-investment and scheme options based on date range
     const investments = [...new Set(filtered.map(item => item.investment_name))].filter(Boolean);
     const subInvestments = [...new Set(filtered.map(item => item.sub_investment_name))].filter(Boolean);
+    const schemes = [...new Set(filtered.map(item => item.scheme_name))].filter(Boolean);
     setInvestmentOptions(investments);
     setSubInvestmentOptions(subInvestments);
+    setSchemeOptions(schemes);
     setSelectedInvestments([]);
     setSelectedSubInvestments([]);
+    setSelectedSchemes([]);
   };
 
   // Handle investment change (react-select)
@@ -327,6 +359,12 @@ const DemandCenterwiseEntry = () => {
     }
   };
 
+  // Handle scheme change (react-select)
+  const handleSchemeChange = (selectedOptions) => {
+    const selectedValues = selectedOptions.map(opt => opt.value);
+    setSelectedSchemes(selectedValues);
+  };
+
   // Apply filters to the table data
   const getFilteredData = () => {
     let data = filteredBillingItems;
@@ -339,13 +377,36 @@ const DemandCenterwiseEntry = () => {
       data = data.filter(item => selectedSubInvestments.includes(item.sub_investment_name));
     }
 
+    if (selectedSchemes.length > 0) {
+      data = data.filter(item => selectedSchemes.includes(item.scheme_name));
+    }
+
     return data;
   };
 
-  // Initialize component
+  // Initialize component and set financial year dates by default
   useEffect(() => {
+    const { fromDate, toDate } = getFinancialYearDates();
+    setDateRange({
+      fromDate,
+      toDate
+    });
     fetchBillingItems();
   }, []);
+
+  // Auto-apply financial year filter when data is loaded
+  useEffect(() => {
+    if (billingItems.length > 0 && dateRange.fromDate && dateRange.toDate && !tableVisible) {
+      applyDateRangeFilter();
+    }
+  }, [billingItems]);
+
+  // Re-apply date range filter when date range changes while table is visible
+  useEffect(() => {
+    if (tableVisible && billingItems.length > 0 && dateRange.fromDate && dateRange.toDate) {
+      applyDateRangeFilter();
+    }
+  }, [dateRange.fromDate, dateRange.toDate, tableVisible]);
 
   // Pagination logic
   const filteredData = getFilteredData();
@@ -372,7 +433,7 @@ const DemandCenterwiseEntry = () => {
       const totalRow = {};
       totalRow["क्र.सं."] = "कुल";
       selectedColumns.forEach((col) => {
-        if (col === "investment_name" || col === "sub_investment_name" || col === "unit") {
+        if (col === "investment_name" || col === "sub_investment_name" || col === "unit" || col === "scheme_name") {
           const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
           totalRow[columnMapping[col].header] = uniqueValues.size;
         } else if (col === "allocated_quantity" || col === "amount_of_farmer_share" ||
@@ -430,7 +491,7 @@ const DemandCenterwiseEntry = () => {
 
       const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
         .map((col) => {
-          if (col === "investment_name" || col === "sub_investment_name" || col === "unit") {
+          if (col === "investment_name" || col === "sub_investment_name" || col === "unit" || col === "scheme_name") {
             const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
             return `<td><strong>${uniqueValues.size}</strong></td>`;
           } else if (col === "allocated_quantity" || col === "amount_of_farmer_share" ||
@@ -664,6 +725,28 @@ const DemandCenterwiseEntry = () => {
             <h5 className="mb-3">फिल्टर्स:</h5>
             <Row>
               <Col md={6} className="mb-3">
+                <Form.Group controlId="fromDate">
+                  <Form.Label>कब से</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="fromDate"
+                    value={dateRange.fromDate}
+                    onChange={handleDateRangeChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6} className="mb-3">
+                <Form.Group controlId="toDate">
+                  <Form.Label>कब तक</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="toDate"
+                    value={dateRange.toDate}
+                    onChange={handleDateRangeChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6} className="mb-3">
                 <Form.Group controlId="investmentName">
                   <Form.Label>निवेश का नाम</Form.Label>
                   <Select
@@ -685,6 +768,19 @@ const DemandCenterwiseEntry = () => {
                     options={subInvestmentOptions.map(opt => ({ value: opt, label: opt }))}
                     onChange={handleSubInvestmentChange}
                     placeholder="उप-निवेश का नाम चुनें"
+                    className="mb-2"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6} className="mb-3">
+                <Form.Group controlId="schemeName">
+                  <Form.Label>योजना का नाम</Form.Label>
+                  <Select
+                    isMulti
+                    value={schemeOptions.filter(opt => selectedSchemes.includes(opt)).map(opt => ({ value: opt, label: opt }))}
+                    options={schemeOptions.map(opt => ({ value: opt, label: opt }))}
+                    onChange={handleSchemeChange}
+                    placeholder="योजना का नाम चुनें"
                     className="mb-2"
                   />
                 </Form.Group>
@@ -753,7 +849,7 @@ const DemandCenterwiseEntry = () => {
                         <strong>{sum.toFixed(2)}</strong>
                       </td>
                     );
-                  } else if (col.key === "investment_name" || col.key === "sub_investment_name" || col.key === "unit") {
+                  } else if (col.key === "investment_name" || col.key === "sub_investment_name" || col.key === "unit" || col.key === "scheme_name") {
                     const uniqueValues = new Set(filteredData.map(item => item[col.key])).size;
                     return (
                       <td key={col.key}>

@@ -175,6 +175,30 @@ const translations = {
   itemsPerPage: "प्रति पृष्ठ आइटम",
 };
 
+// Helper function to get financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed: January = 0, April = 3, March = 2
+  
+  let fromDate, toDate;
+  
+  if (currentMonth >= 3) {
+    // April (month 3) onwards: FY is April of current year to March of next year
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    // January, February, March: FY is April of previous year to March of current year
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    start_date: fromDate.toISOString().split('T')[0],
+    end_date: toDate.toISOString().split('T')[0],
+  };
+};
+
 const Registration = () => {
   // Reusable Column Selection Component
   const ColumnSelection = ({
@@ -665,8 +689,19 @@ const Registration = () => {
     }
   };
 
-  // Fetch data on component mount
+  // Fetch data on component mount and set default financial year filters
   useEffect(() => {
+    const financialYearDates = getFinancialYearDates();
+    setFilters({
+      center_name: [],
+      investment_name: [],
+      source_of_receipt: [],
+      scheme_name: [],
+      vikas_khand_name: [],
+      vidhan_sabha_name: [],
+      start_date: financialYearDates.start_date,
+      end_date: financialYearDates.end_date,
+    });
     fetchBillingItems();
     fetchFormFilters();
     fetchCenterOptions();
@@ -784,8 +819,9 @@ const Registration = () => {
     }));
   };
 
-  // Clear all filters
+  // Clear all filters and reset to financial year
   const clearFilters = () => {
+    const financialYearDates = getFinancialYearDates();
     setFilters({
       center_name: [],
       investment_name: [],
@@ -793,8 +829,8 @@ const Registration = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
-      start_date: "",
-      end_date: "",
+      start_date: financialYearDates.start_date,
+      end_date: financialYearDates.end_date,
     });
   };
 
