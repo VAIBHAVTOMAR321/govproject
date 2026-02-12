@@ -15,6 +15,8 @@ import ProtectedRoute from "./componets/ProtectedRoute";
 
 import Home from "./componets/pages/Home";
 import NavBar from "./componets/topnav/NavBar";
+import DemandNavigation from "./componets/DemandNavigation";
+import NurseryNavigation from "./componets/NurseryNavigation";
 import Footer from "./componets/footer/Footer";
 import Dashboard from "./componets/dash_board/Dashboard";
 import Registration from "./componets/dash_board/Registration";
@@ -33,64 +35,84 @@ import KendraPasswordReset from "./componets/dash_board/KendraPasswordReset";
 import DemandView from "./componets/dash_board/DemandView";
 import NurseryFinancialEntry from "./componets/dash_board/NurseryFinancialEntry";
 import NurseryPhysicalEntry from "./componets/dash_board/NurseryPhysicalEntry";
-function App() {
+import { useAuth } from "./context/AuthContext";
+
+// Navbar wrapper component that uses useAuth (must be inside AuthProvider)
+function NavbarWrapper() {
   const location = useLocation();
+  const { user } = useAuth();
 
   const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/DemandGenerate/CenterwiseEntry","/DemandGenerate/KrishiwiseEntry","/KendraPasswordReset","/DemandView","/NurseryFinancialEntry","/NurseryPhysicalEntry"]);
 
   const shouldHideNavbar = hiddenPaths.has(location.pathname);
   
+  if (shouldHideNavbar) {
+    const loginType = (user && user.loginType) || 'admin';
+    
+    if (loginType === 'demand') {
+      return <DemandNavigation />;
+    } else if (loginType === 'nursery') {
+      return <NurseryNavigation />;
+    }
+    // For admin loginType - return null (Dashboard will show DashBoardHeader)
+    return null;
+  }
+  return <NavBar />;
+}
+
+// Main App content component
+function AppContent() {
+  const location = useLocation();
+  
   return (
-    <CenterProvider>
-    <AuthProvider>
-      <div className="app-container">
-        {!shouldHideNavbar && <NavBar />}
-        
-        <main className="main-content">
-          <Routes>
+    <div className="app-container">
+      <NavbarWrapper />
+      
+      <main className="main-content">
+        <Routes>
             {/* Public Route */}
             <Route path="/" element={<Home />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
             
             {/* PROTECTED ROUTES */}
             <Route path="/Dashboard" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Dashboard />
               </ProtectedRoute>
             } />
            
             <Route path="/Registration" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Registration />
               </ProtectedRoute>
             } />
             <Route path="/KrishiRegistration" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <KrishiRegistration />
               </ProtectedRoute>
             } />
             <Route path="/MainDashboard" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <MainDashboard />
               </ProtectedRoute>
             } />
             <Route path="/Billing" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Billing />
               </ProtectedRoute>
             } />
             <Route path="/AllBills" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <AllBills />
               </ProtectedRoute>
             } />
             <Route path="/MPR" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <MPR />
               </ProtectedRoute>
             } />
             <Route path="/AddEditComponent" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <AddEditComponent />
               </ProtectedRoute>
             } />
@@ -110,22 +132,22 @@ function App() {
                </ProtectedRoute>
              } />
             <Route path="/KendraPasswordReset" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <KendraPasswordReset />
               </ProtectedRoute>
             } />
             <Route path="/DemandView" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <DemandView />
               </ProtectedRoute>
             } />
             <Route path="/NurseryFinancialEntry" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin", "nursery"]}>
                 <NurseryFinancialEntry />
               </ProtectedRoute>
             } />
             <Route path="/NurseryPhysicalEntry" element={
-              <ProtectedRoute allowedLoginTypes={["regular"]}>
+              <ProtectedRoute allowedLoginTypes={["admin", "nursery"]}>
                 <NurseryPhysicalEntry />
               </ProtectedRoute>
             } />
@@ -135,7 +157,15 @@ function App() {
         
         <Footer />
       </div>
-    </AuthProvider>
+    );
+}
+
+function App() {
+  return (
+    <CenterProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </CenterProvider>
   );
 }

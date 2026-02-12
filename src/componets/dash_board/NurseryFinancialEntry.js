@@ -18,8 +18,9 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import Select from "react-select";
 import "../../assets/css/registration.css";
-
+import { useAuth } from "../../context/AuthContext";
 import DashBoardHeader from "./DashBoardHeader";
+import LeftNav from "./LeftNav";
 
 // API URL
 const NURSERY_FINANCIAL_API_URL =
@@ -98,6 +99,9 @@ const translations = {
 };
 
 const NurseryFinancialEntry = () => {
+  const { user } = useAuth();
+  const isAdmin = user && user.loginType === "admin";
+  
   // Column Selection Component
   const ColumnSelection = ({
     columns,
@@ -946,16 +950,11 @@ const NurseryFinancialEntry = () => {
 
   return (
     <div>
-      <Container fluid className="p-4">
-        <Row>
-          <Col lg={12} md={12} sm={12}>
-            <DashBoardHeader />
-          </Col>
-        </Row>
-
-        <Row className="left-top">
-          <Col lg={12} md={12} sm={12}>
-            <Container fluid className="dashboard-body-main bg-home">
+      {isAdmin && <DashBoardHeader />}
+      <Container fluid className={isAdmin ? "p-4" : "p-0 mt-5 pt-3"}>
+        <Row className={isAdmin ? "left-top" : "w-100 m-0"}>
+          <Col lg={12} md={12} sm={12} className="p-0">
+            <Container fluid className={isAdmin ? "dashboard-body-main bg-home" : "dashboard-body-main bg-home"}>
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Progress Bar Section - Displayed at top during upload */}

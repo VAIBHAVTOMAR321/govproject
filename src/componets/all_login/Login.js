@@ -40,7 +40,7 @@ export default function Login() {
   ];
 
   // Login type state
-  const [loginType, setLoginType] = useState("regular"); // "regular" or "demand"
+  const [loginType, setLoginType] = useState("regular"); // "regular", "demand" or "nursery"
 
   const [formData, setFormData] = useState({
     identifier: "", // This can be either email or username
@@ -53,8 +53,15 @@ export default function Login() {
     password: "",
   });
 
+  // State for nursery login
+  const [nurseryFormData, setNurseryFormData] = useState({
+    username: "", // This will be the selected nursery name
+    password: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showDemandPassword, setShowDemandPassword] = useState(false);
+  const [showNurseryPassword, setShowNurseryPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +76,10 @@ export default function Login() {
         // Redirect based on loginType stored in auth user object
         if (user && user.loginType === 'demand') {
           navigate('/DemandGenerate', { replace: true });
+        } else if (user && user.loginType === 'nursery') {
+          navigate('/NurseryPhysicalEntry', { replace: true });
         } else {
+          // Default to Dashboard for admin users
           navigate('/Dashboard', { replace: true });
         }
       }, 1500); // 1.5 second delay
@@ -86,6 +96,11 @@ export default function Login() {
   // Handle Change for demand generate login
   const handleDemandChange = (e) => {
     setDemandFormData({ ...demandFormData, [e.target.name]: e.target.value });
+  };
+
+  // Handle Change for nursery login
+  const handleNurseryChange = (e) => {
+    setNurseryFormData({ ...nurseryFormData, [e.target.name]: e.target.value });
   };
 
   // Submit handler for regular login
@@ -128,6 +143,12 @@ export default function Login() {
       const isPasswordChangeRequired = passwordChangeMsg === "You must change your default password before login";
       
       if (response.ok) {
+        // Role validation for department login - only admin users can access
+        if (!data.role || data.role !== "admin") {
+          setError("केवल प्रशासक (Admin) उपयोगकर्ता ही विभाग लॉगिन में प्रवेश कर सकते हैं।");
+          return;
+        }
+
         if (isPasswordChangeRequired) {
           // Store user data for password change page
           setTempUserData({
@@ -145,12 +166,13 @@ export default function Login() {
         // Show success message
         setSuccess("लॉगिन सफलतापूर्वक पूर्ण हुआ!");
         
-        // Call login with user data including role
+        // Call login with user data including role and loginType as admin
         login({
           user_id: data.user_id,
           role: data.role,
           email: data.email || formData.identifier, // Use email from response if available
           username: data.username || (!isEmail ? formData.identifier : ""), // Use username from response if available
+          loginType: "admin", // Set loginType as admin to match the role
         });
       } else {
         // Handle error response
@@ -209,6 +231,12 @@ export default function Login() {
       console.log("Demand Login API Response:", data); // Debug log
       
       if (response.ok) {
+        // Role validation for demand login - only center users can access
+        if (data.role && data.role !== "center") {
+          setError("केवल केंद्र उपयोगकर्ता ही यहाँ लॉगिन कर सकते हैं।");
+          return;
+        }
+
         // Show success message
         setSuccess("डिमांड लॉगिन सफलतापूर्वक पूर्ण हुआ!");
         
@@ -231,6 +259,65 @@ export default function Login() {
       }
     } catch (err) {
       console.error("Demand login error:", err);
+      setError("सर्वर से कनेक्ट करने में त्रुटि। कृपया बाद में पुन: प्रयास करें।");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Submit handler for nursery login
+  const handleNurserySubmit = async (e) => {
+    e.preventDefault();
+    
+    // Clear previous messages
+    setError("");
+    setSuccess("");
+    
+    if (!nurseryFormData.username || !nurseryFormData.password) {
+      setError("कृपया सभी आवश्यक फ़ील्ड भरें!");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: nurseryFormData.username, // This will be the selected nursery name
+          password: nurseryFormData.password,
+        }),
+      });
+      
+      const data = await response.json();
+      console.log("Nursery Login API Response:", data); // Debug log
+      
+      if (response.ok) {
+        // Role validation for nursery login - only nursery users can access
+        if (data.role && data.role !== "nursery") {
+          setError("केवल नर्सरी उपयोगकर्ता ही यहाँ लॉगिन कर सकते हैं।");
+          return;
+        }
+
+        // Show success message
+        setSuccess("नर्सरी लॉगिन सफलतापूर्वक पूर्ण हुआ!");
+        
+        // Call login with user data including role and login type
+        login({
+          user_id: data.user_id,
+          role: data.role,
+          username: nurseryFormData.username, // This will be the selected nursery name
+          loginType: "nursery", // Add login type to distinguish
+        });
+      } else {
+        // Display the error message from API or default message
+        setError(data.message || data.error || "नर्सरी लॉगिन विफल। कृपया अपने क्रेडेंशियल्स जांचें।");
+      }
+    } catch (err) {
+      console.error("Nursery login error:", err);
       setError("सर्वर से कनेक्ट करने में त्रुटि। कृपया बाद में पुन: प्रयास करें।");
     } finally {
       setIsLoading(false);
@@ -265,11 +352,12 @@ export default function Login() {
                     <div className="mb-4">
                       <Dropdown className="w-100">
                         <Dropdown.Toggle variant="outline-secondary" id="login-type-dropdown" className="w-100">
-                          {loginType === "regular" ? "Department Login" : "Demand Generate Login"}
+                          {loginType === "regular" ? "Department Login" : loginType === "demand" ? "Demand Generate Login" : "Nursery Login"}
                         </Dropdown.Toggle>
                         <Dropdown.Menu className="w-100">
                           <Dropdown.Item onClick={() => setLoginType("regular")}>Department Login</Dropdown.Item>
                           <Dropdown.Item onClick={() => setLoginType("demand")}>Demand Generate Login</Dropdown.Item>
+                          <Dropdown.Item onClick={() => setLoginType("nursery")}>Nursery Login</Dropdown.Item>
                         </Dropdown.Menu>
                       </Dropdown>
                     </div>
@@ -413,6 +501,64 @@ export default function Login() {
                               </>
                             ) : (
                               "डिमांड लॉगिन"
+                            )}
+                          </Button>
+                        </div>
+                      </Form>
+                    )}
+
+                    {/* Nursery Login Form */}
+                    {loginType === "nursery" && (
+                      <Form onSubmit={handleNurserySubmit}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>उपयोगकर्ता नाम</Form.Label>
+                          <Form.Control
+                            type="text"
+                            name="username"
+                            placeholder="उपयोगकर्ता नाम दर्ज करें"
+                            value={nurseryFormData.username}
+                            onChange={handleNurseryChange}
+                            className="form-control-lg"
+                            required
+                          />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                          <Form.Label>पासवर्ड</Form.Label>
+                          <div className="password-input-container">
+                            <Form.Control
+                              type={showNurseryPassword ? "text" : "password"}
+                              name="password"
+                              placeholder="पासवर्ड दर्ज करें"
+                              value={nurseryFormData.password}
+                              onChange={handleNurseryChange}
+                              className="form-control-lg"
+                              required
+                            />
+                            <button
+                              type="button"
+                              className="password-toggle"
+                              onClick={() => setShowNurseryPassword(!showNurseryPassword)}
+                              aria-label="Toggle password visibility"
+                            >
+                              {showNurseryPassword ? <FaEyeSlash /> : <FaEye />}
+                            </button>
+                          </div>
+                        </Form.Group>
+
+                        <div className="text-center">
+                          <Button 
+                            type="submit" 
+                            className="login-btn" 
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <>
+                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                <span className="ms-2">लॉगिन हो रहे हैं...</span>
+                              </>
+                            ) : (
+                              "नर्सरी लॉगिन"
                             )}
                           </Button>
                         </div>
