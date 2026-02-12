@@ -29,7 +29,7 @@ const DemandNavigation = () => {
         <Navbar.Brand href="#home">
           <div className='dash-img d-flex justify-content-between mx-2'>
             <img src={UKSasan} className='img-fluid'></img>
-            <p>CENTER PANNEL</p>
+            <p>CENTER PANEL</p>
           </div>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
