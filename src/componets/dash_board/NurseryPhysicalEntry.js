@@ -38,15 +38,15 @@ const nurseryPhysicalTableColumns = [
   { key: "nursery_name", label: "नर्सरी का नाम" },
   { key: "crop_name", label: "फसल का नाम" },
   { key: "unit", label: "इकाई" },
-  { key: "allocated_quantity", label: "आवंटित मात्रा" },
-  { key: "allocated_amount", label: "आवंटित राशि" },
+  { key: "allocated_quantity", label: "उपलब्ध मात्रा" },
+  { key: "allocated_amount", label: "धनराशि" },
 ];
 
 // Recipient table columns
 const recipientTableColumns = [
   { key: "recipient_name", label: "प्राप्तकर्ता का नाम" },
-  { key: "recipient_quantity", label: "प्राप्त मात्रा" },
-  { key: "recipient_amount", label: "प्राप्त राशि" },
+  { key: "recipient_quantity", label: "वितरण मात्रा" },
+  { key: "recipient_amount", label: "वितरित धनराशि" },
   { key: "bill_number", label: "बिल नंबर" },
   { key: "bill_date", label: "बिल तिथि" },
 ];
@@ -67,11 +67,11 @@ const nurseryPhysicalColumnMapping = {
     accessor: (item) => item.unit,
   },
   allocated_quantity: {
-    header: "आवंटित मात्रा",
+    header: "उपलब्ध मात्रा",
     accessor: (item) => parseFloat(item.allocated_quantity) || 0,
   },
   allocated_amount: {
-    header: "आवंटित राशि",
+    header: "धनराशि",
     accessor: (item) => parseFloat(item.allocated_amount) || 0,
   },
   created_at: {
@@ -91,11 +91,11 @@ const recipientColumnMapping = {
     accessor: (item) => item.recipient_name,
   },
   recipient_quantity: {
-    header: "प्राप्त मात्रा",
+    header: "वितरण मात्रा",
     accessor: (item) => parseFloat(item.recipient_quantity) || 0,
   },
   recipient_amount: {
-    header: "प्राप्त राशि",
+    header: "वितरित धनराशि",
     accessor: (item) => parseFloat(item.recipient_amount) || 0,
   },
   bill_number: {
@@ -118,11 +118,11 @@ const translations = {
   nurseryName: "नर्सरी का नाम",
   cropName: "फसल का नाम",
   unit: "इकाई",
-  allocatedQuantity: "आवंटित मात्रा",
-  allocatedAmount: "आवंटित राशि",
+  allocatedQuantity: "उपलब्ध मात्रा",
+  allocatedAmount: "धनराशि",
   recipientName: "प्राप्तकर्ता का नाम",
-  recipientQuantity: "प्राप्त मात्रा",
-  recipientAmount: "प्राप्त राशि",
+  recipientQuantity: "वितरण मात्रा",
+  recipientAmount: "वितरित धनराशि",
   billNumber: "बिल नंबर",
   billDate: "बिल तिथि",
   fromDate: "से तिथि",
@@ -145,7 +145,7 @@ const translations = {
   entries: "प्रविष्टियां",
   page: "पृष्ठ",
   itemsPerPage: "प्रति पृष्ठ आइटम",
-  manageRecipients: "प्राप्तकर्ता प्रबंधन",
+  manageRecipients: "प्राप्तकर्ता",
   addRecipient: "प्राप्तकर्ता जोड़ें",
   close: "बंद करें",
   save: "सहेजें",
@@ -849,8 +849,8 @@ const NurseryPhysicalEntry = () => {
           "नर्सरी का नाम": "राजकीय पौधशाला कुम्भीचौड़",
           "फसल का नाम": "आम",
           "इकाई": "संख्या",
-          "आवंटित मात्रा": "3000.00",
-          "आवंटित राशि": "3987.00",
+          "उपलब्ध मात्रा": "3000.00",
+          "धनराशि": "3987.00",
         },
       ];
 
@@ -861,8 +861,8 @@ const NurseryPhysicalEntry = () => {
         { wch: 25 }, // नर्सरी का नाम
         { wch: 20 }, // फसल का नाम
         { wch: 15 }, // इकाई
-        { wch: 15 }, // आवंटित मात्रा
-        { wch: 15 }, // आवंटित राशि
+        { wch: 15 }, // उपलब्ध मात्रा
+        { wch: 15 }, // धनराशि
       ];
       ws["!cols"] = colWidths;
 
@@ -1235,14 +1235,14 @@ const handleDeleteRecipient = async (item) => {
       errors.push(`Row ${rowIndex}: इकाई आवश्यक है`);
     }
     if (rowData.allocated_quantity === "" || rowData.allocated_quantity === null || rowData.allocated_quantity === undefined) {
-      errors.push(`Row ${rowIndex}: आवंटित मात्रा आवश्यक है`);
+      errors.push(`Row ${rowIndex}: उपलब्ध मात्रा आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.allocated_quantity))) {
-      errors.push(`Row ${rowIndex}: आवंटित मात्रा एक संख्या होनी चाहिए`);
+      errors.push(`Row ${rowIndex}: उपलब्ध मात्रा एक संख्या होनी चाहिए`);
     }
     if (rowData.allocated_amount === "" || rowData.allocated_amount === null || rowData.allocated_amount === undefined) {
-      errors.push(`Row ${rowIndex}: आवंटित राशि आवश्यक है`);
+      errors.push(`Row ${rowIndex}: धनराशि आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.allocated_amount))) {
-      errors.push(`Row ${rowIndex}: आवंटित राशि एक संख्या होनी चाहिए`);
+      errors.push(`Row ${rowIndex}: धनराशि एक संख्या होनी चाहिए`);
     }
     
     return errors;
@@ -1297,8 +1297,8 @@ const handleDeleteRecipient = async (item) => {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               crop_name: (row[headerMapping["फसल का नाम"]] || row[headerMapping["crop_name"]] || "").toString().trim(),
               unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
-              allocated_quantity: parseFloat(row[headerMapping["आवंटित मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
-              allocated_amount: parseFloat(row[headerMapping["आवंटित राशि"]] || row[headerMapping["allocated_amount"]] || 0),
+              allocated_quantity: parseFloat(row[headerMapping["उपलब्ध मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
+              allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               rowIndex: rowIndex + 2,
             };
           });
@@ -1429,16 +1429,56 @@ const handleDeleteRecipient = async (item) => {
   const handleRecipientChange = (e) => {
     const { name, value } = e.target;
     
-    setRecipientFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (recipientErrors[name]) {
-      setRecipientErrors({
-        ...recipientErrors,
-        [name]: null,
-      });
+    // Auto-calculate recipient_amount based on recipient_quantity if it's changed
+    if (name === 'recipient_quantity' && selectedNurseryPhysical) {
+      const quantity = parseFloat(value) || 0;
+      const allocatedQty = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+      const allocatedAmt = parseFloat(selectedNurseryPhysical.allocated_amount) || 0;
+      
+      // Calculate remaining quantity
+      const distributedQty = recipientItems
+        .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+        .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
+      const remainingQty = allocatedQty - distributedQty;
+      
+      // Prevent entering more than remaining quantity
+      if (quantity > remainingQty && value !== '') {
+        setRecipientErrors((prev) => ({
+          ...prev,
+          recipient_quantity: `केवल ${remainingQty.toFixed(2)} ${selectedNurseryPhysical.unit} उपलब्ध है। अधिक प्रविष्टि करना संभव नहीं है।`
+        }));
+        // Don't update the value if it exceeds remaining - show error instead
+        return;
+      } else {
+        setRecipientErrors((prev) => ({
+          ...prev,
+          recipient_quantity: null
+        }));
+      }
+      
+      // Calculate proportional amount
+      let calculatedAmount = 0;
+      if (allocatedQty > 0 && quantity > 0) {
+        calculatedAmount = (quantity / allocatedQty) * allocatedAmt;
+      }
+      
+      setRecipientFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        recipient_amount: calculatedAmount.toFixed(2),
+      }));
+    } else {
+      setRecipientFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+      
+      if (recipientErrors[name]) {
+        setRecipientErrors({
+          ...recipientErrors,
+          [name]: null,
+        });
+      }
     }
   };
 
@@ -1586,6 +1626,18 @@ const handleDeleteRecipient = async (item) => {
       newErrors.recipient_name = `${translations.recipientName} ${translations.required}`;
     if (!recipientFormData.recipient_quantity.trim())
       newErrors.recipient_quantity = `${translations.recipientQuantity} ${translations.required}`;
+    else if (selectedNurseryPhysical) {
+      const enteredQty = parseFloat(recipientFormData.recipient_quantity) || 0;
+      const allocatedQty = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+      const distributedQty = recipientItems
+        .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+        .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
+      const remainingQty = allocatedQty - distributedQty;
+      
+      if (enteredQty > remainingQty) {
+        newErrors.recipient_quantity = `उपलब्ध मात्रा से अधिक नहीं हो सकता। शेष उपलब्ध: ${remainingQty.toFixed(2)} ${selectedNurseryPhysical.unit}`;
+      }
+    }
     if (!recipientFormData.recipient_amount.trim())
       newErrors.recipient_amount = `${translations.recipientAmount} ${translations.required}`;
     if (!recipientFormData.bill_number.trim())
@@ -1833,9 +1885,9 @@ const handleDeleteRecipient = async (item) => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, फसल का नाम, इकाई, आवंटित मात्रा, आवंटित राशि
+                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, फसल का नाम, इकाई, उपलब्ध मात्रा, धनराशि
                   </li>
-                  <li>आवंटित मात्रा और आवंटित राशि संख्यात्मक होनी चाहिए</li>
+                  <li>उपलब्ध मात्रा और धनराशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
                 </ul>
               </Alert>
@@ -2038,7 +2090,7 @@ const handleDeleteRecipient = async (item) => {
                         onChange={handleChange}
                         isInvalid={!!errors.allocated_quantity}
                         className="compact-input"
-                        placeholder="आवंटित मात्रा दर्ज करें"
+                        placeholder="उपलब्ध मात्रा दर्ज करें"
                       />
                       <Form.Control.Feedback type="invalid">
                         {errors.allocated_quantity}
@@ -2058,7 +2110,7 @@ const handleDeleteRecipient = async (item) => {
                         onChange={handleChange}
                         isInvalid={!!errors.allocated_amount}
                         className="compact-input"
-                        placeholder="आवंटित राशि दर्ज करें"
+                        placeholder="धनराशि दर्ज करें"
                       />
                       <Form.Control.Feedback type="invalid">
                         {errors.allocated_amount}
@@ -2749,6 +2801,58 @@ const handleDeleteRecipient = async (item) => {
         </Alert>
       )}
 
+      {/* Allocated Allocation Info at Top */}
+      {selectedNurseryPhysical && (
+        <div className="alert alert-info mb-4" style={{ backgroundColor: '#e7f3ff', borderLeft: '4px solid #2196F3' }}>
+          <Row className="align-items-center">
+            <Col md={6}>
+              <h6 className="mb-2 small-fonts fw-bold">📊 आवंटित जानकारी</h6>
+              <div className="small-fonts">
+                <p className="mb-1">
+                  <strong>फसल:</strong> {selectedNurseryPhysical.crop_name} ({selectedNurseryPhysical.unit})
+                </p>
+                <p className="mb-1">
+                  <strong>कुल उपलब्ध मात्रा:</strong> <span className="badge bg-primary">{parseFloat(selectedNurseryPhysical.allocated_quantity).toFixed(2)}</span>
+                </p>
+                <p className="mb-0">
+                  <strong>कुल धनराशि:</strong> <span className="badge bg-success">₹{parseFloat(selectedNurseryPhysical.allocated_amount).toFixed(2)}</span>
+                </p>
+              </div>
+            </Col>
+            <Col md={6}>
+              <h6 className="mb-2 small-fonts fw-bold">📈 वितरण स्थिति</h6>
+              <div className="small-fonts">
+                <p className="mb-1">
+                  <strong>अब तक वितरित:</strong> <span className="badge bg-warning text-dark">{(() => {
+                    const distributed = recipientItems
+                      .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+                      .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
+                    return parseFloat(distributed).toFixed(2);
+                  })()}</span>
+                </p>
+                <p className="mb-1">
+                  <strong>शेष उपलब्ध:</strong> <span className="badge bg-danger">{(() => {
+                    const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+                    const distributed = recipientItems
+                      .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+                      .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
+                    const remaining = allocated - distributed;
+                    return (remaining >= 0 ? remaining : 0).toFixed(2);
+                  })()}</span>
+                </p>
+                <p className="mb-0">
+                  <strong>प्रति इकाई दर:</strong> <span className="badge bg-info">₹{(() => {
+                    const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+                    const amount = parseFloat(selectedNurseryPhysical.allocated_amount) || 0;
+                    return allocated > 0 ? (amount / allocated).toFixed(2) : '0.00';
+                  })()}</span>
+                </p>
+              </div>
+            </Col>
+          </Row>
+        </div>
+      )}
+
       {/* Recipient Form */}
       <Form
         onSubmit={handleRecipientSubmit}
@@ -2786,6 +2890,16 @@ const handleDeleteRecipient = async (item) => {
             <Form.Group className="mb-2" controlId="recipient_quantity">
               <Form.Label className="small-fonts fw-bold">
                 {translations.recipientQuantity}
+                {selectedNurseryPhysical && (
+                  <span className="ms-2 badge bg-info small">अधिकतम: {(() => {
+                    const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+                    const distributed = recipientItems
+                      .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+                      .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
+                    const remaining = allocated - distributed;
+                    return (remaining >= 0 ? remaining : 0).toFixed(2);
+                  })()}</span>
+                )}
               </Form.Label>
               <Form.Control
                 type="number"
@@ -2795,7 +2909,14 @@ const handleDeleteRecipient = async (item) => {
                 onChange={handleRecipientChange}
                 isInvalid={!!recipientErrors.recipient_quantity}
                 className="compact-input"
-                placeholder="प्राप्त मात्रा दर्ज करें"
+                placeholder="वितरण मात्रा दर्ज करें"
+                max={selectedNurseryPhysical ? (() => {
+                  const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+                  const distributed = recipientItems
+                    .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+                    .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
+                  return allocated - distributed;
+                })() : undefined}
               />
               <Form.Control.Feedback type="invalid">
                 {recipientErrors.recipient_quantity}
@@ -2815,7 +2936,7 @@ const handleDeleteRecipient = async (item) => {
                 onChange={handleRecipientChange}
                 isInvalid={!!recipientErrors.recipient_amount}
                 className="compact-input"
-                placeholder="प्राप्त राशि दर्ज करें"
+                placeholder="वितरित धनराशि दर्ज करें"
               />
               <Form.Control.Feedback type="invalid">
                 {recipientErrors.recipient_amount}

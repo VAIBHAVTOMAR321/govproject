@@ -104,6 +104,30 @@ const columnDefs = {
   total_amount: { label: "कुल राशि", key: "total_amount" },
 };
 
+// Helper function to calculate financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  
+  let fromDate, toDate;
+  
+  // If current month is April (3) or later, FY is current year April to next year March
+  // If current month is before April (Jan-Mar), FY is previous year April to current year March
+  if (currentMonth >= 3) {
+    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
+    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
+  } else {
+    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
+    toDate = new Date(currentYear, 2, 31); // March 31 of current year
+  }
+  
+  return {
+    start: fromDate.toISOString().split('T')[0],
+    end: toDate.toISOString().split('T')[0],
+  };
+};
+
 // Reusable Column Filter Component
 const ColumnFilter = ({
   tableId,
@@ -1837,6 +1861,21 @@ const MainDashboard = () => {
 
         const data = await response.json();
 
+        // Get financial year dates
+        const { start, end } = getFinancialYearDates();
+        setDateFilter({ start, end });
+        setIsDateFilterApplied(true);
+
+        // Filter data by financial year
+        const financialYearFiltered = data.filter(item => {
+          if (!item.bill_date) return false;
+          const itemDate = new Date(item.bill_date);
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          endDate.setHours(23, 59, 59, 999);
+          return itemDate >= startDate && itemDate <= endDate;
+        });
+
         // Extract unique values for each filter field
         const uniqueOptions = {
           center_name: [
@@ -1874,7 +1913,7 @@ const MainDashboard = () => {
         };
 
         setTableData(data);
-        setFilteredTableData(data);
+        setFilteredTableData(financialYearFiltered);
         setFilterOptions((prev) => ({
           ...prev,
           ...uniqueOptions,
@@ -1894,6 +1933,7 @@ const MainDashboard = () => {
 
   // Clear all filters
   const clearFilters = () => {
+    const { start, end } = getFinancialYearDates();
     const clearedFilters = {
       center_name: [],
       sub_investment_name: [],
@@ -1905,6 +1945,8 @@ const MainDashboard = () => {
       unit: [], // Keep for filtering but not display
     };
     setFilters(clearedFilters);
+    setDateFilter({ start, end });
+    setIsDateFilterApplied(true);
     setCurrentPage(1);
     setIsFilterApplied(false);
     setView("main");
@@ -1915,8 +1957,16 @@ const MainDashboard = () => {
     setMainSummaryExpandedColumns({});
     setNavigationHistory([]);
 
-    // Refresh table with all data
-    setFilteredTableData(tableData);
+    // Refresh table with financial year data
+    const financialYearFiltered = tableData.filter(item => {
+      if (!item.bill_date) return false;
+      const itemDate = new Date(item.bill_date);
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      endDate.setHours(23, 59, 59, 999);
+      return itemDate >= startDate && itemDate <= endDate;
+    });
+    setFilteredTableData(financialYearFiltered);
     // Ensure the summary heading updates immediately
     checkIfTopFiltersApplied();
   };

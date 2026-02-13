@@ -666,11 +666,7 @@ const NurseryFinancialEntry = () => {
     } else if (isNaN(parseFloat(rowData.allocated_amount))) {
       errors.push(`Row ${rowIndex}: धनराशि एक संख्या होनी चाहिए`);
     }
-    if (rowData.spent_amount === "" || rowData.spent_amount === null || rowData.spent_amount === undefined) {
-      errors.push(`Row ${rowIndex}: व्यय राशि आवश्यक है`);
-    } else if (isNaN(parseFloat(rowData.spent_amount))) {
-      errors.push(`Row ${rowIndex}: व्यय राशि एक संख्या होनी चाहिए`);
-    }
+    // spent_amount is optional - field is commented out in form
     if (!rowData.registration_date || !rowData.registration_date.toString().trim()) {
       errors.push(`Row ${rowIndex}: पंजीकरण तिथि आवश्यक है`);
     }
@@ -892,7 +888,11 @@ const NurseryFinancialEntry = () => {
         registration_date: new Date().toISOString().split('T')[0],
       });
 
-      setAllNurseryFinancialItems((prev) => [payload, ...prev]);
+      // Refresh table with latest data from API
+      await fetchNurseryFinancialItems();
+      
+      // Reset to first page to show new entry
+      setCurrentPage(1);
     } catch (error) {
       let errorMessage = translations.genericError;
       if (error.response) {
@@ -923,8 +923,7 @@ const NurseryFinancialEntry = () => {
       newErrors.standard_item = `${translations.standardItem} ${translations.required}`;
     if (!formData.allocated_amount.trim())
       newErrors.allocated_amount = `${translations.allocatedAmount} ${translations.required}`;
-    if (!formData.spent_amount.trim())
-      newErrors.spent_amount = `${translations.spentAmount} ${translations.required}`;
+    // spent_amount is commented out in form, so validation is not required
     if (!formData.registration_date.trim())
       newErrors.registration_date = `${translations.registrationDate} ${translations.required}`;
     return newErrors;
@@ -1286,7 +1285,7 @@ const NurseryFinancialEntry = () => {
                       </Form.Control.Feedback>
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={4}>
+                  {/* <Col xs={12} sm={6} md={4}>
                     <Form.Group className="mb-2" controlId="spent_amount">
                       <Form.Label className="small-fonts fw-bold">
                         {translations.spentAmount}
@@ -1305,7 +1304,7 @@ const NurseryFinancialEntry = () => {
                         {errors.spent_amount}
                       </Form.Control.Feedback>
                     </Form.Group>
-                  </Col>
+                  </Col> */}
                   <Col xs={12} sm={6} md={4} className="d-flex align-items-center">
                     <Button
                       variant="primary"

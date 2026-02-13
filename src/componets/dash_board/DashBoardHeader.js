@@ -51,7 +51,7 @@ function DashBoardHeader() {
                 केंद्रवार एंट्री
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/KrishiRegistration" active={location.pathname === '/KrishiRegistration'}>
-                कृषि डेटा एंट्री
+                कृषक डेटा एंट्री
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/NurseryFinancialEntry" active={location.pathname === '/NurseryFinancialEntry'}>
                 नर्सरी वित्तीय प्रविष्टि
