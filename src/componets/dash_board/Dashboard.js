@@ -2191,58 +2191,6 @@ const Dashboard = () => {
                         </Col>
                       </Row>
                     </div>
-
-                    <hr className="filter-divider-sm" />
-
-                    {/* Scheme and Investment Filters */}
-                    <Row>
-                      <Col md={6} className="mb-2">
-                        <label className="filter-label-sm">
-                          {translations.filterByScheme}
-                        </label>
-                        <Select
-                          isMulti
-                          options={schemeOptions}
-                          value={selectedSchemes}
-                          onChange={handleSchemeChange}
-                          placeholder={translations.selectPlaceholder}
-                          noOptionsMessage={() => translations.noOptions}
-                          styles={customSelectStyles}
-                          closeMenuOnSelect={false}
-                          isClearable
-                          menuPortalTarget={document.body}
-                          menuPosition="fixed"
-                        />
-                      </Col>
-                      
-                      <Col md={6} className="mb-2">
-                        <label className="filter-label-sm">
-                          {translations.filterByInvestment}
-                        </label>
-                        <Select
-                          isMulti
-                          options={investmentOptions}
-                          value={selectedInvestments}
-                          onChange={handleInvestmentChange}
-                          placeholder={translations.selectPlaceholder}
-                          noOptionsMessage={() => translations.noOptions}
-                          styles={customSelectStyles}
-                          closeMenuOnSelect={false}
-                          isClearable
-                          menuPortalTarget={document.body}
-                          menuPosition="fixed"
-                        />
-                      </Col>
-                    </Row>
-                    
-                    {/* Selected Filters Display */}
-                    {(selectedSchemes.length > 0 || selectedInvestments.length > 0) && (
-                      <div className="selected-filters-display mt-2">
-                        <small className="text-muted" style={{fontSize: '0.75rem'}}>
-                          चयनित: {selectedSchemes.length} योजना, {selectedInvestments.length} उपनिवेश
-                        </small>
-                      </div>
-                    )}
                   </Card.Body>
                 </Card>
 
@@ -2380,6 +2328,61 @@ const Dashboard = () => {
                       </h4>
                       <p className=" small mb-0">चयनित फ़िल्टर के आधार पर डेटा प्रदर्शित</p>
                     </div>
+
+                    {/* Scheme and Investment Filters - Moved from top */}
+                    <Card className="filter-card mb-3">
+                      <Card.Body>
+                        <Row>
+                          <Col md={6} className="mb-2">
+                            <label className="filter-label-sm">
+                              {translations.filterByScheme}
+                            </label>
+                            <Select
+                              isMulti
+                              options={schemeOptions}
+                              value={selectedSchemes}
+                              onChange={handleSchemeChange}
+                              placeholder={translations.selectPlaceholder}
+                              noOptionsMessage={() => translations.noOptions}
+                              styles={customSelectStyles}
+                              closeMenuOnSelect={false}
+                              isClearable
+                              menuPortalTarget={document.body}
+                              menuPosition="fixed"
+                            />
+                          </Col>
+                          
+                          <Col md={6} className="mb-2">
+                            <label className="filter-label-sm">
+                              {translations.filterByInvestment}
+                            </label>
+                            <Select
+                              isMulti
+                              options={investmentOptions}
+                              value={selectedInvestments}
+                              onChange={handleInvestmentChange}
+                              placeholder={translations.selectPlaceholder}
+                              noOptionsMessage={() => translations.noOptions}
+                              styles={customSelectStyles}
+                              closeMenuOnSelect={false}
+                              isClearable
+                              menuPortalTarget={document.body}
+                              menuPosition="fixed"
+                            />
+                          </Col>
+                        </Row>
+                        
+                        {/* Selected Filters Display */}
+                        {(selectedSchemes.length > 0 || selectedInvestments.length > 0) && (
+                          <div className="selected-filters-display mt-2">
+                            <small className="text-muted" style={{fontSize: '0.75rem'}}>
+                              चयनित: {selectedSchemes.length} योजना, {selectedInvestments.length} उपनिवेश
+                            </small>
+                          </div>
+                        )}
+                      </Card.Body>
+                    </Card>
+
                     {/* राशि filter dropdown */}
                     <Card className="mb-3" style={{ border: '2px solid #194e8b', backgroundColor: '#f8f9fa' }}>
                       <Card.Body className="py-2">
