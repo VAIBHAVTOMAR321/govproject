@@ -998,8 +998,6 @@ const KrishiRegistration = () => {
       const sampleData = [
         {
           "केंद्र का नाम": "कोटद्वार",
-          "विधानसभा का नाम": "कोटद्वार",
-          "विकास खंड का नाम": "कोटद्वार",
           "योजना का नाम": "MGNREGA",
           "इकाई": "नग",
           "आपूर्ति की गई वस्तु का नाम": "बीज",
@@ -1014,7 +1012,6 @@ const KrishiRegistration = () => {
           "मात्रा": 50,
           "दर": 25,
           "राशि": 1250,
-          "पंजीकरण तिथि": today,
         },
       ];
 
@@ -1024,8 +1021,6 @@ const KrishiRegistration = () => {
       // Set column widths based on the new column order
       const colWidths = [
         { wch: 20 }, // केंद्र का नाम
-        { wch: 20 }, // विधानसभा का नाम
-        { wch: 20 }, // विकास खंड का नाम
         { wch: 20 }, // योजना का नाम
         { wch: 10 }, // इकाई
         { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
@@ -1040,7 +1035,6 @@ const KrishiRegistration = () => {
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
-        { wch: 15 }, // पंजीकरण तिथि
       ];
       ws["!cols"] = colWidths;
 
@@ -1566,14 +1560,12 @@ const handleDelete = async (item) => {
           };
 
           // Parse data using header mapping - Updated to match the new column order
+          const today = new Date().toISOString().slice(0, 10);
           const payloads = dataRows.map((row) => {
-            const rawBeneficiaryDate = getCell(row, ["पंजीकरण तिथि", "beneficiary_reg_date", "registration_date"]);
-            const beneficiaryDate = parseExcelDate(rawBeneficiaryDate);
-
             return {
               center_name: getCell(row, ["केंद्र का नाम", "center_name"]) || "",
-              vidhan_sabha_name: getCell(row, ["विधानसभा का नाम", "vidhan_sabha_name"]) || "",
-              vikas_khand_name: getCell(row, ["विकास खंड का नाम", "vikas_khand_name"]) || "",
+              vidhan_sabha_name: "",
+              vikas_khand_name: "",
               scheme_name: getCell(row, ["योजना का नाम", "scheme_name"]) || "",
               unit: getCell(row, ["इकाई", "unit"]) || "",
               supplied_item_name: getCell(row, ["आपूर्ति की गई वस्तु का नाम", "supplied_item_name"]) || "",
@@ -1588,7 +1580,7 @@ const handleDelete = async (item) => {
               quantity: parseInt(getCell(row, ["मात्रा", "quantity"]) || 0),
               rate: parseFloat(getCell(row, ["दर", "rate"]) || 0),
               amount: parseFloat(getCell(row, ["राशि", "amount"]) || 0),
-              beneficiary_reg_date: beneficiaryDate || "",
+              beneficiary_reg_date: today,
             };
           });
 
@@ -1810,6 +1802,8 @@ const handleDelete = async (item) => {
 
     try {
       // Prepare payload to match API requirements
+      // Use today's date if beneficiary_reg_date is empty
+      const today = new Date().toISOString().slice(0, 10);
       const payload = {
         farmer_name: formData.farmer_name,
         father_name: formData.father_name,
@@ -1819,8 +1813,8 @@ const handleDelete = async (item) => {
         unit: formData.unit,
         quantity: parseInt(formData.quantity),
         rate: parseFloat(formData.rate),
-          amount: parseFloat(formData.amount),
-          beneficiary_reg_date: formData.beneficiary_reg_date,
+        amount: parseFloat(formData.amount),
+        beneficiary_reg_date: formData.beneficiary_reg_date || today,
         aadhaar_number: formData.aadhaar_number,
         bank_account_number: formData.bank_account_number,
         ifsc_code: formData.ifsc_code,
@@ -1861,6 +1855,10 @@ const handleDelete = async (item) => {
         vidhan_sabha_name: "",
         beneficiary_reg_date: "",
       });
+
+      // Clear errors and API states
+      setErrors({});
+      setApiError(null);
 
       // Clear vikas khand data and other mode
       setVikasKhandData(null);
@@ -1931,41 +1929,44 @@ const handleDelete = async (item) => {
   // Form validation
   const validateForm = () => {
     const newErrors = {};
+    // Helper to check if value is valid (not empty, null, undefined)
+    const isValid = (value) => value && String(value).trim();
+    
     // For single form entry, require essential fields
-    if (!formData.center_name.trim())
+    if (!isValid(formData.center_name))
       newErrors.center_name = `${translations.centerName} ${translations.required}`;
-    if (!formData.supplied_item_name.trim())
+    if (!isValid(formData.supplied_item_name))
       newErrors.supplied_item_name = `${translations.suppliedItemName} ${translations.required}`;
-    if (!formData.unit.trim())
+    if (!isValid(formData.unit))
       newErrors.unit = `${translations.unit} ${translations.required}`;
-    if (!formData.quantity.trim())
+    if (!isValid(formData.quantity))
       newErrors.quantity = `${translations.quantity} ${translations.required}`;
-    if (!formData.rate.trim())
+    if (!isValid(formData.rate))
       newErrors.rate = `${translations.rate} ${translations.required}`;
-    if (!formData.amount.trim())
+    if (!isValid(formData.amount))
       newErrors.amount = `${translations.amount} ${translations.required}`;
-    if (!formData.category.trim())
+    if (!isValid(formData.category))
       newErrors.category = `${translations.category} ${translations.required}`;
-    if (!formData.scheme_name.trim())
+    if (!isValid(formData.scheme_name))
       newErrors.scheme_name = `${translations.schemeName} ${translations.required}`;
     // Optional fields for single entry (but still validate if provided)
-    if (formData.farmer_name && !formData.farmer_name.trim())
+    if (formData.farmer_name && !isValid(formData.farmer_name))
       newErrors.farmer_name = `${translations.farmerName} ${translations.required}`;
-    if (formData.father_name && !formData.father_name.trim())
+    if (formData.father_name && !isValid(formData.father_name))
       newErrors.father_name = `${translations.fatherName} ${translations.required}`;
-    if (formData.address && !formData.address.trim())
+    if (formData.address && !isValid(formData.address))
       newErrors.address = `${translations.address} ${translations.required}`;
-    if (formData.aadhaar_number && !formData.aadhaar_number.trim())
+    if (formData.aadhaar_number && !isValid(formData.aadhaar_number))
       newErrors.aadhaar_number = `${translations.aadhaarNumber} ${translations.required}`;
-    if (formData.bank_account_number && !formData.bank_account_number.trim())
+    if (formData.bank_account_number && !isValid(formData.bank_account_number))
       newErrors.bank_account_number = `${translations.bankAccountNumber} ${translations.required}`;
-    if (formData.ifsc_code && !formData.ifsc_code.trim())
+    if (formData.ifsc_code && !isValid(formData.ifsc_code))
       newErrors.ifsc_code = `${translations.ifscCode} ${translations.required}`;
-    if (formData.mobile_number && !formData.mobile_number.trim())
+    if (formData.mobile_number && !isValid(formData.mobile_number))
       newErrors.mobile_number = `${translations.mobileNumber} ${translations.required}`;
-    if (!formData.vikas_khand_name.trim())
+    if (!isValid(formData.vikas_khand_name))
       newErrors.vikas_khand_name = `${translations.vikasKhandName} ${translations.required}`;
-    if (!formData.vidhan_sabha_name.trim())
+    if (!isValid(formData.vidhan_sabha_name))
       newErrors.vidhan_sabha_name = `${translations.vidhanSabhaName} ${translations.required}`;
     return newErrors;
   };
@@ -2045,7 +2046,7 @@ const handleDelete = async (item) => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    अनिवार्य फ़ील्ड: केंद्र का नाम, विधानसभा का नाम, विकास खंड का नाम, योजना का नाम, 
+                    अनिवार्य फ़ील्ड: केंद्र का नाम, योजना का नाम, 
                     आपूर्ति की गई वस्तु का नाम, किसान का नाम, पिता का नाम, श्रेणी, पता, मोबाइल नंबर, 
                     आधार नंबर, बैंक खाता नंबर, IFSC कोड, इकाई, मात्रा, दर, राशि
                   </li>
