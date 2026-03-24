@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import html2pdf from "html2pdf.js";
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 import Select from "react-select";
+import { convertToDisplayFormat } from "../utils/dateUtils";
 
 // API URL
 const BENEFICIARIES_API_URL =
@@ -84,7 +85,7 @@ const beneficiariesTableColumnMapping = {
   amount: { header: "राशि", accessor: (item) => item.amount },
   beneficiary_reg_date: {
     header: "पंजीकरण तिथि",
-    accessor: (item) => item.beneficiary_reg_date || "",
+    accessor: (item) => convertToDisplayFormat(item.beneficiary_reg_date) || "",
   },
 };
 

@@ -23,6 +23,7 @@ import "../../assets/css/registration.css";
 
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
+import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, getTodayInDisplayFormat, getTodayInBackendFormat } from "../../utils/dateUtils";
 
 // API URLs
 const BILLING_API_URL =
@@ -948,7 +949,7 @@ const Registration = () => {
           "किसान का हिस्सा": 10000,
           "सब्सिडी राशि": 20000,
           "कुल राशि": 30000,
-          "पंजीकरण तिथि": new Date().toISOString().slice(0,10),
+          "पंजीकरण तिथि": getTodayInDisplayFormat(),
         },
       ];
 
@@ -1138,7 +1139,7 @@ const Registration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
-      bill_date: item.bill_date || "",
+      bill_date: convertToDisplayFormat(item.bill_date) || getTodayInDisplayFormat(),
       amount_of_farmer_share: item.amount_of_farmer_share || "",
       amount_of_subsidy: item.amount_of_subsidy || "",
       total_amount: item.total_amount || "",
@@ -1412,7 +1413,7 @@ const Registration = () => {
           // Parse all rows with proper data type handling
           const parsedRows = dataRows.map((row, rowIndex) => {
             const billDateRaw = row[billDateIndex] || "";
-            const billDateISO = convertExcelDateToISO(billDateRaw);
+            const billDateISO = parseDateFromExcel(billDateRaw);
             
             return {
               center_name: (row[headerMapping["केंद्र का नाम"]] || row[headerMapping["center_name"]] || "").toString().trim(),
@@ -1564,10 +1565,14 @@ const Registration = () => {
               message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
             });
             console.log(`[BULK UPLOAD] Completed successfully: ${successCount} records uploaded`);
+            // Refresh data and filter options after successful upload
+            fetchBillingItems();
           } else if (successCount > 0 && totalErrors > 0) {
             const errorMsg = `⚠️ आंशिक अपलोड: ${successCount} सफल, ${totalErrors} विफल।\n\nविफल रिकॉर्ड:\n${allErrors.slice(0, 10).join("\n")}${totalErrors > 10 ? `\n... और ${totalErrors - 10} अन्य त्रुटियां` : ""}`;
             setApiError(errorMsg);
             console.log(`[BULK UPLOAD] Partial success: ${successCount} uploaded, ${totalErrors} failed`);
+            // Refresh data and filter options after partial upload
+            fetchBillingItems();
           } else if (totalErrors > 0) {
             const errorMsg = `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।\n\nत्रुटियां:\n${allErrors.slice(0, 10).join("\n")}${totalErrors > 10 ? `\n... और ${totalErrors - 10} अन्य त्रुटियां` : ""}`;
             setApiError(errorMsg);
@@ -1701,7 +1706,7 @@ const Registration = () => {
         amount_of_farmer_share: parseFloat(formData.amount_of_farmer_share),
         amount_of_subsidy: parseFloat(formData.amount_of_subsidy),
         total_amount: parseFloat(formData.total_amount),
-        bill_date: formData.bill_date || "",
+        bill_date: convertToBackendFormat(formData.bill_date) || "",
       };
 
       const response = await axios.post(BILLING_API_URL, payload);
@@ -1726,7 +1731,7 @@ const Registration = () => {
         amount_of_farmer_share: "",
         amount_of_subsidy: "",
         total_amount: "",
-        bill_date: "",
+        bill_date: getTodayInDisplayFormat(),
       });
 
       setVikasKhandData(null);

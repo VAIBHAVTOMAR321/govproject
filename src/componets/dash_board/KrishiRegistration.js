@@ -21,6 +21,7 @@ import "../../assets/css/registration.css";
 
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
+import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, getTodayInDisplayFormat, getTodayInBackendFormat } from "../../utils/dateUtils";
 
 // API URLs
 const BENEFICIARIES_API_URL =
@@ -134,7 +135,7 @@ const beneficiariesTableColumnMapping = {
   amount: { header: "राशि", accessor: (item) => item.amount },
   beneficiary_reg_date: {
     header: "पंजीकरण तिथि",
-    accessor: (item) => item.beneficiary_reg_date || "",
+    accessor: (item) => convertToDisplayFormat(item.beneficiary_reg_date) || "",
   },
 };
 
@@ -296,7 +297,7 @@ const KrishiRegistration = () => {
     scheme_name: "",
     vikas_khand_name: "",
     vidhan_sabha_name: "",
-    beneficiary_reg_date: "",
+    beneficiary_reg_date: getTodayInDisplayFormat(),
   });
 
   const [errors, setErrors] = useState({});
@@ -994,7 +995,7 @@ const KrishiRegistration = () => {
   // Download sample Excel template - Updated to match the new column order
   const downloadSampleTemplate = () => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getTodayInDisplayFormat();
       const sampleData = [
         {
           "केंद्र का नाम": "कोटद्वार",
@@ -1012,6 +1013,7 @@ const KrishiRegistration = () => {
           "मात्रा": 50,
           "दर": 25,
           "राशि": 1250,
+          "पंजीकरण तिथि": today,
         },
       ];
 
@@ -1035,6 +1037,7 @@ const KrishiRegistration = () => {
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
+        { wch: 15 }, // पंजीकरण तिथि
       ];
       ws["!cols"] = colWidths;
 
@@ -1214,7 +1217,7 @@ const KrishiRegistration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
-      beneficiary_reg_date: item.beneficiary_reg_date || "",
+      beneficiary_reg_date: convertToDisplayFormat(item.beneficiary_reg_date) || getTodayInDisplayFormat(),
     });
 
     // Fetch vikas khand data for this center if available
@@ -1560,7 +1563,7 @@ const handleDelete = async (item) => {
           };
 
           // Parse data using header mapping - Updated to match the new column order
-          const today = new Date().toISOString().slice(0, 10);
+          const today = getTodayInBackendFormat();
           const payloads = dataRows.map((row) => {
             return {
               center_name: getCell(row, ["केंद्र का नाम", "center_name"]) || "",
@@ -1580,7 +1583,7 @@ const handleDelete = async (item) => {
               quantity: parseInt(getCell(row, ["मात्रा", "quantity"]) || 0),
               rate: parseFloat(getCell(row, ["दर", "rate"]) || 0),
               amount: parseFloat(getCell(row, ["राशि", "amount"]) || 0),
-              beneficiary_reg_date: today,
+              beneficiary_reg_date: parseDateFromExcel(getCell(row, ["पंजीकरण तिथि", "beneficiary_reg_date"]) || today),
             };
           });
 
@@ -1803,7 +1806,7 @@ const handleDelete = async (item) => {
     try {
       // Prepare payload to match API requirements
       // Use today's date if beneficiary_reg_date is empty
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getTodayInBackendFormat();
       const payload = {
         farmer_name: formData.farmer_name,
         father_name: formData.father_name,
@@ -1814,7 +1817,7 @@ const handleDelete = async (item) => {
         quantity: parseInt(formData.quantity),
         rate: parseFloat(formData.rate),
         amount: parseFloat(formData.amount),
-        beneficiary_reg_date: formData.beneficiary_reg_date || today,
+        beneficiary_reg_date: convertToBackendFormat(formData.beneficiary_reg_date) || today,
         aadhaar_number: formData.aadhaar_number,
         bank_account_number: formData.bank_account_number,
         ifsc_code: formData.ifsc_code,
@@ -3530,7 +3533,7 @@ const handleDelete = async (item) => {
                                       size="sm"
                                     />
                                   ) : (
-                                    item.beneficiary_reg_date || ""
+                                    convertToDisplayFormat(item.beneficiary_reg_date) || ""
                                   )}
                                 </td>
                               )}

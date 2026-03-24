@@ -21,6 +21,7 @@ import "../../assets/css/registration.css";
 import { useAuth } from "../../context/AuthContext";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
+import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, getTodayInDisplayFormat, getTodayInBackendFormat, formatDateForExcel } from "../../utils/dateUtils";
 
 // API URL
 const NURSERY_FINANCIAL_API_URL =
@@ -63,8 +64,7 @@ const nurseryFinancialColumnMapping = {
     header: "पंजीकरण तिथि",
     accessor: (item) => {
       if (!item.registration_date) return "";
-      const date = new Date(item.registration_date);
-      return date.toLocaleDateString("hi-IN");
+      return convertToDisplayFormat(item.registration_date);
     },
   },
 };
@@ -205,7 +205,7 @@ const NurseryFinancialEntry = () => {
     allocated_amount: "",
     spent_amount: "",
     description: "",
-    registration_date: new Date().toISOString().split('T')[0],
+    registration_date: getTodayInDisplayFormat(),
   });
 
   const [errors, setErrors] = useState({});
@@ -425,7 +425,7 @@ const NurseryFinancialEntry = () => {
           "धनराशि": "5000.00",
           "व्यय राशि": "1000.00",
           "विवरण": "note typing detail",
-          "पंजीकरण तिथि": new Date().toISOString().split('T')[0],
+          "पंजीकरण तिथि": getTodayInDisplayFormat(),
         },
       ];
 
@@ -593,7 +593,7 @@ const NurseryFinancialEntry = () => {
       allocated_amount: item.allocated_amount || "",
       spent_amount: item.spent_amount || "",
       description: item.description || "",
-      registration_date: item.registration_date || new Date().toISOString().split('T')[0],
+      registration_date: convertToDisplayFormat(item.registration_date) || getTodayInDisplayFormat(),
     });
     setApiError(null);
     setApiResponse(null);
@@ -725,7 +725,7 @@ const NurseryFinancialEntry = () => {
               allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               spent_amount: parseFloat(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
               description: (row[headerMapping["विवरण"]] || row[headerMapping["description"]] || "").toString().trim(),
-              registration_date: row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || new Date().toISOString().split('T')[0],
+              registration_date: parseDateFromExcel(row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || getTodayInBackendFormat()),
               rowIndex: rowIndex + 2,
             };
           });
@@ -868,7 +868,7 @@ const NurseryFinancialEntry = () => {
         allocated_amount: parseFloat(formData.allocated_amount),
         spent_amount: parseFloat(formData.spent_amount),
         description: formData.description || "",
-        registration_date: formData.registration_date,
+        registration_date: convertToBackendFormat(formData.registration_date),
       };
 
       const response = await axios.post(NURSERY_FINANCIAL_API_URL, payload);
@@ -885,7 +885,7 @@ const NurseryFinancialEntry = () => {
         allocated_amount: "",
         spent_amount: "",
         description: "",
-        registration_date: new Date().toISOString().split('T')[0],
+        registration_date: getTodayInDisplayFormat(),
       });
 
       // Refresh table with latest data from API
