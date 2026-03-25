@@ -660,7 +660,7 @@ const NurseryFinancialEntry = () => {
   // Validate a single row of data (for bulk upload)
   const validateRow = (rowData, rowIndex) => {
     const errors = [];
-    
+
     if (!rowData.nursery_name || !rowData.nursery_name.toString().trim()) {
       errors.push(`Row ${rowIndex}: नर्सरी का नाम आवश्यक है`);
     }
@@ -676,7 +676,10 @@ const NurseryFinancialEntry = () => {
     if (!rowData.registration_date || !rowData.registration_date.toString().trim()) {
       errors.push(`Row ${rowIndex}: पंजीकरण तिथि आवश्यक है`);
     }
-    
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(rowData.original_registration_date || '')) {
+      errors.push(`Row ${rowIndex}: पंजीकरण तिथि DD/MM/YYYY फॉर्मेट में होनी चाहिए`);
+    }
+
     return errors;
   };
 
@@ -736,13 +739,37 @@ const NurseryFinancialEntry = () => {
           const emptyRowIndices = [];
           
           dataRows.forEach((row, rowIndex) => {
+            const originalVal = row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || "";
+            let displayDate = "";
+            if (originalVal instanceof Date && !isNaN(originalVal.getTime())) {
+              const day = String(originalVal.getDate()).padStart(2, '0');
+              const month = String(originalVal.getMonth() + 1).padStart(2, '0');
+              const year = originalVal.getFullYear();
+              displayDate = `${day}/${month}/${year}`;
+            } else if (typeof originalVal === 'number' && originalVal > 0) {
+              // Excel serial date
+              const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+              const ms = Math.round(originalVal * 24 * 60 * 60 * 1000);
+              const date = new Date(excelEpoch.getTime() + ms);
+              if (!isNaN(date.getTime())) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                displayDate = `${day}/${month}/${year}`;
+              } else {
+                displayDate = String(originalVal);
+              }
+            } else {
+              displayDate = String(originalVal).trim();
+            }
             const parsedRow = {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               standard_item: (row[headerMapping["मानक आइटम"]] || row[headerMapping["standard_item"]] || "").toString().trim(),
               allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               spent_amount: parseFloat(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
               description: (row[headerMapping["विवरण"]] || row[headerMapping["description"]] || "").toString().trim(),
-              registration_date: parseDateFromExcel(row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || getTodayInBackendFormat()),
+              original_registration_date: displayDate,
+              registration_date: parseDateFromExcel(originalVal || getTodayInBackendFormat()),
               rowIndex: rowIndex + 2,
               _originalIndex: rowIndex,
             };
@@ -756,7 +783,6 @@ const NurseryFinancialEntry = () => {
           });
 
           // Validate rows
-          const validRows = [];
           const validationErrors = [];
 
           parsedRows.forEach((rowData) => {
@@ -767,13 +793,11 @@ const NurseryFinancialEntry = () => {
                 errors: rowErrors,
                 data: rowData
               });
-            } else {
-              validRows.push(rowData);
             }
           });
 
-          // Store preview data
-          setPreviewData(validRows);
+          // Store preview data (all rows, valid and invalid)
+          setPreviewData(parsedRows);
           setValidationErrorsList(validationErrors);
           
           // If there are validation errors, mark as validated (to show in preview)
@@ -810,15 +834,23 @@ const NurseryFinancialEntry = () => {
     setFailedRows([]);
 
     try {
-      setUploadTotal(previewData.length);
+      // Separate valid and invalid rows
+      const validRows = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex));
+      const invalidRows = previewData.filter(row => validationErrorsList.some(err => err.rowIndex === row.rowIndex)).map(row => ({
+        rowIndex: row.rowIndex,
+        data: row,
+        reason: validationErrorsList.find(err => err.rowIndex === row.rowIndex).errors.join(', ')
+      }));
 
-      // Process rows individually with progress tracking
+      setUploadTotal(validRows.length);
+
+      // Process valid rows individually with progress tracking
       let successCount = 0;
-      const failedItems = [];
+      const failedItems = [...invalidRows]; // Start with validation failures
       
-      for (let i = 0; i < previewData.length; i++) {
+      for (let i = 0; i < validRows.length; i++) {
         try {
-          const rowData = previewData[i];
+          const rowData = validRows[i];
           const { rowIndex, _originalIndex, ...payload } = rowData;
           
           const response = await axios.post(NURSERY_FINANCIAL_API_URL, payload);
@@ -834,21 +866,21 @@ const NurseryFinancialEntry = () => {
             });
           }
         } catch (error) {
-          const rowIndex = previewData[i].rowIndex;
-          const errorMsg = error.response?.data?.message || 
-                         error.response?.data?.error || 
-                         error.message || 
-                         "Upload failed";
+          const rowIndex = validRows[i].rowIndex;
+          const errorMsg = error.response?.data?.message ||
+                          error.response?.data?.error ||
+                          error.message ||
+                          "Upload failed";
           
           failedItems.push({
             rowIndex: rowIndex,
-            data: previewData[i],
+            data: validRows[i],
             reason: errorMsg
           });
         }
 
         // Update progress
-        const progress = Math.round(((i + 1) / previewData.length) * 100);
+        const progress = Math.round(((i + 1) / validRows.length) * 100);
         setUploadProgress(progress);
       }
 
@@ -1251,7 +1283,7 @@ const NurseryFinancialEntry = () => {
                               <td>{row.allocated_amount}</td>
                               <td>{row.spent_amount}</td>
                               <td>{row.description || "-"}</td>
-                              <td>{row.registration_date}</td>
+                              <td style={{ backgroundColor: !/^\d{2}\/\d{2}\/\d{4}$/.test(row.original_registration_date) ? '#ffcccc' : 'inherit' }}>{row.original_registration_date}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1287,13 +1319,18 @@ const NurseryFinancialEntry = () => {
                     <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
                       रद्द करें
                     </Button>
-                    <Button 
-                      variant="primary" 
-                      onClick={handleConfirmUpload}
-                      disabled={previewData.length === 0}
-                    >
-                      {previewData.length} रिकॉर्ड अपलोड करें
-                    </Button>
+                    {(() => {
+                      const validCount = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex)).length;
+                      return (
+                        <Button
+                          variant="primary"
+                          onClick={handleConfirmUpload}
+                          disabled={validCount === 0}
+                        >
+                          {validCount > 0 ? `${validCount} रिकॉर्ड अपलोड करें` : 'कोई मान्य रिकॉर्ड नहीं'}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </Modal.Footer>
               </Modal>
