@@ -1285,7 +1285,7 @@ const handleDeleteRecipient = async (item) => {
           const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          
+
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           if (jsonData.length <= 1) {
@@ -1305,7 +1305,7 @@ const handleDeleteRecipient = async (item) => {
 
           // Parse all rows and filter empty ones
           const parsedRows = [];
-          
+
           dataRows.forEach((row, rowIndex) => {
             const parsedRow = {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
@@ -1332,22 +1332,20 @@ const handleDeleteRecipient = async (item) => {
               validationErrors.push({
                 rowIndex: rowData.rowIndex,
                 errors: rowErrors,
-                data: rowData
+                data: rowData,
               });
             } else {
               validRows.push(rowData);
             }
           });
 
-          setPreviewData(validRows);
+          setPreviewData(parsedRows);
           setValidationErrorsList(validationErrors);
-          
           if (validationErrors.length > 0) {
             setIsValidated(true);
           }
 
           setShowPreviewModal(true);
-
         } catch (parseError) {
           console.error("Error parsing Excel file:", parseError);
           setApiError(`Excel फाइल पार्सिंग में त्रुटि: ${parseError.message}`);
@@ -1371,19 +1369,30 @@ const handleDeleteRecipient = async (item) => {
     setUploadProgress(0);
     setUploadErrors([]);
     setUploadSuccessCount(0);
-    setFailedRows([]);
 
     try {
-      setUploadTotal(previewData.length);
+      const validRows = previewData.filter((row) =>
+        !validationErrorsList.some((err) => err.rowIndex === row.rowIndex)
+      );
+
+      const invalidRows = previewData
+        .filter((row) => validationErrorsList.some((err) => err.rowIndex === row.rowIndex))
+        .map((row) => ({
+          rowIndex: row.rowIndex,
+          data: row,
+          reason: validationErrorsList.find((err) => err.rowIndex === row.rowIndex)?.errors.join(", ") || "Validation failed",
+        }));
+
+      setUploadTotal(validRows.length);
 
       let successCount = 0;
-      const failedItems = [];
-      
-      for (let i = 0; i < previewData.length; i++) {
+      const failedItems = [...invalidRows];
+
+      for (let i = 0; i < validRows.length; i++) {
         try {
-          const rowData = previewData[i];
+          const rowData = validRows[i];
           const { rowIndex, _originalIndex, ...payload } = rowData;
-          
+
           const response = await axios.post(NURSERY_PHYSICAL_API_URL, payload);
 
           if (response.status === 200 || response.status === 201) {
@@ -1391,26 +1400,27 @@ const handleDeleteRecipient = async (item) => {
             setAllNurseryPhysicalItems((prev) => [payload, ...prev]);
           } else {
             failedItems.push({
-              rowIndex: rowIndex,
+              rowIndex: rowData.rowIndex,
               data: rowData,
-              reason: "Upload failed"
+              reason: "Upload failed",
             });
           }
         } catch (error) {
-          const rowIndex = previewData[i].rowIndex;
-          const errorMsg = error.response?.data?.message || 
-                         error.response?.data?.error || 
-                         error.message || 
-                         "Upload failed";
-          
+          const rowIndex = validRows[i].rowIndex;
+          const errorMsg =
+            error.response?.data?.message ||
+            error.response?.data?.error ||
+            error.message ||
+            "Upload failed";
+
           failedItems.push({
             rowIndex: rowIndex,
-            data: previewData[i],
-            reason: errorMsg
+            data: validRows[i],
+            reason: errorMsg,
           });
         }
 
-        const progress = Math.round(((i + 1) / previewData.length) * 100);
+        const progress = Math.round(((i + 1) / Math.max(validRows.length, 1)) * 100);
         setUploadProgress(progress);
       }
 
@@ -1420,27 +1430,23 @@ const handleDeleteRecipient = async (item) => {
       }
 
       setFailedRows(failedItems);
+      setPreviewData([]);
 
       if (successCount > 0 && failedItems.length === 0) {
         setApiResponse({
           message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
         });
       } else if (successCount > 0 && failedItems.length > 0) {
-        setApiError(
-          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`
-        );
+        setApiError(`⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`);
       } else if (failedItems.length > 0) {
-        setApiError(
-          `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`
-        );
+        setApiError(`❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`);
       }
-
     } catch (error) {
       console.error("Error during upload:", error);
       setApiError(`अपलोड में त्रुटि: ${error.message}`);
     } finally {
       setIsUploading(false);
-      setPreviewData([]);
+      setIsValidated(false);
     }
   };
 

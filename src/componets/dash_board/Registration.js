@@ -1373,7 +1373,7 @@ const Registration = () => {
           const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          
+
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           if (jsonData.length <= 1) {
@@ -1407,11 +1407,11 @@ const Registration = () => {
 
           // Parse all rows and filter empty ones
           const parsedRows = [];
-          
+
           dataRows.forEach((row, rowIndex) => {
             const billDateRaw = row[billDateIndex] || "";
             const billDateISO = parseDateFromExcel(billDateRaw);
-            
+
             const parsedRow = {
               center_name: (row[headerMapping["केंद्र का नाम"]] || row[headerMapping["center_name"]] || "").toString().trim(),
               vidhan_sabha_name: (row[headerMapping["विधानसभा का नाम"]] || row[headerMapping["vidhan_sabha_name"]] || "").toString().trim(),
@@ -1426,6 +1426,7 @@ const Registration = () => {
               amount_of_farmer_share: parseFloat(row[headerMapping["किसान का हिस्सा"]] || row[headerMapping["amount_of_farmer_share"]] || 0),
               amount_of_subsidy: parseFloat(row[headerMapping["सब्सिडी राशि"]] || row[headerMapping["amount_of_subsidy"]] || 0),
               total_amount: parseFloat(row[headerMapping["कुल राशि"]] || row[headerMapping["total_amount"]] || 0),
+              original_bill_date: convertToDisplayFormat(billDateRaw),
               bill_date: billDateISO,
               rowIndex: rowIndex + 2,
               _originalIndex: rowIndex,
@@ -1437,7 +1438,6 @@ const Registration = () => {
           });
 
           // Validate rows
-          const validRows = [];
           const validationErrors = [];
 
           parsedRows.forEach((rowData) => {
@@ -1446,22 +1446,18 @@ const Registration = () => {
               validationErrors.push({
                 rowIndex: rowData.rowIndex,
                 errors: rowErrors,
-                data: rowData
+                data: rowData,
               });
-            } else {
-              validRows.push(rowData);
             }
           });
 
-          setPreviewData(validRows);
+          setPreviewData(parsedRows);
           setValidationErrorsList(validationErrors);
-          
           if (validationErrors.length > 0) {
             setIsValidated(true);
           }
 
           setShowPreviewModal(true);
-
         } catch (parseError) {
           console.error("Error parsing Excel file:", parseError);
           setApiError(`Excel फाइल पार्सिंग में त्रुटि: ${parseError.message}`);
@@ -1485,19 +1481,31 @@ const Registration = () => {
     setUploadProgress(0);
     setUploadErrors([]);
     setUploadSuccessCount(0);
-    setFailedRows([]);
 
     try {
-      setUploadTotal(previewData.length);
+      const validRows = previewData.filter((row) =>
+        !validationErrorsList.some((err) => err.rowIndex === row.rowIndex)
+      );
+
+      const invalidRows = previewData
+        .filter((row) => validationErrorsList.some((err) => err.rowIndex === row.rowIndex))
+        .map((row) => ({
+          rowIndex: row.rowIndex,
+          data: row,
+          reason:
+            validationErrorsList.find((err) => err.rowIndex === row.rowIndex)?.errors.join(", ") || "Validation failed",
+        }));
+
+      setUploadTotal(validRows.length);
 
       let successCount = 0;
-      const failedItems = [];
-      
-      for (let i = 0; i < previewData.length; i++) {
+      const failedItems = [...invalidRows];
+
+      for (let i = 0; i < validRows.length; i++) {
         try {
-          const rowData = previewData[i];
+          const rowData = validRows[i];
           const { rowIndex, _originalIndex, ...payload } = rowData;
-          
+
           const response = await axios.post(BILLING_API_URL, payload);
 
           if (response.status === 200 || response.status === 201) {
@@ -1505,26 +1513,27 @@ const Registration = () => {
             setAllBillingItems((prev) => [payload, ...prev]);
           } else {
             failedItems.push({
-              rowIndex: rowIndex,
+              rowIndex: rowData.rowIndex,
               data: rowData,
-              reason: "Upload failed"
+              reason: "Upload failed",
             });
           }
         } catch (error) {
-          const rowIndex = previewData[i].rowIndex;
-          const errorMsg = error.response?.data?.message || 
-                         error.response?.data?.error || 
-                         error.message || 
-                         "Upload failed";
-          
+          const rowIndex = validRows[i].rowIndex;
+          const errorMsg =
+            error.response?.data?.message ||
+            error.response?.data?.error ||
+            error.message ||
+            "Upload failed";
+
           failedItems.push({
-            rowIndex: rowIndex,
-            data: previewData[i],
-            reason: errorMsg
+            rowIndex,
+            data: validRows[i],
+            reason: errorMsg,
           });
         }
 
-        const progress = Math.round(((i + 1) / previewData.length) * 100);
+        const progress = Math.round(((i + 1) / Math.max(validRows.length, 1)) * 100);
         setUploadProgress(progress);
       }
 
@@ -1534,6 +1543,7 @@ const Registration = () => {
       }
 
       setFailedRows(failedItems);
+      setPreviewData([]);
 
       if (successCount > 0 && failedItems.length === 0) {
         setApiResponse({
@@ -1541,22 +1551,17 @@ const Registration = () => {
         });
         fetchBillingItems();
       } else if (successCount > 0 && failedItems.length > 0) {
-        setApiError(
-          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`
-        );
+        setApiError(`⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`);
         fetchBillingItems();
       } else if (failedItems.length > 0) {
-        setApiError(
-          `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`
-        );
+        setApiError(`❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`);
       }
-
     } catch (error) {
       console.error("Error during upload:", error);
       setApiError(`अपलोड में त्रुटि: ${error.message}`);
     } finally {
       setIsUploading(false);
-      setPreviewData([]);
+      setIsValidated(false);
     }
   };
 
@@ -3518,7 +3523,164 @@ const Registration = () => {
             </Container>
           </Col>
         </Row>
-      </Container>
+
+        {/* Preview Modal */}
+        <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)</Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+            {previewData.length === 0 ? (
+              <Alert variant="warning">कोई मान्य डेटा नहीं मिला</Alert>
+            ) : (
+              <>
+                <Alert variant="info" className="small-fonts">
+                  <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें। खाली पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
+                </Alert>
+                <Table striped bordered hover size="sm" className="small-fonts">
+                  <thead>
+                    <tr>
+                      <th>क्र.सं.</th>
+                      <th>केंद्र का नाम</th>
+                      <th>विधानसभा का नाम</th>
+                      <th>विकास खंड का नाम</th>
+                      <th>योजना का नाम</th>
+                      <th>सप्लायर</th>
+                      <th>निवेश का नाम</th>
+                      <th>उप-निवेश का नाम</th>
+                      <th>इकाई</th>
+                      <th>आवंटित मात्रा</th>
+                      <th>दर</th>
+                      <th>किसान का हिस्सा</th>
+                      <th>सब्सिडी राशि</th>
+                      <th>कुल राशि</th>
+                      <th>पंजीकरण तिथि</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.slice(0, 100).map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{idx + 1}</td>
+                        <td style={{ backgroundColor: !row.center_name ? '#ffcccc' : 'inherit' }}>{row.center_name || "-"}</td>
+                        <td>{row.vidhan_sabha_name || "-"}</td>
+                        <td>{row.vikas_khand_name || "-"}</td>
+                        <td style={{ backgroundColor: !row.scheme_name ? '#ffcccc' : 'inherit' }}>{row.scheme_name || "-"}</td>
+                        <td style={{ backgroundColor: !row.source_of_receipt ? '#ffcccc' : 'inherit' }}>{row.source_of_receipt || "-"}</td>
+                        <td style={{ backgroundColor: !row.investment_name ? '#ffcccc' : 'inherit' }}>{row.investment_name || "-"}</td>
+                        <td>{row.sub_investment_name || "-"}</td>
+                        <td style={{ backgroundColor: !row.unit ? '#ffcccc' : 'inherit' }}>{row.unit || "-"}</td>
+                        <td style={{ backgroundColor: isNaN(parseInt(row.allocated_quantity)) ? '#ffcccc' : 'inherit' }}>{row.allocated_quantity || "-"}</td>
+                        <td style={{ backgroundColor: isNaN(parseFloat(row.rate)) ? '#ffcccc' : 'inherit' }}>{row.rate || "-"}</td>
+                        <td>{row.amount_of_farmer_share || "-"}</td>
+                        <td>{row.amount_of_subsidy || "-"}</td>
+                        <td>{row.total_amount || "-"}</td>
+                        <td style={{ backgroundColor: !/^\d{2}\/\d{2}\/\d{4}$/.test(row.original_bill_date) ? '#ffcccc' : 'inherit' }}>{row.original_bill_date || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                {previewData.length > 100 && (
+                  <Alert variant="secondary" className="small-fonts">
+                    ... और {previewData.length - 100} रिकॉर्ड
+                  </Alert>
+                )}
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer className="d-flex flex-column">
+            {validationErrorsList.length > 0 && (
+              <div className="w-100 mb-3">
+                <Alert variant="warning" className="small-fonts mb-0">
+                  <strong>⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:</strong>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                    {validationErrorsList.slice(0, 10).map((err, errIdx) => (
+                      <div key={errIdx} className="mt-1">
+                        <span className="badge bg-danger me-1">पंक्ति {err.rowIndex - 1}</span>
+                        {err.errors.map((e, i) => <span key={i} className="d-block text-danger">{e}</span>)}
+                      </div>
+                    ))}
+                    {validationErrorsList.length > 10 && (
+                      <div className="text-muted">... और {validationErrorsList.length - 10} और त्रुटियां</div>
+                    )}
+                  </div>
+                </Alert>
+              </div>
+            )}
+            <div className="d-flex justify-content-between w-100">
+              <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+                रद्द करें
+              </Button>
+              {(() => {
+                const validCount = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex)).length;
+                return (
+                  <Button
+                    variant="primary"
+                    onClick={handleConfirmUpload}
+                    disabled={validCount === 0}
+                  >
+                    {validCount > 0 ? `${validCount} रिकॉर्ड अपलोड करें` : 'कोई मान्य रिकॉर्ड नहीं'}
+                  </Button>
+                );
+              })()}
+            </div>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Failed Rows Display after Upload */}
+        {failedRows.length > 0 && !isUploading && (
+          <Alert variant="danger" className="small-fonts">
+            <strong>📋 विफल रिकॉर्ड ({failedRows.length}):</strong>
+            <Table striped bordered hover size="sm" className="mt-2">
+              <thead>
+                <tr>
+                  <th>क्र.सं.</th>
+                  <th>केंद्र का नाम</th>
+                  <th>विधानसभा का नाम</th>
+                  <th>विकास खंड का नाम</th>
+                  <th>योजना का नाम</th>
+                  <th>सप्लायर</th>
+                  <th>निवेश का नाम</th>
+                  <th>उप-निवेश का नाम</th>
+                  <th>इकाई</th>
+                  <th>आवंटित मात्रा</th>
+                  <th>दर</th>
+                  <th>किसान का हिस्सा</th>
+                  <th>सब्सिडी राशि</th>
+                  <th>कुल राशि</th>
+                  <th>पंजीकरण तिथि</th>
+                  <th>त्रुटि</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failedRows.slice(0, 20).map((row, idx) => (
+                  <tr key={idx}>
+                    <td>{idx + 1}</td>
+                    <td>{row.data?.center_name || "-"}</td>
+                    <td>{row.data?.vidhan_sabha_name || "-"}</td>
+                    <td>{row.data?.vikas_khand_name || "-"}</td>
+                    <td>{row.data?.scheme_name || "-"}</td>
+                    <td>{row.data?.source_of_receipt || "-"}</td>
+                    <td>{row.data?.investment_name || "-"}</td>
+                    <td>{row.data?.sub_investment_name || "-"}</td>
+                    <td>{row.data?.unit || "-"}</td>
+                    <td>{row.data?.allocated_quantity || "-"}</td>
+                    <td>{row.data?.rate || "-"}</td>
+                    <td>{row.data?.amount_of_farmer_share || "-"}</td>
+                    <td>{row.data?.amount_of_subsidy || "-"}</td>
+                    <td>{row.data?.total_amount || "-"}</td>
+                    <td style={{ backgroundColor: row.reason?.includes('तिथि') ? '#ffcccc' : 'inherit' }}>{row.data?.original_bill_date || "-"}</td>
+                    <td>{row.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {failedRows.length > 20 && (
+              <div className="text-muted mt-2">
+                ... और {failedRows.length - 20} और विफल रिकॉर्ड
+              </div>
+            )}
+          </Alert>
+        )}
     </div>
   );
 };
