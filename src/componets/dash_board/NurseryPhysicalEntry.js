@@ -425,7 +425,7 @@ const NurseryPhysicalEntry = () => {
     }
   }, [allNurseryPhysicalItems]);
 
-  // Apply local filtering when filters change (based on bill_date from recipients)
+  // Apply local filtering when filters change (based on created_at field)
   useEffect(() => {
     // Only apply filters when both dates are selected
     if (filters.from_date && filters.to_date) {
@@ -434,21 +434,15 @@ const NurseryPhysicalEntry = () => {
       toDate.setHours(23, 59, 59, 999); // Set to end of day
 
       const filtered = allNurseryPhysicalItems.filter((item) => {
-        // Check if item has any associated recipients with bill_date in range
-        const hasRecipientInRange = allRecipientItems.some((recipient) => {
-          if (recipient.nursery_physical !== item.id) {
-            return false;
-          }
-          
-          if (!recipient.bill_date) {
-            return false;
-          }
-          
-          const billDate = new Date(recipient.bill_date);
-          return billDate >= fromDate && billDate <= toDate;
-        });
+        // Filter by created_at date field
+        if (!item.created_at) {
+          return false;
+        }
         
-        if (!hasRecipientInRange) {
+        const createdAt = new Date(item.created_at);
+        const isDateInRange = createdAt >= fromDate && createdAt <= toDate;
+        
+        if (!isDateInRange) {
           return false;
         }
         
@@ -469,7 +463,7 @@ const NurseryPhysicalEntry = () => {
       // If no date range selected, show all data
       setNurseryPhysicalItems(allNurseryPhysicalItems);
     }
-  }, [filters, allNurseryPhysicalItems, allRecipientItems]);
+  }, [filters, allNurseryPhysicalItems]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
