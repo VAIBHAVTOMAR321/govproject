@@ -1664,7 +1664,7 @@ const handleDelete = async (item) => {
                   existing.center_name?.trim() === row.center_name?.trim() &&
                   existing.supplied_item_name?.trim() === row.supplied_item_name?.trim() &&
                   existing.farmer_name?.trim() === row.farmer_name?.trim() &&
-                  existing.aadhaar_number?.trim() === row.aadhaar_number?.trim() &&
+                  String(existing.aadhaar_number || '').trim() === String(row.aadhaar_number || '').trim() &&
                   existing.beneficiary_reg_date === row.beneficiary_reg_date
                 );
               });
@@ -1682,7 +1682,7 @@ const handleDelete = async (item) => {
             // Also check for duplicates within the uploaded rows themselves
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${row.center_name?.trim()}|${row.supplied_item_name?.trim()}|${row.farmer_name?.trim()}|${row.aadhaar_number?.trim()}|${row.beneficiary_reg_date}`;
+              const key = `${row.center_name?.trim()}|${row.supplied_item_name?.trim()}|${row.farmer_name?.trim()}|${String(row.aadhaar_number || '').trim()}|${row.beneficiary_reg_date}`;
               
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
