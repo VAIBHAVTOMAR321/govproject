@@ -341,6 +341,11 @@ const NurseryPhysicalEntry = () => {
   const [uploadTotal, setUploadTotal] = useState(0);
   const [uploadErrors, setUploadErrors] = useState([]);
   const [uploadSuccessCount, setUploadSuccessCount] = useState(0);
+  const [previewData, setPreviewData] = useState([]);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [isValidated, setIsValidated] = useState(false);
+  const [failedRows, setFailedRows] = useState([]);
+  const [validationErrorsList, setValidationErrorsList] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     nurseryPhysicalTableColumns.map((col) => col.key)
@@ -1248,27 +1253,35 @@ const handleDeleteRecipient = async (item) => {
     return errors;
   };
 
-  // Handle file change
-  const handleFileChange = (e) => {
-    setExcelFile(e.target.files[0]);
+  // Check if a row has any meaningful data (not completely empty)
+  const isEmptyRow = (row) => {
+    if (!row || typeof row !== 'object') return true;
+    const values = Object.values(row);
+    return values.every(val => 
+      val === null || 
+      val === undefined || 
+      val === '' || 
+      (typeof val === 'string' && val.trim() === '')
+    );
   };
 
-  // Handle bulk upload
-  const handleBulkUpload = async () => {
-    if (!excelFile) return;
+  // Handle file change - parse and show preview
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    setIsUploading(true);
+    setExcelFile(file);
     setApiError(null);
     setApiResponse(null);
-    setUploadProgress(0);
-    setUploadErrors([]);
-    setUploadSuccessCount(0);
+    setPreviewData([]);
+    setFailedRows([]);
+    setIsValidated(false);
 
     try {
       const reader = new FileReader();
-      reader.onload = async (e) => {
+      reader.onload = (event) => {
         try {
-          const data = new Uint8Array(e.target.result);
+          const data = new Uint8Array(event.target.result);
           const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
@@ -1277,7 +1290,6 @@ const handleDeleteRecipient = async (item) => {
 
           if (jsonData.length <= 1) {
             setApiError("Excel फाइल में कोई डेटा नहीं है");
-            setIsUploading(false);
             return;
           }
 
@@ -1291,105 +1303,144 @@ const handleDeleteRecipient = async (item) => {
             }
           });
 
-          // Parse all rows
-          const parsedRows = dataRows.map((row, rowIndex) => {
-            return {
+          // Parse all rows and filter empty ones
+          const parsedRows = [];
+          
+          dataRows.forEach((row, rowIndex) => {
+            const parsedRow = {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               crop_name: (row[headerMapping["फसल का नाम"]] || row[headerMapping["crop_name"]] || "").toString().trim(),
               unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
               allocated_quantity: parseFloat(row[headerMapping["उपलब्ध मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
               allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               rowIndex: rowIndex + 2,
+              _originalIndex: rowIndex,
             };
+
+            if (!isEmptyRow(parsedRow)) {
+              parsedRows.push(parsedRow);
+            }
           });
 
-          // Validate all rows first
-          const allErrors = [];
+          // Validate rows
           const validRows = [];
+          const validationErrors = [];
 
           parsedRows.forEach((rowData) => {
             const rowErrors = validateRow(rowData, rowData.rowIndex);
             if (rowErrors.length > 0) {
-              allErrors.push(...rowErrors);
+              validationErrors.push({
+                rowIndex: rowData.rowIndex,
+                errors: rowErrors,
+                data: rowData
+              });
             } else {
               validRows.push(rowData);
             }
           });
 
-          if (validRows.length === 0) {
-            const errorMessage = `कोई मान्य डेटा नहीं मिला:\n${allErrors.slice(0, 5).join("\n")}${allErrors.length > 5 ? `\n... और ${allErrors.length - 5} अन्य त्रुटियां` : ""}`;
-            setApiError(errorMessage);
-            setUploadErrors(allErrors);
-            setIsUploading(false);
-            return;
-          }
-
-          setUploadTotal(validRows.length);
-          setUploadSuccessCount(0);
-          setUploadErrors(allErrors);
-
-          // Process rows individually
-          let successCount = 0;
-          const failedIndices = [];
+          setPreviewData(validRows);
+          setValidationErrorsList(validationErrors);
           
-          for (let i = 0; i < validRows.length; i++) {
-            try {
-              const rowData = validRows[i];
-              const { rowIndex, ...payload } = rowData;
-              
-              const response = await axios.post(NURSERY_PHYSICAL_API_URL, payload);
-
-              if (response.status === 200 || response.status === 201) {
-                successCount++;
-                setAllNurseryPhysicalItems((prev) => [payload, ...prev]);
-              } else {
-                failedIndices.push(rowIndex);
-              }
-            } catch (error) {
-              const rowIndex = validRows[i].rowIndex;
-              const errorMsg = error.response?.data?.message || 
-                             error.response?.data?.error || 
-                             error.message || 
-                             "Upload failed";
-              
-              allErrors.push(`Row ${rowIndex}: ${errorMsg}`);
-              failedIndices.push(rowIndex);
-            }
-
-            // Update progress
-            const progress = Math.round(((i + 1) / validRows.length) * 100);
-            setUploadProgress(progress);
+          if (validationErrors.length > 0) {
+            setIsValidated(true);
           }
 
-          setExcelFile(null);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          setShowPreviewModal(true);
 
-          // Generate final response message
-          const totalErrors = allErrors.length;
-          if (successCount > 0 && totalErrors === 0) {
-            setApiResponse({
-              message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
-            });
-          } else if (successCount > 0 && totalErrors > 0) {
-            const errorMsg = `⚠️ आंशिक अपलोड: ${successCount} सफल, ${totalErrors} विफल।\n\nविफल रिकॉर्ड:\n${allErrors.slice(0, 10).join("\n")}${totalErrors > 10 ? `\n... और ${totalErrors - 10} अन्य त्रुटियां` : ""}`;
-            setApiError(errorMsg);
-          } else if (totalErrors > 0) {
-            const errorMsg = `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।\n\nत्रुटियां:\n${allErrors.slice(0, 10).join("\n")}${totalErrors > 10 ? `\n... और ${totalErrors - 10} अन्य त्रुटियां` : ""}`;
-            setApiError(errorMsg);
-          }
         } catch (parseError) {
           console.error("Error parsing Excel file:", parseError);
           setApiError(`Excel फाइल पार्सिंग में त्रुटि: ${parseError.message}`);
         }
       };
-      reader.readAsArrayBuffer(excelFile);
+      reader.readAsArrayBuffer(file);
     } catch (error) {
       console.error("Error reading file:", error);
       setApiError(`फाइल पढ़ने में त्रुटि: ${error.message}`);
+    }
+  };
+
+  // Handle confirmed upload from preview
+  const handleConfirmUpload = async () => {
+    if (previewData.length === 0) return;
+
+    setShowPreviewModal(false);
+    setIsUploading(true);
+    setApiError(null);
+    setApiResponse(null);
+    setUploadProgress(0);
+    setUploadErrors([]);
+    setUploadSuccessCount(0);
+    setFailedRows([]);
+
+    try {
+      setUploadTotal(previewData.length);
+
+      let successCount = 0;
+      const failedItems = [];
+      
+      for (let i = 0; i < previewData.length; i++) {
+        try {
+          const rowData = previewData[i];
+          const { rowIndex, _originalIndex, ...payload } = rowData;
+          
+          const response = await axios.post(NURSERY_PHYSICAL_API_URL, payload);
+
+          if (response.status === 200 || response.status === 201) {
+            successCount++;
+            setAllNurseryPhysicalItems((prev) => [payload, ...prev]);
+          } else {
+            failedItems.push({
+              rowIndex: rowIndex,
+              data: rowData,
+              reason: "Upload failed"
+            });
+          }
+        } catch (error) {
+          const rowIndex = previewData[i].rowIndex;
+          const errorMsg = error.response?.data?.message || 
+                         error.response?.data?.error || 
+                         error.message || 
+                         "Upload failed";
+          
+          failedItems.push({
+            rowIndex: rowIndex,
+            data: previewData[i],
+            reason: errorMsg
+          });
+        }
+
+        const progress = Math.round(((i + 1) / previewData.length) * 100);
+        setUploadProgress(progress);
+      }
+
+      setExcelFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      setFailedRows(failedItems);
+
+      if (successCount > 0 && failedItems.length === 0) {
+        setApiResponse({
+          message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
+        });
+      } else if (successCount > 0 && failedItems.length > 0) {
+        setApiError(
+          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`
+        );
+      } else if (failedItems.length > 0) {
+        setApiError(
+          `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`
+        );
+      }
+
+    } catch (error) {
+      console.error("Error during upload:", error);
+      setApiError(`अपलोड में त्रुटि: ${error.message}`);
     } finally {
       setIsUploading(false);
+      setPreviewData([]);
     }
   };
 
@@ -1832,13 +1883,15 @@ const handleDeleteRecipient = async (item) => {
                   <div className="w-100">
                     <Button
                       variant="secondary"
-                      onClick={handleBulkUpload}
+                      onClick={() => previewData.length > 0 && !isUploading && handleConfirmUpload()}
                       disabled={!excelFile || isUploading}
                       className="compact-submit-btn w-100"
                     >
                       {isUploading
                         ? `अपलोड हो रहा है... ${uploadProgress}%`
-                        : translations.uploadButton}
+                        : previewData.length > 0 
+                          ? `${previewData.length} रिकॉर्ड अपलोड करें`
+                          : translations.uploadButton}
                     </Button>
                   </div>
                 </Col>
@@ -1878,6 +1931,124 @@ const handleDeleteRecipient = async (item) => {
                   </div>
                 </Alert>
               )}
+
+              {/* Failed Rows Display after Upload */}
+              {failedRows.length > 0 && !isUploading && (
+                <Alert variant="danger" className="small-fonts">
+                  <strong>📋 विफल रिकॉर्ड ({failedRows.length}):</strong>
+                  <Table striped bordered hover size="sm" className="mt-2">
+                    <thead>
+                      <tr>
+                        <th>क्र.सं.</th>
+                        <th>नर्सरी का नाम</th>
+                        <th>फसल का नाम</th>
+                        <th>इकाई</th>
+                        <th>उपलब्ध मात्रा</th>
+                        <th>धनराशि</th>
+                        <th>त्रुटि</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {failedRows.slice(0, 20).map((row, idx) => (
+                        <tr key={idx}>
+                          <td>{idx + 1}</td>
+                          <td>{row.data?.nursery_name || "-"}</td>
+                          <td>{row.data?.crop_name || "-"}</td>
+                          <td>{row.data?.unit || "-"}</td>
+                          <td>{row.data?.allocated_quantity || "-"}</td>
+                          <td>{row.data?.allocated_amount || "-"}</td>
+                          <td>{row.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                  {failedRows.length > 20 && (
+                    <div className="text-muted mt-2">
+                      ... और {failedRows.length - 20} और विफल रिकॉर्ड
+                    </div>
+                  )}
+                </Alert>
+              )}
+
+              {/* Preview Modal */}
+              <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" centered>
+                <Modal.Header closeButton>
+                  <Modal.Title>डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)</Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                  {previewData.length === 0 ? (
+                    <Alert variant="warning">कोई मान्य डेटा नहीं मिला</Alert>
+                  ) : (
+                    <>
+                      <Alert variant="info" className="small-fonts">
+                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें।
+                        खाली पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
+                      </Alert>
+                      <Table striped bordered hover size="sm" className="small-fonts">
+                        <thead>
+                          <tr>
+                            <th>क्र.सं.</th>
+                            <th>नर्सरी का नाम</th>
+                            <th>फसल का नाम</th>
+                            <th>इकाई</th>
+                            <th>उपलब्ध मात्रा</th>
+                            <th>धनराशि</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewData.slice(0, 100).map((row, idx) => (
+                            <tr key={idx}>
+                              <td>{idx + 1}</td>
+                              <td>{row.nursery_name}</td>
+                              <td>{row.crop_name}</td>
+                              <td>{row.unit}</td>
+                              <td>{row.allocated_quantity}</td>
+                              <td>{row.allocated_amount}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                      {previewData.length > 100 && (
+                        <Alert variant="secondary" className="small-fonts">
+                          ... और {previewData.length - 100} रिकॉर्ड
+                        </Alert>
+                      )}
+                    </>
+                  )}
+                </Modal.Body>
+                <Modal.Footer className="d-flex flex-column">
+                  {validationErrorsList.length > 0 && (
+                    <div className="w-100 mb-3">
+                      <Alert variant="warning" className="small-fonts mb-0">
+                        <strong>⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:</strong>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                          {validationErrorsList.slice(0, 10).map((err, errIdx) => (
+                            <div key={errIdx} className="mt-1">
+                              <span className="badge bg-danger me-1">पंक्ति {err.rowIndex - 1}</span>
+                              {err.errors.map((e, i) => <span key={i} className="d-block text-danger">{e}</span>)}
+                            </div>
+                          ))}
+                          {validationErrorsList.length > 10 && (
+                            <div className="text-muted">... और {validationErrorsList.length - 10} और त्रुटियां</div>
+                          )}
+                        </div>
+                      </Alert>
+                    </div>
+                  )}
+                  <div className="d-flex justify-content-between w-100">
+                    <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+                      रद्द करें
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleConfirmUpload}
+                      disabled={previewData.length === 0}
+                    >
+                      {previewData.length} रिकॉर्ड अपलोड करें
+                    </Button>
+                  </div>
+                </Modal.Footer>
+              </Modal>
 
               {/* Excel Upload Instructions */}
               <Alert variant="info" className="small-fonts mb-3">
