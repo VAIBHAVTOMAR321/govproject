@@ -306,6 +306,7 @@ const Registration = () => {
   const [isValidated, setIsValidated] = useState(false);
   const [failedRows, setFailedRows] = useState([]);
   const [validationErrorsList, setValidationErrorsList] = useState([]);
+  const [duplicateRowIndices, setDuplicateRowIndices] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     billingTableColumns.map((col) => col.key)
@@ -1364,10 +1365,11 @@ const Registration = () => {
     setPreviewData([]);
     setFailedRows([]);
     setIsValidated(false);
+    setDuplicateRowIndices([]);
 
     try {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const data = new Uint8Array(event.target.result);
           const workbook = XLSX.read(data, { type: "array" });
@@ -1451,12 +1453,78 @@ const Registration = () => {
             }
           });
 
-          setPreviewData(parsedRows);
-          setValidationErrorsList(validationErrors);
-          if (validationErrors.length > 0) {
-            setIsValidated(true);
+          // Fetch existing billing items to check for duplicates
+          try {
+            const existingResponse = await axios.get(BILLING_API_URL);
+            const existingData = existingResponse.data && existingResponse.data.data
+              ? existingResponse.data.data
+              : existingResponse.data;
+            const existingItems = Array.isArray(existingData) ? existingData : [];
+            
+            // Detect duplicates with existing system data
+            const duplicateIndices = new Set();
+            const newValidationErrors = [...validationErrors];
+            
+            parsedRows.forEach((row) => {
+              // Check if this row matches any existing item
+              const isDuplicateWithExisting = existingItems.some(existing => {
+                // Compare key fields to identify duplicate
+                return (
+                  existing.center_name?.trim() === row.center_name?.trim() &&
+                  existing.investment_name?.trim() === row.investment_name?.trim() &&
+                  existing.sub_investment_name?.trim() === row.sub_investment_name?.trim() &&
+                  existing.unit?.trim() === row.unit?.trim() &&
+                  existing.scheme_name?.trim() === row.scheme_name?.trim() &&
+                  existing.source_of_receipt?.trim() === row.source_of_receipt?.trim() &&
+                  existing.bill_date === row.bill_date
+                );
+              });
+              
+              if (isDuplicateWithExisting) {
+                duplicateIndices.add(row.rowIndex);
+                newValidationErrors.push({
+                  rowIndex: row.rowIndex,
+                  errors: ["यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)"],
+                  data: row,
+                });
+              }
+            });
+            
+            // Also check for duplicates within the uploaded rows themselves
+            const seenKeys = new Set();
+            parsedRows.forEach((row) => {
+              const key = `${row.center_name?.trim()}|${row.investment_name?.trim()}|${row.sub_investment_name?.trim()}|${row.unit?.trim()}|${row.scheme_name?.trim()}|${row.source_of_receipt?.trim()}|${row.bill_date}`;
+              
+              if (seenKeys.has(key)) {
+                duplicateIndices.add(row.rowIndex);
+                // Add error if not already added
+                if (!newValidationErrors.some(err => err.rowIndex === row.rowIndex)) {
+                  newValidationErrors.push({
+                    rowIndex: row.rowIndex,
+                    errors: ["इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)"],
+                    data: row,
+                  });
+                }
+              } else {
+                seenKeys.add(key);
+              }
+            });
+            
+            setValidationErrorsList(newValidationErrors);
+            setDuplicateRowIndices(Array.from(duplicateIndices));
+            if (newValidationErrors.length > 0) {
+              setIsValidated(true);
+            }
+          } catch (dupError) {
+            console.error("Error checking duplicates:", dupError);
+            // Continue without duplicate check if API fails
+            setValidationErrorsList(validationErrors);
+            if (validationErrors.length > 0) {
+              setIsValidated(true);
+            }
           }
 
+          setPreviewData(parsedRows);
           setShowPreviewModal(true);
         } catch (parseError) {
           console.error("Error parsing Excel file:", parseError);
@@ -3559,7 +3627,7 @@ const Registration = () => {
                   </thead>
                   <tbody>
                     {previewData.slice(0, 100).map((row, idx) => (
-                      <tr key={idx}>
+                      <tr key={idx} style={{ backgroundColor: duplicateRowIndices.includes(row.rowIndex) ? '#ffcccc' : 'inherit' }}>
                         <td>{idx + 1}</td>
                         <td style={{ backgroundColor: !row.center_name ? '#ffcccc' : 'inherit' }}>{row.center_name || "-"}</td>
                         <td>{row.vidhan_sabha_name || "-"}</td>

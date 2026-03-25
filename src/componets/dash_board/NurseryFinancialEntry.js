@@ -226,6 +226,7 @@ const NurseryFinancialEntry = () => {
   const [isValidated, setIsValidated] = useState(false);
   const [failedRows, setFailedRows] = useState([]);
   const [validationErrorsList, setValidationErrorsList] = useState([]);
+  const [duplicateRowIndices, setDuplicateRowIndices] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     nurseryFinancialTableColumns.map((col) => col.key)
@@ -707,10 +708,11 @@ const NurseryFinancialEntry = () => {
     setPreviewData([]);
     setFailedRows([]);
     setIsValidated(false);
+    setDuplicateRowIndices([]);
 
     try {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const data = new Uint8Array(event.target.result);
           const workbook = XLSX.read(data, { type: "array" });
@@ -796,15 +798,76 @@ const NurseryFinancialEntry = () => {
             }
           });
 
-          // Store preview data (all rows, valid and invalid)
-          setPreviewData(parsedRows);
-          setValidationErrorsList(validationErrors);
-          
-          // If there are validation errors, mark as validated (to show in preview)
-          if (validationErrors.length > 0) {
-            setIsValidated(true);
+          // Fetch existing nursery financial data to check for duplicates
+          try {
+            const existingResponse = await axios.get(NURSERY_FINANCIAL_API_URL);
+            const existingData = existingResponse.data && existingResponse.data.data
+              ? existingResponse.data.data
+              : existingResponse.data;
+            const existingItems = Array.isArray(existingData) ? existingData : [];
+            
+            // Detect duplicates with existing system data
+            const duplicateIndices = new Set();
+            const newValidationErrors = [...validationErrors];
+            
+            parsedRows.forEach((row) => {
+              // Check if this row matches any existing item
+              const isDuplicateWithExisting = existingItems.some(existing => {
+                // Compare key fields to identify duplicate
+                return (
+                  existing.nursery_name?.trim() === row.nursery_name?.trim() &&
+                  existing.standard_item?.trim() === row.standard_item?.trim() &&
+                  existing.registration_date === row.registration_date
+                );
+              });
+              
+              if (isDuplicateWithExisting) {
+                duplicateIndices.add(row.rowIndex);
+                newValidationErrors.push({
+                  rowIndex: row.rowIndex,
+                  errors: ["यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)"],
+                  data: row,
+                });
+              }
+            });
+            
+            // Also check for duplicates within the uploaded rows themselves
+            const seenKeys = new Set();
+            parsedRows.forEach((row) => {
+              const key = `${row.nursery_name?.trim()}|${row.standard_item?.trim()}|${row.registration_date}`;
+              
+              if (seenKeys.has(key)) {
+                duplicateIndices.add(row.rowIndex);
+                // Add error if not already added
+                if (!newValidationErrors.some(err => err.rowIndex === row.rowIndex)) {
+                  newValidationErrors.push({
+                    rowIndex: row.rowIndex,
+                    errors: ["इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)"],
+                    data: row,
+                  });
+                }
+              } else {
+                seenKeys.add(key);
+              }
+            });
+            
+            setValidationErrorsList(newValidationErrors);
+            setDuplicateRowIndices(Array.from(duplicateIndices));
+            if (newValidationErrors.length > 0) {
+              setIsValidated(true);
+            }
+          } catch (dupError) {
+            console.error("Error checking duplicates:", dupError);
+            // Continue without duplicate check if API fails
+            setValidationErrorsList(validationErrors);
+            if (validationErrors.length > 0) {
+              setIsValidated(true);
+            }
           }
 
+          // Store preview data (all rows, valid and invalid)
+          setPreviewData(parsedRows);
+          
           // Show preview modal
           setShowPreviewModal(true);
 
@@ -1276,7 +1339,7 @@ const NurseryFinancialEntry = () => {
                         </thead>
                         <tbody>
                           {previewData.slice(0, 100).map((row, idx) => (
-                            <tr key={idx}>
+                            <tr key={idx} style={{ backgroundColor: duplicateRowIndices.includes(row.rowIndex) ? '#ffcccc' : 'inherit' }}>
                               <td>{idx + 1}</td>
                               <td>{row.nursery_name}</td>
                               <td>{row.standard_item}</td>
