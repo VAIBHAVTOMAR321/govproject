@@ -3681,6 +3681,7 @@ const Registration = () => {
             )}
           </Alert>
         )}
+      </Container>
     </div>
   );
 };
