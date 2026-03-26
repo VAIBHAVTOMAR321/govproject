@@ -498,21 +498,10 @@ const NurseryPhysicalEntry = () => {
           params[key] = appliedFilters[key];
         }
       });
-      // Add limit to fetch all records (default pagination might limit to 10 or 100)
-      params.limit = 10000;
-      params.offset = 0;
       const response = await axios.get(NURSERY_PHYSICAL_API_URL, { params });
       
-      // Handle the response correctly - check for paginated response format
-      let data;
-      if (response.data && response.data.results) {
-        // Django REST Framework paginated response
-        data = response.data.results;
-      } else if (response.data && response.data.data) {
-        data = response.data.data;
-      } else {
-        data = response.data;
-      }
+      // Handle the response correctly - the data is directly in response.data as an array
+      const data = response.data;
       const items = Array.isArray(data) ? data : [];
       
       setNurseryPhysicalItems(items);
@@ -531,20 +520,8 @@ const NurseryPhysicalEntry = () => {
   const fetchRecipientItems = async () => {
     try {
       setIsRecipientLoading(true);
-      // Add limit to fetch all records (default pagination might limit to 10 or 100)
-      const response = await axios.get(NURSERY_PHYSICAL_RECIPIENTS_API_URL, {
-        params: { limit: 10000, offset: 0 }
-      });
-      // Handle the response correctly - check for paginated response format
-      let data;
-      if (response.data && response.data.results) {
-        // Django REST Framework paginated response
-        data = response.data.results;
-      } else if (response.data && response.data.data) {
-        data = response.data.data;
-      } else {
-        data = response.data;
-      }
+      const response = await axios.get(NURSERY_PHYSICAL_RECIPIENTS_API_URL);
+      const data = response.data;
       const items = Array.isArray(data) ? data : [];
       setRecipientItems(items);
       setAllRecipientItems(items);

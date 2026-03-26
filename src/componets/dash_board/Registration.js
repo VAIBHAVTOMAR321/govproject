@@ -475,9 +475,6 @@ const Registration = () => {
       setIsLoading(true);
       setApiError(null);
       const params = {};
-      // Add limit to fetch all records (default pagination might limit to 10 or 100)
-      params.limit = 10000;
-      params.offset = 0;
       Object.keys(appliedFilters).forEach((key) => {
         if (
           Array.isArray(appliedFilters[key]) &&
@@ -493,16 +490,10 @@ const Registration = () => {
         }
       });
       const response = await axios.get(BILLING_API_URL, { params });
-      // Handle the response correctly - check for paginated response format
-      let data;
-      if (response.data && response.data.results) {
-        // Django REST Framework paginated response
-        data = response.data.results;
-      } else if (response.data && response.data.data) {
-        data = response.data.data;
-      } else {
-        data = response.data;
-      }
+      const data =
+        response.data && response.data.data
+          ? response.data.data
+          : response.data;
       const items = Array.isArray(data) ? data : [];
       setBillingItems(items);
       if (Object.keys(params).length === 0) {
