@@ -28,6 +28,12 @@ import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, get
 const NURSERY_FINANCIAL_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/nursery-financial/";
 
+// Utility function to round numbers to 2 decimal places
+const roundTo2Decimals = (value) => {
+  const num = parseFloat(value) || 0;
+  return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+};
+
 // Table columns
 const nurseryFinancialTableColumns = [
   { key: "nursery_name", label: "नर्सरी का नाम" },
@@ -767,8 +773,8 @@ const NurseryFinancialEntry = () => {
             const parsedRow = {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               standard_item: (row[headerMapping["मानक आइटम"]] || row[headerMapping["standard_item"]] || "").toString().trim(),
-              allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
-              spent_amount: parseFloat(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
+              allocated_amount: roundTo2Decimals(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
+              spent_amount: roundTo2Decimals(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
               description: (row[headerMapping["विवरण"]] || row[headerMapping["description"]] || "").toString().trim(),
               original_registration_date: displayDate,
               registration_date: parseDateFromExcel(originalVal || getTodayInBackendFormat()),
@@ -812,11 +818,14 @@ const NurseryFinancialEntry = () => {
             
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
+              // Compare only fields that are in the template download
               const isDuplicateWithExisting = existingItems.some(existing => {
-                // Compare key fields to identify duplicate
                 return (
-                  existing.nursery_name?.trim() === row.nursery_name?.trim() &&
-                  existing.standard_item?.trim() === row.standard_item?.trim() &&
+                  String(existing.nursery_name || '').trim() === String(row.nursery_name || '').trim() &&
+                  String(existing.standard_item || '').trim() === String(row.standard_item || '').trim() &&
+                  parseFloat(existing.allocated_amount || 0) === parseFloat(row.allocated_amount || 0) &&
+                  parseFloat(existing.spent_amount || 0) === parseFloat(row.spent_amount || 0) &&
+                  String(existing.description || '').trim() === String(row.description || '').trim() &&
                   existing.registration_date === row.registration_date
                 );
               });
@@ -832,9 +841,10 @@ const NurseryFinancialEntry = () => {
             });
             
             // Also check for duplicates within the uploaded rows themselves
+            // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${row.nursery_name?.trim()}|${row.standard_item?.trim()}|${row.registration_date}`;
+              const key = `${String(row.nursery_name || '').trim()}|${String(row.standard_item || '').trim()}|${parseFloat(row.allocated_amount || 0)}|${parseFloat(row.spent_amount || 0)}|${String(row.description || '').trim()}|${row.registration_date}`;
               
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);

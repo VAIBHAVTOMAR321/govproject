@@ -31,6 +31,12 @@ const VIKAS_KHAND_API_URL =
 const FORM_FILTERS_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/";
 
+// Utility function to round numbers to 2 decimal places
+const roundTo2Decimals = (value) => {
+  const num = parseFloat(value) || 0;
+  return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+};
+
 // Updated center options with exact names from your list
 const centerOptions = [
   "कोटद्वार",
@@ -960,7 +966,7 @@ const KrishiRegistration = () => {
             const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
             return total + value;
           }, 0);
-          totalRow[columnMapping[col].header] = sum;
+          totalRow[columnMapping[col].header] = parseFloat(sum.toFixed(2));
         } else {
           totalRow[columnMapping[col].header] = "";
         }
@@ -1623,9 +1629,9 @@ const handleDelete = async (item) => {
             aadhaar_number: getCell(row, ["आधार नंबर", "aadhaar_number"]) || "",
             bank_account_number: getCell(row, ["बैंक खाता नंबर", "bank_account_number"]) || "",
             ifsc_code: getCell(row, ["IFSC कोड", "ifsc_code"]) || getCell(row, ["ifsc कोड"]) || "",
-            quantity: Number.isFinite(Number(getCell(row, ["मात्रा", "quantity"]) || 0)) ? parseInt(getCell(row, ["मात्रा", "quantity"]) || 0) : 0,
-            rate: Number.isFinite(Number(getCell(row, ["दर", "rate"]) || 0)) ? parseFloat(getCell(row, ["दर", "rate"]) || 0) : 0,
-            amount: Number.isFinite(Number(getCell(row, ["राशि", "amount"]) || 0)) ? parseFloat(getCell(row, ["राशि", "amount"]) || 0) : 0,
+            quantity: Number.isFinite(Number(getCell(row, ["मात्रा", "quantity"]) || 0)) ? roundTo2Decimals(getCell(row, ["मात्रा", "quantity"]) || 0) : 0,
+            rate: Number.isFinite(Number(getCell(row, ["दर", "rate"]) || 0)) ? roundTo2Decimals(getCell(row, ["दर", "rate"]) || 0) : 0,
+            amount: Number.isFinite(Number(getCell(row, ["राशि", "amount"]) || 0)) ? roundTo2Decimals(getCell(row, ["राशि", "amount"]) || 0) : 0,
             original_beneficiary_reg_date: convertToDisplayFormat(regDateRaw),
             beneficiary_reg_date: parseExcelDate(regDateRaw),
             rowIndex: rowIndex + 2,
@@ -1658,13 +1664,24 @@ const handleDelete = async (item) => {
             
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
+              // Compare only fields that are in the template download
               const isDuplicateWithExisting = existingItems.some(existing => {
-                // Compare key fields to identify duplicate
                 return (
-                  existing.center_name?.trim() === row.center_name?.trim() &&
-                  existing.supplied_item_name?.trim() === row.supplied_item_name?.trim() &&
-                  existing.farmer_name?.trim() === row.farmer_name?.trim() &&
+                  String(existing.center_name || '').trim() === String(row.center_name || '').trim() &&
+                  String(existing.scheme_name || '').trim() === String(row.scheme_name || '').trim() &&
+                  String(existing.unit || '').trim() === String(row.unit || '').trim() &&
+                  String(existing.supplied_item_name || '').trim() === String(row.supplied_item_name || '').trim() &&
+                  String(existing.farmer_name || '').trim() === String(row.farmer_name || '').trim() &&
+                  String(existing.father_name || '').trim() === String(row.father_name || '').trim() &&
+                  String(existing.category || '').trim() === String(row.category || '').trim() &&
+                  String(existing.address || '').trim() === String(row.address || '').trim() &&
+                  String(existing.mobile_number || '').trim() === String(row.mobile_number || '').trim() &&
                   String(existing.aadhaar_number || '').trim() === String(row.aadhaar_number || '').trim() &&
+                  String(existing.bank_account_number || '').trim() === String(row.bank_account_number || '').trim() &&
+                  String(existing.ifsc_code || '').trim() === String(row.ifsc_code || '').trim() &&
+                  parseFloat(existing.quantity || 0) === parseFloat(row.quantity || 0) &&
+                  parseFloat(existing.rate || 0) === parseFloat(row.rate || 0) &&
+                  parseFloat(existing.amount || 0) === parseFloat(row.amount || 0) &&
                   existing.beneficiary_reg_date === row.beneficiary_reg_date
                 );
               });
@@ -1680,9 +1697,10 @@ const handleDelete = async (item) => {
             });
             
             // Also check for duplicates within the uploaded rows themselves
+            // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${row.center_name?.trim()}|${row.supplied_item_name?.trim()}|${row.farmer_name?.trim()}|${String(row.aadhaar_number || '').trim()}|${row.beneficiary_reg_date}`;
+              const key = `${String(row.center_name || '').trim()}|${String(row.scheme_name || '').trim()}|${String(row.unit || '').trim()}|${String(row.supplied_item_name || '').trim()}|${String(row.farmer_name || '').trim()}|${String(row.father_name || '').trim()}|${String(row.category || '').trim()}|${String(row.address || '').trim()}|${String(row.mobile_number || '').trim()}|${String(row.aadhaar_number || '').trim()}|${String(row.bank_account_number || '').trim()}|${String(row.ifsc_code || '').trim()}|${parseFloat(row.quantity || 0)}|${parseFloat(row.rate || 0)}|${parseFloat(row.amount || 0)}|${row.beneficiary_reg_date}`;
               
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
@@ -4066,7 +4084,7 @@ const handleDelete = async (item) => {
                                 {beneficiaries.reduce((sum, item) => {
                                   const qty = parseFloat(item.quantity) || 0;
                                   return sum + qty;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -4076,7 +4094,7 @@ const handleDelete = async (item) => {
                                 {beneficiaries.reduce((sum, item) => {
                                   const rate = parseFloat(item.rate) || 0;
                                   return sum + rate;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -4086,7 +4104,7 @@ const handleDelete = async (item) => {
                                 {beneficiaries.reduce((sum, item) => {
                                   const amount = parseFloat(item.amount) || 0;
                                   return sum + amount;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}

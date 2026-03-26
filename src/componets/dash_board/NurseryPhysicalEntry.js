@@ -33,6 +33,12 @@ const NURSERY_PHYSICAL_API_URL =
 const NURSERY_PHYSICAL_RECIPIENTS_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/nursery-physical-recipients/";
 
+// Utility function to round numbers to 2 decimal places
+const roundTo2Decimals = (value) => {
+  const num = parseFloat(value) || 0;
+  return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+};
+
 // Table columns
 const nurseryPhysicalTableColumns = [
   { key: "nursery_name", label: "नर्सरी का नाम" },
@@ -1307,8 +1313,8 @@ const handleDeleteRecipient = async (item) => {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               crop_name: (row[headerMapping["फसल का नाम"]] || row[headerMapping["crop_name"]] || "").toString().trim(),
               unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
-              allocated_quantity: parseFloat(row[headerMapping["उपलब्ध मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
-              allocated_amount: parseFloat(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
+              allocated_quantity: roundTo2Decimals(row[headerMapping["उपलब्ध मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
+              allocated_amount: roundTo2Decimals(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               rowIndex: rowIndex + 2,
               _originalIndex: rowIndex,
             };
@@ -1349,12 +1355,14 @@ const handleDeleteRecipient = async (item) => {
             
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
+              // Compare only fields that are in the template download
               const isDuplicateWithExisting = existingItems.some(existing => {
-                // Compare key fields to identify duplicate
                 return (
-                  existing.nursery_name?.trim() === row.nursery_name?.trim() &&
-                  existing.crop_name?.trim() === row.crop_name?.trim() &&
-                  existing.unit?.trim() === row.unit?.trim()
+                  String(existing.nursery_name || '').trim() === String(row.nursery_name || '').trim() &&
+                  String(existing.crop_name || '').trim() === String(row.crop_name || '').trim() &&
+                  String(existing.unit || '').trim() === String(row.unit || '').trim() &&
+                  parseFloat(existing.allocated_quantity || 0) === parseFloat(row.allocated_quantity || 0) &&
+                  parseFloat(existing.allocated_amount || 0) === parseFloat(row.allocated_amount || 0)
                 );
               });
               
@@ -1369,9 +1377,10 @@ const handleDeleteRecipient = async (item) => {
             });
             
             // Also check for duplicates within the uploaded rows themselves
+            // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${row.nursery_name?.trim()}|${row.crop_name?.trim()}|${row.unit?.trim()}`;
+              const key = `${String(row.nursery_name || '').trim()}|${String(row.crop_name || '').trim()}|${String(row.unit || '').trim()}|${parseFloat(row.allocated_quantity || 0)}|${parseFloat(row.allocated_amount || 0)}`;
               
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);

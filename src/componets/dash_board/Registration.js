@@ -34,6 +34,12 @@ const FORM_FILTERS_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-form-filters/";
 const CENTERS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/centers/";
 
+// Utility function to round numbers to 2 decimal places
+const roundTo2Decimals = (value) => {
+  const num = parseFloat(value) || 0;
+  return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+};
+
 // Static options for form fields
 const investmentOptions = [
   "भवन निर्माण",
@@ -917,7 +923,7 @@ const Registration = () => {
             const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
             return total + value;
           }, 0);
-          totalRow[columnMapping[col].header] = sum;
+          totalRow[columnMapping[col].header] = parseFloat(sum.toFixed(2));
         } else {
           totalRow[columnMapping[col].header] = "";
         }
@@ -1423,11 +1429,11 @@ const Registration = () => {
               investment_name: (row[headerMapping["निवेश का नाम"]] || row[headerMapping["investment_name"]] || "").toString().trim(),
               sub_investment_name: (row[headerMapping["उप-निवेश का नाम"]] || row[headerMapping["sub_investment_name"]] || "").toString().trim(),
               unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
-              allocated_quantity: parseInt(row[headerMapping["आवंटित मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
-              rate: parseFloat(row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0),
-              amount_of_farmer_share: parseFloat(row[headerMapping["किसान का हिस्सा"]] || row[headerMapping["amount_of_farmer_share"]] || 0),
-              amount_of_subsidy: parseFloat(row[headerMapping["सब्सिडी राशि"]] || row[headerMapping["amount_of_subsidy"]] || 0),
-              total_amount: parseFloat(row[headerMapping["कुल राशि"]] || row[headerMapping["total_amount"]] || 0),
+              allocated_quantity: roundTo2Decimals(row[headerMapping["आवंटित मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
+              rate: roundTo2Decimals(row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0),
+              amount_of_farmer_share: roundTo2Decimals(row[headerMapping["किसान का हिस्सा"]] || row[headerMapping["amount_of_farmer_share"]] || 0),
+              amount_of_subsidy: roundTo2Decimals(row[headerMapping["सब्सिडी राशि"]] || row[headerMapping["amount_of_subsidy"]] || 0),
+              total_amount: roundTo2Decimals(row[headerMapping["कुल राशि"]] || row[headerMapping["total_amount"]] || 0),
               original_bill_date: convertToDisplayFormat(billDateRaw),
               bill_date: billDateISO,
               rowIndex: rowIndex + 2,
@@ -1467,15 +1473,20 @@ const Registration = () => {
             
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
+              // Compare only fields that are in the template download
               const isDuplicateWithExisting = existingItems.some(existing => {
-                // Compare key fields to identify duplicate
                 return (
-                  existing.center_name?.trim() === row.center_name?.trim() &&
-                  existing.investment_name?.trim() === row.investment_name?.trim() &&
-                  existing.sub_investment_name?.trim() === row.sub_investment_name?.trim() &&
-                  existing.unit?.trim() === row.unit?.trim() &&
-                  existing.scheme_name?.trim() === row.scheme_name?.trim() &&
-                  existing.source_of_receipt?.trim() === row.source_of_receipt?.trim() &&
+                  String(existing.center_name || '').trim() === String(row.center_name || '').trim() &&
+                  String(existing.scheme_name || '').trim() === String(row.scheme_name || '').trim() &&
+                  String(existing.source_of_receipt || '').trim() === String(row.source_of_receipt || '').trim() &&
+                  String(existing.investment_name || '').trim() === String(row.investment_name || '').trim() &&
+                  String(existing.sub_investment_name || '').trim() === String(row.sub_investment_name || '').trim() &&
+                  String(existing.unit || '').trim() === String(row.unit || '').trim() &&
+                  parseFloat(existing.allocated_quantity || 0) === parseFloat(row.allocated_quantity || 0) &&
+                  parseFloat(existing.rate || 0) === parseFloat(row.rate || 0) &&
+                  parseFloat(existing.amount_of_farmer_share || 0) === parseFloat(row.amount_of_farmer_share || 0) &&
+                  parseFloat(existing.amount_of_subsidy || 0) === parseFloat(row.amount_of_subsidy || 0) &&
+                  parseFloat(existing.total_amount || 0) === parseFloat(row.total_amount || 0) &&
                   existing.bill_date === row.bill_date
                 );
               });
@@ -1491,9 +1502,10 @@ const Registration = () => {
             });
             
             // Also check for duplicates within the uploaded rows themselves
+            // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${row.center_name?.trim()}|${row.investment_name?.trim()}|${row.sub_investment_name?.trim()}|${row.unit?.trim()}|${row.scheme_name?.trim()}|${row.source_of_receipt?.trim()}|${row.bill_date}`;
+              const key = `${String(row.center_name || '').trim()}|${String(row.scheme_name || '').trim()}|${String(row.source_of_receipt || '').trim()}|${String(row.investment_name || '').trim()}|${String(row.sub_investment_name || '').trim()}|${String(row.unit || '').trim()}|${parseFloat(row.allocated_quantity || 0)}|${parseFloat(row.rate || 0)}|${parseFloat(row.amount_of_farmer_share || 0)}|${parseFloat(row.amount_of_subsidy || 0)}|${parseFloat(row.total_amount || 0)}|${row.bill_date}`;
               
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
@@ -3515,7 +3527,7 @@ const Registration = () => {
                                 {filteredItems.reduce((sum, item) => {
                                   const qty = parseFloat(item.allocated_quantity) || 0;
                                   return sum + qty;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -3525,7 +3537,7 @@ const Registration = () => {
                                 {filteredItems.reduce((sum, item) => {
                                   const rate = parseFloat(item.rate) || 0;
                                   return sum + rate;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -3535,7 +3547,7 @@ const Registration = () => {
                                 {filteredItems.reduce((sum, item) => {
                                   const share = parseFloat(item.amount_of_farmer_share) || 0;
                                   return sum + share;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -3545,7 +3557,7 @@ const Registration = () => {
                                 {filteredItems.reduce((sum, item) => {
                                   const subsidy = parseFloat(item.amount_of_subsidy) || 0;
                                   return sum + subsidy;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -3555,7 +3567,7 @@ const Registration = () => {
                                 {filteredItems.reduce((sum, item) => {
                                   const total = parseFloat(item.total_amount) || 0;
                                   return sum + total;
-                                }, 0)}
+                                }, 0).toFixed(2)}
                               </strong>
                             </td>
                           )}
