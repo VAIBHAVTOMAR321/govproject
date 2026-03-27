@@ -11,7 +11,7 @@ function Home() {
     // If user is already authenticated, redirect based on login type
     if (!isLoading && isAuthenticated) {
       if (user && user.loginType === 'demand') {
-        navigate('/DemandGenerate', { replace: true });
+        navigate('/DemandGenerate/CenterwiseEntry', { replace: true });
       } else {
         navigate('/Dashboard', { replace: true });
       }
