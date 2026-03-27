@@ -2417,9 +2417,9 @@ const Dashboard = () => {
                     {/* Scheme-wise summary (recreated on top) */}
                     <Card className="chart-card mb-4">
                       <Card.Header 
-                        className="chart-card-header bg-primary-gradient" 
+                        className="chart-card-header" 
                         onClick={() => toggleCollapse('scheme')}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', backgroundColor: '#194e8b', color: 'white' }}
                       >
                         <h6 className="mb-0 text-white">
                           <FaTable className="me-2" />
@@ -2474,11 +2474,11 @@ const Dashboard = () => {
                           />
                         </div>
 
-                        <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                        <div style={{ maxHeight: '380px', overflowY: 'auto', position: 'relative' }}>
                           {schemeChartData && schemeChartData.rawData && Object.keys(schemeChartData.rawData).length > 0 ? (
-                            <div className="table-responsive">
+                            <div className="table-responsive" style={{ maxHeight: '340px', overflowY: 'auto' }}>
                               <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.85rem' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', color: 'white' }} className="table-th-heading">
+                                <thead className="table-success" style={{ position: 'sticky', top: 0 }}>
                                   <tr>
                                     <th style={{ width: '40px' }}>#</th>
                                     <th>योजना</th>
@@ -2526,8 +2526,8 @@ const Dashboard = () => {
                     <Card className="chart-card mb-4">
                       <Card.Header 
                         onClick={() => toggleCollapse('vidhanCombined')} 
-                        style={{cursor: 'pointer'}} 
-                        className="chart-card-header bg-primary-gradient"
+                        style={{cursor: 'pointer', backgroundColor: '#194e8b', color: 'white'}} 
+                        className="chart-card-header"
                       >
                         <h6 className="mb-0 text-white">
                           <FaTable className="me-2" />
@@ -2630,11 +2630,11 @@ const Dashboard = () => {
 
                         <Row>
                           <Col lg={12} md={12}>
-                            <div style={{ maxHeight: '420px', overflow: 'auto' }}>
+                            <div style={{ maxHeight: '420px', overflow: 'auto', position: 'relative' }}>
                               {vidhanCombinedTableData.vidhans && vidhanCombinedTableData.vidhans.length > 0 ? (
-                                <div className="table-responsive">
+                                <div className="table-responsive" style={{ maxHeight: '380px', overflowY: 'auto' }}>
                                   <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }}>
+                                    <thead className="table-info" style={{ position: 'sticky', top: 0 }}>
                                       <tr>
                                         <th style={{ width: '40px' }}>#</th>
                                         <th style={{ minWidth: '120px' }}>विधानसभा</th>
@@ -2733,8 +2733,8 @@ const Dashboard = () => {
                     <Card className="chart-card mb-4">
                       <Card.Header 
                         onClick={() => toggleCollapse('centerCombined')} 
-                        style={{cursor: 'pointer'}} 
-                        className="chart-card-header bg-primary-gradient"
+                        style={{cursor: 'pointer', backgroundColor: '#194e8b', color: 'white'}} 
+                        className="chart-card-header"
                       >
                         <h6 className="mb-0 text-white">
                           <FaTable className="me-2" />
@@ -2835,11 +2835,11 @@ const Dashboard = () => {
                           </div>
                         </div>
 
-                        <div style={{ maxHeight: '420px', overflow: 'auto' }}>
+                        <div style={{ maxHeight: '420px', overflow: 'auto', position: 'relative' }}>
                           {centerCombinedTableData.centers && centerCombinedTableData.centers.length > 0 ? (
-                            <div className="table-responsive">
+                            <div className="table-responsive" style={{ maxHeight: '380px', overflowY: 'auto' }}>
                               <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6c757d', color: 'white' }} >
+                                <thead className="table-info" style={{ position: 'sticky', top: 0 }} >
                                   <tr>
                                     <th style={{ width: '40px' }}>#</th>
                                     <th style={{ minWidth: '120px' }}>केंद्र</th>
@@ -2938,8 +2938,8 @@ const Dashboard = () => {
                     <Card className="chart-card mb-4">
                       <Card.Header 
                         onClick={() => toggleCollapse('subInvestment')} 
-                        style={{cursor: 'pointer'}} 
-                        className="chart-card-header bg-primary-gradient"
+                        style={{cursor: 'pointer', backgroundColor: '#194e8b', color: 'white'}} 
+                        className="chart-card-header"
                       >
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
@@ -3042,11 +3042,11 @@ const Dashboard = () => {
 
                         <Row>
                           <Col lg={12} md={12}>
-                            <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                            <div style={{ maxHeight: '400px', overflow: 'auto', position: 'relative' }}>
                               {subCombinedTableData.subInvestments.length > 0 ? (
-                                <div className="table-responsive">
+                                <div className="table-responsive" style={{ maxHeight: '360px', overflowY: 'auto' }}>
                                   <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffc107', color: 'black' }} >
+                                    <thead className="table-warning" style={{ position: 'sticky', top: 0 }} >
                                       <tr>
                                         <th style={{ width: '40px' }}>#</th>
                                         <th style={{ minWidth: '120px' }}>उपनिवेश</th>
@@ -3144,8 +3144,8 @@ const Dashboard = () => {
                     <Card className="chart-card mb-4">
                       <Card.Header 
                         onClick={() => toggleCollapse('investmentCombined')} 
-                        style={{cursor: 'pointer'}} 
-                        className="chart-card-header bg-primary-gradient"
+                        style={{cursor: 'pointer', backgroundColor: '#194e8b', color: 'white'}} 
+                        className="chart-card-header"
                       >
                         <h6 className="mb-0 text-white">
                           <FaChartPie className="me-2" />
@@ -3248,11 +3248,11 @@ const Dashboard = () => {
 
                         <Row>
                           <Col lg={12} md={12}>
-                            <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                            <div style={{ maxHeight: '400px', overflow: 'auto', position: 'relative' }}>
                               {combinedTableData.investments.length > 0 ? (
-                                <div className="table-responsive">
+                                <div className="table-responsive" style={{ maxHeight: '360px', overflowY: 'auto' }}>
                                   <table className="table table-sm table-striped mb-0" style={{ fontSize: '0.75rem', minWidth: '100%' }}>
-                                    <thead style={{ position: 'sticky', top: 0, backgroundColor: '#6f42c1', color: 'white' }}>
+                                    <thead className="table-primary" style={{ position: 'sticky', top: 0 }}>
                                       <tr>
                                         <th style={{ width: '40px' }}>#</th>
                                         <th style={{ minWidth: '120px' }}>निवेश</th>
