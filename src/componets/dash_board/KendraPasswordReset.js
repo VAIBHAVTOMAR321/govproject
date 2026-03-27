@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashBoardHeader from './DashBoardHeader';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const KendraPasswordReset = () => {
   const navigate = useNavigate();
@@ -10,6 +11,8 @@ const KendraPasswordReset = () => {
   const [selectedKendraId, setSelectedKendraId] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -173,28 +176,46 @@ const KendraPasswordReset = () => {
                     
                     <Form.Group className="mb-3" controlId="newPassword">
                       <Form.Label className="reset-label">नया पासवर्ड (New Password)</Form.Label>
-                      <Form.Control
-                        type="password"
-                        value={newPassword}
-                        onChange={handleNewPasswordChange}
-                        isInvalid={!!errors.password}
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.password}
-                      </Form.Control.Feedback>
+                      <InputGroup>
+                        <Form.Control
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={handleNewPasswordChange}
+                          isInvalid={!!errors.password}
+                        />
+                        <Button
+                          variant="outline-secondary"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          style={{ borderColor: errors.password ? '#dc3545' : '#ced4da' }}
+                        >
+                          {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                        </Button>
+                        <Form.Control.Feedback type="invalid">
+                          {errors.password}
+                        </Form.Control.Feedback>
+                      </InputGroup>
                     </Form.Group>
 
                     <Form.Group className="mb-3" controlId="confirmPassword">
                       <Form.Label className="reset-label">पासवर्ड की पुष्टि करें (Confirm Password)</Form.Label>
-                      <Form.Control
-                        type="password"
-                        value={confirmPassword}
-                        onChange={handleConfirmPasswordChange}
-                        isInvalid={!!errors.confirmPassword}
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.confirmPassword}
-                      </Form.Control.Feedback>
+                      <InputGroup>
+                        <Form.Control
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={handleConfirmPasswordChange}
+                          isInvalid={!!errors.confirmPassword}
+                        />
+                        <Button
+                          variant="outline-secondary"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{ borderColor: errors.confirmPassword ? '#dc3545' : '#ced4da' }}
+                        >
+                          {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                        </Button>
+                        <Form.Control.Feedback type="invalid">
+                          {errors.confirmPassword}
+                        </Form.Control.Feedback>
+                      </InputGroup>
                     </Form.Group>
                     
                     <div className="d-flex justify-content-center mt-3 ">
