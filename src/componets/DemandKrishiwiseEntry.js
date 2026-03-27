@@ -620,8 +620,10 @@ const DemandKrishiwiseEntry = () => {
   };
 
   return (
-    <Container fluid className="py-4">
-      <DemandNavigation />
+    <Container fluid className="px-3" style={{ paddingTop: '60px' }}>
+      <div className="mb-3">
+        <DemandNavigation />
+      </div>
       <h4 className="mb-4">{centerData.centerName} - कृषिवाइज एंट्री</h4>
       
       {apiError && <Alert variant="danger">{apiError}</Alert>}

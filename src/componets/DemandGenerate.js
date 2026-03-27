@@ -251,11 +251,20 @@ const DemandGenerate = () => {
   };
 
   return (
-    <Container fluid className="py-4">
-      <DemandNavigation />
+    <Container fluid className="px-3" style={{ paddingTop: '60px' }}>
+      <div className="mb-3">
+        <DemandNavigation />
+      </div>
       <Row className="mb-3">
         <Col>
-          <h4>डिमांड जनरेशन - {centerData.centerName}</h4>
+          <div className="p-3 rounded shadow-sm" style={{ backgroundColor: '#2a4682', color: 'white' }}>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 className="mb-0 fw-bold">डिमांड जनरेशन</h5>
+                <small className="opacity-75">{centerData.centerName}</small>
+              </div>
+            </div>
+          </div>
         </Col>
       </Row>
 
@@ -265,175 +274,186 @@ const DemandGenerate = () => {
       {/* 📋 Demand List */}
       <Row>
         <Col>
-          <Card>
-            <Card.Header>सभी डिमांड</Card.Header>
-            <Card.Body>
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="py-2" style={{ backgroundColor: '#0d9488', color: 'white' }}>
+              <div className="d-flex justify-content-between align-items-center">
+                <span className="fw-bold">सभी डिमांड</span>
+                <span className="badge bg-light text-primary">{demands.length} आइटम</span>
+              </div>
+            </Card.Header>
+            <Card.Body className="p-0">
               {loading ? (
-                <div className="text-center"><Spinner animation="border" /></div>
+                <div className="text-center py-4"><Spinner animation="border" style={{ color: '#0d9488' }} /></div>
               ) : (
-                <Table bordered striped hover responsive>
-                  <thead>
-                    <tr>
-                      <th>S.No.</th>
-                      <th>उपनिवेश</th>
-                      <th>DHO, कोटद्वार का कुल लक्ष्य</th>
-                      <th>दर</th>
-                      <th>राशि</th>
-                      <th>मांगी गई मात्रा</th>
-                      <th>कूल राशि</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {demands.length > 0 ? (
-                      demands.map((d, index) => {
-                        const demandedQty = getDemandedQuantity(d.demand_id);
-                        const isEditing = editingId === d.demand_id;
-                        
-                        // Calculate the temporary amount while editing
-                        const tempAmount = isEditing && editingQuantity 
-                          ? calculateDemandedAmount(d.rate, editingQuantity) 
-                          : null;
-                        
-                        return (
-                          <tr key={d.id}>
-                            <td>{index + 1}</td>
-                            <td>{d.sub_investment_name}</td>
-                            <td>{d.allocated_quantity}</td>
-                            <td>{d.rate}</td>
-                            <td>{d.amount}</td>
-                            <td>
-                              {isEditing ? (
-                                <div>
-                                  <div className="d-flex align-items-center mb-2">
-                                    <Form.Control
-                                      type="number"
-                                      step="0.01"
-                                      value={editingQuantity}
-                                      onChange={(e) => handleDemandedQuantityChange(e, d.allocated_quantity)}
-                                      placeholder="मात्रा दर्ज करें"
-                                      className="me-2"
-                                      isInvalid={!!validationError}
-                                      max={d.allocated_quantity}
-                                    />
-                                    <Button
-                                      variant="primary"
-                                      size="sm"
-                                      onClick={() => handleSaveDemand(d.demand_id, d.allocated_quantity)}
-                                      disabled={isSubmitting || !!validationError}
-                                    >
-                                      {isSubmitting ? (
-                                        <Spinner animation="border" size="sm" />
-                                      ) : (
-                                        <>सबमिट <RiAddLine /></>
-                                      )}
-                                    </Button>
-                                    <Button
-                                      variant="secondary"
-                                      size="sm"
-                                      onClick={cancelEditing}
-                                      className="ms-1"
-                                    >
-                                      रद्द करें
-                                    </Button>
-                                  </div>
-                                  {validationError && (
-                                    <Form.Control.Feedback type="invalid" className="d-block">
-                                      {validationError}
-                                    </Form.Control.Feedback>
-                                  )}
-                                  <Form.Text className="text-muted">
-                                    अधिकतम अनुमत मात्रा: {d.allocated_quantity}
-                                  </Form.Text>
-                                </div>
-                              ) : (
-                                <div className="d-flex align-items-center gap-2 flex-wrap">
-                                  {demandedQty ? (
-                                    <>
-                                      {editingDemandByCenter === getDemandBycentRecord(d.demand_id)?.id ? (
-                                        <div className="d-flex align-items-center gap-2 flex-wrap w-100">
-                                          <Form.Control
-                                            type="number"
-                                            step="0.01"
-                                            value={editingQuantity}
-                                            onChange={(e) => handleDemandedQuantityChange(e, d.allocated_quantity)}
-                                            placeholder="मात्रा दर्ज करें"
-                                            isInvalid={!!validationError}
-                                            max={d.allocated_quantity}
-                                            style={{ width: '120px' }}
-                                          />
-                                          <Button
-                                            variant="success"
-                                            size="sm"
-                                            onClick={() => handleEditDemand(getDemandBycentRecord(d.demand_id).id, d.allocated_quantity)}
-                                            disabled={isSubmitting || !!validationError}
-                                          >
-                                            {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
-                                          </Button>
-                                          <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={cancelEditing}
-                                          >
-                                            ✕
-                                          </Button>
-                                          {validationError && (
-                                            <Form.Control.Feedback type="invalid" className="d-block w-100">
-                                              {validationError}
-                                            </Form.Control.Feedback>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <span className="text-success fw-bold">{demandedQty}</span>
-                                          <Button
-                                            variant="outline-primary"
-                                            size="sm"
-                                            onClick={() => startEditingDemandByCenter(getDemandBycentRecord(d.demand_id))}
-                                            title="संपादित करें"
-                                          >
-                                            ✎
-                                          </Button>
-                                        </>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="text-muted me-2">-</span>
-                                      <Button
-                                        variant="primary"
-                                        size="sm"
-                                        onClick={() => startEditing(d.demand_id)}
-                                      >
-                                        <RiAddLine />
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              {isEditing && tempAmount ? (
-                                <span className="text-primary fw-bold">
-                                  {tempAmount}
-                                </span>
-                              ) : demandedQty ? (
-                                <span className="text-info fw-bold">
-                                  {calculateDemandedAmount(d.rate, demandedQty)}
-                                </span>
-                              ) : (
-                                <span className="text-muted">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
+                <div className="table-responsive">
+                  <Table bordered striped hover responsive className="mb-0 table-sm">
+                    <thead className="table-light">
                       <tr>
-                        <td colSpan="7" className="text-center">कोई डाटा नहीं</td>
+                        <th className="text-center" style={{width: '50px'}}>क्र.सं.</th>
+                        <th>उपनिवेश</th>
+                        <th className="text-nowrap">इकाई</th>
+                        <th className="text-nowrap">कुल लक्ष्य</th>
+                        <th className="text-nowrap">दर</th>
+                        <th className="text-nowrap">राशि</th>
+                        <th className="text-nowrap">मांगी गई मात्रा</th>
+                        <th className="text-nowrap">कूल राशि</th>
                       </tr>
-                    )}
-                  </tbody>
-                </Table>
+                    </thead>
+                    <tbody>
+                      {demands.length > 0 ? (
+                        demands.map((d, index) => {
+                          const demandedQty = getDemandedQuantity(d.demand_id);
+                          const isEditing = editingId === d.demand_id;
+                          
+                          // Calculate the temporary amount while editing
+                          const tempAmount = isEditing && editingQuantity 
+                            ? calculateDemandedAmount(d.rate, editingQuantity) 
+                            : null;
+                          
+                          return (
+                            <tr key={d.id}>
+                              <td className="text-center text-muted">{index + 1}</td>
+                              <td className="text-nowrap">{d.sub_investment_name}</td>
+                              <td><span className="badge" style={{ backgroundColor: '#6b7280', color: 'white' }}>{d.unit || 'नग'}</span></td>
+                              <td className="text-nowrap">{d.allocated_quantity}</td>
+                              <td className="text-nowrap">₹{d.rate}</td>
+                              <td className="text-nowrap">₹{d.amount}</td>
+                              <td style={{minWidth: '180px'}}>
+                                {isEditing ? (
+                                  <div>
+                                    <div className="d-flex align-items-center mb-2">
+                                      <Form.Control
+                                        type="number"
+                                        step="0.01"
+                                        value={editingQuantity}
+                                        onChange={(e) => handleDemandedQuantityChange(e, d.allocated_quantity)}
+                                        placeholder="मात्रा"
+                                        className="me-2"
+                                        isInvalid={!!validationError}
+                                        max={d.allocated_quantity}
+                                        size="sm"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleSaveDemand(d.demand_id, d.allocated_quantity)}
+                                        disabled={isSubmitting || !!validationError}
+                                        style={{ backgroundColor: '#0d9488', borderColor: '#0d9488' }}
+                                      >
+                                        {isSubmitting ? (
+                                          <Spinner animation="border" size="sm" />
+                                        ) : (
+                                          <>सबमिट <RiAddLine /></>
+                                        )}
+                                      </Button>
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={cancelEditing}
+                                        className="ms-1"
+                                      >
+                                        ✕
+                                      </Button>
+                                    </div>
+                                    {validationError && (
+                                      <Form.Control.Feedback type="invalid" className="d-block">
+                                        {validationError}
+                                      </Form.Control.Feedback>
+                                    )}
+                                    <Form.Text className="text-muted small">
+                                      अधिकतम: {d.allocated_quantity}
+                                    </Form.Text>
+                                  </div>
+                                ) : (
+                                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    {demandedQty ? (
+                                      <>
+                                        {editingDemandByCenter === getDemandBycentRecord(d.demand_id)?.id ? (
+                                          <div className="d-flex align-items-center gap-2 flex-wrap w-100">
+                                            <Form.Control
+                                              type="number"
+                                              step="0.01"
+                                              value={editingQuantity}
+                                              onChange={(e) => handleDemandedQuantityChange(e, d.allocated_quantity)}
+                                              placeholder="मात्रा"
+                                              isInvalid={!!validationError}
+                                              max={d.allocated_quantity}
+                                              size="sm"
+                                              style={{ width: '100px' }}
+                                            />
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handleEditDemand(getDemandBycentRecord(d.demand_id).id, d.allocated_quantity)}
+                                              disabled={isSubmitting || !!validationError}
+                                              style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                                            >
+                                              {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
+                                            </Button>
+                                            <Button
+                                              variant="secondary"
+                                              size="sm"
+                                              onClick={cancelEditing}
+                                            >
+                                              ✕
+                                            </Button>
+                                            {validationError && (
+                                              <Form.Control.Feedback type="invalid" className="d-block w-100">
+                                                {validationError}
+                                              </Form.Control.Feedback>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <span className="text-success fw-bold">{demandedQty}</span>
+                                            <Button
+                                              size="sm"
+                                              onClick={() => startEditingDemandByCenter(getDemandBycentRecord(d.demand_id))}
+                                              title="संपादित करें"
+                                              style={{ color: '#0d9488', borderColor: '#0d9488' }}
+                                            >
+                                              ✎
+                                            </Button>
+                                          </>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="text-muted me-2">-</span>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => startEditing(d.demand_id)}
+                                          style={{ backgroundColor: '#0d9488', borderColor: '#0d9488' }}
+                                        >
+                                          <RiAddLine />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="text-nowrap">
+                                {isEditing && tempAmount ? (
+                                  <span className="text-primary fw-bold">
+                                    ₹{tempAmount}
+                                  </span>
+                                ) : demandedQty ? (
+                                  <span className="text-info fw-bold">
+                                    ₹{calculateDemandedAmount(d.rate, demandedQty)}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="8" className="text-center py-4 text-muted">कोई डाटा नहीं</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
               )}
             </Card.Body>
           </Card>

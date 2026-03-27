@@ -636,16 +636,26 @@ const DemandCenterwiseEntry = () => {
   };
 
   return (
-    <Container fluid className="py-4">
-      <DemandNavigation />
-      <h4 className="mb-4">{centerData.centerName} - सेंटरवाइज एंट्री</h4>
+    <Container fluid className="px-3" style={{ paddingTop: '60px' }}>
+      <div className="mb-3">
+        <DemandNavigation />
+      </div>
       
-      {apiError && <Alert variant="danger">{apiError}</Alert>}
+      {/* Professional Header Section */}
+      <div className="text-black rounded-top mb-2" >
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h4 className="mb-0 fw-bold">{centerData.centerName} - सेंटरवाइज एंट्री</h4>
+          </div>
+        </div>
+      </div>
+      
+      {apiError && <Alert variant="danger" className="mb-3">{apiError}</Alert>}
       
       {isLoading && (
         <div className="text-center py-5">
           <Spinner animation="border" variant="primary" />
-          <p className="mt-2">डेटा लोड हो रहा है...</p>
+          <p className="mt-2 text-muted small">डेटा लोड हो रहा है...</p>
         </div>
       )}
       
@@ -657,61 +667,145 @@ const DemandCenterwiseEntry = () => {
       )}
       
       {!isLoading && billingItems.length > 0 && (
-        <div className="mb-4">
-          <h5>सेंटर विवरण:</h5>
-          <div className="d-flex gap-4 flex-wrap">
-            <div className="d-flex flex-column">
-              <span className="fw-bold">केंद्र का नाम:</span>
-              <span>{centerDetails.center_name}</span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-bold">विधानसभा का नाम:</span>
-              <span>{centerDetails.vidhan_sabha_name}</span>
-            </div>
-            <div className="d-flex flex-column">
-              <span className="fw-bold">विकास खंड का नाम:</span>
-              <span>{centerDetails.vikas_khand_name}</span>
-            </div>
-          </div>
-        </div>
+        <>
+          {/* Center Details Cards - Shown First */}
+          <Row className="g-2 mb-3">
+            <Col xs={12} md={4}>
+              <div className="border rounded p-3 bg-white shadow-sm">
+                <small className="text-muted d-block">केंद्र का नाम</small>
+                <strong className="text-primary h6">{centerDetails.center_name}</strong>
+              </div>
+            </Col>
+            <Col xs={12} md={4}>
+              <div className="border rounded p-3 bg-white shadow-sm">
+                <small className="text-muted d-block">विधानसभा</small>
+                <strong className="h6">{centerDetails.vidhan_sabha_name}</strong>
+              </div>
+            </Col>
+            <Col xs={12} md={4}>
+              <div className="border rounded p-3 bg-white shadow-sm">
+                <small className="text-muted d-block">विकास खंड</small>
+                <strong className="h6">{centerDetails.vikas_khand_name}</strong>
+              </div>
+            </Col>
+          </Row>
+
+          {/* Summary Cards Section */}
+          <Row className="g-2 mb-3">
+            <Col xs={6} md={3}>
+              <div className="border rounded p-3 bg-primary text-white shadow-sm">
+                <div className="d-flex align-items-center">
+                  <div className="me-2" style={{fontSize: '24px'}}>📋</div>
+                  <div>
+                    <div className="h4 mb-0 fw-bold">{billingItems.length}</div>
+                    <small>कुल रिकॉर्ड</small>
+                  </div>
+                </div>
+              </div>
+            </Col>
+            <Col xs={6} md={3}>
+              <div className="border rounded p-3 bg-success text-white shadow-sm">
+                <div className="d-flex align-items-center">
+                  <div className="me-2" style={{fontSize: '24px'}}>💰</div>
+                  <div>
+                    <div className="h6 mb-0 fw-bold">₹{filteredData.reduce((acc, item) => (parseFloat(item.total_amount) || 0) + acc, 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                    <small>कुल राशि</small>
+                  </div>
+                </div>
+              </div>
+            </Col>
+            <Col xs={6} md={3}>
+              <div className="border rounded p-3 bg-info text-white shadow-sm">
+                <div className="d-flex align-items-center">
+                  <div className="me-2" style={{fontSize: '24px'}}>🏛️</div>
+                  <div>
+                    <div className="h6 mb-0 fw-bold">₹{filteredData.reduce((acc, item) => (parseFloat(item.amount_of_subsidy) || 0) + acc, 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                    <small>सब्सिडी राशि</small>
+                  </div>
+                </div>
+              </div>
+            </Col>
+            <Col xs={6} md={3}>
+              <div className="border rounded p-3 bg-warning text-white shadow-sm">
+                <div className="d-flex align-items-center">
+                  <div className="me-2" style={{fontSize: '24px'}}>👨‍🌾</div>
+                  <div>
+                    <div className="h6 mb-0 fw-bold">₹{filteredData.reduce((acc, item) => (parseFloat(item.amount_of_farmer_share) || 0) + acc, 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                    <small>किसान हिस्सा</small>
+                  </div>
+                </div>
+              </div>
+            </Col>
+          </Row>
+          
+          <Row className="g-2 mb-3">
+            <Col xs={6} md={3}>
+              <div className="border rounded p-2 bg-light shadow-sm">
+                <small className="text-muted d-block">योजनाएं</small>
+                <strong className="text-primary">{new Set(filteredData.map(i => i.scheme_name)).size}</strong>
+              </div>
+            </Col>
+            <Col xs={6} md={3}>
+              <div className="border rounded p-2 bg-light shadow-sm">
+                <small className="text-muted d-block">निवेश</small>
+                <strong className="text-success">{new Set(filteredData.map(i => i.investment_name)).size}</strong>
+              </div>
+            </Col>
+            <Col xs={6} md={3}>
+              <div className="border rounded p-2 bg-light shadow-sm">
+                <small className="text-muted d-block">उप-निवेश</small>
+                <strong className="text-info">{new Set(filteredData.map(i => i.sub_investment_name)).size}</strong>
+              </div>
+            </Col>
+            <Col xs={6} md={3}>
+              <div className="border rounded p-2 bg-light shadow-sm">
+                <small className="text-muted d-block">कुल मात्रा</small>
+                <strong className="text-warning">{filteredData.reduce((acc, item) => (parseFloat(item.allocated_quantity) || 0) + acc, 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong>
+              </div>
+            </Col>
+          </Row>
+        </>
       )}
 
       {/* Date Range Filter */}
       {!isLoading && billingItems.length > 0 && !tableVisible && (
-        <div className="mb-4 p-4 border rounded bg-light">
-          <h5 className="mb-3">तारीख सीमा चुनें:</h5>
-          <Row className="align-items-end">
-            <Col md={4} className="mb-3">
+        <div className="mb-3 p-3 border rounded bg-white shadow-sm">
+          <h6 className="mb-3 text-muted"><span className="text-warning me-2">📅</span>तारीख सीमा चुनें:</h6>
+          <Row className="align-items-end g-2">
+            <Col md={5} xs={12}>
               <Form.Group controlId="fromDate">
-                <Form.Label>से</Form.Label>
+                <Form.Label className="small text-muted mb-1">से</Form.Label>
                 <Form.Control
                   type="date"
                   name="fromDate"
                   value={dateRange.fromDate}
                   onChange={handleDateRangeChange}
                   required
+                  size="sm"
                 />
               </Form.Group>
             </Col>
-            <Col md={4} className="mb-3">
+            <Col md={5} xs={12}>
               <Form.Group controlId="toDate">
-                <Form.Label>तक</Form.Label>
+                <Form.Label className="small text-muted mb-1">तक</Form.Label>
                 <Form.Control
                   type="date"
                   name="toDate"
                   value={dateRange.toDate}
                   onChange={handleDateRangeChange}
                   required
+                  size="sm"
                 />
               </Form.Group>
             </Col>
-            <Col md={4} className="mb-3">
+            <Col md={2} xs={12}>
               <Button
                 variant="primary"
                 onClick={applyDateRangeFilter}
-                className="w-100"
+                className="w-100 btn-sm"
+                size="sm"
               >
-                डेटा दिखाएं
+                <span className="text-primary me-1">🔍</span> दिखाएं
               </Button>
             </Col>
           </Row>
@@ -721,159 +815,202 @@ const DemandCenterwiseEntry = () => {
       {/* Filters and Table */}
       {tableVisible && (
         <>
-          <div className="mb-4 p-4 border rounded bg-light">
-            <h5 className="mb-3">फिल्टर्स:</h5>
-            <Row>
-              <Col md={6} className="mb-3">
+          <div className="mb-3 p-3 border rounded bg-white shadow-sm">
+            <h6 className="mb-3 text-muted"><span className="text-info me-2">⚙️</span>फिल्टर्स:</h6>
+            <Row className="g-2">
+              <Col md={3} xs={6}>
                 <Form.Group controlId="fromDate">
-                  <Form.Label>कब से</Form.Label>
+                  <Form.Label className="small text-muted mb-1">कब से</Form.Label>
                   <Form.Control
                     type="date"
                     name="fromDate"
                     value={dateRange.fromDate}
                     onChange={handleDateRangeChange}
+                    size="sm"
                   />
                 </Form.Group>
               </Col>
-              <Col md={6} className="mb-3">
+              <Col md={3} xs={6}>
                 <Form.Group controlId="toDate">
-                  <Form.Label>कब तक</Form.Label>
+                  <Form.Label className="small text-muted mb-1">कब तक</Form.Label>
                   <Form.Control
                     type="date"
                     name="toDate"
                     value={dateRange.toDate}
                     onChange={handleDateRangeChange}
+                    size="sm"
                   />
                 </Form.Group>
               </Col>
-              <Col md={6} className="mb-3">
+              <Col md={2} xs={6}>
                 <Form.Group controlId="investmentName">
-                  <Form.Label>निवेश का नाम</Form.Label>
+                  <Form.Label className="small text-muted mb-1">निवेश</Form.Label>
                   <Select
                     isMulti
                     value={investmentOptions.filter(opt => selectedInvestments.includes(opt)).map(opt => ({ value: opt, label: opt }))}
                     options={investmentOptions.map(opt => ({ value: opt, label: opt }))}
                     onChange={handleInvestmentChange}
-                    placeholder="निवेश का नाम चुनें"
-                    className="mb-2"
+                    placeholder="चुनें"
+                    classNamePrefix="react-select"
+                    styles={{ fontSize: '12px' }}
                   />
                 </Form.Group>
               </Col>
-              <Col md={6} className="mb-3">
+              <Col md={2} xs={6}>
                 <Form.Group controlId="subInvestmentName">
-                  <Form.Label>उप-निवेश का नाम</Form.Label>
+                  <Form.Label className="small text-muted mb-1">उप-निवेश</Form.Label>
                   <Select
                     isMulti
                     value={subInvestmentOptions.filter(opt => selectedSubInvestments.includes(opt)).map(opt => ({ value: opt, label: opt }))}
                     options={subInvestmentOptions.map(opt => ({ value: opt, label: opt }))}
                     onChange={handleSubInvestmentChange}
-                    placeholder="उप-निवेश का नाम चुनें"
-                    className="mb-2"
+                    placeholder="चुनें"
+                    classNamePrefix="react-select"
                   />
                 </Form.Group>
               </Col>
-              <Col md={6} className="mb-3">
+              <Col md={2} xs={6}>
                 <Form.Group controlId="schemeName">
-                  <Form.Label>योजना का नाम</Form.Label>
+                  <Form.Label className="small text-muted mb-1">योजना</Form.Label>
                   <Select
                     isMulti
                     value={schemeOptions.filter(opt => selectedSchemes.includes(opt)).map(opt => ({ value: opt, label: opt }))}
                     options={schemeOptions.map(opt => ({ value: opt, label: opt }))}
                     onChange={handleSchemeChange}
-                    placeholder="योजना का नाम चुनें"
-                    className="mb-2"
+                    placeholder="चुनें"
+                    classNamePrefix="react-select"
                   />
                 </Form.Group>
               </Col>
             </Row>
           </div>
 
-          <ColumnSelection
-            columns={billingTableColumns}
-            selectedColumns={selectedColumns}
-            setSelectedColumns={setSelectedColumns}
-            title="स्तंभ चयन करें"
-          />
+          <div className="mb-3 p-2 border rounded bg-light">
+            <Row className="align-items-center">
+              <Col md={6}>
+                <h6 className="mb-0 text-muted"><span className="text-secondary me-2">📊</span>स्तंभ चयन</h6>
+              </Col>
+              <Col md={6} className="text-end">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => setSelectedColumns(billingTableColumns.map((col) => col.key))}
+                  className="me-1"
+                >
+                  सभी
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={() => setSelectedColumns([])}
+                >
+                  हटाएं
+                </Button>
+              </Col>
+            </Row>
+            <div className="d-flex flex-wrap mt-2">
+              {billingTableColumns.map((col) => (
+                <Form.Check
+                  key={col.key}
+                  type="checkbox"
+                  id={`col-${col.key}`}
+                  checked={selectedColumns.includes(col.key)}
+                  onChange={() => {
+                    if (selectedColumns.includes(col.key)) {
+                      setSelectedColumns(selectedColumns.filter((c) => c !== col.key));
+                    } else {
+                      setSelectedColumns([...selectedColumns, col.key]);
+                    }
+                  }}
+                  className="me-2 mb-1"
+                  label={<span className="small">{col.label}</span>}
+                />
+              ))}
+            </div>
+          </div>
 
-          <div className="mb-3 d-flex gap-2">
+          <div className="mb-3 d-flex gap-2 flex-wrap">
             <Button
               variant="success"
+              size="sm"
               onClick={() => downloadExcel(filteredData, "CenterwiseEntry", billingTableColumnMapping, selectedColumns)}
-              className="d-flex align-items-center gap-2"
+              className="d-flex align-items-center gap-1"
             >
-              <FaFileExcel /> Excel डाउनलोड करें
+              <FaFileExcel /> Excel
             </Button>
             <Button
               variant="danger"
+              size="sm"
               onClick={() => downloadPdf(filteredData, "CenterwiseEntry", billingTableColumnMapping, selectedColumns, `${centerData.centerName} - सेंटरवाइज एंट्री`)}
-              className="d-flex align-items-center gap-2"
+              className="d-flex align-items-center gap-1"
             >
-              <FaFilePdf /> PDF डाउनलोड करें
+              <FaFilePdf /> PDF
             </Button>
           </div>
           
-          <Table striped bordered hover className="registration-form">
-            <thead className="table-light">
-              <tr>
-                <th>क्र.सं.</th>
-                {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => (
-                  <th key={col.key}>{col.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="tbl-body">
-              {currentItems.map((item, index) => (
-                <tr key={item.id || index}>
-                  <td>
-                    {indexOfFirstItem + index + 1}
-                  </td>
+          <div className="table-responsive border rounded">
+            <Table striped bordered hover className="mb-0 table-sm">
+              <thead className="table-dark">
+                <tr>
+                  <th className="text-center" style={{width: '50px'}}>क्र.सं.</th>
                   {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => (
-                    <td key={col.key}>
-                      {billingTableColumnMapping[col.key].accessor(item, index)}
-                    </td>
+                    <th key={col.key} className="text-nowrap">{col.label}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="table-total-row">
-                <td><strong>कुल</strong></td>
-                {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => {
-                  if (col.key === "amount_of_farmer_share" || col.key === "amount_of_subsidy" || col.key === "total_amount" || col.key === "allocated_quantity") {
-                    const sum = filteredData.reduce((acc, item) => {
-                      const value = parseFloat(item[col.key]) || 0;
-                      return acc + value;
-                    }, 0);
-                    return (
-                      <td key={col.key}>
-                        <strong>{sum.toFixed(2)}</strong>
+              </thead>
+              <tbody>
+                {currentItems.map((item, index) => (
+                  <tr key={item.id || index}>
+                    <td className="text-center text-muted">
+                      {indexOfFirstItem + index + 1}
+                    </td>
+                    {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => (
+                      <td key={col.key} className="text-nowrap">
+                        {billingTableColumnMapping[col.key].accessor(item, index)}
                       </td>
-                    );
-                  } else if (col.key === "investment_name" || col.key === "sub_investment_name" || col.key === "unit" || col.key === "scheme_name") {
-                    const uniqueValues = new Set(filteredData.map(item => item[col.key])).size;
-                    return (
-                      <td key={col.key}>
-                        <strong>{uniqueValues}</strong>
-                      </td>
-                    );
-                  } else if (col.key === "rate") {
-                    // Do not show total for rate column
-                    return <td key={col.key}></td>;
-                  } else {
-                    return <td key={col.key}></td>;
-                  }
-                })}
-              </tr>
-            </tfoot>
-          </Table>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="table-light">
+                <tr>
+                  <td className="text-center"><strong>कुल</strong></td>
+                  {billingTableColumns.filter(col => selectedColumns.includes(col.key)).map((col) => {
+                    if (col.key === "amount_of_farmer_share" || col.key === "amount_of_subsidy" || col.key === "total_amount" || col.key === "allocated_quantity") {
+                      const sum = filteredData.reduce((acc, item) => {
+                        const value = parseFloat(item[col.key]) || 0;
+                        return acc + value;
+                      }, 0);
+                      return (
+                        <td key={col.key} className="text-nowrap">
+                          <strong>{sum.toFixed(2)}</strong>
+                        </td>
+                      );
+                    } else if (col.key === "investment_name" || col.key === "sub_investment_name" || col.key === "unit" || col.key === "scheme_name") {
+                      const uniqueValues = new Set(filteredData.map(item => item[col.key])).size;
+                      return (
+                        <td key={col.key}>
+                          <strong>{uniqueValues}</strong>
+                        </td>
+                      );
+                    } else if (col.key === "rate") {
+                      return <td key={col.key}></td>;
+                    } else {
+                      return <td key={col.key}></td>;
+                    }
+                  })}
+                </tr>
+              </tfoot>
+            </Table>
+          </div>
           
           {/* Pagination controls */}
           {filteredData.length > itemsPerPage && (
             <div className="mt-3">
-              <div className="small-fonts mb-3 text-center">
-                पृष्ठ {currentPage} का {totalPages}
+              <div className="small text-muted mb-2 text-center">
+                पृष्ठ {currentPage} का {totalPages} | कुल {filteredData.length} रिकॉर्ड
               </div>
-              <Pagination className="d-flex justify-content-center">
+              <Pagination className="d-flex justify-content-center mb-0">
                 <Pagination.Prev
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
@@ -891,8 +1028,8 @@ const DemandCenterwiseEntry = () => {
 
       {/* No data message when table is visible but no data matches filters */}
       {tableVisible && filteredData.length === 0 && (
-        <Alert variant="info" className="text-center">
-          कोई बिलिंग आइटम डेटा उपलब्ध नहीं है।
+        <Alert variant="warning" className="text-center mb-0">
+          <span className="text-warning me-2">⚠️</span>कोई बिलिंग आइटम डेटा उपलब्ध नहीं है।
         </Alert>
       )}
     </Container>

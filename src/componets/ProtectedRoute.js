@@ -27,9 +27,9 @@ const ProtectedRoute = ({ children, allowedLoginTypes }) => {
   if (allowedLoginTypes && allowedLoginTypes.length > 0) {
     const loginType = (user && user.loginType) || 'admin';
     if (!allowedLoginTypes.includes(loginType)) {
-      // If user is a demand user, send them to DemandGenerate
+      // If user is a demand user, send them to DemandGenerate/CenterwiseEntry
       if (loginType === 'demand') {
-        return <Navigate to="/DemandGenerate" replace />;
+        return <Navigate to="/DemandGenerate/CenterwiseEntry" replace />;
       }
       // If user is a nursery user, send them to NurseryPhysicalEntry
       if (loginType === 'nursery') {

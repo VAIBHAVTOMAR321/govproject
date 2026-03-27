@@ -13,30 +13,30 @@ export default function Login() {
 
   // Kenra names for demand generate login
   const kenraNames = [
+    "कोटद्वार",
     "किनगोड़िखाल",
-    "हल्दूखाल",
+    "चौखाल",
     "धुमाकोट",
-    "सिसल्ड़ी",
-    "सेंधीखाल",
+    "बीरोंखाल",
+    "हल्दूखाल",
+    "किल्वोंखाल",
+    "चेलूसैंण",
     "जयहरीखाल",
     "जेठागांव",
     "देवियोंखाल",
-    "किल्वोंखाल",
-    "बीरोंखाल",
-    "वेदीखाल",
-    "पोखड़ा",
+    "सिलोगी",
+    "सिसल्ड़ी",
+    "पौखाल",
+    "सतपुली",
     "संगलाकोटी",
     "देवराजखाल",
-    "चौखाल",
+    "पोखड़ा",
+    "वेदीखाल",
+    "विथ्याणी",
     "गंगाभोगपुर",
     "दिउली",
     "दुगड्डा",
-    "बिथ्याणी",
-    "चैलूसैंण",
-    "सिलोगी",
-    "कोटद्वार",
-    "सतपुली",
-    "पौखाल"
+    "सेंधीखाल"
   ];
 
   // Login type state
@@ -75,7 +75,7 @@ export default function Login() {
       const timer = setTimeout(() => {
         // Redirect based on loginType stored in auth user object
         if (user && user.loginType === 'demand') {
-          navigate('/DemandGenerate', { replace: true });
+          navigate('/DemandGenerate/CenterwiseEntry', { replace: true });
         } else if (user && user.loginType === 'nursery') {
           navigate('/NurseryPhysicalEntry', { replace: true });
         } else {
