@@ -1324,23 +1324,23 @@ const Dashboard = () => {
       </style>
       <div style="font-family: 'Noto Sans Devanagari', 'Mangal', Arial, sans-serif; padding: 20px; color: #333;">
         <!-- Header -->
-        <div style="text-align: center; border-bottom: 3px solid #194e8b; padding-bottom: 15px; margin-bottom: 20px; page-break-inside: avoid;">
-          <h1 style="color: #194e8b; font-size: 24px; margin: 0;">DHO कोटद्वार बिलिंग रिपोर्ट</h1>
-          <p style="color: #666; font-size: 12px; margin: 5px 0 0 0;">रिपोर्ट तिथि: ${currentDate}</p>
-          <p style="color: #888; font-size: 11px; margin: 3px 0 0 0;">फ़िल्टर: ${getFilterStatusText()}</p>
+        <div style="text-align: center; border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 20px; page-break-inside: avoid;">
+          <h1 style="color: #000; font-size: 24px; margin: 0;">DHO कोटद्वार बिलिंग रिपोर्ट</h1>
+          <p style="color: #000; font-size: 12px; margin: 5px 0 0 0;">रिपोर्ट तिथि: ${currentDate}</p>
+          <p style="color: #000; font-size: 11px; margin: 3px 0 0 0;">फ़िल्टर: ${getFilterStatusText()}</p>
         </div>
 
         <!-- Summary Section -->
         <div style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h2 style="color: #194e8b; font-size: 16px; border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-bottom: 10px;">सारांश</h2>
+          <h2 style="color: #000; font-size: 16px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;">सारांश</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
             <thead>
-              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5);">
-                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">कुल रिकॉर्ड</th>
-                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">आवंटित मात्रा</th>
-                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">किसान हिस्सेदारी</th>
-                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">सब्सिडी</th>
-                <th style="border: 1px solid #ddd; padding: 10px; color: white; text-align: center;">कुल राशि</th>
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">कुल रिकॉर्ड</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">आवंटित मात्रा</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">किसान हिस्सेदारी</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">सब्सिडी</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">कुल राशि</th>
               </tr>
             </thead>
             <tbody>
@@ -1358,10 +1358,10 @@ const Dashboard = () => {
          <!-- Scheme-wise Section (from UI aggregations) -->
          ${openCollapses.includes('scheme') ? `
          <div style="margin-bottom: 20px; page-break-inside: avoid;">
-           <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">योजना-वार कुल सब्सिडी तुलना</h2>
+           <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">योजना-वार कुल सब्सिडी तुलना</h2>
            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
              <thead>
-               <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+               <tr style=" color:#000;">
                  <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">#</th>
                  <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">योजना</th>
                  <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">आवंटित मात्रा</th>
@@ -1399,14 +1399,14 @@ const Dashboard = () => {
         <!-- Investment-wise Section (from UI aggregations) -->
         ${openCollapses.includes('investment') ? `
         <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">उपनिवेश के अनुसार - कुल सब्सिडी तुलना</h2>
+          <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">उपनिवेश के अनुसार - कुल सब्सिडी तुलना</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
-              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
-                <th style="border:1px solid #ddd; padding:6px;">#</th>
-                <th style="border:1px solid #ddd; padding:6px; text-align:left;">उपनिवेश</th>
-                <th style="border:1px solid #ddd; padding:6px; text-align:right;">आवंटित मात्रा</th>
-                <th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
+              <tr style="background: #ffffff; color: #000000;">
+                <th style="border:1px solid #ddd; padding:6px; color: #000000;">#</th>
+                <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:left;">उपनिवेश</th>
+                <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:right;">आवंटित मात्रा</th>
+                <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
               </tr>
             </thead>
             <tbody>
@@ -1433,10 +1433,10 @@ const Dashboard = () => {
          <!-- Sub-investment Scheme Section (matrix with मात्रा + selectedRashi) -->
          ${openCollapses.includes('subInvestment') ? `
          <div style="margin-bottom: 20px; page-break-inside: avoid;">
-           <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">उपनिवेश - योजना तुलना</h2>
+           <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">उपनिवेश - योजना तुलना</h2>
            <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
              <thead>
-               <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+               <tr style=" color: #000;">
                  <th style="border:1px solid #ddd; padding:6px;">#</th>
                  <th style="border:1px solid #ddd; padding:6px; text-align:left;">उपनिवेश</th>
                  ${subCombined.schemes.filter(s => selectedSubInvestmentSchemes.length === 0 || selectedSubInvestmentSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
@@ -1481,10 +1481,10 @@ const Dashboard = () => {
         <!-- Center-wise Subsidy Comparison Table -->
         ${openCollapses.includes('center') ? `
         <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार राशि तुलना</h2>
+          <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार राशि तुलना</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
-              <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+              <tr style=" color: #000;">
                 <th style="border:1px solid #ddd; padding:6px;">#</th>
                 <th style="border:1px solid #ddd; padding:6px; text-align:left;">केंद्र</th>
                 <th style="border:1px solid #ddd; padding:6px; text-align:right;">आवंटित मात्रा</th>
@@ -1515,10 +1515,10 @@ const Dashboard = () => {
          <!-- Center-Scheme Combined Section (matrix with मात्रा + selectedRashi) -->
          ${openCollapses.includes('centerCombined') ? `
          <div style="margin-bottom: 20px; page-break-inside: avoid;">
-           <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार योजना-वार तुलना</h2>
+           <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार योजना-वार तुलना</h2>
            <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
              <thead>
-               <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+               <tr style=" color:#000;">
                  <th style="border:1px solid #ddd; padding:6px;">#</th>
                  <th style="border:1px solid #ddd; padding:6px; text-align:left;">केंद्र</th>
                  ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
@@ -1563,7 +1563,7 @@ const Dashboard = () => {
         <!-- Vidhan Sabha-wise Subsidy Comparison Table -->
         ${openCollapses.includes('vidhan') ? `
         <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार राशि तुलना</h2>
+          <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार राशि तुलना</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
               <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
@@ -1597,10 +1597,10 @@ const Dashboard = () => {
          <!-- Vidhan Sabha Section (from UI aggregations) -->
          ${openCollapses.includes('vidhanCombined') ? `
          <div style="margin-bottom: 20px; page-break-inside: avoid;">
-           <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार - योजना-वार तुलना</h2>
+           <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार - योजना-वार तुलना</h2>
            <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
              <thead>
-               <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
+               <tr style=" color:#000;">
                  <th style="border:1px solid #ddd; padding:6px;">#</th>
                  <th style="border:1px solid #ddd; padding:6px; text-align:left;">विधानसभा</th>
                  ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
@@ -1648,7 +1648,7 @@ const Dashboard = () => {
            <h2 style="color: #17a2b8; font-size: 16px; border-bottom: 2px solid #17a2b8; padding-bottom: 5px; margin-bottom: 10px;">निवेश के अनुसार ग्राफ़ - ${rashiColumnLabelExcel[selectedRashi]}</h2>
            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
              <thead>
-               <tr style="background: linear-gradient(135deg, #17a2b8, #20c997);">
+               <tr>
                  <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">#</th>
                  <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">निवेश नाम</th>
                  <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: right;">आवंटित मात्रा</th>
@@ -1686,20 +1686,20 @@ const Dashboard = () => {
           <!-- Combined Investment-Scheme Section (matrix with मात्रा + सब्सिडी) -->
           ${openCollapses.includes('investmentCombined') ? `
           <div style="margin-bottom: 20px; page-break-inside: avoid;">
-            <h2 style="color: #194e8b; font-size: 15px; border-bottom: 2px solid #194e8b; padding-bottom: 5px; margin-bottom: 8px;">निवेश - योजना तुलना</h2>
+            <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">निवेश - योजना तुलना</h2>
             <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
               <thead>
-                <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
-                  <th style="border:1px solid #ddd; padding:6px;">#</th>
-                  <th style="border:1px solid #ddd; padding:6px; text-align:left;">निवेश</th>
-                  ${combined.schemes.filter(s => selectedMainInvestmentSchemes.length === 0 || selectedMainInvestmentSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
-                  <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+                <tr style="background: #ffffff; color: black;">
+                  <th style="border:1px solid #ddd; padding:6px; color: black;">#</th>
+                  <th style="border:1px solid #ddd; padding:6px; color: black; text-align:left;">निवेश</th>
+                  ${combined.schemes.filter(s => selectedMainInvestmentSchemes.length === 0 || selectedMainInvestmentSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; color: black; text-align:center;" colspan="2">${s}</th>`).join('')}
+                  <th style="border:1px solid #ddd; padding:6px; color: black; text-align:center;" colspan="2">कुल</th>
                 </tr>
-                <tr style="background:#e9eef8;">
-                  <th></th>
-                  <th></th>
-                  ${combined.schemes.filter(s => selectedMainInvestmentSchemes.length === 0 || selectedMainInvestmentSchemes.some(selected => selected.value === s)).map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
-                  <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                <tr style="background:#ffffff; color: black;">
+                  <th style="border:1px solid #ddd; padding:6px; color: black;"></th>
+                  <th style="border:1px solid #ddd; padding:6px; color: black;"></th>
+                  ${combined.schemes.filter(s => selectedMainInvestmentSchemes.length === 0 || selectedMainInvestmentSchemes.some(selected => selected.value === s)).map(() => `<th style="border:1px solid #ddd; padding:6px; color: black; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; color: black; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
+                  <th style="border:1px solid #ddd; padding:6px; color: black; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; color: black; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1717,8 +1717,8 @@ const Dashboard = () => {
                 `).join('')}
               </tbody>
               <tfoot>
-                <tr style="font-weight:700; background:#f1f5f9;">
-                  <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                <tr style="background: #f8f9fa; color: #000000;">
+                  <td colSpan="2" style="border:1px solid #ddd; padding:6px; color: #000000;">कुल</td>
                   ${combined.schemes.filter(s => selectedMainInvestmentSchemes.length === 0 || selectedMainInvestmentSchemes.some(selected => selected.value === s)).map(s => `
                     <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(combined.investments.filter(inv => selectedMainInvestments.length === 0 || selectedMainInvestments.some(selected => selected.value === inv)).reduce((sum, inv) => sum + (((combined.data[inv] && combined.data[inv][s]) && combined.data[inv][s].quantity) || 0),0)).toFixed(2)}</td>
                     <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(combined.investments.filter(inv => selectedMainInvestments.length === 0 || selectedMainInvestments.some(selected => selected.value === inv)).reduce((sum, inv) => sum + (((combined.data[inv] && combined.data[inv][s]) && combined.data[inv][s][selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
