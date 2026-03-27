@@ -1264,15 +1264,15 @@ const Dashboard = () => {
     const pdfContent = `
       <style>
         @page {
-          margin: 15mm 10mm 15mm 10mm;
-          size: A4;
+          margin: 12mm 10mm 12mm 10mm;
+          size: A4 landscape;
         }
         
         /* Prevent headings from breaking across pages */
         h1, h2 {
           page-break-after: avoid;
           page-break-inside: avoid;
-          margin-top: 20px !important;
+          margin-top: 18px !important;
           margin-bottom: 10px !important;
         }
         
@@ -1300,6 +1300,7 @@ const Dashboard = () => {
         /* Keep table headers with their tables */
         table {
           page-break-inside: auto;
+          width: 100%;
         }
         
         /* Prevent table headers from being orphaned */
@@ -1516,44 +1517,44 @@ const Dashboard = () => {
          ${openCollapses.includes('centerCombined') ? `
          <div style="margin-bottom: 20px; page-break-inside: avoid;">
            <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">केंद्र के अनुसार योजना-वार तुलना</h2>
-           <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+           <table style="width: 100%; border-collapse: collapse; font-size: 8px; table-layout: fixed;">
              <thead>
                <tr style=" color:#000;">
-                 <th style="border:1px solid #ddd; padding:6px;">#</th>
-                 <th style="border:1px solid #ddd; padding:6px; text-align:left;">केंद्र</th>
-                 ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
-                 <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+                 <th style="border:1px solid #ddd; padding:5px; width:35px;">#</th>
+                 <th style="border:1px solid #ddd; padding:5px; text-align:left;">केंद्र</th>
+                 ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:5px; text-align:center;" colspan="2">${s.substring(0, 18)}${s.length > 18 ? '..' : ''}</th>`).join('')}
+                 <th style="border:1px solid #ddd; padding:5px; text-align:center;" colspan="2">कुल</th>
                </tr>
                <tr style="background:#e9eef8;">
                  <th></th>
                  <th></th>
-                 ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
-                 <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                 ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(() => `<th style="border:1px solid #ddd; padding:5px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:5px; text-align:right;">राशि</th>`).join('')}
+                 <th style="border:1px solid #ddd; padding:5px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:5px; text-align:right;">राशि</th>
                </tr>
              </thead>
              <tbody>
                ${centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).map((c, idx) => `
                  <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
-                   <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
-                   <td style="border:1px solid #ddd; padding:6px;">${c}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:center;">${idx+1}</td>
+                   <td style="border:1px solid #ddd; padding:5px;">${c.substring(0, 22)}${c.length > 22 ? '..' : ''}</td>
                    ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(s => `
-                     <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0).toFixed(2)}</td>
-                     <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                     <td style="border:1px solid #ddd; padding:5px; text-align:right;">${(((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0).toFixed(2)}</td>
+                     <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${(((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                    `).join('')}
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0), 0)).toFixed(2)}</td>
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">${(centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0), 0)).toFixed(2)}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${(centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                  </tr>
                `).join('')}
              </tbody>
              <tfoot>
                <tr style="font-weight:700; background:#f1f5f9;">
-                 <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                 <td colSpan="2" style="border:1px solid #ddd; padding:5px;">कुल</td>
                  ${centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).map(s => `
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0),0)).toFixed(2)}</td>
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">${(centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0),0)).toFixed(2)}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${(centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0),0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                  `).join('')}
-                 <td style="border:1px solid #ddd; padding:6px; text-align:right;">${centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0), 0), 0).toFixed(2)}</td>
-                 <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0), 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                 <td style="border:1px solid #ddd; padding:5px; text-align:right;">${centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s].quantity) || 0), 0), 0).toFixed(2)}</td>
+                 <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${centerCombined.centers.filter(c => selectedCenters.length === 0 || selectedCenters.some(selected => selected.value === c)).reduce((sum, c) => sum + centerCombined.schemes.filter(s => selectedCenterSchemes.length === 0 || selectedCenterSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((centerCombined.data[c] && centerCombined.data[c][s]) && centerCombined.data[c][s][selectedRashi]) || 0), 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                </tr>
              </tfoot>
            </table>
@@ -1598,44 +1599,44 @@ const Dashboard = () => {
          ${openCollapses.includes('vidhanCombined') ? `
          <div style="margin-bottom: 20px; page-break-inside: avoid;">
            <h2 style="color: #000; font-size: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 8px;">विधानसभा के अनुसार - योजना-वार तुलना</h2>
-           <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+           <table style="width: 100%; border-collapse: collapse; font-size: 8px; table-layout: fixed;">
              <thead>
                <tr style=" color:#000;">
-                 <th style="border:1px solid #ddd; padding:6px;">#</th>
-                 <th style="border:1px solid #ddd; padding:6px; text-align:left;">विधानसभा</th>
-                 ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">${s}</th>`).join('')}
-                 <th style="border:1px solid #ddd; padding:6px; text-align:center;" colspan="2">कुल</th>
+                 <th style="border:1px solid #ddd; padding:5px; width:35px;">#</th>
+                 <th style="border:1px solid #ddd; padding:5px; text-align:left;">विधानसभा</th>
+                 ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(s => `<th style="border:1px solid #ddd; padding:5px; text-align:center;" colspan="2">${s.substring(0, 18)}${s.length > 18 ? '..' : ''}</th>`).join('')}
+                 <th style="border:1px solid #ddd; padding:5px; text-align:center;" colspan="2">कुल</th>
                </tr>
                <tr style="background:#e9eef8;">
                  <th></th>
                  <th></th>
-                 ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(() => `<th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>`).join('')}
-                 <th style="border:1px solid #ddd; padding:6px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:6px; text-align:right;">कुल ${rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
+                 ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(() => `<th style="border:1px solid #ddd; padding:5px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:5px; text-align:right;">राशि</th>`).join('')}
+                 <th style="border:1px solid #ddd; padding:5px; text-align:right;">मात्रा</th><th style="border:1px solid #ddd; padding:5px; text-align:right;">राशि</th>
                </tr>
              </thead>
              <tbody>
                ${vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).map((v, idx) => `
                  <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
-                   <td style="border:1px solid #ddd; padding:6px; text-align:center;">${idx+1}</td>
-                   <td style="border:1px solid #ddd; padding:6px;">${v}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:center;">${idx+1}</td>
+                   <td style="border:1px solid #ddd; padding:5px;">${v.substring(0, 22)}${v.length > 22 ? '..' : ''}</td>
                    ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(s => `
-                     <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0).toFixed(2)}</td>
-                     <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                     <td style="border:1px solid #ddd; padding:5px; text-align:right;">${(((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0).toFixed(2)}</td>
+                     <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${(((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                    `).join('')}
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0), 0)).toFixed(2)}</td>
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">${(vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0), 0)).toFixed(2)}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${(vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((sum, s) => sum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                  </tr>
                `).join('')}
              </tbody>
              <tfoot>
                <tr style="font-weight:700; background:#f1f5f9;">
-                 <td colSpan="2" style="border:1px solid #ddd; padding:6px;">कुल</td>
+                 <td colSpan="2" style="border:1px solid #ddd; padding:5px;">कुल</td>
                  ${vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).map(s => `
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">${(vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + (((vidhanCombined.data[v][s] && vidhanCombined.data[v][s].quantity) || 0)), 0)).toFixed(2)}</td>
-                   <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${(vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + (((vidhanCombined.data[v][s] && vidhanCombined.data[v][s][selectedRashi]) || 0)), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">${(vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + (((vidhanCombined.data[v][s] && vidhanCombined.data[v][s].quantity) || 0)), 0)).toFixed(2)}</td>
+                   <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${(vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + (((vidhanCombined.data[v][s] && vidhanCombined.data[v][s][selectedRashi]) || 0)), 0)).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                  `).join('')}
-                 <td style="border:1px solid #ddd; padding:6px; text-align:right;">${vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0), 0), 0).toFixed(2)}</td>
-                 <td style="border:1px solid #ddd; padding:6px; text-align:right;">₹${vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0), 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
+                 <td style="border:1px solid #ddd; padding:5px; text-align:right;">${vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s].quantity) || 0), 0), 0).toFixed(2)}</td>
+                 <td style="border:1px solid #ddd; padding:5px; text-align:right;">₹${vidhanCombined.vidhans.filter(v => selectedVidhanSabhas.length === 0 || selectedVidhanSabhas.some(selected => selected.value === v)).reduce((sum, v) => sum + vidhanCombined.schemes.filter(s => selectedVidhanSchemes.length === 0 || selectedVidhanSchemes.some(selected => selected.value === s)).reduce((schemeSum, s) => schemeSum + (((vidhanCombined.data[v] && vidhanCombined.data[v][s]) && vidhanCombined.data[v][s][selectedRashi]) || 0), 0), 0).toLocaleString('hi-IN', { minimumFractionDigits: 2 })}</td>
                </tr>
              </tfoot>
            </table>
@@ -1744,7 +1745,7 @@ const Dashboard = () => {
     document.body.appendChild(element);
 
     const opt = {
-      margin: [15, 10, 15, 10],
+      margin: [12, 10, 12, 10],
       filename: `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -1757,7 +1758,7 @@ const Dashboard = () => {
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait',
+        orientation: 'landscape',
         compress: true,
         precision: 16,
         userUnit: 1.0
