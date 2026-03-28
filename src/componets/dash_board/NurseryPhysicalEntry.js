@@ -391,6 +391,10 @@ const NurseryPhysicalEntry = () => {
   const [editingRecipientRowId, setEditingRecipientRowId] = useState(null);
   const [editingRecipientValues, setEditingRecipientValues] = useState({});
 
+  // State for multi-select
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectAllChecked, setSelectAllChecked] = useState(false);
+
   // Fetch data on component mount and set default financial year filters
   useEffect(() => {
     const financialYearDates = getFinancialYearDates();
@@ -474,6 +478,12 @@ const NurseryPhysicalEntry = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
+  }, [filters]);
+
+  // Reset selection when filters change
+  useEffect(() => {
+    setSelectedIds([]);
+    setSelectAllChecked(false);
   }, [filters]);
 
   // Fetch data when date filters change
@@ -1125,20 +1135,66 @@ const NurseryPhysicalEntry = () => {
   };
 
   // Handle delete
-const handleDelete = async (item) => {
-  if (window.confirm("क्या आप इस आइटम को हटाना चाहते हैं?")) {
-    try {
-      const response = await axios.delete(NURSERY_PHYSICAL_API_URL, {
-        data: { id: item.id }
-      });
-      setAllNurseryPhysicalItems((prev) => prev.filter((i) => i.id !== item.id));
-      setApiResponse({ message: "आइटम सफलतापूर्वक हटा दिया गया!" });
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      setApiError("आइटम हटाने में त्रुटि हुई।");
+  const handleDelete = async (item) => {
+    if (window.confirm("क्या आप इस आइटम को हटाना चाहते हैं?")) {
+      try {
+        const response = await axios.delete(NURSERY_PHYSICAL_API_URL, {
+          data: { id: item.id }
+        });
+        setAllNurseryPhysicalItems((prev) => prev.filter((i) => i.id !== item.id));
+        setApiResponse({ message: "आइटम सफलतापूर्वक हटा दिया गया!" });
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        setApiError("आइटम हटाने में त्रुटि हुई।");
+      }
     }
-  }
-};
+  };
+
+  // Handle select individual checkbox
+  const handleSelectItem = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((sid) => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+    setSelectAllChecked(false);
+  };
+
+  // Handle select all checkbox
+  const handleSelectAll = () => {
+    if (selectAllChecked) {
+      setSelectedIds([]);
+      setSelectAllChecked(false);
+    } else {
+      const allIds = filteredItems.map((item) => item.id);
+      setSelectedIds(allIds);
+      setSelectAllChecked(true);
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) {
+      setApiError("कृपया हटाने के लिए कम से कम एक आइटम चुनें।");
+      return;
+    }
+    if (window.confirm(`क्या आप ${selectedIds.length} चयनित आइटम्स को हटाना चाहते हैं?`)) {
+      try {
+        const response = await axios.delete(NURSERY_PHYSICAL_API_URL, {
+          data: { id: selectedIds }
+        });
+        setAllNurseryPhysicalItems((prev) =>
+          prev.filter((item) => !selectedIds.includes(item.id))
+        );
+        setSelectedIds([]);
+        setSelectAllChecked(false);
+        setApiResponse({ message: `${selectedIds.length} आइटम सफलतापूर्वक हटा दिए गए!` });
+      } catch (error) {
+        console.error("Error deleting items:", error);
+        setApiError("आइटम हटाने में त्रुटि हुई।");
+      }
+    }
+  };
   // Handle page change
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -2382,25 +2438,45 @@ const handleDeleteRecipient = async (item) => {
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <div className="d-flex align-items-center">
                       {nurseryPhysicalItems.length > 0 && (
-                        <OverlayTrigger
-                          placement="top"
-                          overlay={
-                            <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
-                          }
-                        >
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={handleRefresh}
-                            disabled={isLoading}
-                            className="me-2"
+                        <>
+                          <OverlayTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
+                            }
                           >
-                            <FaSync
-                              className={`me-1 ${isLoading ? "fa-spin" : ""}`}
-                            />
-                            रीफ्रेश
-                          </Button>
-                        </OverlayTrigger>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={handleRefresh}
+                              disabled={isLoading}
+                              className="me-2"
+                            >
+                              <FaSync
+                                className={`me-1 ${isLoading ? "fa-spin" : ""}`}
+                              />
+                              रीफ्रेश
+                            </Button>
+                          </OverlayTrigger>
+                          {selectedIds.length > 0 && (
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={
+                                <Tooltip id="tooltip-delete">चयनित हटाएं</Tooltip>
+                              }
+                            >
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={handleBulkDelete}
+                                className="me-2"
+                              >
+                                <RiDeleteBinLine className="me-1" />
+                                {selectedIds.length} हटाएं
+                              </Button>
+                            </OverlayTrigger>
+                          )}
+                        </>
                       )}
                       {filteredItems.length > 0 && (
                         <>
@@ -2626,6 +2702,14 @@ const handleDeleteRecipient = async (item) => {
                     <Table striped bordered hover className="registration-form">
                       <thead className="table-light">
                         <tr>
+                          <th>
+                            <Form.Check
+                              type="checkbox"
+                              checked={selectAllChecked}
+                              onChange={handleSelectAll}
+                              title="सभी चुनें"
+                            />
+                          </th>
                           <th>क्र.सं.</th>
                           {selectedColumns.includes("nursery_name") && (
                             <th>{translations.nurseryName}</th>
@@ -2693,6 +2777,7 @@ const handleDeleteRecipient = async (item) => {
                                   key={`subtotal-${item.id}-${index}`}
                                   style={{ backgroundColor: '#f9f9f9', fontWeight: 'bold' }}
                                 >
+                                  <td></td>
                                   <td colSpan={1}></td>
                                   {selectedColumns.includes("nursery_name") && (
                                     <td colSpan={1}>{item._subtotalLabel}</td>
@@ -2744,6 +2829,7 @@ const handleDeleteRecipient = async (item) => {
                                   key={`grand-total-${index}`}
                                   style={{ backgroundColor: '#e8e8e8', fontWeight: 'bold' }}
                                 >
+                                  <td></td>
                                   <td colSpan={1}></td>
                                   {selectedColumns.includes("nursery_name") && (
                                     <td colSpan={1}>कुल योग</td>
@@ -2784,6 +2870,7 @@ const handleDeleteRecipient = async (item) => {
                                     <td></td>
                                   )}
                                   <td></td>
+                                  <td></td>
                                 </tr>
                               );
                             }
@@ -2801,6 +2888,15 @@ const handleDeleteRecipient = async (item) => {
 
                             return (
                               <tr key={`${originalItem.id}-${recipient?.id || 'no-recipient'}`}>
+                                <td>
+                                  {isFirstRecipient && (
+                                    <Form.Check
+                                      type="checkbox"
+                                      checked={selectedIds.includes(originalItem.id)}
+                                      onChange={() => handleSelectItem(originalItem.id)}
+                                    />
+                                  )}
+                                </td>
                                 <td>
                                   {isFirstRecipient ? serialNumber : ''}
                                 </td>

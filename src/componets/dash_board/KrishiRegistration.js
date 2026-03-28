@@ -14,6 +14,7 @@ import {
   Modal,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaTimes, FaSync } from "react-icons/fa";
+import { RiDeleteBinLine } from "react-icons/ri";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import Select from "react-select";
@@ -353,6 +354,9 @@ const KrishiRegistration = () => {
   });
 
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+
+  // State for multi-select delete
+  const [selectedItems, setSelectedItems] = useState([]);
 
   // State for inline editing
   const [editingRowId, setEditingRowId] = useState(null);
@@ -1205,6 +1209,71 @@ const KrishiRegistration = () => {
     });
     setEditingRowId(null);
     setEditingValues({});
+    setSelectedItems([]);
+  };
+
+  // Handle multi-select delete
+  const handleDeleteSelected = async () => {
+    if (selectedItems.length === 0) return;
+    
+    const confirmed = window.confirm(`क्या आप ${selectedItems.length} चयनित रिकॉर्ड्स को हटाना चाहते हैं?`);
+    if (!confirmed) return;
+
+    try {
+      setIsLoading(true);
+      const payload = { beneficiary_id: selectedItems };
+      await axios.delete(
+        "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/-delete",
+        { data: payload }
+      );
+      
+      // Remove deleted items from state
+      setAllBeneficiaries((prev) => 
+        prev.filter((item) => !selectedItems.includes(item.beneficiary_id))
+      );
+      setBeneficiaries((prev) => 
+        prev.filter((item) => !selectedItems.includes(item.beneficiary_id))
+      );
+      setSelectedItems([]);
+      setApiResponse({ message: `${selectedItems.length} रिकॉर्ड सफलतापूर्वक हटाए गए!` });
+    } catch (error) {
+      console.error("Error deleting items:", error);
+      setApiError("रिकॉर्ड हटाने में त्रुटि हुई।");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle individual checkbox change
+  const handleCheckboxChange = (beneficiaryId) => {
+    setSelectedItems((prev) => {
+      if (prev.includes(beneficiaryId)) {
+        return prev.filter((id) => id !== beneficiaryId);
+      } else {
+        return [...prev, beneficiaryId];
+      }
+    });
+  };
+
+  // Handle select all (filtered items only)
+  const handleSelectAll = () => {
+    const visibleItems = beneficiaries.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+    const visibleBeneficiaryIds = visibleItems.map((item) => item.beneficiary_id);
+    
+    // Check if all visible items are already selected
+    const allSelected = visibleBeneficiaryIds.every((id) => selectedItems.includes(id));
+    
+    if (allSelected) {
+      // Deselect all visible items
+      setSelectedItems((prev) => prev.filter((id) => !visibleBeneficiaryIds.includes(id)));
+    } else {
+      // Select all visible items that are not already selected
+      const newSelections = visibleBeneficiaryIds.filter((id) => !selectedItems.includes(id));
+      setSelectedItems((prev) => [...prev, ...newSelections]);
+    }
   };
 
   // Handle page change
@@ -3119,6 +3188,27 @@ const handleDelete = async (item) => {
                         </OverlayTrigger>
                       </>
                     )}
+                    {selectedItems.length > 0 && (
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip id="tooltip-delete">
+                            {selectedItems.length} चयनित रिकॉर्ड हटाएं
+                          </Tooltip>
+                        }
+                      >
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={handleDeleteSelected}
+                          disabled={isLoading}
+                          className="ms-2"
+                        >
+                          <RiDeleteBinLine className="me-1" />
+                          हटाएं ({selectedItems.length})
+                        </Button>
+                      </OverlayTrigger>
+                    )}
                   </div>
                 </div>
 
@@ -3414,6 +3504,24 @@ const handleDelete = async (item) => {
                     <Table striped bordered hover className="registration-form">
                       <thead className="table-light">
                         <tr>
+                          <th>
+                            <Form.Check
+                              type="checkbox"
+                              onChange={handleSelectAll}
+                              checked={
+                                beneficiaries
+                                  .slice(
+                                    (currentPage - 1) * itemsPerPage,
+                                    currentPage * itemsPerPage
+                                  )
+                                  .every((item) => selectedItems.includes(item.beneficiary_id)) &&
+                                beneficiaries.slice(
+                                  (currentPage - 1) * itemsPerPage,
+                                  currentPage * itemsPerPage
+                                ).length > 0
+                              }
+                            />
+                          </th>
                           <th>क्र.सं.</th>
                           {/* Updated column order to match the requested sequence */}
                           {selectedColumns.includes("center_name") && (
@@ -3481,6 +3589,13 @@ const handleDelete = async (item) => {
                           )
                           .map((item, index) => (
                             <tr key={item.beneficiary_id || index}>
+                              <td>
+                                <Form.Check
+                                  type="checkbox"
+                                  checked={selectedItems.includes(item.beneficiary_id)}
+                                  onChange={() => handleCheckboxChange(item.beneficiary_id)}
+                                />
+                              </td>
                               <td>
                                 {(currentPage - 1) * itemsPerPage + index + 1}
                               </td>
@@ -3987,6 +4102,7 @@ const handleDelete = async (item) => {
                       </tbody>
                       <tfoot>
                         <tr className="table-total-row">
+                          <td></td>
                           <td><strong>कुल</strong></td>
                           {selectedColumns.includes("center_name") && (
                             <td>

@@ -375,6 +375,9 @@ const Registration = () => {
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
+  
+  // State for multi-select delete
+  const [selectedItems, setSelectedItems] = useState([]);
 
   // State for form field editing (Vidhan Sabha and Vikas Khand)
   const [isFormFieldsEditMode, setIsFormFieldsEditMode] = useState(false);
@@ -1135,6 +1138,68 @@ const Registration = () => {
     clearFilters();
     setEditingRowId(null);
     setEditingValues({});
+    setSelectedItems([]);
+  };
+
+  // Handle multi-select delete
+  const handleDeleteSelected = async () => {
+    if (selectedItems.length === 0) return;
+    
+    const confirmed = window.confirm(`क्या आप ${selectedItems.length} चयनित रिकॉर्ड्स को हटाना चाहते हैं?`);
+    if (!confirmed) return;
+
+    try {
+      setIsLoading(true);
+      const payload = { bill_id: selectedItems };
+      await axios.delete(
+        "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/",
+        { data: payload }
+      );
+      
+      // Remove deleted items from state
+      setAllBillingItems((prev) => 
+        prev.filter((item) => !selectedItems.includes(item.bill_id))
+      );
+      setSelectedItems([]);
+      setApiResponse({ message: `${selectedItems.length} रिकॉर्ड सफलतापूर्वक हटाए गए!` });
+    } catch (error) {
+      console.error("Error deleting items:", error);
+      setApiError("रिकॉर्ड हटाने में त्रुटि हुई।");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle individual checkbox change
+  const handleCheckboxChange = (billId) => {
+    setSelectedItems((prev) => {
+      if (prev.includes(billId)) {
+        return prev.filter((id) => id !== billId);
+      } else {
+        return [...prev, billId];
+      }
+    });
+  };
+
+  // Handle select all (filtered items only)
+  const handleSelectAll = () => {
+    const visibleItems = filteredItems.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+    const visibleBillIds = visibleItems.map((item) => item.bill_id);
+    
+    // Check if all visible items are already selected
+    const allSelected = visibleBillIds.every((id) => selectedItems.includes(id));
+    
+    if (allSelected) {
+      // Deselect all visible items
+      setSelectedItems((prev) => prev.filter((id) => !visibleBillIds.includes(id)));
+    } else {
+      // Select all visible items that are not already selected
+      const newSelections = visibleBillIds.filter((id) => !selectedItems.includes(id));
+      setSelectedItems((prev) => [...prev, ...newSelections]);
+    }
   };
 
   // Handle edit
@@ -2661,6 +2726,27 @@ const Registration = () => {
                         </OverlayTrigger>
                       </>
                     )}
+                    {selectedItems.length > 0 && (
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip id="tooltip-delete">
+                            {selectedItems.length} चयनित रिकॉर्ड हटाएं
+                          </Tooltip>
+                        }
+                      >
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={handleDeleteSelected}
+                          disabled={isLoading}
+                          className="ms-2"
+                        >
+                          <RiDeleteBinLine className="me-1" />
+                          हटाएं ({selectedItems.length})
+                        </Button>
+                      </OverlayTrigger>
+                    )}
                   </div>
                 </div>
 </div>
@@ -2934,6 +3020,24 @@ const Registration = () => {
                     <Table striped bordered hover className="registration-form">
                       <thead className="table-light">
                         <tr>
+                          <th>
+                            <Form.Check
+                              type="checkbox"
+                              onChange={handleSelectAll}
+                              checked={
+                                filteredItems
+                                  .slice(
+                                    (currentPage - 1) * itemsPerPage,
+                                    currentPage * itemsPerPage
+                                  )
+                                  .every((item) => selectedItems.includes(item.bill_id)) &&
+                                filteredItems.slice(
+                                  (currentPage - 1) * itemsPerPage,
+                                  currentPage * itemsPerPage
+                                ).length > 0
+                              }
+                            />
+                          </th>
                           <th>क्र.सं.</th>
                           {/* Updated column order to match the requested sequence */}
                           {selectedColumns.includes("center_name") && (
@@ -2992,6 +3096,13 @@ const Registration = () => {
                           )
                           .map((item, index) => (
                             <tr key={item.id || index}>
+                              <td>
+                                <Form.Check
+                                  type="checkbox"
+                                  checked={selectedItems.includes(item.bill_id)}
+                                  onChange={() => handleCheckboxChange(item.bill_id)}
+                                />
+                              </td>
                               <td>
                                 {(currentPage - 1) * itemsPerPage + index + 1}
                               </td>
@@ -3421,6 +3532,7 @@ const Registration = () => {
                       </tbody>
                       <tfoot>
                         <tr className="table-total-row">
+                          <td></td>
                           <td><strong>कुल</strong></td>
                           {selectedColumns.includes("center_name") && (
                             <td>
