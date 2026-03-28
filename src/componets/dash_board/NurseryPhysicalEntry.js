@@ -353,6 +353,8 @@ const NurseryPhysicalEntry = () => {
   const [failedRows, setFailedRows] = useState([]);
   const [validationErrorsList, setValidationErrorsList] = useState([]);
   const [duplicateRowIndices, setDuplicateRowIndices] = useState([]);
+  const [showAllDuplicatesModal, setShowAllDuplicatesModal] = useState(false);
+  const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     nurseryPhysicalTableColumns.map((col) => col.key)
@@ -372,6 +374,15 @@ const NurseryPhysicalEntry = () => {
     nursery_name: [],
     crop_name: [],
   });
+  // State for new created_at date filter (separate from existing date range filters)
+  const [createdAtFilter, setCreatedAtFilter] = useState({
+    selectedDate: "", // For dropdown selection
+    manualDate: "",   // For manual calendar selection
+    showManualPicker: false, // Toggle for manual date picker
+  });
+
+  // State to store unique created_at dates extracted from data
+  const [uniqueCreatedAtDates, setUniqueCreatedAtDates] = useState([]);
 
   // State for filter options (unique values from API)
   const [filterOptions, setFilterOptions] = useState({
@@ -432,6 +443,13 @@ const NurseryPhysicalEntry = () => {
           ),
         ].sort(),
       });
+
+      // Extract unique created_at dates for the new date filter
+      const createdAtDates = allNurseryPhysicalItems
+        .map((item) => item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : null)
+        .filter(Boolean);
+      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
+      setUniqueCreatedAtDates(uniqueDates);
     }
   }, [allNurseryPhysicalItems]);
 
@@ -439,17 +457,19 @@ const NurseryPhysicalEntry = () => {
   useEffect(() => {
     // Only apply filters when both dates are selected
     if (filters.from_date && filters.to_date) {
-      const fromDate = new Date(filters.from_date);
-      const toDate = new Date(filters.to_date);
-      toDate.setHours(23, 59, 59, 999); // Set to end of day
-
-      const filtered = allNurseryPhysicalItems.filter((item) => {
+      let filtered = allNurseryPhysicalItems;
+      
+      filtered = allNurseryPhysicalItems.filter((item) => {
         // Filter by created_at date field
         if (!item.created_at) {
           return false;
         }
         
         const createdAt = new Date(item.created_at);
+        const fromDate = new Date(filters.from_date);
+        const toDate = new Date(filters.to_date);
+        toDate.setHours(23, 59, 59, 999); // Set to end of day
+        
         const isDateInRange = createdAt >= fromDate && createdAt <= toDate;
         
         if (!isDateInRange) {
@@ -468,12 +488,25 @@ const NurseryPhysicalEntry = () => {
         
         return true;
       });
+      
+      // Apply created_at filter on top of other filters
+      if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
+        const { selectedDate, manualDate } = createdAtFilter;
+        const filterDate = selectedDate || manualDate;
+        
+        filtered = filtered.filter((item) => {
+          if (!item.created_at) return false;
+          const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+          return itemDate === filterDate;
+        });
+      }
+      
       setNurseryPhysicalItems(filtered);
     } else {
       // If no date range selected, show all data
       setNurseryPhysicalItems(allNurseryPhysicalItems);
     }
-  }, [filters, allNurseryPhysicalItems]);
+  }, [filters, allNurseryPhysicalItems, createdAtFilter]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -552,6 +585,43 @@ const NurseryPhysicalEntry = () => {
       nursery_name: [],
       crop_name: [],
     });
+    // Also clear the new created_at filter
+    setCreatedAtFilter({
+      selectedDate: "",
+      manualDate: "",
+      showManualPicker: false,
+    });
+  };
+
+  // Handle dropdown date selection from unique created_at dates
+  const handleCreatedAtDateSelect = (date) => {
+    // When dropdown selection is made, clear manual date and disable picker
+    setCreatedAtFilter((prev) => ({
+      ...prev,
+      selectedDate: date,
+      manualDate: "",
+      showManualPicker: false,
+    }));
+  };
+
+  // Handle manual calendar date selection
+  const handleCreatedAtManualDateChange = (date) => {
+    // When manual date is selected, clear dropdown selection
+    setCreatedAtFilter((prev) => ({
+      ...prev,
+      manualDate: date,
+      selectedDate: "",
+    }));
+  };
+
+  // Toggle manual date picker visibility
+  const toggleManualDatePicker = () => {
+    setCreatedAtFilter((prev) => ({
+      ...prev,
+      showManualPicker: !prev.showManualPicker,
+      // If enabling manual picker, clear the dropdown selection
+      selectedDate: !prev.showManualPicker ? "" : prev.selectedDate,
+    }));
   };
 
   // Filtered items - Apply date range filtering
@@ -2162,6 +2232,20 @@ const handleDeleteRecipient = async (item) => {
                           )}
                         </div>
                       </Alert>
+                      {duplicateRowIndices.length > 0 && (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => {
+                            const duplicates = previewData.filter(row => duplicateRowIndices.includes(row.rowIndex));
+                            setAllDuplicateEntries(duplicates);
+                            setShowAllDuplicatesModal(true);
+                          }}
+                        >
+                          सभी डुप्लीकेट देखें ({duplicateRowIndices.length})
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div className="d-flex justify-content-between w-100">
@@ -2176,6 +2260,48 @@ const handleDeleteRecipient = async (item) => {
                       {previewData.length} रिकॉर्ड अपलोड करें
                     </Button>
                   </div>
+                </Modal.Footer>
+              </Modal>
+
+              {/* All Duplicates Modal */}
+              <Modal show={showAllDuplicatesModal} onHide={() => setShowAllDuplicatesModal(false)} size="lg" centered>
+                <Modal.Header closeButton>
+                  <Modal.Title>सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})</Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                  {allDuplicateEntries.length === 0 ? (
+                    <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
+                  ) : (
+                    <Table striped bordered hover size="sm" className="small-fonts">
+                      <thead>
+                        <tr>
+                          <th>क्र.सं. (Excel)</th>
+                          <th>नर्सरी का नाम</th>
+                          <th>फसल का नाम</th>
+                          <th>इकाई</th>
+                          <th>उपलब्ध मात्रा</th>
+                          <th>धनराशि</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allDuplicateEntries.map((row, idx) => (
+                          <tr key={idx} style={{ backgroundColor: '#ffcccc' }}>
+                            <td>{row.rowIndex - 1}</td>
+                            <td>{row.nursery_name || "-"}</td>
+                            <td>{row.crop_name || "-"}</td>
+                            <td>{row.unit || "-"}</td>
+                            <td>{row.allocated_quantity || "-"}</td>
+                            <td>{row.allocated_amount || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  )}
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowAllDuplicatesModal(false)}>
+                    बंद करें
+                  </Button>
                 </Modal.Footer>
               </Modal>
 
@@ -2576,6 +2702,76 @@ const handleDeleteRecipient = async (item) => {
                       </span>
                       <span className="badge bg-primary">{itemsPerPage}</span>
                     </div>
+                  </div>
+                )}
+
+                {/* New Created At Date Filter Section - Separate from date range filters */}
+                {nurseryPhysicalItems.length > 0 && (
+                  <div className="created-at-filter-section mb-3 p-3 border rounded bg-light">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6 className="small-fonts mb-0">तिथि से फ़िल्टर करें (created_at)</h6>
+                    </div>
+                    <Row>
+                      <Col xs={12} md={4}>
+                        <Form.Group className="mb-2">
+                          <Form.Label className="small-fonts fw-bold">
+                            तिथि से चुनें
+                          </Form.Label>
+                          <Form.Select
+                            value={createdAtFilter.selectedDate}
+                            onChange={(e) => handleCreatedAtDateSelect(e.target.value)}
+                            className="compact-input"
+                            disabled={createdAtFilter.showManualPicker}
+                          >
+                            <option value="">-- तिथि चुनें --</option>
+                            {uniqueCreatedAtDates.map((date) => (
+                              <option key={date} value={date}>
+                                {new Date(date).toLocaleDateString('hi-IN')}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12} md={4}>
+                        <Form.Group className="mb-2 d-flex align-items-end">
+                          <Button
+                            variant={createdAtFilter.showManualPicker ? "primary" : "outline-secondary"}
+                            size="sm"
+                            onClick={toggleManualDatePicker}
+                            className="mb-2"
+                          >
+                            {createdAtFilter.showManualPicker ? "मैन्युअल तिथि छुपाएं" : "मैन्युअल तिथि"}
+                          </Button>
+                        </Form.Group>
+                      </Col>
+                      {createdAtFilter.showManualPicker && (
+                        <Col xs={12} md={4}>
+                          <Form.Group className="mb-2">
+                            <Form.Label className="small-fonts fw-bold">
+                              कैलेंडर से तिथि चुनें
+                            </Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={createdAtFilter.manualDate}
+                              onChange={(e) => handleCreatedAtManualDateChange(e.target.value)}
+                              className="compact-input"
+                            />
+                          </Form.Group>
+                        </Col>
+                      )}
+                    </Row>
+                    {/* Show selected filter info */}
+                    {(createdAtFilter.selectedDate || createdAtFilter.manualDate) && (
+                      <div className="mt-2">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => setCreatedAtFilter({ selectedDate: "", manualDate: "", showManualPicker: false })}
+                        >
+                          तिथि फ़िल्टर साफ़ करें
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 

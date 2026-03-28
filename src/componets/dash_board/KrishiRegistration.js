@@ -325,6 +325,8 @@ const KrishiRegistration = () => {
   const [isValidated, setIsValidated] = useState(false);
   const [validationErrorsList, setValidationErrorsList] = useState([]);
   const [duplicateRowIndices, setDuplicateRowIndices] = useState([]);
+  const [showAllDuplicatesModal, setShowAllDuplicatesModal] = useState(false);
+  const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     beneficiariesTableColumns.map((col) => col.key)
@@ -381,6 +383,16 @@ const KrishiRegistration = () => {
     start_date: "",
     end_date: "",
   });
+
+  // State for new created_at date filter (separate from existing date range filters)
+  const [createdAtFilter, setCreatedAtFilter] = useState({
+    selectedDate: "", // For dropdown selection
+    manualDate: "",   // For manual calendar selection
+    showManualPicker: false, // Toggle for manual date picker
+  });
+
+  // State to store unique created_at dates extracted from data
+  const [uniqueCreatedAtDates, setUniqueCreatedAtDates] = useState([]);
 
   // State for filter options (unique values from API)
   const [filterOptions, setFilterOptions] = useState({
@@ -849,18 +861,27 @@ const KrishiRegistration = () => {
           ),
         ],
       });
+
+      // Extract unique created_at dates for the new date filter
+      const createdAtDates = allBeneficiaries
+        .map((item) => item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : null)
+        .filter(Boolean);
+      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
+      setUniqueCreatedAtDates(uniqueDates);
     }
   }, [allBeneficiaries]);
 
   // Apply local filtering when filters change
   useEffect(() => {
+    let filtered = allBeneficiaries;
+    
     const hasFilters = Object.keys(filters).some((key) =>
       Array.isArray(filters[key])
         ? filters[key].length > 0
         : filters[key].trim()
     );
     if (hasFilters) {
-      const filtered = allBeneficiaries.filter((item) => {
+      filtered = allBeneficiaries.filter((item) => {
         // Check all other filters
         for (const key in filters) {
           if (key === "start_date" || key === "end_date") continue; // Skip date filters for now
@@ -890,11 +911,22 @@ const KrishiRegistration = () => {
 
         return true;
       });
-      setBeneficiaries(filtered);
-    } else {
-      setBeneficiaries(allBeneficiaries);
     }
-  }, [filters, allBeneficiaries]);
+    
+    // Apply created_at filter on top of other filters
+    if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
+      const { selectedDate, manualDate } = createdAtFilter;
+      const filterDate = selectedDate || manualDate;
+      
+      filtered = filtered.filter((item) => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+        return itemDate === filterDate;
+      });
+    }
+    
+    setBeneficiaries(filtered);
+  }, [filters, allBeneficiaries, createdAtFilter]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -926,7 +958,45 @@ const KrishiRegistration = () => {
       start_date,
       end_date,
     });
+    // Also clear the new created_at filter
+    setCreatedAtFilter({
+      selectedDate: "",
+      manualDate: "",
+      showManualPicker: false,
+    });
   };
+
+  // Handle dropdown date selection from unique created_at dates
+  const handleCreatedAtDateSelect = (date) => {
+    // When dropdown selection is made, clear manual date and disable picker
+    setCreatedAtFilter((prev) => ({
+      ...prev,
+      selectedDate: date,
+      manualDate: "",
+      showManualPicker: false,
+    }));
+  };
+
+  // Handle manual calendar date selection
+  const handleCreatedAtManualDateChange = (date) => {
+    // When manual date is selected, clear dropdown selection
+    setCreatedAtFilter((prev) => ({
+      ...prev,
+      manualDate: date,
+      selectedDate: "",
+    }));
+  };
+
+  // Toggle manual date picker visibility
+  const toggleManualDatePicker = () => {
+    setCreatedAtFilter((prev) => ({
+      ...prev,
+      showManualPicker: !prev.showManualPicker,
+      // If enabling manual picker, clear the dropdown selection
+      selectedDate: !prev.showManualPicker ? "" : prev.selectedDate,
+    }));
+  };
+
 
   // Download Excel function
   const downloadExcel = (data, filename, columnMapping, selectedColumns) => {
@@ -1223,7 +1293,7 @@ const KrishiRegistration = () => {
       setIsLoading(true);
       const payload = { beneficiary_id: selectedItems };
       await axios.delete(
-        "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/-delete",
+        "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/",
         { data: payload }
       );
       
@@ -2493,6 +2563,20 @@ const handleDelete = async (item) => {
                           )}
                         </div>
                       </Alert>
+                      {duplicateRowIndices.length > 0 && (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => {
+                            const duplicates = previewData.filter(row => duplicateRowIndices.includes(row.rowIndex));
+                            setAllDuplicateEntries(duplicates);
+                            setShowAllDuplicatesModal(true);
+                          }}
+                        >
+                          सभी डुप्लीकेट देखें ({duplicateRowIndices.length})
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div className="d-flex justify-content-between w-100">
@@ -2512,6 +2596,74 @@ const handleDelete = async (item) => {
                       );
                     })()}
                   </div>
+                </Modal.Footer>
+              </Modal>
+
+              {/* All Duplicates Modal */}
+              <Modal show={showAllDuplicatesModal} onHide={() => setShowAllDuplicatesModal(false)} size="lg" centered>
+                <Modal.Header closeButton>
+                  <Modal.Title>सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})</Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                  {allDuplicateEntries.length === 0 ? (
+                    <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
+                  ) : (
+                    <Table striped bordered hover size="sm" className="small-fonts">
+                      <thead>
+                        <tr>
+                          <th>क्र.सं. (Excel)</th>
+                          <th>केंद्र का नाम</th>
+                          <th>विधानसभा का नाम</th>
+                          <th>विकास खंड का नाम</th>
+                          <th>योजना का नाम</th>
+                          <th>इकाई</th>
+                          <th>आपूर्ति की गई वस्तु का नाम</th>
+                          <th>किसान का नाम</th>
+                          <th>पिता का नाम</th>
+                          <th>श्रेणी</th>
+                          <th>पता</th>
+                          <th>मोबाइल नंबर</th>
+                          <th>आधार नंबर</th>
+                          <th>बैंक खाता नंबर</th>
+                          <th>IFSC कोड</th>
+                          <th>मात्रा</th>
+                          <th>दर</th>
+                          <th>राशि</th>
+                          <th>पंजीकरण तिथि</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allDuplicateEntries.map((row, idx) => (
+                          <tr key={idx} style={{ backgroundColor: '#ffcccc' }}>
+                            <td>{row.rowIndex - 1}</td>
+                            <td>{row.center_name || "-"}</td>
+                            <td>{row.vidhan_sabha_name || "-"}</td>
+                            <td>{row.vikas_khand_name || "-"}</td>
+                            <td>{row.scheme_name || "-"}</td>
+                            <td>{row.unit || "-"}</td>
+                            <td>{row.supplied_item_name || "-"}</td>
+                            <td>{row.farmer_name || "-"}</td>
+                            <td>{row.father_name || "-"}</td>
+                            <td>{row.category || "-"}</td>
+                            <td>{row.address || "-"}</td>
+                            <td>{row.mobile_number || "-"}</td>
+                            <td>{row.aadhaar_number || "-"}</td>
+                            <td>{row.bank_account_number || "-"}</td>
+                            <td>{row.ifsc_code || "-"}</td>
+                            <td>{row.quantity || "-"}</td>
+                            <td>{row.rate || "-"}</td>
+                            <td>{row.amount || "-"}</td>
+                            <td>{row.original_beneficiary_reg_date || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  )}
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowAllDuplicatesModal(false)}>
+                    बंद करें
+                  </Button>
                 </Modal.Footer>
               </Modal>
 
@@ -3239,6 +3391,76 @@ const handleDelete = async (item) => {
                     setSelectedColumns={setSelectedColumns}
                     title="कॉलम चुनें"
                   />
+                )}
+
+                {/* New Created At Date Filter Section - Separate from date range filters */}
+                {beneficiaries.length > 0 && (
+                  <div className="created-at-filter-section mb-3 p-3 border rounded bg-light">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6 className="small-fonts mb-0">तिथि से फ़िल्टर करें (created_at)</h6>
+                    </div>
+                    <Row>
+                      <Col xs={12} md={4}>
+                        <Form.Group className="mb-2">
+                          <Form.Label className="small-fonts fw-bold">
+                            तिथि से चुनें
+                          </Form.Label>
+                          <Form.Select
+                            value={createdAtFilter.selectedDate}
+                            onChange={(e) => handleCreatedAtDateSelect(e.target.value)}
+                            className="compact-input"
+                            disabled={createdAtFilter.showManualPicker}
+                          >
+                            <option value="">-- तिथि चुनें --</option>
+                            {uniqueCreatedAtDates.map((date) => (
+                              <option key={date} value={date}>
+                                {new Date(date).toLocaleDateString('hi-IN')}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12} md={4}>
+                        <Form.Group className="mb-2 d-flex align-items-end">
+                          <Button
+                            variant={createdAtFilter.showManualPicker ? "primary" : "outline-secondary"}
+                            size="sm"
+                            onClick={toggleManualDatePicker}
+                            className="mb-2"
+                          >
+                            {createdAtFilter.showManualPicker ? "मैन्युअल तिथि छुपाएं" : "मैन्युअल तिथि"}
+                          </Button>
+                        </Form.Group>
+                      </Col>
+                      {createdAtFilter.showManualPicker && (
+                        <Col xs={12} md={4}>
+                          <Form.Group className="mb-2">
+                            <Form.Label className="small-fonts fw-bold">
+                              कैलेंडर से तिथि चुनें
+                            </Form.Label>
+                            <Form.Control
+                              type="date"
+                              value={createdAtFilter.manualDate}
+                              onChange={(e) => handleCreatedAtManualDateChange(e.target.value)}
+                              className="compact-input"
+                            />
+                          </Form.Group>
+                        </Col>
+                      )}
+                    </Row>
+                    {/* Show selected filter info */}
+                    {(createdAtFilter.selectedDate || createdAtFilter.manualDate) && (
+                      <div className="mt-2">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => setCreatedAtFilter({ selectedDate: "", manualDate: "", showManualPicker: false })}
+                        >
+                          तिथि फ़िल्टर साफ़ करें
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Multi-Filter Section */}
