@@ -392,7 +392,7 @@ const NurseryPhysicalEntry = () => {
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(100);
 
   // State for recipient pagination
   const [recipientCurrentPage, setRecipientCurrentPage] = useState(1);
@@ -418,15 +418,6 @@ const NurseryPhysicalEntry = () => {
     fetchNurseryPhysicalItems();
     fetchRecipientItems();
   }, []);
-
-  // Reset to page 1 when data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [nurseryPhysicalItems]);
-
-  useEffect(() => {
-    setRecipientCurrentPage(1);
-  }, [recipientItems]);
 
   // Populate filter options from all items
   useEffect(() => {

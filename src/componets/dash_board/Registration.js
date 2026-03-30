@@ -76,7 +76,6 @@ const billingTableColumns = [
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
   { key: "vikas_khand_name", label: "विकास खंड का नाम" },
   { key: "scheme_name", label: "योजना का नाम" },
-  { key: "ikai", label: "इकाई  " },
   { key: "source_of_receipt", label: "सप्लायर" },
   { key: "investment_name", label: "निवेश का नाम" },
   { key: "sub_investment_name", label: "उप-निवेश का नाम" },
@@ -105,7 +104,6 @@ const billingTableColumnMapping = {
     accessor: (item) => item.vikas_khand_name,
   },
   scheme_name: { header: "योजना का नाम", accessor: (item) => item.scheme_name },
-  ikai: { header: "इकाई  ", accessor: (item) => item.ikai || "" },
   source_of_receipt: {
     header: "सप्लायर",
     accessor: (item) => item.source_of_receipt,
@@ -360,7 +358,7 @@ const Registration = () => {
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(100);
 
   // Dynamic form options
   const [formOptions, setFormOptions] = useState({
@@ -415,6 +413,12 @@ const Registration = () => {
     source_of_receipt: false,
     scheme_name: false,
   });
+
+  // Get unique values for dropdowns from allBillingItems
+  const getUniqueValues = (fieldName) => {
+    const values = allBillingItems.map((item) => item[fieldName]).filter(Boolean);
+    return [...new Set(values)].sort();
+  };
 
   // Fetch center options from backend
   const fetchCenterOptions = async () => {
@@ -734,11 +738,6 @@ const Registration = () => {
     fetchFormFilters();
     fetchCenterOptions();
   }, []);
-
-  // Reset to page 1 when data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [billingItems]);
 
   // Populate filter options from all billing items
   useEffect(() => {
@@ -1274,6 +1273,17 @@ const Registration = () => {
   // Handle edit
   const handleEdit = (item) => {
     setEditingRowId(item.id);
+    // Convert bill_date to YYYY-MM-DD format for HTML date input
+    let billDateValue = "";
+    if (item.bill_date) {
+      // If already in YYYY-MM-DD format, use as-is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.bill_date)) {
+        billDateValue = item.bill_date;
+      } else {
+        // Convert from DD/MM/YYYY to YYYY-MM-DD
+        billDateValue = convertToBackendFormat(item.bill_date);
+      }
+    }
     setEditingValues({
       center_name: item.center_name || "",
       investment_name: item.investment_name || "",
@@ -1285,7 +1295,7 @@ const Registration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
-      bill_date: convertToDisplayFormat(item.bill_date) || getTodayInDisplayFormat(),
+      bill_date: billDateValue,
       amount_of_farmer_share: item.amount_of_farmer_share || "",
       amount_of_subsidy: item.amount_of_subsidy || "",
       total_amount: item.total_amount || "",
@@ -3191,9 +3201,6 @@ const Registration = () => {
                           {selectedColumns.includes("scheme_name") && (
                             <th>{translations.schemeName}</th>
                           )}
-                          {selectedColumns.includes("ikai") && (
-                            <th>इकाई  </th>
-                          )}
                           {selectedColumns.includes("source_of_receipt") && (
                             <th>{translations.sourceOfReceipt}</th>
                           )}
@@ -3334,79 +3341,136 @@ const Registration = () => {
                               {selectedColumns.includes("scheme_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.scheme_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          scheme_name: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.scheme_name,
-                                          ...schemeOptions,
-                                        ]),
-                                      ].map((scheme, index) => (
-                                        <option key={index} value={scheme}>
-                                          {scheme}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
+                                    editingOtherMode.scheme_name ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.scheme_name}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              scheme_name: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="नया योजना का नाम दर्ज करें"
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          onClick={() =>
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              scheme_name: false,
+                                            }))
+                                          }
+                                        >
+                                          ✕
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        value={editingValues.scheme_name}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (value === "Other") {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              scheme_name: true,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              scheme_name: "",
+                                            }));
+                                          } else {
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              scheme_name: value,
+                                            }));
+                                          }
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {getUniqueValues("scheme_name").map(
+                                          (scheme, index) => (
+                                            <option key={index} value={scheme}>
+                                              {scheme}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य (Other)</option>
+                                      </Form.Select>
+                                    )
                                   ) : (
                                     item.scheme_name
-                                  )}
-                                </td>
-                              )}
-                              {selectedColumns.includes("ikai") && (
-                                <td>
-                                  {editingRowId === item.id ? (
-                                    <Form.Control
-                                      type="text"
-                                      value={editingValues.ikai || ""}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          ikai: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    />
-                                  ) : (
-                                    item.ikai || item.unit || ""
                                   )}
                                 </td>
                               )}
                               {selectedColumns.includes("source_of_receipt") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.source_of_receipt}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          source_of_receipt: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {[
-                                        ...new Set([
-                                          ...filterOptions.source_of_receipt,
-                                          ...sourceOptions,
-                                        ]),
-                                      ].map((source, index) => (
-                                        <option key={index} value={source}>
-                                          {source}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
+                                    editingOtherMode.source_of_receipt ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.source_of_receipt}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              source_of_receipt: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="नया सप्लायर दर्ज करें"
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          onClick={() =>
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              source_of_receipt: false,
+                                            }))
+                                          }
+                                        >
+                                          ✕
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        value={editingValues.source_of_receipt}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (value === "Other") {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              source_of_receipt: true,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              source_of_receipt: "",
+                                            }));
+                                          } else {
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              source_of_receipt: value,
+                                            }));
+                                          }
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {getUniqueValues("source_of_receipt").map(
+                                          (source, index) => (
+                                            <option key={index} value={source}>
+                                              {source}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य (Other)</option>
+                                      </Form.Select>
+                                    )
                                   ) : (
                                     item.source_of_receipt
                                   )}
@@ -3415,31 +3479,74 @@ const Registration = () => {
                               {selectedColumns.includes("investment_name") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.investment_name}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          investment_name: value,
-                                          sub_investment_name: "",
-                                          unit: "",
-                                        }));
-                                        if (value) {
-                                          fetchEditOptions(value);
-                                        }
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {filterOptions.investment_name.map(
-                                        (inv, index) => (
-                                          <option key={index} value={inv}>
-                                            {inv}
-                                          </option>
-                                        )
-                                      )}
-                                    </Form.Select>
+                                    editingOtherMode.investment_name ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.investment_name}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              investment_name: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="नया निवेश का नाम दर्ज करें"
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          onClick={() =>
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              investment_name: false,
+                                            }))
+                                          }
+                                        >
+                                          ✕
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        value={editingValues.investment_name}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (value === "Other") {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              investment_name: true,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              investment_name: "",
+                                              sub_investment_name: "",
+                                              unit: "",
+                                            }));
+                                          } else {
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              investment_name: value,
+                                              sub_investment_name: "",
+                                              unit: "",
+                                            }));
+                                            if (value) {
+                                              fetchEditOptions(value);
+                                            }
+                                          }
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {getUniqueValues("investment_name").map(
+                                          (inv, index) => (
+                                            <option key={index} value={inv}>
+                                              {inv}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य (Other)</option>
+                                      </Form.Select>
+                                    )
                                   ) : (
                                     item.investment_name
                                   )}
@@ -3450,25 +3557,67 @@ const Registration = () => {
                               ) && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.sub_investment_name}
-                                      onChange={(e) =>
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          sub_investment_name: e.target.value,
-                                        }))
-                                      }
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {editOptions.sub_investment_name.map(
-                                        (subInv, index) => (
-                                          <option key={index} value={subInv}>
-                                            {subInv}
-                                          </option>
-                                        )
-                                      )}
-                                    </Form.Select>
+                                    editingOtherMode.sub_investment_name ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.sub_investment_name}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              sub_investment_name: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="नया उप-निवेश का नाम दर्ज करें"
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          onClick={() =>
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              sub_investment_name: false,
+                                            }))
+                                          }
+                                        >
+                                          ✕
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        value={editingValues.sub_investment_name}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (value === "Other") {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              sub_investment_name: true,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              sub_investment_name: "",
+                                            }));
+                                          } else {
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              sub_investment_name: value,
+                                            }));
+                                          }
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {getUniqueValues("sub_investment_name").map(
+                                          (subInv, index) => (
+                                            <option key={index} value={subInv}>
+                                              {subInv}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य (Other)</option>
+                                      </Form.Select>
+                                    )
                                   ) : (
                                     item.sub_investment_name
                                   )}
@@ -3477,24 +3626,67 @@ const Registration = () => {
                               {selectedColumns.includes("unit") && (
                                 <td>
                                   {editingRowId === item.id ? (
-                                    <Form.Select
-                                      value={editingValues.unit}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        setEditingValues((prev) => ({
-                                          ...prev,
-                                          unit: value,
-                                        }));
-                                      }}
-                                      size="sm"
-                                    >
-                                      <option value="">चुनें</option>
-                                      {formOptions.unit.map((unit, index) => (
-                                        <option key={index} value={unit}>
-                                          {unit}
-                                        </option>
-                                      ))}
-                                    </Form.Select>
+                                    editingOtherMode.unit ? (
+                                      <div className="d-flex">
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.unit}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              unit: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="नया इकाई दर्ज करें"
+                                          size="sm"
+                                        />
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          onClick={() =>
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              unit: false,
+                                            }))
+                                          }
+                                        >
+                                          ✕
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Form.Select
+                                        value={editingValues.unit}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (value === "Other") {
+                                            setEditingOtherMode((prev) => ({
+                                              ...prev,
+                                              unit: true,
+                                            }));
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              unit: "",
+                                            }));
+                                          } else {
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              unit: value,
+                                            }));
+                                          }
+                                        }}
+                                        size="sm"
+                                      >
+                                        <option value="">चुनें</option>
+                                        {getUniqueValues("unit").map(
+                                          (unit, index) => (
+                                            <option key={index} value={unit}>
+                                              {unit}
+                                            </option>
+                                          )
+                                        )}
+                                        <option value="Other">अन्य (Other)</option>
+                                      </Form.Select>
+                                    )
                                   ) : (
                                     item.unit
                                   )}
@@ -3712,17 +3904,6 @@ const Registration = () => {
                                 {filteredItems.reduce((unique, item) => {
                                   const set = new Set(unique);
                                   if (item.scheme_name) set.add(item.scheme_name);
-                                  return Array.from(set);
-                                }, []).length}
-                              </strong>
-                            </td>
-                          )}
-                          {selectedColumns.includes("ikai") && (
-                            <td>
-                              <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.ikai) set.add(item.ikai);
                                   return Array.from(set);
                                 }, []).length}
                               </strong>

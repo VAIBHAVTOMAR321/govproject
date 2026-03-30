@@ -337,7 +337,7 @@ const KrishiRegistration = () => {
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(100);
 
   // Dynamic form options - initialized with static values
   const [formOptions, setFormOptions] = useState({
@@ -802,11 +802,6 @@ const KrishiRegistration = () => {
     fetchBeneficiaries();
     fetchFormFilters();
   }, []);
-
-  // Reset to page 1 when data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [beneficiaries]);
 
   // Fetch filters when center changes
   useEffect(() => {
@@ -1354,6 +1349,17 @@ const KrishiRegistration = () => {
   // Handle inline edit
   const handleEdit = (item) => {
     setEditingRowId(item.beneficiary_id);
+    // Convert beneficiary_reg_date to YYYY-MM-DD format for HTML date input
+    let regDateValue = "";
+    if (item.beneficiary_reg_date) {
+      // If already in YYYY-MM-DD format, use as-is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.beneficiary_reg_date)) {
+        regDateValue = item.beneficiary_reg_date;
+      } else {
+        // Convert from DD/MM/YYYY to YYYY-MM-DD
+        regDateValue = convertToBackendFormat(item.beneficiary_reg_date);
+      }
+    }
     setEditingValues({
       farmer_name: item.farmer_name || "",
       father_name: item.father_name || "",
@@ -1372,7 +1378,7 @@ const KrishiRegistration = () => {
       scheme_name: item.scheme_name || "",
       vikas_khand_name: item.vikas_khand_name || "",
       vidhan_sabha_name: item.vidhan_sabha_name || "",
-      beneficiary_reg_date: convertToDisplayFormat(item.beneficiary_reg_date) || getTodayInDisplayFormat(),
+      beneficiary_reg_date: regDateValue,
     });
 
     // Fetch vikas khand data for this center if available
@@ -1632,32 +1638,40 @@ const handleDelete = async (item) => {
   const validateRow = (rowData, rowIndex) => {
     const errors = [];
 
-    if (!rowData.center_name || !rowData.center_name.toString().trim()) {
-      errors.push(`Row ${rowIndex}: केंद्र का नाम आवश्यक है`);
+    // Check if row is completely empty
+    const isRowEmpty = !rowData.farmer_name || 
+      (!rowData.farmer_name.toString().trim() && 
+       !rowData.father_name?.toString().trim() && 
+       !rowData.address?.toString().trim() && 
+       !rowData.center_name?.toString().trim() && 
+       !rowData.supplied_item_name?.toString().trim() && 
+       !rowData.unit?.toString().trim() && 
+       !rowData.quantity?.toString().trim() && 
+       !rowData.rate?.toString().trim() && 
+       !rowData.amount?.toString().trim() && 
+       !rowData.category?.toString().trim() && 
+       !rowData.scheme_name?.toString().trim());
+    
+    // If row is completely empty, skip validation
+    if (isRowEmpty) {
+      return errors;
     }
-    if (!rowData.supplied_item_name || !rowData.supplied_item_name.toString().trim()) {
-      errors.push(`Row ${rowIndex}: आपूर्ति की गई वस्तु का नाम आवश्यक है`);
+
+    // Only validate numeric fields if they are provided
+    if (rowData.quantity !== "" && rowData.quantity !== null && rowData.quantity !== undefined) {
+      if (isNaN(parseFloat(rowData.quantity))) {
+        errors.push(`Row ${rowIndex}: मात्रा एक संख्या होनी चाहिए`);
+      }
     }
-    if (!rowData.unit || !rowData.unit.toString().trim()) {
-      errors.push(`Row ${rowIndex}: इकाई आवश्यक है`);
+    if (rowData.rate !== "" && rowData.rate !== null && rowData.rate !== undefined) {
+      if (isNaN(parseFloat(rowData.rate))) {
+        errors.push(`Row ${rowIndex}: दर एक संख्या होनी चाहिए`);
+      }
     }
-    if (rowData.quantity === "" || rowData.quantity === null || rowData.quantity === undefined) {
-      errors.push(`Row ${rowIndex}: मात्रा आवश्यक है`);
-    } else if (isNaN(parseFloat(rowData.quantity))) {
-      errors.push(`Row ${rowIndex}: मात्रा एक संख्या होनी चाहिए`);
-    }
-    if (rowData.rate === "" || rowData.rate === null || rowData.rate === undefined) {
-      errors.push(`Row ${rowIndex}: दर आवश्यक है`);
-    } else if (isNaN(parseFloat(rowData.rate))) {
-      errors.push(`Row ${rowIndex}: दर एक संख्या होनी चाहिए`);
-    }
-    if (rowData.amount === "" || rowData.amount === null || rowData.amount === undefined) {
-      errors.push(`Row ${rowIndex}: राशि आवश्यक है`);
-    } else if (isNaN(parseFloat(rowData.amount))) {
-      errors.push(`Row ${rowIndex}: राशि एक संख्या होनी चाहिए`);
-    }
-    if (!rowData.category || !rowData.category.toString().trim()) {
-      errors.push(`Row ${rowIndex}: श्रेणी आवश्यक है`);
+    if (rowData.amount !== "" && rowData.amount !== null && rowData.amount !== undefined) {
+      if (isNaN(parseFloat(rowData.amount))) {
+        errors.push(`Row ${rowIndex}: राशि एक संख्या होनी चाहिए`);
+      }
     }
 
     return errors;
@@ -2233,42 +2247,19 @@ const handleDelete = async (item) => {
     // Helper to check if value is valid (not empty, null, undefined)
     const isValid = (value) => value && String(value).trim();
     
-    // For single form entry, require essential fields
-    if (!isValid(formData.center_name))
-      newErrors.center_name = `${translations.centerName} ${translations.required}`;
-    if (!isValid(formData.supplied_item_name))
-      newErrors.supplied_item_name = `${translations.suppliedItemName} ${translations.required}`;
-    if (!isValid(formData.unit))
-      newErrors.unit = `${translations.unit} ${translations.required}`;
-    if (!isValid(formData.quantity))
-      newErrors.quantity = `${translations.quantity} ${translations.required}`;
-    if (!isValid(formData.rate))
-      newErrors.rate = `${translations.rate} ${translations.required}`;
-    if (!isValid(formData.amount))
-      newErrors.amount = `${translations.amount} ${translations.required}`;
-    if (!isValid(formData.category))
-      newErrors.category = `${translations.category} ${translations.required}`;
-    if (!isValid(formData.scheme_name))
-      newErrors.scheme_name = `${translations.schemeName} ${translations.required}`;
-    // Optional fields for single entry (but still validate if provided)
-    if (formData.farmer_name && !isValid(formData.farmer_name))
+    // For single form entry, only require farmer_name
+    // All other fields are optional - user can enter whatever they have
+    if (!isValid(formData.farmer_name))
       newErrors.farmer_name = `${translations.farmerName} ${translations.required}`;
-    if (formData.father_name && !isValid(formData.father_name))
-      newErrors.father_name = `${translations.fatherName} ${translations.required}`;
-    if (formData.address && !isValid(formData.address))
-      newErrors.address = `${translations.address} ${translations.required}`;
-    if (formData.aadhaar_number && !isValid(formData.aadhaar_number))
-      newErrors.aadhaar_number = `${translations.aadhaarNumber} ${translations.required}`;
-    if (formData.bank_account_number && !isValid(formData.bank_account_number))
-      newErrors.bank_account_number = `${translations.bankAccountNumber} ${translations.required}`;
-    if (formData.ifsc_code && !isValid(formData.ifsc_code))
-      newErrors.ifsc_code = `${translations.ifscCode} ${translations.required}`;
-    if (formData.mobile_number && !isValid(formData.mobile_number))
-      newErrors.mobile_number = `${translations.mobileNumber} ${translations.required}`;
-    if (!isValid(formData.vikas_khand_name))
-      newErrors.vikas_khand_name = `${translations.vikasKhandName} ${translations.required}`;
-    if (!isValid(formData.vidhan_sabha_name))
-      newErrors.vidhan_sabha_name = `${translations.vidhanSabhaName} ${translations.required}`;
+    
+    // Optional fields - only validate if they have a value
+    if (formData.quantity && isNaN(parseFloat(formData.quantity)))
+      newErrors.quantity = `${translations.quantity} एक संख्या होनी चाहिए`;
+    if (formData.rate && isNaN(parseFloat(formData.rate)))
+      newErrors.rate = `${translations.rate} एक संख्या होनी चाहिए`;
+    if (formData.amount && isNaN(parseFloat(formData.amount)))
+      newErrors.amount = `${translations.amount} एक संख्या होनी चाहिए`;
+    
     return newErrors;
   };
 

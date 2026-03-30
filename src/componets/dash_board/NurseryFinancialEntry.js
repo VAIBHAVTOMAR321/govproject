@@ -266,7 +266,7 @@ const NurseryFinancialEntry = () => {
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(100);
 
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
@@ -286,11 +286,6 @@ const NurseryFinancialEntry = () => {
     });
     fetchNurseryFinancialItems();
   }, []);
-
-  // Reset to page 1 when data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [nurseryFinancialItems]);
 
   // Populate filter options from all items
   useEffect(() => {
@@ -677,13 +672,24 @@ const NurseryFinancialEntry = () => {
   // Handle edit
   const handleEdit = (item) => {
     setEditingRowId(item.id);
+    // Convert registration_date to YYYY-MM-DD format for HTML date input
+    let regDateValue = "";
+    if (item.registration_date) {
+      // If already in YYYY-MM-DD format, use as-is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.registration_date)) {
+        regDateValue = item.registration_date;
+      } else {
+        // Convert from DD/MM/YYYY to YYYY-MM-DD
+        regDateValue = convertToBackendFormat(item.registration_date);
+      }
+    }
     setEditingValues({
       nursery_name: item.nursery_name || "",
       standard_item: item.standard_item || "",
       allocated_amount: item.allocated_amount || "",
       spent_amount: item.spent_amount || "",
       description: item.description || "",
-      registration_date: convertToDisplayFormat(item.registration_date) || getTodayInDisplayFormat(),
+      registration_date: regDateValue,
     });
     setApiError(null);
     setApiResponse(null);
