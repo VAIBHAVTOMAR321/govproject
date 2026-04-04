@@ -2929,7 +2929,7 @@ const Registration = () => {
                 )}
 
                 {/* Multi-Filter Section */}
-                {billingItems.length > 0 && (
+                {true && (
                   <div className="filter-section mb-3 p-3 border rounded bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="small-fonts mb-0">फिल्टर</h6>
