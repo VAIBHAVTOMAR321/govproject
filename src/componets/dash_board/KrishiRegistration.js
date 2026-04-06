@@ -1465,7 +1465,7 @@ const KrishiRegistration = () => {
       const quantity = parseFloat(value) || 0;
       const rate =
         parseFloat(name === "quantity" ? editingValues.rate : value) || 0;
-      updatedValues.amount = (quantity * rate).toString();
+      updatedValues.amount = roundTo2Decimals(quantity * rate).toString();
     }
 
     setEditingValues(updatedValues);
@@ -1483,7 +1483,7 @@ const handleSave = async (item) => {
       center_name: editingValues.center_name,
       supplied_item_name: editingValues.supplied_item_name,
       unit: editingValues.unit,
-      quantity: parseInt(editingValues.quantity) || 0,
+      quantity: parseFloat(editingValues.quantity) || 0,
       rate: parseFloat(editingValues.rate) || 0,
       amount: parseFloat(editingValues.amount) || 0,
       aadhaar_number: editingValues.aadhaar_number,
@@ -1936,7 +1936,7 @@ const handleDelete = async (item) => {
             center_name: rowData.center_name || "",
             supplied_item_name: rowData.supplied_item_name || "",
             unit: rowData.unit || "",
-            quantity: Number.isFinite(Number(rowData.quantity)) ? parseInt(rowData.quantity) : 0,
+            quantity: Number.isFinite(Number(rowData.quantity)) ? parseFloat(rowData.quantity) : 0,
             rate: Number.isFinite(Number(rowData.rate)) ? parseFloat(rowData.rate) : 0,
             amount: Number.isFinite(Number(rowData.amount)) ? parseFloat(rowData.amount) : 0,
             aadhaar_number: rowData.aadhaar_number || "",
@@ -2088,7 +2088,7 @@ const handleDelete = async (item) => {
     if (name === "quantity" || name === "rate") {
       const quantity = parseFloat(value) || 0;
       const rate = parseFloat(name === "quantity" ? formData.rate : value) || 0;
-      updatedFormData.amount = (quantity * rate).toString();
+      updatedFormData.amount = roundTo2Decimals(quantity * rate).toString();
     }
 
     setFormData(updatedFormData);
@@ -2126,7 +2126,7 @@ const handleDelete = async (item) => {
         center_name: formData.center_name,
         supplied_item_name: formData.supplied_item_name,
         unit: formData.unit,
-        quantity: parseInt(formData.quantity),
+        quantity: parseFloat(formData.quantity),
         rate: parseFloat(formData.rate),
         amount: parseFloat(formData.amount),
         beneficiary_reg_date: convertToBackendFormat(formData.beneficiary_reg_date) || today,
