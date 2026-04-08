@@ -77,13 +77,12 @@ const staticCategoryOptions = [
 const staticUnitOptions = ["नग", "किलोग्राम", "लीटर", "मीटर", "बैग"];
 
 // Available columns for table (excluding sno which is always shown)
-// Reordered according to the requested sequence
+// Unit moved to just before quantity column
 const beneficiariesTableColumns = [
   { key: "center_name", label: "केंद्र का नाम" },
   { key: "vidhan_sabha_name", label: "विधानसभा का नाम" },
   { key: "vikas_khand_name", label: "विकास खंड का नाम" },
   { key: "scheme_name", label: "योजना का नाम" },
-  { key: "unit", label: "इकाई" },
   { key: "supplied_item_name", label: "आपूर्ति की गई वस्तु का नाम" },
   { key: "farmer_name", label: "किसान का नाम" },
   { key: "father_name", label: "पिता का नाम" },
@@ -93,13 +92,14 @@ const beneficiariesTableColumns = [
   { key: "aadhaar_number", label: "आधार नंबर" },
   { key: "bank_account_number", label: "बैंक खाता नंबर" },
   { key: "ifsc_code", label: "IFSC कोड" },
+  { key: "unit", label: "इकाई" },
   { key: "quantity", label: "मात्रा" },
   { key: "rate", label: "दर" },
   { key: "amount", label: "राशि" },
   { key: "beneficiary_reg_date", label: "पंजीकरण तिथि" },
 ];
 
-// Column mapping for data access - Reordered to match the new sequence
+// Column mapping for data access - Unit moved to just before quantity
 const beneficiariesTableColumnMapping = {
   sno: { header: "क्र.सं.", accessor: (item, index) => index + 1 },
   center_name: {
@@ -136,8 +136,8 @@ const beneficiariesTableColumnMapping = {
     accessor: (item) => item.bank_account_number,
   },
   ifsc_code: { header: "IFSC कोड", accessor: (item) => item.ifsc_code },
-  unit: { header: "इकाई", accessor: (item) => item.unit },
   quantity: { header: "मात्रा", accessor: (item) => item.quantity },
+  unit: { header: "इकाई", accessor: (item) => item.unit },
   rate: { header: "दर", accessor: (item) => item.rate },
   amount: { header: "राशि", accessor: (item) => item.amount },
   beneficiary_reg_date: {
@@ -1022,15 +1022,11 @@ const KrishiRegistration = () => {
       totalRow["क्र.सं."] = "कुल";
       selectedColumns.forEach((col) => {
         if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
-            col === "scheme_name" || col === "supplied_item_name" || col === "category" || col === "unit") {
-          // Unique count for categorical columns
-          const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
-          totalRow[columnMapping[col].header] = uniqueValues.size;
-        } else if (col === "farmer_name") {
-          // Total count for farmer_name
-          totalRow[columnMapping[col].header] = data.length;
+            col === "scheme_name" || col === "supplied_item_name" || col === "category" || 
+            col === "unit" || col === "farmer_name") {
+          totalRow[columnMapping[col].header] = col === "farmer_name" ? data.length : 
+            [...new Set(data.map(item => columnMapping[col].accessor(item, 0)))].size;
         } else if (col === "quantity" || col === "rate" || col === "amount") {
-          // Sum for numeric columns
           const sum = data.reduce((total, item) => {
             const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
             return total + value;
@@ -1052,7 +1048,6 @@ const KrishiRegistration = () => {
         { wch: 20 }, // विधानसभा का नाम
         { wch: 20 }, // विकास खंड का नाम
         { wch: 20 }, // योजना का नाम
-        { wch: 10 }, // इकाई
         { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
         { wch: 20 }, // किसान का नाम
         { wch: 20 }, // पिता का नाम
@@ -1062,6 +1057,7 @@ const KrishiRegistration = () => {
         { wch: 15 }, // आधार नंबर
         { wch: 20 }, // बैंक खाता नंबर
         { wch: 15 }, // IFSC कोड
+        { wch: 10 }, // इकाई
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
@@ -1085,7 +1081,6 @@ const KrishiRegistration = () => {
         {
           "केंद्र का नाम": "कोटद्वार",
           "योजना का नाम": "MGNREGA",
-          "इकाई": "नग",
           "आपूर्ति की गई वस्तु का नाम": "बीज",
           "किसान का नाम": "रामेश कुमार",
           "पिता का नाम": "सुरेश कुमार",
@@ -1095,6 +1090,7 @@ const KrishiRegistration = () => {
           "आधार नंबर": "123456789012",
           "बैंक खाता नंबर": "12345678901234",
           "IFSC कोड": "SBIN0001234",
+          "इकाई": "नग",
           "मात्रा": 50,
           "दर": 25,
           "राशि": 1250,
@@ -1109,7 +1105,6 @@ const KrishiRegistration = () => {
       const colWidths = [
         { wch: 20 }, // केंद्र का नाम
         { wch: 20 }, // योजना का नाम
-        { wch: 10 }, // इकाई
         { wch: 30 }, // आपूर्ति की गई वस्तु का नाम
         { wch: 20 }, // किसान का नाम
         { wch: 20 }, // पिता का नाम
@@ -1119,6 +1114,7 @@ const KrishiRegistration = () => {
         { wch: 15 }, // आधार नंबर
         { wch: 20 }, // बैंक खाता नंबर
         { wch: 15 }, // IFSC कोड
+        { wch: 10 }, // इकाई
         { wch: 10 }, // मात्रा
         { wch: 10 }, // दर
         { wch: 10 }, // राशि
@@ -1164,15 +1160,12 @@ const KrishiRegistration = () => {
       const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
         .map((col) => {
           if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
-              col === "scheme_name" || col === "supplied_item_name" || col === "category" || col === "unit") {
-            // Unique count for categorical columns
-            const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
-            return `<td><strong>${uniqueValues.size}</strong></td>`;
-          } else if (col === "farmer_name") {
-            // Total count for farmer_name
-            return `<td><strong>${data.length}</strong></td>`;
+              col === "scheme_name" || col === "supplied_item_name" || col === "category" || 
+              col === "unit" || col === "farmer_name") {
+            return col === "farmer_name" ? 
+              `<td><strong>${data.length}</strong></td>` :
+              `<td><strong>${[...new Set(data.map(item => columnMapping[col].accessor(item, 0)))].size}</strong></td>`;
           } else if (col === "quantity" || col === "rate" || col === "amount") {
-            // Sum for numeric columns
             const sum = data.reduce((total, item) => {
               const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
               return total + value;
@@ -2422,7 +2415,6 @@ const handleDelete = async (item) => {
                         <th>विधानसभा का नाम</th>
                         <th>विकास खंड का नाम</th>
                         <th>योजना का नाम</th>
-                        <th>इकाई</th>
                         <th>आपूर्ति की गई वस्तु का नाम</th>
                         <th>किसान का नाम</th>
                         <th>पिता का नाम</th>
@@ -2432,6 +2424,7 @@ const handleDelete = async (item) => {
                         <th>आधार नंबर</th>
                         <th>बैंक खाता नंबर</th>
                         <th>IFSC कोड</th>
+                        <th>इकाई</th>
                         <th>मात्रा</th>
                         <th>दर</th>
                         <th>राशि</th>
@@ -2496,7 +2489,6 @@ const handleDelete = async (item) => {
                             <th>विधानसभा का नाम</th>
                             <th>विकास खंड का नाम</th>
                             <th>योजना का नाम</th>
-                            <th>इकाई</th>
                             <th>आपूर्ति की गई वस्तु का नाम</th>
                             <th>किसान का नाम</th>
                             <th>पिता का नाम</th>
@@ -2506,6 +2498,7 @@ const handleDelete = async (item) => {
                             <th>आधार नंबर</th>
                             <th>बैंक खाता नंबर</th>
                             <th>IFSC कोड</th>
+                            <th>इकाई</th>
                             <th>मात्रा</th>
                             <th>दर</th>
                             <th>राशि</th>
@@ -2616,7 +2609,6 @@ const handleDelete = async (item) => {
                           <th>विधानसभा का नाम</th>
                           <th>विकास खंड का नाम</th>
                           <th>योजना का नाम</th>
-                          <th>इकाई</th>
                           <th>आपूर्ति की गई वस्तु का नाम</th>
                           <th>किसान का नाम</th>
                           <th>पिता का नाम</th>
@@ -2626,6 +2618,7 @@ const handleDelete = async (item) => {
                           <th>आधार नंबर</th>
                           <th>बैंक खाता नंबर</th>
                           <th>IFSC कोड</th>
+                          <th>इकाई</th>
                           <th>मात्रा</th>
                           <th>दर</th>
                           <th>राशि</th>
