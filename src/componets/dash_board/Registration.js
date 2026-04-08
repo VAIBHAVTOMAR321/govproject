@@ -313,6 +313,8 @@ const Registration = () => {
   const [duplicateRowIndices, setDuplicateRowIndices] = useState([]);
   const [showAllDuplicatesModal, setShowAllDuplicatesModal] = useState(false);
   const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
+  const [centerNameCorrections, setCenterNameCorrections] = useState([]);
+  const [showCenterNameCorrectionModal, setShowCenterNameCorrectionModal] = useState(false);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
     billingTableColumns.map((col) => col.key)
@@ -1492,6 +1494,67 @@ const Registration = () => {
     return errors;
   };
 
+  // Function to find closest matching center name
+  const findClosestCenterName = (inputName) => {
+    if (!inputName || !inputName.toString().trim()) return null;
+    
+    const input = inputName.toString().trim();
+    
+    if (centerOptions.includes(input)) {
+      return { original: input, corrected: input, exact: true };
+    }
+    
+    let closestMatch = null;
+    let minDistance = Infinity;
+    
+    for (const option of centerOptions) {
+      const distance = levenshteinDistance(input, option);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestMatch = option;
+      }
+    }
+    
+    if (minDistance <= 2 && closestMatch) {
+      return { original: input, corrected: closestMatch, exact: false };
+    }
+    
+    return null;
+  };
+
+  // Helper function to calculate Levenshtein distance
+  const levenshteinDistance = (str1, str2) => {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+    
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (str1[i - 1] === str2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        }
+      }
+    }
+    
+    return dp[m][n];
+  };
+
+  // Function to apply center name corrections to parsed rows
+  const applyCenterNameCorrections = (rows, corrections) => {
+    return rows.map(row => {
+      const correction = corrections.find(c => c.rowIndex === row.rowIndex);
+      if (correction) {
+        return { ...row, center_name: correction.corrected };
+      }
+      return row;
+    });
+  };
+
   // Check if a row has any meaningful data (not completely empty)
   const isEmptyRow = (row) => {
     if (!row || typeof row !== 'object') return true;
@@ -1668,6 +1731,31 @@ const Registration = () => {
             
             setValidationErrorsList(newValidationErrors);
             setDuplicateRowIndices(Array.from(duplicateIndices));
+            
+            // Check for center name corrections needed
+            const corrections = [];
+            parsedRows.forEach((row) => {
+              if (row.center_name && row.center_name.toString().trim()) {
+                const correction = findClosestCenterName(row.center_name);
+                if (correction && !correction.exact) {
+                  corrections.push({
+                    rowIndex: row.rowIndex,
+                    original: correction.original,
+                    corrected: correction.corrected,
+                    data: row
+                  });
+                }
+              }
+            });
+            
+            // If there are corrections needed, show modal for confirmation
+            if (corrections.length > 0) {
+              setCenterNameCorrections(corrections);
+              setShowCenterNameCorrectionModal(true);
+              setPreviewData(parsedRows);
+              return;
+            }
+            
             if (newValidationErrors.length > 0) {
               setIsValidated(true);
             }
@@ -4268,6 +4356,54 @@ const Registration = () => {
           </Alert>
         )}
       </Container>
+
+      {/* Center Name Correction Modal */}
+      <Modal show={showCenterNameCorrectionModal} onHide={() => setShowCenterNameCorrectionModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>केंद्र नाम सुधार ({centerNameCorrections.length} रिकॉर्ड)</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          <Alert variant="warning" className="small-fonts">
+            <strong>निम्न केंद्र नामों में बोलचाल की भिन्नता पाई गई है:</strong>
+            <br />
+            कृपया पुष्टि करें कि आप इन नामों को सिस्टम में उपलब्ध सही नामों से बदलना चाहते हैं।
+          </Alert>
+          <Table striped bordered hover size="sm" className="small-fonts">
+            <thead>
+              <tr>
+                <th>क्र.सं. (Excel)</th>
+                <th>मूल केंद्र नाम</th>
+                <th>सुधारित केंद्र नाम</th>
+              </tr>
+            </thead>
+            <tbody>
+              {centerNameCorrections.map((correction, idx) => (
+                <tr key={idx}>
+                  <td>{correction.rowIndex}</td>
+                  <td style={{ color: 'red' }}>{correction.original}</td>
+                  <td style={{ color: 'green', fontWeight: 'bold' }}>{correction.corrected}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            const correctedRows = applyCenterNameCorrections(previewData, centerNameCorrections);
+            setPreviewData(correctedRows);
+            setShowCenterNameCorrectionModal(false);
+            setShowPreviewModal(true);
+          }}>
+            सुधार करें और आगे बढ़ें
+          </Button>
+          <Button variant="primary" onClick={() => {
+            setShowCenterNameCorrectionModal(false);
+            setShowPreviewModal(true);
+          }}>
+            बिना सुधार के आगे बढ़ें
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
