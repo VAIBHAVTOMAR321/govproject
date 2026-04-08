@@ -1193,7 +1193,6 @@ const KrishiRegistration = () => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
-
               body {
                 font-family: 'Noto Sans', Arial, sans-serif;
                 margin: 20px;
@@ -1204,6 +1203,20 @@ const KrishiRegistration = () => {
                 font-size: 24px;
                 margin-bottom: 30px;
                 font-weight: bold;
+              }
+              .print-button {
+                display: block;
+                margin: 0 auto 20px auto;
+                padding: 10px 20px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+              }
+              .print-button:hover {
+                background-color: #0056b3;
               }
               table {
                 border-collapse: collapse;
@@ -1230,6 +1243,7 @@ const KrishiRegistration = () => {
           </head>
           <body>
             <h1>${title}</h1>
+            <button class="print-button no-print" onclick="window.print()">प्रिंट करें</button>
             <table>
               <thead>
                 <tr>${headers}</tr>
@@ -1247,12 +1261,7 @@ const KrishiRegistration = () => {
       printWindow.document.write(tableHtml);
       printWindow.document.close();
 
-      // Wait for content to load before printing
       printWindow.onload = function () {
-        setTimeout(() => {
-          printWindow.print();
-          printWindow.close();
-        }, 1000);
       };
     } catch (e) {
       console.error("Error generating PDF:", e);
