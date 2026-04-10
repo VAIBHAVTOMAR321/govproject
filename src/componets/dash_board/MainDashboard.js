@@ -62,10 +62,12 @@ const tableColumnOrder = [
   "source_of_receipt",
   "investment_name",
   "sub_investment_name",
+  "unit",
   "allocated_quantity",
   "amount_of_farmer_share",
   "amount_of_subsidy",
   "total_amount",
+  "bill_date",
 ];
 
 // Column definitions
@@ -92,8 +94,8 @@ const columnDefs = {
     label: translations.subInvestmentName,
     key: "sub_investment_name",
   },
-  unit: { label: "इकाई", key: "unit", hidden: true },
-  bill_date: { label: "पंजीकरण तिथि", key: "bill_date", hidden: true },
+  unit: { label: "इकाई", key: "unit" },
+  bill_date: { label: "पंजीकरण तिथि", key: "bill_date" },
   allocated_quantity: { label: "आवंटित मात्रा", key: "allocated_quantity" },
   rate: { label: "दर", key: "rate", hidden: true },
   amount_of_farmer_share: {
@@ -3218,13 +3220,15 @@ const MainDashboard = () => {
         }
       });
 
-      // Use the selected columns from the column filter
-      const visibleColumns = tableColumnFilters.main;
+      // Use ALL columns for export (not just selected columns)
+      const allColumns = tableColumnOrder
+        .filter((col) => !columnDefs[col].hidden)
+        .map((col) => columnDefs[col].label);
 
       return {
         heading: getSummaryHeading(),
         data: filteredTableData,
-        columns: visibleColumns,
+        columns: allColumns,
         totals: totals,
       };
     } else if (view === "detail" && !showDetailed) {
@@ -6707,24 +6711,13 @@ const MainDashboard = () => {
                         className="pdf-add-btn"
                         variant="outline-danger"
                         size="sm"
-                        onClick={async () => {
+                        onClick={() => {
                           setIsExporting(true);
-                          try {
-                            const tableEl = findExportTable();
-                            if (!tableEl) {
-                              alert("Unable to find the rendered report table for export.");
-                              return;
-                            }
-                            setPreviewType("pdf");
-                            setShowPreviewModal(true);
-                            // Generate preview in background
-                            await exportTableToPDF(tableEl, "report.pdf", false);
-                          } catch (e) {
-                            console.error(e);
-                            alert("PDF preview failed: " + e.message);
-                          } finally {
-                            setIsExporting(false);
-                          }
+                          setPreviewHtml(null);
+                          setPreviewImageSrc(null);
+                          setPreviewType("pdf");
+                          setShowPreviewModal(true);
+                          setIsExporting(false);
                         }}
                         disabled={isExporting}
                       >
@@ -6794,24 +6787,13 @@ const MainDashboard = () => {
                         variant="outline-success"
                         className="pdf-add-btn"
                         size="sm"
-                        onClick={async () => {
+                        onClick={() => {
                           setIsExporting(true);
-                          try {
-                            const tableEl = findExportTable();
-                            if (!tableEl) {
-                              alert("Unable to find the rendered report table for export.");
-                              return;
-                            }
-                            setPreviewType("excel");
-                            setShowPreviewModal(true);
-                            // Generate preview in background
-                            await exportTableToExcel(tableEl, "report.xlsx", false);
-                          } catch (e) {
-                            console.error(e);
-                            alert("Excel preview failed: " + e.message);
-                          } finally {
-                            setIsExporting(false);
-                          }
+                          setPreviewHtml(null);
+                          setPreviewImageSrc(null);
+                          setPreviewType("excel");
+                          setShowPreviewModal(true);
+                          setIsExporting(false);
                         }}
                         disabled={isExporting}
                       >
@@ -7281,7 +7263,7 @@ const MainDashboard = () => {
   const PreviewModal = () => (
     <Modal
       show={showPreviewModal}
-      onHide={() => setShowPreviewModal(false)}
+      onHide={() => { setShowPreviewModal(false); setPreviewHtml(null); }}
       size="xl"
       centered
     >
@@ -8247,16 +8229,11 @@ const MainDashboard = () => {
                               <tr>
                                 <th>S.No.</th>
                                 {(() => {
-                                  // Build main table columns: start from normal visible columns,
-                                  // insert 'unit' after 'scheme_name' and append 'bill_date'
+                                  // Build main table columns: use tableColumnOrder directly (unit is already in position after sub_investment_name)
                                   const baseCols = tableColumnOrder.filter(
                                     (col) => !columnDefs[col].hidden
                                   );
                                   const cols = [...baseCols];
-                                  const schemeIdx = cols.indexOf("scheme_name");
-                                  if (schemeIdx !== -1 && !cols.includes("unit")) {
-                                    cols.splice(schemeIdx + 1, 0, "unit");
-                                  }
                                   if (!cols.includes("bill_date")) {
                                     cols.push("bill_date");
                                   }
@@ -8281,46 +8258,43 @@ const MainDashboard = () => {
                                 <tr key={item.id || index}>
                                   <td>{startIndex + index + 1}</td>
                                   {(() => {
-                                    const baseCols = tableColumnOrder.filter(
-                                      (col) => !columnDefs[col].hidden
-                                    );
-                                    const cols = [...baseCols];
-                                    const schemeIdx = cols.indexOf("scheme_name");
-                                    if (schemeIdx !== -1 && !cols.includes("unit")) {
-                                      cols.splice(schemeIdx + 1, 0, "unit");
-                                    }
-                                    if (!cols.includes("bill_date")) {
-                                      cols.push("bill_date");
-                                    }
+                                  // Build main table columns: use tableColumnOrder directly (unit is already in position after sub_investment_name)
+                                  const baseCols = tableColumnOrder.filter(
+                                    (col) => !columnDefs[col].hidden
+                                  );
+                                  const cols = [...baseCols];
+                                  if (!cols.includes("bill_date")) {
+                                    cols.push("bill_date");
+                                  }
 
-                                    return cols
-                                      .filter((col) =>
-                                        tableColumnFilters.main.includes(
-                                          columnDefs[col]?.label
-                                        ) ||
+                                  return cols
+                                    .filter((col) =>
+                                      tableColumnFilters.main.includes(
+                                        columnDefs[col]?.label
+                                      ) ||
+                                      col === "unit" ||
+                                      col === "bill_date"
+                                    )
+                                    .map((col) => {
+                                      const isSpecial =
                                         col === "unit" ||
-                                        col === "bill_date"
-                                      )
-                                      .map((col) => {
-                                        const isSpecial =
-                                          col === "unit" ||
-                                          col === "bill_date";
-                                        return (
-                                          <td
-                                            key={col}
-                                            style={{
-                                              cursor: "default",
-                                              color: "black",
-                                            }}
-                                          >
-                                            {col === "unit"
-                                              ? // Prefer explicit unit field or try helper
-                                                item.unit || getUnitFromItem(item) || "-"
-                                              : item[col] || "-"}
-                                          </td>
-                                        );
-                                      });
-                                  })()}
+                                        col === "bill_date";
+                                      return (
+                                        <td
+                                          key={col}
+                                          style={{
+                                            cursor: "default",
+                                            color: "black",
+                                          }}
+                                        >
+                                          {col === "unit"
+                                            ? // Prefer explicit unit field or try helper
+                                              item.unit || getUnitFromItem(item) || "-"
+                                            : item[col] || "-"}
+                                        </td>
+                                      );
+                                    });
+                                })()}
                                 </tr>
                               ))}
                             </tbody>
@@ -8328,14 +8302,11 @@ const MainDashboard = () => {
                               <tr>
                                 <td style={{ fontWeight: "bold" }}>कुल:</td>
                                   {(() => {
+                                  // Build main table columns: use tableColumnOrder directly (unit is already in position after sub_investment_name)
                                     const baseCols = tableColumnOrder.filter(
                                       (col) => !columnDefs[col].hidden
                                     );
                                     const cols = [...baseCols];
-                                    const schemeIdx = cols.indexOf("scheme_name");
-                                    if (schemeIdx !== -1 && !cols.includes("unit")) {
-                                      cols.splice(schemeIdx + 1, 0, "unit");
-                                    }
                                     if (!cols.includes("bill_date")) {
                                       cols.push("bill_date");
                                     }
