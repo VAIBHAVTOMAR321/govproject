@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Container,
   Form,
@@ -340,6 +340,7 @@ const KrishiRegistration = () => {
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(100);
+  const [selectedSummaryModal, setSelectedSummaryModal] = useState(null);
 
   // Dynamic form options - initialized with static values
   const [formOptions, setFormOptions] = useState({
@@ -924,6 +925,125 @@ const KrishiRegistration = () => {
     
     setBeneficiaries(filtered);
   }, [filters, allBeneficiaries, createdAtFilter]);
+
+  const getMostFrequentValue = (list = []) => {
+    const counts = list.reduce((acc, value) => {
+      const key = value ? String(value).trim() : "";
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    let topValue = "";
+    let topCount = 0;
+    Object.entries(counts).forEach(([key, count]) => {
+      if (count > topCount) {
+        topCount = count;
+        topValue = key;
+      }
+    });
+
+    return {
+      label: topValue || "N/A",
+      count: topCount,
+    };
+  };
+
+  const getGroupedSummary = (key) => {
+    const groups = {};
+    const items = beneficiaries || [];
+
+    items.forEach((item) => {
+      const label = item[key] ? String(item[key]).trim() : "अन्य";
+      if (!groups[label]) {
+        groups[label] = { count: 0, quantity: 0, amount: 0 };
+      }
+      groups[label].count += 1;
+      const quantity = parseFloat(item.quantity);
+      const amount = parseFloat(item.amount);
+      groups[label].quantity += Number.isFinite(quantity) ? quantity : 0;
+      groups[label].amount += Number.isFinite(amount) ? amount : 0;
+    });
+
+    return Object.entries(groups)
+      .map(([label, data]) => ({
+        label,
+        count: data.count,
+        quantity: roundTo2Decimals(data.quantity),
+        amount: roundTo2Decimals(data.amount),
+      }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const summaryStats = useMemo(() => {
+    const items = beneficiaries || [];
+    const unique = (key) => new Set(items.map((item) => item[key]).filter(Boolean)).size;
+
+    const vikas = getMostFrequentValue(items.map((item) => item.vikas_khand_name));
+    const vidhan = getMostFrequentValue(items.map((item) => item.vidhan_sabha_name));
+    const suppliedItem = getMostFrequentValue(items.map((item) => item.supplied_item_name));
+    const center = getMostFrequentValue(items.map((item) => item.center_name));
+    const scheme = getMostFrequentValue(items.map((item) => item.scheme_name));
+
+    const totalQuantity = items.reduce((sum, item) => {
+      const value = parseFloat(item.quantity);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+
+    const totalAmount = items.reduce((sum, item) => {
+      const value = parseFloat(item.amount);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+
+    return {
+      vikas: {
+        uniqueCount: unique("vikas_khand_name"),
+        topLabel: vikas.label,
+        topCount: vikas.count,
+        totalBeneficiaries: items.length,
+        breakdown: getGroupedSummary("vikas_khand_name"),
+      },
+      vidhan: {
+        uniqueCount: unique("vidhan_sabha_name"),
+        topLabel: vidhan.label,
+        topCount: vidhan.count,
+        totalBeneficiaries: items.length,
+        breakdown: getGroupedSummary("vidhan_sabha_name"),
+      },
+      suppliedItem: {
+        uniqueCount: unique("supplied_item_name"),
+        topLabel: suppliedItem.label,
+        totalQuantity: roundTo2Decimals(totalQuantity),
+        totalAmount: roundTo2Decimals(totalAmount),
+        breakdown: getGroupedSummary("supplied_item_name"),
+      },
+      center: {
+        uniqueCount: unique("center_name"),
+        topLabel: center.label,
+        totalRecords: items.length,
+        breakdown: getGroupedSummary("center_name"),
+      },
+      scheme: {
+        uniqueCount: unique("scheme_name"),
+        topLabel: scheme.label,
+        totalAmount: roundTo2Decimals(totalAmount),
+        breakdown: getGroupedSummary("scheme_name"),
+      },
+      overall: {
+        totalQuantity: roundTo2Decimals(totalQuantity),
+        totalAmount: roundTo2Decimals(totalAmount),
+        totalBeneficiaries: items.length,
+      },
+    };
+  }, [beneficiaries]);
+
+  const openSummaryModal = (type) => {
+    setSelectedSummaryModal(type);
+  };
+
+  const closeSummaryModal = () => {
+    setSelectedSummaryModal(null);
+  };
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -3845,6 +3965,257 @@ const handleDelete = async (item) => {
                     </Row>
                   </div>
                 )}
+
+                {/* Summary Cards Section */}
+                {beneficiaries.length > 0 && (
+                  <div className="summary-cards mb-4">
+                    <Row className="gy-3">
+                      <Col xs={12} sm={6} lg={4} xl={2}>
+                        <div
+                          className="summary-card p-3 h-100"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => openSummaryModal("vikas")}
+                        >
+                          <h5>विकास खंड सारांश</h5>
+                          <div className="mt-3">
+                            <p><strong>कुल विकास खंड:</strong> {summaryStats.vikas.uniqueCount}</p>
+                            <p><strong>शीर्ष ब्लॉक:</strong> {summaryStats.vikas.topLabel} {summaryStats.vikas.topCount > 0 ? `(${summaryStats.vikas.topCount})` : ""}</p>
+                            <p><strong>कुल लाभार्थी:</strong> {summaryStats.vikas.totalBeneficiaries}</p>
+                          </div>
+                        </div>
+                      </Col>
+                      <Col xs={12} sm={6} lg={4} xl={2}>
+                        <div
+                          className="summary-card p-3 h-100"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => openSummaryModal("vidhan")}
+                        >
+                          <h5>विधानसभा सारांश</h5>
+                          <div className="mt-3">
+                            <p><strong>कुल विधानसभा:</strong> {summaryStats.vidhan.uniqueCount}</p>
+                            <p><strong>शीर्ष विधानसभा:</strong> {summaryStats.vidhan.topLabel} {summaryStats.vidhan.topCount > 0 ? `(${summaryStats.vidhan.topCount})` : ""}</p>
+                            <p><strong>कुल लाभार्थी:</strong> {summaryStats.vidhan.totalBeneficiaries}</p>
+                          </div>
+                        </div>
+                      </Col>
+                      <Col xs={12} sm={6} lg={4} xl={2}>
+                        <div
+                          className="summary-card p-3 h-100"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => openSummaryModal("supplied")}
+                        >
+                          <h5>आपूर्ति वस्तु सारांश</h5>
+                          <div className="mt-3">
+                            <p><strong>कुल वस्तुएँ:</strong> {summaryStats.suppliedItem.uniqueCount}</p>
+                            <p><strong>कुल मात्रा:</strong> {summaryStats.suppliedItem.totalQuantity}</p>
+                            <p><strong>कुल राशि:</strong> ₹{summaryStats.suppliedItem.totalAmount}</p>
+                          </div>
+                        </div>
+                      </Col>
+                      <Col xs={12} sm={6} lg={4} xl={2}>
+                        <div
+                          className="summary-card p-3 h-100"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => openSummaryModal("center")}
+                        >
+                          <h5>केंद्र सारांश</h5>
+                          <div className="mt-3">
+                            <p><strong>कुल केंद्र:</strong> {summaryStats.center.uniqueCount}</p>
+                            <p><strong>सबसे सक्रिय केंद्र:</strong> {summaryStats.center.topLabel}</p>
+                            <p><strong>कुल रिकॉर्ड:</strong> {summaryStats.center.totalRecords}</p>
+                          </div>
+                        </div>
+                      </Col>
+                      <Col xs={12} sm={6} lg={4} xl={2}>
+                        <div
+                          className="summary-card p-3 h-100"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => openSummaryModal("scheme")}
+                        >
+                          <h5>योजना सारांश</h5>
+                          <div className="mt-3">
+                            <p><strong>कुल योजना:</strong> {summaryStats.scheme.uniqueCount}</p>
+                            <p><strong>सबसे अधिक उपयोग:</strong> {summaryStats.scheme.topLabel}</p>
+                            <p><strong>कुल वितरित राशि:</strong> ₹{summaryStats.scheme.totalAmount}</p>
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </div>
+                )}
+
+                <Modal
+                  show={!!selectedSummaryModal}
+                  onHide={closeSummaryModal}
+                  size="xl"
+                  centered
+                  scrollable
+                >
+                  <Modal.Header closeButton>
+                    <Modal.Title>
+                      {selectedSummaryModal === "vikas" && "विकास खंड सारांश विवरण"}
+                      {selectedSummaryModal === "vidhan" && "विधानसभा सारांश विवरण"}
+                      {selectedSummaryModal === "supplied" && "आपूर्ति वस्तु सारांश विवरण"}
+                      {selectedSummaryModal === "center" && "केंद्र सारांश विवरण"}
+                      {selectedSummaryModal === "scheme" && "योजना सारांश विवरण"}
+                    </Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body>
+                    {selectedSummaryModal === "vikas" && (
+                      <>
+                        <p><strong>कुल विकास खंड:</strong> {summaryStats.vikas.uniqueCount}</p>
+                        <p><strong>कुल लाभार्थी:</strong> {summaryStats.vikas.totalBeneficiaries}</p>
+                        <Table striped bordered hover responsive size="sm">
+                          <thead>
+                            <tr>
+                              <th>विकास खंड</th>
+                              <th>लाभार्थी</th>
+                              <th>राशि</th>
+                              <th>मात्रा</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryStats.vikas.breakdown.map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.label}</td>
+                                <td>{item.count}</td>
+                                <td>₹{item.amount}</td>
+                                <td>{item.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </>
+                    )}
+                    {selectedSummaryModal === "vidhan" && (
+                      <>
+                        <p><strong>कुल विधानसभा:</strong> {summaryStats.vidhan.uniqueCount}</p>
+                        <Table striped bordered hover responsive size="sm">
+                          <thead>
+                            <tr>
+                              <th>विधानसभा</th>
+                              <th>लाभार्थी</th>
+                              <th>राशि</th>
+                              <th>मात्रा</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryStats.vidhan.breakdown.map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.label}</td>
+                                <td>{item.count}</td>
+                                <td>₹{item.amount}</td>
+                                <td>{item.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </>
+                    )}
+                    {selectedSummaryModal === "supplied" && (
+                      <>
+                        <p><strong>कुल वस्तुएँ:</strong> {summaryStats.suppliedItem.uniqueCount}</p>
+                        <p><strong>कुल मात्रा:</strong> {summaryStats.suppliedItem.totalQuantity}</p>
+                        <p><strong>कुल राशि:</strong> ₹{summaryStats.suppliedItem.totalAmount}</p>
+                        <Table striped bordered hover responsive size="sm">
+                          <thead>
+                            <tr>
+                              <th>वस्तु</th>
+                              <th>लाभार्थी</th>
+                              <th>मात्रा</th>
+                              <th>राशि</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryStats.suppliedItem.breakdown.map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.label}</td>
+                                <td>{item.count}</td>
+                                <td>{item.quantity}</td>
+                                <td>₹{item.amount}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </>
+                    )}
+                    {selectedSummaryModal === "center" && (
+                      <>
+                        <p><strong>कुल केंद्र:</strong> {summaryStats.center.uniqueCount}</p>
+                        <Table striped bordered hover responsive size="sm">
+                          <thead>
+                            <tr>
+                              <th>केंद्र</th>
+                              <th>रिकॉर्ड</th>
+                              <th>राशि</th>
+                              <th>मात्रा</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryStats.center.breakdown.map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.label}</td>
+                                <td>{item.count}</td>
+                                <td>₹{item.amount}</td>
+                                <td>{item.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </>
+                    )}
+                    {selectedSummaryModal === "scheme" && (
+                      <>
+                        <p><strong>कुल योजना:</strong> {summaryStats.scheme.uniqueCount}</p>
+                        <Table striped bordered hover responsive size="sm">
+                          <thead>
+                            <tr>
+                              <th>योजना</th>
+                              <th>लाभार्थी</th>
+                              <th>मात्रा</th>
+                              <th>राशि</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryStats.scheme.breakdown.map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.label}</td>
+                                <td>{item.count}</td>
+                                <td>{item.quantity}</td>
+                                <td>₹{item.amount}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </>
+                    )}
+                  </Modal.Body>
+                  <Modal.Footer className="d-flex flex-column align-items-start">
+                    <div className="w-100 mb-2">
+                      <p className="mb-1"><strong>कुल मात्रा:</strong> {summaryStats.overall.totalQuantity}</p>
+                      <p className="mb-1">
+                        {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
+                          ? summaryStats[selectedSummaryModal].breakdown
+                              .map((item) => item.quantity)
+                              .join(" + ")
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="w-100 mb-2">
+                      <p className="mb-1"><strong>कुल राशि:</strong> ₹{summaryStats.overall.totalAmount}</p>
+                      <p className="mb-1">
+                        {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
+                          ? summaryStats[selectedSummaryModal].breakdown
+                              .map((item) => `₹${item.amount}`)
+                              .join(" + ")
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="w-100">
+                      <p className="mb-0"><strong>कुल लाभार्थी:</strong> {summaryStats.overall.totalBeneficiaries}</p>
+                    </div>
+                  </Modal.Footer>
+                </Modal>
 
                 {isLoading ? (
                   <div className="text-center py-4">
