@@ -975,6 +975,189 @@ const KrishiRegistration = () => {
       .sort((a, b) => b.count - a.count);
   };
 
+  const getCrossSummary = (groupByKey, filterKey = null, filterValue = null) => {
+    const groups = {};
+    const items = beneficiaries || [];
+    const filteredItems = filterKey && filterValue 
+      ? items.filter(item => String(item[filterKey]).trim() === String(filterValue).trim())
+      : items;
+
+    filteredItems.forEach((item) => {
+      const label = item[groupByKey] ? String(item[groupByKey]).trim() : "अन्य";
+      if (!groups[label]) {
+        groups[label] = { count: 0, quantity: 0, amount: 0 };
+      }
+      groups[label].count += 1;
+      const quantity = parseFloat(item.quantity);
+      const amount = parseFloat(item.amount);
+      groups[label].quantity += Number.isFinite(quantity) ? quantity : 0;
+      groups[label].amount += Number.isFinite(amount) ? amount : 0;
+    });
+
+    return Object.entries(groups)
+      .map(([label, data]) => ({
+        label,
+        count: data.count,
+        quantity: roundTo2Decimals(data.quantity),
+        amount: roundTo2Decimals(data.amount),
+      }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const crossSummaries = useMemo(() => {
+    return {
+      byVidhan: getCrossSummary("vidhan_sabha_name"),
+      byScheme: getCrossSummary("scheme_name"),
+      bySuppliedItem: getCrossSummary("supplied_item_name"),
+      byCenter: getCrossSummary("center_name"),
+      byVikas: getCrossSummary("vikas_khand_name"),
+    };
+  }, [beneficiaries]);
+
+  const getCrossTabSummary = (rowKey, colKey) => {
+    const groups = {};
+    const items = beneficiaries || [];
+    items.forEach((item) => {
+      const rowLabel = item[rowKey] ? String(item[rowKey]).trim() : "अन्य";
+      const colLabel = item[colKey] ? String(item[colKey]).trim() : "अन्य";
+      const key = `${rowLabel}||${colLabel}`;
+      if (!groups[key]) {
+        groups[key] = { row: rowLabel, col: colLabel, count: 0, quantity: 0, amount: 0 };
+      }
+      groups[key].count += 1;
+      const quantity = parseFloat(item.quantity);
+      const amount = parseFloat(item.amount);
+      groups[key].quantity += Number.isFinite(quantity) ? quantity : 0;
+      groups[key].amount += Number.isFinite(amount) ? amount : 0;
+    });
+    return Object.values(groups).map(g => ({
+      ...g,
+      quantity: roundTo2Decimals(g.quantity),
+      amount: roundTo2Decimals(g.amount),
+    }));
+  };
+
+  const vidhanByScheme = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "scheme_name"), [beneficiaries]);
+  const vidhanBySuppliedItem = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "supplied_item_name"), [beneficiaries]);
+  const vidhanByVikas = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "vikas_khand_name"), [beneficiaries]);
+  const vidhanByCenter = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "center_name"), [beneficiaries]);
+
+  const schemeByVidhan = useMemo(() => getCrossTabSummary("scheme_name", "vidhan_sabha_name"), [beneficiaries]);
+  const schemeByVikas = useMemo(() => getCrossTabSummary("scheme_name", "vikas_khand_name"), [beneficiaries]);
+  const schemeBySuppliedItem = useMemo(() => getCrossTabSummary("scheme_name", "supplied_item_name"), [beneficiaries]);
+  const schemeByCenter = useMemo(() => getCrossTabSummary("scheme_name", "center_name"), [beneficiaries]);
+
+  const vikasByVidhan = useMemo(() => getCrossTabSummary("vikas_khand_name", "vidhan_sabha_name"), [beneficiaries]);
+  const vikasByScheme = useMemo(() => getCrossTabSummary("vikas_khand_name", "scheme_name"), [beneficiaries]);
+  const vikasBySuppliedItem = useMemo(() => getCrossTabSummary("vikas_khand_name", "supplied_item_name"), [beneficiaries]);
+  const vikasByCenter = useMemo(() => getCrossTabSummary("vikas_khand_name", "center_name"), [beneficiaries]);
+
+  const centerByScheme = useMemo(() => getCrossTabSummary("center_name", "scheme_name"), [beneficiaries]);
+  const centerByVidhan = useMemo(() => getCrossTabSummary("center_name", "vidhan_sabha_name"), [beneficiaries]);
+  const centerByVikas = useMemo(() => getCrossTabSummary("center_name", "vikas_khand_name"), [beneficiaries]);
+  const centerBySuppliedItem = useMemo(() => getCrossTabSummary("center_name", "supplied_item_name"), [beneficiaries]);
+
+  const suppliedByScheme = useMemo(() => getCrossTabSummary("supplied_item_name", "scheme_name"), [beneficiaries]);
+  const suppliedByVidhan = useMemo(() => getCrossTabSummary("supplied_item_name", "vidhan_sabha_name"), [beneficiaries]);
+  const suppliedByVikas = useMemo(() => getCrossTabSummary("supplied_item_name", "vikas_khand_name"), [beneficiaries]);
+  const suppliedByCenter = useMemo(() => getCrossTabSummary("supplied_item_name", "center_name"), [beneficiaries]);
+
+  const renderCrossTabTable = (data, rowKey, colKey, title) => {
+    const rows = [...new Set(data.map(d => d.row))];
+    const cols = [...new Set(data.map(d => d.col))];
+    const rowLabel = rowKey.replace('_name', '').replace('vidhan_sabha', 'विधानसभा').replace('scheme', 'योजना').replace('vikas_khand', 'विकास खंड').replace('supplied_item', 'वस्तु').replace('center', 'केंद्र');
+    const colLabel = colKey.replace('_name', '').replace('vidhan_sabha', 'विधानसभा').replace('scheme', 'योजना').replace('vikas_khand', 'विकास खंड').replace('supplied_item', 'वस्तु').replace('center', 'केंद्र');
+    
+    const totalByRow = {};
+    rows.forEach(row => {
+      totalByRow[row] = data.filter(d => d.row === row).reduce((sum, d) => ({
+        count: sum.count + d.count,
+        quantity: sum.quantity + d.quantity,
+        amount: sum.amount + d.amount
+      }), { count: 0, quantity: 0, amount: 0 });
+    });
+
+    // Calculate grand totals
+    const grandTotal = data.reduce((sum, d) => ({
+      count: sum.count + d.count,
+      quantity: sum.quantity + d.quantity,
+      amount: sum.amount + d.amount
+    }), { count: 0, quantity: 0, amount: 0 });
+
+    // Calculate column totals
+    const totalByCol = {};
+    cols.forEach(col => {
+      totalByCol[col] = data.filter(d => d.col === col).reduce((sum, d) => ({
+        count: sum.count + d.count,
+        quantity: sum.quantity + d.quantity,
+        amount: sum.amount + d.amount
+      }), { count: 0, quantity: 0, amount: 0 });
+    });
+    
+    return (
+      <div className="mb-4 p-3 border rounded">
+        <h6 className="text-info mb-3 border-bottom pb-2">{title}</h6>
+        <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <Table striped bordered hover responsive size="sm" className="mb-0">
+            <thead className="table-dark sticky-top">
+              <tr>
+                <th rowSpan="2" style={{ verticalAlign: 'middle' }}>{rowLabel}</th>
+                <th rowSpan="2" style={{ verticalAlign: 'middle' }}>लाभार्थी</th>
+                <th rowSpan="2" style={{ verticalAlign: 'middle' }}>कुल मात्रा</th>
+                <th rowSpan="2" style={{ verticalAlign: 'middle' }}>कुल राशि (₹)</th>
+                {cols.map(col => (
+                  <th key={col} colSpan="3" className="text-center">{col}</th>
+                ))}
+              </tr>
+              <tr>
+                {cols.map(col => (
+                  <React.Fragment key={col}>
+                    <th className="text-center">लाभार्थी</th>
+                    <th className="text-center">मात्रा</th>
+                    <th className="text-center">राशि (₹)</th>
+                  </React.Fragment>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(row => (
+                <tr key={row}>
+                  <td className="fw-bold">{row}</td>
+                  <td className="text-center">{totalByRow[row].count}</td>
+                  <td className="text-center">{totalByRow[row].quantity.toFixed(2)}</td>
+                  <td className="text-center">₹{totalByRow[row].amount.toFixed(0)}</td>
+                  {cols.map(col => {
+                    const cell = data.find(d => d.row === row && d.col === col);
+                    return (
+                      <React.Fragment key={col}>
+                        <td className="text-center">{cell ? cell.count : '-'}</td>
+                        <td className="text-center">{cell ? cell.quantity.toFixed(2) : '-'}</td>
+                        <td className="text-center">{cell ? `₹${cell.amount.toFixed(0)}` : '-'}</td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              ))}
+              <tr style={{ backgroundColor: '#d4edda', fontWeight: 'bold' }}>
+                <td>कुल</td>
+                <td className="text-center">{grandTotal.count}</td>
+                <td className="text-center">{grandTotal.quantity.toFixed(2)}</td>
+                <td className="text-center">₹{grandTotal.amount.toFixed(0)}</td>
+                {cols.map(col => (
+                  <React.Fragment key={col}>
+                    <td className="text-center">{totalByCol[col].count}</td>
+                    <td className="text-center">{totalByCol[col].quantity.toFixed(2)}</td>
+                    <td className="text-center">₹{totalByCol[col].amount.toFixed(0)}</td>
+                  </React.Fragment>
+                ))}
+              </tr>
+            </tbody>
+          </Table>
+        </div>
+      </div>
+    );
+  };
+
   const summaryStats = useMemo(() => {
     const items = beneficiaries || [];
     const unique = (key) => new Set(items.map((item) => item[key]).filter(Boolean)).size;
@@ -4050,6 +4233,7 @@ const handleDelete = async (item) => {
                   size="xl"
                   centered
                   scrollable
+                  fullscreen="xl-down"
                 >
                   <Modal.Header closeButton>
                     <Modal.Title>
@@ -4063,130 +4247,835 @@ const handleDelete = async (item) => {
                   <Modal.Body>
                     {selectedSummaryModal === "vikas" && (
                       <>
-                        <p><strong>कुल विकास खंड:</strong> {summaryStats.vikas.uniqueCount}</p>
-                        <p><strong>कुल लाभार्थी:</strong> {summaryStats.vikas.totalBeneficiaries}</p>
-                        <Table striped bordered hover responsive size="sm">
-                          <thead>
-                            <tr>
-                              <th>विकास खंड</th>
-                              <th>लाभार्थी</th>
-                              <th>राशि</th>
-                              <th>मात्रा</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {summaryStats.vikas.breakdown.map((item, index) => (
-                              <tr key={index}>
-                                <td>{item.label}</td>
-                                <td>{item.count}</td>
-                                <td>₹{item.amount}</td>
-                                <td>{item.quantity}</td>
+                        <div className="mb-4 p-3 border rounded bg-light">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - विकास खंड अनुसार</h6>
+                          <div className="table-responsive">
+                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                              <thead>
+                                <tr className="table-primary">
+                                  <th>विकास खंड</th>
+                                  <th>लाभार्थी</th>
+                                  <th>राशि (₹)</th>
+                                  <th>मात्रा</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {summaryStats.vikas.breakdown.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                  <td>{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </Table>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 इस विकास खंड में विधानसभा अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विधानसभा</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </Table>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVidhan.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📋 इस विकास खंड में योजना अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>योजना</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byScheme.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+</div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📋 योजना अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>योजना</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byScheme.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>केंद्र</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byCenter.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        {renderCrossTabTable(vidhanByScheme, "vidhan_sabha_name", "scheme_name", "🔷 विधानसभा × 📋 योजना (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(vidhanBySuppliedItem, "vidhan_sabha_name", "supplied_item_name", "🔷 विधानसभा × 📦 वस्तु (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(vidhanByVikas, "vidhan_sabha_name", "vikas_khand_name", "🔷 विधानसभा × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(vidhanByCenter, "vidhan_sabha_name", "center_name", "🔷 विधानसभा × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)")}
                       </>
                     )}
                     {selectedSummaryModal === "vidhan" && (
                       <>
-                        <p><strong>कुल विधानसभा:</strong> {summaryStats.vidhan.uniqueCount}</p>
-                        <Table striped bordered hover responsive size="sm">
-                          <thead>
-                            <tr>
-                              <th>विधानसभा</th>
-                              <th>लाभार्थी</th>
-                              <th>राशि</th>
-                              <th>मात्रा</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {summaryStats.vidhan.breakdown.map((item, index) => (
-                              <tr key={index}>
-                                <td>{item.label}</td>
-                                <td>{item.count}</td>
-                                <td>₹{item.amount}</td>
-                                <td>{item.quantity}</td>
+                        <div className="mb-4 p-3 border rounded bg-light">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - विधानसभा अनुसार</h6>
+                          <div className="table-responsive">
+                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                              <thead>
+                                <tr className="table-primary">
+                                  <th>विधानसभा</th>
+                                  <th>लाभार्थी</th>
+                                  <th>राशि (₹)</th>
+                                  <th>मात्रा</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {summaryStats.vidhan.breakdown.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                  <td>{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </Table>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📋 योजना अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>योजना</th>
+                                <th>लाभार्थी</th>
+                                <th>राशि (₹)</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </Table>
+</thead>
+                            <tbody>
+                              {crossSummaries.byCenter.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📦 वस्तु अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>वस्तु</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.bySuppliedItem.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.quantity}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ विकास खंड अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विकास खंड</th>
+                                <th>लाभार्थी</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVikas.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>केंद्र</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byCenter.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+<tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>₹{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        {renderCrossTabTable(vikasByVidhan, "vikas_khand_name", "vidhan_sabha_name", "🏗️ विकास खंड × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(vikasByScheme, "vikas_khand_name", "scheme_name", "🏗️ विकास खंड × 📋 योजना (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(vikasBySuppliedItem, "vikas_khand_name", "supplied_item_name", "🏗️ विकास खंड × 📦 वस्तु (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(vikasByCenter, "vikas_khand_name", "center_name", "🏗️ विकास खंड × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)")}
                       </>
                     )}
                     {selectedSummaryModal === "supplied" && (
                       <>
-                        <p><strong>कुल वस्तुएँ:</strong> {summaryStats.suppliedItem.uniqueCount}</p>
-                        <p><strong>कुल मात्रा:</strong> {summaryStats.suppliedItem.totalQuantity}</p>
-                        <p><strong>कुल राशि:</strong> ₹{summaryStats.suppliedItem.totalAmount}</p>
-                        <Table striped bordered hover responsive size="sm">
-                          <thead>
-                            <tr>
-                              <th>वस्तु</th>
-                              <th>लाभार्थी</th>
-                              <th>मात्रा</th>
-                              <th>राशि</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {summaryStats.suppliedItem.breakdown.map((item, index) => (
-                              <tr key={index}>
-                                <td>{item.label}</td>
-                                <td>{item.count}</td>
-                                <td>{item.quantity}</td>
-                                <td>₹{item.amount}</td>
+                        <div className="mb-4 p-3 border rounded bg-light">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - आपूर्ति वस्तु अनुसार</h6>
+                          <div className="table-responsive">
+                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                              <thead>
+                                <tr className="table-primary">
+                                  <th>वस्तु</th>
+                                  <th>लाभार्थी</th>
+                                  <th>मात्रा</th>
+                                  <th>राशि (₹)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {summaryStats.suppliedItem.breakdown.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{summaryStats.suppliedItem.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>{summaryStats.suppliedItem.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>₹{summaryStats.suppliedItem.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </Table>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📋 किस योजना में उपयोग हुआ</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>योजना</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </Table>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byScheme.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 किस विधानसभा में उपयोग हुआ</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विधानसभा</th>
+                                <th>लाभार्थी</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVidhan.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>₹{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ किस विकास खंड में उपयोग हुआ</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विकास खंड</th>
+                                <th>लाभार्थी</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVikas.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 किस केंद्र में उपयोग हुआ</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>केंद्र</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byCenter.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        {renderCrossTabTable(suppliedByScheme, "supplied_item_name", "scheme_name", "📦 वस्तु × 📋 योजना (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(suppliedByVidhan, "supplied_item_name", "vidhan_sabha_name", "📦 वस्तु × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(suppliedByVikas, "supplied_item_name", "vikas_khand_name", "📦 वस्तु × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(suppliedByCenter, "supplied_item_name", "center_name", "📦 वस्तु × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)")}
                       </>
                     )}
                     {selectedSummaryModal === "center" && (
                       <>
-                        <p><strong>कुल केंद्र:</strong> {summaryStats.center.uniqueCount}</p>
-                        <Table striped bordered hover responsive size="sm">
-                          <thead>
-                            <tr>
-                              <th>केंद्र</th>
-                              <th>रिकॉर्ड</th>
-                              <th>राशि</th>
-                              <th>मात्रा</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {summaryStats.center.breakdown.map((item, index) => (
-                              <tr key={index}>
-                                <td>{item.label}</td>
-                                <td>{item.count}</td>
-                                <td>₹{item.amount}</td>
-                                <td>{item.quantity}</td>
+                        <div className="mb-4 p-3 border rounded bg-light">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - केंद्र अनुसार</h6>
+                          <div className="table-responsive">
+                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                              <thead>
+                                <tr className="table-primary">
+                                  <th>केंद्र</th>
+                                  <th>लाभार्थी</th>
+                                  <th>मात्रा</th>
+                                  <th>राशि (₹)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {summaryStats.center.breakdown.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{summaryStats.center.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>{summaryStats.center.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>₹{summaryStats.center.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </Table>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📋 योजना अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>योजना</th>
+                                <th>लाभार्थी</th>
+                                <th>राशि (₹)</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </Table>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byScheme.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byScheme.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 विधानसभा अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विधानसभा</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVidhan.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ विकास खंड अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विकास खंड</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVikas.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📦 वस्तु अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>वस्तु</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.bySuppliedItem.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        {renderCrossTabTable(centerByScheme, "center_name", "scheme_name", "🏢 केंद्र × 📋 योजना (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(centerByVidhan, "center_name", "vidhan_sabha_name", "🏢 केंद्र × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(centerByVikas, "center_name", "vikas_khand_name", "🏢 केंद्र × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(centerBySuppliedItem, "center_name", "supplied_item_name", "🏢 केंद्र × 📦 वस्तु (लाभार्थी, मात्रा व राशि)")}
                       </>
                     )}
                     {selectedSummaryModal === "scheme" && (
                       <>
-                        <p><strong>कुल योजना:</strong> {summaryStats.scheme.uniqueCount}</p>
-                        <Table striped bordered hover responsive size="sm">
-                          <thead>
-                            <tr>
-                              <th>योजना</th>
-                              <th>लाभार्थी</th>
-                              <th>मात्रा</th>
-                              <th>राशि</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {summaryStats.scheme.breakdown.map((item, index) => (
-                              <tr key={index}>
-                                <td>{item.label}</td>
-                                <td>{item.count}</td>
-                                <td>{item.quantity}</td>
-                                <td>₹{item.amount}</td>
+                        <div className="mb-4 p-3 border rounded bg-light">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - योजना अनुसार</h6>
+                          <div className="table-responsive">
+                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                              <thead>
+                                <tr className="table-primary">
+                                  <th>योजना</th>
+                                  <th>लाभार्थी</th>
+                                  <th>मात्रा</th>
+                                  <th>राशि (₹)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {summaryStats.scheme.breakdown.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{summaryStats.scheme.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>{summaryStats.scheme.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>₹{summaryStats.scheme.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </Table>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 विधानसभा अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विधानसभा</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </Table>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVidhan.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVidhan.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ विकास खंड अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विकास खंड</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVikas.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">📦 वस्तु अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>वस्तु</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.bySuppliedItem.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>केंद्र</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byCenter.slice(0, 8).map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+<tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{crossSummaries.byCenter.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        {renderCrossTabTable(schemeByVidhan, "scheme_name", "vidhan_sabha_name", "📋 योजना × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(schemeByVikas, "scheme_name", "vikas_khand_name", "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(schemeBySuppliedItem, "scheme_name", "supplied_item_name", "📋 योजना × 📦 वस्तु (लाभार्थी, मात्रा व राशि)")}
+                        {renderCrossTabTable(schemeByCenter, "scheme_name", "center_name", "📋 योजना × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)")}
                       </>
                     )}
                   </Modal.Body>
