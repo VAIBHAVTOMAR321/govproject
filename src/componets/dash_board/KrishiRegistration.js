@@ -2200,28 +2200,6 @@ const handleDelete = async (item) => {
             return undefined;
           };
 
-          const parseExcelDate = (val) => {
-            if (val === null || val === undefined || val === '') return '';
-            if (val instanceof Date) return val.toISOString().slice(0, 10);
-            if (typeof val === 'number') {
-              const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-              const ms = Math.round(val * 24 * 60 * 60 * 1000);
-              const d = new Date(excelEpoch.getTime() + ms);
-              if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-              return String(val);
-            }
-            const dt = new Date(val);
-            if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
-            const parts = String(val).split(/[-\/\.]/).map(p => p.trim());
-            if (parts.length === 3) {
-              if (parts[0].length === 4) {
-                return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
-              }
-              return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-            }
-            return String(val);
-          };
-
           const today = getTodayInBackendFormat();
           const parsedRows = dataRows.map((row, rowIndex) => {
             const regDateRaw = getCell(row, ["पंजीकरण तिथि", "beneficiary_reg_date"]) || today;
@@ -2244,7 +2222,7 @@ const handleDelete = async (item) => {
             rate: Number.isFinite(Number(getCell(row, ["दर", "rate"]) || 0)) ? roundTo2Decimals(getCell(row, ["दर", "rate"]) || 0) : 0,
             amount: Number.isFinite(Number(getCell(row, ["राशि", "amount"]) || 0)) ? roundTo2Decimals(getCell(row, ["राशि", "amount"]) || 0) : 0,
             original_beneficiary_reg_date: convertToDisplayFormat(regDateRaw),
-            beneficiary_reg_date: parseExcelDate(regDateRaw),
+            beneficiary_reg_date: parseDateFromExcel(regDateRaw),
             rowIndex: rowIndex + 2,
             _originalIndex: rowIndex,
           }}).filter(row => !isEmptyRow(row));
