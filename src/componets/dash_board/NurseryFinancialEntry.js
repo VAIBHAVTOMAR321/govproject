@@ -877,35 +877,13 @@ const NurseryFinancialEntry = () => {
           
           dataRows.forEach((row, rowIndex) => {
             const originalVal = row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || "";
-            let displayDate = "";
-            if (originalVal instanceof Date && !isNaN(originalVal.getTime())) {
-              const day = String(originalVal.getDate()).padStart(2, '0');
-              const month = String(originalVal.getMonth() + 1).padStart(2, '0');
-              const year = originalVal.getFullYear();
-              displayDate = `${day}/${month}/${year}`;
-            } else if (typeof originalVal === 'number' && originalVal > 0) {
-              // Excel serial date
-              const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-              const ms = Math.round(originalVal * 24 * 60 * 60 * 1000);
-              const date = new Date(excelEpoch.getTime() + ms);
-              if (!isNaN(date.getTime())) {
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = date.getFullYear();
-                displayDate = `${day}/${month}/${year}`;
-              } else {
-                displayDate = String(originalVal);
-              }
-            } else {
-              displayDate = String(originalVal).trim();
-            }
             const parsedRow = {
               nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
               standard_item: (row[headerMapping["मानक आइटम"]] || row[headerMapping["standard_item"]] || "").toString().trim(),
               allocated_amount: roundTo2Decimals(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
               spent_amount: roundTo2Decimals(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
               description: (row[headerMapping["विवरण"]] || row[headerMapping["description"]] || "").toString().trim(),
-              original_registration_date: displayDate,
+              original_registration_date: convertToDisplayFormat(originalVal),
               registration_date: parseDateFromExcel(originalVal || getTodayInBackendFormat()),
               rowIndex: rowIndex + 2,
               _originalIndex: rowIndex,

@@ -1031,6 +1031,7 @@ const KrishiRegistration = () => {
       bySuppliedItem: getCrossSummary("supplied_item_name"),
       byCenter: getCrossSummary("center_name"),
       byVikas: getCrossSummary("vikas_khand_name"),
+      byAddress: getCrossSummary("address"),
     };
   }, [beneficiaries]);
 
@@ -1073,6 +1074,16 @@ const KrishiRegistration = () => {
   const vikasByCenter = useMemo(() => getCrossTabSummary("vikas_khand_name", "center_name"), [beneficiaries]);
 
   const centerByScheme = useMemo(() => getCrossTabSummary("center_name", "scheme_name"), [beneficiaries]);
+  const vikasByAddress = useMemo(() => getCrossTabSummary("vikas_khand_name", "address"), [beneficiaries]);
+  const vidhanByAddress = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "address"), [beneficiaries]);
+  const centerByAddress = useMemo(() => getCrossTabSummary("center_name", "address"), [beneficiaries]);
+  const schemeByAddress = useMemo(() => getCrossTabSummary("scheme_name", "address"), [beneficiaries]);
+  const suppliedByAddress = useMemo(() => getCrossTabSummary("supplied_item_name", "address"), [beneficiaries]);
+
+  const addressByVidhan = useMemo(() => getCrossTabSummary("address", "vidhan_sabha_name"), [beneficiaries]);
+  const addressByScheme = useMemo(() => getCrossTabSummary("address", "scheme_name"), [beneficiaries]);
+  const addressByVikas = useMemo(() => getCrossTabSummary("address", "vikas_khand_name"), [beneficiaries]);
+  const addressByCenter = useMemo(() => getCrossTabSummary("address", "center_name"), [beneficiaries]);
   const centerByVidhan = useMemo(() => getCrossTabSummary("center_name", "vidhan_sabha_name"), [beneficiaries]);
   const centerByVikas = useMemo(() => getCrossTabSummary("center_name", "vikas_khand_name"), [beneficiaries]);
   const centerBySuppliedItem = useMemo(() => getCrossTabSummary("center_name", "supplied_item_name"), [beneficiaries]);
@@ -1253,6 +1264,7 @@ const KrishiRegistration = () => {
     const suppliedItem = getMostFrequentValue(items.map((item) => item.supplied_item_name));
     const center = getMostFrequentValue(items.map((item) => item.center_name));
     const scheme = getMostFrequentValue(items.map((item) => item.scheme_name));
+    const address = getMostFrequentValue(items.map((item) => item.address));
 
     const totalQuantity = items.reduce((sum, item) => {
       const value = parseFloat(item.quantity);
@@ -1297,6 +1309,13 @@ const KrishiRegistration = () => {
         topLabel: scheme.label,
         totalAmount: roundTo2Decimals(totalAmount),
         breakdown: getGroupedSummary("scheme_name"),
+      },
+      address: {
+        uniqueCount: unique("address"),
+        topLabel: address.label,
+        topCount: address.count,
+        totalBeneficiaries: items.length,
+        breakdown: getGroupedSummary("address"),
       },
       overall: {
         totalQuantity: roundTo2Decimals(totalQuantity),
@@ -4287,6 +4306,20 @@ const handleDelete = async (item) => {
                           </div>
                         </div>
                       </Col>
+                      <Col xs={12} sm={6} lg={4} xl={2}>
+                        <div
+                          className="summary-card p-3 h-100"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => openSummaryModal("address")}
+                        >
+                          <h5>पता सारांश</h5>
+                          <div className="mt-3">
+                            <p><strong>कुल स्थान:</strong> {summaryStats.address.uniqueCount}</p>
+                            <p><strong>शीर्ष स्थान:</strong> {summaryStats.address.topLabel} {summaryStats.address.topCount > 0 ? `(${summaryStats.address.topCount})` : ""}</p>
+                            <p><strong>कुल लाभार्थी:</strong> {summaryStats.address.totalBeneficiaries}</p>
+                          </div>
+                        </div>
+                      </Col>
                     </Row>
                   </div>
                 )}
@@ -4306,6 +4339,7 @@ const handleDelete = async (item) => {
                           {selectedSummaryModal === "supplied" && "आपूर्ति वस्तु सारांश विवरण"}
                           {selectedSummaryModal === "center" && "केंद्र सारांश विवरण"}
                           {selectedSummaryModal === "scheme" && "योजना सारांश विवरण"}
+                          {selectedSummaryModal === "address" && "पता सारांश विवरण"}
                         </span>
 
                       </div>
@@ -4480,6 +4514,7 @@ const handleDelete = async (item) => {
                         {renderCrossTabTable(vikasByScheme, "vikas_khand_name", "scheme_name", "🏗️ विकास खंड × 📋 योजना (लाभार्थी, मात्रा व राशि)", "vikasScheme")}
                         {renderCrossTabTable(vikasBySuppliedItem, "vikas_khand_name", "supplied_item_name", "🏗️ विकास खंड × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "vikasSupplied")}
                         {renderCrossTabTable(vikasByCenter, "vikas_khand_name", "center_name", "🏗️ विकास खंड × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "vikasCenter")}
+                        {renderCrossTabTable(vikasByAddress, "vikas_khand_name", "address", "🏗️ विकास खंड × 📍 पता (लाभार्थी, मात्रा व राशि)", "vikasAddress")}
                         {renderCrossTabTable(vidhanByVikas, "vidhan_sabha_name", "vikas_khand_name", "🔷 विधानसभा × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "vidhanVikas")}
                         {renderCrossTabTable(schemeByVikas, "scheme_name", "vikas_khand_name", "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "schemeVikas")}
                         {renderCrossTabTable(suppliedByVikas, "supplied_item_name", "vikas_khand_name", "📦 वस्तु × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "suppliedVikas")}
@@ -4979,10 +5014,58 @@ const handleDelete = async (item) => {
                           </Table>
                         </div>
 
+                        {renderCrossTabTable(addressByVidhan, "address", "vidhan_sabha_name", "📍 पता × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "addressVidhan")}
+                        {renderCrossTabTable(addressByScheme, "address", "scheme_name", "📍 पता × 📋 योजना (लाभार्थी, मात्रा व राशि)", "addressScheme")}
+                        {renderCrossTabTable(addressByVikas, "address", "vikas_khand_name", "📍 पता × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "addressVikas")}
+                        {renderCrossTabTable(addressByCenter, "address", "center_name", "📍 पता × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "addressCenter")}
+
                         {renderCrossTabTable(centerByScheme, "center_name", "scheme_name", "🏢 केंद्र × 📋 योजना (लाभार्थी, मात्रा व राशि)", "centerScheme")}
                         {renderCrossTabTable(centerByVidhan, "center_name", "vidhan_sabha_name", "🏢 केंद्र × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "centerVidhan")}
                         {renderCrossTabTable(centerByVikas, "center_name", "vikas_khand_name", "🏢 केंद्र × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "centerVikas")}
                         {renderCrossTabTable(centerBySuppliedItem, "center_name", "supplied_item_name", "🏢 केंद्र × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "centerSupplied")}
+                        {renderCrossTabTable(centerByAddress, "center_name", "address", "🏢 केंद्र × 📍 पता (लाभार्थी, मात्रा व राशि)", "centerAddress")}
+                      </>
+                    )}
+                    {selectedSummaryModal === "address" && (
+                      <>
+                        <div className="mb-4 p-3 border rounded bg-light">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - पता अनुसार</h6>
+                          <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                              <thead>
+                                <tr className="table-primary">
+                                  <th>पता</th>
+                                  <th>लाभार्थी</th>
+                                  <th>राशि (₹)</th>
+                                  <th>मात्रा</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {summaryStats.address.breakdown.map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="table-warning fw-bold">
+                                  <td>कुल</td>
+                                  <td>{summaryStats.address.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{summaryStats.address.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                  <td>{summaryStats.address.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </Table>
+                          </div>
+                        </div>
+
+                        {renderCrossTabTable(addressByVidhan, "address", "vidhan_sabha_name", "📍 पता × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "addressVidhan")}
+                        {renderCrossTabTable(addressByScheme, "address", "scheme_name", "📍 पता × 📋 योजना (लाभार्थी, मात्रा व राशि)", "addressScheme")}
+                        {renderCrossTabTable(addressByVikas, "address", "vikas_khand_name", "📍 पता × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "addressVikas")}
+                        {renderCrossTabTable(addressByCenter, "address", "center_name", "📍 पता × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "addressCenter")}
                       </>
                     )}
                     {selectedSummaryModal === "scheme" && (
@@ -5147,37 +5230,47 @@ const handleDelete = async (item) => {
                           </Table>
                         </div>
 
+                        {renderCrossTabTable(vidhanByAddress, "vidhan_sabha_name", "address", "🔷 विधानसभा × 📍 पता (लाभार्थी, मात्रा व राशि)", "vidhanAddress")}
+                        {renderCrossTabTable(schemeByAddress, "scheme_name", "address", "📋 योजना × 📍 पता (लाभार्थी, मात्रा व राशि)", "schemeAddress")}
+                        {renderCrossTabTable(suppliedByAddress, "supplied_item_name", "address", "📦 वस्तु × 📍 पता (लाभार्थी, मात्रा व राशि)", "suppliedAddress")}
+
                         {renderCrossTabTable(schemeByVidhan, "scheme_name", "vidhan_sabha_name", "📋 योजना × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "schemeVidhan")}
                         {renderCrossTabTable(schemeByVikas, "scheme_name", "vikas_khand_name", "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "schemeVikas")}
                         {renderCrossTabTable(schemeBySuppliedItem, "scheme_name", "supplied_item_name", "📋 योजना × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "schemeSupplied")}
                         {renderCrossTabTable(schemeByCenter, "scheme_name", "center_name", "📋 योजना × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "schemeCenter")}
                       </>
                     )}
+
+                    <div className="mt-4 pt-3 border-top">
+                      <div className="mb-3">
+                        <p className="mb-1"><strong>कुल मात्रा:</strong> {summaryStats.overall.totalQuantity}</p>
+                        <p className="text-muted small">
+                          {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
+                            ? summaryStats[selectedSummaryModal].breakdown
+                                .map((item) => item.quantity)
+                                .join(" + ")
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="mb-3">
+                        <p className="mb-1"><strong>कुल राशि:</strong> ₹{summaryStats.overall.totalAmount}</p>
+                        <p className="text-muted small">
+                          {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
+                            ? summaryStats[selectedSummaryModal].breakdown
+                                .map((item) => `₹${item.amount}`)
+                                .join(" + ")
+                            : ""}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="mb-0"><strong>कुल लाभार्थी:</strong> {summaryStats.overall.totalBeneficiaries}</p>
+                      </div>
+                    </div>
                   </Modal.Body>
-                  <Modal.Footer className="d-flex flex-column align-items-start">
-                    <div className="w-100 mb-2">
-                      <p className="mb-1"><strong>कुल मात्रा:</strong> {summaryStats.overall.totalQuantity}</p>
-                      <p className="mb-1">
-                        {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
-                          ? summaryStats[selectedSummaryModal].breakdown
-                              .map((item) => item.quantity)
-                              .join(" + ")
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="w-100 mb-2">
-                      <p className="mb-1"><strong>कुल राशि:</strong> ₹{summaryStats.overall.totalAmount}</p>
-                      <p className="mb-1">
-                        {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
-                          ? summaryStats[selectedSummaryModal].breakdown
-                              .map((item) => `₹${item.amount}`)
-                              .join(" + ")
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="w-100">
-                      <p className="mb-0"><strong>कुल लाभार्थी:</strong> {summaryStats.overall.totalBeneficiaries}</p>
-                    </div>
+                  <Modal.Footer>
+                    <Button variant="secondary" onClick={closeSummaryModal}>
+                      बंद करें
+                    </Button>
                   </Modal.Footer>
                 </Modal>
 
