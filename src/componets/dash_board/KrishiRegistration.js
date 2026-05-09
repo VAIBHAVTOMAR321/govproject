@@ -4586,36 +4586,59 @@ const handleDelete = async (item) => {
                           </Table>
                         </div>
 
-                        <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ विकास खंड अनुसार</h6>
-                          <Table striped bordered hover responsive size="sm">
-                            <thead>
-                              <tr className="table-secondary">
-                                <th>विकास खंड</th>
-                                <th>लाभार्थी</th>
-                                <th>राशि (₹)</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {crossSummaries.byCenter.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="table-warning fw-bold">
-                                <td>कुल</td>
-                                  <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                  <td>₹{crossSummaries.byCenter.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                              </tr>
-                            </tfoot>
-                          </Table>
-                        </div>
+                       <div className="mb-4 p-3 border rounded">
+  <h6 className="text-success mb-3 border-bottom pb-2">
+    🏗️ विकास खंड अनुसार
+  </h6>
+
+  <Table striped bordered hover responsive size="sm">
+    <thead>
+      <tr className="table-secondary">
+        <th>विकास खंड</th>
+        <th>लाभार्थी</th>
+        <th>मात्रा</th>
+        <th>राशि (₹)</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {crossSummaries.byCenter.map((item, index) => (
+        <tr key={index}>
+          <td>{item.label}</td>
+          <td>{item.count}</td>
+          <td>{item.quantity?.toFixed(2) || "0.00"}</td>
+          <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
+        </tr>
+      ))}
+    </tbody>
+
+    <tfoot>
+      <tr className="table-warning fw-bold">
+        <td>कुल</td>
+
+        <td>
+          {crossSummaries.byCenter.reduce(
+            (sum, item) => sum + item.count,
+            0
+          )}
+        </td>
+
+        <td>
+          {crossSummaries.byCenter
+            .reduce((sum, item) => sum + (item.quantity || 0), 0)
+            .toFixed(2)}
+        </td>
+
+        <td>
+          ₹
+          {crossSummaries.byCenter
+            .reduce((sum, item) => sum + (item.amount || 0), 0)
+            .toFixed(2)}
+        </td>
+      </tr>
+    </tfoot>
+  </Table>
+</div>
 
                         <div className="mb-4 p-3 border rounded">
                           <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
@@ -4865,36 +4888,59 @@ const handleDelete = async (item) => {
                           </div>
                         </div>
 
-                        <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📋 योजना अनुसार</h6>
-                          <Table striped bordered hover responsive size="sm">
-                            <thead>
-                              <tr className="table-secondary">
-                                <th>योजना</th>
-                                <th>लाभार्थी</th>
-                                <th>राशि (₹)</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {crossSummaries.byScheme.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="table-warning fw-bold">
-                                <td>कुल</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byScheme.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                              </tr>
-                            </tfoot>
-                          </Table>
-                        </div>
+                       <div className="mb-4 p-3 border rounded">
+  <h6 className="text-success mb-3 border-bottom pb-2">
+    📋 योजना अनुसार
+  </h6>
 
+  <Table striped bordered hover responsive size="sm">
+    <thead>
+      <tr className="table-secondary">
+        <th>योजना</th>
+        <th>लाभार्थी</th>
+        <th>मात्रा</th>
+        <th>राशि (₹)</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {crossSummaries.byScheme.map((item, index) => (
+        <tr key={index}>
+          <td>{item.label}</td>
+          <td>{item.count}</td>
+          <td>{item.quantity?.toFixed(2) || "0.00"}</td>
+          <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
+        </tr>
+      ))}
+    </tbody>
+
+    <tfoot>
+      <tr className="table-warning fw-bold">
+        <td>कुल</td>
+
+        <td>
+          {crossSummaries.byScheme.reduce(
+            (sum, item) => sum + item.count,
+            0
+          )}
+        </td>
+
+        <td>
+          {crossSummaries.byScheme
+            .reduce((sum, item) => sum + (item.quantity || 0), 0)
+            .toFixed(2)}
+        </td>
+
+        <td>
+          ₹
+          {crossSummaries.byScheme
+            .reduce((sum, item) => sum + (item.amount || 0), 0)
+            .toFixed(2)}
+        </td>
+      </tr>
+    </tfoot>
+  </Table>
+</div>
                         <div className="mb-4 p-3 border rounded">
                           <h6 className="text-success mb-3 border-bottom pb-2">🔷 विधानसभा अनुसार</h6>
                           <Table striped bordered hover responsive size="sm">
@@ -5177,36 +5223,59 @@ const handleDelete = async (item) => {
                           </Table>
                         </div>
 
-                        <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
-                          <Table striped bordered hover responsive size="sm">
-                            <thead>
-                              <tr className="table-secondary">
-                                <th>केंद्र</th>
-                                <th>लाभार्थी</th>
-                                <th>मात्रा</th>
-                                <th>राशि (₹)</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {crossSummaries.byCenter.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-<tr className="table-warning fw-bold">
-                                  <td>कुल</td>
-                                  <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                  <td>₹{crossSummaries.byCenter.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                                </tr>
-                            </tfoot>
-                          </Table>
-                        </div>
+                       <div className="mb-4 p-3 border rounded">
+  <h6 className="text-success mb-3 border-bottom pb-2">
+    🏢 केंद्र अनुसार
+  </h6>
+
+  <Table striped bordered hover responsive size="sm">
+    <thead>
+      <tr className="table-secondary">
+        <th>केंद्र</th>
+        <th>लाभार्थी</th>
+        <th>मात्रा</th>
+        <th>राशि (₹)</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {crossSummaries.byCenter.map((item, index) => (
+        <tr key={index}>
+          <td>{item.label}</td>
+          <td>{item.count}</td>
+          <td>{item.quantity?.toFixed(2) || "0.00"}</td>
+          <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
+        </tr>
+      ))}
+    </tbody>
+
+    <tfoot>
+      <tr className="table-warning fw-bold">
+        <td>कुल</td>
+
+        <td>
+          {crossSummaries.byCenter.reduce(
+            (sum, item) => sum + item.count,
+            0
+          )}
+        </td>
+
+        <td>
+          {crossSummaries.byCenter
+            .reduce((sum, item) => sum + (item.quantity || 0), 0)
+            .toFixed(2)}
+        </td>
+
+        <td>
+          ₹
+          {crossSummaries.byCenter
+            .reduce((sum, item) => sum + (item.amount || 0), 0)
+            .toFixed(2)}
+        </td>
+      </tr>
+    </tfoot>
+  </Table>
+</div>
 
                         {renderCrossTabTable(vidhanByAddress, "vidhan_sabha_name", "address", "🔷 विधानसभा × 📍 पता (लाभार्थी, मात्रा व राशि)", "vidhanAddress")}
                         {renderCrossTabTable(schemeByAddress, "scheme_name", "address", "📋 योजना × 📍 पता (लाभार्थी, मात्रा व राशि)", "schemeAddress")}
