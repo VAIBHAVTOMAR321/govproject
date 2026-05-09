@@ -4356,8 +4356,8 @@ const handleDelete = async (item) => {
                                 <tr className="table-primary">
                                   <th>विकास खंड</th>
                                   <th>लाभार्थी</th>
+                                  <th>राशि (₹)</th>
                                   <th>मात्रा</th>
-                                <th>राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -4365,8 +4365,8 @@ const handleDelete = async (item) => {
                                   <tr key={index}>
                                     <td>{item.label}</td>
                                     <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -4374,8 +4374,8 @@ const handleDelete = async (item) => {
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
                                   <td>{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                                   <td>{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -4499,8 +4499,8 @@ const handleDelete = async (item) => {
                                 <tr className="table-primary">
                                   <th>विधानसभा</th>
                                   <th>लाभार्थी</th>
+                                  <th>राशि (₹)</th>
                                   <th>मात्रा</th>
-                                <th>राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -4508,8 +4508,8 @@ const handleDelete = async (item) => {
                                   <tr key={index}>
                                     <td>{item.label}</td>
                                     <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -4517,8 +4517,8 @@ const handleDelete = async (item) => {
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
                                   <td>{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                                   <td>{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -4571,8 +4571,7 @@ const handleDelete = async (item) => {
                               {crossSummaries.bySuppliedItem.map((item, index) => (
                                 <tr key={index}>
                                   <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.quantity}</td>
                                   <td>{item.amount.toFixed(2)}</td>
                                 </tr>
                               ))}
@@ -4580,8 +4579,7 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                  <td>{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
                                 <td>₹{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                               </tr>
                             </tfoot>
@@ -4680,7 +4678,7 @@ const handleDelete = async (item) => {
                                   <tr key={index}>
                                     <td>{item.label}</td>
                                     <td>{item.count}</td>
-                                    <td>{item.quantity.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
                                     <td>{item.amount.toFixed(2)}</td>
                                   </tr>
                                 ))}
@@ -4736,35 +4734,7 @@ const handleDelete = async (item) => {
                               <tr className="table-secondary">
                                 <th>विधानसभा</th>
                                 <th>लाभार्थी</th>
-                                <th>राशि (₹)</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {crossSummaries.byVikas.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="table-warning fw-bold">
-                                <td>कुल</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>₹{crossSummaries.byVikas.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                              </tr>
-                            </tfoot>
-                          </Table>
-                        </div>
-
-                        <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ किस विकास खंड में उपयोग हुआ</h6>
-                          <Table striped bordered hover responsive size="sm">
-                            <thead>
-                              <tr className="table-secondary">
-                                <th>विकास खंड</th>
-                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
                                 <th>राशि (₹)</th>
                               </tr>
                             </thead>
@@ -4782,7 +4752,40 @@ const handleDelete = async (item) => {
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
                                 <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>₹{crossSummaries.byVikas.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ किस विकास खंड में उपयोग हुआ</h6>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विकास खंड</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>राशि (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossSummaries.byVikas.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity.toFixed(2)}</td>
+                                  <td>{item.amount.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                               </tr>
                             </tfoot>
                           </Table>
@@ -4845,7 +4848,7 @@ const handleDelete = async (item) => {
                                   <tr key={index}>
                                     <td>{item.label}</td>
                                     <td>{item.count}</td>
-                                    <td>{item.quantity.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
                                     <td>{item.amount.toFixed(2)}</td>
                                   </tr>
                                 ))}
@@ -4877,7 +4880,6 @@ const handleDelete = async (item) => {
                                 <tr key={index}>
                                   <td>{item.label}</td>
                                   <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
                                   <td>{item.amount.toFixed(2)}</td>
                                 </tr>
                               ))}
@@ -5011,8 +5013,8 @@ const handleDelete = async (item) => {
                                 <tr className="table-primary">
                                   <th>पता</th>
                                   <th>लाभार्थी</th>
+                                  <th>राशि (₹)</th>
                                   <th>मात्रा</th>
-                                <th>राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -5020,8 +5022,8 @@ const handleDelete = async (item) => {
                                   <tr key={index}>
                                     <td>{item.label}</td>
                                     <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -5029,8 +5031,8 @@ const handleDelete = async (item) => {
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
                                   <td>{summaryStats.address.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
+                                  <td>₹{summaryStats.address.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                                   <td>{summaryStats.address.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{summaryStats.address.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -5062,7 +5064,7 @@ const handleDelete = async (item) => {
                                   <tr key={index}>
                                     <td>{item.label}</td>
                                     <td>{item.count}</td>
-                                    <td>{item.quantity.toFixed(2)}</td>
+                                    <td>{item.quantity}</td>
                                     <td>{item.amount.toFixed(2)}</td>
                                   </tr>
                                 ))}
@@ -5091,7 +5093,7 @@ const handleDelete = async (item) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {crossSummaries.byVidhan.map((item, index) => (
+                              {crossSummaries.byVikas.map((item, index) => (
                                 <tr key={index}>
                                   <td>{item.label}</td>
                                   <td>{item.count}</td>
@@ -5103,9 +5105,9 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVidhan.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
+                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                <td>₹{crossSummaries.byVikas.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
                               </tr>
                             </tfoot>
                           </Table>
@@ -5191,7 +5193,6 @@ const handleDelete = async (item) => {
                                 <tr key={index}>
                                   <td>{item.label}</td>
                                   <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
                                   <td>{item.amount.toFixed(2)}</td>
                                 </tr>
                               ))}
