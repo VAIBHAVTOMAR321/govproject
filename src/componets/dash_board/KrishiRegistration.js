@@ -1415,7 +1415,7 @@ const KrishiRegistration = () => {
         selectedColumns.forEach((col) => {
           if (col === "beneficiary_reg_date") {
             row[columnMapping[col].header] =
-              columnMapping[col].accessor(item, index) || today;
+              columnMapping[col].accessor(item, index) || convertToDisplayFormat(today);
           } else {
             row[columnMapping[col].header] = columnMapping[col].accessor(
               item,
@@ -1431,19 +1431,20 @@ const KrishiRegistration = () => {
       // Add serial number column with "कुल" label
       totalRow["क्र.सं."] = "कुल";
       selectedColumns.forEach((col) => {
-        if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
-            col === "scheme_name" || col === "supplied_item_name" || col === "category" || 
-            col === "unit" || col === "farmer_name") {
-          totalRow[columnMapping[col].header] = col === "farmer_name" ? data.length : 
-            [...new Set(data.map(item => columnMapping[col].accessor(item, 0)))].size;
-        } else if (col === "quantity" || col === "rate" || col === "amount") {
-          const sum = data.reduce((total, item) => {
-            const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
-            return total + value;
-          }, 0);
-          totalRow[columnMapping[col].header] = parseFloat(sum.toFixed(2));
-        } else {
-          totalRow[columnMapping[col].header] = "";
+        if (columnMapping[col]) {
+          if (col === "farmer_name") {
+            totalRow[columnMapping[col].header] = data.length;
+          } else if (["center_name", "vidhan_sabha_name", "vikas_khand_name", "scheme_name", "supplied_item_name", "category", "unit"].includes(col)) {
+            totalRow[columnMapping[col].header] = [...new Set(data.map(item => columnMapping[col].accessor(item)))].filter(Boolean).length;
+          } else if (["quantity", "rate", "amount"].includes(col)) {
+            const sum = data.reduce((total, item) => {
+              const val = parseFloat(columnMapping[col].accessor(item)) || 0;
+              return total + val;
+            }, 0);
+            totalRow[columnMapping[col].header] = parseFloat(sum.toFixed(2));
+          } else {
+            totalRow[columnMapping[col].header] = "";
+          }
         }
       });
       excelData.push(totalRow);
@@ -1559,31 +1560,30 @@ const KrishiRegistration = () => {
         .map((item, index) => {
           const cells = `<td>${index + 1}</td>${selectedColumns
             .map(
-              (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`
+              (col) => `<td>${columnMapping[col]?.accessor(item, index) || ""}</td>`
             )
             .join("")}`;
           return `<tr>${cells}</tr>`;
         })
         .join("");
 
-      // Add total row - first cell is "कुल" for serial number column
       const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
         .map((col) => {
-          if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
-              col === "scheme_name" || col === "supplied_item_name" || col === "category" || 
-              col === "unit" || col === "farmer_name") {
-            return col === "farmer_name" ? 
-              `<td><strong>${data.length}</strong></td>` :
-              `<td><strong>${[...new Set(data.map(item => columnMapping[col].accessor(item, 0)))].size}</strong></td>`;
-          } else if (col === "quantity" || col === "rate" || col === "amount") {
-            const sum = data.reduce((total, item) => {
-              const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
-              return total + value;
-            }, 0);
-            return `<td><strong>${sum.toFixed(2)}</strong></td>`;
-          } else {
-            return `<td></td>`;
+          if (!columnMapping[col]) return "<td></td>";
+          
+          let val = "";
+          if (col === "farmer_name") {
+            val = data.length;
+          } else if (["center_name", "vidhan_sabha_name", "vikas_khand_name", "scheme_name", "supplied_item_name", "category", "unit"].includes(col)) {
+            val = [...new Set(data.map(item => columnMapping[col].accessor(item)))].filter(Boolean).length;
+          } else if (["quantity", "rate", "amount"].includes(col)) {
+            val = data.reduce((total, item) => {
+              const v = parseFloat(columnMapping[col].accessor(item)) || 0;
+              return total + v;
+            }, 0).toFixed(2);
           }
+          
+          return `<td><strong>${val}</strong></td>`;
         })
         .join("")}`;
       const totalRow = `<tr class="table-total-row">${totalCells}</tr>`;
