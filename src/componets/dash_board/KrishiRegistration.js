@@ -4356,7 +4356,7 @@ const handleDelete = async (item) => {
                                 <tr className="table-primary">
                                   <th>विकास खंड</th>
                                   <th>लाभार्थी</th>
-                                  <th>राशि (₹)</th>
+                                  <th>देय अनुदान राशि (₹)</th>
                                   <th>मात्रा</th>
                                 </tr>
                               </thead>
@@ -4390,7 +4390,7 @@ const handleDelete = async (item) => {
                                 <th>विधानसभा</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4422,7 +4422,7 @@ const handleDelete = async (item) => {
                                 <th>योजना</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4454,7 +4454,7 @@ const handleDelete = async (item) => {
                                 <th>केंद्र</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4499,7 +4499,7 @@ const handleDelete = async (item) => {
                                 <tr className="table-primary">
                                   <th>विधानसभा</th>
                                   <th>लाभार्थी</th>
-                                  <th>राशि (₹)</th>
+                                  <th>देय अनुदान राशि (₹)</th>
                                   <th>मात्रा</th>
                                 </tr>
                               </thead>
@@ -4533,7 +4533,7 @@ const handleDelete = async (item) => {
                                 <th>योजना</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
 </thead>
                             <tbody>
@@ -4597,7 +4597,7 @@ const handleDelete = async (item) => {
         <th>विकास खंड</th>
         <th>लाभार्थी</th>
         <th>मात्रा</th>
-        <th>राशि (₹)</th>
+        <th>देय अनुदान राशि (₹)</th>
       </tr>
     </thead>
 
@@ -4648,7 +4648,7 @@ const handleDelete = async (item) => {
                                 <th>केंद्र</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4693,7 +4693,7 @@ const handleDelete = async (item) => {
                                   <th>वस्तु</th>
                                   <th>लाभार्थी</th>
                                   <th>मात्रा</th>
-                                  <th>राशि (₹)</th>
+                                  <th>देय अनुदान राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -4726,7 +4726,7 @@ const handleDelete = async (item) => {
                                 <th>योजना</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4758,7 +4758,7 @@ const handleDelete = async (item) => {
                                 <th>विधानसभा</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4790,7 +4790,7 @@ const handleDelete = async (item) => {
                                 <th>विकास खंड</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4822,7 +4822,7 @@ const handleDelete = async (item) => {
                                 <th>केंद्र</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4863,7 +4863,7 @@ const handleDelete = async (item) => {
                                   <th>केंद्र</th>
                                   <th>लाभार्थी</th>
                                   <th>मात्रा</th>
-                                  <th>राशि (₹)</th>
+                                  <th>देय अनुदान राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -4899,7 +4899,7 @@ const handleDelete = async (item) => {
         <th>योजना</th>
         <th>लाभार्थी</th>
         <th>मात्रा</th>
-        <th>राशि (₹)</th>
+        <th>देय अनुदान राशि (₹)</th>
       </tr>
     </thead>
 
@@ -4949,7 +4949,7 @@ const handleDelete = async (item) => {
                                 <th>विधानसभा</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4981,7 +4981,7 @@ const handleDelete = async (item) => {
                                 <th>विकास खंड</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5013,7 +5013,7 @@ const handleDelete = async (item) => {
                                 <th>वस्तु</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5059,7 +5059,7 @@ const handleDelete = async (item) => {
                                 <tr className="table-primary">
                                   <th>पता</th>
                                   <th>लाभार्थी</th>
-                                  <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                                   <th>मात्रा</th>
                                 </tr>
                               </thead>
@@ -5102,7 +5102,7 @@ const handleDelete = async (item) => {
                                   <th>योजना</th>
                                   <th>लाभार्थी</th>
                                   <th>मात्रा</th>
-                                  <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -5135,7 +5135,7 @@ const handleDelete = async (item) => {
                                 <th>विधानसभा</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5167,7 +5167,7 @@ const handleDelete = async (item) => {
                                 <th>विकास खंड</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5199,7 +5199,7 @@ const handleDelete = async (item) => {
                                 <th>वस्तु</th>
                                 <th>लाभार्थी</th>
                                 <th>मात्रा</th>
-                                <th>राशि (₹)</th>
+                                <th>देय अनुदान राशि (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -5234,7 +5234,7 @@ const handleDelete = async (item) => {
         <th>केंद्र</th>
         <th>लाभार्थी</th>
         <th>मात्रा</th>
-        <th>राशि (₹)</th>
+        <th>देय अनुदान राशि (₹)</th>
       </tr>
     </thead>
 
