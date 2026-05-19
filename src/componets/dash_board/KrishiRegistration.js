@@ -96,7 +96,7 @@ const beneficiariesTableColumns = [
   { key: "unit", label: "इकाई" },
   { key: "quantity", label: "मात्रा" },
   { key: "rate", label: "दर" },
-  { key: "amount", label: "राशि" },
+  { key: "amount", label: "देय अनुदान राशि" },
   { key: "beneficiary_reg_date", label: "पंजीकरण तिथि" },
 ];
 
@@ -140,7 +140,7 @@ const beneficiariesTableColumnMapping = {
   quantity: { header: "मात्रा", accessor: (item) => item.quantity },
   unit: { header: "इकाई", accessor: (item) => item.unit },
   rate: { header: "दर", accessor: (item) => item.rate },
-  amount: { header: "राशि", accessor: (item) => item.amount },
+  amount: { header: "देय अनुदान राशि", accessor: (item) => item.amount },
   beneficiary_reg_date: {
     header: "पंजीकरण तिथि",
     accessor: (item) => convertToDisplayFormat(item.beneficiary_reg_date) || "",
@@ -182,7 +182,7 @@ const translations = {
   unit: "इकाई",
   quantity: "मात्रा",
   rate: "दर",
-  amount: "राशि",
+  amount: "देय अनुदान राशि",
   aadhaarNumber: "आधार नंबर",
   bankAccountNumber: "बैंक खाता नंबर",
   ifscCode: "IFSC कोड",
@@ -1199,7 +1199,7 @@ const KrishiRegistration = () => {
                 <th rowSpan="2" style={stickyFirstColHeaderStyle}>{primaryLabel}</th>
                 <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '80px'}}>लाभार्थी</th>
                 <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '90px'}}>कुल मात्रा</th>
-                <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '100px'}}>कुल राशि (₹)</th>
+                <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '100px'}}>कुल देय अनुदान राशि (₹)</th>
                 {secondaryKeys.map(key => (
                   <th key={key} colSpan="3" className="text-center" style={{...stickyHeaderStyle, minWidth: '150px'}}>{key}</th>
                 ))}
@@ -1209,7 +1209,7 @@ const KrishiRegistration = () => {
                   <React.Fragment key={key}>
                     <th className="text-center" style={{...stickyHeaderStyle, minWidth: '50px'}}>लाभार्थी</th>
                     <th className="text-center" style={{...stickyHeaderStyle, minWidth: '60px'}}>मात्रा</th>
-                    <th className="text-center" style={{...stickyHeaderStyle, minWidth: '70px'}}>राशि (₹)</th>
+                    <th className="text-center" style={{...stickyHeaderStyle, minWidth: '70px'}}>देय अनुदान राशि (₹)</th>
                   </React.Fragment>
                 ))}
               </tr>
@@ -1504,7 +1504,7 @@ const KrishiRegistration = () => {
           "इकाई": "नग",
           "मात्रा": 50,
           "दर": 25,
-          "राशि": 1250,
+          "देय अनुदान राशि": 1250,
           "पंजीकरण तिथि": today,
         },
       ];
@@ -2082,7 +2082,7 @@ const handleDelete = async (item) => {
     }
     if (rowData.amount !== "" && rowData.amount !== null && rowData.amount !== undefined) {
       if (isNaN(parseFloat(rowData.amount))) {
-        errors.push(`Row ${rowIndex}: राशि एक संख्या होनी चाहिए`);
+        errors.push(`Row ${rowIndex}: देय अनुदान राशि एक संख्या होनी चाहिए`);
       }
     }
 
@@ -2239,7 +2239,7 @@ const handleDelete = async (item) => {
             ifsc_code: getCell(row, ["IFSC कोड", "ifsc_code"]) || getCell(row, ["ifsc कोड"]) || "",
             quantity: Number.isFinite(Number(getCell(row, ["मात्रा", "quantity"]) || 0)) ? roundTo2Decimals(getCell(row, ["मात्रा", "quantity"]) || 0) : 0,
             rate: Number.isFinite(Number(getCell(row, ["दर", "rate"]) || 0)) ? roundTo2Decimals(getCell(row, ["दर", "rate"]) || 0) : 0,
-            amount: Number.isFinite(Number(getCell(row, ["राशि", "amount"]) || 0)) ? roundTo2Decimals(getCell(row, ["राशि", "amount"]) || 0) : 0,
+            amount: Number.isFinite(Number(getCell(row, ["देय अनुदान राशि", "amount"]) || 0)) ? roundTo2Decimals(getCell(row, ["देय अनुदान राशि", "amount"]) || 0) : 0,
             original_beneficiary_reg_date: convertToDisplayFormat(regDateRaw),
             beneficiary_reg_date: parseDateFromExcel(regDateRaw),
             rowIndex: rowIndex + 2,
@@ -2906,7 +2906,7 @@ const handleDelete = async (item) => {
                         <th>इकाई</th>
                         <th>मात्रा</th>
                         <th>दर</th>
-                        <th>राशि</th>
+                        <th>देय अनुदान राशि</th>
                         <th>पंजीकरण तिथि</th>
                         <th>त्रुटि</th>
                       </tr>
@@ -2980,7 +2980,7 @@ const handleDelete = async (item) => {
                             <th>इकाई</th>
                             <th>मात्रा</th>
                             <th>दर</th>
-                            <th>राशि</th>
+                            <th>देय अनुदान राशि</th>
                             <th>पंजीकरण तिथि</th>
                           </tr>
                         </thead>
@@ -3100,7 +3100,7 @@ const handleDelete = async (item) => {
                           <th>इकाई</th>
                           <th>मात्रा</th>
                           <th>दर</th>
-                          <th>राशि</th>
+                          <th>देय अनुदान राशि</th>
                           <th>पंजीकरण तिथि</th>
                         </tr>
                       </thead>
@@ -3197,9 +3197,9 @@ const handleDelete = async (item) => {
                   <li>
                     अनिवार्य फ़ील्ड: केंद्र का नाम, योजना का नाम, 
                     आपूर्ति की गई वस्तु का नाम, किसान का नाम, पिता का नाम, श्रेणी, पता, मोबाइल नंबर, 
-                    आधार नंबर, बैंक खाता नंबर, IFSC कोड, इकाई, मात्रा, दर, राशि
+                    आधार नंबर, बैंक खाता नंबर, IFSC कोड, इकाई, मात्रा, दर, देय अनुदान राशि
                   </li>
-                  <li>मात्रा, दर और राशि संख्यात्मक होनी चाहिए</li>
+                  <li>मात्रा, दर और देय अनुदान राशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
                 </ul>
               </Alert>
@@ -3466,7 +3466,7 @@ const handleDelete = async (item) => {
                           onChange={handleChange}
                           isInvalid={!!errors.amount}
                           className="compact-input"
-                          placeholder="राशि दर्ज करें"
+                          placeholder="देय अनुदान राशि दर्ज करें"
                         />
                         <Form.Control.Feedback type="invalid">
                           {errors.amount}
@@ -4274,7 +4274,7 @@ const handleDelete = async (item) => {
                           <div className="mt-3">
                             <p><strong>कुल वस्तुएँ:</strong> {summaryStats.suppliedItem.uniqueCount}</p>
                             <p><strong>कुल मात्रा:</strong> {summaryStats.suppliedItem.totalQuantity}</p>
-                            <p><strong>कुल राशि:</strong> ₹{summaryStats.suppliedItem.totalAmount}</p>
+                            <p><strong>कुल देय अनुदान राशि:</strong> ₹{summaryStats.suppliedItem.totalAmount}</p>
                           </div>
                         </div>
                       </Col>
@@ -4302,7 +4302,7 @@ const handleDelete = async (item) => {
                           <div className="mt-3">
                             <p><strong>कुल योजना:</strong> {summaryStats.scheme.uniqueCount}</p>
                             <p><strong>सबसे अधिक उपयोग:</strong> {summaryStats.scheme.topLabel}</p>
-                            <p><strong>कुल वितरित राशि:</strong> ₹{summaryStats.scheme.totalAmount}</p>
+                            <p><strong>कुल वितरित देय अनुदान राशि:</strong> ₹{summaryStats.scheme.totalAmount}</p>
                           </div>
                         </div>
                       </Col>

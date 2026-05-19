@@ -50,6 +50,8 @@ const DemandView = () => {
   const [editingCenterDemandId, setEditingCenterDemandId] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState('');
   const [editValidationError, setEditValidationError] = useState('');
+  const [showDeleteCenterDemandModal, setShowDeleteCenterDemandModal] = useState(false);
+  const [centerDemandToDelete, setCenterDemandToDelete] = useState(null);
   
   // Ref for table elements
   const demandsTableRef = useRef(null);
@@ -318,8 +320,8 @@ const DemandView = () => {
 
   // PUT: Edit existing center demand
   const handleEditCenterDemand = async (recordId, allocatedQuantity) => {
-    if (!editingQuantity || parseFloat(editingQuantity) <= 0) {
-      setEditValidationError('कृपया सही मात्रा दर्ज करें');
+    if (editingQuantity === '' || editingQuantity === null) {
+      setEditValidationError('कृपया मात्रा दर्ज करें');
       return;
     }
 
@@ -384,10 +386,64 @@ const DemandView = () => {
     setEditValidationError('');
   };
 
+  // DELETE: Remove center demand
+  const handleDeleteCenterDemand = async () => {
+    if (!centerDemandToDelete) return;
+
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch(
+        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/',
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: centerDemandToDelete.id,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'सेंटर डिमांड हटाने में विफल');
+      }
+
+      setShowDeleteCenterDemandModal(false);
+      setCenterDemandToDelete(null);
+      setSuccess('सेंटर डिमांड सफलतापूर्वक हटा दी गई!');
+
+      await fetchDemandByCenter();
+
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting center demand:', err);
+      setError(err.message || 'सेंटर डिमांड हटाने में त्रुटि। कृपया बाद में पुन: प्रयास करें।');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Open delete confirmation modal for center demand
+  const openDeleteCenterDemandModal = (record) => {
+    setCenterDemandToDelete(record);
+    setShowDeleteCenterDemandModal(true);
+  };
+
   // Handle edit quantity change with validation
   const handleEditQuantityChange = (e, maxQuantity) => {
     const value = parseFloat(e.target.value) || 0;
     const maxQty = parseFloat(maxQuantity) || 0;
+
+    // Allow 0 values, but validate if it's greater than allocated
+    if (value < 0) {
+      setEditValidationError('मात्रा ऋणात्मक नहीं हो सकती');
+      return;
+    }
 
     if (value > maxQty) {
       setEditValidationError(`मांगी गई मात्रा (${value}) DHO, कोटद्वार का कुल लक्ष्य (${maxQty}) से अधिक नहीं हो सकती`);
@@ -1078,7 +1134,19 @@ const DemandView = () => {
             )}
           </td>
           <td>{item?.demand?.rate ?? '-'}</td>
-          <td>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</td>
+          <td>
+            <div className="d-flex justify-content-between align-items-center">
+              <span>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</span>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => openDeleteCenterDemandModal(item)}
+                title="हटाएं"
+              >
+                <RiDeleteBinLine />
+              </Button>
+            </div>
+          </td>
         </tr>
       ))
     );
@@ -1319,6 +1387,51 @@ const DemandView = () => {
             रद्द करें
           </Button>
           <Button variant="danger" onClick={handleDeleteDemand} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Spinner as="span" animation="border" size="sm" />
+                <span className="ms-2">हटाया जा रहा है...</span>
+              </>
+            ) : (
+              <>
+                <RiDeleteBinLine /> हटाएं
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Center Demand Modal */}
+      <Modal show={showDeleteCenterDemandModal} onHide={() => {
+        setShowDeleteCenterDemandModal(false);
+        setCenterDemandToDelete(null);
+      }}>
+        <Modal.Header closeButton>
+          <Modal.Title>सेंटर डिमांड हटाने की पुष्टि</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <p>क्या आप वाकई इस सेंटर डिमांड को हटाना चाहते हैं?</p>
+          {centerDemandToDelete && (
+            <div className="border rounded p-3 bg-light">
+              <p><strong>सेंटर नाम:</strong> {centerDemandToDelete.center_name}</p>
+              <p><strong>उप-निवेश नाम:</strong> {centerDemandToDelete?.demand?.sub_investment_name}</p>
+              <p><strong>मांगी गई मात्रा:</strong> {centerDemandToDelete.demanded_quantity}</p>
+              <p><strong>कुल राशि:</strong> ₹{(centerDemandToDelete.demanded_quantity * (centerDemandToDelete?.demand?.rate || 0)).toFixed(2)}</p>
+            </div>
+          )}
+          <p className="text-danger mt-3">
+            <strong>चेतावनी:</strong> यह कार्रवाई पूर्ववत नहीं की जा सकती है।
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowDeleteCenterDemandModal(false);
+            setCenterDemandToDelete(null);
+          }}>
+            रद्द करें
+          </Button>
+          <Button variant="danger" onClick={handleDeleteCenterDemand} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Spinner as="span" animation="border" size="sm" />
