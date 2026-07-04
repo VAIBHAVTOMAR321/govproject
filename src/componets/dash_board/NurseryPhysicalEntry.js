@@ -18,7 +18,11 @@ import {
   Nav,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaSync } from "react-icons/fa";
-import { RiFilePdfLine, RiFileExcelLine, RiDeleteBinLine } from "react-icons/ri";
+import {
+  RiFilePdfLine,
+  RiFileExcelLine,
+  RiDeleteBinLine,
+} from "react-icons/ri";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import Select from "react-select";
@@ -138,13 +142,15 @@ const translations = {
   successMessage: "नर्सरी भौतिक डेटा सफलतापूर्वक जोड़ा गया!",
   updateSuccessMessage: "नर्सरी भौतिक डेटा सफलतापूर्वक अपडेट किया गया!",
   recipientSuccessMessage: "प्राप्तकर्ता डेटा सफलतापूर्वक जोड़ा गया!",
-  recipientUpdateSuccessMessage: "प्राप्तकर्ता डेटा सफलतापूर्वक अपडेट किया गया!",
+  recipientUpdateSuccessMessage:
+    "प्राप्तकर्ता डेटा सफलतापूर्वक अपडेट किया गया!",
   bulkUpload: "बल्क अपलोड (Excel)",
   uploadFile: "फाइल चुनें",
   uploadButton: "अपलोड करें",
   required: "यह फ़ील्ड आवश्यक है",
   selectOption: "चुनें",
-  genericError: "प्रस्तुत करते समय एक त्रुटि हुई। कृपया बाद में पुन: प्रयास करें।",
+  genericError:
+    "प्रस्तुत करते समय एक त्रुटि हुई। कृपया बाद में पुन: प्रयास करें।",
   showing: "दिखा रहे हैं",
   to: "से",
   of: "का",
@@ -171,29 +177,11 @@ const unitOptions = [
   "अन्य",
 ];
 
-// Helper function to get financial year dates (April 1 to March 31)
-const getFinancialYearDates = () => {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // 0-indexed: January = 0, April = 3, March = 2
-  
-  let fromDate, toDate;
-  
-  if (currentMonth >= 3) {
-    // April (month 3) onwards: FY is April of current year to March of next year
-    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
-    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
-  } else {
-    // January, February, March: FY is April of previous year to March of current year
-    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
-    toDate = new Date(currentYear, 2, 31); // March 31 of current year
-  }
-  
-  return {
-    from_date: fromDate.toISOString().split('T')[0],
-    to_date: toDate.toISOString().split('T')[0],
-  };
-};
+// Helper function to get the default financial year dates
+const getFinancialYearDates = () => ({
+  from_date: "2026-04-01",
+  to_date: "2027-03-31",
+});
 
 const NurseryPhysicalEntry = () => {
   const { user, logout } = useAuth();
@@ -204,11 +192,15 @@ const NurseryPhysicalEntry = () => {
   const NurseryNavigation = () => {
     const handleLogout = () => {
       logout();
-      navigate('/', { replace: true });
+      navigate("/", { replace: true });
     };
 
     return (
-      <Navbar expand="lg" className="bg-body-tertiary" style={{ marginBottom: "20px" }}>
+      <Navbar
+        expand="lg"
+        className="bg-body-tertiary"
+        style={{ marginBottom: "20px" }}
+      >
         <Container fluid>
           <Navbar.Brand as={Link} to="/Dashboard" className="fw-bold">
             <span style={{ color: "#333" }}>नर्सरी एंट्री सिस्टम</span>
@@ -224,11 +216,7 @@ const NurseryPhysicalEntry = () => {
               </Nav.Link>
             </Nav>
             <Nav className="ms-auto">
-              <Button
-                variant="outline-danger"
-                size="sm"
-                onClick={handleLogout}
-              >
+              <Button variant="outline-danger" size="sm" onClick={handleLogout}>
                 लॉगआउट
               </Button>
             </Nav>
@@ -237,7 +225,7 @@ const NurseryPhysicalEntry = () => {
       </Navbar>
     );
   };
-  
+
   // Column Selection Component
   const ColumnSelection = ({
     columns,
@@ -320,7 +308,7 @@ const NurseryPhysicalEntry = () => {
     recipient_quantity: "",
     recipient_amount: "",
     bill_number: "",
-    bill_date: new Date().toISOString().split('T')[0],
+    bill_date: new Date().toISOString().split("T")[0],
   });
 
   // State for form fields in "other" mode (text input instead of dropdown)
@@ -357,10 +345,10 @@ const NurseryPhysicalEntry = () => {
   const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
-    nurseryPhysicalTableColumns.map((col) => col.key)
+    nurseryPhysicalTableColumns.map((col) => col.key),
   );
   const [selectedRecipientColumns, setSelectedRecipientColumns] = useState(
-    recipientTableColumns.map((col) => col.key)
+    recipientTableColumns.map((col) => col.key),
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isRecipientLoading, setIsRecipientLoading] = useState(true);
@@ -377,7 +365,7 @@ const NurseryPhysicalEntry = () => {
   // State for new created_at date filter (separate from existing date range filters)
   const [createdAtFilter, setCreatedAtFilter] = useState({
     selectedDate: "", // For dropdown selection
-    manualDate: "",   // For manual calendar selection
+    manualDate: "", // For manual calendar selection
     showManualPicker: false, // Toggle for manual date picker
   });
 
@@ -425,19 +413,27 @@ const NurseryPhysicalEntry = () => {
       setFilterOptions({
         nursery_name: [
           ...new Set(
-            allNurseryPhysicalItems.map((item) => item.nursery_name).filter(Boolean)
+            allNurseryPhysicalItems
+              .map((item) => item.nursery_name)
+              .filter(Boolean),
           ),
         ].sort(),
         crop_name: [
           ...new Set(
-            allNurseryPhysicalItems.map((item) => item.crop_name).filter(Boolean)
+            allNurseryPhysicalItems
+              .map((item) => item.crop_name)
+              .filter(Boolean),
           ),
         ].sort(),
       });
 
       // Extract unique created_at dates for the new date filter
       const createdAtDates = allNurseryPhysicalItems
-        .map((item) => item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : null)
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
         .filter(Boolean);
       const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
       setUniqueCreatedAtDates(uniqueDates);
@@ -449,24 +445,24 @@ const NurseryPhysicalEntry = () => {
     // Only apply filters when both dates are selected
     if (filters.from_date && filters.to_date) {
       let filtered = allNurseryPhysicalItems;
-      
+
       filtered = allNurseryPhysicalItems.filter((item) => {
         // Filter by created_at date field
         if (!item.created_at) {
           return false;
         }
-        
+
         const createdAt = new Date(item.created_at);
         const fromDate = new Date(filters.from_date);
         const toDate = new Date(filters.to_date);
         toDate.setHours(23, 59, 59, 999); // Set to end of day
-        
+
         const isDateInRange = createdAt >= fromDate && createdAt <= toDate;
-        
+
         if (!isDateInRange) {
           return false;
         }
-        
+
         // Other filters (nursery_name, crop_name)
         for (const key in filters) {
           if (key === "from_date" || key === "to_date") {
@@ -476,22 +472,24 @@ const NurseryPhysicalEntry = () => {
             return false;
           }
         }
-        
+
         return true;
       });
-      
+
       // Apply created_at filter on top of other filters
       if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
         const { selectedDate, manualDate } = createdAtFilter;
         const filterDate = selectedDate || manualDate;
-        
+
         filtered = filtered.filter((item) => {
           if (!item.created_at) return false;
-          const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+          const itemDate = new Date(item.created_at)
+            .toISOString()
+            .split("T")[0];
           return itemDate === filterDate;
         });
       }
-      
+
       setNurseryPhysicalItems(filtered);
     } else {
       // If no date range selected, show all data
@@ -533,11 +531,11 @@ const NurseryPhysicalEntry = () => {
         }
       });
       const response = await axios.get(NURSERY_PHYSICAL_API_URL, { params });
-      
+
       // Handle the response correctly - the data is directly in response.data as an array
       const data = response.data;
       const items = Array.isArray(data) ? data : [];
-      
+
       setNurseryPhysicalItems(items);
       if (Object.keys(params).length === 0) {
         setAllNurseryPhysicalItems(items);
@@ -621,42 +619,46 @@ const NurseryPhysicalEntry = () => {
     if (!filters.from_date || !filters.to_date) {
       return [];
     }
-    
+
     // Filter items by date range
     return nurseryPhysicalItems.filter((item) => {
       const itemDate = new Date(item.created_at);
       const fromDate = new Date(filters.from_date);
       const toDate = new Date(filters.to_date);
       toDate.setHours(23, 59, 59, 999); // Set to end of day
-      
+
       return itemDate >= fromDate && itemDate <= toDate;
     });
   })();
 
   const filteredRecipientItems = recipientItems.filter((item) => {
     // Filter by selected nursery physical
-    if (!selectedNurseryPhysical || item.nursery_physical !== selectedNurseryPhysical.id) {
+    if (
+      !selectedNurseryPhysical ||
+      item.nursery_physical !== selectedNurseryPhysical.id
+    ) {
       return false;
     }
-    
+
     // Filter by date range - only show recipients with bill date in selected range
     if (filters.from_date && filters.to_date && item.bill_date) {
       const billDate = new Date(item.bill_date);
       const fromDate = new Date(filters.from_date);
       const toDate = new Date(filters.to_date);
       toDate.setHours(23, 59, 59, 999);
-      
+
       return billDate >= fromDate && billDate <= toDate;
     }
-    
+
     // If no date filters are set, show all
     return filters.from_date && filters.to_date;
   });
 
   // Helper function to expand data with recipients for export
   const expandDataWithRecipients = (items, selectedRecipientCols) => {
-    const hasRecipientColumns = selectedRecipientCols && selectedRecipientCols.length > 0;
-    
+    const hasRecipientColumns =
+      selectedRecipientCols && selectedRecipientCols.length > 0;
+
     if (!hasRecipientColumns) {
       return items;
     }
@@ -668,17 +670,17 @@ const NurseryPhysicalEntry = () => {
         if (r.nursery_physical !== item.id) {
           return false;
         }
-        
+
         // Only include recipients with bill_date in the selected date range
         if (filters.from_date && filters.to_date && r.bill_date) {
           const billDate = new Date(r.bill_date);
           const fromDate = new Date(filters.from_date);
           const toDate = new Date(filters.to_date);
           toDate.setHours(23, 59, 59, 999);
-          
+
           return billDate >= fromDate && billDate <= toDate;
         }
-        
+
         return filters.from_date && filters.to_date;
       });
 
@@ -696,11 +698,11 @@ const NurseryPhysicalEntry = () => {
         // Add subtotal row for this nursery
         const totalQuantity = itemRecipients.reduce(
           (sum, r) => sum + (parseFloat(r.recipient_quantity) || 0),
-          0
+          0,
         );
         const totalAmount = itemRecipients.reduce(
           (sum, r) => sum + (parseFloat(r.recipient_amount) || 0),
-          0
+          0,
         );
 
         expandedData.push({
@@ -729,24 +731,24 @@ const NurseryPhysicalEntry = () => {
         if (r.nursery_physical !== item.id) {
           return false;
         }
-        
+
         // Only include recipients with bill_date in the selected date range
         if (filters.from_date && filters.to_date && r.bill_date) {
           const billDate = new Date(r.bill_date);
           const fromDate = new Date(filters.from_date);
           const toDate = new Date(filters.to_date);
           toDate.setHours(23, 59, 59, 999);
-          
+
           return billDate >= fromDate && billDate <= toDate;
         }
-        
+
         return filters.from_date && filters.to_date;
       });
       return (
         sum +
         itemRecipients.reduce(
           (qSum, r) => qSum + (parseFloat(r.recipient_quantity) || 0),
-          0
+          0,
         )
       );
     }, 0);
@@ -756,24 +758,24 @@ const NurseryPhysicalEntry = () => {
         if (r.nursery_physical !== item.id) {
           return false;
         }
-        
+
         // Only include recipients with bill_date in the selected date range
         if (filters.from_date && filters.to_date && r.bill_date) {
           const billDate = new Date(r.bill_date);
           const fromDate = new Date(filters.from_date);
           const toDate = new Date(filters.to_date);
           toDate.setHours(23, 59, 59, 999);
-          
+
           return billDate >= fromDate && billDate <= toDate;
         }
-        
+
         return filters.from_date && filters.to_date;
       });
       return (
         sum +
         itemRecipients.reduce(
           (aSum, r) => aSum + (parseFloat(r.recipient_amount) || 0),
-          0
+          0,
         )
       );
     }, 0);
@@ -790,19 +792,33 @@ const NurseryPhysicalEntry = () => {
   };
 
   // Download Excel function
-  const downloadExcel = (data, filename, columnMapping, selectedColumns, selectedRecipientCols, withRecipients = true) => {
+  const downloadExcel = (
+    data,
+    filename,
+    columnMapping,
+    selectedColumns,
+    selectedRecipientCols,
+    withRecipients = true,
+  ) => {
     try {
-      const expandedData = withRecipients ? expandDataWithRecipients(data, selectedRecipientCols) : data;
+      const expandedData = withRecipients
+        ? expandDataWithRecipients(data, selectedRecipientCols)
+        : data;
 
       let nurserySerialNumber = 0; // Track serial number based on nursery groups
       const excelData = expandedData.map((item, index) => {
         const row = {};
-        
+
         // Calculate serial number - increment for first recipient of each nursery or items without recipients
-        if ((item._isFirstRecipient || (!item._isRecipientRow && !item._isSubtotalRow && !item._isGrandTotalRow))) {
+        if (
+          item._isFirstRecipient ||
+          (!item._isRecipientRow &&
+            !item._isSubtotalRow &&
+            !item._isGrandTotalRow)
+        ) {
           nurserySerialNumber++;
         }
-        
+
         // Handle subtotal rows
         if (item._isSubtotalRow) {
           row["क्र.सं."] = ""; // No serial number for subtotal
@@ -813,20 +829,22 @@ const NurseryPhysicalEntry = () => {
               row[columnMapping[col].header] = "";
             }
           });
-          
+
           // Add recipient totals
           if (selectedRecipientCols) {
             selectedRecipientCols.forEach((col) => {
               if (col === "recipient_quantity") {
-                row[recipientColumnMapping.recipient_quantity.header] = parseFloat(item._recipient.recipient_quantity).toFixed(2);
+                row[recipientColumnMapping.recipient_quantity.header] =
+                  parseFloat(item._recipient.recipient_quantity).toFixed(2);
               } else if (col === "recipient_amount") {
-                row[recipientColumnMapping.recipient_amount.header] = parseFloat(item._recipient.recipient_amount).toFixed(2);
+                row[recipientColumnMapping.recipient_amount.header] =
+                  parseFloat(item._recipient.recipient_amount).toFixed(2);
               } else {
                 row[recipientColumnMapping[col].header] = "";
               }
             });
           }
-          
+
           return row;
         }
 
@@ -840,20 +858,22 @@ const NurseryPhysicalEntry = () => {
               row[columnMapping[col].header] = "";
             }
           });
-          
+
           // Add grand total values
           if (selectedRecipientCols) {
             selectedRecipientCols.forEach((col) => {
               if (col === "recipient_quantity") {
-                row[recipientColumnMapping.recipient_quantity.header] = parseFloat(item._recipient.recipient_quantity).toFixed(2);
+                row[recipientColumnMapping.recipient_quantity.header] =
+                  parseFloat(item._recipient.recipient_quantity).toFixed(2);
               } else if (col === "recipient_amount") {
-                row[recipientColumnMapping.recipient_amount.header] = parseFloat(item._recipient.recipient_amount).toFixed(2);
+                row[recipientColumnMapping.recipient_amount.header] =
+                  parseFloat(item._recipient.recipient_amount).toFixed(2);
               } else {
                 row[recipientColumnMapping[col].header] = "";
               }
             });
           }
-          
+
           return row;
         }
 
@@ -863,38 +883,52 @@ const NurseryPhysicalEntry = () => {
         } else {
           row["क्र.सं."] = ""; // Empty for non-first recipients (rowspan effect)
         }
-        
+
         // Add nursery columns only for first recipient or items without recipients (rowspan effect)
         selectedColumns.forEach((col) => {
           if (item._isFirstRecipient || !item._isRecipientRow) {
             row[columnMapping[col].header] = columnMapping[col].accessor(
               item,
-              index
+              index,
             );
           } else {
             // Leave empty for non-first recipients (rowspan effect)
             row[columnMapping[col].header] = "";
           }
         });
-        
+
         // Add recipient columns if available
-        if (item._recipient && selectedRecipientCols && !item._isSubtotalRow && !item._isGrandTotalRow) {
+        if (
+          item._recipient &&
+          selectedRecipientCols &&
+          !item._isSubtotalRow &&
+          !item._isGrandTotalRow
+        ) {
           if (selectedRecipientCols.includes("recipient_name")) {
-            row[recipientColumnMapping.recipient_name.header] = item._recipient.recipient_name || "-";
+            row[recipientColumnMapping.recipient_name.header] =
+              item._recipient.recipient_name || "-";
           }
           if (selectedRecipientCols.includes("recipient_quantity")) {
-            row[recipientColumnMapping.recipient_quantity.header] = parseFloat(item._recipient.recipient_quantity).toFixed(2) || "-";
+            row[recipientColumnMapping.recipient_quantity.header] =
+              parseFloat(item._recipient.recipient_quantity).toFixed(2) || "-";
           }
           if (selectedRecipientCols.includes("recipient_amount")) {
-            row[recipientColumnMapping.recipient_amount.header] = parseFloat(item._recipient.recipient_amount).toFixed(2) || "-";
+            row[recipientColumnMapping.recipient_amount.header] =
+              parseFloat(item._recipient.recipient_amount).toFixed(2) || "-";
           }
           if (selectedRecipientCols.includes("bill_number")) {
-            row[recipientColumnMapping.bill_number.header] = item._recipient.bill_number || "-";
+            row[recipientColumnMapping.bill_number.header] =
+              item._recipient.bill_number || "-";
           }
           if (selectedRecipientCols.includes("bill_date")) {
-            row[recipientColumnMapping.bill_date.header] = item._recipient.bill_date || "-";
+            row[recipientColumnMapping.bill_date.header] =
+              item._recipient.bill_date || "-";
           }
-        } else if (selectedRecipientCols && !item._isSubtotalRow && !item._isGrandTotalRow) {
+        } else if (
+          selectedRecipientCols &&
+          !item._isSubtotalRow &&
+          !item._isGrandTotalRow
+        ) {
           // Add empty recipient columns
           selectedRecipientCols.forEach((col) => {
             row[recipientColumnMapping[col].header] = "-";
@@ -907,7 +941,10 @@ const NurseryPhysicalEntry = () => {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
-      const colWidths = Array(selectedColumns.length + (selectedRecipientCols ? selectedRecipientCols.length : 0)).fill({ wch: 15 });
+      const colWidths = Array(
+        selectedColumns.length +
+          (selectedRecipientCols ? selectedRecipientCols.length : 0),
+      ).fill({ wch: 15 });
       ws["!cols"] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, "Data");
@@ -925,9 +962,9 @@ const NurseryPhysicalEntry = () => {
         {
           "नर्सरी का नाम": "राजकीय पौधशाला कुम्भीचौड़",
           "फसल का नाम": "आम",
-          "इकाई": "संख्या",
+          इकाई: "संख्या",
           "उपलब्ध मात्रा": "3000.00",
-          "धनराशि": "3987.00",
+          धनराशि: "3987.00",
         },
       ];
 
@@ -959,37 +996,47 @@ const NurseryPhysicalEntry = () => {
     selectedColumns,
     selectedRecipientCols,
     title,
-    withRecipients = true
+    withRecipients = true,
   ) => {
     try {
-      const expandedData = withRecipients ? expandDataWithRecipients(data, selectedRecipientCols) : data;
+      const expandedData = withRecipients
+        ? expandDataWithRecipients(data, selectedRecipientCols)
+        : data;
 
       let headers = `<th>क्र.सं.</th>${selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
         .join("")}`;
-      
+
       // Add recipient column headers if selected
       if (selectedRecipientCols) {
         selectedRecipientCols.forEach((col) => {
           headers += `<th>${recipientColumnMapping[col].header}</th>`;
         });
       }
-      
+
       // Create rows with proper serial number tracking
       let nurserySerialNumber = 0;
       const rowsHtml = (() => {
         return expandedData
           .map((item, index) => {
             // Calculate serial number - increment for first recipient of each nursery or items without recipients
-            if ((item._isFirstRecipient || (!item._isRecipientRow && !item._isSubtotalRow && !item._isGrandTotalRow))) {
+            if (
+              item._isFirstRecipient ||
+              (!item._isRecipientRow &&
+                !item._isSubtotalRow &&
+                !item._isGrandTotalRow)
+            ) {
               nurserySerialNumber++;
             }
-            
+
             // Subtotal/grand total handling
             if (item._isSubtotalRow) {
               let cells = `<td></td>`;
               selectedColumns.forEach((col) => {
-                cells += col === "nursery_name" ? `<td><strong>${item._subtotalLabel}</strong></td>` : `<td></td>`;
+                cells +=
+                  col === "nursery_name"
+                    ? `<td><strong>${item._subtotalLabel}</strong></td>`
+                    : `<td></td>`;
               });
               if (selectedRecipientCols) {
                 selectedRecipientCols.forEach((col) => {
@@ -1007,7 +1054,10 @@ const NurseryPhysicalEntry = () => {
             if (item._isGrandTotalRow) {
               let cells = `<td></td>`;
               selectedColumns.forEach((col) => {
-                cells += col === "nursery_name" ? `<td><strong>कुल योग</strong></td>` : `<td></td>`;
+                cells +=
+                  col === "nursery_name"
+                    ? `<td><strong>कुल योग</strong></td>`
+                    : `<td></td>`;
               });
               if (selectedRecipientCols) {
                 selectedRecipientCols.forEach((col) => {
@@ -1024,7 +1074,7 @@ const NurseryPhysicalEntry = () => {
             }
             // Regular row - show serial number only for first recipient or items without recipients (rowspan effect)
             let cells = `<td>${item._isFirstRecipient || !item._isRecipientRow ? nurserySerialNumber : ""}</td>`;
-            
+
             // Add nursery columns only for first recipient or items without recipients (rowspan effect)
             selectedColumns.forEach((col) => {
               if (item._isFirstRecipient || !item._isRecipientRow) {
@@ -1034,16 +1084,25 @@ const NurseryPhysicalEntry = () => {
                 cells += `<td></td>`;
               }
             });
-            
+
             // Add recipient column data if available
             if (item._recipient && selectedRecipientCols) {
               selectedRecipientCols.forEach((col) => {
                 let cellValue = "-";
-                if (col === "recipient_name") cellValue = item._recipient.recipient_name || "-";
-                else if (col === "recipient_quantity") cellValue = parseFloat(item._recipient.recipient_quantity).toFixed(2) || "-";
-                else if (col === "recipient_amount") cellValue = parseFloat(item._recipient.recipient_amount).toFixed(2) || "-";
-                else if (col === "bill_number") cellValue = item._recipient.bill_number || "-";
-                else if (col === "bill_date") cellValue = item._recipient.bill_date || "-";
+                if (col === "recipient_name")
+                  cellValue = item._recipient.recipient_name || "-";
+                else if (col === "recipient_quantity")
+                  cellValue =
+                    parseFloat(item._recipient.recipient_quantity).toFixed(2) ||
+                    "-";
+                else if (col === "recipient_amount")
+                  cellValue =
+                    parseFloat(item._recipient.recipient_amount).toFixed(2) ||
+                    "-";
+                else if (col === "bill_number")
+                  cellValue = item._recipient.bill_number || "-";
+                else if (col === "bill_date")
+                  cellValue = item._recipient.bill_date || "-";
                 cells += `<td>${cellValue}</td>`;
               });
             } else if (selectedRecipientCols) {
@@ -1178,7 +1237,7 @@ const NurseryPhysicalEntry = () => {
       };
       const response = await axios.put(NURSERY_PHYSICAL_API_URL, payload);
       setAllNurseryPhysicalItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i))
+        prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i)),
       );
       setEditingRowId(null);
       setEditingValues({});
@@ -1200,9 +1259,11 @@ const NurseryPhysicalEntry = () => {
     if (window.confirm("क्या आप इस आइटम को हटाना चाहते हैं?")) {
       try {
         const response = await axios.delete(NURSERY_PHYSICAL_API_URL, {
-          data: { id: item.id }
+          data: { id: item.id },
         });
-        setAllNurseryPhysicalItems((prev) => prev.filter((i) => i.id !== item.id));
+        setAllNurseryPhysicalItems((prev) =>
+          prev.filter((i) => i.id !== item.id),
+        );
         setApiResponse({ message: "आइटम सफलतापूर्वक हटा दिया गया!" });
       } catch (error) {
         console.error("Error deleting item:", error);
@@ -1239,17 +1300,23 @@ const NurseryPhysicalEntry = () => {
       setApiError("कृपया हटाने के लिए कम से कम एक आइटम चुनें।");
       return;
     }
-    if (window.confirm(`क्या आप ${selectedIds.length} चयनित आइटम्स को हटाना चाहते हैं?`)) {
+    if (
+      window.confirm(
+        `क्या आप ${selectedIds.length} चयनित आइटम्स को हटाना चाहते हैं?`,
+      )
+    ) {
       try {
         const response = await axios.delete(NURSERY_PHYSICAL_API_URL, {
-          data: { id: selectedIds }
+          data: { id: selectedIds },
         });
         setAllNurseryPhysicalItems((prev) =>
-          prev.filter((item) => !selectedIds.includes(item.id))
+          prev.filter((item) => !selectedIds.includes(item.id)),
         );
         setSelectedIds([]);
         setSelectAllChecked(false);
-        setApiResponse({ message: `${selectedIds.length} आइटम सफलतापूर्वक हटा दिए गए!` });
+        setApiResponse({
+          message: `${selectedIds.length} आइटम सफलतापूर्वक हटा दिए गए!`,
+        });
       } catch (error) {
         console.error("Error deleting items:", error);
         setApiError("आइटम हटाने में त्रुटि हुई।");
@@ -1275,51 +1342,56 @@ const NurseryPhysicalEntry = () => {
       recipient_quantity: "",
       recipient_amount: "",
       bill_number: "",
-      bill_date: new Date().toISOString().split('T')[0],
+      bill_date: new Date().toISOString().split("T")[0],
     });
     setShowRecipientModal(true);
   };
 
   // Handle recipient edit
- const handleRecipientEdit = (item) => {
-  setEditingRecipientRowId(item.id);
-  setEditingRecipientValues({
-    nursery_physical: item.nursery_physical,
-    recipient_name: item.recipient_name || "",
-    recipient_quantity: item.recipient_quantity || "",
-    recipient_amount: item.recipient_amount || "",
-    bill_number: item.bill_number || "",
-    bill_date: item.bill_date || new Date().toISOString().split('T')[0],
-  });
-  setModalApiError(null);
-  setModalApiResponse(null);
-};
+  const handleRecipientEdit = (item) => {
+    setEditingRecipientRowId(item.id);
+    setEditingRecipientValues({
+      nursery_physical: item.nursery_physical,
+      recipient_name: item.recipient_name || "",
+      recipient_quantity: item.recipient_quantity || "",
+      recipient_amount: item.recipient_amount || "",
+      bill_number: item.bill_number || "",
+      bill_date: item.bill_date || new Date().toISOString().split("T")[0],
+    });
+    setModalApiError(null);
+    setModalApiResponse(null);
+  };
   // Handle save recipient edit
-const handleSaveRecipient = async (item) => {
-  try {
-    const payload = {
-      id: item.id,
-      nursery_physical: editingRecipientValues.nursery_physical || item.nursery_physical,
-      recipient_name: editingRecipientValues.recipient_name,
-      recipient_quantity: parseFloat(editingRecipientValues.recipient_quantity) || 0,
-      recipient_amount: parseFloat(editingRecipientValues.recipient_amount) || 0,
-      bill_number: editingRecipientValues.bill_number,
-      bill_date: editingRecipientValues.bill_date,
-    };
-    
-    await axios.put(NURSERY_PHYSICAL_RECIPIENTS_API_URL, payload);
-    
-    setEditingRecipientRowId(null);
-    setEditingRecipientValues({});
-    setModalApiResponse({ message: "प्राप्तकर्ता डेटा सफलतापूर्वक अपडेट किया गया!" });
-    
-    // Automatically fetch the latest recipient data from the server
-    await fetchRecipientItems();
-  } catch (error) {
-    console.error("Error updating recipient item:", error);
-    setModalApiError("प्राप्तकर्ता आइटम अपडेट करने में त्रुटि हुई।");
-  }
-};
+  const handleSaveRecipient = async (item) => {
+    try {
+      const payload = {
+        id: item.id,
+        nursery_physical:
+          editingRecipientValues.nursery_physical || item.nursery_physical,
+        recipient_name: editingRecipientValues.recipient_name,
+        recipient_quantity:
+          parseFloat(editingRecipientValues.recipient_quantity) || 0,
+        recipient_amount:
+          parseFloat(editingRecipientValues.recipient_amount) || 0,
+        bill_number: editingRecipientValues.bill_number,
+        bill_date: editingRecipientValues.bill_date,
+      };
+
+      await axios.put(NURSERY_PHYSICAL_RECIPIENTS_API_URL, payload);
+
+      setEditingRecipientRowId(null);
+      setEditingRecipientValues({});
+      setModalApiResponse({
+        message: "प्राप्तकर्ता डेटा सफलतापूर्वक अपडेट किया गया!",
+      });
+
+      // Automatically fetch the latest recipient data from the server
+      await fetchRecipientItems();
+    } catch (error) {
+      console.error("Error updating recipient item:", error);
+      setModalApiError("प्राप्तकर्ता आइटम अपडेट करने में त्रुटि हुई।");
+    }
+  };
   // Handle cancel recipient edit
   const handleCancelRecipient = () => {
     setEditingRecipientRowId(null);
@@ -1327,27 +1399,29 @@ const handleSaveRecipient = async (item) => {
   };
 
   // Handle delete recipient
-const handleDeleteRecipient = async (item) => {
-  if (window.confirm("क्या आप इस प्राप्तकर्ता आइटम को हटाना चाहते हैं?")) {
-    try {
-      await axios.delete(NURSERY_PHYSICAL_RECIPIENTS_API_URL, {
-        data: { id: item.id }
-      });
-      
-      setModalApiResponse({ message: "प्राप्तकर्ता आइटम सफलतापूर्वक हटा दिया गया!" });
-      
-      // Automatically fetch the latest recipient data from the server
-      await fetchRecipientItems();
-    } catch (error) {
-      console.error("Error deleting recipient item:", error);
-      setModalApiError("प्राप्तकर्ता आइटम हटाने में त्रुटि हुई।");
+  const handleDeleteRecipient = async (item) => {
+    if (window.confirm("क्या आप इस प्राप्तकर्ता आइटम को हटाना चाहते हैं?")) {
+      try {
+        await axios.delete(NURSERY_PHYSICAL_RECIPIENTS_API_URL, {
+          data: { id: item.id },
+        });
+
+        setModalApiResponse({
+          message: "प्राप्तकर्ता आइटम सफलतापूर्वक हटा दिया गया!",
+        });
+
+        // Automatically fetch the latest recipient data from the server
+        await fetchRecipientItems();
+      } catch (error) {
+        console.error("Error deleting recipient item:", error);
+        setModalApiError("प्राप्तकर्ता आइटम हटाने में त्रुटि हुई।");
+      }
     }
-  }
-};
+  };
   // Validate a single row of data (for bulk upload)
   const validateRow = (rowData, rowIndex) => {
     const errors = [];
-    
+
     if (!rowData.nursery_name || !rowData.nursery_name.toString().trim()) {
       errors.push(`Row ${rowIndex}: नर्सरी का नाम आवश्यक है`);
     }
@@ -1357,29 +1431,38 @@ const handleDeleteRecipient = async (item) => {
     if (!rowData.unit || !rowData.unit.toString().trim()) {
       errors.push(`Row ${rowIndex}: इकाई आवश्यक है`);
     }
-    if (rowData.allocated_quantity === "" || rowData.allocated_quantity === null || rowData.allocated_quantity === undefined) {
+    if (
+      rowData.allocated_quantity === "" ||
+      rowData.allocated_quantity === null ||
+      rowData.allocated_quantity === undefined
+    ) {
       errors.push(`Row ${rowIndex}: उपलब्ध मात्रा आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.allocated_quantity))) {
       errors.push(`Row ${rowIndex}: उपलब्ध मात्रा एक संख्या होनी चाहिए`);
     }
-    if (rowData.allocated_amount === "" || rowData.allocated_amount === null || rowData.allocated_amount === undefined) {
+    if (
+      rowData.allocated_amount === "" ||
+      rowData.allocated_amount === null ||
+      rowData.allocated_amount === undefined
+    ) {
       errors.push(`Row ${rowIndex}: धनराशि आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.allocated_amount))) {
       errors.push(`Row ${rowIndex}: धनराशि एक संख्या होनी चाहिए`);
     }
-    
+
     return errors;
   };
 
   // Check if a row has any meaningful data (not completely empty)
   const isEmptyRow = (row) => {
-    if (!row || typeof row !== 'object') return true;
+    if (!row || typeof row !== "object") return true;
     const values = Object.values(row);
-    return values.every(val => 
-      val === null || 
-      val === undefined || 
-      val === '' || 
-      (typeof val === 'string' && val.trim() === '')
+    return values.every(
+      (val) =>
+        val === null ||
+        val === undefined ||
+        val === "" ||
+        (typeof val === "string" && val.trim() === ""),
     );
   };
 
@@ -1427,11 +1510,37 @@ const handleDeleteRecipient = async (item) => {
 
           dataRows.forEach((row, rowIndex) => {
             const parsedRow = {
-              nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
-              crop_name: (row[headerMapping["फसल का नाम"]] || row[headerMapping["crop_name"]] || "").toString().trim(),
-              unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
-              allocated_quantity: roundTo2Decimals(row[headerMapping["उपलब्ध मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
-              allocated_amount: roundTo2Decimals(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
+              nursery_name: (
+                row[headerMapping["नर्सरी का नाम"]] ||
+                row[headerMapping["nursery_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              crop_name: (
+                row[headerMapping["फसल का नाम"]] ||
+                row[headerMapping["crop_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              unit: (
+                row[headerMapping["इकाई"]] ||
+                row[headerMapping["unit"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              allocated_quantity: roundTo2Decimals(
+                row[headerMapping["उपलब्ध मात्रा"]] ||
+                  row[headerMapping["allocated_quantity"]] ||
+                  0,
+              ),
+              allocated_amount: roundTo2Decimals(
+                row[headerMapping["धनराशि"]] ||
+                  row[headerMapping["allocated_amount"]] ||
+                  0,
+              ),
               rowIndex: rowIndex + 2,
               _originalIndex: rowIndex,
             };
@@ -1461,51 +1570,67 @@ const handleDeleteRecipient = async (item) => {
           // Fetch existing nursery physical data to check for duplicates
           try {
             const existingResponse = await axios.get(NURSERY_PHYSICAL_API_URL);
-            const existingData = existingResponse.data && existingResponse.data.data
-              ? existingResponse.data.data
-              : existingResponse.data;
-            const existingItems = Array.isArray(existingData) ? existingData : [];
-            
+            const existingData =
+              existingResponse.data && existingResponse.data.data
+                ? existingResponse.data.data
+                : existingResponse.data;
+            const existingItems = Array.isArray(existingData)
+              ? existingData
+              : [];
+
             // Detect duplicates with existing system data
             const duplicateIndices = new Set();
             const newValidationErrors = [...validationErrors];
-            
+
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
               // Compare only fields that are in the template download
-              const isDuplicateWithExisting = existingItems.some(existing => {
+              const isDuplicateWithExisting = existingItems.some((existing) => {
                 return (
-                  String(existing.nursery_name || '').trim() === String(row.nursery_name || '').trim() &&
-                  String(existing.crop_name || '').trim() === String(row.crop_name || '').trim() &&
-                  String(existing.unit || '').trim() === String(row.unit || '').trim() &&
-                  parseFloat(existing.allocated_quantity || 0) === parseFloat(row.allocated_quantity || 0) &&
-                  parseFloat(existing.allocated_amount || 0) === parseFloat(row.allocated_amount || 0)
+                  String(existing.nursery_name || "").trim() ===
+                    String(row.nursery_name || "").trim() &&
+                  String(existing.crop_name || "").trim() ===
+                    String(row.crop_name || "").trim() &&
+                  String(existing.unit || "").trim() ===
+                    String(row.unit || "").trim() &&
+                  parseFloat(existing.allocated_quantity || 0) ===
+                    parseFloat(row.allocated_quantity || 0) &&
+                  parseFloat(existing.allocated_amount || 0) ===
+                    parseFloat(row.allocated_amount || 0)
                 );
               });
-              
+
               if (isDuplicateWithExisting) {
                 duplicateIndices.add(row.rowIndex);
                 newValidationErrors.push({
                   rowIndex: row.rowIndex,
-                  errors: ["यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)"],
+                  errors: [
+                    "यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)",
+                  ],
                   data: row,
                 });
               }
             });
-            
+
             // Also check for duplicates within the uploaded rows themselves
             // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${String(row.nursery_name || '').trim()}|${String(row.crop_name || '').trim()}|${String(row.unit || '').trim()}|${parseFloat(row.allocated_quantity || 0)}|${parseFloat(row.allocated_amount || 0)}`;
-              
+              const key = `${String(row.nursery_name || "").trim()}|${String(row.crop_name || "").trim()}|${String(row.unit || "").trim()}|${parseFloat(row.allocated_quantity || 0)}|${parseFloat(row.allocated_amount || 0)}`;
+
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
                 // Add error if not already added
-                if (!newValidationErrors.some(err => err.rowIndex === row.rowIndex)) {
+                if (
+                  !newValidationErrors.some(
+                    (err) => err.rowIndex === row.rowIndex,
+                  )
+                ) {
                   newValidationErrors.push({
                     rowIndex: row.rowIndex,
-                    errors: ["इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)"],
+                    errors: [
+                      "इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)",
+                    ],
                     data: row,
                   });
                 }
@@ -1513,7 +1638,7 @@ const handleDeleteRecipient = async (item) => {
                 seenKeys.add(key);
               }
             });
-            
+
             setValidationErrorsList(newValidationErrors);
             setDuplicateRowIndices(Array.from(duplicateIndices));
             if (newValidationErrors.length > 0) {
@@ -1555,16 +1680,22 @@ const handleDeleteRecipient = async (item) => {
     setUploadSuccessCount(0);
 
     try {
-      const validRows = previewData.filter((row) =>
-        !validationErrorsList.some((err) => err.rowIndex === row.rowIndex)
+      const validRows = previewData.filter(
+        (row) =>
+          !validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
       );
 
       const invalidRows = previewData
-        .filter((row) => validationErrorsList.some((err) => err.rowIndex === row.rowIndex))
+        .filter((row) =>
+          validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
+        )
         .map((row) => ({
           rowIndex: row.rowIndex,
           data: row,
-          reason: validationErrorsList.find((err) => err.rowIndex === row.rowIndex)?.errors.join(", ") || "Validation failed",
+          reason:
+            validationErrorsList
+              .find((err) => err.rowIndex === row.rowIndex)
+              ?.errors.join(", ") || "Validation failed",
         }));
 
       setUploadTotal(validRows.length);
@@ -1604,7 +1735,9 @@ const handleDeleteRecipient = async (item) => {
           });
         }
 
-        const progress = Math.round(((i + 1) / Math.max(validRows.length, 1)) * 100);
+        const progress = Math.round(
+          ((i + 1) / Math.max(validRows.length, 1)) * 100,
+        );
         setUploadProgress(progress);
       }
 
@@ -1621,7 +1754,9 @@ const handleDeleteRecipient = async (item) => {
           message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
         });
       } else if (successCount > 0 && failedItems.length > 0) {
-        setApiError(`⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`);
+        setApiError(
+          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`,
+        );
       } else if (failedItems.length > 0) {
         setApiError(`❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`);
       }
@@ -1637,22 +1772,37 @@ const handleDeleteRecipient = async (item) => {
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Clear otherMode only when selecting an existing option from the dropdown (not when typing in text input)
-    if (name === "nursery_name" && value !== "अन्य" && otherMode.nursery_name && e.target.tagName === "SELECT") {
-      setOtherMode(prev => ({ ...prev, nursery_name: false }));
+    if (
+      name === "nursery_name" &&
+      value !== "अन्य" &&
+      otherMode.nursery_name &&
+      e.target.tagName === "SELECT"
+    ) {
+      setOtherMode((prev) => ({ ...prev, nursery_name: false }));
     }
-    
+
     // Same for crop_name
-    if (name === "crop_name" && value !== "अन्य" && otherMode.crop_name && e.target.tagName === "SELECT") {
-      setOtherMode(prev => ({ ...prev, crop_name: false }));
+    if (
+      name === "crop_name" &&
+      value !== "अन्य" &&
+      otherMode.crop_name &&
+      e.target.tagName === "SELECT"
+    ) {
+      setOtherMode((prev) => ({ ...prev, crop_name: false }));
     }
-    
+
     // Same for unit
-    if (name === "unit" && value !== "अन्य" && otherMode.unit && e.target.tagName === "SELECT") {
-      setOtherMode(prev => ({ ...prev, unit: false }));
+    if (
+      name === "unit" &&
+      value !== "अन्य" &&
+      otherMode.unit &&
+      e.target.tagName === "SELECT"
+    ) {
+      setOtherMode((prev) => ({ ...prev, unit: false }));
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -1669,40 +1819,42 @@ const handleDeleteRecipient = async (item) => {
   // Handle recipient form field changes
   const handleRecipientChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Auto-calculate recipient_amount based on recipient_quantity if it's changed
-    if (name === 'recipient_quantity' && selectedNurseryPhysical) {
+    if (name === "recipient_quantity" && selectedNurseryPhysical) {
       const quantity = parseFloat(value) || 0;
-      const allocatedQty = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
-      const allocatedAmt = parseFloat(selectedNurseryPhysical.allocated_amount) || 0;
-      
+      const allocatedQty =
+        parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+      const allocatedAmt =
+        parseFloat(selectedNurseryPhysical.allocated_amount) || 0;
+
       // Calculate remaining quantity
       const distributedQty = recipientItems
-        .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+        .filter((r) => r.nursery_physical === selectedNurseryPhysical.id)
         .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
       const remainingQty = allocatedQty - distributedQty;
-      
+
       // Prevent entering more than remaining quantity
-      if (quantity > remainingQty && value !== '') {
+      if (quantity > remainingQty && value !== "") {
         setRecipientErrors((prev) => ({
           ...prev,
-          recipient_quantity: `केवल ${remainingQty.toFixed(2)} ${selectedNurseryPhysical.unit} उपलब्ध है। अधिक प्रविष्टि करना संभव नहीं है।`
+          recipient_quantity: `केवल ${remainingQty.toFixed(2)} ${selectedNurseryPhysical.unit} उपलब्ध है। अधिक प्रविष्टि करना संभव नहीं है।`,
         }));
         // Don't update the value if it exceeds remaining - show error instead
         return;
       } else {
         setRecipientErrors((prev) => ({
           ...prev,
-          recipient_quantity: null
+          recipient_quantity: null,
         }));
       }
-      
+
       // Calculate proportional amount
       let calculatedAmount = 0;
       if (allocatedQty > 0 && quantity > 0) {
         calculatedAmount = (quantity / allocatedQty) * allocatedAmt;
       }
-      
+
       setRecipientFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -1713,7 +1865,7 @@ const handleDeleteRecipient = async (item) => {
         ...prev,
         [name]: value,
       }));
-      
+
       if (recipientErrors[name]) {
         setRecipientErrors({
           ...recipientErrors,
@@ -1782,68 +1934,73 @@ const handleDeleteRecipient = async (item) => {
   };
 
   // Handle recipient form submission
- const handleRecipientSubmit = async (e) => {
-  e.preventDefault();
+  const handleRecipientSubmit = async (e) => {
+    e.preventDefault();
 
-  const formErrors = validateRecipientForm();
-  if (Object.keys(formErrors).length > 0) {
-    setRecipientErrors(formErrors);
-    return;
-  }
-
-  setIsRecipientSubmitting(true);
-  setModalApiError(null);
-  setModalApiResponse(null);
-
-  try {
-    const payload = {
-      nursery_physical: parseInt(recipientFormData.nursery_physical),
-      recipient_name: recipientFormData.recipient_name,
-      recipient_quantity: parseFloat(recipientFormData.recipient_quantity),
-      recipient_amount: parseFloat(recipientFormData.recipient_amount),
-      bill_number: recipientFormData.bill_number,
-      bill_date: recipientFormData.bill_date,
-    };
-
-    const response = await axios.post(NURSERY_PHYSICAL_RECIPIENTS_API_URL, payload);
-    
-    setModalApiResponse({ message: "प्राप्तकर्ता डेटा सफलतापूर्वक जोड़ा गया!" });
-
-    setRecipientFormData({
-      nursery_physical: selectedNurseryPhysical.id,
-      recipient_name: "",
-      recipient_quantity: "",
-      recipient_amount: "",
-      bill_number: "",
-      bill_date: new Date().toISOString().split('T')[0],
-    });
-
-    // Automatically fetch the latest recipient data from the server
-    await fetchRecipientItems();
-    
-    // Reset pagination to show the new item on page 1
-    setRecipientCurrentPage(1);
-    setRecipientErrors({});
-  } catch (error) {
-    let errorMessage = translations.genericError;
-    if (error.response) {
-      if (error.response.data && error.response.data.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response.data && error.response.data.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response.status === 400) {
-        errorMessage = "डेटा में त्रुटि। कृपया सभी आवश्यक फ़ील्ड भरें।";
-      } else if (error.response.status === 500) {
-        errorMessage = "सर्वर त्रुटि। कृपया बाद में प्रयास करें।";
-      }
-    } else if (error.request) {
-      errorMessage = "नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।";
+    const formErrors = validateRecipientForm();
+    if (Object.keys(formErrors).length > 0) {
+      setRecipientErrors(formErrors);
+      return;
     }
-    setModalApiError(errorMessage);
-  } finally {
-    setIsRecipientSubmitting(false);
-  }
-};
+
+    setIsRecipientSubmitting(true);
+    setModalApiError(null);
+    setModalApiResponse(null);
+
+    try {
+      const payload = {
+        nursery_physical: parseInt(recipientFormData.nursery_physical),
+        recipient_name: recipientFormData.recipient_name,
+        recipient_quantity: parseFloat(recipientFormData.recipient_quantity),
+        recipient_amount: parseFloat(recipientFormData.recipient_amount),
+        bill_number: recipientFormData.bill_number,
+        bill_date: recipientFormData.bill_date,
+      };
+
+      const response = await axios.post(
+        NURSERY_PHYSICAL_RECIPIENTS_API_URL,
+        payload,
+      );
+
+      setModalApiResponse({
+        message: "प्राप्तकर्ता डेटा सफलतापूर्वक जोड़ा गया!",
+      });
+
+      setRecipientFormData({
+        nursery_physical: selectedNurseryPhysical.id,
+        recipient_name: "",
+        recipient_quantity: "",
+        recipient_amount: "",
+        bill_number: "",
+        bill_date: new Date().toISOString().split("T")[0],
+      });
+
+      // Automatically fetch the latest recipient data from the server
+      await fetchRecipientItems();
+
+      // Reset pagination to show the new item on page 1
+      setRecipientCurrentPage(1);
+      setRecipientErrors({});
+    } catch (error) {
+      let errorMessage = translations.genericError;
+      if (error.response) {
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.status === 400) {
+          errorMessage = "डेटा में त्रुटि। कृपया सभी आवश्यक फ़ील्ड भरें।";
+        } else if (error.response.status === 500) {
+          errorMessage = "सर्वर त्रुटि। कृपया बाद में प्रयास करें।";
+        }
+      } else if (error.request) {
+        errorMessage = "नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।";
+      }
+      setModalApiError(errorMessage);
+    } finally {
+      setIsRecipientSubmitting(false);
+    }
+  };
   // Form validation
   const validateForm = () => {
     const newErrors = {};
@@ -1869,12 +2026,13 @@ const handleDeleteRecipient = async (item) => {
       newErrors.recipient_quantity = `${translations.recipientQuantity} ${translations.required}`;
     else if (selectedNurseryPhysical) {
       const enteredQty = parseFloat(recipientFormData.recipient_quantity) || 0;
-      const allocatedQty = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
+      const allocatedQty =
+        parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
       const distributedQty = recipientItems
-        .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
+        .filter((r) => r.nursery_physical === selectedNurseryPhysical.id)
         .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
       const remainingQty = allocatedQty - distributedQty;
-      
+
       if (enteredQty > remainingQty) {
         newErrors.recipient_quantity = `उपलब्ध मात्रा से अधिक नहीं हो सकता। शेष उपलब्ध: ${remainingQty.toFixed(2)} ${selectedNurseryPhysical.unit}`;
       }
@@ -1903,11 +2061,11 @@ const handleDeleteRecipient = async (item) => {
     paginationItems.push(
       <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
         1
-      </Pagination.Item>
+      </Pagination.Item>,
     );
     if (startPage > 2) {
       paginationItems.push(
-        <Pagination.Ellipsis key="start-ellipsis" disabled />
+        <Pagination.Ellipsis key="start-ellipsis" disabled />,
       );
     }
   }
@@ -1920,7 +2078,7 @@ const handleDeleteRecipient = async (item) => {
         onClick={() => handlePageChange(number)}
       >
         {number}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -1934,15 +2092,23 @@ const handleDeleteRecipient = async (item) => {
         onClick={() => handlePageChange(totalPages)}
       >
         {totalPages}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
   // Generate recipient pagination items
-  const recipientTotalPages = Math.ceil(filteredRecipientItems.length / itemsPerPage);
+  const recipientTotalPages = Math.ceil(
+    filteredRecipientItems.length / itemsPerPage,
+  );
   const recipientPaginationItems = [];
-  let recipientStartPage = Math.max(1, recipientCurrentPage - Math.floor(maxVisiblePages / 2));
-  let recipientEndPage = Math.min(recipientTotalPages, recipientStartPage + maxVisiblePages - 1);
+  let recipientStartPage = Math.max(
+    1,
+    recipientCurrentPage - Math.floor(maxVisiblePages / 2),
+  );
+  let recipientEndPage = Math.min(
+    recipientTotalPages,
+    recipientStartPage + maxVisiblePages - 1,
+  );
 
   if (recipientEndPage - recipientStartPage < maxVisiblePages - 1) {
     recipientStartPage = Math.max(1, recipientEndPage - maxVisiblePages + 1);
@@ -1952,11 +2118,11 @@ const handleDeleteRecipient = async (item) => {
     recipientPaginationItems.push(
       <Pagination.Item key={1} onClick={() => handleRecipientPageChange(1)}>
         1
-      </Pagination.Item>
+      </Pagination.Item>,
     );
     if (recipientStartPage > 2) {
       recipientPaginationItems.push(
-        <Pagination.Ellipsis key="recipient-start-ellipsis" disabled />
+        <Pagination.Ellipsis key="recipient-start-ellipsis" disabled />,
       );
     }
   }
@@ -1969,13 +2135,15 @@ const handleDeleteRecipient = async (item) => {
         onClick={() => handleRecipientPageChange(number)}
       >
         {number}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
   if (recipientEndPage < recipientTotalPages) {
     if (recipientEndPage < recipientTotalPages - 1) {
-      recipientPaginationItems.push(<Pagination.Ellipsis key="recipient-end-ellipsis" disabled />);
+      recipientPaginationItems.push(
+        <Pagination.Ellipsis key="recipient-end-ellipsis" disabled />,
+      );
     }
     recipientPaginationItems.push(
       <Pagination.Item
@@ -1983,7 +2151,7 @@ const handleDeleteRecipient = async (item) => {
         onClick={() => handleRecipientPageChange(recipientTotalPages)}
       >
         {recipientTotalPages}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -1991,10 +2159,22 @@ const handleDeleteRecipient = async (item) => {
     <div>
       {isAdmin && <DashBoardHeader />}
       {!isAdmin && <NurseryNavigation />}
-      <Container fluid className={isAdmin ? "p-4" : "p-0"} style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}>
+      <Container
+        fluid
+        className={isAdmin ? "p-4" : "p-0"}
+        style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}
+      >
         <Row className={isAdmin ? "left-top" : "w-100 m-0"}>
           <Col lg={12} md={12} sm={12} className={isAdmin ? "p-0" : "p-3"}>
-            <Container fluid className={isAdmin ? "dashboard-body-main bg-home" : "dashboard-body-main bg-home"} style={isAdmin ? {} : { paddingTop: "10px" }}>
+            <Container
+              fluid
+              className={
+                isAdmin
+                  ? "dashboard-body-main bg-home"
+                  : "dashboard-body-main bg-home"
+              }
+              style={isAdmin ? {} : { paddingTop: "10px" }}
+            >
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Progress Bar Section - Displayed at top during upload */}
@@ -2003,29 +2183,54 @@ const handleDeleteRecipient = async (item) => {
                   <Col xs={12}>
                     <div className="p-3 border rounded bg-light">
                       <div className="mb-3">
-                        <h6 className="small-fonts mb-3">📊 अपलोड प्रगति विवरण</h6>
+                        <h6 className="small-fonts mb-3">
+                          📊 अपलोड प्रगति विवरण
+                        </h6>
                         <div className="d-flex justify-content-around mb-3">
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">✅ पूर्ण</small>
-                            <span className="badge bg-success" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ✅ पूर्ण
+                            </small>
+                            <span
+                              className="badge bg-success"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {Math.round((uploadProgress / 100) * uploadTotal)}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⏳ शेष</small>
-                            <span className="badge bg-warning text-dark" style={{ fontSize: "14px", padding: "8px 12px" }}>
-                              {uploadTotal - Math.round((uploadProgress / 100) * uploadTotal)}
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⏳ शेष
+                            </small>
+                            <span
+                              className="badge bg-warning text-dark"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
+                              {uploadTotal -
+                                Math.round(
+                                  (uploadProgress / 100) * uploadTotal,
+                                )}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">📁 कुल</small>
-                            <span className="badge bg-primary" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              📁 कुल
+                            </small>
+                            <span
+                              className="badge bg-primary"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadTotal}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⚡ प्रगति</small>
-                            <span className="badge bg-info text-white" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⚡ प्रगति
+                            </small>
+                            <span
+                              className="badge bg-info text-white"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadProgress}%
                             </span>
                           </div>
@@ -2040,7 +2245,9 @@ const handleDeleteRecipient = async (item) => {
                           aria-valuemin="0"
                           aria-valuemax="100"
                         >
-                          <small className="fw-bold text-white">{uploadProgress}%</small>
+                          <small className="fw-bold text-white">
+                            {uploadProgress}%
+                          </small>
                         </div>
                       </div>
                       <small className="text-muted mt-2 d-block text-center">
@@ -2073,13 +2280,17 @@ const handleDeleteRecipient = async (item) => {
                   <div className="w-100">
                     <Button
                       variant="secondary"
-                      onClick={() => previewData.length > 0 && !isUploading && handleConfirmUpload()}
+                      onClick={() =>
+                        previewData.length > 0 &&
+                        !isUploading &&
+                        handleConfirmUpload()
+                      }
                       disabled={!excelFile || isUploading}
                       className="compact-submit-btn w-100"
                     >
                       {isUploading
                         ? `अपलोड हो रहा है... ${uploadProgress}%`
-                        : previewData.length > 0 
+                        : previewData.length > 0
                           ? `${previewData.length} रिकॉर्ड अपलोड करें`
                           : translations.uploadButton}
                     </Button>
@@ -2099,22 +2310,41 @@ const handleDeleteRecipient = async (item) => {
 
               {apiResponse && (
                 <Alert variant="success" className="small-fonts">
-                  <div style={{ whiteSpace: "pre-wrap" }}>{apiResponse.message}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    {apiResponse.message}
+                  </div>
                 </Alert>
               )}
               {apiError && (
                 <Alert variant="danger" className="small-fonts">
-                  <div style={{ whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      maxHeight: "300px",
+                      overflowY: "auto",
+                    }}
+                  >
                     {apiError}
                   </div>
                 </Alert>
               )}
               {uploadErrors.length > 0 && !isUploading && (
                 <Alert variant="warning" className="small-fonts">
-                  <strong>📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):</strong>
-                  <div style={{ maxHeight: "400px", overflowY: "auto", marginTop: "10px" }}>
+                  <strong>
+                    📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):
+                  </strong>
+                  <div
+                    style={{
+                      maxHeight: "400px",
+                      overflowY: "auto",
+                      marginTop: "10px",
+                    }}
+                  >
                     {uploadErrors.map((error, idx) => (
-                      <div key={idx} style={{ marginBottom: "5px", fontSize: "12px" }}>
+                      <div
+                        key={idx}
+                        style={{ marginBottom: "5px", fontSize: "12px" }}
+                      >
                         • {error}
                       </div>
                     ))}
@@ -2161,9 +2391,16 @@ const handleDeleteRecipient = async (item) => {
               )}
 
               {/* Preview Modal */}
-              <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" centered>
+              <Modal
+                show={showPreviewModal}
+                onHide={() => setShowPreviewModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)</Modal.Title>
+                  <Modal.Title>
+                    डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   {previewData.length === 0 ? (
@@ -2171,10 +2408,17 @@ const handleDeleteRecipient = async (item) => {
                   ) : (
                     <>
                       <Alert variant="info" className="small-fonts">
-                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें।
-                        खाली पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
+                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि
+                        सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें। खाली
+                        पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
                       </Alert>
-                      <Table striped bordered hover size="sm" className="small-fonts">
+                      <Table
+                        striped
+                        bordered
+                        hover
+                        size="sm"
+                        className="small-fonts"
+                      >
                         <thead>
                           <tr>
                             <th>क्र.सं.</th>
@@ -2187,7 +2431,16 @@ const handleDeleteRecipient = async (item) => {
                         </thead>
                         <tbody>
                           {previewData.slice(0, 100).map((row, idx) => (
-                            <tr key={idx} style={{ backgroundColor: duplicateRowIndices.includes(row.rowIndex) ? '#ffcccc' : 'inherit' }}>
+                            <tr
+                              key={idx}
+                              style={{
+                                backgroundColor: duplicateRowIndices.includes(
+                                  row.rowIndex,
+                                )
+                                  ? "#ffcccc"
+                                  : "inherit",
+                              }}
+                            >
                               <td>{idx + 1}</td>
                               <td>{row.nursery_name}</td>
                               <td>{row.crop_name}</td>
@@ -2210,16 +2463,29 @@ const handleDeleteRecipient = async (item) => {
                   {validationErrorsList.length > 0 && (
                     <div className="w-100 mb-3">
                       <Alert variant="warning" className="small-fonts mb-0">
-                        <strong>⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:</strong>
-                        <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                          {validationErrorsList.slice(0, 10).map((err, errIdx) => (
-                            <div key={errIdx} className="mt-1">
-                              <span className="badge bg-danger me-1">पंक्ति {err.rowIndex - 1}</span>
-                              {err.errors.map((e, i) => <span key={i} className="d-block text-danger">{e}</span>)}
-                            </div>
-                          ))}
+                        <strong>
+                          ⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:
+                        </strong>
+                        <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+                          {validationErrorsList
+                            .slice(0, 10)
+                            .map((err, errIdx) => (
+                              <div key={errIdx} className="mt-1">
+                                <span className="badge bg-danger me-1">
+                                  पंक्ति {err.rowIndex - 1}
+                                </span>
+                                {err.errors.map((e, i) => (
+                                  <span key={i} className="d-block text-danger">
+                                    {e}
+                                  </span>
+                                ))}
+                              </div>
+                            ))}
                           {validationErrorsList.length > 10 && (
-                            <div className="text-muted">... और {validationErrorsList.length - 10} और त्रुटियां</div>
+                            <div className="text-muted">
+                              ... और {validationErrorsList.length - 10} और
+                              त्रुटियां
+                            </div>
                           )}
                         </div>
                       </Alert>
@@ -2229,7 +2495,9 @@ const handleDeleteRecipient = async (item) => {
                           size="sm"
                           className="mt-2"
                           onClick={() => {
-                            const duplicates = previewData.filter(row => duplicateRowIndices.includes(row.rowIndex));
+                            const duplicates = previewData.filter((row) =>
+                              duplicateRowIndices.includes(row.rowIndex),
+                            );
                             setAllDuplicateEntries(duplicates);
                             setShowAllDuplicatesModal(true);
                           }}
@@ -2240,11 +2508,14 @@ const handleDeleteRecipient = async (item) => {
                     </div>
                   )}
                   <div className="d-flex justify-content-between w-100">
-                    <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowPreviewModal(false)}
+                    >
                       रद्द करें
                     </Button>
-                    <Button 
-                      variant="primary" 
+                    <Button
+                      variant="primary"
                       onClick={handleConfirmUpload}
                       disabled={previewData.length === 0}
                     >
@@ -2255,15 +2526,30 @@ const handleDeleteRecipient = async (item) => {
               </Modal>
 
               {/* All Duplicates Modal */}
-              <Modal show={showAllDuplicatesModal} onHide={() => setShowAllDuplicatesModal(false)} size="lg" centered>
+              <Modal
+                show={showAllDuplicatesModal}
+                onHide={() => setShowAllDuplicatesModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})</Modal.Title>
+                  <Modal.Title>
+                    सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   {allDuplicateEntries.length === 0 ? (
-                    <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
+                    <Alert variant="warning">
+                      कोई डुप्लीकेट रिकॉर्ड नहीं मिला
+                    </Alert>
                   ) : (
-                    <Table striped bordered hover size="sm" className="small-fonts">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="small-fonts"
+                    >
                       <thead>
                         <tr>
                           <th>क्र.सं. (Excel)</th>
@@ -2276,7 +2562,7 @@ const handleDeleteRecipient = async (item) => {
                       </thead>
                       <tbody>
                         {allDuplicateEntries.map((row, idx) => (
-                          <tr key={idx} style={{ backgroundColor: '#ffcccc' }}>
+                          <tr key={idx} style={{ backgroundColor: "#ffcccc" }}>
                             <td>{row.rowIndex - 1}</td>
                             <td>{row.nursery_name || "-"}</td>
                             <td>{row.crop_name || "-"}</td>
@@ -2290,7 +2576,10 @@ const handleDeleteRecipient = async (item) => {
                   )}
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowAllDuplicatesModal(false)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAllDuplicatesModal(false)}
+                  >
                     बंद करें
                   </Button>
                 </Modal.Footer>
@@ -2302,7 +2591,8 @@ const handleDeleteRecipient = async (item) => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, फसल का नाम, इकाई, उपलब्ध मात्रा, धनराशि
+                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, फसल का नाम,
+                    इकाई, उपलब्ध मात्रा, धनराशि
                   </li>
                   <li>उपलब्ध मात्रा और धनराशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
@@ -2336,8 +2626,14 @@ const handleDeleteRecipient = async (item) => {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() => {
-                              setOtherMode(prev => ({ ...prev, nursery_name: false }));
-                              setFormData(prev => ({ ...prev, nursery_name: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                nursery_name: false,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                nursery_name: "",
+                              }));
                             }}
                             className="ms-1"
                             title="वापस सूची में जाएं"
@@ -2351,8 +2647,14 @@ const handleDeleteRecipient = async (item) => {
                           value={formData.nursery_name}
                           onChange={(e) => {
                             if (e.target.value === "अन्य") {
-                              setOtherMode(prev => ({ ...prev, nursery_name: true }));
-                              setFormData(prev => ({ ...prev, nursery_name: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                nursery_name: true,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                nursery_name: "",
+                              }));
                             } else {
                               handleChange(e);
                             }
@@ -2395,8 +2697,14 @@ const handleDeleteRecipient = async (item) => {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() => {
-                              setOtherMode(prev => ({ ...prev, crop_name: false }));
-                              setFormData(prev => ({ ...prev, crop_name: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                crop_name: false,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                crop_name: "",
+                              }));
                             }}
                             className="ms-1"
                             title="वापस सूची में जाएं"
@@ -2410,8 +2718,14 @@ const handleDeleteRecipient = async (item) => {
                           value={formData.crop_name}
                           onChange={(e) => {
                             if (e.target.value === "अन्य") {
-                              setOtherMode(prev => ({ ...prev, crop_name: true }));
-                              setFormData(prev => ({ ...prev, crop_name: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                crop_name: true,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                crop_name: "",
+                              }));
                             } else {
                               handleChange(e);
                             }
@@ -2454,8 +2768,11 @@ const handleDeleteRecipient = async (item) => {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() => {
-                              setOtherMode(prev => ({ ...prev, unit: false }));
-                              setFormData(prev => ({ ...prev, unit: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                unit: false,
+                              }));
+                              setFormData((prev) => ({ ...prev, unit: "" }));
                             }}
                             className="ms-1"
                             title="वापस सूची में जाएं"
@@ -2469,8 +2786,8 @@ const handleDeleteRecipient = async (item) => {
                           value={formData.unit}
                           onChange={(e) => {
                             if (e.target.value === "अन्य") {
-                              setOtherMode(prev => ({ ...prev, unit: true }));
-                              setFormData(prev => ({ ...prev, unit: "" }));
+                              setOtherMode((prev) => ({ ...prev, unit: true }));
+                              setFormData((prev) => ({ ...prev, unit: "" }));
                             } else {
                               handleChange(e);
                             }
@@ -2534,7 +2851,12 @@ const handleDeleteRecipient = async (item) => {
                       </Form.Control.Feedback>
                     </Form.Group>
                   </Col>
-                  <Col xs={12} sm={6} md={4} className="d-flex align-items-center">
+                  <Col
+                    xs={12}
+                    sm={6}
+                    md={4}
+                    className="d-flex align-items-center"
+                  >
                     <Button
                       variant="primary"
                       type="submit"
@@ -2559,7 +2881,9 @@ const handleDeleteRecipient = async (item) => {
                           <OverlayTrigger
                             placement="top"
                             overlay={
-                              <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
+                              <Tooltip id="tooltip-refresh">
+                                रीफ्रेश करें
+                              </Tooltip>
                             }
                           >
                             <Button
@@ -2579,7 +2903,9 @@ const handleDeleteRecipient = async (item) => {
                             <OverlayTrigger
                               placement="top"
                               overlay={
-                                <Tooltip id="tooltip-delete">चयनित हटाएं</Tooltip>
+                                <Tooltip id="tooltip-delete">
+                                  चयनित हटाएं
+                                </Tooltip>
                               }
                             >
                               <Button
@@ -2616,7 +2942,7 @@ const handleDeleteRecipient = async (item) => {
                                     .slice(0, 10)}`,
                                   nurseryPhysicalColumnMapping,
                                   selectedColumns,
-                                  selectedRecipientColumns
+                                  selectedRecipientColumns,
                                 )
                               }
                               className="me-2"
@@ -2628,7 +2954,9 @@ const handleDeleteRecipient = async (item) => {
                           <OverlayTrigger
                             placement="top"
                             overlay={
-                              <Tooltip id="tooltip-pdf">PDF डाउनलोड करें</Tooltip>
+                              <Tooltip id="tooltip-pdf">
+                                PDF डाउनलोड करें
+                              </Tooltip>
                             }
                           >
                             <Button
@@ -2643,7 +2971,7 @@ const handleDeleteRecipient = async (item) => {
                                   nurseryPhysicalColumnMapping,
                                   selectedColumns,
                                   selectedRecipientColumns,
-                                  "नर्सरी भौतिक प्रविष्टि डेटा"
+                                  "नर्सरी भौतिक प्रविष्टि डेटा",
                                 )
                               }
                             >
@@ -2683,7 +3011,10 @@ const handleDeleteRecipient = async (item) => {
                     <span className="small-fonts">
                       {translations.showing}{" "}
                       {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
-                      {Math.min(currentPage * itemsPerPage, filteredItems.length)}{" "}
+                      {Math.min(
+                        currentPage * itemsPerPage,
+                        filteredItems.length,
+                      )}{" "}
                       {translations.of} {filteredItems.length}{" "}
                       {translations.entries}
                     </span>
@@ -2700,7 +3031,9 @@ const handleDeleteRecipient = async (item) => {
                 {nurseryPhysicalItems.length > 0 && (
                   <div className="created-at-filter-section mb-3 p-3 border rounded bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="small-fonts mb-0">तिथि से फ़िल्टर करें (created_at)</h6>
+                      <h6 className="small-fonts mb-0">
+                        तिथि से फ़िल्टर करें (created_at)
+                      </h6>
                     </div>
                     <Row>
                       <Col xs={12} md={4}>
@@ -2710,14 +3043,16 @@ const handleDeleteRecipient = async (item) => {
                           </Form.Label>
                           <Form.Select
                             value={createdAtFilter.selectedDate}
-                            onChange={(e) => handleCreatedAtDateSelect(e.target.value)}
+                            onChange={(e) =>
+                              handleCreatedAtDateSelect(e.target.value)
+                            }
                             className="compact-input"
                             disabled={createdAtFilter.showManualPicker}
                           >
                             <option value="">-- तिथि चुनें --</option>
                             {uniqueCreatedAtDates.map((date) => (
                               <option key={date} value={date}>
-                                {new Date(date).toLocaleDateString('hi-IN')}
+                                {new Date(date).toLocaleDateString("hi-IN")}
                               </option>
                             ))}
                           </Form.Select>
@@ -2726,12 +3061,18 @@ const handleDeleteRecipient = async (item) => {
                       <Col xs={12} md={4}>
                         <Form.Group className="mb-2 d-flex align-items-end">
                           <Button
-                            variant={createdAtFilter.showManualPicker ? "primary" : "outline-secondary"}
+                            variant={
+                              createdAtFilter.showManualPicker
+                                ? "primary"
+                                : "outline-secondary"
+                            }
                             size="sm"
                             onClick={toggleManualDatePicker}
                             className="mb-2"
                           >
-                            {createdAtFilter.showManualPicker ? "मैन्युअल तिथि छुपाएं" : "मैन्युअल तिथि"}
+                            {createdAtFilter.showManualPicker
+                              ? "मैन्युअल तिथि छुपाएं"
+                              : "मैन्युअल तिथि"}
                           </Button>
                         </Form.Group>
                       </Col>
@@ -2744,7 +3085,9 @@ const handleDeleteRecipient = async (item) => {
                             <Form.Control
                               type="date"
                               value={createdAtFilter.manualDate}
-                              onChange={(e) => handleCreatedAtManualDateChange(e.target.value)}
+                              onChange={(e) =>
+                                handleCreatedAtManualDateChange(e.target.value)
+                              }
                               className="compact-input"
                             />
                           </Form.Group>
@@ -2752,12 +3095,19 @@ const handleDeleteRecipient = async (item) => {
                       )}
                     </Row>
                     {/* Show selected filter info */}
-                    {(createdAtFilter.selectedDate || createdAtFilter.manualDate) && (
+                    {(createdAtFilter.selectedDate ||
+                      createdAtFilter.manualDate) && (
                       <div className="mt-2">
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => setCreatedAtFilter({ selectedDate: "", manualDate: "", showManualPicker: false })}
+                          onClick={() =>
+                            setCreatedAtFilter({
+                              selectedDate: "",
+                              manualDate: "",
+                              showManualPicker: false,
+                            })
+                          }
                         >
                           तिथि फ़िल्टर साफ़ करें
                         </Button>
@@ -2788,7 +3138,12 @@ const handleDeleteRecipient = async (item) => {
                           <Form.Control
                             type="date"
                             value={filters.from_date}
-                            onChange={(e) => setFilters(prev => ({ ...prev, from_date: e.target.value }))}
+                            onChange={(e) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                from_date: e.target.value,
+                              }))
+                            }
                             className="compact-input"
                           />
                         </Form.Group>
@@ -2801,7 +3156,12 @@ const handleDeleteRecipient = async (item) => {
                           <Form.Control
                             type="date"
                             value={filters.to_date}
-                            onChange={(e) => setFilters(prev => ({ ...prev, to_date: e.target.value }))}
+                            onChange={(e) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                to_date: e.target.value,
+                              }))
+                            }
                             className="compact-input"
                           />
                         </Form.Group>
@@ -2826,10 +3186,12 @@ const handleDeleteRecipient = async (item) => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.nursery_name.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.nursery_name.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -2913,15 +3275,15 @@ const handleDeleteRecipient = async (item) => {
                           {selectedColumns.includes("allocated_amount") && (
                             <th>{translations.allocatedAmount}</th>
                           )}
-                          {selectedRecipientColumns.includes("recipient_name") && (
-                            <th>{translations.recipientName}</th>
-                          )}
-                          {selectedRecipientColumns.includes("recipient_quantity") && (
-                            <th>{translations.recipientQuantity}</th>
-                          )}
-                          {selectedRecipientColumns.includes("recipient_amount") && (
-                            <th>{translations.recipientAmount}</th>
-                          )}
+                          {selectedRecipientColumns.includes(
+                            "recipient_name",
+                          ) && <th>{translations.recipientName}</th>}
+                          {selectedRecipientColumns.includes(
+                            "recipient_quantity",
+                          ) && <th>{translations.recipientQuantity}</th>}
+                          {selectedRecipientColumns.includes(
+                            "recipient_amount",
+                          ) && <th>{translations.recipientAmount}</th>}
                           {selectedRecipientColumns.includes("bill_number") && (
                             <th>{translations.billNumber}</th>
                           )}
@@ -2936,33 +3298,45 @@ const handleDeleteRecipient = async (item) => {
                           // Get expanded data with subtotals and grand total for current page items
                           const pageItems = filteredItems.slice(
                             (currentPage - 1) * itemsPerPage,
-                            currentPage * itemsPerPage
+                            currentPage * itemsPerPage,
                           );
-                          const expandedPageData = expandDataWithRecipients(pageItems, selectedRecipientColumns);
-                          
+                          const expandedPageData = expandDataWithRecipients(
+                            pageItems,
+                            selectedRecipientColumns,
+                          );
+
                           // Track serial numbers for nursery items on this page
-                          const pageStartIndex = (currentPage - 1) * itemsPerPage;
+                          const pageStartIndex =
+                            (currentPage - 1) * itemsPerPage;
                           const nurserySerialMap = new Map();
                           pageItems.forEach((item, idx) => {
-                            nurserySerialMap.set(item.id, pageStartIndex + idx + 1);
+                            nurserySerialMap.set(
+                              item.id,
+                              pageStartIndex + idx + 1,
+                            );
                           });
 
                           // Filter expandedPageData to exclude grand total if not on last page
                           const isLastPage = currentPage === totalPages;
-                          const displayData = expandedPageData.filter(item => {
-                            if (item._isGrandTotalRow && !isLastPage) {
-                              return false;
-                            }
-                            return true;
-                          });
+                          const displayData = expandedPageData.filter(
+                            (item) => {
+                              if (item._isGrandTotalRow && !isLastPage) {
+                                return false;
+                              }
+                              return true;
+                            },
+                          );
 
                           return displayData.map((item, index) => {
                             // Handle subtotal row
                             if (item._isSubtotalRow) {
                               return (
-                                <tr 
+                                <tr
                                   key={`subtotal-${item.id}-${index}`}
-                                  style={{ backgroundColor: '#f9f9f9', fontWeight: 'bold' }}
+                                  style={{
+                                    backgroundColor: "#f9f9f9",
+                                    fontWeight: "bold",
+                                  }}
                                 >
                                   <td></td>
                                   <td colSpan={1}></td>
@@ -2975,35 +3349,43 @@ const handleDeleteRecipient = async (item) => {
                                   {selectedColumns.includes("unit") && (
                                     <td colSpan={1}></td>
                                   )}
-                                  {selectedColumns.includes("allocated_quantity") && (
-                                    <td colSpan={1}></td>
-                                  )}
-                                  {selectedColumns.includes("allocated_amount") && (
-                                    <td colSpan={1}></td>
-                                  )}
-                                  {selectedRecipientColumns.includes("recipient_name") && (
-                                    <td colSpan={1}></td>
-                                  )}
-                                  {selectedRecipientColumns.includes("recipient_quantity") && (
+                                  {selectedColumns.includes(
+                                    "allocated_quantity",
+                                  ) && <td colSpan={1}></td>}
+                                  {selectedColumns.includes(
+                                    "allocated_amount",
+                                  ) && <td colSpan={1}></td>}
+                                  {selectedRecipientColumns.includes(
+                                    "recipient_name",
+                                  ) && <td colSpan={1}></td>}
+                                  {selectedRecipientColumns.includes(
+                                    "recipient_quantity",
+                                  ) && (
                                     <td>
                                       {item._recipient?.recipient_quantity
-                                        ? parseFloat(item._recipient.recipient_quantity).toFixed(2)
+                                        ? parseFloat(
+                                            item._recipient.recipient_quantity,
+                                          ).toFixed(2)
                                         : "-"}
                                     </td>
                                   )}
-                                  {selectedRecipientColumns.includes("recipient_amount") && (
+                                  {selectedRecipientColumns.includes(
+                                    "recipient_amount",
+                                  ) && (
                                     <td>
                                       {item._recipient?.recipient_amount
-                                        ? parseFloat(item._recipient.recipient_amount).toFixed(2)
+                                        ? parseFloat(
+                                            item._recipient.recipient_amount,
+                                          ).toFixed(2)
                                         : "-"}
                                     </td>
                                   )}
-                                  {selectedRecipientColumns.includes("bill_number") && (
-                                    <td colSpan={1}></td>
-                                  )}
-                                  {selectedRecipientColumns.includes("bill_date") && (
-                                    <td colSpan={1}></td>
-                                  )}
+                                  {selectedRecipientColumns.includes(
+                                    "bill_number",
+                                  ) && <td colSpan={1}></td>}
+                                  {selectedRecipientColumns.includes(
+                                    "bill_date",
+                                  ) && <td colSpan={1}></td>}
                                   <td colSpan={1}></td>
                                 </tr>
                               );
@@ -3012,9 +3394,12 @@ const handleDeleteRecipient = async (item) => {
                             // Handle grand total row
                             if (item._isGrandTotalRow) {
                               return (
-                                <tr 
+                                <tr
                                   key={`grand-total-${index}`}
-                                  style={{ backgroundColor: '#e8e8e8', fontWeight: 'bold' }}
+                                  style={{
+                                    backgroundColor: "#e8e8e8",
+                                    fontWeight: "bold",
+                                  }}
                                 >
                                   <td></td>
                                   <td colSpan={1}></td>
@@ -3027,35 +3412,43 @@ const handleDeleteRecipient = async (item) => {
                                   {selectedColumns.includes("unit") && (
                                     <td></td>
                                   )}
-                                  {selectedColumns.includes("allocated_quantity") && (
-                                    <td></td>
-                                  )}
-                                  {selectedColumns.includes("allocated_amount") && (
-                                    <td></td>
-                                  )}
-                                  {selectedRecipientColumns.includes("recipient_name") && (
-                                    <td></td>
-                                  )}
-                                  {selectedRecipientColumns.includes("recipient_quantity") && (
+                                  {selectedColumns.includes(
+                                    "allocated_quantity",
+                                  ) && <td></td>}
+                                  {selectedColumns.includes(
+                                    "allocated_amount",
+                                  ) && <td></td>}
+                                  {selectedRecipientColumns.includes(
+                                    "recipient_name",
+                                  ) && <td></td>}
+                                  {selectedRecipientColumns.includes(
+                                    "recipient_quantity",
+                                  ) && (
                                     <td>
                                       {item._recipient?.recipient_quantity
-                                        ? parseFloat(item._recipient.recipient_quantity).toFixed(2)
+                                        ? parseFloat(
+                                            item._recipient.recipient_quantity,
+                                          ).toFixed(2)
                                         : "-"}
                                     </td>
                                   )}
-                                  {selectedRecipientColumns.includes("recipient_amount") && (
+                                  {selectedRecipientColumns.includes(
+                                    "recipient_amount",
+                                  ) && (
                                     <td>
                                       {item._recipient?.recipient_amount
-                                        ? parseFloat(item._recipient.recipient_amount).toFixed(2)
+                                        ? parseFloat(
+                                            item._recipient.recipient_amount,
+                                          ).toFixed(2)
                                         : "-"}
                                     </td>
                                   )}
-                                  {selectedRecipientColumns.includes("bill_number") && (
-                                    <td></td>
-                                  )}
-                                  {selectedRecipientColumns.includes("bill_date") && (
-                                    <td></td>
-                                  )}
+                                  {selectedRecipientColumns.includes(
+                                    "bill_number",
+                                  ) && <td></td>}
+                                  {selectedRecipientColumns.includes(
+                                    "bill_date",
+                                  ) && <td></td>}
                                   <td></td>
                                   <td></td>
                                 </tr>
@@ -3066,154 +3459,205 @@ const handleDeleteRecipient = async (item) => {
                             const originalItem = item;
                             const recipient = item._recipient;
                             // For items without recipients, treat as first recipient
-                            const isFirstRecipient = item._isFirstRecipient || !item._isRecipientRow;
+                            const isFirstRecipient =
+                              item._isFirstRecipient || !item._isRecipientRow;
                             const itemRecipients = recipientItems.filter(
-                              (r) => r.nursery_physical === originalItem.id
+                              (r) => r.nursery_physical === originalItem.id,
                             );
-                            const recipientRowCount = Math.max(itemRecipients.length, 1);
-                            const serialNumber = nurserySerialMap.get(originalItem.id);
+                            const recipientRowCount = Math.max(
+                              itemRecipients.length,
+                              1,
+                            );
+                            const serialNumber = nurserySerialMap.get(
+                              originalItem.id,
+                            );
 
                             return (
-                              <tr key={`${originalItem.id}-${recipient?.id || 'no-recipient'}`}>
+                              <tr
+                                key={`${originalItem.id}-${recipient?.id || "no-recipient"}`}
+                              >
                                 <td>
                                   {isFirstRecipient && (
                                     <Form.Check
                                       type="checkbox"
-                                      checked={selectedIds.includes(originalItem.id)}
-                                      onChange={() => handleSelectItem(originalItem.id)}
+                                      checked={selectedIds.includes(
+                                        originalItem.id,
+                                      )}
+                                      onChange={() =>
+                                        handleSelectItem(originalItem.id)
+                                      }
                                     />
                                   )}
                                 </td>
-                                <td>
-                                  {isFirstRecipient ? serialNumber : ''}
-                                </td>
+                                <td>{isFirstRecipient ? serialNumber : ""}</td>
                                 {selectedColumns.includes("nursery_name") && (
                                   <td>
                                     {isFirstRecipient ? (
-                                      editingRowId === originalItem.id
-                                        ? <Form.Control
-                                            type="text"
-                                            value={editingValues.nursery_name}
-                                            onChange={(e) =>
-                                              setEditingValues((prev) => ({
-                                                ...prev,
-                                                nursery_name: e.target.value,
-                                              }))
-                                            }
-                                            size="sm"
-                                          />
-                                        : originalItem.nursery_name
-                                    ) : ''}
+                                      editingRowId === originalItem.id ? (
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.nursery_name}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              nursery_name: e.target.value,
+                                            }))
+                                          }
+                                          size="sm"
+                                        />
+                                      ) : (
+                                        originalItem.nursery_name
+                                      )
+                                    ) : (
+                                      ""
+                                    )}
                                   </td>
                                 )}
                                 {selectedColumns.includes("crop_name") && (
                                   <td>
                                     {isFirstRecipient ? (
-                                      editingRowId === originalItem.id
-                                        ? <Form.Control
-                                            type="text"
-                                            value={editingValues.crop_name}
-                                            onChange={(e) =>
-                                              setEditingValues((prev) => ({
-                                                ...prev,
-                                                crop_name: e.target.value,
-                                              }))
-                                            }
-                                            size="sm"
-                                          />
-                                        : originalItem.crop_name
-                                    ) : ''}
+                                      editingRowId === originalItem.id ? (
+                                        <Form.Control
+                                          type="text"
+                                          value={editingValues.crop_name}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              crop_name: e.target.value,
+                                            }))
+                                          }
+                                          size="sm"
+                                        />
+                                      ) : (
+                                        originalItem.crop_name
+                                      )
+                                    ) : (
+                                      ""
+                                    )}
                                   </td>
                                 )}
                                 {selectedColumns.includes("unit") && (
                                   <td>
                                     {isFirstRecipient ? (
-                                      editingRowId === originalItem.id
-                                        ? <Form.Select
-                                            value={editingValues.unit}
-                                            onChange={(e) =>
-                                              setEditingValues((prev) => ({
-                                                ...prev,
-                                                unit: e.target.value,
-                                              }))
-                                            }
-                                            size="sm"
-                                          >
-                                            <option value="">चुनें</option>
-                                            {unitOptions.map((opt, idx) => (
-                                              <option key={idx} value={opt}>
-                                                {opt}
-                                              </option>
-                                            ))}
-                                          </Form.Select>
-                                        : originalItem.unit
-                                    ) : ''}
+                                      editingRowId === originalItem.id ? (
+                                        <Form.Select
+                                          value={editingValues.unit}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              unit: e.target.value,
+                                            }))
+                                          }
+                                          size="sm"
+                                        >
+                                          <option value="">चुनें</option>
+                                          {unitOptions.map((opt, idx) => (
+                                            <option key={idx} value={opt}>
+                                              {opt}
+                                            </option>
+                                          ))}
+                                        </Form.Select>
+                                      ) : (
+                                        originalItem.unit
+                                      )
+                                    ) : (
+                                      ""
+                                    )}
                                   </td>
                                 )}
-                                {selectedColumns.includes("allocated_quantity") && (
+                                {selectedColumns.includes(
+                                  "allocated_quantity",
+                                ) && (
                                   <td>
                                     {isFirstRecipient ? (
-                                      editingRowId === originalItem.id
-                                        ? <Form.Control
-                                            type="number"
-                                            step="0.01"
-                                            value={editingValues.allocated_quantity}
-                                            onChange={(e) =>
-                                              setEditingValues((prev) => ({
-                                                ...prev,
-                                                allocated_quantity: e.target.value,
-                                              }))
-                                            }
-                                            size="sm"
-                                          />
-                                        : parseFloat(originalItem.allocated_quantity).toFixed(2)
-                                    ) : ''}
+                                      editingRowId === originalItem.id ? (
+                                        <Form.Control
+                                          type="number"
+                                          step="0.01"
+                                          value={
+                                            editingValues.allocated_quantity
+                                          }
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              allocated_quantity:
+                                                e.target.value,
+                                            }))
+                                          }
+                                          size="sm"
+                                        />
+                                      ) : (
+                                        parseFloat(
+                                          originalItem.allocated_quantity,
+                                        ).toFixed(2)
+                                      )
+                                    ) : (
+                                      ""
+                                    )}
                                   </td>
                                 )}
-                                {selectedColumns.includes("allocated_amount") && (
+                                {selectedColumns.includes(
+                                  "allocated_amount",
+                                ) && (
                                   <td>
                                     {isFirstRecipient ? (
-                                      editingRowId === originalItem.id
-                                        ? <Form.Control
-                                            type="number"
-                                            step="0.01"
-                                            value={editingValues.allocated_amount}
-                                            onChange={(e) =>
-                                              setEditingValues((prev) => ({
-                                                ...prev,
-                                                allocated_amount: e.target.value,
-                                              }))
-                                            }
-                                            size="sm"
-                                          />
-                                        : parseFloat(originalItem.allocated_amount).toFixed(2)
-                                    ) : ''}
+                                      editingRowId === originalItem.id ? (
+                                        <Form.Control
+                                          type="number"
+                                          step="0.01"
+                                          value={editingValues.allocated_amount}
+                                          onChange={(e) =>
+                                            setEditingValues((prev) => ({
+                                              ...prev,
+                                              allocated_amount: e.target.value,
+                                            }))
+                                          }
+                                          size="sm"
+                                        />
+                                      ) : (
+                                        parseFloat(
+                                          originalItem.allocated_amount,
+                                        ).toFixed(2)
+                                      )
+                                    ) : (
+                                      ""
+                                    )}
                                   </td>
                                 )}
                                 {/* Recipient columns */}
-                                {selectedRecipientColumns.includes("recipient_name") && (
+                                {selectedRecipientColumns.includes(
+                                  "recipient_name",
+                                ) && (
                                   <td>{recipient?.recipient_name || "-"}</td>
                                 )}
-                                {selectedRecipientColumns.includes("recipient_quantity") && (
+                                {selectedRecipientColumns.includes(
+                                  "recipient_quantity",
+                                ) && (
                                   <td>
                                     {recipient?.recipient_quantity
-                                      ? parseFloat(recipient.recipient_quantity).toFixed(2)
+                                      ? parseFloat(
+                                          recipient.recipient_quantity,
+                                        ).toFixed(2)
                                       : "-"}
                                   </td>
                                 )}
-                                {selectedRecipientColumns.includes("recipient_amount") && (
+                                {selectedRecipientColumns.includes(
+                                  "recipient_amount",
+                                ) && (
                                   <td>
                                     {recipient?.recipient_amount
-                                      ? parseFloat(recipient.recipient_amount).toFixed(2)
+                                      ? parseFloat(
+                                          recipient.recipient_amount,
+                                        ).toFixed(2)
                                       : "-"}
                                   </td>
                                 )}
-                                {selectedRecipientColumns.includes("bill_number") && (
-                                  <td>{recipient?.bill_number || "-"}</td>
-                                )}
-                                {selectedRecipientColumns.includes("bill_date") && (
-                                  <td>{recipient?.bill_date || "-"}</td>
-                                )}
+                                {selectedRecipientColumns.includes(
+                                  "bill_number",
+                                ) && <td>{recipient?.bill_number || "-"}</td>}
+                                {selectedRecipientColumns.includes(
+                                  "bill_date",
+                                ) && <td>{recipient?.bill_date || "-"}</td>}
                                 <td>
                                   {isFirstRecipient ? (
                                     editingRowId === originalItem.id ? (
@@ -3221,7 +3665,9 @@ const handleDeleteRecipient = async (item) => {
                                         <Button
                                           variant="outline-success"
                                           size="sm"
-                                          onClick={() => handleSave(originalItem)}
+                                          onClick={() =>
+                                            handleSave(originalItem)
+                                          }
                                         >
                                           सहेजें
                                         </Button>
@@ -3238,28 +3684,34 @@ const handleDeleteRecipient = async (item) => {
                                         <Button
                                           variant="outline-primary"
                                           size="sm"
-                                          onClick={() => handleEdit(originalItem)}
+                                          onClick={() =>
+                                            handleEdit(originalItem)
+                                          }
                                         >
                                           संपादित करें
                                         </Button>
                                         <Button
                                           variant="outline-info"
                                           size="sm"
-                                          onClick={() => handleManageRecipients(originalItem)}
+                                          onClick={() =>
+                                            handleManageRecipients(originalItem)
+                                          }
                                         >
                                           प्राप्तकर्ता
                                         </Button>
                                         <Button
                                           variant="outline-danger"
                                           size="sm"
-                                          onClick={() => handleDelete(originalItem)}
+                                          onClick={() =>
+                                            handleDelete(originalItem)
+                                          }
                                         >
                                           <RiDeleteBinLine />
                                         </Button>
                                       </div>
                                     )
                                   ) : (
-                                    ''
+                                    ""
                                   )}
                                 </td>
                               </tr>
@@ -3304,453 +3756,593 @@ const handleDeleteRecipient = async (item) => {
           <Modal.Title>
             {selectedNurseryPhysical && (
               <span>
-                {translations.manageRecipients} - {selectedNurseryPhysical.nursery_name} ({selectedNurseryPhysical.crop_name})
+                {translations.manageRecipients} -{" "}
+                {selectedNurseryPhysical.nursery_name} (
+                {selectedNurseryPhysical.crop_name})
               </span>
             )}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-  {selectedNurseryPhysical && (
-    <>
-      {/* Display success message in the modal */}
-      {modalApiResponse && (
-        <Alert variant="success" className="small-fonts">
-          <div style={{ whiteSpace: "pre-wrap" }}>{modalApiResponse.message}</div>
-        </Alert>
-      )}
-      
-      {/* Display error message in the modal */}
-      {modalApiError && (
-        <Alert variant="danger" className="small-fonts">
-          <div style={{ whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
-            {modalApiError}
-          </div>
-        </Alert>
-      )}
+          {selectedNurseryPhysical && (
+            <>
+              {/* Display success message in the modal */}
+              {modalApiResponse && (
+                <Alert variant="success" className="small-fonts">
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    {modalApiResponse.message}
+                  </div>
+                </Alert>
+              )}
 
-      {/* Allocated Allocation Info at Top */}
-      {selectedNurseryPhysical && (
-        <div className="alert alert-info mb-4" style={{ backgroundColor: '#e7f3ff', borderLeft: '4px solid #2196F3' }}>
-          <Row className="align-items-center">
-            <Col md={6}>
-              <h6 className="mb-2 small-fonts fw-bold">📊 आवंटित जानकारी</h6>
-              <div className="small-fonts">
-                <p className="mb-1">
-                  <strong>फसल:</strong> {selectedNurseryPhysical.crop_name} ({selectedNurseryPhysical.unit})
-                </p>
-                <p className="mb-1">
-                  <strong>कुल उपलब्ध मात्रा:</strong> <span className="badge bg-primary">{parseFloat(selectedNurseryPhysical.allocated_quantity).toFixed(2)}</span>
-                </p>
-                <p className="mb-0">
-                  <strong>कुल धनराशि:</strong> <span className="badge bg-success">₹{parseFloat(selectedNurseryPhysical.allocated_amount).toFixed(2)}</span>
-                </p>
-              </div>
-            </Col>
-            <Col md={6}>
-              <h6 className="mb-2 small-fonts fw-bold">📈 वितरण स्थिति</h6>
-              <div className="small-fonts">
-                <p className="mb-1">
-                  <strong>अब तक वितरित:</strong> <span className="badge bg-warning text-dark">{(() => {
-                    const distributed = recipientItems
-                      .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
-                      .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
-                    return parseFloat(distributed).toFixed(2);
-                  })()}</span>
-                </p>
-                <p className="mb-1">
-                  <strong>शेष उपलब्ध:</strong> <span className="badge bg-danger">{(() => {
-                    const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
-                    const distributed = recipientItems
-                      .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
-                      .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
-                    const remaining = allocated - distributed;
-                    return (remaining >= 0 ? remaining : 0).toFixed(2);
-                  })()}</span>
-                </p>
-                <p className="mb-0">
-                  <strong>प्रति इकाई दर:</strong> <span className="badge bg-info">₹{(() => {
-                    const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
-                    const amount = parseFloat(selectedNurseryPhysical.allocated_amount) || 0;
-                    return allocated > 0 ? (amount / allocated).toFixed(2) : '0.00';
-                  })()}</span>
-                </p>
-              </div>
-            </Col>
-          </Row>
-        </div>
-      )}
+              {/* Display error message in the modal */}
+              {modalApiError && (
+                <Alert variant="danger" className="small-fonts">
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      maxHeight: "300px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {modalApiError}
+                  </div>
+                </Alert>
+              )}
 
-      {/* Recipient Form */}
-      <Form
-        onSubmit={handleRecipientSubmit}
-        className="registration-form compact-form mb-4"
-      >
-        {/* Hidden input for nursery_physical ID */}
-        <Form.Control
-          type="hidden"
-          name="nursery_physical"
-          value={recipientFormData.nursery_physical}
-          onChange={handleRecipientChange}
-        />
-        
-        <Row>
-          <Col xs={12} sm={6} md={4}>
-            <Form.Group className="mb-2" controlId="recipient_name">
-              <Form.Label className="small-fonts fw-bold">
-                {translations.recipientName}
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="recipient_name"
-                value={recipientFormData.recipient_name}
-                onChange={handleRecipientChange}
-                isInvalid={!!recipientErrors.recipient_name}
-                className="compact-input"
-                placeholder="प्राप्तकर्ता का नाम दर्ज करें"
-              />
-              <Form.Control.Feedback type="invalid">
-                {recipientErrors.recipient_name}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Form.Group className="mb-2" controlId="recipient_quantity">
-              <Form.Label className="small-fonts fw-bold">
-                {translations.recipientQuantity}
-                {selectedNurseryPhysical && (
-                  <span className="ms-2 badge bg-info small">अधिकतम: {(() => {
-                    const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
-                    const distributed = recipientItems
-                      .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
-                      .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
-                    const remaining = allocated - distributed;
-                    return (remaining >= 0 ? remaining : 0).toFixed(2);
-                  })()}</span>
-                )}
-              </Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="recipient_quantity"
-                value={recipientFormData.recipient_quantity}
-                onChange={handleRecipientChange}
-                isInvalid={!!recipientErrors.recipient_quantity}
-                className="compact-input"
-                placeholder="वितरण मात्रा दर्ज करें"
-                max={selectedNurseryPhysical ? (() => {
-                  const allocated = parseFloat(selectedNurseryPhysical.allocated_quantity) || 0;
-                  const distributed = recipientItems
-                    .filter(r => r.nursery_physical === selectedNurseryPhysical.id)
-                    .reduce((sum, r) => sum + (parseFloat(r.recipient_quantity) || 0), 0);
-                  return allocated - distributed;
-                })() : undefined}
-              />
-              <Form.Control.Feedback type="invalid">
-                {recipientErrors.recipient_quantity}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Form.Group className="mb-2" controlId="recipient_amount">
-              <Form.Label className="small-fonts fw-bold">
-                {translations.recipientAmount}
-              </Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="recipient_amount"
-                value={recipientFormData.recipient_amount}
-                onChange={handleRecipientChange}
-                isInvalid={!!recipientErrors.recipient_amount}
-                className="compact-input"
-                placeholder="वितरित धनराशि दर्ज करें"
-              />
-              <Form.Control.Feedback type="invalid">
-                {recipientErrors.recipient_amount}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-        </Row>
-        <Row>
-          <Col xs={12} sm={6} md={4}>
-            <Form.Group className="mb-2" controlId="bill_number">
-              <Form.Label className="small-fonts fw-bold">
-                {translations.billNumber}
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="bill_number"
-                value={recipientFormData.bill_number}
-                onChange={handleRecipientChange}
-                isInvalid={!!recipientErrors.bill_number}
-                className="compact-input"
-                placeholder="बिल नंबर दर्ज करें"
-              />
-              <Form.Control.Feedback type="invalid">
-                {recipientErrors.bill_number}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col xs={12} sm={6} md={4}>
-            <Form.Group className="mb-2" controlId="bill_date">
-              <Form.Label className="small-fonts fw-bold">
-                {translations.billDate}
-              </Form.Label>
-              <Form.Control
-                type="date"
-                name="bill_date"
-                value={recipientFormData.bill_date}
-                onChange={handleRecipientChange}
-                isInvalid={!!recipientErrors.bill_date}
-                className="compact-input"
-              />
-              <Form.Control.Feedback type="invalid">
-                {recipientErrors.bill_date}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col xs={12} sm={6} md={4} className="d-flex align-items-center">
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={isRecipientSubmitting}
-              className="compact-submit-btn w-100"
-            >
-              {isRecipientSubmitting
-                ? translations.submitting
-                : translations.addRecipient}
-            </Button>
-          </Col>
-        </Row>
-      </Form>
+              {/* Allocated Allocation Info at Top */}
+              {selectedNurseryPhysical && (
+                <div
+                  className="alert alert-info mb-4"
+                  style={{
+                    backgroundColor: "#e7f3ff",
+                    borderLeft: "4px solid #2196F3",
+                  }}
+                >
+                  <Row className="align-items-center">
+                    <Col md={6}>
+                      <h6 className="mb-2 small-fonts fw-bold">
+                        📊 आवंटित जानकारी
+                      </h6>
+                      <div className="small-fonts">
+                        <p className="mb-1">
+                          <strong>फसल:</strong>{" "}
+                          {selectedNurseryPhysical.crop_name} (
+                          {selectedNurseryPhysical.unit})
+                        </p>
+                        <p className="mb-1">
+                          <strong>कुल उपलब्ध मात्रा:</strong>{" "}
+                          <span className="badge bg-primary">
+                            {parseFloat(
+                              selectedNurseryPhysical.allocated_quantity,
+                            ).toFixed(2)}
+                          </span>
+                        </p>
+                        <p className="mb-0">
+                          <strong>कुल धनराशि:</strong>{" "}
+                          <span className="badge bg-success">
+                            ₹
+                            {parseFloat(
+                              selectedNurseryPhysical.allocated_amount,
+                            ).toFixed(2)}
+                          </span>
+                        </p>
+                      </div>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="mb-2 small-fonts fw-bold">
+                        📈 वितरण स्थिति
+                      </h6>
+                      <div className="small-fonts">
+                        <p className="mb-1">
+                          <strong>अब तक वितरित:</strong>{" "}
+                          <span className="badge bg-warning text-dark">
+                            {(() => {
+                              const distributed = recipientItems
+                                .filter(
+                                  (r) =>
+                                    r.nursery_physical ===
+                                    selectedNurseryPhysical.id,
+                                )
+                                .reduce(
+                                  (sum, r) =>
+                                    sum +
+                                    (parseFloat(r.recipient_quantity) || 0),
+                                  0,
+                                );
+                              return parseFloat(distributed).toFixed(2);
+                            })()}
+                          </span>
+                        </p>
+                        <p className="mb-1">
+                          <strong>शेष उपलब्ध:</strong>{" "}
+                          <span className="badge bg-danger">
+                            {(() => {
+                              const allocated =
+                                parseFloat(
+                                  selectedNurseryPhysical.allocated_quantity,
+                                ) || 0;
+                              const distributed = recipientItems
+                                .filter(
+                                  (r) =>
+                                    r.nursery_physical ===
+                                    selectedNurseryPhysical.id,
+                                )
+                                .reduce(
+                                  (sum, r) =>
+                                    sum +
+                                    (parseFloat(r.recipient_quantity) || 0),
+                                  0,
+                                );
+                              const remaining = allocated - distributed;
+                              return (remaining >= 0 ? remaining : 0).toFixed(
+                                2,
+                              );
+                            })()}
+                          </span>
+                        </p>
+                        <p className="mb-0">
+                          <strong>प्रति इकाई दर:</strong>{" "}
+                          <span className="badge bg-info">
+                            ₹
+                            {(() => {
+                              const allocated =
+                                parseFloat(
+                                  selectedNurseryPhysical.allocated_quantity,
+                                ) || 0;
+                              const amount =
+                                parseFloat(
+                                  selectedNurseryPhysical.allocated_amount,
+                                ) || 0;
+                              return allocated > 0
+                                ? (amount / allocated).toFixed(2)
+                                : "0.00";
+                            })()}
+                          </span>
+                        </p>
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+              )}
 
-      {/* Column Selection Section for Recipients */}
-      <ColumnSelection
-        columns={recipientTableColumns}
-        selectedColumns={selectedRecipientColumns}
-        setSelectedColumns={setSelectedRecipientColumns}
-        title="प्राप्तकर्ता कॉलम चुनें"
-      />
-
-      {/* Recipient Table */}
-      {isRecipientLoading ? (
-        <div className="text-center py-4">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">लोड हो रहा है...</span>
-          </div>
-          <p className="mt-2 small-fonts">प्राप्तकर्ता डेटा लोड हो रहा है...</p>
-        </div>
-      ) : filteredRecipientItems.length === 0 ? (
-        <Alert variant="info" className="text-center">
-          कोई प्राप्तकर्ता डेटा उपलब्ध नहीं है।
-        </Alert>
-      ) : (
-        <>
-          <Table striped bordered hover className="registration-form">
-            <thead className="table-light">
-              <tr>
-                <th>क्र.सं.</th>
-                {selectedRecipientColumns.includes("recipient_name") && (
-                  <th>{translations.recipientName}</th>
-                )}
-                {selectedRecipientColumns.includes("recipient_quantity") && (
-                  <th>{translations.recipientQuantity}</th>
-                )}
-                {selectedRecipientColumns.includes("recipient_amount") && (
-                  <th>{translations.recipientAmount}</th>
-                )}
-                {selectedRecipientColumns.includes("bill_number") && (
-                  <th>{translations.billNumber}</th>
-                )}
-                {selectedRecipientColumns.includes("bill_date") && (
-                  <th>{translations.billDate}</th>
-                )}
-                <th>कार्रवाई</th>
-              </tr>
-            </thead>
-            <tbody className="tbl-body">
-              {filteredRecipientItems
-                .slice(
-                  (recipientCurrentPage - 1) * itemsPerPage,
-                  recipientCurrentPage * itemsPerPage
-                )
-                .map((item, index) => (
-                  <tr key={item.id || index}>
-                    <td>
-                      {(recipientCurrentPage - 1) * itemsPerPage + index + 1}
-                    </td>
-                    {selectedRecipientColumns.includes("recipient_name") && (
-                      <td>
-                        {editingRecipientRowId === item.id ? (
-                          <Form.Control
-                            type="text"
-                            value={editingRecipientValues.recipient_name}
-                            onChange={(e) =>
-                              setEditingRecipientValues((prev) => ({
-                                ...prev,
-                                recipient_name: e.target.value,
-                              }))
-                            }
-                            size="sm"
-                          />
-                        ) : (
-                          item.recipient_name
-                        )}
-                      </td>
-                    )}
-                    {selectedRecipientColumns.includes("recipient_quantity") && (
-                      <td>
-                        {editingRecipientRowId === item.id ? (
-                          <Form.Control
-                            type="number"
-                            step="0.01"
-                            value={editingRecipientValues.recipient_quantity}
-                            onChange={(e) =>
-                              setEditingRecipientValues((prev) => ({
-                                ...prev,
-                                recipient_quantity: e.target.value,
-                              }))
-                            }
-                            size="sm"
-                          />
-                        ) : (
-                          parseFloat(item.recipient_quantity).toFixed(2)
-                        )}
-                      </td>
-                    )}
-                    {selectedRecipientColumns.includes("recipient_amount") && (
-                      <td>
-                        {editingRecipientRowId === item.id ? (
-                          <Form.Control
-                            type="number"
-                            step="0.01"
-                            value={editingRecipientValues.recipient_amount}
-                            onChange={(e) =>
-                              setEditingRecipientValues((prev) => ({
-                                ...prev,
-                                recipient_amount: e.target.value,
-                              }))
-                            }
-                            size="sm"
-                          />
-                        ) : (
-                          parseFloat(item.recipient_amount).toFixed(2)
-                        )}
-                      </td>
-                    )}
-                    {selectedRecipientColumns.includes("bill_number") && (
-                      <td>
-                        {editingRecipientRowId === item.id ? (
-                          <Form.Control
-                            type="text"
-                            value={editingRecipientValues.bill_number}
-                            onChange={(e) =>
-                              setEditingRecipientValues((prev) => ({
-                                ...prev,
-                                bill_number: e.target.value,
-                              }))
-                            }
-                            size="sm"
-                          />
-                        ) : (
-                          item.bill_number
-                        )}
-                      </td>
-                    )}
-                    {selectedRecipientColumns.includes("bill_date") && (
-                      <td>
-                        {editingRecipientRowId === item.id ? (
-                          <Form.Control
-                            type="date"
-                            value={editingRecipientValues.bill_date}
-                            onChange={(e) =>
-                              setEditingRecipientValues((prev) => ({
-                                ...prev,
-                                bill_date: e.target.value,
-                              }))
-                            }
-                            size="sm"
-                          />
-                        ) : (
-                          item.bill_date ? new Date(item.bill_date).toLocaleDateString("hi-IN") : "-"
-                        )}
-                      </td>
-                    )}
-                    <td>
-                      {editingRecipientRowId === item.id ? (
-                        <div className="d-flex gap-1">
-                          <Button
-                            variant="outline-success"
-                            size="sm"
-                            onClick={() => handleSaveRecipient(item)}
-                          >
-                            सहेजें
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={handleCancelRecipient}
-                          >
-                            रद्द करें
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="d-flex gap-1">
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => handleRecipientEdit(item)}
-                          >
-                            संपादित करें
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleDeleteRecipient(item)}
-                          >
-                            <RiDeleteBinLine />
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </Table>
-
-          {/* Recipient Pagination */}
-          {recipientTotalPages > 1 && (
-            <div className="d-flex justify-content-center mt-3">
-              <Pagination>
-                <Pagination.Prev
-                  onClick={() => handleRecipientPageChange(recipientCurrentPage - 1)}
-                  disabled={recipientCurrentPage === 1}
+              {/* Recipient Form */}
+              <Form
+                onSubmit={handleRecipientSubmit}
+                className="registration-form compact-form mb-4"
+              >
+                {/* Hidden input for nursery_physical ID */}
+                <Form.Control
+                  type="hidden"
+                  name="nursery_physical"
+                  value={recipientFormData.nursery_physical}
+                  onChange={handleRecipientChange}
                 />
-                {recipientPaginationItems}
-                <Pagination.Next
-                  onClick={() => handleRecipientPageChange(recipientCurrentPage + 1)}
-                  disabled={recipientCurrentPage === recipientTotalPages}
-                />
-              </Pagination>
-            </div>
+
+                <Row>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group className="mb-2" controlId="recipient_name">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.recipientName}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="recipient_name"
+                        value={recipientFormData.recipient_name}
+                        onChange={handleRecipientChange}
+                        isInvalid={!!recipientErrors.recipient_name}
+                        className="compact-input"
+                        placeholder="प्राप्तकर्ता का नाम दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {recipientErrors.recipient_name}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group className="mb-2" controlId="recipient_quantity">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.recipientQuantity}
+                        {selectedNurseryPhysical && (
+                          <span className="ms-2 badge bg-info small">
+                            अधिकतम:{" "}
+                            {(() => {
+                              const allocated =
+                                parseFloat(
+                                  selectedNurseryPhysical.allocated_quantity,
+                                ) || 0;
+                              const distributed = recipientItems
+                                .filter(
+                                  (r) =>
+                                    r.nursery_physical ===
+                                    selectedNurseryPhysical.id,
+                                )
+                                .reduce(
+                                  (sum, r) =>
+                                    sum +
+                                    (parseFloat(r.recipient_quantity) || 0),
+                                  0,
+                                );
+                              const remaining = allocated - distributed;
+                              return (remaining >= 0 ? remaining : 0).toFixed(
+                                2,
+                              );
+                            })()}
+                          </span>
+                        )}
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        name="recipient_quantity"
+                        value={recipientFormData.recipient_quantity}
+                        onChange={handleRecipientChange}
+                        isInvalid={!!recipientErrors.recipient_quantity}
+                        className="compact-input"
+                        placeholder="वितरण मात्रा दर्ज करें"
+                        max={
+                          selectedNurseryPhysical
+                            ? (() => {
+                                const allocated =
+                                  parseFloat(
+                                    selectedNurseryPhysical.allocated_quantity,
+                                  ) || 0;
+                                const distributed = recipientItems
+                                  .filter(
+                                    (r) =>
+                                      r.nursery_physical ===
+                                      selectedNurseryPhysical.id,
+                                  )
+                                  .reduce(
+                                    (sum, r) =>
+                                      sum +
+                                      (parseFloat(r.recipient_quantity) || 0),
+                                    0,
+                                  );
+                                return allocated - distributed;
+                              })()
+                            : undefined
+                        }
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {recipientErrors.recipient_quantity}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group className="mb-2" controlId="recipient_amount">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.recipientAmount}
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        name="recipient_amount"
+                        value={recipientFormData.recipient_amount}
+                        onChange={handleRecipientChange}
+                        isInvalid={!!recipientErrors.recipient_amount}
+                        className="compact-input"
+                        placeholder="वितरित धनराशि दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {recipientErrors.recipient_amount}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group className="mb-2" controlId="bill_number">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.billNumber}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="bill_number"
+                        value={recipientFormData.bill_number}
+                        onChange={handleRecipientChange}
+                        isInvalid={!!recipientErrors.bill_number}
+                        className="compact-input"
+                        placeholder="बिल नंबर दर्ज करें"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {recipientErrors.bill_number}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group className="mb-2" controlId="bill_date">
+                      <Form.Label className="small-fonts fw-bold">
+                        {translations.billDate}
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="bill_date"
+                        value={recipientFormData.bill_date}
+                        onChange={handleRecipientChange}
+                        isInvalid={!!recipientErrors.bill_date}
+                        className="compact-input"
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {recipientErrors.bill_date}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col
+                    xs={12}
+                    sm={6}
+                    md={4}
+                    className="d-flex align-items-center"
+                  >
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      disabled={isRecipientSubmitting}
+                      className="compact-submit-btn w-100"
+                    >
+                      {isRecipientSubmitting
+                        ? translations.submitting
+                        : translations.addRecipient}
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
+
+              {/* Column Selection Section for Recipients */}
+              <ColumnSelection
+                columns={recipientTableColumns}
+                selectedColumns={selectedRecipientColumns}
+                setSelectedColumns={setSelectedRecipientColumns}
+                title="प्राप्तकर्ता कॉलम चुनें"
+              />
+
+              {/* Recipient Table */}
+              {isRecipientLoading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">लोड हो रहा है...</span>
+                  </div>
+                  <p className="mt-2 small-fonts">
+                    प्राप्तकर्ता डेटा लोड हो रहा है...
+                  </p>
+                </div>
+              ) : filteredRecipientItems.length === 0 ? (
+                <Alert variant="info" className="text-center">
+                  कोई प्राप्तकर्ता डेटा उपलब्ध नहीं है।
+                </Alert>
+              ) : (
+                <>
+                  <Table striped bordered hover className="registration-form">
+                    <thead className="table-light">
+                      <tr>
+                        <th>क्र.सं.</th>
+                        {selectedRecipientColumns.includes(
+                          "recipient_name",
+                        ) && <th>{translations.recipientName}</th>}
+                        {selectedRecipientColumns.includes(
+                          "recipient_quantity",
+                        ) && <th>{translations.recipientQuantity}</th>}
+                        {selectedRecipientColumns.includes(
+                          "recipient_amount",
+                        ) && <th>{translations.recipientAmount}</th>}
+                        {selectedRecipientColumns.includes("bill_number") && (
+                          <th>{translations.billNumber}</th>
+                        )}
+                        {selectedRecipientColumns.includes("bill_date") && (
+                          <th>{translations.billDate}</th>
+                        )}
+                        <th>कार्रवाई</th>
+                      </tr>
+                    </thead>
+                    <tbody className="tbl-body">
+                      {filteredRecipientItems
+                        .slice(
+                          (recipientCurrentPage - 1) * itemsPerPage,
+                          recipientCurrentPage * itemsPerPage,
+                        )
+                        .map((item, index) => (
+                          <tr key={item.id || index}>
+                            <td>
+                              {(recipientCurrentPage - 1) * itemsPerPage +
+                                index +
+                                1}
+                            </td>
+                            {selectedRecipientColumns.includes(
+                              "recipient_name",
+                            ) && (
+                              <td>
+                                {editingRecipientRowId === item.id ? (
+                                  <Form.Control
+                                    type="text"
+                                    value={
+                                      editingRecipientValues.recipient_name
+                                    }
+                                    onChange={(e) =>
+                                      setEditingRecipientValues((prev) => ({
+                                        ...prev,
+                                        recipient_name: e.target.value,
+                                      }))
+                                    }
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.recipient_name
+                                )}
+                              </td>
+                            )}
+                            {selectedRecipientColumns.includes(
+                              "recipient_quantity",
+                            ) && (
+                              <td>
+                                {editingRecipientRowId === item.id ? (
+                                  <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    value={
+                                      editingRecipientValues.recipient_quantity
+                                    }
+                                    onChange={(e) =>
+                                      setEditingRecipientValues((prev) => ({
+                                        ...prev,
+                                        recipient_quantity: e.target.value,
+                                      }))
+                                    }
+                                    size="sm"
+                                  />
+                                ) : (
+                                  parseFloat(item.recipient_quantity).toFixed(2)
+                                )}
+                              </td>
+                            )}
+                            {selectedRecipientColumns.includes(
+                              "recipient_amount",
+                            ) && (
+                              <td>
+                                {editingRecipientRowId === item.id ? (
+                                  <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    value={
+                                      editingRecipientValues.recipient_amount
+                                    }
+                                    onChange={(e) =>
+                                      setEditingRecipientValues((prev) => ({
+                                        ...prev,
+                                        recipient_amount: e.target.value,
+                                      }))
+                                    }
+                                    size="sm"
+                                  />
+                                ) : (
+                                  parseFloat(item.recipient_amount).toFixed(2)
+                                )}
+                              </td>
+                            )}
+                            {selectedRecipientColumns.includes(
+                              "bill_number",
+                            ) && (
+                              <td>
+                                {editingRecipientRowId === item.id ? (
+                                  <Form.Control
+                                    type="text"
+                                    value={editingRecipientValues.bill_number}
+                                    onChange={(e) =>
+                                      setEditingRecipientValues((prev) => ({
+                                        ...prev,
+                                        bill_number: e.target.value,
+                                      }))
+                                    }
+                                    size="sm"
+                                  />
+                                ) : (
+                                  item.bill_number
+                                )}
+                              </td>
+                            )}
+                            {selectedRecipientColumns.includes("bill_date") && (
+                              <td>
+                                {editingRecipientRowId === item.id ? (
+                                  <Form.Control
+                                    type="date"
+                                    value={editingRecipientValues.bill_date}
+                                    onChange={(e) =>
+                                      setEditingRecipientValues((prev) => ({
+                                        ...prev,
+                                        bill_date: e.target.value,
+                                      }))
+                                    }
+                                    size="sm"
+                                  />
+                                ) : item.bill_date ? (
+                                  new Date(item.bill_date).toLocaleDateString(
+                                    "hi-IN",
+                                  )
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                            )}
+                            <td>
+                              {editingRecipientRowId === item.id ? (
+                                <div className="d-flex gap-1">
+                                  <Button
+                                    variant="outline-success"
+                                    size="sm"
+                                    onClick={() => handleSaveRecipient(item)}
+                                  >
+                                    सहेजें
+                                  </Button>
+                                  <Button
+                                    variant="outline-secondary"
+                                    size="sm"
+                                    onClick={handleCancelRecipient}
+                                  >
+                                    रद्द करें
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="d-flex gap-1">
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={() => handleRecipientEdit(item)}
+                                  >
+                                    संपादित करें
+                                  </Button>
+                                  <Button
+                                    variant="outline-danger"
+                                    size="sm"
+                                    onClick={() => handleDeleteRecipient(item)}
+                                  >
+                                    <RiDeleteBinLine />
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </Table>
+
+                  {/* Recipient Pagination */}
+                  {recipientTotalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-3">
+                      <Pagination>
+                        <Pagination.Prev
+                          onClick={() =>
+                            handleRecipientPageChange(recipientCurrentPage - 1)
+                          }
+                          disabled={recipientCurrentPage === 1}
+                        />
+                        {recipientPaginationItems}
+                        <Pagination.Next
+                          onClick={() =>
+                            handleRecipientPageChange(recipientCurrentPage + 1)
+                          }
+                          disabled={
+                            recipientCurrentPage === recipientTotalPages
+                          }
+                        />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           )}
-        </>
-      )}
-    </>
-  )}
-</Modal.Body>
-       <Modal.Footer>
-  <Button 
-    variant="secondary" 
-    onClick={() => {
-      setModalApiResponse(null); // Clear modal messages when closing
-      setModalApiError(null);
-      setShowRecipientModal(false);
-    }}
-  >
-    {translations.close}
-  </Button>
-</Modal.Footer>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setModalApiResponse(null); // Clear modal messages when closing
+              setModalApiError(null);
+              setShowRecipientModal(false);
+            }}
+          >
+            {translations.close}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );

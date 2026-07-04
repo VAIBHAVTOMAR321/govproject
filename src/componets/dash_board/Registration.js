@@ -14,7 +14,12 @@ import {
   Modal,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaTimes, FaSync } from "react-icons/fa";
-import { RiFilePdfLine, RiFileExcelLine, RiEyeLine, RiDeleteBinLine } from "react-icons/ri";
+import {
+  RiFilePdfLine,
+  RiFileExcelLine,
+  RiEyeLine,
+  RiDeleteBinLine,
+} from "react-icons/ri";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import html2pdf from "html2pdf.js";
@@ -23,7 +28,13 @@ import "../../assets/css/registration.css";
 
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
-import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, getTodayInDisplayFormat, getTodayInBackendFormat } from "../../utils/dateUtils";
+import {
+  convertToBackendFormat,
+  convertToDisplayFormat,
+  parseDateFromExcel,
+  getTodayInDisplayFormat,
+  getTodayInBackendFormat,
+} from "../../utils/dateUtils";
 
 // API URLs
 const BILLING_API_URL =
@@ -32,7 +43,8 @@ const VIKAS_KHAND_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/get-vikas-khand-by-center/";
 const FORM_FILTERS_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-form-filters/";
-const CENTERS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/centers/";
+const CENTERS_API_URL =
+  "https://mahadevaaya.com/govbillingsystem/backend/api/centers/";
 
 // Utility function to round numbers to 2 decimal places
 const roundTo2Decimals = (value) => {
@@ -180,29 +192,11 @@ const translations = {
   itemsPerPage: "प्रति पृष्ठ आइटम",
 };
 
-// Helper function to get financial year dates (April 1 to March 31)
-const getFinancialYearDates = () => {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // 0-indexed: January = 0, April = 3, March = 2
-  
-  let fromDate, toDate;
-  
-  if (currentMonth >= 3) {
-    // April (month 3) onwards: FY is April of current year to March of next year
-    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
-    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
-  } else {
-    // January, February, March: FY is April of previous year to March of current year
-    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
-    toDate = new Date(currentYear, 2, 31); // March 31 of current year
-  }
-  
-  return {
-    start_date: fromDate.toISOString().split('T')[0],
-    end_date: toDate.toISOString().split('T')[0],
-  };
-};
+// Helper function to get the default financial year dates
+const getFinancialYearDates = () => ({
+  start_date: "2026-04-01",
+  end_date: "2027-03-31",
+});
 
 const Registration = () => {
   // Reusable Column Selection Component
@@ -314,10 +308,11 @@ const Registration = () => {
   const [showAllDuplicatesModal, setShowAllDuplicatesModal] = useState(false);
   const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const [centerNameCorrections, setCenterNameCorrections] = useState([]);
-  const [showCenterNameCorrectionModal, setShowCenterNameCorrectionModal] = useState(false);
+  const [showCenterNameCorrectionModal, setShowCenterNameCorrectionModal] =
+    useState(false);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
-    billingTableColumns.map((col) => col.key)
+    billingTableColumns.map((col) => col.key),
   );
   const [isLoading, setIsLoading] = useState(true);
   const [vikasKhandData, setVikasKhandData] = useState(null);
@@ -339,7 +334,7 @@ const Registration = () => {
   // State for new created_at date filter (separate from existing date range filters)
   const [createdAtFilter, setCreatedAtFilter] = useState({
     selectedDate: "", // For dropdown selection
-    manualDate: "",   // For manual calendar selection
+    manualDate: "", // For manual calendar selection
     showManualPicker: false, // Toggle for manual date picker
   });
 
@@ -387,7 +382,7 @@ const Registration = () => {
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
   const [editingValues, setEditingValues] = useState({});
-  
+
   // State for multi-select delete
   const [selectedItems, setSelectedItems] = useState([]);
 
@@ -418,7 +413,9 @@ const Registration = () => {
 
   // Get unique values for dropdowns from allBillingItems
   const getUniqueValues = (fieldName) => {
-    const values = allBillingItems.map((item) => item[fieldName]).filter(Boolean);
+    const values = allBillingItems
+      .map((item) => item[fieldName])
+      .filter(Boolean);
     return [...new Set(values)].sort();
   };
 
@@ -433,29 +430,29 @@ const Registration = () => {
         // Fallback to hardcoded options if API returns empty or invalid data
         setCenterOptions([
           "कोटद्वार",
-  "किनगोड़िखाल",
-  "चौखाल",
-  "धुमाकोट",
-  "बीरोंखाल",
-  "हल्दूखाल",
-  "किल्वोंखाल",
-  "चेलूसैंण",
-  "जयहरीखाल",
-  "जेठागांव",
-  "देवियोंखाल",
-  "सिलोगी",
-  "सिसल्ड़ी",
-  "पौखाल",
-  "सतपुली",
-  "संगलाकोटी",
-  "देवराजखाल",
-  "पोखड़ा",
-  "वेदीखाल",
-  "विथ्याणी",
-  "गंगाभोगपुर",
-  "दिउली",
-  "दुगड्डा",
-  "सेंधीखाल"
+          "किनगोड़िखाल",
+          "चौखाल",
+          "धुमाकोट",
+          "बीरोंखाल",
+          "हल्दूखाल",
+          "किल्वोंखाल",
+          "चेलूसैंण",
+          "जयहरीखाल",
+          "जेठागांव",
+          "देवियोंखाल",
+          "सिलोगी",
+          "सिसल्ड़ी",
+          "पौखाल",
+          "सतपुली",
+          "संगलाकोटी",
+          "देवराजखाल",
+          "पोखड़ा",
+          "वेदीखाल",
+          "विथ्याणी",
+          "गंगाभोगपुर",
+          "दिउली",
+          "दुगड्डा",
+          "सेंधीखाल",
         ]);
       }
     } catch (error) {
@@ -463,29 +460,29 @@ const Registration = () => {
       // Fallback to hardcoded options if API fails
       setCenterOptions([
         "कोटद्वार",
-  "किनगोड़िखाल",
-  "चौखाल",
-  "धुमाकोट",
-  "बीरोंखाल",
-  "हल्दूखाल",
-  "किल्वोंखाल",
-  "चेलूसैंण",
-  "जयहरीखाल",
-  "जेठागांव",
-  "देवियोंखाल",
-  "सिलोगी",
-  "सिसल्ड़ी",
-  "पौखाल",
-  "सतपुली",
-  "संगलाकोटी",
-  "देवराजखाल",
-  "पोखड़ा",
-  "वेदीखाल",
-  "विथ्याणी",
-  "गंगाभोगपुर",
-  "दिउली",
-  "दुगड्डा",
-  "सेंधीखाल"
+        "किनगोड़िखाल",
+        "चौखाल",
+        "धुमाकोट",
+        "बीरोंखाल",
+        "हल्दूखाल",
+        "किल्वोंखाल",
+        "चेलूसैंण",
+        "जयहरीखाल",
+        "जेठागांव",
+        "देवियोंखाल",
+        "सिलोगी",
+        "सिसल्ड़ी",
+        "पौखाल",
+        "सतपुली",
+        "संगलाकोटी",
+        "देवराजखाल",
+        "पोखड़ा",
+        "वेदीखाल",
+        "विथ्याणी",
+        "गंगाभोगपुर",
+        "दिउली",
+        "दुगड्डा",
+        "सेंधीखाल",
       ]);
     }
   };
@@ -543,25 +540,25 @@ const Registration = () => {
     try {
       setIsFetchingVikasKhand(true);
       console.log("Fetching vikas khand for center:", centerName);
-      
+
       // Try exact match first
       let response = await axios.get(
-        `${VIKAS_KHAND_API_URL}?center_name=${encodeURIComponent(centerName)}`
+        `${VIKAS_KHAND_API_URL}?center_name=${encodeURIComponent(centerName)}`,
       );
-      
+
       let data = response.data;
       console.log("API response:", data);
-      
+
       // If no data found with exact match, try partial match
       if (!data || (Array.isArray(data) && data.length === 0)) {
         console.log("No exact match found, trying partial match");
         response = await axios.get(
-          `${VIKAS_KHAND_API_URL}?search=${encodeURIComponent(centerName)}`
+          `${VIKAS_KHAND_API_URL}?search=${encodeURIComponent(centerName)}`,
         );
         data = response.data;
         console.log("Partial match response:", data);
       }
-      
+
       // Handle different response structures
       let vikasData = null;
       if (Array.isArray(data) && data.length > 0) {
@@ -639,7 +636,10 @@ const Registration = () => {
   };
 
   // Fetch form filters
-  const fetchFormFilters = async (investmentName = "", subInvestmentName = "") => {
+  const fetchFormFilters = async (
+    investmentName = "",
+    subInvestmentName = "",
+  ) => {
     try {
       setIsLoadingFilters(true);
       let url = FORM_FILTERS_API_URL;
@@ -648,7 +648,7 @@ const Registration = () => {
         params.push(`investment_name=${encodeURIComponent(investmentName)}`);
       if (subInvestmentName)
         params.push(
-          `sub_investment_name=${encodeURIComponent(subInvestmentName)}`
+          `sub_investment_name=${encodeURIComponent(subInvestmentName)}`,
         );
       if (params.length > 0) url += "?" + params.join("&");
 
@@ -673,8 +673,12 @@ const Registration = () => {
       }));
 
       // Auto-select first sub_investment_name if available
-      if (data.level === "sub_investment_name" && data.data && data.data.length > 0) {
-        setFormData(prev => ({ ...prev, sub_investment_name: data.data[0] }));
+      if (
+        data.level === "sub_investment_name" &&
+        data.data &&
+        data.data.length > 0
+      ) {
+        setFormData((prev) => ({ ...prev, sub_investment_name: data.data[0] }));
       }
     } catch (error) {
       console.error("Error fetching form filters:", error);
@@ -684,7 +688,10 @@ const Registration = () => {
   };
 
   // Fetch edit options
-  const fetchEditOptions = async (investmentName = "", subInvestmentName = "") => {
+  const fetchEditOptions = async (
+    investmentName = "",
+    subInvestmentName = "",
+  ) => {
     try {
       let url = FORM_FILTERS_API_URL;
       const params = [];
@@ -692,7 +699,7 @@ const Registration = () => {
         params.push(`investment_name=${encodeURIComponent(investmentName)}`);
       if (subInvestmentName)
         params.push(
-          `sub_investment_name=${encodeURIComponent(subInvestmentName)}`
+          `sub_investment_name=${encodeURIComponent(subInvestmentName)}`,
         );
       if (params.length > 0) url += "?" + params.join("&");
 
@@ -715,8 +722,15 @@ const Registration = () => {
       }));
 
       // Auto-select first sub_investment_name if available
-      if (data.level === "sub_investment_name" && data.data && data.data.length > 0) {
-        setEditingValues(prev => ({ ...prev, sub_investment_name: data.data[0] }));
+      if (
+        data.level === "sub_investment_name" &&
+        data.data &&
+        data.data.length > 0
+      ) {
+        setEditingValues((prev) => ({
+          ...prev,
+          sub_investment_name: data.data[0],
+        }));
       }
     } catch (error) {
       console.error("Error fetching edit filters:", error);
@@ -747,19 +761,19 @@ const Registration = () => {
       setFilterOptions({
         center_name: [
           ...new Set(
-            allBillingItems.map((item) => item.center_name).filter(Boolean)
+            allBillingItems.map((item) => item.center_name).filter(Boolean),
           ),
         ],
         investment_name: [
           ...new Set(
-            allBillingItems.map((item) => item.investment_name).filter(Boolean)
+            allBillingItems.map((item) => item.investment_name).filter(Boolean),
           ),
         ],
         sub_investment_name: [
           ...new Set(
             allBillingItems
               .map((item) => item.sub_investment_name)
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ],
         unit: [
@@ -769,31 +783,37 @@ const Registration = () => {
           ...new Set(
             allBillingItems
               .map((item) => item.source_of_receipt)
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ],
         scheme_name: [
           ...new Set(
-            allBillingItems.map((item) => item.scheme_name).filter(Boolean)
+            allBillingItems.map((item) => item.scheme_name).filter(Boolean),
           ),
         ],
         vikas_khand_name: [
           ...new Set(
-            allBillingItems.map((item) => item.vikas_khand_name).filter(Boolean)
+            allBillingItems
+              .map((item) => item.vikas_khand_name)
+              .filter(Boolean),
           ),
         ],
         vidhan_sabha_name: [
           ...new Set(
             allBillingItems
               .map((item) => item.vidhan_sabha_name)
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ],
       });
 
       // Extract unique created_at dates for the new date filter
       const createdAtDates = allBillingItems
-        .map((item) => item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : null)
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
         .filter(Boolean);
       const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
       setUniqueCreatedAtDates(uniqueDates);
@@ -803,11 +823,11 @@ const Registration = () => {
   // Apply local filtering when filters change
   useEffect(() => {
     let filtered = allBillingItems;
-    
+
     const hasFilters = Object.keys(filters).some((key) =>
       Array.isArray(filters[key])
         ? filters[key].length > 0
-        : filters[key].trim()
+        : filters[key].trim(),
     );
     if (hasFilters) {
       filtered = allBillingItems.filter((item) => {
@@ -818,13 +838,15 @@ const Registration = () => {
             return false;
           }
         }
-        
+
         // Check date range filters (use bill_date)
         if (filters.start_date || filters.end_date) {
           if (!item.bill_date) return false;
 
           const itemDate = new Date(item.bill_date);
-          const startDate = filters.start_date ? new Date(filters.start_date) : null;
+          const startDate = filters.start_date
+            ? new Date(filters.start_date)
+            : null;
           const endDate = filters.end_date ? new Date(filters.end_date) : null;
 
           if (endDate) {
@@ -834,23 +856,23 @@ const Registration = () => {
           if (startDate && itemDate < startDate) return false;
           if (endDate && itemDate > endDate) return false;
         }
-        
+
         return true;
       });
     }
-    
+
     // Apply created_at filter on top of other filters
     if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
       const { selectedDate, manualDate } = createdAtFilter;
       const filterDate = selectedDate || manualDate;
-      
+
       filtered = filtered.filter((item) => {
         if (!item.created_at) return false;
-        const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+        const itemDate = new Date(item.created_at).toISOString().split("T")[0];
         return itemDate === filterDate;
       });
     }
-    
+
     setBillingItems(filtered);
   }, [filters, allBillingItems, createdAtFilter]);
 
@@ -972,7 +994,7 @@ const Registration = () => {
         selectedColumns.forEach((col) => {
           row[columnMapping[col].header] = columnMapping[col].accessor(
             item,
-            index
+            index,
           );
         });
         return row;
@@ -983,14 +1005,28 @@ const Registration = () => {
       // Add serial number column with "कुल" label
       totalRow["क्र.सं."] = "कुल";
       selectedColumns.forEach((col) => {
-        if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
-            col === "scheme_name" || col === "source_of_receipt" || col === "investment_name" ||
-            col === "sub_investment_name" || col === "unit") {
+        if (
+          col === "center_name" ||
+          col === "vidhan_sabha_name" ||
+          col === "vikas_khand_name" ||
+          col === "scheme_name" ||
+          col === "source_of_receipt" ||
+          col === "investment_name" ||
+          col === "sub_investment_name" ||
+          col === "unit"
+        ) {
           // Unique count for categorical columns
-          const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
+          const uniqueValues = new Set(
+            data.map((item) => columnMapping[col].accessor(item, 0)),
+          );
           totalRow[columnMapping[col].header] = uniqueValues.size;
-        } else if (col === "allocated_quantity" || col === "rate" || col === "amount_of_farmer_share" ||
-                   col === "amount_of_subsidy" || col === "total_amount") {
+        } else if (
+          col === "allocated_quantity" ||
+          col === "rate" ||
+          col === "amount_of_farmer_share" ||
+          col === "amount_of_subsidy" ||
+          col === "total_amount"
+        ) {
           // Sum for numeric columns
           const sum = data.reduce((total, item) => {
             const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
@@ -1025,12 +1061,12 @@ const Registration = () => {
         {
           "केंद्र का नाम": "किनगोड़िखाल",
           "योजना का नाम": "MGNREGA",
-          "सप्लायर": "PWD",
+          सप्लायर: "PWD",
           "निवेश का नाम": "भवन निर्माण",
           "उप-निवेश का नाम": "नया भवन",
-          "इकाई": "बैग",
+          इकाई: "बैग",
           "आवंटित मात्रा": 100,
-          "दर": 450.5,
+          दर: 450.5,
           "किसान का हिस्सा": 10000,
           "सब्सिडी राशि": 20000,
           "कुल राशि": 30000,
@@ -1071,20 +1107,20 @@ const Registration = () => {
     filename,
     columnMapping,
     selectedColumns,
-    title
+    title,
   ) => {
     try {
       // Add serial number column header
       const headers = `<th>क्र.सं.</th>${selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
         .join("")}`;
-      
+
       // Add serial numbers to data rows
       const rows = data
         .map((item, index) => {
           const cells = `<td>${index + 1}</td>${selectedColumns
             .map(
-              (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`
+              (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`,
             )
             .join("")}`;
           return `<tr>${cells}</tr>`;
@@ -1094,17 +1130,32 @@ const Registration = () => {
       // Add total row - first cell is "कुल" for serial number column
       const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
         .map((col) => {
-          if (col === "center_name" || col === "vidhan_sabha_name" || col === "vikas_khand_name" ||
-              col === "scheme_name" || col === "source_of_receipt" || col === "investment_name" ||
-              col === "sub_investment_name" || col === "unit") {
+          if (
+            col === "center_name" ||
+            col === "vidhan_sabha_name" ||
+            col === "vikas_khand_name" ||
+            col === "scheme_name" ||
+            col === "source_of_receipt" ||
+            col === "investment_name" ||
+            col === "sub_investment_name" ||
+            col === "unit"
+          ) {
             // Unique count for categorical columns
-            const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
+            const uniqueValues = new Set(
+              data.map((item) => columnMapping[col].accessor(item, 0)),
+            );
             return `<td><strong>${uniqueValues.size}</strong></td>`;
-          } else if (col === "allocated_quantity" || col === "rate" || col === "amount_of_farmer_share" ||
-                     col === "amount_of_subsidy" || col === "total_amount") {
+          } else if (
+            col === "allocated_quantity" ||
+            col === "rate" ||
+            col === "amount_of_farmer_share" ||
+            col === "amount_of_subsidy" ||
+            col === "total_amount"
+          ) {
             // Sum for numeric columns
             const sum = data.reduce((total, item) => {
-              const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
+              const value =
+                parseFloat(columnMapping[col].accessor(item, 0)) || 0;
               return total + value;
             }, 0);
             return `<td><strong>${sum.toFixed(2)}</strong></td>`;
@@ -1214,8 +1265,10 @@ const Registration = () => {
   // Handle multi-select delete
   const handleDeleteSelected = async () => {
     if (selectedItems.length === 0) return;
-    
-    const confirmed = window.confirm(`क्या आप ${selectedItems.length} चयनित रिकॉर्ड्स को हटाना चाहते हैं?`);
+
+    const confirmed = window.confirm(
+      `क्या आप ${selectedItems.length} चयनित रिकॉर्ड्स को हटाना चाहते हैं?`,
+    );
     if (!confirmed) return;
 
     try {
@@ -1223,15 +1276,17 @@ const Registration = () => {
       const payload = { bill_id: selectedItems };
       await axios.delete(
         "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/",
-        { data: payload }
+        { data: payload },
       );
-      
+
       // Remove deleted items from state
-      setAllBillingItems((prev) => 
-        prev.filter((item) => !selectedItems.includes(item.bill_id))
+      setAllBillingItems((prev) =>
+        prev.filter((item) => !selectedItems.includes(item.bill_id)),
       );
       setSelectedItems([]);
-      setApiResponse({ message: `${selectedItems.length} रिकॉर्ड सफलतापूर्वक हटाए गए!` });
+      setApiResponse({
+        message: `${selectedItems.length} रिकॉर्ड सफलतापूर्वक हटाए गए!`,
+      });
     } catch (error) {
       console.error("Error deleting items:", error);
       setApiError("रिकॉर्ड हटाने में त्रुटि हुई।");
@@ -1255,19 +1310,25 @@ const Registration = () => {
   const handleSelectAll = () => {
     const visibleItems = filteredItems.slice(
       (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
+      currentPage * itemsPerPage,
     );
     const visibleBillIds = visibleItems.map((item) => item.bill_id);
-    
+
     // Check if all visible items are already selected
-    const allSelected = visibleBillIds.every((id) => selectedItems.includes(id));
-    
+    const allSelected = visibleBillIds.every((id) =>
+      selectedItems.includes(id),
+    );
+
     if (allSelected) {
       // Deselect all visible items
-      setSelectedItems((prev) => prev.filter((id) => !visibleBillIds.includes(id)));
+      setSelectedItems((prev) =>
+        prev.filter((id) => !visibleBillIds.includes(id)),
+      );
     } else {
       // Select all visible items that are not already selected
-      const newSelections = visibleBillIds.filter((id) => !selectedItems.includes(id));
+      const newSelections = visibleBillIds.filter(
+        (id) => !selectedItems.includes(id),
+      );
       setSelectedItems((prev) => [...prev, ...newSelections]);
     }
   };
@@ -1325,13 +1386,14 @@ const Registration = () => {
         vikas_khand_name: editingValues.vikas_khand_name,
         vidhan_sabha_name: editingValues.vidhan_sabha_name,
         bill_date: editingValues.bill_date || "",
-        amount_of_farmer_share: parseFloat(editingValues.amount_of_farmer_share) || 0,
+        amount_of_farmer_share:
+          parseFloat(editingValues.amount_of_farmer_share) || 0,
         amount_of_subsidy: parseFloat(editingValues.amount_of_subsidy) || 0,
         total_amount: parseFloat(editingValues.total_amount) || 0,
       };
       const response = await axios.put(BILLING_API_URL, payload);
       setAllBillingItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i))
+        prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i)),
       );
       setEditingRowId(null);
       setEditingValues({});
@@ -1384,11 +1446,11 @@ const Registration = () => {
     paginationItems.push(
       <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
         1
-      </Pagination.Item>
+      </Pagination.Item>,
     );
     if (startPage > 2) {
       paginationItems.push(
-        <Pagination.Ellipsis key="start-ellipsis" disabled />
+        <Pagination.Ellipsis key="start-ellipsis" disabled />,
       );
     }
   }
@@ -1401,7 +1463,7 @@ const Registration = () => {
         onClick={() => handlePageChange(number)}
       >
         {number}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -1415,14 +1477,14 @@ const Registration = () => {
         onClick={() => handlePageChange(totalPages)}
       >
         {totalPages}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
   // Convert Excel date serial number to YYYY-MM-DD format
   const convertExcelDateToISO = (excelDateValue) => {
     if (!excelDateValue) return "";
-    
+
     // If it's already a string in YYYY-MM-DD format, return it
     if (typeof excelDateValue === "string") {
       // Check if it's already in YYYY-MM-DD format
@@ -1442,13 +1504,15 @@ const Registration = () => {
         console.error("Error parsing date string:", excelDateValue, e);
       }
     }
-    
+
     // If it's a number (Excel date serial)
     if (typeof excelDateValue === "number") {
       // Excel date serial: Days since January 0, 1900 (with 1900 leap year bug)
       const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
-      const date = new Date(excelEpoch.getTime() + excelDateValue * 24 * 60 * 60 * 1000);
-      
+      const date = new Date(
+        excelEpoch.getTime() + excelDateValue * 24 * 60 * 60 * 1000,
+      );
+
       if (!isNaN(date.getTime())) {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1456,57 +1520,71 @@ const Registration = () => {
         return `${year}-${month}-${day}`;
       }
     }
-    
+
     return "";
   };
 
   // Validate a single row of data (for bulk upload, vikas_khand and vidhan_sabha are set in backend)
   const validateRow = (rowData, rowIndex) => {
     const errors = [];
-    
+
     if (!rowData.center_name || !rowData.center_name.toString().trim()) {
       errors.push(`Row ${rowIndex}: केंद्र का नाम आवश्यक है`);
     }
-    if (!rowData.investment_name || !rowData.investment_name.toString().trim()) {
+    if (
+      !rowData.investment_name ||
+      !rowData.investment_name.toString().trim()
+    ) {
       errors.push(`Row ${rowIndex}: निवेश का नाम आवश्यक है`);
     }
     if (!rowData.unit || !rowData.unit.toString().trim()) {
       errors.push(`Row ${rowIndex}: इकाई आवश्यक है`);
     }
-    if (rowData.allocated_quantity === "" || rowData.allocated_quantity === null || rowData.allocated_quantity === undefined) {
+    if (
+      rowData.allocated_quantity === "" ||
+      rowData.allocated_quantity === null ||
+      rowData.allocated_quantity === undefined
+    ) {
       errors.push(`Row ${rowIndex}: आवंटित मात्रा आवश्यक है`);
     } else if (isNaN(parseInt(rowData.allocated_quantity))) {
       errors.push(`Row ${rowIndex}: आवंटित मात्रा एक संख्या होनी चाहिए`);
     }
-    if (rowData.rate === "" || rowData.rate === null || rowData.rate === undefined) {
+    if (
+      rowData.rate === "" ||
+      rowData.rate === null ||
+      rowData.rate === undefined
+    ) {
       errors.push(`Row ${rowIndex}: दर आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.rate))) {
       errors.push(`Row ${rowIndex}: दर एक संख्या होनी चाहिए`);
     }
-    if (!rowData.source_of_receipt || !rowData.source_of_receipt.toString().trim()) {
+    if (
+      !rowData.source_of_receipt ||
+      !rowData.source_of_receipt.toString().trim()
+    ) {
       errors.push(`Row ${rowIndex}: सप्लायर आवश्यक है`);
     }
     if (!rowData.scheme_name || !rowData.scheme_name.toString().trim()) {
       errors.push(`Row ${rowIndex}: योजना का नाम आवश्यक है`);
     }
     // NOTE: vikas_khand_name and vidhan_sabha_name are NOT required for bulk upload - they are set in backend
-    
+
     return errors;
   };
 
   // Function to find closest matching center name
   const findClosestCenterName = (inputName) => {
     if (!inputName || !inputName.toString().trim()) return null;
-    
+
     const input = inputName.toString().trim();
-    
+
     if (centerOptions.includes(input)) {
       return { original: input, corrected: input, exact: true };
     }
-    
+
     let closestMatch = null;
     let minDistance = Infinity;
-    
+
     for (const option of centerOptions) {
       const distance = levenshteinDistance(input, option);
       if (distance < minDistance) {
@@ -1514,11 +1592,11 @@ const Registration = () => {
         closestMatch = option;
       }
     }
-    
+
     if (minDistance <= 2 && closestMatch) {
       return { original: input, corrected: closestMatch, exact: false };
     }
-    
+
     return null;
   };
 
@@ -1526,11 +1604,13 @@ const Registration = () => {
   const levenshteinDistance = (str1, str2) => {
     const m = str1.length;
     const n = str2.length;
-    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-    
+    const dp = Array(m + 1)
+      .fill(null)
+      .map(() => Array(n + 1).fill(0));
+
     for (let i = 0; i <= m; i++) dp[i][0] = i;
     for (let j = 0; j <= n; j++) dp[0][j] = j;
-    
+
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
         if (str1[i - 1] === str2[j - 1]) {
@@ -1540,14 +1620,14 @@ const Registration = () => {
         }
       }
     }
-    
+
     return dp[m][n];
   };
 
   // Function to apply center name corrections to parsed rows
   const applyCenterNameCorrections = (rows, corrections) => {
-    return rows.map(row => {
-      const correction = corrections.find(c => c.rowIndex === row.rowIndex);
+    return rows.map((row) => {
+      const correction = corrections.find((c) => c.rowIndex === row.rowIndex);
       if (correction) {
         return { ...row, center_name: correction.corrected };
       }
@@ -1557,13 +1637,14 @@ const Registration = () => {
 
   // Check if a row has any meaningful data (not completely empty)
   const isEmptyRow = (row) => {
-    if (!row || typeof row !== 'object') return true;
+    if (!row || typeof row !== "object") return true;
     const values = Object.values(row);
-    return values.every(val => 
-      val === null || 
-      val === undefined || 
-      val === '' || 
-      (typeof val === 'string' && val.trim() === '')
+    return values.every(
+      (val) =>
+        val === null ||
+        val === undefined ||
+        val === "" ||
+        (typeof val === "string" && val.trim() === ""),
     );
   };
 
@@ -1607,7 +1688,12 @@ const Registration = () => {
           });
 
           // Determine bill_date column index
-          const billDateHeaderKeys = ["पंजीकरण तिथि", "bill_date", "registration_tithi", "post_date"];
+          const billDateHeaderKeys = [
+            "पंजीकरण तिथि",
+            "bill_date",
+            "registration_tithi",
+            "post_date",
+          ];
           let billDateIndex = null;
           for (const key of billDateHeaderKeys) {
             const idx = headerMapping[key.toString().trim().toLowerCase()];
@@ -1628,19 +1714,85 @@ const Registration = () => {
             const billDateISO = parseDateFromExcel(billDateRaw);
 
             const parsedRow = {
-              center_name: (row[headerMapping["केंद्र का नाम"]] || row[headerMapping["center_name"]] || "").toString().trim(),
-              vidhan_sabha_name: (row[headerMapping["विधानसभा का नाम"]] || row[headerMapping["vidhan_sabha_name"]] || "").toString().trim(),
-              vikas_khand_name: (row[headerMapping["विकास खंड का नाम"]] || row[headerMapping["vikas_khand_name"]] || "").toString().trim(),
-              scheme_name: (row[headerMapping["योजना का नाम"]] || row[headerMapping["scheme_name"]] || "").toString().trim(),
-              source_of_receipt: (row[headerMapping["सप्लायर"]] || row[headerMapping["source_of_receipt"]] || "").toString().trim(),
-              investment_name: (row[headerMapping["निवेश का नाम"]] || row[headerMapping["investment_name"]] || "").toString().trim(),
-              sub_investment_name: (row[headerMapping["उप-निवेश का नाम"]] || row[headerMapping["sub_investment_name"]] || "").toString().trim(),
-              unit: (row[headerMapping["इकाई"]] || row[headerMapping["unit"]] || "").toString().trim(),
-              allocated_quantity: roundTo2Decimals(row[headerMapping["आवंटित मात्रा"]] || row[headerMapping["allocated_quantity"]] || 0),
-              rate: roundTo2Decimals(row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0),
-              amount_of_farmer_share: roundTo2Decimals(row[headerMapping["किसान का हिस्सा"]] || row[headerMapping["amount_of_farmer_share"]] || 0),
-              amount_of_subsidy: roundTo2Decimals(row[headerMapping["सब्सिडी राशि"]] || row[headerMapping["amount_of_subsidy"]] || 0),
-              total_amount: roundTo2Decimals(row[headerMapping["कुल राशि"]] || row[headerMapping["total_amount"]] || 0),
+              center_name: (
+                row[headerMapping["केंद्र का नाम"]] ||
+                row[headerMapping["center_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              vidhan_sabha_name: (
+                row[headerMapping["विधानसभा का नाम"]] ||
+                row[headerMapping["vidhan_sabha_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              vikas_khand_name: (
+                row[headerMapping["विकास खंड का नाम"]] ||
+                row[headerMapping["vikas_khand_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              scheme_name: (
+                row[headerMapping["योजना का नाम"]] ||
+                row[headerMapping["scheme_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              source_of_receipt: (
+                row[headerMapping["सप्लायर"]] ||
+                row[headerMapping["source_of_receipt"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              investment_name: (
+                row[headerMapping["निवेश का नाम"]] ||
+                row[headerMapping["investment_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              sub_investment_name: (
+                row[headerMapping["उप-निवेश का नाम"]] ||
+                row[headerMapping["sub_investment_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              unit: (
+                row[headerMapping["इकाई"]] ||
+                row[headerMapping["unit"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              allocated_quantity: roundTo2Decimals(
+                row[headerMapping["आवंटित मात्रा"]] ||
+                  row[headerMapping["allocated_quantity"]] ||
+                  0,
+              ),
+              rate: roundTo2Decimals(
+                row[headerMapping["दर"]] || row[headerMapping["rate"]] || 0,
+              ),
+              amount_of_farmer_share: roundTo2Decimals(
+                row[headerMapping["किसान का हिस्सा"]] ||
+                  row[headerMapping["amount_of_farmer_share"]] ||
+                  0,
+              ),
+              amount_of_subsidy: roundTo2Decimals(
+                row[headerMapping["सब्सिडी राशि"]] ||
+                  row[headerMapping["amount_of_subsidy"]] ||
+                  0,
+              ),
+              total_amount: roundTo2Decimals(
+                row[headerMapping["कुल राशि"]] ||
+                  row[headerMapping["total_amount"]] ||
+                  0,
+              ),
               original_bill_date: convertToDisplayFormat(billDateRaw),
               bill_date: billDateISO,
               rowIndex: rowIndex + 2,
@@ -1669,58 +1821,80 @@ const Registration = () => {
           // Fetch existing billing items to check for duplicates
           try {
             const existingResponse = await axios.get(BILLING_API_URL);
-            const existingData = existingResponse.data && existingResponse.data.data
-              ? existingResponse.data.data
-              : existingResponse.data;
-            const existingItems = Array.isArray(existingData) ? existingData : [];
-            
+            const existingData =
+              existingResponse.data && existingResponse.data.data
+                ? existingResponse.data.data
+                : existingResponse.data;
+            const existingItems = Array.isArray(existingData)
+              ? existingData
+              : [];
+
             // Detect duplicates with existing system data
             const duplicateIndices = new Set();
             const newValidationErrors = [...validationErrors];
-            
+
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
               // Compare only fields that are in the template download
-              const isDuplicateWithExisting = existingItems.some(existing => {
+              const isDuplicateWithExisting = existingItems.some((existing) => {
                 return (
-                  String(existing.center_name || '').trim() === String(row.center_name || '').trim() &&
-                  String(existing.scheme_name || '').trim() === String(row.scheme_name || '').trim() &&
-                  String(existing.source_of_receipt || '').trim() === String(row.source_of_receipt || '').trim() &&
-                  String(existing.investment_name || '').trim() === String(row.investment_name || '').trim() &&
-                  String(existing.sub_investment_name || '').trim() === String(row.sub_investment_name || '').trim() &&
-                  String(existing.unit || '').trim() === String(row.unit || '').trim() &&
-                  parseFloat(existing.allocated_quantity || 0) === parseFloat(row.allocated_quantity || 0) &&
-                  parseFloat(existing.rate || 0) === parseFloat(row.rate || 0) &&
-                  parseFloat(existing.amount_of_farmer_share || 0) === parseFloat(row.amount_of_farmer_share || 0) &&
-                  parseFloat(existing.amount_of_subsidy || 0) === parseFloat(row.amount_of_subsidy || 0) &&
-                  parseFloat(existing.total_amount || 0) === parseFloat(row.total_amount || 0) &&
+                  String(existing.center_name || "").trim() ===
+                    String(row.center_name || "").trim() &&
+                  String(existing.scheme_name || "").trim() ===
+                    String(row.scheme_name || "").trim() &&
+                  String(existing.source_of_receipt || "").trim() ===
+                    String(row.source_of_receipt || "").trim() &&
+                  String(existing.investment_name || "").trim() ===
+                    String(row.investment_name || "").trim() &&
+                  String(existing.sub_investment_name || "").trim() ===
+                    String(row.sub_investment_name || "").trim() &&
+                  String(existing.unit || "").trim() ===
+                    String(row.unit || "").trim() &&
+                  parseFloat(existing.allocated_quantity || 0) ===
+                    parseFloat(row.allocated_quantity || 0) &&
+                  parseFloat(existing.rate || 0) ===
+                    parseFloat(row.rate || 0) &&
+                  parseFloat(existing.amount_of_farmer_share || 0) ===
+                    parseFloat(row.amount_of_farmer_share || 0) &&
+                  parseFloat(existing.amount_of_subsidy || 0) ===
+                    parseFloat(row.amount_of_subsidy || 0) &&
+                  parseFloat(existing.total_amount || 0) ===
+                    parseFloat(row.total_amount || 0) &&
                   existing.bill_date === row.bill_date
                 );
               });
-              
+
               if (isDuplicateWithExisting) {
                 duplicateIndices.add(row.rowIndex);
                 newValidationErrors.push({
                   rowIndex: row.rowIndex,
-                  errors: ["यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)"],
+                  errors: [
+                    "यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)",
+                  ],
                   data: row,
                 });
               }
             });
-            
+
             // Also check for duplicates within the uploaded rows themselves
             // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${String(row.center_name || '').trim()}|${String(row.scheme_name || '').trim()}|${String(row.source_of_receipt || '').trim()}|${String(row.investment_name || '').trim()}|${String(row.sub_investment_name || '').trim()}|${String(row.unit || '').trim()}|${parseFloat(row.allocated_quantity || 0)}|${parseFloat(row.rate || 0)}|${parseFloat(row.amount_of_farmer_share || 0)}|${parseFloat(row.amount_of_subsidy || 0)}|${parseFloat(row.total_amount || 0)}|${row.bill_date}`;
-              
+              const key = `${String(row.center_name || "").trim()}|${String(row.scheme_name || "").trim()}|${String(row.source_of_receipt || "").trim()}|${String(row.investment_name || "").trim()}|${String(row.sub_investment_name || "").trim()}|${String(row.unit || "").trim()}|${parseFloat(row.allocated_quantity || 0)}|${parseFloat(row.rate || 0)}|${parseFloat(row.amount_of_farmer_share || 0)}|${parseFloat(row.amount_of_subsidy || 0)}|${parseFloat(row.total_amount || 0)}|${row.bill_date}`;
+
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
                 // Add error if not already added
-                if (!newValidationErrors.some(err => err.rowIndex === row.rowIndex)) {
+                if (
+                  !newValidationErrors.some(
+                    (err) => err.rowIndex === row.rowIndex,
+                  )
+                ) {
                   newValidationErrors.push({
                     rowIndex: row.rowIndex,
-                    errors: ["इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)"],
+                    errors: [
+                      "इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)",
+                    ],
                     data: row,
                   });
                 }
@@ -1728,10 +1902,10 @@ const Registration = () => {
                 seenKeys.add(key);
               }
             });
-            
+
             setValidationErrorsList(newValidationErrors);
             setDuplicateRowIndices(Array.from(duplicateIndices));
-            
+
             // Check for center name corrections needed
             const corrections = [];
             parsedRows.forEach((row) => {
@@ -1742,12 +1916,12 @@ const Registration = () => {
                     rowIndex: row.rowIndex,
                     original: correction.original,
                     corrected: correction.corrected,
-                    data: row
+                    data: row,
                   });
                 }
               }
             });
-            
+
             // If there are corrections needed, show modal for confirmation
             if (corrections.length > 0) {
               setCenterNameCorrections(corrections);
@@ -1755,7 +1929,7 @@ const Registration = () => {
               setPreviewData(parsedRows);
               return;
             }
-            
+
             if (newValidationErrors.length > 0) {
               setIsValidated(true);
             }
@@ -1795,17 +1969,22 @@ const Registration = () => {
     setUploadSuccessCount(0);
 
     try {
-      const validRows = previewData.filter((row) =>
-        !validationErrorsList.some((err) => err.rowIndex === row.rowIndex)
+      const validRows = previewData.filter(
+        (row) =>
+          !validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
       );
 
       const invalidRows = previewData
-        .filter((row) => validationErrorsList.some((err) => err.rowIndex === row.rowIndex))
+        .filter((row) =>
+          validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
+        )
         .map((row) => ({
           rowIndex: row.rowIndex,
           data: row,
           reason:
-            validationErrorsList.find((err) => err.rowIndex === row.rowIndex)?.errors.join(", ") || "Validation failed",
+            validationErrorsList
+              .find((err) => err.rowIndex === row.rowIndex)
+              ?.errors.join(", ") || "Validation failed",
         }));
 
       setUploadTotal(validRows.length);
@@ -1845,7 +2024,9 @@ const Registration = () => {
           });
         }
 
-        const progress = Math.round(((i + 1) / Math.max(validRows.length, 1)) * 100);
+        const progress = Math.round(
+          ((i + 1) / Math.max(validRows.length, 1)) * 100,
+        );
         setUploadProgress(progress);
       }
 
@@ -1863,7 +2044,9 @@ const Registration = () => {
         });
         fetchBillingItems();
       } else if (successCount > 0 && failedItems.length > 0) {
-        setApiError(`⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`);
+        setApiError(
+          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`,
+        );
         fetchBillingItems();
       } else if (failedItems.length > 0) {
         setApiError(`❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`);
@@ -1947,8 +2130,14 @@ const Registration = () => {
     }
 
     if (name === "amount_of_farmer_share" || name === "amount_of_subsidy") {
-      const farmerShare = name === "amount_of_farmer_share" ? parseFloat(value) || 0 : parseFloat(formData.amount_of_farmer_share) || 0;
-      const subsidy = name === "amount_of_subsidy" ? parseFloat(value) || 0 : parseFloat(formData.amount_of_subsidy) || 0;
+      const farmerShare =
+        name === "amount_of_farmer_share"
+          ? parseFloat(value) || 0
+          : parseFloat(formData.amount_of_farmer_share) || 0;
+      const subsidy =
+        name === "amount_of_subsidy"
+          ? parseFloat(value) || 0
+          : parseFloat(formData.amount_of_subsidy) || 0;
       updatedFormData.total_amount = (farmerShare + subsidy).toString();
     }
 
@@ -2087,29 +2276,54 @@ const Registration = () => {
                   <Col xs={12}>
                     <div className="p-3 border rounded bg-light">
                       <div className="mb-3">
-                        <h6 className="small-fonts mb-3">📊 अपलोड प्रगति विवरण</h6>
+                        <h6 className="small-fonts mb-3">
+                          📊 अपलोड प्रगति विवरण
+                        </h6>
                         <div className="d-flex justify-content-around mb-3">
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">✅ पूर्ण</small>
-                            <span className="badge bg-success" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ✅ पूर्ण
+                            </small>
+                            <span
+                              className="badge bg-success"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {Math.round((uploadProgress / 100) * uploadTotal)}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⏳ शेष</small>
-                            <span className="badge bg-warning text-dark" style={{ fontSize: "14px", padding: "8px 12px" }}>
-                              {uploadTotal - Math.round((uploadProgress / 100) * uploadTotal)}
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⏳ शेष
+                            </small>
+                            <span
+                              className="badge bg-warning text-dark"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
+                              {uploadTotal -
+                                Math.round(
+                                  (uploadProgress / 100) * uploadTotal,
+                                )}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">📁 कुल</small>
-                            <span className="badge bg-primary" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              📁 कुल
+                            </small>
+                            <span
+                              className="badge bg-primary"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadTotal}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⚡ प्रगति</small>
-                            <span className="badge bg-info text-white" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⚡ प्रगति
+                            </small>
+                            <span
+                              className="badge bg-info text-white"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadProgress}%
                             </span>
                           </div>
@@ -2124,7 +2338,9 @@ const Registration = () => {
                           aria-valuemin="0"
                           aria-valuemax="100"
                         >
-                          <small className="fw-bold text-white">{uploadProgress}%</small>
+                          <small className="fw-bold text-white">
+                            {uploadProgress}%
+                          </small>
                         </div>
                       </div>
                       <small className="text-muted mt-2 d-block text-center">
@@ -2157,13 +2373,17 @@ const Registration = () => {
                   <div className="w-100">
                     <Button
                       variant="secondary"
-                      onClick={() => previewData.length > 0 && !isUploading && handleConfirmUpload()}
+                      onClick={() =>
+                        previewData.length > 0 &&
+                        !isUploading &&
+                        handleConfirmUpload()
+                      }
                       disabled={!excelFile || isUploading}
                       className="compact-submit-btn w-100"
                     >
                       {isUploading
                         ? `अपलोड हो रहा है... ${uploadProgress}%`
-                        : previewData.length > 0 
+                        : previewData.length > 0
                           ? `${previewData.length} रिकॉर्ड अपलोड करें`
                           : translations.uploadButton}
                     </Button>
@@ -2183,22 +2403,41 @@ const Registration = () => {
 
               {apiResponse && (
                 <Alert variant="success" className="small-fonts">
-                  <div style={{ whiteSpace: "pre-wrap" }}>{apiResponse.message}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    {apiResponse.message}
+                  </div>
                 </Alert>
               )}
               {apiError && (
                 <Alert variant="danger" className="small-fonts">
-                  <div style={{ whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      maxHeight: "300px",
+                      overflowY: "auto",
+                    }}
+                  >
                     {apiError}
                   </div>
                 </Alert>
               )}
               {uploadErrors.length > 0 && !isUploading && (
                 <Alert variant="warning" className="small-fonts">
-                  <strong>📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):</strong>
-                  <div style={{ maxHeight: "400px", overflowY: "auto", marginTop: "10px" }}>
+                  <strong>
+                    📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):
+                  </strong>
+                  <div
+                    style={{
+                      maxHeight: "400px",
+                      overflowY: "auto",
+                      marginTop: "10px",
+                    }}
+                  >
                     {uploadErrors.map((error, idx) => (
-                      <div key={idx} style={{ marginBottom: "5px", fontSize: "12px" }}>
+                      <div
+                        key={idx}
+                        style={{ marginBottom: "5px", fontSize: "12px" }}
+                      >
                         • {error}
                       </div>
                     ))}
@@ -2212,14 +2451,19 @@ const Registration = () => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    <strong>अनिवार्य फ़ील्ड:</strong> केंद्र का नाम, निवेश का नाम, 
-                    उप-निवेश का नाम, इकाई, आवंटित मात्रा, दर, सप्लायर, योजना का नाम, 
-                    किसान का हिस्सा, सब्सिडी राशि, कुल राशि, पंजीकरण तिथि
+                    <strong>अनिवार्य फ़ील्ड:</strong> केंद्र का नाम, निवेश का
+                    नाम, उप-निवेश का नाम, इकाई, आवंटित मात्रा, दर, सप्लायर,
+                    योजना का नाम, किसान का हिस्सा, सब्सिडी राशि, कुल राशि,
+                    पंजीकरण तिथि
                   </li>
                   <li>
-                    <strong>स्वचालित:</strong> विकास खंड और विधानसभा स्वचालित रूप से बैकएंड से सेट किए जाते हैं (Excel में शामिल न करें)
+                    <strong>स्वचालित:</strong> विकास खंड और विधानसभा स्वचालित
+                    रूप से बैकएंड से सेट किए जाते हैं (Excel में शामिल न करें)
                   </li>
-                  <li>आवंटित मात्रा, दर, किसान का हिस्सा, सब्सिडी राशि और कुल राशि संख्यात्मक होनी चाहिए</li>
+                  <li>
+                    आवंटित मात्रा, दर, किसान का हिस्सा, सब्सिडी राशि और कुल राशि
+                    संख्यात्मक होनी चाहिए
+                  </li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
                 </ul>
               </Alert>
@@ -2301,7 +2545,9 @@ const Registration = () => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.investment_name.map((inv, index) => (
                               <option key={index} value={inv}>
                                 {inv}
@@ -2364,13 +2610,15 @@ const Registration = () => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.sub_investment_name.map(
                               (subInv, index) => (
                                 <option key={index} value={subInv}>
                                   {subInv}
                                 </option>
-                              )
+                              ),
                             )}
                             <option value="Other">अन्य</option>
                           </Form.Select>
@@ -2410,7 +2658,10 @@ const Registration = () => {
                                   unit: "",
                                 }));
                                 // Refetch options
-                                fetchFormFilters(formData.investment_name, formData.sub_investment_name);
+                                fetchFormFilters(
+                                  formData.investment_name,
+                                  formData.sub_investment_name,
+                                );
                               }}
                               title="विकल्प दिखाएं"
                             >
@@ -2426,7 +2677,9 @@ const Registration = () => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.unit.map((unit, index) => (
                               <option key={index} value={unit}>
                                 {unit}
@@ -2441,7 +2694,10 @@ const Registration = () => {
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="allocated_quantity">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="allocated_quantity"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.allocatedQuantity}
                         </Form.Label>
@@ -2482,7 +2738,10 @@ const Registration = () => {
                   </Row>
                   <Row>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="source_of_receipt">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="source_of_receipt"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.sourceOfReceipt}
                         </Form.Label>
@@ -2525,7 +2784,9 @@ const Registration = () => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {[
                               ...new Set([
                                 ...filterOptions.source_of_receipt,
@@ -2588,7 +2849,9 @@ const Registration = () => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {[
                               ...new Set([
                                 ...filterOptions.scheme_name,
@@ -2619,13 +2882,15 @@ const Registration = () => {
                             onChange={handleFormFieldsEditChange}
                             className="compact-input"
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.vikas_khand_name.map(
                               (vikasKhand, index) => (
                                 <option key={index} value={vikasKhand}>
                                   {vikasKhand}
                                 </option>
-                              )
+                              ),
                             )}
                           </Form.Select>
                         ) : (
@@ -2648,7 +2913,10 @@ const Registration = () => {
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="vidhan_sabha_name">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="vidhan_sabha_name"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.vidhanSabhaName}
                         </Form.Label>
@@ -2659,13 +2927,15 @@ const Registration = () => {
                             onChange={handleFormFieldsEditChange}
                             className="compact-input"
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.vidhan_sabha_name.map(
                               (vidhanSabha, index) => (
                                 <option key={index} value={vidhanSabha}>
                                   {vidhanSabha}
                                 </option>
-                              )
+                              ),
                             )}
                           </Form.Select>
                         ) : (
@@ -2728,7 +2998,10 @@ const Registration = () => {
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="amount_of_farmer_share">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="amount_of_farmer_share"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.amountOfFarmerShare}
                         </Form.Label>
@@ -2744,7 +3017,10 @@ const Registration = () => {
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="amount_of_subsidy">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="amount_of_subsidy"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.amountOfSubsidy}
                         </Form.Label>
@@ -2814,116 +3090,121 @@ const Registration = () => {
               {/* Table Section */}
               <div className="billing-table-section mt-4">
                 <div className="pdf-button-section">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <div className="d-flex align-items-center">
-                    {billingItems.length > 0 && (
-                      <OverlayTrigger
-                        placement="top"
-                        overlay={
-                          <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
-                        }
-                      >
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={handleRefresh}
-                          disabled={isLoading}
-                          className="me-2"
-                        >
-                          <FaSync
-                            className={`me-1 ${isLoading ? "fa-spin" : ""}`}
-                          />
-                          रीफ्रेश
-                        </Button>
-                      </OverlayTrigger>
-                    )}
-                    {filteredItems.length > 0 && (
-                      <>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex align-items-center">
+                      {billingItems.length > 0 && (
                         <OverlayTrigger
                           placement="top"
                           overlay={
-                            <Tooltip id="tooltip-excel">
-                              Excel डाउनलोड करें
-                            </Tooltip>
+                            <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
                           }
                         >
                           <Button
-                            variant="outline-success"
+                            variant="outline-primary"
                             size="sm"
-                            onClick={() =>
-                              downloadExcel(
-                                filteredItems,
-                                `Billing_Items_${new Date()
-                                  .toISOString()
-                                  .slice(0, 10)}`,
-                                billingTableColumnMapping,
-                                selectedColumns
-                              )
-                            }
+                            onClick={handleRefresh}
+                            disabled={isLoading}
                             className="me-2"
                           >
-                            <FaFileExcel className="me-1" />
-                            Excel
+                            <FaSync
+                              className={`me-1 ${isLoading ? "fa-spin" : ""}`}
+                            />
+                            रीफ्रेश
                           </Button>
                         </OverlayTrigger>
+                      )}
+                      {filteredItems.length > 0 && (
+                        <>
+                          <OverlayTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip id="tooltip-excel">
+                                Excel डाउनलोड करें
+                              </Tooltip>
+                            }
+                          >
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              onClick={() =>
+                                downloadExcel(
+                                  filteredItems,
+                                  `Billing_Items_${new Date()
+                                    .toISOString()
+                                    .slice(0, 10)}`,
+                                  billingTableColumnMapping,
+                                  selectedColumns,
+                                )
+                              }
+                              className="me-2"
+                            >
+                              <FaFileExcel className="me-1" />
+                              Excel
+                            </Button>
+                          </OverlayTrigger>
+                          <OverlayTrigger
+                            placement="top"
+                            overlay={
+                              <Tooltip id="tooltip-pdf">
+                                PDF डाउनलोड करें
+                              </Tooltip>
+                            }
+                          >
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() =>
+                                downloadPdf(
+                                  filteredItems,
+                                  `Billing_Items_${new Date()
+                                    .toISOString()
+                                    .slice(0, 10)}`,
+                                  billingTableColumnMapping,
+                                  selectedColumns,
+                                  "बिलिंग आइटम डेटा",
+                                )
+                              }
+                            >
+                              <FaFilePdf className="me-1" />
+                              PDF
+                            </Button>
+                          </OverlayTrigger>
+                        </>
+                      )}
+                      {selectedItems.length > 0 && (
                         <OverlayTrigger
                           placement="top"
                           overlay={
-                            <Tooltip id="tooltip-pdf">PDF डाउनलोड करें</Tooltip>
+                            <Tooltip id="tooltip-delete">
+                              {selectedItems.length} चयनित रिकॉर्ड हटाएं
+                            </Tooltip>
                           }
                         >
                           <Button
                             variant="outline-danger"
                             size="sm"
-                            onClick={() =>
-                              downloadPdf(
-                                filteredItems,
-                                `Billing_Items_${new Date()
-                                  .toISOString()
-                                  .slice(0, 10)}`,
-                                billingTableColumnMapping,
-                                selectedColumns,
-                                "बिलिंग आइटम डेटा"
-                              )
-                            }
+                            onClick={handleDeleteSelected}
+                            disabled={isLoading}
+                            className="ms-2"
                           >
-                            <FaFilePdf className="me-1" />
-                            PDF
+                            <RiDeleteBinLine className="me-1" />
+                            हटाएं ({selectedItems.length})
                           </Button>
                         </OverlayTrigger>
-                      </>
-                    )}
-                    {selectedItems.length > 0 && (
-                      <OverlayTrigger
-                        placement="top"
-                        overlay={
-                          <Tooltip id="tooltip-delete">
-                            {selectedItems.length} चयनित रिकॉर्ड हटाएं
-                          </Tooltip>
-                        }
-                      >
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={handleDeleteSelected}
-                          disabled={isLoading}
-                          className="ms-2"
-                        >
-                          <RiDeleteBinLine className="me-1" />
-                          हटाएं ({selectedItems.length})
-                        </Button>
-                      </OverlayTrigger>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-</div>
                 {/* Table info with pagination details */}
                 {filteredItems.length > 0 && (
                   <div className="table-info mb-2 d-flex justify-content-between align-items-center">
                     <span className="small-fonts">
                       {translations.showing}{" "}
                       {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
-                      {Math.min(currentPage * itemsPerPage, filteredItems.length)}{" "}
+                      {Math.min(
+                        currentPage * itemsPerPage,
+                        filteredItems.length,
+                      )}{" "}
                       {translations.of} {filteredItems.length}{" "}
                       {translations.entries}
                     </span>
@@ -2950,7 +3231,9 @@ const Registration = () => {
                 {billingItems.length > 0 && (
                   <div className="created-at-filter-section mb-3 p-3 border rounded bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="small-fonts mb-0">तिथि से फ़िल्टर करें (created_at)</h6>
+                      <h6 className="small-fonts mb-0">
+                        तिथि से फ़िल्टर करें (created_at)
+                      </h6>
                     </div>
                     <Row>
                       <Col xs={12} md={4}>
@@ -2960,14 +3243,16 @@ const Registration = () => {
                           </Form.Label>
                           <Form.Select
                             value={createdAtFilter.selectedDate}
-                            onChange={(e) => handleCreatedAtDateSelect(e.target.value)}
+                            onChange={(e) =>
+                              handleCreatedAtDateSelect(e.target.value)
+                            }
                             className="compact-input"
                             disabled={createdAtFilter.showManualPicker}
                           >
                             <option value="">-- तिथि चुनें --</option>
                             {uniqueCreatedAtDates.map((date) => (
                               <option key={date} value={date}>
-                                {new Date(date).toLocaleDateString('hi-IN')}
+                                {new Date(date).toLocaleDateString("hi-IN")}
                               </option>
                             ))}
                           </Form.Select>
@@ -2976,12 +3261,18 @@ const Registration = () => {
                       <Col xs={12} md={4}>
                         <Form.Group className="mb-2 d-flex align-items-end">
                           <Button
-                            variant={createdAtFilter.showManualPicker ? "primary" : "outline-secondary"}
+                            variant={
+                              createdAtFilter.showManualPicker
+                                ? "primary"
+                                : "outline-secondary"
+                            }
                             size="sm"
                             onClick={toggleManualDatePicker}
                             className="mb-2"
                           >
-                            {createdAtFilter.showManualPicker ? "मैन्युअल तिथि छुपाएं" : "मैन्युअल तिथि"}
+                            {createdAtFilter.showManualPicker
+                              ? "मैन्युअल तिथि छुपाएं"
+                              : "मैन्युअल तिथि"}
                           </Button>
                         </Form.Group>
                       </Col>
@@ -2994,7 +3285,9 @@ const Registration = () => {
                             <Form.Control
                               type="date"
                               value={createdAtFilter.manualDate}
-                              onChange={(e) => handleCreatedAtManualDateChange(e.target.value)}
+                              onChange={(e) =>
+                                handleCreatedAtManualDateChange(e.target.value)
+                              }
                               className="compact-input"
                             />
                           </Form.Group>
@@ -3002,12 +3295,19 @@ const Registration = () => {
                       )}
                     </Row>
                     {/* Show selected filter info */}
-                    {(createdAtFilter.selectedDate || createdAtFilter.manualDate) && (
+                    {(createdAtFilter.selectedDate ||
+                      createdAtFilter.manualDate) && (
                       <div className="mt-2">
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => setCreatedAtFilter({ selectedDate: "", manualDate: "", showManualPicker: false })}
+                          onClick={() =>
+                            setCreatedAtFilter({
+                              selectedDate: "",
+                              manualDate: "",
+                              showManualPicker: false,
+                            })
+                          }
                         >
                           तिथि फ़िल्टर साफ़ करें
                         </Button>
@@ -3050,10 +3350,12 @@ const Registration = () => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.center_name.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.center_name.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -3080,7 +3382,7 @@ const Registration = () => {
                               }));
                             }}
                             options={filterOptions.investment_name.map(
-                              (option) => ({ value: option, label: option })
+                              (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
                             placeholder="चुनें"
@@ -3112,7 +3414,10 @@ const Registration = () => {
                                 ...filterOptions.source_of_receipt,
                                 ...sourceOptions,
                               ]),
-                            ].map((option) => ({ value: option, label: option }))}
+                            ].map((option) => ({
+                              value: option,
+                              label: option,
+                            }))}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -3173,7 +3478,7 @@ const Registration = () => {
                               }));
                             }}
                             options={filterOptions.vikas_khand_name.map(
-                              (option) => ({ value: option, label: option })
+                              (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
                             placeholder="चुनें"
@@ -3201,7 +3506,7 @@ const Registration = () => {
                               }));
                             }}
                             options={filterOptions.vidhan_sabha_name.map(
-                              (option) => ({ value: option, label: option })
+                              (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
                             placeholder="चुनें"
@@ -3265,12 +3570,14 @@ const Registration = () => {
                                 filteredItems
                                   .slice(
                                     (currentPage - 1) * itemsPerPage,
-                                    currentPage * itemsPerPage
+                                    currentPage * itemsPerPage,
                                   )
-                                  .every((item) => selectedItems.includes(item.bill_id)) &&
+                                  .every((item) =>
+                                    selectedItems.includes(item.bill_id),
+                                  ) &&
                                 filteredItems.slice(
                                   (currentPage - 1) * itemsPerPage,
-                                  currentPage * itemsPerPage
+                                  currentPage * itemsPerPage,
                                 ).length > 0
                               }
                             />
@@ -3307,9 +3614,9 @@ const Registration = () => {
                           {selectedColumns.includes("rate") && (
                             <th>{translations.rate}</th>
                           )}
-                          {selectedColumns.includes("amount_of_farmer_share") && (
-                            <th>{translations.amountOfFarmerShare}</th>
-                          )}
+                          {selectedColumns.includes(
+                            "amount_of_farmer_share",
+                          ) && <th>{translations.amountOfFarmerShare}</th>}
                           {selectedColumns.includes("amount_of_subsidy") && (
                             <th>{translations.amountOfSubsidy}</th>
                           )}
@@ -3317,7 +3624,9 @@ const Registration = () => {
                             <th>{translations.totalAmount}</th>
                           )}
                           {selectedColumns.includes("bill_date") && (
-                            <th>{billingTableColumnMapping.bill_date.header}</th>
+                            <th>
+                              {billingTableColumnMapping.bill_date.header}
+                            </th>
                           )}
                           <th>कार्रवाई</th>
                         </tr>
@@ -3326,7 +3635,7 @@ const Registration = () => {
                         {filteredItems
                           .slice(
                             (currentPage - 1) * itemsPerPage,
-                            currentPage * itemsPerPage
+                            currentPage * itemsPerPage,
                           )
                           .map((item, index) => (
                             <tr key={item.id || index}>
@@ -3334,7 +3643,9 @@ const Registration = () => {
                                 <Form.Check
                                   type="checkbox"
                                   checked={selectedItems.includes(item.bill_id)}
-                                  onChange={() => handleCheckboxChange(item.bill_id)}
+                                  onChange={() =>
+                                    handleCheckboxChange(item.bill_id)
+                                  }
                                 />
                               </td>
                               <td>
@@ -3372,7 +3683,9 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("vidhan_sabha_name") && (
+                              {selectedColumns.includes(
+                                "vidhan_sabha_name",
+                              ) && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Select
@@ -3391,7 +3704,7 @@ const Registration = () => {
                                           <option key={index} value={vidhan}>
                                             {vidhan}
                                           </option>
-                                        )
+                                        ),
                                       )}
                                     </Form.Select>
                                   ) : (
@@ -3418,7 +3731,7 @@ const Registration = () => {
                                           <option key={index} value={vikas}>
                                             {vikas}
                                           </option>
-                                        )
+                                        ),
                                       )}
                                     </Form.Select>
                                   ) : (
@@ -3485,9 +3798,11 @@ const Registration = () => {
                                             <option key={index} value={scheme}>
                                               {scheme}
                                             </option>
-                                          )
+                                          ),
                                         )}
-                                        <option value="Other">अन्य (Other)</option>
+                                        <option value="Other">
+                                          अन्य (Other)
+                                        </option>
                                       </Form.Select>
                                     )
                                   ) : (
@@ -3495,14 +3810,18 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("source_of_receipt") && (
+                              {selectedColumns.includes(
+                                "source_of_receipt",
+                              ) && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     editingOtherMode.source_of_receipt ? (
                                       <div className="d-flex">
                                         <Form.Control
                                           type="text"
-                                          value={editingValues.source_of_receipt}
+                                          value={
+                                            editingValues.source_of_receipt
+                                          }
                                           onChange={(e) =>
                                             setEditingValues((prev) => ({
                                               ...prev,
@@ -3549,14 +3868,16 @@ const Registration = () => {
                                         size="sm"
                                       >
                                         <option value="">चुनें</option>
-                                        {getUniqueValues("source_of_receipt").map(
-                                          (source, index) => (
-                                            <option key={index} value={source}>
-                                              {source}
-                                            </option>
-                                          )
-                                        )}
-                                        <option value="Other">अन्य (Other)</option>
+                                        {getUniqueValues(
+                                          "source_of_receipt",
+                                        ).map((source, index) => (
+                                          <option key={index} value={source}>
+                                            {source}
+                                          </option>
+                                        ))}
+                                        <option value="Other">
+                                          अन्य (Other)
+                                        </option>
                                       </Form.Select>
                                     )
                                   ) : (
@@ -3630,9 +3951,11 @@ const Registration = () => {
                                             <option key={index} value={inv}>
                                               {inv}
                                             </option>
-                                          )
+                                          ),
                                         )}
-                                        <option value="Other">अन्य (Other)</option>
+                                        <option value="Other">
+                                          अन्य (Other)
+                                        </option>
                                       </Form.Select>
                                     )
                                   ) : (
@@ -3641,7 +3964,7 @@ const Registration = () => {
                                 </td>
                               )}
                               {selectedColumns.includes(
-                                "sub_investment_name"
+                                "sub_investment_name",
                               ) && (
                                 <td>
                                   {editingRowId === item.id ? (
@@ -3649,11 +3972,14 @@ const Registration = () => {
                                       <div className="d-flex">
                                         <Form.Control
                                           type="text"
-                                          value={editingValues.sub_investment_name}
+                                          value={
+                                            editingValues.sub_investment_name
+                                          }
                                           onChange={(e) =>
                                             setEditingValues((prev) => ({
                                               ...prev,
-                                              sub_investment_name: e.target.value,
+                                              sub_investment_name:
+                                                e.target.value,
                                             }))
                                           }
                                           placeholder="नया उप-निवेश का नाम दर्ज करें"
@@ -3674,7 +4000,9 @@ const Registration = () => {
                                       </div>
                                     ) : (
                                       <Form.Select
-                                        value={editingValues.sub_investment_name}
+                                        value={
+                                          editingValues.sub_investment_name
+                                        }
                                         onChange={(e) => {
                                           const value = e.target.value;
                                           if (value === "Other") {
@@ -3696,14 +4024,16 @@ const Registration = () => {
                                         size="sm"
                                       >
                                         <option value="">चुनें</option>
-                                        {getUniqueValues("sub_investment_name").map(
-                                          (subInv, index) => (
-                                            <option key={index} value={subInv}>
-                                              {subInv}
-                                            </option>
-                                          )
-                                        )}
-                                        <option value="Other">अन्य (Other)</option>
+                                        {getUniqueValues(
+                                          "sub_investment_name",
+                                        ).map((subInv, index) => (
+                                          <option key={index} value={subInv}>
+                                            {subInv}
+                                          </option>
+                                        ))}
+                                        <option value="Other">
+                                          अन्य (Other)
+                                        </option>
                                       </Form.Select>
                                     )
                                   ) : (
@@ -3770,9 +4100,11 @@ const Registration = () => {
                                             <option key={index} value={unit}>
                                               {unit}
                                             </option>
-                                          )
+                                          ),
                                         )}
-                                        <option value="Other">अन्य (Other)</option>
+                                        <option value="Other">
+                                          अन्य (Other)
+                                        </option>
                                       </Form.Select>
                                     )
                                   ) : (
@@ -3780,7 +4112,9 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("allocated_quantity") && (
+                              {selectedColumns.includes(
+                                "allocated_quantity",
+                              ) && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Control
@@ -3819,20 +4153,27 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("amount_of_farmer_share") && (
+                              {selectedColumns.includes(
+                                "amount_of_farmer_share",
+                              ) && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Control
                                       type="number"
                                       step="0.01"
-                                      value={editingValues.amount_of_farmer_share}
+                                      value={
+                                        editingValues.amount_of_farmer_share
+                                      }
                                       onChange={(e) => {
                                         const value = e.target.value;
-                                        const subsidy = editingValues.amount_of_subsidy || 0;
+                                        const subsidy =
+                                          editingValues.amount_of_subsidy || 0;
                                         setEditingValues((prev) => ({
                                           ...prev,
                                           amount_of_farmer_share: value,
-                                          total_amount: (parseFloat(value) || 0) + parseFloat(subsidy),
+                                          total_amount:
+                                            (parseFloat(value) || 0) +
+                                            parseFloat(subsidy),
                                         }));
                                       }}
                                       size="sm"
@@ -3842,7 +4183,9 @@ const Registration = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("amount_of_subsidy") && (
+                              {selectedColumns.includes(
+                                "amount_of_subsidy",
+                              ) && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Control
@@ -3851,11 +4194,15 @@ const Registration = () => {
                                       value={editingValues.amount_of_subsidy}
                                       onChange={(e) => {
                                         const value = e.target.value;
-                                        const farmerShare = editingValues.amount_of_farmer_share || 0;
+                                        const farmerShare =
+                                          editingValues.amount_of_farmer_share ||
+                                          0;
                                         setEditingValues((prev) => ({
                                           ...prev,
                                           amount_of_subsidy: value,
-                                          total_amount: parseFloat(farmerShare) + (parseFloat(value) || 0),
+                                          total_amount:
+                                            parseFloat(farmerShare) +
+                                            (parseFloat(value) || 0),
                                         }));
                                       }}
                                       size="sm"
@@ -3901,7 +4248,7 @@ const Registration = () => {
                                     />
                                   ) : (
                                     billingTableColumnMapping.bill_date.accessor(
-                                      item
+                                      item,
                                     )
                                   )}
                                 </td>
@@ -3952,142 +4299,184 @@ const Registration = () => {
                       <tfoot>
                         <tr className="table-total-row">
                           <td></td>
-                          <td><strong>कुल</strong></td>
+                          <td>
+                            <strong>कुल</strong>
+                          </td>
                           {selectedColumns.includes("center_name") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.center_name) set.add(item.center_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.center_name)
+                                      set.add(item.center_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("vidhan_sabha_name") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.vidhan_sabha_name) set.add(item.vidhan_sabha_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.vidhan_sabha_name)
+                                      set.add(item.vidhan_sabha_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("vikas_khand_name") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.vikas_khand_name) set.add(item.vikas_khand_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.vikas_khand_name)
+                                      set.add(item.vikas_khand_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("scheme_name") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.scheme_name) set.add(item.scheme_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.scheme_name)
+                                      set.add(item.scheme_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("source_of_receipt") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.source_of_receipt) set.add(item.source_of_receipt);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.source_of_receipt)
+                                      set.add(item.source_of_receipt);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("investment_name") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.investment_name) set.add(item.investment_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.investment_name)
+                                      set.add(item.investment_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("sub_investment_name") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.sub_investment_name) set.add(item.sub_investment_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.sub_investment_name)
+                                      set.add(item.sub_investment_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("unit") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.unit) set.add(item.unit);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  filteredItems.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.unit) set.add(item.unit);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("allocated_quantity") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((sum, item) => {
-                                  const qty = parseFloat(item.allocated_quantity) || 0;
-                                  return sum + qty;
-                                }, 0).toFixed(2)}
+                                {filteredItems
+                                  .reduce((sum, item) => {
+                                    const qty =
+                                      parseFloat(item.allocated_quantity) || 0;
+                                    return sum + qty;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("rate") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((sum, item) => {
-                                  const rate = parseFloat(item.rate) || 0;
-                                  return sum + rate;
-                                }, 0).toFixed(2)}
+                                {filteredItems
+                                  .reduce((sum, item) => {
+                                    const rate = parseFloat(item.rate) || 0;
+                                    return sum + rate;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
-                          {selectedColumns.includes("amount_of_farmer_share") && (
+                          {selectedColumns.includes(
+                            "amount_of_farmer_share",
+                          ) && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((sum, item) => {
-                                  const share = parseFloat(item.amount_of_farmer_share) || 0;
-                                  return sum + share;
-                                }, 0).toFixed(2)}
+                                {filteredItems
+                                  .reduce((sum, item) => {
+                                    const share =
+                                      parseFloat(item.amount_of_farmer_share) ||
+                                      0;
+                                    return sum + share;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("amount_of_subsidy") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((sum, item) => {
-                                  const subsidy = parseFloat(item.amount_of_subsidy) || 0;
-                                  return sum + subsidy;
-                                }, 0).toFixed(2)}
+                                {filteredItems
+                                  .reduce((sum, item) => {
+                                    const subsidy =
+                                      parseFloat(item.amount_of_subsidy) || 0;
+                                    return sum + subsidy;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("total_amount") && (
                             <td>
                               <strong>
-                                {filteredItems.reduce((sum, item) => {
-                                  const total = parseFloat(item.total_amount) || 0;
-                                  return sum + total;
-                                }, 0).toFixed(2)}
+                                {filteredItems
+                                  .reduce((sum, item) => {
+                                    const total =
+                                      parseFloat(item.total_amount) || 0;
+                                    return sum + total;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
@@ -4096,7 +4485,7 @@ const Registration = () => {
                         </tr>
                       </tfoot>
                     </Table>
-                    
+
                     {/* Pagination controls */}
                     {filteredItems.length > itemsPerPage && (
                       <div className="mt-3">
@@ -4125,9 +4514,16 @@ const Registration = () => {
         </Row>
 
         {/* Preview Modal */}
-        <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" centered>
+        <Modal
+          show={showPreviewModal}
+          onHide={() => setShowPreviewModal(false)}
+          size="lg"
+          centered
+        >
           <Modal.Header closeButton>
-            <Modal.Title>डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)</Modal.Title>
+            <Modal.Title>
+              डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)
+            </Modal.Title>
           </Modal.Header>
           <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
             {previewData.length === 0 ? (
@@ -4135,7 +4531,9 @@ const Registration = () => {
             ) : (
               <>
                 <Alert variant="info" className="small-fonts">
-                  <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें। खाली पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
+                  <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा
+                  सही है तो "अपलोड करें" बटन पर क्लिक करें। खाली पंक्तियाँ
+                  स्वचालित रूप से छोड़ दी जाएंगी।
                 </Alert>
                 <Table striped bordered hover size="sm" className="small-fonts">
                   <thead>
@@ -4159,22 +4557,97 @@ const Registration = () => {
                   </thead>
                   <tbody>
                     {previewData.slice(0, 100).map((row, idx) => (
-                      <tr key={idx} style={{ backgroundColor: duplicateRowIndices.includes(row.rowIndex) ? '#ffcccc' : 'inherit' }}>
+                      <tr
+                        key={idx}
+                        style={{
+                          backgroundColor: duplicateRowIndices.includes(
+                            row.rowIndex,
+                          )
+                            ? "#ffcccc"
+                            : "inherit",
+                        }}
+                      >
                         <td>{idx + 1}</td>
-                        <td style={{ backgroundColor: !row.center_name ? '#ffcccc' : 'inherit' }}>{row.center_name || "-"}</td>
+                        <td
+                          style={{
+                            backgroundColor: !row.center_name
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.center_name || "-"}
+                        </td>
                         <td>{row.vidhan_sabha_name || "-"}</td>
                         <td>{row.vikas_khand_name || "-"}</td>
-                        <td style={{ backgroundColor: !row.scheme_name ? '#ffcccc' : 'inherit' }}>{row.scheme_name || "-"}</td>
-                        <td style={{ backgroundColor: !row.source_of_receipt ? '#ffcccc' : 'inherit' }}>{row.source_of_receipt || "-"}</td>
-                        <td style={{ backgroundColor: !row.investment_name ? '#ffcccc' : 'inherit' }}>{row.investment_name || "-"}</td>
+                        <td
+                          style={{
+                            backgroundColor: !row.scheme_name
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.scheme_name || "-"}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: !row.source_of_receipt
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.source_of_receipt || "-"}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: !row.investment_name
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.investment_name || "-"}
+                        </td>
                         <td>{row.sub_investment_name || "-"}</td>
-                        <td style={{ backgroundColor: !row.unit ? '#ffcccc' : 'inherit' }}>{row.unit || "-"}</td>
-                        <td style={{ backgroundColor: isNaN(parseInt(row.allocated_quantity)) ? '#ffcccc' : 'inherit' }}>{row.allocated_quantity || "-"}</td>
-                        <td style={{ backgroundColor: isNaN(parseFloat(row.rate)) ? '#ffcccc' : 'inherit' }}>{row.rate || "-"}</td>
+                        <td
+                          style={{
+                            backgroundColor: !row.unit ? "#ffcccc" : "inherit",
+                          }}
+                        >
+                          {row.unit || "-"}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: isNaN(
+                              parseInt(row.allocated_quantity),
+                            )
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.allocated_quantity || "-"}
+                        </td>
+                        <td
+                          style={{
+                            backgroundColor: isNaN(parseFloat(row.rate))
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.rate || "-"}
+                        </td>
                         <td>{row.amount_of_farmer_share || "-"}</td>
                         <td>{row.amount_of_subsidy || "-"}</td>
                         <td>{row.total_amount || "-"}</td>
-                        <td style={{ backgroundColor: !/^\d{2}\/\d{2}\/\d{4}$/.test(row.original_bill_date) ? '#ffcccc' : 'inherit' }}>{row.original_bill_date || "-"}</td>
+                        <td
+                          style={{
+                            backgroundColor: !/^\d{2}\/\d{2}\/\d{4}$/.test(
+                              row.original_bill_date,
+                            )
+                              ? "#ffcccc"
+                              : "inherit",
+                          }}
+                        >
+                          {row.original_bill_date || "-"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -4191,16 +4664,26 @@ const Registration = () => {
             {validationErrorsList.length > 0 && (
               <div className="w-100 mb-3">
                 <Alert variant="warning" className="small-fonts mb-0">
-                  <strong>⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:</strong>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                  <strong>
+                    ⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:
+                  </strong>
+                  <div style={{ maxHeight: "150px", overflowY: "auto" }}>
                     {validationErrorsList.slice(0, 10).map((err, errIdx) => (
                       <div key={errIdx} className="mt-1">
-                        <span className="badge bg-danger me-1">पंक्ति {err.rowIndex - 1}</span>
-                        {err.errors.map((e, i) => <span key={i} className="d-block text-danger">{e}</span>)}
+                        <span className="badge bg-danger me-1">
+                          पंक्ति {err.rowIndex - 1}
+                        </span>
+                        {err.errors.map((e, i) => (
+                          <span key={i} className="d-block text-danger">
+                            {e}
+                          </span>
+                        ))}
                       </div>
                     ))}
                     {validationErrorsList.length > 10 && (
-                      <div className="text-muted">... और {validationErrorsList.length - 10} और त्रुटियां</div>
+                      <div className="text-muted">
+                        ... और {validationErrorsList.length - 10} और त्रुटियां
+                      </div>
                     )}
                   </div>
                 </Alert>
@@ -4210,7 +4693,9 @@ const Registration = () => {
                     size="sm"
                     className="mt-2"
                     onClick={() => {
-                      const duplicates = previewData.filter(row => duplicateRowIndices.includes(row.rowIndex));
+                      const duplicates = previewData.filter((row) =>
+                        duplicateRowIndices.includes(row.rowIndex),
+                      );
                       setAllDuplicateEntries(duplicates);
                       setShowAllDuplicatesModal(true);
                     }}
@@ -4221,18 +4706,28 @@ const Registration = () => {
               </div>
             )}
             <div className="d-flex justify-content-between w-100">
-              <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+              <Button
+                variant="secondary"
+                onClick={() => setShowPreviewModal(false)}
+              >
                 रद्द करें
               </Button>
               {(() => {
-                const validCount = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex)).length;
+                const validCount = previewData.filter(
+                  (row) =>
+                    !validationErrorsList.some(
+                      (err) => err.rowIndex === row.rowIndex,
+                    ),
+                ).length;
                 return (
                   <Button
                     variant="primary"
                     onClick={handleConfirmUpload}
                     disabled={validCount === 0}
                   >
-                    {validCount > 0 ? `${validCount} रिकॉर्ड अपलोड करें` : 'कोई मान्य रिकॉर्ड नहीं'}
+                    {validCount > 0
+                      ? `${validCount} रिकॉर्ड अपलोड करें`
+                      : "कोई मान्य रिकॉर्ड नहीं"}
                   </Button>
                 );
               })()}
@@ -4240,65 +4735,75 @@ const Registration = () => {
           </Modal.Footer>
         </Modal>
 
-              {/* All Duplicates Modal */}
-              <Modal show={showAllDuplicatesModal} onHide={() => setShowAllDuplicatesModal(false)} size="lg" centered>
-                <Modal.Header closeButton>
-                  <Modal.Title>सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})</Modal.Title>
-                </Modal.Header>
-                <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
-                  {allDuplicateEntries.length === 0 ? (
-                    <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
-                  ) : (
-                    <Table striped bordered hover size="sm" className="small-fonts">
-                      <thead>
-                        <tr>
-                          <th>क्र.सं. (Excel)</th>
-                          <th>केंद्र का नाम</th>
-                          <th>विधानसभा का नाम</th>
-                          <th>विकास खंड का नाम</th>
-                          <th>योजना का नाम</th>
-                          <th>इकाई</th>
-                          <th>सप्लायर</th>
-                          <th>निवेश का नाम</th>
-                          <th>उप-निवेश का नाम</th>
-                          <th>आवंटित मात्रा</th>
-                          <th>दर</th>
-                          <th>किसान का हिस्सा</th>
-                          <th>सब्सिडी राशि</th>
-                          <th>कुल राशि</th>
-                          <th>पंजीकरण तिथि</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allDuplicateEntries.map((row, idx) => (
-                          <tr key={idx} style={{ backgroundColor: '#ffcccc' }}>
-                            <td>{row.rowIndex - 1}</td>
-                            <td>{row.center_name || "-"}</td>
-                            <td>{row.vidhan_sabha_name || "-"}</td>
-                            <td>{row.vikas_khand_name || "-"}</td>
-                            <td>{row.scheme_name || "-"}</td>
-                            <td>{row.unit || "-"}</td>
-                            <td>{row.source_of_receipt || "-"}</td>
-                            <td>{row.investment_name || "-"}</td>
-                            <td>{row.sub_investment_name || "-"}</td>
-                            <td>{row.allocated_quantity || "-"}</td>
-                            <td>{row.rate || "-"}</td>
-                            <td>{row.amount_of_farmer_share || "-"}</td>
-                            <td>{row.amount_of_subsidy || "-"}</td>
-                            <td>{row.total_amount || "-"}</td>
-                            <td>{row.original_bill_date || "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  )}
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowAllDuplicatesModal(false)}>
-                    बंद करें
-                  </Button>
-                </Modal.Footer>
-              </Modal>
+        {/* All Duplicates Modal */}
+        <Modal
+          show={showAllDuplicatesModal}
+          onHide={() => setShowAllDuplicatesModal(false)}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>
+              सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+            {allDuplicateEntries.length === 0 ? (
+              <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
+            ) : (
+              <Table striped bordered hover size="sm" className="small-fonts">
+                <thead>
+                  <tr>
+                    <th>क्र.सं. (Excel)</th>
+                    <th>केंद्र का नाम</th>
+                    <th>विधानसभा का नाम</th>
+                    <th>विकास खंड का नाम</th>
+                    <th>योजना का नाम</th>
+                    <th>इकाई</th>
+                    <th>सप्लायर</th>
+                    <th>निवेश का नाम</th>
+                    <th>उप-निवेश का नाम</th>
+                    <th>आवंटित मात्रा</th>
+                    <th>दर</th>
+                    <th>किसान का हिस्सा</th>
+                    <th>सब्सिडी राशि</th>
+                    <th>कुल राशि</th>
+                    <th>पंजीकरण तिथि</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allDuplicateEntries.map((row, idx) => (
+                    <tr key={idx} style={{ backgroundColor: "#ffcccc" }}>
+                      <td>{row.rowIndex - 1}</td>
+                      <td>{row.center_name || "-"}</td>
+                      <td>{row.vidhan_sabha_name || "-"}</td>
+                      <td>{row.vikas_khand_name || "-"}</td>
+                      <td>{row.scheme_name || "-"}</td>
+                      <td>{row.unit || "-"}</td>
+                      <td>{row.source_of_receipt || "-"}</td>
+                      <td>{row.investment_name || "-"}</td>
+                      <td>{row.sub_investment_name || "-"}</td>
+                      <td>{row.allocated_quantity || "-"}</td>
+                      <td>{row.rate || "-"}</td>
+                      <td>{row.amount_of_farmer_share || "-"}</td>
+                      <td>{row.amount_of_subsidy || "-"}</td>
+                      <td>{row.total_amount || "-"}</td>
+                      <td>{row.original_bill_date || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowAllDuplicatesModal(false)}
+            >
+              बंद करें
+            </Button>
+          </Modal.Footer>
+        </Modal>
 
         {/* Failed Rows Display after Upload */}
         {failedRows.length > 0 && !isUploading && (
@@ -4342,7 +4847,15 @@ const Registration = () => {
                     <td>{row.data?.amount_of_farmer_share || "-"}</td>
                     <td>{row.data?.amount_of_subsidy || "-"}</td>
                     <td>{row.data?.total_amount || "-"}</td>
-                    <td style={{ backgroundColor: row.reason?.includes('तिथि') ? '#ffcccc' : 'inherit' }}>{row.data?.original_bill_date || "-"}</td>
+                    <td
+                      style={{
+                        backgroundColor: row.reason?.includes("तिथि")
+                          ? "#ffcccc"
+                          : "inherit",
+                      }}
+                    >
+                      {row.data?.original_bill_date || "-"}
+                    </td>
                     <td>{row.reason}</td>
                   </tr>
                 ))}
@@ -4358,15 +4871,23 @@ const Registration = () => {
       </Container>
 
       {/* Center Name Correction Modal */}
-      <Modal show={showCenterNameCorrectionModal} onHide={() => setShowCenterNameCorrectionModal(false)} size="lg" centered>
+      <Modal
+        show={showCenterNameCorrectionModal}
+        onHide={() => setShowCenterNameCorrectionModal(false)}
+        size="lg"
+        centered
+      >
         <Modal.Header closeButton>
-          <Modal.Title>केंद्र नाम सुधार ({centerNameCorrections.length} रिकॉर्ड)</Modal.Title>
+          <Modal.Title>
+            केंद्र नाम सुधार ({centerNameCorrections.length} रिकॉर्ड)
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
           <Alert variant="warning" className="small-fonts">
             <strong>निम्न केंद्र नामों में बोलचाल की भिन्नता पाई गई है:</strong>
             <br />
-            कृपया पुष्टि करें कि आप इन नामों को सिस्टम में उपलब्ध सही नामों से बदलना चाहते हैं।
+            कृपया पुष्टि करें कि आप इन नामों को सिस्टम में उपलब्ध सही नामों से
+            बदलना चाहते हैं।
           </Alert>
           <Table striped bordered hover size="sm" className="small-fonts">
             <thead>
@@ -4380,26 +4901,37 @@ const Registration = () => {
               {centerNameCorrections.map((correction, idx) => (
                 <tr key={idx}>
                   <td>{correction.rowIndex}</td>
-                  <td style={{ color: 'red' }}>{correction.original}</td>
-                  <td style={{ color: 'green', fontWeight: 'bold' }}>{correction.corrected}</td>
+                  <td style={{ color: "red" }}>{correction.original}</td>
+                  <td style={{ color: "green", fontWeight: "bold" }}>
+                    {correction.corrected}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </Table>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => {
-            const correctedRows = applyCenterNameCorrections(previewData, centerNameCorrections);
-            setPreviewData(correctedRows);
-            setShowCenterNameCorrectionModal(false);
-            setShowPreviewModal(true);
-          }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const correctedRows = applyCenterNameCorrections(
+                previewData,
+                centerNameCorrections,
+              );
+              setPreviewData(correctedRows);
+              setShowCenterNameCorrectionModal(false);
+              setShowPreviewModal(true);
+            }}
+          >
             सुधार करें और आगे बढ़ें
           </Button>
-          <Button variant="primary" onClick={() => {
-            setShowCenterNameCorrectionModal(false);
-            setShowPreviewModal(true);
-          }}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setShowCenterNameCorrectionModal(false);
+              setShowPreviewModal(true);
+            }}
+          >
             बिना सुधार के आगे बढ़ें
           </Button>
         </Modal.Footer>

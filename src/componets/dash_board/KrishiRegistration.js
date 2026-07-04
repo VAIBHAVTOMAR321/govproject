@@ -23,7 +23,13 @@ import "../../assets/css/registration.css";
 
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
-import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, getTodayInDisplayFormat, getTodayInBackendFormat } from "../../utils/dateUtils";
+import {
+  convertToBackendFormat,
+  convertToDisplayFormat,
+  parseDateFromExcel,
+  getTodayInDisplayFormat,
+  getTodayInBackendFormat,
+} from "../../utils/dateUtils";
 
 // API URLs
 const BENEFICIARIES_API_URL =
@@ -64,7 +70,7 @@ const centerOptions = [
   "गंगाभोगपुर",
   "दिउली",
   "दुगड्डा",
-  "सेंधीखाल"
+  "सेंधीखाल",
 ];
 
 // Static options for form fields
@@ -148,28 +154,10 @@ const beneficiariesTableColumnMapping = {
 };
 
 // Helper function to calculate financial year dates (April 1 to March 31)
-const getFinancialYearDates = () => {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();
-  
-  let fromDate, toDate;
-  
-  // If current month is April (3) or later, FY is current year April to next year March
-  // If current month is before April (Jan-Mar), FY is previous year April to current year March
-  if (currentMonth >= 3) {
-    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
-    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
-  } else {
-    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
-    toDate = new Date(currentYear, 2, 31); // March 31 of current year
-  }
-  
-  return {
-    start_date: fromDate.toISOString().split('T')[0],
-    end_date: toDate.toISOString().split('T')[0],
-  };
-};
+const getFinancialYearDates = () => ({
+  start_date: "2026-04-01",
+  end_date: "2027-03-31",
+});
 
 // Hindi translations for form
 const translations = {
@@ -329,10 +317,11 @@ const KrishiRegistration = () => {
   const [showAllDuplicatesModal, setShowAllDuplicatesModal] = useState(false);
   const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const [centerNameCorrections, setCenterNameCorrections] = useState([]);
-  const [showCenterNameCorrectionModal, setShowCenterNameCorrectionModal] = useState(false);
+  const [showCenterNameCorrectionModal, setShowCenterNameCorrectionModal] =
+    useState(false);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
-    beneficiariesTableColumns.map((col) => col.key)
+    beneficiariesTableColumns.map((col) => col.key),
   );
   const [isLoading, setIsLoading] = useState(true);
   const [vikasKhandData, setVikasKhandData] = useState(null);
@@ -353,14 +342,6 @@ const KrishiRegistration = () => {
       [tableKey]: !prev[tableKey],
     }));
   };
-
-
-
-
-
-
-
-
 
   // Dynamic form options - initialized with static values
   const [formOptions, setFormOptions] = useState({
@@ -410,7 +391,7 @@ const KrishiRegistration = () => {
   // State for new created_at date filter (separate from existing date range filters)
   const [createdAtFilter, setCreatedAtFilter] = useState({
     selectedDate: "", // For dropdown selection
-    manualDate: "",   // For manual calendar selection
+    manualDate: "", // For manual calendar selection
     showManualPicker: false, // Toggle for manual date picker
   });
 
@@ -429,28 +410,32 @@ const KrishiRegistration = () => {
   });
 
   // Function to merge static options with dynamic options from API
-  const mergeStaticAndDynamicOptions = (staticOptions, dynamicOptions, existingData) => {
+  const mergeStaticAndDynamicOptions = (
+    staticOptions,
+    dynamicOptions,
+    existingData,
+  ) => {
     // Create a Set to store unique values
     const mergedOptions = new Set(staticOptions);
-    
+
     // Add dynamic options from API
     if (dynamicOptions && Array.isArray(dynamicOptions)) {
-      dynamicOptions.forEach(option => {
-        if (option && typeof option === 'string') {
+      dynamicOptions.forEach((option) => {
+        if (option && typeof option === "string") {
           mergedOptions.add(option);
         }
       });
     }
-    
+
     // Add existing values from table data
     if (existingData && Array.isArray(existingData)) {
-      existingData.forEach(item => {
-        if (item && typeof item === 'string') {
+      existingData.forEach((item) => {
+        if (item && typeof item === "string") {
           mergedOptions.add(item);
         }
       });
     }
-    
+
     // Convert Set back to Array and sort
     return Array.from(mergedOptions).sort();
   };
@@ -470,7 +455,7 @@ const KrishiRegistration = () => {
       const items = Array.isArray(data) ? data : [];
       setBeneficiaries(items);
       setAllBeneficiaries(items);
-      
+
       // Update form options with existing data
       updateFormOptionsWithExistingData(items);
     } catch (error) {
@@ -484,19 +469,29 @@ const KrishiRegistration = () => {
   // Function to update form options with existing data from table
   const updateFormOptionsWithExistingData = (data) => {
     if (!data || !Array.isArray(data)) return;
-    
+
     // Extract unique values from existing data
-    const suppliedItems = [...new Set(data.map(item => item.supplied_item_name).filter(Boolean))];
-    const units = [...new Set(data.map(item => item.unit).filter(Boolean))];
-    const categories = [...new Set(data.map(item => item.category).filter(Boolean))];
-    const schemes = [...new Set(data.map(item => item.scheme_name).filter(Boolean))];
-    
+    const suppliedItems = [
+      ...new Set(data.map((item) => item.supplied_item_name).filter(Boolean)),
+    ];
+    const units = [...new Set(data.map((item) => item.unit).filter(Boolean))];
+    const categories = [
+      ...new Set(data.map((item) => item.category).filter(Boolean)),
+    ];
+    const schemes = [
+      ...new Set(data.map((item) => item.scheme_name).filter(Boolean)),
+    ];
+
     // Update form options with merged static and dynamic values
-    setFormOptions(prev => ({
+    setFormOptions((prev) => ({
       ...prev,
       supplied_item_name: mergeStaticAndDynamicOptions([], suppliedItems, []),
       unit: mergeStaticAndDynamicOptions(staticUnitOptions, units, []),
-      category: mergeStaticAndDynamicOptions(staticCategoryOptions, categories, []),
+      category: mergeStaticAndDynamicOptions(
+        staticCategoryOptions,
+        categories,
+        [],
+      ),
       scheme_name: mergeStaticAndDynamicOptions([], schemes, []),
     }));
   };
@@ -507,17 +502,17 @@ const KrishiRegistration = () => {
       // Clear the relevant fields if no center is selected
       if (isEditMode) {
         setEditingVikasKhandData(null);
-        setEditingValues(prev => ({
+        setEditingValues((prev) => ({
           ...prev,
           vikas_khand_name: "",
-          vidhan_sabha_name: ""
+          vidhan_sabha_name: "",
         }));
       } else {
         setVikasKhandData(null);
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           vikas_khand_name: "",
-          vidhan_sabha_name: ""
+          vidhan_sabha_name: "",
         }));
       }
       return;
@@ -527,20 +522,20 @@ const KrishiRegistration = () => {
       if (isEditMode) {
         setIsFetchingVikasKhand(true);
       }
-      
+
       // Log the exact center name being sent
       console.log("Fetching vikas khand for center:", centerName);
-      
+
       const response = await axios.get(
-        `${VIKAS_KHAND_API_URL}?center_name=${encodeURIComponent(centerName)}`
+        `${VIKAS_KHAND_API_URL}?center_name=${encodeURIComponent(centerName)}`,
       );
-      
+
       console.log("API response status:", response.status);
       console.log("API response data:", response.data);
-      
+
       // Handle different response structures
       let vikasData = null;
-      
+
       if (Array.isArray(response.data)) {
         if (response.data.length > 0) {
           vikasData = response.data[0];
@@ -552,21 +547,21 @@ const KrishiRegistration = () => {
           vikasData = response.data.data;
         }
       }
-      
+
       if (vikasData) {
         if (isEditMode) {
           setEditingVikasKhandData(vikasData);
-          setEditingValues(prev => ({
+          setEditingValues((prev) => ({
             ...prev,
             vikas_khand_name: vikasData.vikas_khand_name || "",
-            vidhan_sabha_name: vikasData.vidhan_sabha_name || ""
+            vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
           }));
         } else {
           setVikasKhandData(vikasData);
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             vikas_khand_name: vikasData.vikas_khand_name || "",
-            vidhan_sabha_name: vikasData.vidhan_sabha_name || ""
+            vidhan_sabha_name: vikasData.vidhan_sabha_name || "",
           }));
         }
         console.log("Successfully fetched vikas khand data:", vikasData);
@@ -575,17 +570,17 @@ const KrishiRegistration = () => {
         // Clear fields when no data is found
         if (isEditMode) {
           setEditingVikasKhandData(null);
-          setEditingValues(prev => ({
+          setEditingValues((prev) => ({
             ...prev,
             vikas_khand_name: "",
-            vidhan_sabha_name: ""
+            vidhan_sabha_name: "",
           }));
         } else {
           setVikasKhandData(null);
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             vikas_khand_name: "",
-            vidhan_sabha_name: ""
+            vidhan_sabha_name: "",
           }));
         }
       }
@@ -597,21 +592,21 @@ const KrishiRegistration = () => {
       } else {
         setApiError(`Failed to fetch Vikas Khand data: ${error.message}`);
       }
-      
+
       // Clear fields on error
       if (isEditMode) {
         setEditingVikasKhandData(null);
-        setEditingValues(prev => ({
+        setEditingValues((prev) => ({
           ...prev,
           vikas_khand_name: "",
-          vidhan_sabha_name: ""
+          vidhan_sabha_name: "",
         }));
       } else {
         setVikasKhandData(null);
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           vikas_khand_name: "",
-          vidhan_sabha_name: ""
+          vidhan_sabha_name: "",
         }));
       }
     } finally {
@@ -638,20 +633,24 @@ const KrishiRegistration = () => {
   };
 
   // Updated fetch form filters function to accept center_name parameter
-  const fetchFormFilters = async (suppliedItemName = "", category = "", centerName = "") => {
+  const fetchFormFilters = async (
+    suppliedItemName = "",
+    category = "",
+    centerName = "",
+  ) => {
     try {
       setIsLoadingFilters(true);
       let url = FORM_FILTERS_API_URL;
       const params = [];
-      
+
       // Add center_name parameter if provided
       if (centerName) {
         params.push(`center_name=${encodeURIComponent(centerName)}`);
       }
-      
+
       if (suppliedItemName)
         params.push(
-          `supplied_item_name=${encodeURIComponent(suppliedItemName)}`
+          `supplied_item_name=${encodeURIComponent(suppliedItemName)}`,
         );
       if (category) params.push(`category=${encodeURIComponent(category)}`);
       if (params.length > 0) url += "?" + params.join("&");
@@ -662,24 +661,25 @@ const KrishiRegistration = () => {
       console.log("API response:", data);
 
       // Get existing data from beneficiaries
-      const existingData = allBeneficiaries.filter(item => 
-        !centerName || item.center_name === centerName
+      const existingData = allBeneficiaries.filter(
+        (item) => !centerName || item.center_name === centerName,
       );
-      
+
       // Extract dynamic options from API response
       let dynamicSuppliedItems = [];
       let dynamicUnits = [];
       let dynamicCategories = [];
       let dynamicSchemes = [];
-      
+
       // Handle different response structures
-      if (data && typeof data === 'object') {
+      if (data && typeof data === "object") {
         if (data.success && data.data) {
           // If response has success and data properties
           if (Array.isArray(data.data)) {
             // If data.data is an array, extract values from each item
-            data.data.forEach(item => {
-              if (item.supplied_item_name) dynamicSuppliedItems.push(item.supplied_item_name);
+            data.data.forEach((item) => {
+              if (item.supplied_item_name)
+                dynamicSuppliedItems.push(item.supplied_item_name);
               if (item.unit) dynamicUnits.push(item.unit);
               if (item.category) dynamicCategories.push(item.category);
               if (item.scheme_name) dynamicSchemes.push(item.scheme_name);
@@ -693,11 +693,13 @@ const KrishiRegistration = () => {
           }
         } else if (Array.isArray(data)) {
           // If response is an array, extract values directly
-          data.forEach(item => {
-            if (item.supplied_item_name || item.name) dynamicSuppliedItems.push(item.supplied_item_name || item.name);
+          data.forEach((item) => {
+            if (item.supplied_item_name || item.name)
+              dynamicSuppliedItems.push(item.supplied_item_name || item.name);
             if (item.unit) dynamicUnits.push(item.unit);
             if (item.category) dynamicCategories.push(item.category);
-            if (item.scheme_name || item.name) dynamicSchemes.push(item.scheme_name || item.name);
+            if (item.scheme_name || item.name)
+              dynamicSchemes.push(item.scheme_name || item.name);
           });
         } else {
           // If response is an object, extract values from properties
@@ -707,36 +709,36 @@ const KrishiRegistration = () => {
           dynamicSchemes = data.scheme_name || [];
         }
       }
-      
+
       console.log("Dynamic options extracted:", {
         suppliedItems: dynamicSuppliedItems,
         units: dynamicUnits,
         categories: dynamicCategories,
-        schemes: dynamicSchemes
+        schemes: dynamicSchemes,
       });
-      
+
       // Update form options with merged static and dynamic values
       setFormOptions((prev) => ({
         ...prev,
         supplied_item_name: mergeStaticAndDynamicOptions(
-          [], 
-          dynamicSuppliedItems, 
-          existingData.map(item => item.supplied_item_name).filter(Boolean)
+          [],
+          dynamicSuppliedItems,
+          existingData.map((item) => item.supplied_item_name).filter(Boolean),
         ),
         unit: mergeStaticAndDynamicOptions(
-          staticUnitOptions, 
-          dynamicUnits, 
-          existingData.map(item => item.unit).filter(Boolean)
+          staticUnitOptions,
+          dynamicUnits,
+          existingData.map((item) => item.unit).filter(Boolean),
         ),
         category: mergeStaticAndDynamicOptions(
-          staticCategoryOptions, 
-          dynamicCategories, 
-          existingData.map(item => item.category).filter(Boolean)
+          staticCategoryOptions,
+          dynamicCategories,
+          existingData.map((item) => item.category).filter(Boolean),
         ),
         scheme_name: mergeStaticAndDynamicOptions(
-          [], 
-          dynamicSchemes, 
-          existingData.map(item => item.scheme_name).filter(Boolean)
+          [],
+          dynamicSchemes,
+          existingData.map((item) => item.scheme_name).filter(Boolean),
         ),
       }));
     } catch (error) {
@@ -750,61 +752,70 @@ const KrishiRegistration = () => {
   // Add a new function to fetch supplied items for a center
   const fetchSuppliedItemsForCenter = async (centerName) => {
     if (!centerName) return;
-    
+
     try {
       setIsLoadingFilters(true);
       console.log("Fetching supplied items for center:", centerName);
-      
+
       // Try different API endpoints
       let response;
       try {
         // First try with the existing endpoint
         response = await axios.get(
-          `${FORM_FILTERS_API_URL}?center_name=${encodeURIComponent(centerName)}`
+          `${FORM_FILTERS_API_URL}?center_name=${encodeURIComponent(centerName)}`,
         );
       } catch (error) {
         console.log("Failed with existing endpoint, trying alternative...");
         // Try an alternative endpoint
         response = await axios.get(
-          `${FORM_FILTERS_API_URL}supplied-items/?center_name=${encodeURIComponent(centerName)}`
+          `${FORM_FILTERS_API_URL}supplied-items/?center_name=${encodeURIComponent(centerName)}`,
         );
       }
-      
+
       console.log("Supplied items response:", response.data);
-      
+
       // Get existing data from beneficiaries for this center
-      const existingData = allBeneficiaries.filter(item => item.center_name === centerName);
-      
+      const existingData = allBeneficiaries.filter(
+        (item) => item.center_name === centerName,
+      );
+
       // Extract the supplied items from the response
       let suppliedItems = [];
       if (response.data && response.data.success && response.data.data) {
         if (Array.isArray(response.data.data)) {
-          response.data.data.forEach(item => {
-            if (item.supplied_item_name || item.name) suppliedItems.push(item.supplied_item_name || item.name);
+          response.data.data.forEach((item) => {
+            if (item.supplied_item_name || item.name)
+              suppliedItems.push(item.supplied_item_name || item.name);
           });
         } else {
           suppliedItems = response.data.data.supplied_item_name || [];
         }
       } else if (response.data && Array.isArray(response.data)) {
-        response.data.forEach(item => {
-          if (item.name || item.supplied_item_name) suppliedItems.push(item.name || item.supplied_item_name);
+        response.data.forEach((item) => {
+          if (item.name || item.supplied_item_name)
+            suppliedItems.push(item.name || item.supplied_item_name);
         });
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        response.data.data.forEach(item => {
-          if (item.name || item.supplied_item_name) suppliedItems.push(item.name || item.supplied_item_name);
+      } else if (
+        response.data &&
+        response.data.data &&
+        Array.isArray(response.data.data)
+      ) {
+        response.data.data.forEach((item) => {
+          if (item.name || item.supplied_item_name)
+            suppliedItems.push(item.name || item.supplied_item_name);
         });
       }
-      
+
       // Update form options with merged static and dynamic values
-      setFormOptions(prev => ({
+      setFormOptions((prev) => ({
         ...prev,
         supplied_item_name: mergeStaticAndDynamicOptions(
-          [], 
-          suppliedItems, 
-          existingData.map(item => item.supplied_item_name).filter(Boolean)
-        )
+          [],
+          suppliedItems,
+          existingData.map((item) => item.supplied_item_name).filter(Boolean),
+        ),
       }));
-      
+
       console.log("Updated supplied items:", formOptions.supplied_item_name);
     } catch (error) {
       console.error("Error fetching supplied items for center:", error);
@@ -839,50 +850,54 @@ const KrishiRegistration = () => {
       setFilterOptions({
         farmer_name: [
           ...new Set(
-            allBeneficiaries.map((item) => item.farmer_name).filter(Boolean)
+            allBeneficiaries.map((item) => item.farmer_name).filter(Boolean),
           ),
         ],
         center_name: [
           ...new Set(
-            allBeneficiaries.map((item) => item.center_name).filter(Boolean)
+            allBeneficiaries.map((item) => item.center_name).filter(Boolean),
           ),
         ],
         supplied_item_name: [
           ...new Set(
             allBeneficiaries
               .map((item) => item.supplied_item_name)
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ],
         category: [
           ...new Set(
-            allBeneficiaries.map((item) => item.category).filter(Boolean)
+            allBeneficiaries.map((item) => item.category).filter(Boolean),
           ),
         ],
         scheme_name: [
           ...new Set(
-            allBeneficiaries.map((item) => item.scheme_name).filter(Boolean)
+            allBeneficiaries.map((item) => item.scheme_name).filter(Boolean),
           ),
         ],
         vikas_khand_name: [
           ...new Set(
             allBeneficiaries
               .map((item) => item.vikas_khand_name)
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ],
         vidhan_sabha_name: [
           ...new Set(
             allBeneficiaries
               .map((item) => item.vidhan_sabha_name)
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ],
       });
 
       // Extract unique created_at dates for the new date filter
       const createdAtDates = allBeneficiaries
-        .map((item) => item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : null)
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
         .filter(Boolean);
       const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
       setUniqueCreatedAtDates(uniqueDates);
@@ -892,11 +907,11 @@ const KrishiRegistration = () => {
   // Apply local filtering when filters change
   useEffect(() => {
     let filtered = allBeneficiaries;
-    
+
     const hasFilters = Object.keys(filters).some((key) =>
       Array.isArray(filters[key])
         ? filters[key].length > 0
-        : filters[key].trim()
+        : filters[key].trim(),
     );
     if (hasFilters) {
       filtered = allBeneficiaries.filter((item) => {
@@ -930,19 +945,19 @@ const KrishiRegistration = () => {
         return true;
       });
     }
-    
+
     // Apply created_at filter on top of other filters
     if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
       const { selectedDate, manualDate } = createdAtFilter;
       const filterDate = selectedDate || manualDate;
-      
+
       filtered = filtered.filter((item) => {
         if (!item.created_at) return false;
-        const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+        const itemDate = new Date(item.created_at).toISOString().split("T")[0];
         return itemDate === filterDate;
       });
     }
-    
+
     setBeneficiaries(filtered);
   }, [filters, allBeneficiaries, createdAtFilter]);
 
@@ -995,12 +1010,20 @@ const KrishiRegistration = () => {
       .sort((a, b) => b.count - a.count);
   };
 
-  const getCrossSummary = (groupByKey, filterKey = null, filterValue = null) => {
+  const getCrossSummary = (
+    groupByKey,
+    filterKey = null,
+    filterValue = null,
+  ) => {
     const groups = {};
     const items = beneficiaries || [];
-    const filteredItems = filterKey && filterValue 
-      ? items.filter(item => String(item[filterKey]).trim() === String(filterValue).trim())
-      : items;
+    const filteredItems =
+      filterKey && filterValue
+        ? items.filter(
+            (item) =>
+              String(item[filterKey]).trim() === String(filterValue).trim(),
+          )
+        : items;
 
     filteredItems.forEach((item) => {
       const label = item[groupByKey] ? String(item[groupByKey]).trim() : "अन्य";
@@ -1043,7 +1066,13 @@ const KrishiRegistration = () => {
       const colLabel = item[colKey] ? String(item[colKey]).trim() : "अन्य";
       const key = `${rowLabel}||${colLabel}`;
       if (!groups[key]) {
-        groups[key] = { row: rowLabel, col: colLabel, count: 0, quantity: 0, amount: 0 };
+        groups[key] = {
+          row: rowLabel,
+          col: colLabel,
+          count: 0,
+          quantity: 0,
+          amount: 0,
+        };
       }
       groups[key].count += 1;
       const quantity = parseFloat(item.quantity);
@@ -1051,133 +1080,245 @@ const KrishiRegistration = () => {
       groups[key].quantity += Number.isFinite(quantity) ? quantity : 0;
       groups[key].amount += Number.isFinite(amount) ? amount : 0;
     });
-    return Object.values(groups).map(g => ({
+    return Object.values(groups).map((g) => ({
       ...g,
       quantity: roundTo2Decimals(g.quantity),
       amount: roundTo2Decimals(g.amount),
     }));
   };
 
-  const vidhanByScheme = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "scheme_name"), [beneficiaries]);
-  const vidhanBySuppliedItem = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "supplied_item_name"), [beneficiaries]);
-  const vidhanByVikas = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "vikas_khand_name"), [beneficiaries]);
-  const vidhanByCenter = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "center_name"), [beneficiaries]);
+  const vidhanByScheme = useMemo(
+    () => getCrossTabSummary("vidhan_sabha_name", "scheme_name"),
+    [beneficiaries],
+  );
+  const vidhanBySuppliedItem = useMemo(
+    () => getCrossTabSummary("vidhan_sabha_name", "supplied_item_name"),
+    [beneficiaries],
+  );
+  const vidhanByVikas = useMemo(
+    () => getCrossTabSummary("vidhan_sabha_name", "vikas_khand_name"),
+    [beneficiaries],
+  );
+  const vidhanByCenter = useMemo(
+    () => getCrossTabSummary("vidhan_sabha_name", "center_name"),
+    [beneficiaries],
+  );
 
-  const schemeByVidhan = useMemo(() => getCrossTabSummary("scheme_name", "vidhan_sabha_name"), [beneficiaries]);
-  const schemeByVikas = useMemo(() => getCrossTabSummary("scheme_name", "vikas_khand_name"), [beneficiaries]);
-  const schemeBySuppliedItem = useMemo(() => getCrossTabSummary("scheme_name", "supplied_item_name"), [beneficiaries]);
-  const schemeByCenter = useMemo(() => getCrossTabSummary("scheme_name", "center_name"), [beneficiaries]);
+  const schemeByVidhan = useMemo(
+    () => getCrossTabSummary("scheme_name", "vidhan_sabha_name"),
+    [beneficiaries],
+  );
+  const schemeByVikas = useMemo(
+    () => getCrossTabSummary("scheme_name", "vikas_khand_name"),
+    [beneficiaries],
+  );
+  const schemeBySuppliedItem = useMemo(
+    () => getCrossTabSummary("scheme_name", "supplied_item_name"),
+    [beneficiaries],
+  );
+  const schemeByCenter = useMemo(
+    () => getCrossTabSummary("scheme_name", "center_name"),
+    [beneficiaries],
+  );
 
-  const vikasByVidhan = useMemo(() => getCrossTabSummary("vikas_khand_name", "vidhan_sabha_name"), [beneficiaries]);
-  const vikasByScheme = useMemo(() => getCrossTabSummary("vikas_khand_name", "scheme_name"), [beneficiaries]);
-  const vikasBySuppliedItem = useMemo(() => getCrossTabSummary("vikas_khand_name", "supplied_item_name"), [beneficiaries]);
-  const vikasByCenter = useMemo(() => getCrossTabSummary("vikas_khand_name", "center_name"), [beneficiaries]);
+  const vikasByVidhan = useMemo(
+    () => getCrossTabSummary("vikas_khand_name", "vidhan_sabha_name"),
+    [beneficiaries],
+  );
+  const vikasByScheme = useMemo(
+    () => getCrossTabSummary("vikas_khand_name", "scheme_name"),
+    [beneficiaries],
+  );
+  const vikasBySuppliedItem = useMemo(
+    () => getCrossTabSummary("vikas_khand_name", "supplied_item_name"),
+    [beneficiaries],
+  );
+  const vikasByCenter = useMemo(
+    () => getCrossTabSummary("vikas_khand_name", "center_name"),
+    [beneficiaries],
+  );
 
-  const centerByScheme = useMemo(() => getCrossTabSummary("center_name", "scheme_name"), [beneficiaries]);
-  const vikasByAddress = useMemo(() => getCrossTabSummary("vikas_khand_name", "address"), [beneficiaries]);
-  const vidhanByAddress = useMemo(() => getCrossTabSummary("vidhan_sabha_name", "address"), [beneficiaries]);
-  const centerByAddress = useMemo(() => getCrossTabSummary("center_name", "address"), [beneficiaries]);
-  const schemeByAddress = useMemo(() => getCrossTabSummary("scheme_name", "address"), [beneficiaries]);
-  const suppliedByAddress = useMemo(() => getCrossTabSummary("supplied_item_name", "address"), [beneficiaries]);
+  const centerByScheme = useMemo(
+    () => getCrossTabSummary("center_name", "scheme_name"),
+    [beneficiaries],
+  );
+  const vikasByAddress = useMemo(
+    () => getCrossTabSummary("vikas_khand_name", "address"),
+    [beneficiaries],
+  );
+  const vidhanByAddress = useMemo(
+    () => getCrossTabSummary("vidhan_sabha_name", "address"),
+    [beneficiaries],
+  );
+  const centerByAddress = useMemo(
+    () => getCrossTabSummary("center_name", "address"),
+    [beneficiaries],
+  );
+  const schemeByAddress = useMemo(
+    () => getCrossTabSummary("scheme_name", "address"),
+    [beneficiaries],
+  );
+  const suppliedByAddress = useMemo(
+    () => getCrossTabSummary("supplied_item_name", "address"),
+    [beneficiaries],
+  );
 
-  const addressByVidhan = useMemo(() => getCrossTabSummary("address", "vidhan_sabha_name"), [beneficiaries]);
-  const addressByScheme = useMemo(() => getCrossTabSummary("address", "scheme_name"), [beneficiaries]);
-  const addressByVikas = useMemo(() => getCrossTabSummary("address", "vikas_khand_name"), [beneficiaries]);
-  const addressByCenter = useMemo(() => getCrossTabSummary("address", "center_name"), [beneficiaries]);
-  const centerByVidhan = useMemo(() => getCrossTabSummary("center_name", "vidhan_sabha_name"), [beneficiaries]);
-  const centerByVikas = useMemo(() => getCrossTabSummary("center_name", "vikas_khand_name"), [beneficiaries]);
-  const centerBySuppliedItem = useMemo(() => getCrossTabSummary("center_name", "supplied_item_name"), [beneficiaries]);
+  const addressByVidhan = useMemo(
+    () => getCrossTabSummary("address", "vidhan_sabha_name"),
+    [beneficiaries],
+  );
+  const addressByScheme = useMemo(
+    () => getCrossTabSummary("address", "scheme_name"),
+    [beneficiaries],
+  );
+  const addressByVikas = useMemo(
+    () => getCrossTabSummary("address", "vikas_khand_name"),
+    [beneficiaries],
+  );
+  const addressByCenter = useMemo(
+    () => getCrossTabSummary("address", "center_name"),
+    [beneficiaries],
+  );
+  const centerByVidhan = useMemo(
+    () => getCrossTabSummary("center_name", "vidhan_sabha_name"),
+    [beneficiaries],
+  );
+  const centerByVikas = useMemo(
+    () => getCrossTabSummary("center_name", "vikas_khand_name"),
+    [beneficiaries],
+  );
+  const centerBySuppliedItem = useMemo(
+    () => getCrossTabSummary("center_name", "supplied_item_name"),
+    [beneficiaries],
+  );
 
-  const suppliedByScheme = useMemo(() => getCrossTabSummary("supplied_item_name", "scheme_name"), [beneficiaries]);
-  const suppliedByVidhan = useMemo(() => getCrossTabSummary("supplied_item_name", "vidhan_sabha_name"), [beneficiaries]);
-  const suppliedByVikas = useMemo(() => getCrossTabSummary("supplied_item_name", "vikas_khand_name"), [beneficiaries]);
-  const suppliedByCenter = useMemo(() => getCrossTabSummary("supplied_item_name", "center_name"), [beneficiaries]);
+  const suppliedByScheme = useMemo(
+    () => getCrossTabSummary("supplied_item_name", "scheme_name"),
+    [beneficiaries],
+  );
+  const suppliedByVidhan = useMemo(
+    () => getCrossTabSummary("supplied_item_name", "vidhan_sabha_name"),
+    [beneficiaries],
+  );
+  const suppliedByVikas = useMemo(
+    () => getCrossTabSummary("supplied_item_name", "vikas_khand_name"),
+    [beneficiaries],
+  );
+  const suppliedByCenter = useMemo(
+    () => getCrossTabSummary("supplied_item_name", "center_name"),
+    [beneficiaries],
+  );
 
   const renderCrossTabTable = (data, rowKey, colKey, title, tableKey) => {
-    const rows = [...new Set(data.map(d => d.row))];
-    const cols = [...new Set(data.map(d => d.col))];
-    const rowLabel = rowKey.replace('_name', '').replace('vidhan_sabha', 'विधानसभा').replace('scheme', 'योजना').replace('vikas_khand', 'विकास खंड').replace('supplied_item', 'वस्तु').replace('center', 'केंद्र');
-    const colLabel = colKey.replace('_name', '').replace('vidhan_sabha', 'विधानसभा').replace('scheme', 'योजना').replace('vikas_khand', 'विकास खंड').replace('supplied_item', 'वस्तु').replace('center', 'केंद्र');
-    
+    const rows = [...new Set(data.map((d) => d.row))];
+    const cols = [...new Set(data.map((d) => d.col))];
+    const rowLabel = rowKey
+      .replace("_name", "")
+      .replace("vidhan_sabha", "विधानसभा")
+      .replace("scheme", "योजना")
+      .replace("vikas_khand", "विकास खंड")
+      .replace("supplied_item", "वस्तु")
+      .replace("center", "केंद्र");
+    const colLabel = colKey
+      .replace("_name", "")
+      .replace("vidhan_sabha", "विधानसभा")
+      .replace("scheme", "योजना")
+      .replace("vikas_khand", "विकास खंड")
+      .replace("supplied_item", "वस्तु")
+      .replace("center", "केंद्र");
+
     // Determine if table is transposed
     const isTransposed = transposedTables[tableKey];
-    
+
     // Use rows or cols based on transposition
     const primaryKeys = isTransposed ? cols : rows;
     const secondaryKeys = isTransposed ? rows : cols;
     const primaryLabel = isTransposed ? colLabel : rowLabel;
-    
+
     const totalByPrimary = {};
-    primaryKeys.forEach(key => {
-      const filterKey = isTransposed ? 'col' : 'row';
-      totalByPrimary[key] = data.filter(d => d[filterKey] === key).reduce((sum, d) => ({
-        count: sum.count + d.count,
-        quantity: sum.quantity + d.quantity,
-        amount: sum.amount + d.amount
-      }), { count: 0, quantity: 0, amount: 0 });
+    primaryKeys.forEach((key) => {
+      const filterKey = isTransposed ? "col" : "row";
+      totalByPrimary[key] = data
+        .filter((d) => d[filterKey] === key)
+        .reduce(
+          (sum, d) => ({
+            count: sum.count + d.count,
+            quantity: sum.quantity + d.quantity,
+            amount: sum.amount + d.amount,
+          }),
+          { count: 0, quantity: 0, amount: 0 },
+        );
     });
 
     // Calculate grand totals
-    const grandTotal = data.reduce((sum, d) => ({
-      count: sum.count + d.count,
-      quantity: sum.quantity + d.quantity,
-      amount: sum.amount + d.amount
-    }), { count: 0, quantity: 0, amount: 0 });
+    const grandTotal = data.reduce(
+      (sum, d) => ({
+        count: sum.count + d.count,
+        quantity: sum.quantity + d.quantity,
+        amount: sum.amount + d.amount,
+      }),
+      { count: 0, quantity: 0, amount: 0 },
+    );
 
     // Calculate secondary totals
     const totalBySecondary = {};
-    secondaryKeys.forEach(key => {
-      const filterKey = isTransposed ? 'row' : 'col';
-      totalBySecondary[key] = data.filter(d => d[filterKey] === key).reduce((sum, d) => ({
-        count: sum.count + d.count,
-        quantity: sum.quantity + d.quantity,
-        amount: sum.amount + d.amount
-      }), { count: 0, quantity: 0, amount: 0 });
+    secondaryKeys.forEach((key) => {
+      const filterKey = isTransposed ? "row" : "col";
+      totalBySecondary[key] = data
+        .filter((d) => d[filterKey] === key)
+        .reduce(
+          (sum, d) => ({
+            count: sum.count + d.count,
+            quantity: sum.quantity + d.quantity,
+            amount: sum.amount + d.amount,
+          }),
+          { count: 0, quantity: 0, amount: 0 },
+        );
     });
-    
+
     // CSS for sticky table layout
     const stickyHeaderStyle = {
-      position: 'sticky',
+      position: "sticky",
       top: 0,
       zIndex: 13,
-      backgroundColor: '#212529',
-      color: 'white'
+      backgroundColor: "#212529",
+      color: "white",
     };
 
     const stickyFirstColHeaderStyle = {
-      position: 'sticky',
+      position: "sticky",
       left: 0,
       top: 0,
       zIndex: 14,
-      backgroundColor: '#212529',
-      color: 'white',
-      verticalAlign: 'middle',
-      minWidth: '120px',
-      maxWidth: '150px'
+      backgroundColor: "#212529",
+      color: "white",
+      verticalAlign: "middle",
+      minWidth: "120px",
+      maxWidth: "150px",
     };
 
     const stickyFirstColBodyStyle = {
-      position: 'sticky',
+      position: "sticky",
       left: 0,
       zIndex: 12,
-      backgroundColor: '#f8f9fa',
-      borderRight: '2px solid #dee2e6',
-      fontWeight: 'bold',
-      minWidth: '120px',
-      maxWidth: '150px'
+      backgroundColor: "#f8f9fa",
+      borderRight: "2px solid #dee2e6",
+      fontWeight: "bold",
+      minWidth: "120px",
+      maxWidth: "150px",
     };
 
     const stickyFirstColTotalStyle = {
-      position: 'sticky',
+      position: "sticky",
       left: 0,
       zIndex: 12,
-      backgroundColor: '#d4edda',
-      borderRight: '2px solid #dee2e6',
-      fontWeight: 'bold',
-      minWidth: '120px',
-      maxWidth: '150px'
+      backgroundColor: "#d4edda",
+      borderRight: "2px solid #dee2e6",
+      fontWeight: "bold",
+      minWidth: "120px",
+      maxWidth: "150px",
     };
-    
+
     return (
       <div className="mb-4 p-3 border rounded">
         <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
@@ -1186,65 +1327,175 @@ const KrishiRegistration = () => {
             onClick={() => toggleTableTranspose(tableKey)}
             className="btn btn-sm btn-outline-info"
             title="टेबल को घुमाएं (Transpose Table)"
-            style={{ padding: '4px 12px', fontSize: '12px' }}
+            style={{ padding: "4px 12px", fontSize: "12px" }}
           >
-            <FaSync style={{ marginRight: '4px', transform: 'rotate(90deg)', display: 'inline-block' }} />
-            {isTransposed ? 'सामान्य' : 'घुमाएं'}
+            <FaSync
+              style={{
+                marginRight: "4px",
+                transform: "rotate(90deg)",
+                display: "inline-block",
+              }}
+            />
+            {isTransposed ? "सामान्य" : "घुमाएं"}
           </button>
         </div>
-        <div style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto', border: '1px solid #dee2e6', borderRadius: '4px' }}>
-          <Table striped bordered hover responsive={false} size="sm" className="mb-0" style={{ width: '100%' }}>
+        <div
+          style={{
+            maxHeight: "500px",
+            overflowY: "auto",
+            overflowX: "auto",
+            border: "1px solid #dee2e6",
+            borderRadius: "4px",
+          }}
+        >
+          <Table
+            striped
+            bordered
+            hover
+            responsive={false}
+            size="sm"
+            className="mb-0"
+            style={{ width: "100%" }}
+          >
             <thead className="table-dark">
               <tr>
-                <th rowSpan="2" style={stickyFirstColHeaderStyle}>{primaryLabel}</th>
-                <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '80px'}}>लाभार्थी</th>
-                <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '90px'}}>कुल मात्रा</th>
-                <th rowSpan="2" style={{...stickyHeaderStyle, verticalAlign: 'middle', minWidth: '100px'}}>कुल देय अनुदान राशि (₹)</th>
-                {secondaryKeys.map(key => (
-                  <th key={key} colSpan="3" className="text-center" style={{...stickyHeaderStyle, minWidth: '150px'}}>{key}</th>
+                <th rowSpan="2" style={stickyFirstColHeaderStyle}>
+                  {primaryLabel}
+                </th>
+                <th
+                  rowSpan="2"
+                  style={{
+                    ...stickyHeaderStyle,
+                    verticalAlign: "middle",
+                    minWidth: "80px",
+                  }}
+                >
+                  लाभार्थी
+                </th>
+                <th
+                  rowSpan="2"
+                  style={{
+                    ...stickyHeaderStyle,
+                    verticalAlign: "middle",
+                    minWidth: "90px",
+                  }}
+                >
+                  कुल मात्रा
+                </th>
+                <th
+                  rowSpan="2"
+                  style={{
+                    ...stickyHeaderStyle,
+                    verticalAlign: "middle",
+                    minWidth: "100px",
+                  }}
+                >
+                  कुल देय अनुदान राशि (₹)
+                </th>
+                {secondaryKeys.map((key) => (
+                  <th
+                    key={key}
+                    colSpan="3"
+                    className="text-center"
+                    style={{ ...stickyHeaderStyle, minWidth: "150px" }}
+                  >
+                    {key}
+                  </th>
                 ))}
               </tr>
               <tr style={stickyHeaderStyle}>
-                {secondaryKeys.map(key => (
+                {secondaryKeys.map((key) => (
                   <React.Fragment key={key}>
-                    <th className="text-center" style={{...stickyHeaderStyle, minWidth: '50px'}}>लाभार्थी</th>
-                    <th className="text-center" style={{...stickyHeaderStyle, minWidth: '60px'}}>मात्रा</th>
-                    <th className="text-center" style={{...stickyHeaderStyle, minWidth: '70px'}}>देय अनुदान राशि (₹)</th>
+                    <th
+                      className="text-center"
+                      style={{ ...stickyHeaderStyle, minWidth: "50px" }}
+                    >
+                      लाभार्थी
+                    </th>
+                    <th
+                      className="text-center"
+                      style={{ ...stickyHeaderStyle, minWidth: "60px" }}
+                    >
+                      मात्रा
+                    </th>
+                    <th
+                      className="text-center"
+                      style={{ ...stickyHeaderStyle, minWidth: "70px" }}
+                    >
+                      देय अनुदान राशि (₹)
+                    </th>
                   </React.Fragment>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {primaryKeys.map(primaryKey => (
+              {primaryKeys.map((primaryKey) => (
                 <tr key={primaryKey}>
                   <td style={stickyFirstColBodyStyle}>{primaryKey}</td>
-                  <td className="text-center" style={{minWidth: '80px'}}>{totalByPrimary[primaryKey].count}</td>
-                  <td className="text-center" style={{minWidth: '90px'}}>{totalByPrimary[primaryKey].quantity.toFixed(2)}</td>
-                  <td className="text-center" style={{minWidth: '100px'}}>₹{totalByPrimary[primaryKey].amount.toFixed(0)}</td>
-                  {secondaryKeys.map(secondaryKey => {
-                    const cell = isTransposed 
-                      ? data.find(d => d.col === primaryKey && d.row === secondaryKey)
-                      : data.find(d => d.row === primaryKey && d.col === secondaryKey);
+                  <td className="text-center" style={{ minWidth: "80px" }}>
+                    {totalByPrimary[primaryKey].count}
+                  </td>
+                  <td className="text-center" style={{ minWidth: "90px" }}>
+                    {totalByPrimary[primaryKey].quantity.toFixed(2)}
+                  </td>
+                  <td className="text-center" style={{ minWidth: "100px" }}>
+                    ₹{totalByPrimary[primaryKey].amount.toFixed(0)}
+                  </td>
+                  {secondaryKeys.map((secondaryKey) => {
+                    const cell = isTransposed
+                      ? data.find(
+                          (d) => d.col === primaryKey && d.row === secondaryKey,
+                        )
+                      : data.find(
+                          (d) => d.row === primaryKey && d.col === secondaryKey,
+                        );
                     return (
                       <React.Fragment key={secondaryKey}>
-                        <td className="text-center" style={{minWidth: '50px'}}>{cell ? cell.count : '-'}</td>
-                        <td className="text-center" style={{minWidth: '60px'}}>{cell ? cell.quantity.toFixed(2) : '-'}</td>
-                        <td className="text-center" style={{minWidth: '70px'}}>{cell ? `₹${cell.amount.toFixed(0)}` : '-'}</td>
+                        <td
+                          className="text-center"
+                          style={{ minWidth: "50px" }}
+                        >
+                          {cell ? cell.count : "-"}
+                        </td>
+                        <td
+                          className="text-center"
+                          style={{ minWidth: "60px" }}
+                        >
+                          {cell ? cell.quantity.toFixed(2) : "-"}
+                        </td>
+                        <td
+                          className="text-center"
+                          style={{ minWidth: "70px" }}
+                        >
+                          {cell ? `₹${cell.amount.toFixed(0)}` : "-"}
+                        </td>
                       </React.Fragment>
                     );
                   })}
                 </tr>
               ))}
-              <tr style={{ backgroundColor: '#d4edda', fontWeight: 'bold' }}>
+              <tr style={{ backgroundColor: "#d4edda", fontWeight: "bold" }}>
                 <td style={stickyFirstColTotalStyle}>कुल</td>
-                <td className="text-center" style={{minWidth: '80px'}}>{grandTotal.count}</td>
-                <td className="text-center" style={{minWidth: '90px'}}>{grandTotal.quantity.toFixed(2)}</td>
-                <td className="text-center" style={{minWidth: '100px'}}>₹{grandTotal.amount.toFixed(0)}</td>
-                {secondaryKeys.map(key => (
+                <td className="text-center" style={{ minWidth: "80px" }}>
+                  {grandTotal.count}
+                </td>
+                <td className="text-center" style={{ minWidth: "90px" }}>
+                  {grandTotal.quantity.toFixed(2)}
+                </td>
+                <td className="text-center" style={{ minWidth: "100px" }}>
+                  ₹{grandTotal.amount.toFixed(0)}
+                </td>
+                {secondaryKeys.map((key) => (
                   <React.Fragment key={key}>
-                    <td className="text-center" style={{minWidth: '50px'}}>{totalBySecondary[key].count}</td>
-                    <td className="text-center" style={{minWidth: '60px'}}>{totalBySecondary[key].quantity.toFixed(2)}</td>
-                    <td className="text-center" style={{minWidth: '70px'}}>₹{totalBySecondary[key].amount.toFixed(0)}</td>
+                    <td className="text-center" style={{ minWidth: "50px" }}>
+                      {totalBySecondary[key].count}
+                    </td>
+                    <td className="text-center" style={{ minWidth: "60px" }}>
+                      {totalBySecondary[key].quantity.toFixed(2)}
+                    </td>
+                    <td className="text-center" style={{ minWidth: "70px" }}>
+                      ₹{totalBySecondary[key].amount.toFixed(0)}
+                    </td>
                   </React.Fragment>
                 ))}
               </tr>
@@ -1257,11 +1508,18 @@ const KrishiRegistration = () => {
 
   const summaryStats = useMemo(() => {
     const items = beneficiaries || [];
-    const unique = (key) => new Set(items.map((item) => item[key]).filter(Boolean)).size;
+    const unique = (key) =>
+      new Set(items.map((item) => item[key]).filter(Boolean)).size;
 
-    const vikas = getMostFrequentValue(items.map((item) => item.vikas_khand_name));
-    const vidhan = getMostFrequentValue(items.map((item) => item.vidhan_sabha_name));
-    const suppliedItem = getMostFrequentValue(items.map((item) => item.supplied_item_name));
+    const vikas = getMostFrequentValue(
+      items.map((item) => item.vikas_khand_name),
+    );
+    const vidhan = getMostFrequentValue(
+      items.map((item) => item.vidhan_sabha_name),
+    );
+    const suppliedItem = getMostFrequentValue(
+      items.map((item) => item.supplied_item_name),
+    );
     const center = getMostFrequentValue(items.map((item) => item.center_name));
     const scheme = getMostFrequentValue(items.map((item) => item.scheme_name));
     const address = getMostFrequentValue(items.map((item) => item.address));
@@ -1402,7 +1660,6 @@ const KrishiRegistration = () => {
     }));
   };
 
-
   // Download Excel function
   const downloadExcel = (data, filename, columnMapping, selectedColumns) => {
     try {
@@ -1415,11 +1672,12 @@ const KrishiRegistration = () => {
         selectedColumns.forEach((col) => {
           if (col === "beneficiary_reg_date") {
             row[columnMapping[col].header] =
-              columnMapping[col].accessor(item, index) || convertToDisplayFormat(today);
+              columnMapping[col].accessor(item, index) ||
+              convertToDisplayFormat(today);
           } else {
             row[columnMapping[col].header] = columnMapping[col].accessor(
               item,
-              index
+              index,
             );
           }
         });
@@ -1434,8 +1692,20 @@ const KrishiRegistration = () => {
         if (columnMapping[col]) {
           if (col === "farmer_name") {
             totalRow[columnMapping[col].header] = data.length;
-          } else if (["center_name", "vidhan_sabha_name", "vikas_khand_name", "scheme_name", "supplied_item_name", "category", "unit"].includes(col)) {
-            totalRow[columnMapping[col].header] = [...new Set(data.map(item => columnMapping[col].accessor(item)))].filter(Boolean).length;
+          } else if (
+            [
+              "center_name",
+              "vidhan_sabha_name",
+              "vikas_khand_name",
+              "scheme_name",
+              "supplied_item_name",
+              "category",
+              "unit",
+            ].includes(col)
+          ) {
+            totalRow[columnMapping[col].header] = [
+              ...new Set(data.map((item) => columnMapping[col].accessor(item))),
+            ].filter(Boolean).length;
           } else if (["quantity", "rate", "amount"].includes(col)) {
             const sum = data.reduce((total, item) => {
               const val = parseFloat(columnMapping[col].accessor(item)) || 0;
@@ -1495,15 +1765,15 @@ const KrishiRegistration = () => {
           "आपूर्ति की गई वस्तु का नाम": "बीज",
           "किसान का नाम": "रामेश कुमार",
           "पिता का नाम": "सुरेश कुमार",
-          "श्रेणी": "सामान्य",
-          "पता": "ग्राम रामपुर, पोस्ट रामपुर, जिला सीतापुर, उत्तर प्रदेश",
+          श्रेणी: "सामान्य",
+          पता: "ग्राम रामपुर, पोस्ट रामपुर, जिला सीतापुर, उत्तर प्रदेश",
           "मोबाइल नंबर": "9876543210",
           "आधार नंबर": "123456789012",
           "बैंक खाता नंबर": "12345678901234",
           "IFSC कोड": "SBIN0001234",
-          "इकाई": "नग",
-          "मात्रा": 50,
-          "दर": 25,
+          इकाई: "नग",
+          मात्रा: 50,
+          दर: 25,
           "देय अनुदान राशि": 1250,
           "पंजीकरण तिथि": today,
         },
@@ -1547,20 +1817,21 @@ const KrishiRegistration = () => {
     filename,
     columnMapping,
     selectedColumns,
-    title
+    title,
   ) => {
     try {
       // Add serial number column header
       const headers = `<th>क्र.सं.</th>${selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
         .join("")}`;
-      
+
       // Add serial numbers to data rows
       const rows = data
         .map((item, index) => {
           const cells = `<td>${index + 1}</td>${selectedColumns
             .map(
-              (col) => `<td>${columnMapping[col]?.accessor(item, index) || ""}</td>`
+              (col) =>
+                `<td>${columnMapping[col]?.accessor(item, index) || ""}</td>`,
             )
             .join("")}`;
           return `<tr>${cells}</tr>`;
@@ -1570,19 +1841,33 @@ const KrishiRegistration = () => {
       const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
         .map((col) => {
           if (!columnMapping[col]) return "<td></td>";
-          
+
           let val = "";
           if (col === "farmer_name") {
             val = data.length;
-          } else if (["center_name", "vidhan_sabha_name", "vikas_khand_name", "scheme_name", "supplied_item_name", "category", "unit"].includes(col)) {
-            val = [...new Set(data.map(item => columnMapping[col].accessor(item)))].filter(Boolean).length;
+          } else if (
+            [
+              "center_name",
+              "vidhan_sabha_name",
+              "vikas_khand_name",
+              "scheme_name",
+              "supplied_item_name",
+              "category",
+              "unit",
+            ].includes(col)
+          ) {
+            val = [
+              ...new Set(data.map((item) => columnMapping[col].accessor(item))),
+            ].filter(Boolean).length;
           } else if (["quantity", "rate", "amount"].includes(col)) {
-            val = data.reduce((total, item) => {
-              const v = parseFloat(columnMapping[col].accessor(item)) || 0;
-              return total + v;
-            }, 0).toFixed(2);
+            val = data
+              .reduce((total, item) => {
+                const v = parseFloat(columnMapping[col].accessor(item)) || 0;
+                return total + v;
+              }, 0)
+              .toFixed(2);
           }
-          
+
           return `<td><strong>${val}</strong></td>`;
         })
         .join("")}`;
@@ -1664,8 +1949,7 @@ const KrishiRegistration = () => {
       printWindow.document.write(tableHtml);
       printWindow.document.close();
 
-      printWindow.onload = function () {
-      };
+      printWindow.onload = function () {};
     } catch (e) {
       console.error("Error generating PDF:", e);
       setApiError("PDF generation failed. Please try again.");
@@ -1692,8 +1976,10 @@ const KrishiRegistration = () => {
   // Handle multi-select delete
   const handleDeleteSelected = async () => {
     if (selectedItems.length === 0) return;
-    
-    const confirmed = window.confirm(`क्या आप ${selectedItems.length} चयनित रिकॉर्ड्स को हटाना चाहते हैं?`);
+
+    const confirmed = window.confirm(
+      `क्या आप ${selectedItems.length} चयनित रिकॉर्ड्स को हटाना चाहते हैं?`,
+    );
     if (!confirmed) return;
 
     try {
@@ -1701,18 +1987,20 @@ const KrishiRegistration = () => {
       const payload = { beneficiary_id: selectedItems };
       await axios.delete(
         "https://mahadevaaya.com/govbillingsystem/backend/api/beneficiaries-registration/",
-        { data: payload }
+        { data: payload },
       );
-      
+
       // Remove deleted items from state
-      setAllBeneficiaries((prev) => 
-        prev.filter((item) => !selectedItems.includes(item.beneficiary_id))
+      setAllBeneficiaries((prev) =>
+        prev.filter((item) => !selectedItems.includes(item.beneficiary_id)),
       );
-      setBeneficiaries((prev) => 
-        prev.filter((item) => !selectedItems.includes(item.beneficiary_id))
+      setBeneficiaries((prev) =>
+        prev.filter((item) => !selectedItems.includes(item.beneficiary_id)),
       );
       setSelectedItems([]);
-      setApiResponse({ message: `${selectedItems.length} रिकॉर्ड सफलतापूर्वक हटाए गए!` });
+      setApiResponse({
+        message: `${selectedItems.length} रिकॉर्ड सफलतापूर्वक हटाए गए!`,
+      });
     } catch (error) {
       console.error("Error deleting items:", error);
       setApiError("रिकॉर्ड हटाने में त्रुटि हुई।");
@@ -1736,19 +2024,27 @@ const KrishiRegistration = () => {
   const handleSelectAll = () => {
     const visibleItems = beneficiaries.slice(
       (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
+      currentPage * itemsPerPage,
     );
-    const visibleBeneficiaryIds = visibleItems.map((item) => item.beneficiary_id);
-    
+    const visibleBeneficiaryIds = visibleItems.map(
+      (item) => item.beneficiary_id,
+    );
+
     // Check if all visible items are already selected
-    const allSelected = visibleBeneficiaryIds.every((id) => selectedItems.includes(id));
-    
+    const allSelected = visibleBeneficiaryIds.every((id) =>
+      selectedItems.includes(id),
+    );
+
     if (allSelected) {
       // Deselect all visible items
-      setSelectedItems((prev) => prev.filter((id) => !visibleBeneficiaryIds.includes(id)));
+      setSelectedItems((prev) =>
+        prev.filter((id) => !visibleBeneficiaryIds.includes(id)),
+      );
     } else {
       // Select all visible items that are not already selected
-      const newSelections = visibleBeneficiaryIds.filter((id) => !selectedItems.includes(id));
+      const newSelections = visibleBeneficiaryIds.filter(
+        (id) => !selectedItems.includes(id),
+      );
       setSelectedItems((prev) => [...prev, ...newSelections]);
     }
   };
@@ -1851,7 +2147,11 @@ const KrishiRegistration = () => {
             scheme_name: false,
           }));
           // Fetch scheme options with center_name
-          fetchFormFilters(editingValues.supplied_item_name, value, editingValues.center_name);
+          fetchFormFilters(
+            editingValues.supplied_item_name,
+            value,
+            editingValues.center_name,
+          );
         }
 
         // If center changes, fetch vikas khand data and reset related fields
@@ -1883,67 +2183,69 @@ const KrishiRegistration = () => {
     setEditingValues(updatedValues);
   };
 
-// Handle save edit - UPDATED VERSION
-const handleSave = async (item) => {
-  try {
-    // Prepare payload with the required fields
-    const payload = {
-      beneficiary_id: item.beneficiary_id,
-      farmer_name: editingValues.farmer_name,
-      father_name: editingValues.father_name,
-      address: editingValues.address,
-      center_name: editingValues.center_name,
-      supplied_item_name: editingValues.supplied_item_name,
-      unit: editingValues.unit,
-      quantity: parseFloat(editingValues.quantity) || 0,
-      rate: parseFloat(editingValues.rate) || 0,
-      amount: parseFloat(editingValues.amount) || 0,
-      aadhaar_number: editingValues.aadhaar_number,
-      bank_account_number: editingValues.bank_account_number,
-      ifsc_code: editingValues.ifsc_code,
-      mobile_number: editingValues.mobile_number,
-      category: editingValues.category,
-      scheme_name: editingValues.scheme_name,
-      vikas_khand_name: editingValues.vikas_khand_name,
-      vidhan_sabha_name: editingValues.vidhan_sabha_name,
+  // Handle save edit - UPDATED VERSION
+  const handleSave = async (item) => {
+    try {
+      // Prepare payload with the required fields
+      const payload = {
+        beneficiary_id: item.beneficiary_id,
+        farmer_name: editingValues.farmer_name,
+        father_name: editingValues.father_name,
+        address: editingValues.address,
+        center_name: editingValues.center_name,
+        supplied_item_name: editingValues.supplied_item_name,
+        unit: editingValues.unit,
+        quantity: parseFloat(editingValues.quantity) || 0,
+        rate: parseFloat(editingValues.rate) || 0,
+        amount: parseFloat(editingValues.amount) || 0,
+        aadhaar_number: editingValues.aadhaar_number,
+        bank_account_number: editingValues.bank_account_number,
+        ifsc_code: editingValues.ifsc_code,
+        mobile_number: editingValues.mobile_number,
+        category: editingValues.category,
+        scheme_name: editingValues.scheme_name,
+        vikas_khand_name: editingValues.vikas_khand_name,
+        vidhan_sabha_name: editingValues.vidhan_sabha_name,
         beneficiary_reg_date: editingValues.beneficiary_reg_date,
-    };
-    
-    // Make the PUT request to update the beneficiary
-    const response = await axios.put(BENEFICIARIES_API_URL, payload);
-    
-    // Check if the response is successful (status 200-299)
-    if (response.status >= 200 && response.status < 300) {
-      // Update the item in the local state
-      setAllBeneficiaries((prev) =>
-        prev.map((i) =>
-          i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
-        )
-      );
-      setBeneficiaries((prev) =>
-        prev.map((i) =>
-          i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i
-        )
-      );
-      setEditingRowId(null);
-      setEditingValues({});
-      setApiResponse({ message: "लाभार्थी सफलतापूर्वक अपडेट किया गया!" });
-    } else {
-      // Handle unexpected response status
-      setApiError(`अप्रत्याशित प्रतिक्रिया स्थिति: ${response.status}`);
+      };
+
+      // Make the PUT request to update the beneficiary
+      const response = await axios.put(BENEFICIARIES_API_URL, payload);
+
+      // Check if the response is successful (status 200-299)
+      if (response.status >= 200 && response.status < 300) {
+        // Update the item in the local state
+        setAllBeneficiaries((prev) =>
+          prev.map((i) =>
+            i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i,
+          ),
+        );
+        setBeneficiaries((prev) =>
+          prev.map((i) =>
+            i.beneficiary_id === item.beneficiary_id ? { ...i, ...payload } : i,
+          ),
+        );
+        setEditingRowId(null);
+        setEditingValues({});
+        setApiResponse({ message: "लाभार्थी सफलतापूर्वक अपडेट किया गया!" });
+      } else {
+        // Handle unexpected response status
+        setApiError(`अप्रत्याशित प्रतिक्रिया स्थिति: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error updating item:", error);
+      // Check if it's a network error or server error
+      if (error.response) {
+        setApiError(
+          `सर्वर त्रुटि: ${error.response.status} - ${error.response.data?.message || "अज्ञात त्रुटि"}`,
+        );
+      } else if (error.request) {
+        setApiError("नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।");
+      } else {
+        setApiError("लाभार्थी अपडेट करने में त्रुटि हुई।");
+      }
     }
-  } catch (error) {
-    console.error("Error updating item:", error);
-    // Check if it's a network error or server error
-    if (error.response) {
-      setApiError(`सर्वर त्रुटि: ${error.response.status} - ${error.response.data?.message || "अज्ञात त्रुटि"}`);
-    } else if (error.request) {
-      setApiError("नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।");
-    } else {
-      setApiError("लाभार्थी अपडेट करने में त्रुटि हुई।");
-    }
-  }
-};
+  };
 
   // Handle cancel edit
   const handleCancel = () => {
@@ -1957,45 +2259,49 @@ const handleSave = async (item) => {
     });
   };
 
-// Handle delete
-const handleDelete = async (item) => {
-  if (window.confirm("क्या आप इस लाभार्थी को हटाना चाहते हैं?")) {
-    try {
-      // Prepare payload with beneficiary_id
-      const payload = {
-        beneficiary_id: item.beneficiary_id
-      };
-      
-      // Send DELETE request with payload in the body
-      const response = await axios.delete(BENEFICIARIES_API_URL, { data: payload });
-      
-      // Check if the response is successful (status 200-299)
-      if (response.status >= 200 && response.status < 300) {
-        // Remove the item from the local state
-        setAllBeneficiaries((prev) =>
-          prev.filter((i) => i.beneficiary_id !== item.beneficiary_id)
-        );
-        setBeneficiaries((prev) =>
-          prev.filter((i) => i.beneficiary_id !== item.beneficiary_id)
-        );
-        setApiResponse({ message: "लाभार्थी सफलतापूर्वक हटा दिया गया!" });
-      } else {
-        // Handle unexpected response status
-        setApiError(`अप्रत्याशित प्रतिक्रिया स्थिति: ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      // Check if it's a network error or server error
-      if (error.response) {
-        setApiError(`सर्वर त्रुटि: ${error.response.status} - ${error.response.data?.message || "अज्ञात त्रुटि"}`);
-      } else if (error.request) {
-        setApiError("नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।");
-      } else {
-        setApiError("लाभार्थी हटाने में त्रुटि हुई।");
+  // Handle delete
+  const handleDelete = async (item) => {
+    if (window.confirm("क्या आप इस लाभार्थी को हटाना चाहते हैं?")) {
+      try {
+        // Prepare payload with beneficiary_id
+        const payload = {
+          beneficiary_id: item.beneficiary_id,
+        };
+
+        // Send DELETE request with payload in the body
+        const response = await axios.delete(BENEFICIARIES_API_URL, {
+          data: payload,
+        });
+
+        // Check if the response is successful (status 200-299)
+        if (response.status >= 200 && response.status < 300) {
+          // Remove the item from the local state
+          setAllBeneficiaries((prev) =>
+            prev.filter((i) => i.beneficiary_id !== item.beneficiary_id),
+          );
+          setBeneficiaries((prev) =>
+            prev.filter((i) => i.beneficiary_id !== item.beneficiary_id),
+          );
+          setApiResponse({ message: "लाभार्थी सफलतापूर्वक हटा दिया गया!" });
+        } else {
+          // Handle unexpected response status
+          setApiError(`अप्रत्याशित प्रतिक्रिया स्थिति: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        // Check if it's a network error or server error
+        if (error.response) {
+          setApiError(
+            `सर्वर त्रुटि: ${error.response.status} - ${error.response.data?.message || "अज्ञात त्रुटि"}`,
+          );
+        } else if (error.request) {
+          setApiError("नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।");
+        } else {
+          setApiError("लाभार्थी हटाने में त्रुटि हुई।");
+        }
       }
     }
-  }
-};
+  };
 
   // Generate pagination items similar to MainDashboard.js
   const totalPages = Math.ceil(beneficiaries.length / itemsPerPage);
@@ -2012,11 +2318,11 @@ const handleDelete = async (item) => {
     paginationItems.push(
       <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
         1
-      </Pagination.Item>
+      </Pagination.Item>,
     );
     if (startPage > 2) {
       paginationItems.push(
-        <Pagination.Ellipsis key="start-ellipsis" disabled />
+        <Pagination.Ellipsis key="start-ellipsis" disabled />,
       );
     }
   }
@@ -2029,7 +2335,7 @@ const handleDelete = async (item) => {
         onClick={() => handlePageChange(number)}
       >
         {number}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -2043,7 +2349,7 @@ const handleDelete = async (item) => {
         onClick={() => handlePageChange(totalPages)}
       >
         {totalPages}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -2051,36 +2357,49 @@ const handleDelete = async (item) => {
     const errors = [];
 
     // Check if row is completely empty
-    const isRowEmpty = !rowData.farmer_name || 
-      (!rowData.farmer_name.toString().trim() && 
-       !rowData.father_name?.toString().trim() && 
-       !rowData.address?.toString().trim() && 
-       !rowData.center_name?.toString().trim() && 
-       !rowData.supplied_item_name?.toString().trim() && 
-       !rowData.unit?.toString().trim() && 
-       !rowData.quantity?.toString().trim() && 
-       !rowData.rate?.toString().trim() && 
-       !rowData.amount?.toString().trim() && 
-       !rowData.category?.toString().trim() && 
-       !rowData.scheme_name?.toString().trim());
-    
+    const isRowEmpty =
+      !rowData.farmer_name ||
+      (!rowData.farmer_name.toString().trim() &&
+        !rowData.father_name?.toString().trim() &&
+        !rowData.address?.toString().trim() &&
+        !rowData.center_name?.toString().trim() &&
+        !rowData.supplied_item_name?.toString().trim() &&
+        !rowData.unit?.toString().trim() &&
+        !rowData.quantity?.toString().trim() &&
+        !rowData.rate?.toString().trim() &&
+        !rowData.amount?.toString().trim() &&
+        !rowData.category?.toString().trim() &&
+        !rowData.scheme_name?.toString().trim());
+
     // If row is completely empty, skip validation
     if (isRowEmpty) {
       return errors;
     }
 
     // Only validate numeric fields if they are provided
-    if (rowData.quantity !== "" && rowData.quantity !== null && rowData.quantity !== undefined) {
+    if (
+      rowData.quantity !== "" &&
+      rowData.quantity !== null &&
+      rowData.quantity !== undefined
+    ) {
       if (isNaN(parseFloat(rowData.quantity))) {
         errors.push(`Row ${rowIndex}: मात्रा एक संख्या होनी चाहिए`);
       }
     }
-    if (rowData.rate !== "" && rowData.rate !== null && rowData.rate !== undefined) {
+    if (
+      rowData.rate !== "" &&
+      rowData.rate !== null &&
+      rowData.rate !== undefined
+    ) {
       if (isNaN(parseFloat(rowData.rate))) {
         errors.push(`Row ${rowIndex}: दर एक संख्या होनी चाहिए`);
       }
     }
-    if (rowData.amount !== "" && rowData.amount !== null && rowData.amount !== undefined) {
+    if (
+      rowData.amount !== "" &&
+      rowData.amount !== null &&
+      rowData.amount !== undefined
+    ) {
       if (isNaN(parseFloat(rowData.amount))) {
         errors.push(`Row ${rowIndex}: देय अनुदान राशि एक संख्या होनी चाहिए`);
       }
@@ -2092,18 +2411,18 @@ const handleDelete = async (item) => {
   // Function to find closest matching center name
   const findClosestCenterName = (inputName) => {
     if (!inputName || !inputName.toString().trim()) return null;
-    
+
     const input = inputName.toString().trim();
-    
+
     // Check for exact match first
     if (centerOptions.includes(input)) {
       return { original: input, corrected: input, exact: true };
     }
-    
+
     // Find closest match using simple string comparison
     let closestMatch = null;
     let minDistance = Infinity;
-    
+
     for (const option of centerOptions) {
       // Calculate simple distance based on character differences
       const distance = levenshteinDistance(input, option);
@@ -2112,12 +2431,12 @@ const handleDelete = async (item) => {
         closestMatch = option;
       }
     }
-    
+
     // If distance is small enough (allow up to 2 character difference), suggest correction
     if (minDistance <= 2 && closestMatch) {
       return { original: input, corrected: closestMatch, exact: false };
     }
-    
+
     return null;
   };
 
@@ -2125,11 +2444,13 @@ const handleDelete = async (item) => {
   const levenshteinDistance = (str1, str2) => {
     const m = str1.length;
     const n = str2.length;
-    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-    
+    const dp = Array(m + 1)
+      .fill(null)
+      .map(() => Array(n + 1).fill(0));
+
     for (let i = 0; i <= m; i++) dp[i][0] = i;
     for (let j = 0; j <= n; j++) dp[0][j] = j;
-    
+
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
         if (str1[i - 1] === str2[j - 1]) {
@@ -2139,14 +2460,14 @@ const handleDelete = async (item) => {
         }
       }
     }
-    
+
     return dp[m][n];
   };
 
   // Function to apply center name corrections to parsed rows
   const applyCenterNameCorrections = (rows, corrections) => {
-    return rows.map(row => {
-      const correction = corrections.find(c => c.rowIndex === row.rowIndex);
+    return rows.map((row) => {
+      const correction = corrections.find((c) => c.rowIndex === row.rowIndex);
       if (correction) {
         return { ...row, center_name: correction.corrected };
       }
@@ -2155,13 +2476,14 @@ const handleDelete = async (item) => {
   };
 
   const isEmptyRow = (row) => {
-    if (!row || typeof row !== 'object') return true;
+    if (!row || typeof row !== "object") return true;
     const values = Object.values(row);
-    return values.every(val => 
-      val === null || 
-      val === undefined || 
-      val === '' || 
-      (typeof val === 'string' && val.trim() === '')
+    return values.every(
+      (val) =>
+        val === null ||
+        val === undefined ||
+        val === "" ||
+        (typeof val === "string" && val.trim() === ""),
     );
   };
 
@@ -2183,7 +2505,7 @@ const handleDelete = async (item) => {
       reader.onload = async (f) => {
         try {
           const data = new Uint8Array(f.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
+          const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -2209,9 +2531,14 @@ const handleDelete = async (item) => {
           const getCell = (row, names) => {
             for (const name of names) {
               if (!name) continue;
-              const keysToTry = [name, name.toLowerCase(), name.replace(/\s+/g, ""), name.replace(/\s+/g, "").toLowerCase()];
+              const keysToTry = [
+                name,
+                name.toLowerCase(),
+                name.replace(/\s+/g, ""),
+                name.replace(/\s+/g, "").toLowerCase(),
+              ];
               for (const k of keysToTry) {
-                if (typeof headerMapping[k] !== 'undefined') {
+                if (typeof headerMapping[k] !== "undefined") {
                   return row[headerMapping[k]];
                 }
               }
@@ -2220,31 +2547,63 @@ const handleDelete = async (item) => {
           };
 
           const today = getTodayInBackendFormat();
-          const parsedRows = dataRows.map((row, rowIndex) => {
-            const regDateRaw = getCell(row, ["पंजीकरण तिथि", "beneficiary_reg_date"]) || today;
-            return {
-            center_name: getCell(row, ["केंद्र का नाम", "center_name"]) || "",
-            vidhan_sabha_name: getCell(row, ["विधानसभा का नाम", "vidhan_sabha_name"]) || "",
-            vikas_khand_name: getCell(row, ["विकास खंड का नाम", "vikas_khand_name"]) || "",
-            scheme_name: getCell(row, ["योजना का नाम", "scheme_name"]) || "",
-            unit: getCell(row, ["इकाई", "unit"]) || "",
-            supplied_item_name: getCell(row, ["आपूर्ति की गई वस्तु का नाम", "supplied_item_name"]) || "",
-            farmer_name: getCell(row, ["किसान का नाम", "farmer_name"]) || "",
-            father_name: getCell(row, ["पिता का नाम", "father_name"]) || "",
-            category: getCell(row, ["श्रेणी", "category"]) || "",
-            address: getCell(row, ["पता", "address"]) || "",
-            mobile_number: getCell(row, ["मोबाइल नंबर", "mobile_number"]) || "",
-            aadhaar_number: getCell(row, ["आधार नंबर", "aadhaar_number"]) || "",
-            bank_account_number: getCell(row, ["बैंक खाता नंबर", "bank_account_number"]) || "",
-            ifsc_code: getCell(row, ["IFSC कोड", "ifsc_code"]) || getCell(row, ["ifsc कोड"]) || "",
-            quantity: Number.isFinite(Number(getCell(row, ["मात्रा", "quantity"]) || 0)) ? roundTo2Decimals(getCell(row, ["मात्रा", "quantity"]) || 0) : 0,
-            rate: Number.isFinite(Number(getCell(row, ["दर", "rate"]) || 0)) ? roundTo2Decimals(getCell(row, ["दर", "rate"]) || 0) : 0,
-            amount: Number.isFinite(Number(getCell(row, ["देय अनुदान राशि", "amount"]) || 0)) ? roundTo2Decimals(getCell(row, ["देय अनुदान राशि", "amount"]) || 0) : 0,
-            original_beneficiary_reg_date: convertToDisplayFormat(regDateRaw),
-            beneficiary_reg_date: parseDateFromExcel(regDateRaw),
-            rowIndex: rowIndex + 2,
-            _originalIndex: rowIndex,
-          }}).filter(row => !isEmptyRow(row));
+          const parsedRows = dataRows
+            .map((row, rowIndex) => {
+              const regDateRaw =
+                getCell(row, ["पंजीकरण तिथि", "beneficiary_reg_date"]) || today;
+              return {
+                center_name:
+                  getCell(row, ["केंद्र का नाम", "center_name"]) || "",
+                vidhan_sabha_name:
+                  getCell(row, ["विधानसभा का नाम", "vidhan_sabha_name"]) || "",
+                vikas_khand_name:
+                  getCell(row, ["विकास खंड का नाम", "vikas_khand_name"]) || "",
+                scheme_name:
+                  getCell(row, ["योजना का नाम", "scheme_name"]) || "",
+                unit: getCell(row, ["इकाई", "unit"]) || "",
+                supplied_item_name:
+                  getCell(row, [
+                    "आपूर्ति की गई वस्तु का नाम",
+                    "supplied_item_name",
+                  ]) || "",
+                farmer_name:
+                  getCell(row, ["किसान का नाम", "farmer_name"]) || "",
+                father_name: getCell(row, ["पिता का नाम", "father_name"]) || "",
+                category: getCell(row, ["श्रेणी", "category"]) || "",
+                address: getCell(row, ["पता", "address"]) || "",
+                mobile_number:
+                  getCell(row, ["मोबाइल नंबर", "mobile_number"]) || "",
+                aadhaar_number:
+                  getCell(row, ["आधार नंबर", "aadhaar_number"]) || "",
+                bank_account_number:
+                  getCell(row, ["बैंक खाता नंबर", "bank_account_number"]) || "",
+                ifsc_code:
+                  getCell(row, ["IFSC कोड", "ifsc_code"]) ||
+                  getCell(row, ["ifsc कोड"]) ||
+                  "",
+                quantity: Number.isFinite(
+                  Number(getCell(row, ["मात्रा", "quantity"]) || 0),
+                )
+                  ? roundTo2Decimals(getCell(row, ["मात्रा", "quantity"]) || 0)
+                  : 0,
+                rate: Number.isFinite(Number(getCell(row, ["दर", "rate"]) || 0))
+                  ? roundTo2Decimals(getCell(row, ["दर", "rate"]) || 0)
+                  : 0,
+                amount: Number.isFinite(
+                  Number(getCell(row, ["देय अनुदान राशि", "amount"]) || 0),
+                )
+                  ? roundTo2Decimals(
+                      getCell(row, ["देय अनुदान राशि", "amount"]) || 0,
+                    )
+                  : 0,
+                original_beneficiary_reg_date:
+                  convertToDisplayFormat(regDateRaw),
+                beneficiary_reg_date: parseDateFromExcel(regDateRaw),
+                rowIndex: rowIndex + 2,
+                _originalIndex: rowIndex,
+              };
+            })
+            .filter((row) => !isEmptyRow(row));
 
           const validRows = [];
           const validationErrors = [];
@@ -2252,7 +2611,11 @@ const handleDelete = async (item) => {
           parsedRows.forEach((rowData) => {
             const rowErrors = validateRow(rowData, rowData.rowIndex);
             if (rowErrors.length > 0) {
-              validationErrors.push({ rowIndex: rowData.rowIndex, errors: rowErrors, data: rowData });
+              validationErrors.push({
+                rowIndex: rowData.rowIndex,
+                errors: rowErrors,
+                data: rowData,
+              });
             } else {
               validRows.push(rowData);
             }
@@ -2261,62 +2624,88 @@ const handleDelete = async (item) => {
           // Fetch existing beneficiaries to check for duplicates
           try {
             const existingResponse = await axios.get(BENEFICIARIES_API_URL);
-            const existingData = existingResponse.data && existingResponse.data.data
-              ? existingResponse.data.data
-              : existingResponse.data;
-            const existingItems = Array.isArray(existingData) ? existingData : [];
-            
+            const existingData =
+              existingResponse.data && existingResponse.data.data
+                ? existingResponse.data.data
+                : existingResponse.data;
+            const existingItems = Array.isArray(existingData)
+              ? existingData
+              : [];
+
             // Detect duplicates with existing system data
             const duplicateIndices = new Set();
             const newValidationErrors = [...validationErrors];
-            
+
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
               // Compare only fields that are in the template download
-              const isDuplicateWithExisting = existingItems.some(existing => {
+              const isDuplicateWithExisting = existingItems.some((existing) => {
                 return (
-                  String(existing.center_name || '').trim() === String(row.center_name || '').trim() &&
-                  String(existing.scheme_name || '').trim() === String(row.scheme_name || '').trim() &&
-                  String(existing.unit || '').trim() === String(row.unit || '').trim() &&
-                  String(existing.supplied_item_name || '').trim() === String(row.supplied_item_name || '').trim() &&
-                  String(existing.farmer_name || '').trim() === String(row.farmer_name || '').trim() &&
-                  String(existing.father_name || '').trim() === String(row.father_name || '').trim() &&
-                  String(existing.category || '').trim() === String(row.category || '').trim() &&
-                  String(existing.address || '').trim() === String(row.address || '').trim() &&
-                  String(existing.mobile_number || '').trim() === String(row.mobile_number || '').trim() &&
-                  String(existing.aadhaar_number || '').trim() === String(row.aadhaar_number || '').trim() &&
-                  String(existing.bank_account_number || '').trim() === String(row.bank_account_number || '').trim() &&
-                  String(existing.ifsc_code || '').trim() === String(row.ifsc_code || '').trim() &&
-                  parseFloat(existing.quantity || 0) === parseFloat(row.quantity || 0) &&
-                  parseFloat(existing.rate || 0) === parseFloat(row.rate || 0) &&
-                  parseFloat(existing.amount || 0) === parseFloat(row.amount || 0) &&
+                  String(existing.center_name || "").trim() ===
+                    String(row.center_name || "").trim() &&
+                  String(existing.scheme_name || "").trim() ===
+                    String(row.scheme_name || "").trim() &&
+                  String(existing.unit || "").trim() ===
+                    String(row.unit || "").trim() &&
+                  String(existing.supplied_item_name || "").trim() ===
+                    String(row.supplied_item_name || "").trim() &&
+                  String(existing.farmer_name || "").trim() ===
+                    String(row.farmer_name || "").trim() &&
+                  String(existing.father_name || "").trim() ===
+                    String(row.father_name || "").trim() &&
+                  String(existing.category || "").trim() ===
+                    String(row.category || "").trim() &&
+                  String(existing.address || "").trim() ===
+                    String(row.address || "").trim() &&
+                  String(existing.mobile_number || "").trim() ===
+                    String(row.mobile_number || "").trim() &&
+                  String(existing.aadhaar_number || "").trim() ===
+                    String(row.aadhaar_number || "").trim() &&
+                  String(existing.bank_account_number || "").trim() ===
+                    String(row.bank_account_number || "").trim() &&
+                  String(existing.ifsc_code || "").trim() ===
+                    String(row.ifsc_code || "").trim() &&
+                  parseFloat(existing.quantity || 0) ===
+                    parseFloat(row.quantity || 0) &&
+                  parseFloat(existing.rate || 0) ===
+                    parseFloat(row.rate || 0) &&
+                  parseFloat(existing.amount || 0) ===
+                    parseFloat(row.amount || 0) &&
                   existing.beneficiary_reg_date === row.beneficiary_reg_date
                 );
               });
-              
+
               if (isDuplicateWithExisting) {
                 duplicateIndices.add(row.rowIndex);
                 newValidationErrors.push({
                   rowIndex: row.rowIndex,
-                  errors: ["यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)"],
+                  errors: [
+                    "यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)",
+                  ],
                   data: row,
                 });
               }
             });
-            
+
             // Also check for duplicates within the uploaded rows themselves
             // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${String(row.center_name || '').trim()}|${String(row.scheme_name || '').trim()}|${String(row.unit || '').trim()}|${String(row.supplied_item_name || '').trim()}|${String(row.farmer_name || '').trim()}|${String(row.father_name || '').trim()}|${String(row.category || '').trim()}|${String(row.address || '').trim()}|${String(row.mobile_number || '').trim()}|${String(row.aadhaar_number || '').trim()}|${String(row.bank_account_number || '').trim()}|${String(row.ifsc_code || '').trim()}|${parseFloat(row.quantity || 0)}|${parseFloat(row.rate || 0)}|${parseFloat(row.amount || 0)}|${row.beneficiary_reg_date}`;
-              
+              const key = `${String(row.center_name || "").trim()}|${String(row.scheme_name || "").trim()}|${String(row.unit || "").trim()}|${String(row.supplied_item_name || "").trim()}|${String(row.farmer_name || "").trim()}|${String(row.father_name || "").trim()}|${String(row.category || "").trim()}|${String(row.address || "").trim()}|${String(row.mobile_number || "").trim()}|${String(row.aadhaar_number || "").trim()}|${String(row.bank_account_number || "").trim()}|${String(row.ifsc_code || "").trim()}|${parseFloat(row.quantity || 0)}|${parseFloat(row.rate || 0)}|${parseFloat(row.amount || 0)}|${row.beneficiary_reg_date}`;
+
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
                 // Add error if not already added
-                if (!newValidationErrors.some(err => err.rowIndex === row.rowIndex)) {
+                if (
+                  !newValidationErrors.some(
+                    (err) => err.rowIndex === row.rowIndex,
+                  )
+                ) {
                   newValidationErrors.push({
                     rowIndex: row.rowIndex,
-                    errors: ["इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)"],
+                    errors: [
+                      "इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)",
+                    ],
                     data: row,
                   });
                 }
@@ -2324,10 +2713,10 @@ const handleDelete = async (item) => {
                 seenKeys.add(key);
               }
             });
-            
+
             setValidationErrorsList(newValidationErrors);
             setDuplicateRowIndices(Array.from(duplicateIndices));
-            
+
             // Check for center name corrections needed
             const corrections = [];
             parsedRows.forEach((row) => {
@@ -2338,12 +2727,12 @@ const handleDelete = async (item) => {
                     rowIndex: row.rowIndex,
                     original: correction.original,
                     corrected: correction.corrected,
-                    data: row
+                    data: row,
                   });
                 }
               }
             });
-            
+
             // If there are corrections needed, show modal for confirmation
             if (corrections.length > 0) {
               setCenterNameCorrections(corrections);
@@ -2352,7 +2741,7 @@ const handleDelete = async (item) => {
               setPreviewData(parsedRows);
               return;
             }
-            
+
             if (newValidationErrors.length > 0) {
               setIsValidated(true);
             }
@@ -2391,16 +2780,22 @@ const handleDelete = async (item) => {
     setUploadSuccessCount(0);
 
     try {
-      const validRows = previewData.filter((row) =>
-        !validationErrorsList.some((err) => err.rowIndex === row.rowIndex)
+      const validRows = previewData.filter(
+        (row) =>
+          !validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
       );
 
       const invalidRows = previewData
-        .filter((row) => validationErrorsList.some((err) => err.rowIndex === row.rowIndex))
+        .filter((row) =>
+          validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
+        )
         .map((row) => ({
           rowIndex: row.rowIndex,
           data: row,
-          reason: validationErrorsList.find((err) => err.rowIndex === row.rowIndex)?.errors.join(", ") || "Validation failed",
+          reason:
+            validationErrorsList
+              .find((err) => err.rowIndex === row.rowIndex)
+              ?.errors.join(", ") || "Validation failed",
         }));
 
       setUploadTotal(validRows.length);
@@ -2417,9 +2812,15 @@ const handleDelete = async (item) => {
             center_name: rowData.center_name || "",
             supplied_item_name: rowData.supplied_item_name || "",
             unit: rowData.unit || "",
-            quantity: Number.isFinite(Number(rowData.quantity)) ? parseFloat(rowData.quantity) : 0,
-            rate: Number.isFinite(Number(rowData.rate)) ? parseFloat(rowData.rate) : 0,
-            amount: Number.isFinite(Number(rowData.amount)) ? parseFloat(rowData.amount) : 0,
+            quantity: Number.isFinite(Number(rowData.quantity))
+              ? parseFloat(rowData.quantity)
+              : 0,
+            rate: Number.isFinite(Number(rowData.rate))
+              ? parseFloat(rowData.rate)
+              : 0,
+            amount: Number.isFinite(Number(rowData.amount))
+              ? parseFloat(rowData.amount)
+              : 0,
             aadhaar_number: rowData.aadhaar_number || "",
             bank_account_number: rowData.bank_account_number || "",
             ifsc_code: rowData.ifsc_code || "",
@@ -2434,7 +2835,10 @@ const handleDelete = async (item) => {
           const response = await axios.post(BENEFICIARIES_API_URL, payload);
 
           if (response.status === 200 || response.status === 201) {
-            const returned = response.data && response.data.data ? response.data.data : response.data;
+            const returned =
+              response.data && response.data.data
+                ? response.data.data
+                : response.data;
             const itemToAdd = returned || payload;
             const normalized = {
               beneficiary_id: itemToAdd.beneficiary_id || null,
@@ -2461,14 +2865,28 @@ const handleDelete = async (item) => {
             setBeneficiaries((prev) => [normalized, ...prev]);
             successCount++;
           } else {
-            failedItems.push({ rowIndex: rowData.rowIndex, data: rowData, reason: `Server error: ${response.status}` });
+            failedItems.push({
+              rowIndex: rowData.rowIndex,
+              data: rowData,
+              reason: `Server error: ${response.status}`,
+            });
           }
         } catch (error) {
-          const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || "Upload failed";
-          failedItems.push({ rowIndex: validRows[i].rowIndex, data: validRows[i], reason: errorMsg });
+          const errorMsg =
+            error.response?.data?.message ||
+            error.response?.data?.error ||
+            error.message ||
+            "Upload failed";
+          failedItems.push({
+            rowIndex: validRows[i].rowIndex,
+            data: validRows[i],
+            reason: errorMsg,
+          });
         }
 
-        setUploadProgress(Math.round(((i + 1) / Math.max(validRows.length, 1)) * 100));
+        setUploadProgress(
+          Math.round(((i + 1) / Math.max(validRows.length, 1)) * 100),
+        );
       }
 
       setExcelFile(null);
@@ -2480,9 +2898,13 @@ const handleDelete = async (item) => {
       setPreviewData([]);
 
       if (successCount > 0 && failedItems.length === 0) {
-        setApiResponse({ message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।` });
+        setApiResponse({
+          message: `✅ सफलता! ${successCount} रिकॉर्ड सफलतापूर्वक अपलोड किए गए।`,
+        });
       } else if (successCount > 0 && failedItems.length > 0) {
-        setApiError(`⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`);
+        setApiError(
+          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`,
+        );
       } else if (failedItems.length > 0) {
         setApiError(`❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`);
       }
@@ -2544,7 +2966,11 @@ const handleDelete = async (item) => {
             scheme_name: false,
           }));
           // Fetch scheme options with center_name
-          fetchFormFilters(formData.supplied_item_name, value, formData.center_name);
+          fetchFormFilters(
+            formData.supplied_item_name,
+            value,
+            formData.center_name,
+          );
         }
 
         // If center changes, fetch vikas khand data and reset related fields
@@ -2610,7 +3036,8 @@ const handleDelete = async (item) => {
         quantity: parseFloat(formData.quantity),
         rate: parseFloat(formData.rate),
         amount: parseFloat(formData.amount),
-        beneficiary_reg_date: convertToBackendFormat(formData.beneficiary_reg_date) || today,
+        beneficiary_reg_date:
+          convertToBackendFormat(formData.beneficiary_reg_date) || today,
         aadhaar_number: formData.aadhaar_number,
         bank_account_number: formData.bank_account_number,
         ifsc_code: formData.ifsc_code,
@@ -2666,7 +3093,10 @@ const handleDelete = async (item) => {
       });
 
       // Add to table
-      const addedItem = responseData && Object.keys(responseData).length ? responseData : payload;
+      const addedItem =
+        responseData && Object.keys(responseData).length
+          ? responseData
+          : payload;
       // Normalize fields to avoid undefined values causing blank cells
       const normalized = {
         beneficiary_id: addedItem.beneficiary_id || null,
@@ -2727,12 +3157,12 @@ const handleDelete = async (item) => {
     const newErrors = {};
     // Helper to check if value is valid (not empty, null, undefined)
     const isValid = (value) => value && String(value).trim();
-    
+
     // For single form entry, only require farmer_name
     // All other fields are optional - user can enter whatever they have
     if (!isValid(formData.farmer_name))
       newErrors.farmer_name = `${translations.farmerName} ${translations.required}`;
-    
+
     // Optional fields - only validate if they have a value
     if (formData.quantity && isNaN(parseFloat(formData.quantity)))
       newErrors.quantity = `${translations.quantity} एक संख्या होनी चाहिए`;
@@ -2740,7 +3170,7 @@ const handleDelete = async (item) => {
       newErrors.rate = `${translations.rate} एक संख्या होनी चाहिए`;
     if (formData.amount && isNaN(parseFloat(formData.amount)))
       newErrors.amount = `${translations.amount} एक संख्या होनी चाहिए`;
-    
+
     return newErrors;
   };
 
@@ -2781,7 +3211,11 @@ const handleDelete = async (item) => {
                 <Col xs={12} md={3} className="d-flex align-items-end">
                   <Button
                     variant="secondary"
-                    onClick={() => previewData.length > 0 && !isUploading && handleConfirmUpload()}
+                    onClick={() =>
+                      previewData.length > 0 &&
+                      !isUploading &&
+                      handleConfirmUpload()
+                    }
                     disabled={!excelFile || isUploading}
                     className="compact-submit-btn w-100"
                   >
@@ -2809,29 +3243,54 @@ const handleDelete = async (item) => {
                   <Col xs={12}>
                     <div className="p-3 border rounded bg-light">
                       <div className="mb-3">
-                        <h6 className="small-fonts mb-3">📊 अपलोड प्रगति विवरण</h6>
+                        <h6 className="small-fonts mb-3">
+                          📊 अपलोड प्रगति विवरण
+                        </h6>
                         <div className="d-flex justify-content-around mb-3">
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">✅ पूर्ण</small>
-                            <span className="badge bg-success" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ✅ पूर्ण
+                            </small>
+                            <span
+                              className="badge bg-success"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {Math.round((uploadProgress / 100) * uploadTotal)}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⏳ शेष</small>
-                            <span className="badge bg-warning text-dark" style={{ fontSize: "14px", padding: "8px 12px" }}>
-                              {uploadTotal - Math.round((uploadProgress / 100) * uploadTotal)}
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⏳ शेष
+                            </small>
+                            <span
+                              className="badge bg-warning text-dark"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
+                              {uploadTotal -
+                                Math.round(
+                                  (uploadProgress / 100) * uploadTotal,
+                                )}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">📁 कुल</small>
-                            <span className="badge bg-primary" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              📁 कुल
+                            </small>
+                            <span
+                              className="badge bg-primary"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadTotal}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⚡ प्रगति</small>
-                            <span className="badge bg-info text-white" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⚡ प्रगति
+                            </small>
+                            <span
+                              className="badge bg-info text-white"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadProgress}%
                             </span>
                           </div>
@@ -2846,7 +3305,9 @@ const handleDelete = async (item) => {
                           aria-valuemin="0"
                           aria-valuemax="100"
                         >
-                          <small className="fw-bold text-white">{uploadProgress}%</small>
+                          <small className="fw-bold text-white">
+                            {uploadProgress}%
+                          </small>
                         </div>
                       </div>
                       <small className="text-muted mt-2 d-block text-center">
@@ -2872,10 +3333,21 @@ const handleDelete = async (item) => {
 
               {uploadErrors.length > 0 && !isUploading && (
                 <Alert variant="warning" className="small-fonts">
-                  <strong>📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):</strong>
-                  <div style={{ maxHeight: "400px", overflowY: "auto", marginTop: "10px" }}>
+                  <strong>
+                    📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):
+                  </strong>
+                  <div
+                    style={{
+                      maxHeight: "400px",
+                      overflowY: "auto",
+                      marginTop: "10px",
+                    }}
+                  >
                     {uploadErrors.map((error, idx) => (
-                      <div key={idx} style={{ marginBottom: "5px", fontSize: "12px" }}>
+                      <div
+                        key={idx}
+                        style={{ marginBottom: "5px", fontSize: "12px" }}
+                      >
                         • {error}
                       </div>
                     ))}
@@ -2932,7 +3404,15 @@ const handleDelete = async (item) => {
                           <td>{row.data?.quantity || "-"}</td>
                           <td>{row.data?.rate || "-"}</td>
                           <td>{row.data?.amount || "-"}</td>
-                          <td style={{ backgroundColor: row.reason?.includes('तिथि') ? '#ffcccc' : 'inherit' }}>{row.data?.original_beneficiary_reg_date || "-"}</td>
+                          <td
+                            style={{
+                              backgroundColor: row.reason?.includes("तिथि")
+                                ? "#ffcccc"
+                                : "inherit",
+                            }}
+                          >
+                            {row.data?.original_beneficiary_reg_date || "-"}
+                          </td>
                           <td>{row.reason}</td>
                         </tr>
                       ))}
@@ -2947,9 +3427,16 @@ const handleDelete = async (item) => {
               )}
 
               {/* Preview Modal */}
-              <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" centered>
+              <Modal
+                show={showPreviewModal}
+                onHide={() => setShowPreviewModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)</Modal.Title>
+                  <Modal.Title>
+                    डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   {previewData.length === 0 ? (
@@ -2957,10 +3444,17 @@ const handleDelete = async (item) => {
                   ) : (
                     <>
                       <Alert variant="info" className="small-fonts">
-                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें।
-                        खाली पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
+                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि
+                        सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें। खाली
+                        पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
                       </Alert>
-                      <Table striped bordered hover size="sm" className="small-fonts">
+                      <Table
+                        striped
+                        bordered
+                        hover
+                        size="sm"
+                        className="small-fonts"
+                      >
                         <thead>
                           <tr>
                             <th>क्र.सं.</th>
@@ -2986,26 +3480,104 @@ const handleDelete = async (item) => {
                         </thead>
                         <tbody>
                           {previewData.slice(0, 100).map((row, idx) => (
-                            <tr key={idx} style={{ backgroundColor: duplicateRowIndices.includes(row.rowIndex) ? '#ffcccc' : 'inherit' }}>
+                            <tr
+                              key={idx}
+                              style={{
+                                backgroundColor: duplicateRowIndices.includes(
+                                  row.rowIndex,
+                                )
+                                  ? "#ffcccc"
+                                  : "inherit",
+                              }}
+                            >
                               <td>{idx + 1}</td>
-                              <td style={{ backgroundColor: !row.center_name ? '#ffcccc' : 'inherit' }}>{row.center_name || "-"}</td>
+                              <td
+                                style={{
+                                  backgroundColor: !row.center_name
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.center_name || "-"}
+                              </td>
                               <td>{row.vidhan_sabha_name || "-"}</td>
                               <td>{row.vikas_khand_name || "-"}</td>
                               <td>{row.scheme_name || "-"}</td>
-                              <td style={{ backgroundColor: !row.unit ? '#ffcccc' : 'inherit' }}>{row.unit || "-"}</td>
-                              <td style={{ backgroundColor: !row.supplied_item_name ? '#ffcccc' : 'inherit' }}>{row.supplied_item_name || "-"}</td>
+                              <td
+                                style={{
+                                  backgroundColor: !row.unit
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.unit || "-"}
+                              </td>
+                              <td
+                                style={{
+                                  backgroundColor: !row.supplied_item_name
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.supplied_item_name || "-"}
+                              </td>
                               <td>{row.farmer_name || "-"}</td>
                               <td>{row.father_name || "-"}</td>
-                              <td style={{ backgroundColor: !row.category ? '#ffcccc' : 'inherit' }}>{row.category || "-"}</td>
+                              <td
+                                style={{
+                                  backgroundColor: !row.category
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.category || "-"}
+                              </td>
                               <td>{row.address || "-"}</td>
                               <td>{row.mobile_number || "-"}</td>
                               <td>{row.aadhaar_number || "-"}</td>
                               <td>{row.bank_account_number || "-"}</td>
                               <td>{row.ifsc_code || "-"}</td>
-                              <td style={{ backgroundColor: isNaN(parseFloat(row.quantity)) ? '#ffcccc' : 'inherit' }}>{row.quantity || "-"}</td>
-                              <td style={{ backgroundColor: isNaN(parseFloat(row.rate)) ? '#ffcccc' : 'inherit' }}>{row.rate || "-"}</td>
-                              <td style={{ backgroundColor: isNaN(parseFloat(row.amount)) ? '#ffcccc' : 'inherit' }}>{row.amount || "-"}</td>
-                              <td style={{ backgroundColor: !/^\d{2}\/\d{2}\/\d{4}$/.test(row.original_beneficiary_reg_date) ? '#ffcccc' : 'inherit' }}>{row.original_beneficiary_reg_date || "-"}</td>
+                              <td
+                                style={{
+                                  backgroundColor: isNaN(
+                                    parseFloat(row.quantity),
+                                  )
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.quantity || "-"}
+                              </td>
+                              <td
+                                style={{
+                                  backgroundColor: isNaN(parseFloat(row.rate))
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.rate || "-"}
+                              </td>
+                              <td
+                                style={{
+                                  backgroundColor: isNaN(parseFloat(row.amount))
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.amount || "-"}
+                              </td>
+                              <td
+                                style={{
+                                  backgroundColor:
+                                    !/^\d{2}\/\d{2}\/\d{4}$/.test(
+                                      row.original_beneficiary_reg_date,
+                                    )
+                                      ? "#ffcccc"
+                                      : "inherit",
+                                }}
+                              >
+                                {row.original_beneficiary_reg_date || "-"}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -3022,16 +3594,29 @@ const handleDelete = async (item) => {
                   {validationErrorsList.length > 0 && (
                     <div className="w-100 mb-3">
                       <Alert variant="warning" className="small-fonts mb-0">
-                        <strong>⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:</strong>
-                        <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                          {validationErrorsList.slice(0, 10).map((err, errIdx) => (
-                            <div key={errIdx} className="mt-1">
-                              <span className="badge bg-danger me-1">पंक्ति {err.rowIndex - 1}</span>
-                              {err.errors.map((e, i) => <span key={i} className="d-block text-danger">{e}</span>)}
-                            </div>
-                          ))}
+                        <strong>
+                          ⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:
+                        </strong>
+                        <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+                          {validationErrorsList
+                            .slice(0, 10)
+                            .map((err, errIdx) => (
+                              <div key={errIdx} className="mt-1">
+                                <span className="badge bg-danger me-1">
+                                  पंक्ति {err.rowIndex - 1}
+                                </span>
+                                {err.errors.map((e, i) => (
+                                  <span key={i} className="d-block text-danger">
+                                    {e}
+                                  </span>
+                                ))}
+                              </div>
+                            ))}
                           {validationErrorsList.length > 10 && (
-                            <div className="text-muted">... और {validationErrorsList.length - 10} और त्रुटियां</div>
+                            <div className="text-muted">
+                              ... और {validationErrorsList.length - 10} और
+                              त्रुटियां
+                            </div>
                           )}
                         </div>
                       </Alert>
@@ -3041,7 +3626,9 @@ const handleDelete = async (item) => {
                           size="sm"
                           className="mt-2"
                           onClick={() => {
-                            const duplicates = previewData.filter(row => duplicateRowIndices.includes(row.rowIndex));
+                            const duplicates = previewData.filter((row) =>
+                              duplicateRowIndices.includes(row.rowIndex),
+                            );
                             setAllDuplicateEntries(duplicates);
                             setShowAllDuplicatesModal(true);
                           }}
@@ -3052,18 +3639,28 @@ const handleDelete = async (item) => {
                     </div>
                   )}
                   <div className="d-flex justify-content-between w-100">
-                    <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowPreviewModal(false)}
+                    >
                       रद्द करें
                     </Button>
                     {(() => {
-                      const validCount = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex)).length;
+                      const validCount = previewData.filter(
+                        (row) =>
+                          !validationErrorsList.some(
+                            (err) => err.rowIndex === row.rowIndex,
+                          ),
+                      ).length;
                       return (
                         <Button
                           variant="primary"
                           onClick={handleConfirmUpload}
                           disabled={validCount === 0}
                         >
-                          {validCount > 0 ? `${validCount} रिकॉर्ड अपलोड करें` : 'कोई मान्य रिकॉर्ड नहीं'}
+                          {validCount > 0
+                            ? `${validCount} रिकॉर्ड अपलोड करें`
+                            : "कोई मान्य रिकॉर्ड नहीं"}
                         </Button>
                       );
                     })()}
@@ -3072,15 +3669,30 @@ const handleDelete = async (item) => {
               </Modal>
 
               {/* All Duplicates Modal */}
-              <Modal show={showAllDuplicatesModal} onHide={() => setShowAllDuplicatesModal(false)} size="lg" centered>
+              <Modal
+                show={showAllDuplicatesModal}
+                onHide={() => setShowAllDuplicatesModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})</Modal.Title>
+                  <Modal.Title>
+                    सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   {allDuplicateEntries.length === 0 ? (
-                    <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
+                    <Alert variant="warning">
+                      कोई डुप्लीकेट रिकॉर्ड नहीं मिला
+                    </Alert>
                   ) : (
-                    <Table striped bordered hover size="sm" className="small-fonts">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="small-fonts"
+                    >
                       <thead>
                         <tr>
                           <th>क्र.सं. (Excel)</th>
@@ -3106,7 +3718,7 @@ const handleDelete = async (item) => {
                       </thead>
                       <tbody>
                         {allDuplicateEntries.map((row, idx) => (
-                          <tr key={idx} style={{ backgroundColor: '#ffcccc' }}>
+                          <tr key={idx} style={{ backgroundColor: "#ffcccc" }}>
                             <td>{row.rowIndex - 1}</td>
                             <td>{row.center_name || "-"}</td>
                             <td>{row.vidhan_sabha_name || "-"}</td>
@@ -3133,24 +3745,43 @@ const handleDelete = async (item) => {
                   )}
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowAllDuplicatesModal(false)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAllDuplicatesModal(false)}
+                  >
                     बंद करें
                   </Button>
                 </Modal.Footer>
               </Modal>
 
               {/* Center Name Correction Modal */}
-              <Modal show={showCenterNameCorrectionModal} onHide={() => setShowCenterNameCorrectionModal(false)} size="lg" centered>
+              <Modal
+                show={showCenterNameCorrectionModal}
+                onHide={() => setShowCenterNameCorrectionModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>केंद्र नाम सुधार ({centerNameCorrections.length} रिकॉर्ड)</Modal.Title>
+                  <Modal.Title>
+                    केंद्र नाम सुधार ({centerNameCorrections.length} रिकॉर्ड)
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   <Alert variant="warning" className="small-fonts">
-                    <strong>निम्न केंद्र नामों में बोलचाल की भिन्नता पाई गई है:</strong>
+                    <strong>
+                      निम्न केंद्र नामों में बोलचाल की भिन्नता पाई गई है:
+                    </strong>
                     <br />
-                    कृपया पुष्टि करें कि आप इन नामों को सिस्टम में उपलब्ध सही नामों से बदलना चाहते हैं।
+                    कृपया पुष्टि करें कि आप इन नामों को सिस्टम में उपलब्ध सही
+                    नामों से बदलना चाहते हैं।
                   </Alert>
-                  <Table striped bordered hover size="sm" className="small-fonts">
+                  <Table
+                    striped
+                    bordered
+                    hover
+                    size="sm"
+                    className="small-fonts"
+                  >
                     <thead>
                       <tr>
                         <th>क्र.सं. (Excel)</th>
@@ -3162,28 +3793,41 @@ const handleDelete = async (item) => {
                       {centerNameCorrections.map((correction, idx) => (
                         <tr key={idx}>
                           <td>{correction.rowIndex}</td>
-                          <td style={{ color: 'red' }}>{correction.original}</td>
-                          <td style={{ color: 'green', fontWeight: 'bold' }}>{correction.corrected}</td>
+                          <td style={{ color: "red" }}>
+                            {correction.original}
+                          </td>
+                          <td style={{ color: "green", fontWeight: "bold" }}>
+                            {correction.corrected}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </Table>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => {
-                    // Apply corrections and proceed
-                    const correctedRows = applyCenterNameCorrections(previewData, centerNameCorrections);
-                    setPreviewData(correctedRows);
-                    setShowCenterNameCorrectionModal(false);
-                    setShowPreviewModal(true);
-                  }}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      // Apply corrections and proceed
+                      const correctedRows = applyCenterNameCorrections(
+                        previewData,
+                        centerNameCorrections,
+                      );
+                      setPreviewData(correctedRows);
+                      setShowCenterNameCorrectionModal(false);
+                      setShowPreviewModal(true);
+                    }}
+                  >
                     सुधार करें और आगे बढ़ें
                   </Button>
-                  <Button variant="primary" onClick={() => {
-                    // Skip corrections, keep original names
-                    setShowCenterNameCorrectionModal(false);
-                    setShowPreviewModal(true);
-                  }}>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      // Skip corrections, keep original names
+                      setShowCenterNameCorrectionModal(false);
+                      setShowPreviewModal(true);
+                    }}
+                  >
                     बिना सुधार के आगे बढ़ें
                   </Button>
                 </Modal.Footer>
@@ -3195,9 +3839,10 @@ const handleDelete = async (item) => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    अनिवार्य फ़ील्ड: केंद्र का नाम, योजना का नाम, 
-                    आपूर्ति की गई वस्तु का नाम, किसान का नाम, पिता का नाम, श्रेणी, पता, मोबाइल नंबर, 
-                    आधार नंबर, बैंक खाता नंबर, IFSC कोड, इकाई, मात्रा, दर, देय अनुदान राशि
+                    अनिवार्य फ़ील्ड: केंद्र का नाम, योजना का नाम, आपूर्ति की गई
+                    वस्तु का नाम, किसान का नाम, पिता का नाम, श्रेणी, पता, मोबाइल
+                    नंबर, आधार नंबर, बैंक खाता नंबर, IFSC कोड, इकाई, मात्रा, दर,
+                    देय अनुदान राशि
                   </li>
                   <li>मात्रा, दर और देय अनुदान राशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
@@ -3227,8 +3872,6 @@ const handleDelete = async (item) => {
                   {errors.center_name}
                 </Form.Control.Feedback>
               </Form.Group>
-
-           
 
               {/* Beneficiaries Form Section - Only show when center is selected */}
               {formData.center_name && (
@@ -3296,7 +3939,10 @@ const handleDelete = async (item) => {
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="supplied_item_name">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="supplied_item_name"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.suppliedItemName}
                         </Form.Label>
@@ -3341,12 +3987,16 @@ const handleDelete = async (item) => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
-                            {formOptions.supplied_item_name.map((item, index) => (
-                              <option key={index} value={item}>
-                                {item}
-                              </option>
-                            ))}
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
+                            {formOptions.supplied_item_name.map(
+                              (item, index) => (
+                                <option key={index} value={item}>
+                                  {item}
+                                </option>
+                              ),
+                            )}
                             <option value="Other">अन्य</option>
                           </Form.Select>
                         )}
@@ -3398,7 +4048,9 @@ const handleDelete = async (item) => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.unit.map((unit, index) => (
                               <option key={index} value={unit}>
                                 {unit}
@@ -3600,7 +4252,9 @@ const handleDelete = async (item) => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.category.map((cat, index) => (
                               <option key={index} value={cat}>
                                 {cat}
@@ -3660,7 +4314,9 @@ const handleDelete = async (item) => {
                             className="compact-input"
                             disabled={isLoadingFilters}
                           >
-                            <option value="">{translations.selectOption}</option>
+                            <option value="">
+                              {translations.selectOption}
+                            </option>
                             {formOptions.scheme_name.map((scheme, index) => (
                               <option key={index} value={scheme}>
                                 {scheme}
@@ -3692,15 +4348,19 @@ const handleDelete = async (item) => {
                               isFetchingVikasKhand ? "लोड हो रहा है..." : ""
                             }
                           />
-                          <Button 
-                            variant="outline-secondary" 
-                            size="sm" 
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
                             onClick={refreshVikasKhandData}
-                            disabled={!formData.center_name || isFetchingVikasKhand}
+                            disabled={
+                              !formData.center_name || isFetchingVikasKhand
+                            }
                             className="ms-1"
                             title="Refresh Vikas Khand Data"
                           >
-                            <FaSync className={isFetchingVikasKhand ? "fa-spin" : ""} />
+                            <FaSync
+                              className={isFetchingVikasKhand ? "fa-spin" : ""}
+                            />
                           </Button>
                         </div>
                         <Form.Control.Feedback type="invalid">
@@ -3709,7 +4369,10 @@ const handleDelete = async (item) => {
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
-                      <Form.Group className="mb-2" controlId="vidhan_sabha_name">
+                      <Form.Group
+                        className="mb-2"
+                        controlId="vidhan_sabha_name"
+                      >
                         <Form.Label className="small-fonts fw-bold">
                           {translations.vidhanSabhaName}
                         </Form.Label>
@@ -3730,20 +4393,23 @@ const handleDelete = async (item) => {
                         </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
-                      <Col xs={12} sm={6} md={2}>
-                        <Form.Group className="mb-2" controlId="beneficiary_reg_date">
-                          <Form.Label className="small-fonts fw-bold">
-                            {translations.beneficiaryRegDate}
-                          </Form.Label>
-                          <Form.Control
-                            type="date"
-                            name="beneficiary_reg_date"
-                            value={formData.beneficiary_reg_date}
-                            onChange={handleChange}
-                            className="compact-input"
-                          />
-                        </Form.Group>
-                      </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group
+                        className="mb-2"
+                        controlId="beneficiary_reg_date"
+                      >
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.beneficiaryRegDate}
+                        </Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="beneficiary_reg_date"
+                          value={formData.beneficiary_reg_date}
+                          onChange={handleChange}
+                          className="compact-input"
+                        />
+                      </Form.Group>
+                    </Col>
                     <Col
                       xs={12}
                       sm={6}
@@ -3826,7 +4492,7 @@ const handleDelete = async (item) => {
                                   .toISOString()
                                   .slice(0, 10)}`,
                                 beneficiariesTableColumnMapping,
-                                selectedColumns
+                                selectedColumns,
                               )
                             }
                             className="me-2"
@@ -3852,7 +4518,7 @@ const handleDelete = async (item) => {
                                   .slice(0, 10)}`,
                                 beneficiariesTableColumnMapping,
                                 selectedColumns,
-                                "लाभार्थी डेटा"
+                                "लाभार्थी डेटा",
                               )
                             }
                           >
@@ -3892,7 +4558,10 @@ const handleDelete = async (item) => {
                     <span className="small-fonts">
                       {translations.showing}{" "}
                       {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
-                      {Math.min(currentPage * itemsPerPage, beneficiaries.length)}{" "}
+                      {Math.min(
+                        currentPage * itemsPerPage,
+                        beneficiaries.length,
+                      )}{" "}
                       {translations.of} {beneficiaries.length}{" "}
                       {translations.entries}
                     </span>
@@ -3919,7 +4588,9 @@ const handleDelete = async (item) => {
                 {beneficiaries.length > 0 && (
                   <div className="created-at-filter-section mb-3 p-3 border rounded bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="small-fonts mb-0">तिथि से फ़िल्टर करें (created_at)</h6>
+                      <h6 className="small-fonts mb-0">
+                        तिथि से फ़िल्टर करें (created_at)
+                      </h6>
                     </div>
                     <Row>
                       <Col xs={12} md={4}>
@@ -3929,14 +4600,16 @@ const handleDelete = async (item) => {
                           </Form.Label>
                           <Form.Select
                             value={createdAtFilter.selectedDate}
-                            onChange={(e) => handleCreatedAtDateSelect(e.target.value)}
+                            onChange={(e) =>
+                              handleCreatedAtDateSelect(e.target.value)
+                            }
                             className="compact-input"
                             disabled={createdAtFilter.showManualPicker}
                           >
                             <option value="">-- तिथि चुनें --</option>
                             {uniqueCreatedAtDates.map((date) => (
                               <option key={date} value={date}>
-                                {new Date(date).toLocaleDateString('hi-IN')}
+                                {new Date(date).toLocaleDateString("hi-IN")}
                               </option>
                             ))}
                           </Form.Select>
@@ -3945,12 +4618,18 @@ const handleDelete = async (item) => {
                       <Col xs={12} md={4}>
                         <Form.Group className="mb-2 d-flex align-items-end">
                           <Button
-                            variant={createdAtFilter.showManualPicker ? "primary" : "outline-secondary"}
+                            variant={
+                              createdAtFilter.showManualPicker
+                                ? "primary"
+                                : "outline-secondary"
+                            }
                             size="sm"
                             onClick={toggleManualDatePicker}
                             className="mb-2"
                           >
-                            {createdAtFilter.showManualPicker ? "मैन्युअल तिथि छुपाएं" : "मैन्युअल तिथि"}
+                            {createdAtFilter.showManualPicker
+                              ? "मैन्युअल तिथि छुपाएं"
+                              : "मैन्युअल तिथि"}
                           </Button>
                         </Form.Group>
                       </Col>
@@ -3963,7 +4642,9 @@ const handleDelete = async (item) => {
                             <Form.Control
                               type="date"
                               value={createdAtFilter.manualDate}
-                              onChange={(e) => handleCreatedAtManualDateChange(e.target.value)}
+                              onChange={(e) =>
+                                handleCreatedAtManualDateChange(e.target.value)
+                              }
                               className="compact-input"
                             />
                           </Form.Group>
@@ -3971,12 +4652,19 @@ const handleDelete = async (item) => {
                       )}
                     </Row>
                     {/* Show selected filter info */}
-                    {(createdAtFilter.selectedDate || createdAtFilter.manualDate) && (
+                    {(createdAtFilter.selectedDate ||
+                      createdAtFilter.manualDate) && (
                       <div className="mt-2">
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => setCreatedAtFilter({ selectedDate: "", manualDate: "", showManualPicker: false })}
+                          onClick={() =>
+                            setCreatedAtFilter({
+                              selectedDate: "",
+                              manualDate: "",
+                              showManualPicker: false,
+                            })
+                          }
                         >
                           तिथि फ़िल्टर साफ़ करें
                         </Button>
@@ -4019,10 +4707,12 @@ const handleDelete = async (item) => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.farmer_name.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.farmer_name.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -4048,10 +4738,12 @@ const handleDelete = async (item) => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.center_name.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.center_name.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -4078,7 +4770,7 @@ const handleDelete = async (item) => {
                               }));
                             }}
                             options={filterOptions.supplied_item_name.map(
-                              (option) => ({ value: option, label: option })
+                              (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
                             placeholder="चुनें"
@@ -4134,10 +4826,12 @@ const handleDelete = async (item) => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.scheme_name.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.scheme_name.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -4164,7 +4858,7 @@ const handleDelete = async (item) => {
                               }));
                             }}
                             options={filterOptions.vikas_khand_name.map(
-                              (option) => ({ value: option, label: option })
+                              (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
                             placeholder="चुनें"
@@ -4192,7 +4886,7 @@ const handleDelete = async (item) => {
                               }));
                             }}
                             options={filterOptions.vidhan_sabha_name.map(
-                              (option) => ({ value: option, label: option })
+                              (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
                             placeholder="चुनें"
@@ -4244,9 +4938,21 @@ const handleDelete = async (item) => {
                         >
                           <h5>विकास खंड सारांश</h5>
                           <div className="mt-3">
-                            <p><strong>कुल विकास खंड:</strong> {summaryStats.vikas.uniqueCount}</p>
-                            <p><strong>शीर्ष ब्लॉक:</strong> {summaryStats.vikas.topLabel} {summaryStats.vikas.topCount > 0 ? `(${summaryStats.vikas.topCount})` : ""}</p>
-                            <p><strong>कुल लाभार्थी:</strong> {summaryStats.vikas.totalBeneficiaries}</p>
+                            <p>
+                              <strong>कुल विकास खंड:</strong>{" "}
+                              {summaryStats.vikas.uniqueCount}
+                            </p>
+                            <p>
+                              <strong>शीर्ष ब्लॉक:</strong>{" "}
+                              {summaryStats.vikas.topLabel}{" "}
+                              {summaryStats.vikas.topCount > 0
+                                ? `(${summaryStats.vikas.topCount})`
+                                : ""}
+                            </p>
+                            <p>
+                              <strong>कुल लाभार्थी:</strong>{" "}
+                              {summaryStats.vikas.totalBeneficiaries}
+                            </p>
                           </div>
                         </div>
                       </Col>
@@ -4258,9 +4964,21 @@ const handleDelete = async (item) => {
                         >
                           <h5>विधानसभा सारांश</h5>
                           <div className="mt-3">
-                            <p><strong>कुल विधानसभा:</strong> {summaryStats.vidhan.uniqueCount}</p>
-                            <p><strong>शीर्ष विधानसभा:</strong> {summaryStats.vidhan.topLabel} {summaryStats.vidhan.topCount > 0 ? `(${summaryStats.vidhan.topCount})` : ""}</p>
-                            <p><strong>कुल लाभार्थी:</strong> {summaryStats.vidhan.totalBeneficiaries}</p>
+                            <p>
+                              <strong>कुल विधानसभा:</strong>{" "}
+                              {summaryStats.vidhan.uniqueCount}
+                            </p>
+                            <p>
+                              <strong>शीर्ष विधानसभा:</strong>{" "}
+                              {summaryStats.vidhan.topLabel}{" "}
+                              {summaryStats.vidhan.topCount > 0
+                                ? `(${summaryStats.vidhan.topCount})`
+                                : ""}
+                            </p>
+                            <p>
+                              <strong>कुल लाभार्थी:</strong>{" "}
+                              {summaryStats.vidhan.totalBeneficiaries}
+                            </p>
                           </div>
                         </div>
                       </Col>
@@ -4272,9 +4990,18 @@ const handleDelete = async (item) => {
                         >
                           <h5>आपूर्ति वस्तु सारांश</h5>
                           <div className="mt-3">
-                            <p><strong>कुल वस्तुएँ:</strong> {summaryStats.suppliedItem.uniqueCount}</p>
-                            <p><strong>कुल मात्रा:</strong> {summaryStats.suppliedItem.totalQuantity}</p>
-                            <p><strong>कुल देय अनुदान राशि:</strong> ₹{summaryStats.suppliedItem.totalAmount}</p>
+                            <p>
+                              <strong>कुल वस्तुएँ:</strong>{" "}
+                              {summaryStats.suppliedItem.uniqueCount}
+                            </p>
+                            <p>
+                              <strong>कुल मात्रा:</strong>{" "}
+                              {summaryStats.suppliedItem.totalQuantity}
+                            </p>
+                            <p>
+                              <strong>कुल देय अनुदान राशि:</strong> ₹
+                              {summaryStats.suppliedItem.totalAmount}
+                            </p>
                           </div>
                         </div>
                       </Col>
@@ -4286,9 +5013,18 @@ const handleDelete = async (item) => {
                         >
                           <h5>केंद्र सारांश</h5>
                           <div className="mt-3">
-                            <p><strong>कुल केंद्र:</strong> {summaryStats.center.uniqueCount}</p>
-                            <p><strong>सबसे सक्रिय केंद्र:</strong> {summaryStats.center.topLabel}</p>
-                            <p><strong>कुल रिकॉर्ड:</strong> {summaryStats.center.totalRecords}</p>
+                            <p>
+                              <strong>कुल केंद्र:</strong>{" "}
+                              {summaryStats.center.uniqueCount}
+                            </p>
+                            <p>
+                              <strong>सबसे सक्रिय केंद्र:</strong>{" "}
+                              {summaryStats.center.topLabel}
+                            </p>
+                            <p>
+                              <strong>कुल रिकॉर्ड:</strong>{" "}
+                              {summaryStats.center.totalRecords}
+                            </p>
                           </div>
                         </div>
                       </Col>
@@ -4300,9 +5036,18 @@ const handleDelete = async (item) => {
                         >
                           <h5>योजना सारांश</h5>
                           <div className="mt-3">
-                            <p><strong>कुल योजना:</strong> {summaryStats.scheme.uniqueCount}</p>
-                            <p><strong>सबसे अधिक उपयोग:</strong> {summaryStats.scheme.topLabel}</p>
-                            <p><strong>कुल वितरित देय अनुदान राशि:</strong> ₹{summaryStats.scheme.totalAmount}</p>
+                            <p>
+                              <strong>कुल योजना:</strong>{" "}
+                              {summaryStats.scheme.uniqueCount}
+                            </p>
+                            <p>
+                              <strong>सबसे अधिक उपयोग:</strong>{" "}
+                              {summaryStats.scheme.topLabel}
+                            </p>
+                            <p>
+                              <strong>कुल वितरित देय अनुदान राशि:</strong> ₹
+                              {summaryStats.scheme.totalAmount}
+                            </p>
                           </div>
                         </div>
                       </Col>
@@ -4314,9 +5059,21 @@ const handleDelete = async (item) => {
                         >
                           <h5>पता सारांश</h5>
                           <div className="mt-3">
-                            <p><strong>कुल स्थान:</strong> {summaryStats.address.uniqueCount}</p>
-                            <p><strong>शीर्ष स्थान:</strong> {summaryStats.address.topLabel} {summaryStats.address.topCount > 0 ? `(${summaryStats.address.topCount})` : ""}</p>
-                            <p><strong>कुल लाभार्थी:</strong> {summaryStats.address.totalBeneficiaries}</p>
+                            <p>
+                              <strong>कुल स्थान:</strong>{" "}
+                              {summaryStats.address.uniqueCount}
+                            </p>
+                            <p>
+                              <strong>शीर्ष स्थान:</strong>{" "}
+                              {summaryStats.address.topLabel}{" "}
+                              {summaryStats.address.topCount > 0
+                                ? `(${summaryStats.address.topCount})`
+                                : ""}
+                            </p>
+                            <p>
+                              <strong>कुल लाभार्थी:</strong>{" "}
+                              {summaryStats.address.totalBeneficiaries}
+                            </p>
                           </div>
                         </div>
                       </Col>
@@ -4332,26 +5089,50 @@ const handleDelete = async (item) => {
                 >
                   <Modal.Header closeButton className="bg-light">
                     <Modal.Title>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          width: "100%",
+                        }}
+                      >
                         <span>
-                          {selectedSummaryModal === "vikas" && "विकास खंड सारांश विवरण"}
-                          {selectedSummaryModal === "vidhan" && "विधानसभा सारांश विवरण"}
-                          {selectedSummaryModal === "supplied" && "आपूर्ति वस्तु सारांश विवरण"}
-                          {selectedSummaryModal === "center" && "केंद्र सारांश विवरण"}
-                          {selectedSummaryModal === "scheme" && "योजना सारांश विवरण"}
-                          {selectedSummaryModal === "address" && "पता सारांश विवरण"}
+                          {selectedSummaryModal === "vikas" &&
+                            "विकास खंड सारांश विवरण"}
+                          {selectedSummaryModal === "vidhan" &&
+                            "विधानसभा सारांश विवरण"}
+                          {selectedSummaryModal === "supplied" &&
+                            "आपूर्ति वस्तु सारांश विवरण"}
+                          {selectedSummaryModal === "center" &&
+                            "केंद्र सारांश विवरण"}
+                          {selectedSummaryModal === "scheme" &&
+                            "योजना सारांश विवरण"}
+                          {selectedSummaryModal === "address" &&
+                            "पता सारांश विवरण"}
                         </span>
-
                       </div>
                     </Modal.Title>
                   </Modal.Header>
-                  <Modal.Body style={{ padding: '20px' }}>
+                  <Modal.Body style={{ padding: "20px" }}>
                     {selectedSummaryModal === "vikas" && (
                       <>
                         <div className="mb-4 p-3 border rounded bg-light">
-                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - विकास खंड अनुसार</h6>
-                          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">
+                            📊 मुख्य सारांश - विकास खंड अनुसार
+                          </h6>
+                          <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto" }}
+                          >
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              responsive
+                              size="sm"
+                              className="mb-2"
+                            >
                               <thead>
                                 <tr className="table-primary">
                                   <th>विकास खंड</th>
@@ -4361,21 +5142,43 @@ const handleDelete = async (item) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {summaryStats.vikas.breakdown.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.label}</td>
-                                    <td>{item.count}</td>
-                                    <td>{item.amount.toFixed(2)}</td>
-                                    <td>{item.quantity}</td>
-                                  </tr>
-                                ))}
+                                {summaryStats.vikas.breakdown.map(
+                                  (item, index) => (
+                                    <tr key={index}>
+                                      <td>{item.label}</td>
+                                      <td>{item.count}</td>
+                                      <td>{item.amount.toFixed(2)}</td>
+                                      <td>{item.quantity}</td>
+                                    </tr>
+                                  ),
+                                )}
                               </tbody>
                               <tfoot>
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
-                                  <td>{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>₹{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                                  <td>{summaryStats.vikas.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>
+                                    {summaryStats.vikas.breakdown.reduce(
+                                      (sum, item) => sum + item.count,
+                                      0,
+                                    )}
+                                  </td>
+                                  <td>
+                                    ₹
+                                    {summaryStats.vikas.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.amount,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
+                                  <td>
+                                    {summaryStats.vikas.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.quantity,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -4383,7 +5186,9 @@ const handleDelete = async (item) => {
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 इस विकास खंड में विधानसभा अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🔷 इस विकास खंड में विधानसभा अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4406,16 +5211,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVidhan.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVidhan.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVidhan
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVidhan
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📋 इस विकास खंड में योजना अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📋 इस विकास खंड में योजना अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4438,16 +5262,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byScheme.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byScheme.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byScheme
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byScheme
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
-</div>
-                        
+                        </div>
+
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏢 केंद्र अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4470,31 +5313,114 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byCenter.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byCenter.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byCenter
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
-                        {renderCrossTabTable(vikasByVidhan, "vikas_khand_name", "vidhan_sabha_name", "🏗️ विकास खंड × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "vikasVidhan")}
-                        {renderCrossTabTable(vikasByScheme, "vikas_khand_name", "scheme_name", "🏗️ विकास खंड × 📋 योजना (लाभार्थी, मात्रा व राशि)", "vikasScheme")}
-                        {renderCrossTabTable(vikasBySuppliedItem, "vikas_khand_name", "supplied_item_name", "🏗️ विकास खंड × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "vikasSupplied")}
-                        {renderCrossTabTable(vikasByCenter, "vikas_khand_name", "center_name", "🏗️ विकास खंड × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "vikasCenter")}
-                        {renderCrossTabTable(vikasByAddress, "vikas_khand_name", "address", "🏗️ विकास खंड × 📍 पता (लाभार्थी, मात्रा व राशि)", "vikasAddress")}
-                        {renderCrossTabTable(vidhanByVikas, "vidhan_sabha_name", "vikas_khand_name", "🔷 विधानसभा × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "vidhanVikas")}
-                        {renderCrossTabTable(schemeByVikas, "scheme_name", "vikas_khand_name", "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "schemeVikas")}
-                        {renderCrossTabTable(suppliedByVikas, "supplied_item_name", "vikas_khand_name", "📦 वस्तु × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "suppliedVikas")}
-                        {renderCrossTabTable(centerByVikas, "center_name", "vikas_khand_name", "🏢 केंद्र × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "centerVikas")}
+                        {renderCrossTabTable(
+                          vikasByVidhan,
+                          "vikas_khand_name",
+                          "vidhan_sabha_name",
+                          "🏗️ विकास खंड × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "vikasVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          vikasByScheme,
+                          "vikas_khand_name",
+                          "scheme_name",
+                          "🏗️ विकास खंड × 📋 योजना (लाभार्थी, मात्रा व राशि)",
+                          "vikasScheme",
+                        )}
+                        {renderCrossTabTable(
+                          vikasBySuppliedItem,
+                          "vikas_khand_name",
+                          "supplied_item_name",
+                          "🏗️ विकास खंड × 📦 वस्तु (लाभार्थी, मात्रा व राशि)",
+                          "vikasSupplied",
+                        )}
+                        {renderCrossTabTable(
+                          vikasByCenter,
+                          "vikas_khand_name",
+                          "center_name",
+                          "🏗️ विकास खंड × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)",
+                          "vikasCenter",
+                        )}
+                        {renderCrossTabTable(
+                          vikasByAddress,
+                          "vikas_khand_name",
+                          "address",
+                          "🏗️ विकास खंड × 📍 पता (लाभार्थी, मात्रा व राशि)",
+                          "vikasAddress",
+                        )}
+                        {renderCrossTabTable(
+                          vidhanByVikas,
+                          "vidhan_sabha_name",
+                          "vikas_khand_name",
+                          "🔷 विधानसभा × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "vidhanVikas",
+                        )}
+                        {renderCrossTabTable(
+                          schemeByVikas,
+                          "scheme_name",
+                          "vikas_khand_name",
+                          "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "schemeVikas",
+                        )}
+                        {renderCrossTabTable(
+                          suppliedByVikas,
+                          "supplied_item_name",
+                          "vikas_khand_name",
+                          "📦 वस्तु × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "suppliedVikas",
+                        )}
+                        {renderCrossTabTable(
+                          centerByVikas,
+                          "center_name",
+                          "vikas_khand_name",
+                          "🏢 केंद्र × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "centerVikas",
+                        )}
                       </>
                     )}
                     {selectedSummaryModal === "vidhan" && (
                       <>
                         <div className="mb-4 p-3 border rounded bg-light">
-                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - विधानसभा अनुसार</h6>
-                          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">
+                            📊 मुख्य सारांश - विधानसभा अनुसार
+                          </h6>
+                          <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto" }}
+                          >
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              responsive
+                              size="sm"
+                              className="mb-2"
+                            >
                               <thead>
                                 <tr className="table-primary">
                                   <th>विधानसभा</th>
@@ -4504,21 +5430,43 @@ const handleDelete = async (item) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {summaryStats.vidhan.breakdown.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.label}</td>
-                                    <td>{item.count}</td>
-                                    <td>{item.amount.toFixed(2)}</td>
-                                    <td>{item.quantity}</td>
-                                  </tr>
-                                ))}
+                                {summaryStats.vidhan.breakdown.map(
+                                  (item, index) => (
+                                    <tr key={index}>
+                                      <td>{item.label}</td>
+                                      <td>{item.count}</td>
+                                      <td>{item.amount.toFixed(2)}</td>
+                                      <td>{item.quantity}</td>
+                                    </tr>
+                                  ),
+                                )}
                               </tbody>
                               <tfoot>
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
-                                  <td>{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>₹{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                                  <td>{summaryStats.vidhan.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>
+                                    {summaryStats.vidhan.breakdown.reduce(
+                                      (sum, item) => sum + item.count,
+                                      0,
+                                    )}
+                                  </td>
+                                  <td>
+                                    ₹
+                                    {summaryStats.vidhan.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.amount,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
+                                  <td>
+                                    {summaryStats.vidhan.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.quantity,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -4526,7 +5474,9 @@ const handleDelete = async (item) => {
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📋 योजना अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📋 योजना अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4535,7 +5485,7 @@ const handleDelete = async (item) => {
                                 <th>मात्रा</th>
                                 <th>देय अनुदान राशि (₹)</th>
                               </tr>
-</thead>
+                            </thead>
                             <tbody>
                               {crossSummaries.byScheme.map((item, index) => (
                                 <tr key={index}>
@@ -4549,16 +5499,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byScheme.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byScheme.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byScheme
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byScheme
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📦 वस्तु अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📦 वस्तु अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4568,80 +5537,102 @@ const handleDelete = async (item) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {crossSummaries.bySuppliedItem.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.quantity}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
+                              {crossSummaries.bySuppliedItem.map(
+                                (item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                  </tr>
+                                ),
+                              )}
                             </tbody>
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.bySuppliedItem
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.bySuppliedItem
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
-                       <div className="mb-4 p-3 border rounded">
-  <h6 className="text-success mb-3 border-bottom pb-2">
-    🏗️ विकास खंड अनुसार
-  </h6>
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏗️ विकास खंड अनुसार
+                          </h6>
 
-  <Table striped bordered hover responsive size="sm">
-    <thead>
-      <tr className="table-secondary">
-        <th>विकास खंड</th>
-        <th>लाभार्थी</th>
-        <th>मात्रा</th>
-        <th>देय अनुदान राशि (₹)</th>
-      </tr>
-    </thead>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>विकास खंड</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>देय अनुदान राशि (₹)</th>
+                              </tr>
+                            </thead>
 
-    <tbody>
-      {crossSummaries.byCenter.map((item, index) => (
-        <tr key={index}>
-          <td>{item.label}</td>
-          <td>{item.count}</td>
-          <td>{item.quantity?.toFixed(2) || "0.00"}</td>
-          <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
-        </tr>
-      ))}
-    </tbody>
+                            <tbody>
+                              {crossSummaries.byCenter.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity?.toFixed(2) || "0.00"}</td>
+                                  <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
 
-    <tfoot>
-      <tr className="table-warning fw-bold">
-        <td>कुल</td>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
 
-        <td>
-          {crossSummaries.byCenter.reduce(
-            (sum, item) => sum + item.count,
-            0
-          )}
-        </td>
+                                <td>
+                                  {crossSummaries.byCenter.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
 
-        <td>
-          {crossSummaries.byCenter
-            .reduce((sum, item) => sum + (item.quantity || 0), 0)
-            .toFixed(2)}
-        </td>
+                                <td>
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + (item.quantity || 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
 
-        <td>
-          ₹
-          {crossSummaries.byCenter
-            .reduce((sum, item) => sum + (item.amount || 0), 0)
-            .toFixed(2)}
-        </td>
-      </tr>
-    </tfoot>
-  </Table>
-</div>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + (item.amount || 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 केंद्र अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏢 केंद्र अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4662,32 +5653,109 @@ const handleDelete = async (item) => {
                               ))}
                             </tbody>
                             <tfoot>
-<tr className="table-warning fw-bold">
-                                  <td>कुल</td>
-                                <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byCenter.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                                </tr>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+                                <td>
+                                  {crossSummaries.byCenter.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byCenter
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
+                              </tr>
                             </tfoot>
-                           </Table>
-                         </div>
+                          </Table>
+                        </div>
 
-                        {renderCrossTabTable(vidhanByScheme, "vidhan_sabha_name", "scheme_name", "🔷 विधानसभा × 📋 योजना (लाभार्थी, मात्रा व राशि)", "vidhanScheme")}
-                        {renderCrossTabTable(vidhanBySuppliedItem, "vidhan_sabha_name", "supplied_item_name", "🔷 विधानसभा × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "vidhanSupplied")}
-                        {renderCrossTabTable(vidhanByVikas, "vidhan_sabha_name", "vikas_khand_name", "🔷 विधानसभा × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "vidhanVikas")}
-                        {renderCrossTabTable(vidhanByCenter, "vidhan_sabha_name", "center_name", "🔷 विधानसभा × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "vidhanCenter")}
-                        {renderCrossTabTable(schemeByVidhan, "scheme_name", "vidhan_sabha_name", "📋 योजना × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "schemeVidhan")}
-                        {renderCrossTabTable(suppliedByVidhan, "supplied_item_name", "vidhan_sabha_name", "📦 वस्तु × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "suppliedVidhan")}
-                        {renderCrossTabTable(centerByVidhan, "center_name", "vidhan_sabha_name", "🏢 केंद्र × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "centerVidhan")}
-                        {renderCrossTabTable(vikasByVidhan, "vikas_khand_name", "vidhan_sabha_name", "🏗️ विकास खंड × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "vikasVidhan")}
-                       </>
-                     )}
+                        {renderCrossTabTable(
+                          vidhanByScheme,
+                          "vidhan_sabha_name",
+                          "scheme_name",
+                          "🔷 विधानसभा × 📋 योजना (लाभार्थी, मात्रा व राशि)",
+                          "vidhanScheme",
+                        )}
+                        {renderCrossTabTable(
+                          vidhanBySuppliedItem,
+                          "vidhan_sabha_name",
+                          "supplied_item_name",
+                          "🔷 विधानसभा × 📦 वस्तु (लाभार्थी, मात्रा व राशि)",
+                          "vidhanSupplied",
+                        )}
+                        {renderCrossTabTable(
+                          vidhanByVikas,
+                          "vidhan_sabha_name",
+                          "vikas_khand_name",
+                          "🔷 विधानसभा × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "vidhanVikas",
+                        )}
+                        {renderCrossTabTable(
+                          vidhanByCenter,
+                          "vidhan_sabha_name",
+                          "center_name",
+                          "🔷 विधानसभा × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)",
+                          "vidhanCenter",
+                        )}
+                        {renderCrossTabTable(
+                          schemeByVidhan,
+                          "scheme_name",
+                          "vidhan_sabha_name",
+                          "📋 योजना × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "schemeVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          suppliedByVidhan,
+                          "supplied_item_name",
+                          "vidhan_sabha_name",
+                          "📦 वस्तु × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "suppliedVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          centerByVidhan,
+                          "center_name",
+                          "vidhan_sabha_name",
+                          "🏢 केंद्र × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "centerVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          vikasByVidhan,
+                          "vikas_khand_name",
+                          "vidhan_sabha_name",
+                          "🏗️ विकास खंड × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "vikasVidhan",
+                        )}
+                      </>
+                    )}
                     {selectedSummaryModal === "supplied" && (
                       <>
                         <div className="mb-4 p-3 border rounded bg-light">
-                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - आपूर्ति वस्तु अनुसार</h6>
-                          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">
+                            📊 मुख्य सारांश - आपूर्ति वस्तु अनुसार
+                          </h6>
+                          <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto" }}
+                          >
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              responsive
+                              size="sm"
+                              className="mb-2"
+                            >
                               <thead>
                                 <tr className="table-primary">
                                   <th>वस्तु</th>
@@ -4697,21 +5765,43 @@ const handleDelete = async (item) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {summaryStats.suppliedItem.breakdown.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.label}</td>
-                                    <td>{item.count}</td>
-                                    <td>{item.quantity}</td>
-                                    <td>{item.amount.toFixed(2)}</td>
-                                  </tr>
-                                ))}
+                                {summaryStats.suppliedItem.breakdown.map(
+                                  (item, index) => (
+                                    <tr key={index}>
+                                      <td>{item.label}</td>
+                                      <td>{item.count}</td>
+                                      <td>{item.quantity}</td>
+                                      <td>{item.amount.toFixed(2)}</td>
+                                    </tr>
+                                  ),
+                                )}
                               </tbody>
                               <tfoot>
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
-                                  <td>{summaryStats.suppliedItem.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>{summaryStats.suppliedItem.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                  <td>₹{summaryStats.suppliedItem.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                  <td>
+                                    {summaryStats.suppliedItem.breakdown.reduce(
+                                      (sum, item) => sum + item.count,
+                                      0,
+                                    )}
+                                  </td>
+                                  <td>
+                                    {summaryStats.suppliedItem.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.quantity,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
+                                  <td>
+                                    ₹
+                                    {summaryStats.suppliedItem.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.amount,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -4719,7 +5809,9 @@ const handleDelete = async (item) => {
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📋 किस योजना में उपयोग हुआ</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📋 किस योजना में उपयोग हुआ
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4742,16 +5834,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byScheme.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byScheme.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byScheme.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byScheme
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byScheme
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 किस विधानसभा में उपयोग हुआ</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🔷 किस विधानसभा में उपयोग हुआ
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4774,16 +5885,37 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVikas.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVikas
+                                    .slice(0, 8)
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVikas
+                                    .slice(0, 8)
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ किस विकास खंड में उपयोग हुआ</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏗️ किस विकास खंड में उपयोग हुआ
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4806,16 +5938,37 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVikas.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVikas.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVikas
+                                    .slice(0, 8)
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVikas
+                                    .slice(0, 8)
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏢 किस केंद्र में उपयोग हुआ</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏢 किस केंद्र में उपयोग हुआ
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4838,26 +5991,79 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byCenter.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byCenter.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byCenter.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byCenter
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
-                        {renderCrossTabTable(suppliedByScheme, "supplied_item_name", "scheme_name", "📦 वस्तु × 📋 योजना (लाभार्थी, मात्रा व राशि)", "suppliedScheme")}
-                        {renderCrossTabTable(suppliedByVidhan, "supplied_item_name", "vidhan_sabha_name", "📦 वस्तु × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "suppliedVidhan")}
-                        {renderCrossTabTable(suppliedByVikas, "supplied_item_name", "vikas_khand_name", "📦 वस्तु × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "suppliedVikas")}
-                        {renderCrossTabTable(suppliedByCenter, "supplied_item_name", "center_name", "📦 वस्तु × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "suppliedCenter")}
+                        {renderCrossTabTable(
+                          suppliedByScheme,
+                          "supplied_item_name",
+                          "scheme_name",
+                          "📦 वस्तु × 📋 योजना (लाभार्थी, मात्रा व राशि)",
+                          "suppliedScheme",
+                        )}
+                        {renderCrossTabTable(
+                          suppliedByVidhan,
+                          "supplied_item_name",
+                          "vidhan_sabha_name",
+                          "📦 वस्तु × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "suppliedVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          suppliedByVikas,
+                          "supplied_item_name",
+                          "vikas_khand_name",
+                          "📦 वस्तु × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "suppliedVikas",
+                        )}
+                        {renderCrossTabTable(
+                          suppliedByCenter,
+                          "supplied_item_name",
+                          "center_name",
+                          "📦 वस्तु × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)",
+                          "suppliedCenter",
+                        )}
                       </>
                     )}
                     {selectedSummaryModal === "center" && (
                       <>
                         <div className="mb-4 p-3 border rounded bg-light">
-                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - केंद्र अनुसार</h6>
-                          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">
+                            📊 मुख्य सारांश - केंद्र अनुसार
+                          </h6>
+                          <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto" }}
+                          >
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              responsive
+                              size="sm"
+                              className="mb-2"
+                            >
                               <thead>
                                 <tr className="table-primary">
                                   <th>केंद्र</th>
@@ -4867,82 +6073,112 @@ const handleDelete = async (item) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {summaryStats.center.breakdown.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.label}</td>
-                                    <td>{item.count}</td>
-                                    <td>{item.quantity}</td>
-                                    <td>{item.amount.toFixed(2)}</td>
-                                  </tr>
-                                ))}
+                                {summaryStats.center.breakdown.map(
+                                  (item, index) => (
+                                    <tr key={index}>
+                                      <td>{item.label}</td>
+                                      <td>{item.count}</td>
+                                      <td>{item.quantity}</td>
+                                      <td>{item.amount.toFixed(2)}</td>
+                                    </tr>
+                                  ),
+                                )}
                               </tbody>
                               <tfoot>
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
-                                  <td>{summaryStats.center.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>{summaryStats.center.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                  <td>₹{summaryStats.center.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                  <td>
+                                    {summaryStats.center.breakdown.reduce(
+                                      (sum, item) => sum + item.count,
+                                      0,
+                                    )}
+                                  </td>
+                                  <td>
+                                    {summaryStats.center.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.quantity,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
+                                  <td>
+                                    ₹
+                                    {summaryStats.center.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.amount,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
                                 </tr>
                               </tfoot>
                             </Table>
                           </div>
                         </div>
 
-                       <div className="mb-4 p-3 border rounded">
-  <h6 className="text-success mb-3 border-bottom pb-2">
-    📋 योजना अनुसार
-  </h6>
-
-  <Table striped bordered hover responsive size="sm">
-    <thead>
-      <tr className="table-secondary">
-        <th>योजना</th>
-        <th>लाभार्थी</th>
-        <th>मात्रा</th>
-        <th>देय अनुदान राशि (₹)</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {crossSummaries.byScheme.map((item, index) => (
-        <tr key={index}>
-          <td>{item.label}</td>
-          <td>{item.count}</td>
-          <td>{item.quantity?.toFixed(2) || "0.00"}</td>
-          <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
-        </tr>
-      ))}
-    </tbody>
-
-    <tfoot>
-      <tr className="table-warning fw-bold">
-        <td>कुल</td>
-
-        <td>
-          {crossSummaries.byScheme.reduce(
-            (sum, item) => sum + item.count,
-            0
-          )}
-        </td>
-
-        <td>
-          {crossSummaries.byScheme
-            .reduce((sum, item) => sum + (item.quantity || 0), 0)
-            .toFixed(2)}
-        </td>
-
-        <td>
-          ₹
-          {crossSummaries.byScheme
-            .reduce((sum, item) => sum + (item.amount || 0), 0)
-            .toFixed(2)}
-        </td>
-      </tr>
-    </tfoot>
-  </Table>
-</div>
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 विधानसभा अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📋 योजना अनुसार
+                          </h6>
+
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>योजना</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>देय अनुदान राशि (₹)</th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {crossSummaries.byScheme.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity?.toFixed(2) || "0.00"}</td>
+                                  <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
+
+                                <td>
+                                  {crossSummaries.byScheme.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+
+                                <td>
+                                  {crossSummaries.byScheme
+                                    .reduce(
+                                      (sum, item) => sum + (item.quantity || 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+
+                                <td>
+                                  ₹
+                                  {crossSummaries.byScheme
+                                    .reduce(
+                                      (sum, item) => sum + (item.amount || 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🔷 विधानसभा अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4965,16 +6201,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVidhan.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVidhan.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVidhan
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVidhan
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ विकास खंड अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏗️ विकास खंड अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -4997,16 +6252,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVidhan.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVidhan.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVidhan.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVidhan
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVidhan
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📦 वस्तु अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📦 वस्तु अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -5017,110 +6291,273 @@ const handleDelete = async (item) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {crossSummaries.bySuppliedItem.slice(0, 8).map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
+                              {crossSummaries.bySuppliedItem
+                                .slice(0, 8)
+                                .map((item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.quantity.toFixed(2)}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                  </tr>
+                                ))}
                             </tbody>
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.bySuppliedItem.slice(0, 8).reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.bySuppliedItem
+                                    .slice(0, 8)
+                                    .reduce((sum, item) => sum + item.count, 0)}
+                                </td>
+                                <td>
+                                  {crossSummaries.bySuppliedItem
+                                    .slice(0, 8)
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.bySuppliedItem
+                                    .slice(0, 8)
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
-                        {renderCrossTabTable(addressByVidhan, "address", "vidhan_sabha_name", "📍 पता × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "addressVidhan")}
-                        {renderCrossTabTable(addressByScheme, "address", "scheme_name", "📍 पता × 📋 योजना (लाभार्थी, मात्रा व राशि)", "addressScheme")}
-                        {renderCrossTabTable(addressByVikas, "address", "vikas_khand_name", "📍 पता × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "addressVikas")}
-                        {renderCrossTabTable(addressByCenter, "address", "center_name", "📍 पता × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "addressCenter")}
+                        {renderCrossTabTable(
+                          addressByVidhan,
+                          "address",
+                          "vidhan_sabha_name",
+                          "📍 पता × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "addressVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          addressByScheme,
+                          "address",
+                          "scheme_name",
+                          "📍 पता × 📋 योजना (लाभार्थी, मात्रा व राशि)",
+                          "addressScheme",
+                        )}
+                        {renderCrossTabTable(
+                          addressByVikas,
+                          "address",
+                          "vikas_khand_name",
+                          "📍 पता × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "addressVikas",
+                        )}
+                        {renderCrossTabTable(
+                          addressByCenter,
+                          "address",
+                          "center_name",
+                          "📍 पता × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)",
+                          "addressCenter",
+                        )}
 
-                        {renderCrossTabTable(centerByScheme, "center_name", "scheme_name", "🏢 केंद्र × 📋 योजना (लाभार्थी, मात्रा व राशि)", "centerScheme")}
-                        {renderCrossTabTable(centerByVidhan, "center_name", "vidhan_sabha_name", "🏢 केंद्र × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "centerVidhan")}
-                        {renderCrossTabTable(centerByVikas, "center_name", "vikas_khand_name", "🏢 केंद्र × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "centerVikas")}
-                        {renderCrossTabTable(centerBySuppliedItem, "center_name", "supplied_item_name", "🏢 केंद्र × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "centerSupplied")}
-                        {renderCrossTabTable(centerByAddress, "center_name", "address", "🏢 केंद्र × 📍 पता (लाभार्थी, मात्रा व राशि)", "centerAddress")}
+                        {renderCrossTabTable(
+                          centerByScheme,
+                          "center_name",
+                          "scheme_name",
+                          "🏢 केंद्र × 📋 योजना (लाभार्थी, मात्रा व राशि)",
+                          "centerScheme",
+                        )}
+                        {renderCrossTabTable(
+                          centerByVidhan,
+                          "center_name",
+                          "vidhan_sabha_name",
+                          "🏢 केंद्र × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "centerVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          centerByVikas,
+                          "center_name",
+                          "vikas_khand_name",
+                          "🏢 केंद्र × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "centerVikas",
+                        )}
+                        {renderCrossTabTable(
+                          centerBySuppliedItem,
+                          "center_name",
+                          "supplied_item_name",
+                          "🏢 केंद्र × 📦 वस्तु (लाभार्थी, मात्रा व राशि)",
+                          "centerSupplied",
+                        )}
+                        {renderCrossTabTable(
+                          centerByAddress,
+                          "center_name",
+                          "address",
+                          "🏢 केंद्र × 📍 पता (लाभार्थी, मात्रा व राशि)",
+                          "centerAddress",
+                        )}
                       </>
                     )}
                     {selectedSummaryModal === "address" && (
                       <>
                         <div className="mb-4 p-3 border rounded bg-light">
-                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - पता अनुसार</h6>
-                          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                          <h6 className="text-primary mb-3 border-bottom pb-2">
+                            📊 मुख्य सारांश - पता अनुसार
+                          </h6>
+                          <div
+                            className="table-responsive"
+                            style={{ overflowX: "auto" }}
+                          >
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              responsive
+                              size="sm"
+                              className="mb-2"
+                            >
                               <thead>
                                 <tr className="table-primary">
                                   <th>पता</th>
                                   <th>लाभार्थी</th>
-                                <th>देय अनुदान राशि (₹)</th>
+                                  <th>देय अनुदान राशि (₹)</th>
                                   <th>मात्रा</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {summaryStats.address.breakdown.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.label}</td>
-                                    <td>{item.count}</td>
-                                    <td>{item.amount.toFixed(2)}</td>
-                                    <td>{item.quantity}</td>
-                                  </tr>
-                                ))}
+                                {summaryStats.address.breakdown.map(
+                                  (item, index) => (
+                                    <tr key={index}>
+                                      <td>{item.label}</td>
+                                      <td>{item.count}</td>
+                                      <td>{item.amount.toFixed(2)}</td>
+                                      <td>{item.quantity}</td>
+                                    </tr>
+                                  ),
+                                )}
                               </tbody>
                               <tfoot>
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
-                                  <td>{summaryStats.address.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>₹{summaryStats.address.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
-                                  <td>{summaryStats.address.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
+                                  <td>
+                                    {summaryStats.address.breakdown.reduce(
+                                      (sum, item) => sum + item.count,
+                                      0,
+                                    )}
+                                  </td>
+                                  <td>
+                                    ₹
+                                    {summaryStats.address.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.amount,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
+                                  <td>
+                                    {summaryStats.address.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.quantity,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
                                 </tr>
                               </tfoot>
                             </Table>
                           </div>
                         </div>
 
-                        {renderCrossTabTable(addressByVidhan, "address", "vidhan_sabha_name", "📍 पता × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "addressVidhan")}
-                        {renderCrossTabTable(addressByScheme, "address", "scheme_name", "📍 पता × 📋 योजना (लाभार्थी, मात्रा व राशि)", "addressScheme")}
-                        {renderCrossTabTable(addressByVikas, "address", "vikas_khand_name", "📍 पता × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "addressVikas")}
-                        {renderCrossTabTable(addressByCenter, "address", "center_name", "📍 पता × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "addressCenter")}
+                        {renderCrossTabTable(
+                          addressByVidhan,
+                          "address",
+                          "vidhan_sabha_name",
+                          "📍 पता × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "addressVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          addressByScheme,
+                          "address",
+                          "scheme_name",
+                          "📍 पता × 📋 योजना (लाभार्थी, मात्रा व राशि)",
+                          "addressScheme",
+                        )}
+                        {renderCrossTabTable(
+                          addressByVikas,
+                          "address",
+                          "vikas_khand_name",
+                          "📍 पता × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "addressVikas",
+                        )}
+                        {renderCrossTabTable(
+                          addressByCenter,
+                          "address",
+                          "center_name",
+                          "📍 पता × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)",
+                          "addressCenter",
+                        )}
                       </>
                     )}
                     {selectedSummaryModal === "scheme" && (
                       <>
                         <div className="mb-4 p-3 border rounded bg-light">
-                          <h6 className="text-primary mb-3 border-bottom pb-2">📊 मुख्य सारांश - योजना अनुसार</h6>
+                          <h6 className="text-primary mb-3 border-bottom pb-2">
+                            📊 मुख्य सारांश - योजना अनुसार
+                          </h6>
                           <div className="table-responsive">
-                            <Table striped bordered hover responsive size="sm" className="mb-2">
+                            <Table
+                              striped
+                              bordered
+                              hover
+                              responsive
+                              size="sm"
+                              className="mb-2"
+                            >
                               <thead>
                                 <tr className="table-primary">
                                   <th>योजना</th>
                                   <th>लाभार्थी</th>
                                   <th>मात्रा</th>
-                                <th>देय अनुदान राशि (₹)</th>
+                                  <th>देय अनुदान राशि (₹)</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {summaryStats.scheme.breakdown.map((item, index) => (
-                                  <tr key={index}>
-                                    <td>{item.label}</td>
-                                    <td>{item.count}</td>
-                                    <td>{item.quantity}</td>
-                                    <td>{item.amount.toFixed(2)}</td>
-                                  </tr>
-                                ))}
+                                {summaryStats.scheme.breakdown.map(
+                                  (item, index) => (
+                                    <tr key={index}>
+                                      <td>{item.label}</td>
+                                      <td>{item.count}</td>
+                                      <td>{item.quantity}</td>
+                                      <td>{item.amount.toFixed(2)}</td>
+                                    </tr>
+                                  ),
+                                )}
                               </tbody>
                               <tfoot>
                                 <tr className="table-warning fw-bold">
                                   <td>कुल</td>
-                                  <td>{summaryStats.scheme.breakdown.reduce((sum, item) => sum + item.count, 0)}</td>
-                                  <td>{summaryStats.scheme.breakdown.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                  <td>₹{summaryStats.scheme.breakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                  <td>
+                                    {summaryStats.scheme.breakdown.reduce(
+                                      (sum, item) => sum + item.count,
+                                      0,
+                                    )}
+                                  </td>
+                                  <td>
+                                    {summaryStats.scheme.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.quantity,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
+                                  <td>
+                                    ₹
+                                    {summaryStats.scheme.breakdown
+                                      .reduce(
+                                        (sum, item) => sum + item.amount,
+                                        0,
+                                      )
+                                      .toFixed(2)}
+                                  </td>
                                 </tr>
                               </tfoot>
                             </Table>
@@ -5128,7 +6565,9 @@ const handleDelete = async (item) => {
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🔷 विधानसभा अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🔷 विधानसभा अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -5151,16 +6590,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVikas.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVikas.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVikas
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVikas
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">🏗️ विकास खंड अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏗️ विकास खंड अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -5183,16 +6641,35 @@ const handleDelete = async (item) => {
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.byVikas.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.byVikas.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.byVikas.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.byVikas
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byVikas
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
                         <div className="mb-4 p-3 border rounded">
-                          <h6 className="text-success mb-3 border-bottom pb-2">📦 वस्तु अनुसार</h6>
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            📦 वस्तु अनुसार
+                          </h6>
                           <Table striped bordered hover responsive size="sm">
                             <thead>
                               <tr className="table-secondary">
@@ -5203,96 +6680,167 @@ const handleDelete = async (item) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {crossSummaries.bySuppliedItem.map((item, index) => (
-                                <tr key={index}>
-                                  <td>{item.label}</td>
-                                  <td>{item.count}</td>
-                                  <td>{item.quantity.toFixed(2)}</td>
-                                  <td>{item.amount.toFixed(2)}</td>
-                                </tr>
-                              ))}
+                              {crossSummaries.bySuppliedItem.map(
+                                (item, index) => (
+                                  <tr key={index}>
+                                    <td>{item.label}</td>
+                                    <td>{item.count}</td>
+                                    <td>{item.quantity.toFixed(2)}</td>
+                                    <td>{item.amount.toFixed(2)}</td>
+                                  </tr>
+                                ),
+                              )}
                             </tbody>
                             <tfoot>
                               <tr className="table-warning fw-bold">
                                 <td>कुल</td>
-                                <td>{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.count, 0)}</td>
-                                <td>{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.quantity, 0).toFixed(2)}</td>
-                                <td>₹{crossSummaries.bySuppliedItem.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</td>
+                                <td>
+                                  {crossSummaries.bySuppliedItem.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
+                                <td>
+                                  {crossSummaries.bySuppliedItem
+                                    .reduce(
+                                      (sum, item) => sum + item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                                <td>
+                                  ₹
+                                  {crossSummaries.bySuppliedItem
+                                    .reduce((sum, item) => sum + item.amount, 0)
+                                    .toFixed(2)}
+                                </td>
                               </tr>
                             </tfoot>
                           </Table>
                         </div>
 
-                       <div className="mb-4 p-3 border rounded">
-  <h6 className="text-success mb-3 border-bottom pb-2">
-    🏢 केंद्र अनुसार
-  </h6>
+                        <div className="mb-4 p-3 border rounded">
+                          <h6 className="text-success mb-3 border-bottom pb-2">
+                            🏢 केंद्र अनुसार
+                          </h6>
 
-  <Table striped bordered hover responsive size="sm">
-    <thead>
-      <tr className="table-secondary">
-        <th>केंद्र</th>
-        <th>लाभार्थी</th>
-        <th>मात्रा</th>
-        <th>देय अनुदान राशि (₹)</th>
-      </tr>
-    </thead>
+                          <Table striped bordered hover responsive size="sm">
+                            <thead>
+                              <tr className="table-secondary">
+                                <th>केंद्र</th>
+                                <th>लाभार्थी</th>
+                                <th>मात्रा</th>
+                                <th>देय अनुदान राशि (₹)</th>
+                              </tr>
+                            </thead>
 
-    <tbody>
-      {crossSummaries.byCenter.map((item, index) => (
-        <tr key={index}>
-          <td>{item.label}</td>
-          <td>{item.count}</td>
-          <td>{item.quantity?.toFixed(2) || "0.00"}</td>
-          <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
-        </tr>
-      ))}
-    </tbody>
+                            <tbody>
+                              {crossSummaries.byCenter.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.label}</td>
+                                  <td>{item.count}</td>
+                                  <td>{item.quantity?.toFixed(2) || "0.00"}</td>
+                                  <td>₹{item.amount?.toFixed(2) || "0.00"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
 
-    <tfoot>
-      <tr className="table-warning fw-bold">
-        <td>कुल</td>
+                            <tfoot>
+                              <tr className="table-warning fw-bold">
+                                <td>कुल</td>
 
-        <td>
-          {crossSummaries.byCenter.reduce(
-            (sum, item) => sum + item.count,
-            0
-          )}
-        </td>
+                                <td>
+                                  {crossSummaries.byCenter.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  )}
+                                </td>
 
-        <td>
-          {crossSummaries.byCenter
-            .reduce((sum, item) => sum + (item.quantity || 0), 0)
-            .toFixed(2)}
-        </td>
+                                <td>
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + (item.quantity || 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
 
-        <td>
-          ₹
-          {crossSummaries.byCenter
-            .reduce((sum, item) => sum + (item.amount || 0), 0)
-            .toFixed(2)}
-        </td>
-      </tr>
-    </tfoot>
-  </Table>
-</div>
+                                <td>
+                                  ₹
+                                  {crossSummaries.byCenter
+                                    .reduce(
+                                      (sum, item) => sum + (item.amount || 0),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </Table>
+                        </div>
 
-                        {renderCrossTabTable(vidhanByAddress, "vidhan_sabha_name", "address", "🔷 विधानसभा × 📍 पता (लाभार्थी, मात्रा व राशि)", "vidhanAddress")}
-                        {renderCrossTabTable(schemeByAddress, "scheme_name", "address", "📋 योजना × 📍 पता (लाभार्थी, मात्रा व राशि)", "schemeAddress")}
-                        {renderCrossTabTable(suppliedByAddress, "supplied_item_name", "address", "📦 वस्तु × 📍 पता (लाभार्थी, मात्रा व राशि)", "suppliedAddress")}
+                        {renderCrossTabTable(
+                          vidhanByAddress,
+                          "vidhan_sabha_name",
+                          "address",
+                          "🔷 विधानसभा × 📍 पता (लाभार्थी, मात्रा व राशि)",
+                          "vidhanAddress",
+                        )}
+                        {renderCrossTabTable(
+                          schemeByAddress,
+                          "scheme_name",
+                          "address",
+                          "📋 योजना × 📍 पता (लाभार्थी, मात्रा व राशि)",
+                          "schemeAddress",
+                        )}
+                        {renderCrossTabTable(
+                          suppliedByAddress,
+                          "supplied_item_name",
+                          "address",
+                          "📦 वस्तु × 📍 पता (लाभार्थी, मात्रा व राशि)",
+                          "suppliedAddress",
+                        )}
 
-                        {renderCrossTabTable(schemeByVidhan, "scheme_name", "vidhan_sabha_name", "📋 योजना × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)", "schemeVidhan")}
-                        {renderCrossTabTable(schemeByVikas, "scheme_name", "vikas_khand_name", "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)", "schemeVikas")}
-                        {renderCrossTabTable(schemeBySuppliedItem, "scheme_name", "supplied_item_name", "📋 योजना × 📦 वस्तु (लाभार्थी, मात्रा व राशि)", "schemeSupplied")}
-                        {renderCrossTabTable(schemeByCenter, "scheme_name", "center_name", "📋 योजना × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)", "schemeCenter")}
+                        {renderCrossTabTable(
+                          schemeByVidhan,
+                          "scheme_name",
+                          "vidhan_sabha_name",
+                          "📋 योजना × 🔷 विधानसभा (लाभार्थी, मात्रा व राशि)",
+                          "schemeVidhan",
+                        )}
+                        {renderCrossTabTable(
+                          schemeByVikas,
+                          "scheme_name",
+                          "vikas_khand_name",
+                          "📋 योजना × 🏗️ विकास खंड (लाभार्थी, मात्रा व राशि)",
+                          "schemeVikas",
+                        )}
+                        {renderCrossTabTable(
+                          schemeBySuppliedItem,
+                          "scheme_name",
+                          "supplied_item_name",
+                          "📋 योजना × 📦 वस्तु (लाभार्थी, मात्रा व राशि)",
+                          "schemeSupplied",
+                        )}
+                        {renderCrossTabTable(
+                          schemeByCenter,
+                          "scheme_name",
+                          "center_name",
+                          "📋 योजना × 🏢 केंद्र (लाभार्थी, मात्रा व राशि)",
+                          "schemeCenter",
+                        )}
                       </>
                     )}
 
                     <div className="mt-4 pt-3 border-top">
                       <div className="mb-3">
-                        <p className="mb-1"><strong>कुल मात्रा:</strong> {summaryStats.overall.totalQuantity}</p>
+                        <p className="mb-1">
+                          <strong>कुल मात्रा:</strong>{" "}
+                          {summaryStats.overall.totalQuantity}
+                        </p>
                         <p className="text-muted small">
-                          {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
+                          {summaryStats[selectedSummaryModal]?.breakdown
+                            ?.length > 0
                             ? summaryStats[selectedSummaryModal].breakdown
                                 .map((item) => item.quantity)
                                 .join(" + ")
@@ -5300,9 +6848,13 @@ const handleDelete = async (item) => {
                         </p>
                       </div>
                       <div className="mb-3">
-                        <p className="mb-1"><strong>कुल राशि:</strong> ₹{summaryStats.overall.totalAmount}</p>
+                        <p className="mb-1">
+                          <strong>कुल राशि:</strong> ₹
+                          {summaryStats.overall.totalAmount}
+                        </p>
                         <p className="text-muted small">
-                          {summaryStats[selectedSummaryModal]?.breakdown?.length > 0
+                          {summaryStats[selectedSummaryModal]?.breakdown
+                            ?.length > 0
                             ? summaryStats[selectedSummaryModal].breakdown
                                 .map((item) => `₹${item.amount}`)
                                 .join(" + ")
@@ -5310,7 +6862,10 @@ const handleDelete = async (item) => {
                         </p>
                       </div>
                       <div>
-                        <p className="mb-0"><strong>कुल लाभार्थी:</strong> {summaryStats.overall.totalBeneficiaries}</p>
+                        <p className="mb-0">
+                          <strong>कुल लाभार्थी:</strong>{" "}
+                          {summaryStats.overall.totalBeneficiaries}
+                        </p>
                       </div>
                     </div>
                   </Modal.Body>
@@ -5345,12 +6900,14 @@ const handleDelete = async (item) => {
                                 beneficiaries
                                   .slice(
                                     (currentPage - 1) * itemsPerPage,
-                                    currentPage * itemsPerPage
+                                    currentPage * itemsPerPage,
                                   )
-                                  .every((item) => selectedItems.includes(item.beneficiary_id)) &&
+                                  .every((item) =>
+                                    selectedItems.includes(item.beneficiary_id),
+                                  ) &&
                                 beneficiaries.slice(
                                   (currentPage - 1) * itemsPerPage,
-                                  currentPage * itemsPerPage
+                                  currentPage * itemsPerPage,
                                 ).length > 0
                               }
                             />
@@ -5418,15 +6975,19 @@ const handleDelete = async (item) => {
                         {beneficiaries
                           .slice(
                             (currentPage - 1) * itemsPerPage,
-                            currentPage * itemsPerPage
+                            currentPage * itemsPerPage,
                           )
                           .map((item, index) => (
                             <tr key={item.beneficiary_id || index}>
                               <td>
                                 <Form.Check
                                   type="checkbox"
-                                  checked={selectedItems.includes(item.beneficiary_id)}
-                                  onChange={() => handleCheckboxChange(item.beneficiary_id)}
+                                  checked={selectedItems.includes(
+                                    item.beneficiary_id,
+                                  )}
+                                  onChange={() =>
+                                    handleCheckboxChange(item.beneficiary_id)
+                                  }
                                 />
                               </td>
                               <td>
@@ -5456,7 +7017,9 @@ const handleDelete = async (item) => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("vidhan_sabha_name") && (
+                              {selectedColumns.includes(
+                                "vidhan_sabha_name",
+                              ) && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
                                     <Form.Control
@@ -5514,7 +7077,11 @@ const handleDelete = async (item) => {
                                               scheme_name: "",
                                             }));
                                             // Refetch base options
-                                            fetchFormFilters("", "", editingValues.center_name);
+                                            fetchFormFilters(
+                                              "",
+                                              "",
+                                              editingValues.center_name,
+                                            );
                                           }}
                                           title="विकल्प दिखाएं"
                                         >
@@ -5536,7 +7103,7 @@ const handleDelete = async (item) => {
                                             <option key={index} value={scheme}>
                                               {scheme}
                                             </option>
-                                          )
+                                          ),
                                         )}
                                         <option value="Other">अन्य</option>
                                       </Form.Select>
@@ -5546,7 +7113,9 @@ const handleDelete = async (item) => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("supplied_item_name") && (
+                              {selectedColumns.includes(
+                                "supplied_item_name",
+                              ) && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
                                     editingOtherMode.supplied_item_name ? (
@@ -5554,7 +7123,9 @@ const handleDelete = async (item) => {
                                         <Form.Control
                                           type="text"
                                           name="supplied_item_name"
-                                          value={editingValues.supplied_item_name}
+                                          value={
+                                            editingValues.supplied_item_name
+                                          }
                                           onChange={handleEditChange}
                                           size="sm"
                                         />
@@ -5572,7 +7143,11 @@ const handleDelete = async (item) => {
                                               supplied_item_name: "",
                                             }));
                                             // Refetch options
-                                            fetchFormFilters("", "", editingValues.center_name);
+                                            fetchFormFilters(
+                                              "",
+                                              "",
+                                              editingValues.center_name,
+                                            );
                                           }}
                                           title="विकल्प दिखाएं"
                                         >
@@ -5594,7 +7169,7 @@ const handleDelete = async (item) => {
                                             <option key={index} value={item}>
                                               {item}
                                             </option>
-                                          )
+                                          ),
                                         )}
                                         <option value="Other">अन्य</option>
                                       </Form.Select>
@@ -5660,7 +7235,11 @@ const handleDelete = async (item) => {
                                               category: "",
                                             }));
                                             // Refetch base options
-                                            fetchFormFilters("", "", editingValues.center_name);
+                                            fetchFormFilters(
+                                              "",
+                                              "",
+                                              editingValues.center_name,
+                                            );
                                           }}
                                           title="विकल्प दिखाएं"
                                         >
@@ -5682,7 +7261,7 @@ const handleDelete = async (item) => {
                                             <option key={index} value={cat}>
                                               {cat}
                                             </option>
-                                          )
+                                          ),
                                         )}
                                         <option value="Other">अन्य</option>
                                       </Form.Select>
@@ -5739,7 +7318,7 @@ const handleDelete = async (item) => {
                                 </td>
                               )}
                               {selectedColumns.includes(
-                                "bank_account_number"
+                                "bank_account_number",
                               ) && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
@@ -5796,7 +7375,11 @@ const handleDelete = async (item) => {
                                               unit: "",
                                             }));
                                             // Refetch base options
-                                            fetchFormFilters("", "", editingValues.center_name);
+                                            fetchFormFilters(
+                                              "",
+                                              "",
+                                              editingValues.center_name,
+                                            );
                                           }}
                                           title="विकल्प दिखाएं"
                                         >
@@ -5873,7 +7456,9 @@ const handleDelete = async (item) => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("beneficiary_reg_date") && (
+                              {selectedColumns.includes(
+                                "beneficiary_reg_date",
+                              ) && (
                                 <td>
                                   {editingRowId === item.beneficiary_id ? (
                                     <Form.Control
@@ -5884,7 +7469,9 @@ const handleDelete = async (item) => {
                                       size="sm"
                                     />
                                   ) : (
-                                    convertToDisplayFormat(item.beneficiary_reg_date) || ""
+                                    convertToDisplayFormat(
+                                      item.beneficiary_reg_date,
+                                    ) || ""
                                   )}
                                 </td>
                               )}
@@ -5909,23 +7496,23 @@ const handleDelete = async (item) => {
                                   </>
                                 ) : (
                                   <>
-                                  <div className="d-flex justify-content-between">
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      onClick={() => handleEdit(item)}
-                                      className="me-1 gov-edit-btn"
-                                    >
-                                      संपादित करें
-                                    </Button>
-                                    <Button
-                                      className="gov-delete-btn"
-                                      variant="outline-danger"
-                                      size="sm"
-                                      onClick={() => handleDelete(item)}
-                                    >
-                                      हटाएं
-                                    </Button>
+                                    <div className="d-flex justify-content-between">
+                                      <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        onClick={() => handleEdit(item)}
+                                        className="me-1 gov-edit-btn"
+                                      >
+                                        संपादित करें
+                                      </Button>
+                                      <Button
+                                        className="gov-delete-btn"
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => handleDelete(item)}
+                                      >
+                                        हटाएं
+                                      </Button>
                                     </div>
                                   </>
                                 )}
@@ -5936,133 +7523,166 @@ const handleDelete = async (item) => {
                       <tfoot>
                         <tr className="table-total-row">
                           <td></td>
-                          <td><strong>कुल</strong></td>
+                          <td>
+                            <strong>कुल</strong>
+                          </td>
                           {selectedColumns.includes("center_name") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.center_name) set.add(item.center_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.center_name)
+                                      set.add(item.center_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("vidhan_sabha_name") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.vidhan_sabha_name) set.add(item.vidhan_sabha_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.vidhan_sabha_name)
+                                      set.add(item.vidhan_sabha_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("vikas_khand_name") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.vikas_khand_name) set.add(item.vikas_khand_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.vikas_khand_name)
+                                      set.add(item.vikas_khand_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("scheme_name") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.scheme_name) set.add(item.scheme_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.scheme_name)
+                                      set.add(item.scheme_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("supplied_item_name") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.supplied_item_name) set.add(item.supplied_item_name);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.supplied_item_name)
+                                      set.add(item.supplied_item_name);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("farmer_name") && (
                             <td>
-                              <strong>
-                                {beneficiaries.length}
-                              </strong>
+                              <strong>{beneficiaries.length}</strong>
                             </td>
                           )}
                           {selectedColumns.includes("father_name") && <td></td>}
                           {selectedColumns.includes("category") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.category) set.add(item.category);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.category) set.add(item.category);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("address") && <td></td>}
-                          {selectedColumns.includes("mobile_number") && <td></td>}
-                          {selectedColumns.includes("aadhaar_number") && <td></td>}
-                          {selectedColumns.includes("bank_account_number") && <td></td>}
+                          {selectedColumns.includes("mobile_number") && (
+                            <td></td>
+                          )}
+                          {selectedColumns.includes("aadhaar_number") && (
+                            <td></td>
+                          )}
+                          {selectedColumns.includes("bank_account_number") && (
+                            <td></td>
+                          )}
                           {selectedColumns.includes("ifsc_code") && <td></td>}
                           {selectedColumns.includes("unit") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((unique, item) => {
-                                  const set = new Set(unique);
-                                  if (item.unit) set.add(item.unit);
-                                  return Array.from(set);
-                                }, []).length}
+                                {
+                                  beneficiaries.reduce((unique, item) => {
+                                    const set = new Set(unique);
+                                    if (item.unit) set.add(item.unit);
+                                    return Array.from(set);
+                                  }, []).length
+                                }
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("quantity") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((sum, item) => {
-                                  const qty = parseFloat(item.quantity) || 0;
-                                  return sum + qty;
-                                }, 0).toFixed(2)}
+                                {beneficiaries
+                                  .reduce((sum, item) => {
+                                    const qty = parseFloat(item.quantity) || 0;
+                                    return sum + qty;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("rate") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((sum, item) => {
-                                  const rate = parseFloat(item.rate) || 0;
-                                  return sum + rate;
-                                }, 0).toFixed(2)}
+                                {beneficiaries
+                                  .reduce((sum, item) => {
+                                    const rate = parseFloat(item.rate) || 0;
+                                    return sum + rate;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
                           {selectedColumns.includes("amount") && (
                             <td>
                               <strong>
-                                {beneficiaries.reduce((sum, item) => {
-                                  const amount = parseFloat(item.amount) || 0;
-                                  return sum + amount;
-                                }, 0).toFixed(2)}
+                                {beneficiaries
+                                  .reduce((sum, item) => {
+                                    const amount = parseFloat(item.amount) || 0;
+                                    return sum + amount;
+                                  }, 0)
+                                  .toFixed(2)}
                               </strong>
                             </td>
                           )}
-                          {selectedColumns.includes("beneficiary_reg_date") && <td></td>}
+                          {selectedColumns.includes("beneficiary_reg_date") && (
+                            <td></td>
+                          )}
                           <td></td>
                         </tr>
                       </tfoot>
                     </Table>
-                    
+
                     {/* Pagination controls */}
                     {beneficiaries.length > itemsPerPage && (
                       <div className="mt-3">

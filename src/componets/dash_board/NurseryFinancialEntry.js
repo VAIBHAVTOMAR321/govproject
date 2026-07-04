@@ -14,7 +14,11 @@ import {
   Modal,
 } from "react-bootstrap";
 import { FaFileExcel, FaFilePdf, FaSync } from "react-icons/fa";
-import { RiFilePdfLine, RiFileExcelLine, RiDeleteBinLine } from "react-icons/ri";
+import {
+  RiFilePdfLine,
+  RiFileExcelLine,
+  RiDeleteBinLine,
+} from "react-icons/ri";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import Select from "react-select";
@@ -22,7 +26,14 @@ import "../../assets/css/registration.css";
 import { useAuth } from "../../context/AuthContext";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
-import { convertToBackendFormat, convertToDisplayFormat, parseDateFromExcel, getTodayInDisplayFormat, getTodayInBackendFormat, formatDateForExcel } from "../../utils/dateUtils";
+import {
+  convertToBackendFormat,
+  convertToDisplayFormat,
+  parseDateFromExcel,
+  getTodayInDisplayFormat,
+  getTodayInBackendFormat,
+  formatDateForExcel,
+} from "../../utils/dateUtils";
 
 // API URL
 const NURSERY_FINANCIAL_API_URL =
@@ -96,7 +107,8 @@ const translations = {
   uploadButton: "अपलोड करें",
   required: "यह फ़ील्ड आवश्यक है",
   selectOption: "चुनें",
-  genericError: "प्रस्तुत करते समय एक त्रुटि हुई। कृपया बाद में पुन: प्रयास करें।",
+  genericError:
+    "प्रस्तुत करते समय एक त्रुटि हुई। कृपया बाद में पुन: प्रयास करें।",
   showing: "दिखा रहे हैं",
   to: "से",
   of: "का",
@@ -105,34 +117,16 @@ const translations = {
   itemsPerPage: "प्रति पृष्ठ आइटम",
 };
 
-// Helper function to get financial year dates (April 1 to March 31)
-const getFinancialYearDates = () => {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // 0-indexed: January = 0, April = 3, March = 2
-  
-  let fromDate, toDate;
-  
-  if (currentMonth >= 3) {
-    // April (month 3) onwards: FY is April of current year to March of next year
-    fromDate = new Date(currentYear, 3, 1); // April 1 of current year
-    toDate = new Date(currentYear + 1, 2, 31); // March 31 of next year
-  } else {
-    // January, February, March: FY is April of previous year to March of current year
-    fromDate = new Date(currentYear - 1, 3, 1); // April 1 of previous year
-    toDate = new Date(currentYear, 2, 31); // March 31 of current year
-  }
-  
-  return {
-    from_date: fromDate.toISOString().split('T')[0],
-    to_date: toDate.toISOString().split('T')[0],
-  };
-};
+// Helper function to get the default financial year dates
+const getFinancialYearDates = () => ({
+  from_date: "2026-04-01",
+  to_date: "2027-03-31",
+});
 
 const NurseryFinancialEntry = () => {
   const { user } = useAuth();
   const isAdmin = user && user.loginType === "admin";
-  
+
   // Column Selection Component
   const ColumnSelection = ({
     columns,
@@ -237,7 +231,7 @@ const NurseryFinancialEntry = () => {
   const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const fileInputRef = useRef(null);
   const [selectedColumns, setSelectedColumns] = useState(
-    nurseryFinancialTableColumns.map((col) => col.key)
+    nurseryFinancialTableColumns.map((col) => col.key),
   );
   const [isLoading, setIsLoading] = useState(true);
 
@@ -251,7 +245,7 @@ const NurseryFinancialEntry = () => {
   // State for new created_at date filter (separate from existing date range filters)
   const [createdAtFilter, setCreatedAtFilter] = useState({
     selectedDate: "", // For dropdown selection
-    manualDate: "",   // For manual calendar selection
+    manualDate: "", // For manual calendar selection
     showManualPicker: false, // Toggle for manual date picker
   });
 
@@ -293,19 +287,27 @@ const NurseryFinancialEntry = () => {
       setFilterOptions({
         nursery_name: [
           ...new Set(
-            allNurseryFinancialItems.map((item) => item.nursery_name).filter(Boolean)
+            allNurseryFinancialItems
+              .map((item) => item.nursery_name)
+              .filter(Boolean),
           ),
         ].sort(),
         standard_item: [
           ...new Set(
-            allNurseryFinancialItems.map((item) => item.standard_item).filter(Boolean)
+            allNurseryFinancialItems
+              .map((item) => item.standard_item)
+              .filter(Boolean),
           ),
         ].sort(),
       });
 
       // Extract unique created_at dates for the new date filter
       const createdAtDates = allNurseryFinancialItems
-        .map((item) => item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : null)
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
         .filter(Boolean);
       const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
       setUniqueCreatedAtDates(uniqueDates);
@@ -315,7 +317,7 @@ const NurseryFinancialEntry = () => {
   // Apply local filtering when filters change
   useEffect(() => {
     let filtered = allNurseryFinancialItems;
-    
+
     // Only apply filters when both dates are selected
     if (filters.from_date && filters.to_date) {
       filtered = allNurseryFinancialItems.filter((item) => {
@@ -324,11 +326,11 @@ const NurseryFinancialEntry = () => {
         const fromDate = new Date(filters.from_date);
         const toDate = new Date(filters.to_date);
         toDate.setHours(23, 59, 59, 999); // Set to end of day
-        
+
         if (itemDate < fromDate || itemDate > toDate) {
           return false;
         }
-        
+
         // Other filters
         for (const key in filters) {
           if (key === "from_date" || key === "to_date") {
@@ -338,23 +340,23 @@ const NurseryFinancialEntry = () => {
             return false;
           }
         }
-        
+
         return true;
       });
     }
-    
+
     // Apply created_at filter on top of other filters
     if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
       const { selectedDate, manualDate } = createdAtFilter;
       const filterDate = selectedDate || manualDate;
-      
+
       filtered = filtered.filter((item) => {
         if (!item.created_at) return false;
-        const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+        const itemDate = new Date(item.created_at).toISOString().split("T")[0];
         return itemDate === filterDate;
       });
     }
-    
+
     setNurseryFinancialItems(filtered);
   }, [filters, allNurseryFinancialItems, createdAtFilter]);
 
@@ -461,7 +463,7 @@ const NurseryFinancialEntry = () => {
         selectedColumns.forEach((col) => {
           row[columnMapping[col].header] = columnMapping[col].accessor(
             item,
-            index
+            index,
           );
         });
         return row;
@@ -472,7 +474,9 @@ const NurseryFinancialEntry = () => {
       totalRow["क्र.सं."] = "कुल";
       selectedColumns.forEach((col) => {
         if (col === "nursery_name" || col === "standard_item") {
-          const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
+          const uniqueValues = new Set(
+            data.map((item) => columnMapping[col].accessor(item, 0)),
+          );
           totalRow[columnMapping[col].header] = uniqueValues.size;
         } else if (col === "allocated_amount" || col === "spent_amount") {
           const sum = data.reduce((total, item) => {
@@ -507,9 +511,9 @@ const NurseryFinancialEntry = () => {
         {
           "नर्सरी का नाम": "राजकीय उद्यान चमेठा",
           "मानक आइटम": "06 – मजदूरी",
-          "धनराशि": "5000.00",
+          धनराशि: "5000.00",
           "व्यय राशि": "1000.00",
-          "विवरण": "note typing detail",
+          विवरण: "note typing detail",
           "पंजीकरण तिथि": getTodayInDisplayFormat(),
         },
       ];
@@ -541,18 +545,18 @@ const NurseryFinancialEntry = () => {
     filename,
     columnMapping,
     selectedColumns,
-    title
+    title,
   ) => {
     try {
       const headers = `<th>क्र.सं.</th>${selectedColumns
         .map((col) => `<th>${columnMapping[col].header}</th>`)
         .join("")}`;
-      
+
       const rows = data
         .map((item, index) => {
           const cells = `<td>${index + 1}</td>${selectedColumns
             .map(
-              (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`
+              (col) => `<td>${columnMapping[col].accessor(item, index)}</td>`,
             )
             .join("")}`;
           return `<tr>${cells}</tr>`;
@@ -563,11 +567,14 @@ const NurseryFinancialEntry = () => {
       const totalCells = `<td><strong>कुल</strong></td>${selectedColumns
         .map((col) => {
           if (col === "nursery_name" || col === "standard_item") {
-            const uniqueValues = new Set(data.map(item => columnMapping[col].accessor(item, 0)));
+            const uniqueValues = new Set(
+              data.map((item) => columnMapping[col].accessor(item, 0)),
+            );
             return `<td><strong>${uniqueValues.size}</strong></td>`;
           } else if (col === "allocated_amount" || col === "spent_amount") {
             const sum = data.reduce((total, item) => {
-              const value = parseFloat(columnMapping[col].accessor(item, 0)) || 0;
+              const value =
+                parseFloat(columnMapping[col].accessor(item, 0)) || 0;
               return total + value;
             }, 0);
             return `<td><strong>${sum.toFixed(2)}</strong></td>`;
@@ -709,7 +716,7 @@ const NurseryFinancialEntry = () => {
       };
       const response = await axios.put(NURSERY_FINANCIAL_API_URL, payload);
       setAllNurseryFinancialItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i))
+        prev.map((i) => (i.id === item.id ? { ...i, ...payload } : i)),
       );
       setEditingRowId(null);
       setEditingValues({});
@@ -731,9 +738,11 @@ const NurseryFinancialEntry = () => {
     if (window.confirm("क्या आप इस आइटम को हटाना चाहते हैं?")) {
       try {
         const response = await axios.delete(NURSERY_FINANCIAL_API_URL, {
-          data: { id: item.id }
+          data: { id: item.id },
         });
-        setAllNurseryFinancialItems((prev) => prev.filter((i) => i.id !== item.id));
+        setAllNurseryFinancialItems((prev) =>
+          prev.filter((i) => i.id !== item.id),
+        );
         setApiResponse({ message: "आइटम सफलतापूर्वक हटा दिया गया!" });
       } catch (error) {
         console.error("Error deleting item:", error);
@@ -770,17 +779,23 @@ const NurseryFinancialEntry = () => {
       setApiError("कृपया हटाने के लिए कम से कम एक आइटम चुनें।");
       return;
     }
-    if (window.confirm(`क्या आप ${selectedIds.length} चयनित आइटम्स को हटाना चाहते हैं?`)) {
+    if (
+      window.confirm(
+        `क्या आप ${selectedIds.length} चयनित आइटम्स को हटाना चाहते हैं?`,
+      )
+    ) {
       try {
         const response = await axios.delete(NURSERY_FINANCIAL_API_URL, {
-          data: { id: selectedIds }
+          data: { id: selectedIds },
         });
         setAllNurseryFinancialItems((prev) =>
-          prev.filter((item) => !selectedIds.includes(item.id))
+          prev.filter((item) => !selectedIds.includes(item.id)),
         );
         setSelectedIds([]);
         setSelectAllChecked(false);
-        setApiResponse({ message: `${selectedIds.length} आइटम सफलतापूर्वक हटा दिए गए!` });
+        setApiResponse({
+          message: `${selectedIds.length} आइटम सफलतापूर्वक हटा दिए गए!`,
+        });
       } catch (error) {
         console.error("Error deleting items:", error);
         setApiError("आइटम हटाने में त्रुटि हुई।");
@@ -803,17 +818,28 @@ const NurseryFinancialEntry = () => {
     if (!rowData.standard_item || !rowData.standard_item.toString().trim()) {
       errors.push(`Row ${rowIndex}: मानक आइटम आवश्यक है`);
     }
-    if (rowData.allocated_amount === "" || rowData.allocated_amount === null || rowData.allocated_amount === undefined) {
+    if (
+      rowData.allocated_amount === "" ||
+      rowData.allocated_amount === null ||
+      rowData.allocated_amount === undefined
+    ) {
       errors.push(`Row ${rowIndex}: धनराशि आवश्यक है`);
     } else if (isNaN(parseFloat(rowData.allocated_amount))) {
       errors.push(`Row ${rowIndex}: धनराशि एक संख्या होनी चाहिए`);
     }
     // spent_amount is optional - field is commented out in form
-    if (!rowData.registration_date || !rowData.registration_date.toString().trim()) {
+    if (
+      !rowData.registration_date ||
+      !rowData.registration_date.toString().trim()
+    ) {
       errors.push(`Row ${rowIndex}: पंजीकरण तिथि आवश्यक है`);
     }
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(rowData.original_registration_date || '')) {
-      errors.push(`Row ${rowIndex}: पंजीकरण तिथि DD/MM/YYYY फॉर्मेट में होनी चाहिए`);
+    if (
+      !/^\d{2}\/\d{2}\/\d{4}$/.test(rowData.original_registration_date || "")
+    ) {
+      errors.push(
+        `Row ${rowIndex}: पंजीकरण तिथि DD/MM/YYYY फॉर्मेट में होनी चाहिए`,
+      );
     }
 
     return errors;
@@ -821,14 +847,15 @@ const NurseryFinancialEntry = () => {
 
   // Check if a row has any meaningful data (not completely empty)
   const isEmptyRow = (row) => {
-    if (!row || typeof row !== 'object') return true;
+    if (!row || typeof row !== "object") return true;
     const values = Object.values(row);
     // Check if all values are empty, null, undefined, or contain only whitespace
-    return values.every(val => 
-      val === null || 
-      val === undefined || 
-      val === '' || 
-      (typeof val === 'string' && val.trim() === '')
+    return values.every(
+      (val) =>
+        val === null ||
+        val === undefined ||
+        val === "" ||
+        (typeof val === "string" && val.trim() === ""),
     );
   };
 
@@ -853,7 +880,7 @@ const NurseryFinancialEntry = () => {
           const workbook = XLSX.read(data, { type: "array" });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          
+
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           if (jsonData.length <= 1) {
@@ -874,17 +901,48 @@ const NurseryFinancialEntry = () => {
           // Parse all rows and filter empty ones
           const parsedRows = [];
           const emptyRowIndices = [];
-          
+
           dataRows.forEach((row, rowIndex) => {
-            const originalVal = row[headerMapping["पंजीकरण तिथि"]] || row[headerMapping["registration_date"]] || "";
+            const originalVal =
+              row[headerMapping["पंजीकरण तिथि"]] ||
+              row[headerMapping["registration_date"]] ||
+              "";
             const parsedRow = {
-              nursery_name: (row[headerMapping["नर्सरी का नाम"]] || row[headerMapping["nursery_name"]] || "").toString().trim(),
-              standard_item: (row[headerMapping["मानक आइटम"]] || row[headerMapping["standard_item"]] || "").toString().trim(),
-              allocated_amount: roundTo2Decimals(row[headerMapping["धनराशि"]] || row[headerMapping["allocated_amount"]] || 0),
-              spent_amount: roundTo2Decimals(row[headerMapping["व्यय राशि"]] || row[headerMapping["spent_amount"]] || 0),
-              description: (row[headerMapping["विवरण"]] || row[headerMapping["description"]] || "").toString().trim(),
+              nursery_name: (
+                row[headerMapping["नर्सरी का नाम"]] ||
+                row[headerMapping["nursery_name"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              standard_item: (
+                row[headerMapping["मानक आइटम"]] ||
+                row[headerMapping["standard_item"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
+              allocated_amount: roundTo2Decimals(
+                row[headerMapping["धनराशि"]] ||
+                  row[headerMapping["allocated_amount"]] ||
+                  0,
+              ),
+              spent_amount: roundTo2Decimals(
+                row[headerMapping["व्यय राशि"]] ||
+                  row[headerMapping["spent_amount"]] ||
+                  0,
+              ),
+              description: (
+                row[headerMapping["विवरण"]] ||
+                row[headerMapping["description"]] ||
+                ""
+              )
+                .toString()
+                .trim(),
               original_registration_date: convertToDisplayFormat(originalVal),
-              registration_date: parseDateFromExcel(originalVal || getTodayInBackendFormat()),
+              registration_date: parseDateFromExcel(
+                originalVal || getTodayInBackendFormat(),
+              ),
               rowIndex: rowIndex + 2,
               _originalIndex: rowIndex,
             };
@@ -906,7 +964,7 @@ const NurseryFinancialEntry = () => {
               validationErrors.push({
                 rowIndex: rowData.rowIndex,
                 errors: rowErrors,
-                data: rowData
+                data: rowData,
               });
             }
           });
@@ -914,52 +972,68 @@ const NurseryFinancialEntry = () => {
           // Fetch existing nursery financial data to check for duplicates
           try {
             const existingResponse = await axios.get(NURSERY_FINANCIAL_API_URL);
-            const existingData = existingResponse.data && existingResponse.data.data
-              ? existingResponse.data.data
-              : existingResponse.data;
-            const existingItems = Array.isArray(existingData) ? existingData : [];
-            
+            const existingData =
+              existingResponse.data && existingResponse.data.data
+                ? existingResponse.data.data
+                : existingResponse.data;
+            const existingItems = Array.isArray(existingData)
+              ? existingData
+              : [];
+
             // Detect duplicates with existing system data
             const duplicateIndices = new Set();
             const newValidationErrors = [...validationErrors];
-            
+
             parsedRows.forEach((row) => {
               // Check if this row matches any existing item
               // Compare only fields that are in the template download
-              const isDuplicateWithExisting = existingItems.some(existing => {
+              const isDuplicateWithExisting = existingItems.some((existing) => {
                 return (
-                  String(existing.nursery_name || '').trim() === String(row.nursery_name || '').trim() &&
-                  String(existing.standard_item || '').trim() === String(row.standard_item || '').trim() &&
-                  parseFloat(existing.allocated_amount || 0) === parseFloat(row.allocated_amount || 0) &&
-                  parseFloat(existing.spent_amount || 0) === parseFloat(row.spent_amount || 0) &&
-                  String(existing.description || '').trim() === String(row.description || '').trim() &&
+                  String(existing.nursery_name || "").trim() ===
+                    String(row.nursery_name || "").trim() &&
+                  String(existing.standard_item || "").trim() ===
+                    String(row.standard_item || "").trim() &&
+                  parseFloat(existing.allocated_amount || 0) ===
+                    parseFloat(row.allocated_amount || 0) &&
+                  parseFloat(existing.spent_amount || 0) ===
+                    parseFloat(row.spent_amount || 0) &&
+                  String(existing.description || "").trim() ===
+                    String(row.description || "").trim() &&
                   existing.registration_date === row.registration_date
                 );
               });
-              
+
               if (isDuplicateWithExisting) {
                 duplicateIndices.add(row.rowIndex);
                 newValidationErrors.push({
                   rowIndex: row.rowIndex,
-                  errors: ["यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)"],
+                  errors: [
+                    "यह रिकॉर्ड पहले से सिस्टम में मौजूद है (डुप्लीकेट)",
+                  ],
                   data: row,
                 });
               }
             });
-            
+
             // Also check for duplicates within the uploaded rows themselves
             // Compare only fields that are in the template download
             const seenKeys = new Set();
             parsedRows.forEach((row) => {
-              const key = `${String(row.nursery_name || '').trim()}|${String(row.standard_item || '').trim()}|${parseFloat(row.allocated_amount || 0)}|${parseFloat(row.spent_amount || 0)}|${String(row.description || '').trim()}|${row.registration_date}`;
-              
+              const key = `${String(row.nursery_name || "").trim()}|${String(row.standard_item || "").trim()}|${parseFloat(row.allocated_amount || 0)}|${parseFloat(row.spent_amount || 0)}|${String(row.description || "").trim()}|${row.registration_date}`;
+
               if (seenKeys.has(key)) {
                 duplicateIndices.add(row.rowIndex);
                 // Add error if not already added
-                if (!newValidationErrors.some(err => err.rowIndex === row.rowIndex)) {
+                if (
+                  !newValidationErrors.some(
+                    (err) => err.rowIndex === row.rowIndex,
+                  )
+                ) {
                   newValidationErrors.push({
                     rowIndex: row.rowIndex,
-                    errors: ["इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)"],
+                    errors: [
+                      "इस रिकॉर्ड का डुप्लीकेट उपलब्ध है (एक से अधिक बार)",
+                    ],
                     data: row,
                   });
                 }
@@ -967,7 +1041,7 @@ const NurseryFinancialEntry = () => {
                 seenKeys.add(key);
               }
             });
-            
+
             setValidationErrorsList(newValidationErrors);
             setDuplicateRowIndices(Array.from(duplicateIndices));
             if (newValidationErrors.length > 0) {
@@ -984,10 +1058,9 @@ const NurseryFinancialEntry = () => {
 
           // Store preview data (all rows, valid and invalid)
           setPreviewData(parsedRows);
-          
+
           // Show preview modal
           setShowPreviewModal(true);
-
         } catch (parseError) {
           console.error("Error parsing Excel file:", parseError);
           setApiError(`Excel फाइल पार्सिंग में त्रुटि: ${parseError.message}`);
@@ -1015,24 +1088,33 @@ const NurseryFinancialEntry = () => {
 
     try {
       // Separate valid and invalid rows
-      const validRows = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex));
-      const invalidRows = previewData.filter(row => validationErrorsList.some(err => err.rowIndex === row.rowIndex)).map(row => ({
-        rowIndex: row.rowIndex,
-        data: row,
-        reason: validationErrorsList.find(err => err.rowIndex === row.rowIndex).errors.join(', ')
-      }));
+      const validRows = previewData.filter(
+        (row) =>
+          !validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
+      );
+      const invalidRows = previewData
+        .filter((row) =>
+          validationErrorsList.some((err) => err.rowIndex === row.rowIndex),
+        )
+        .map((row) => ({
+          rowIndex: row.rowIndex,
+          data: row,
+          reason: validationErrorsList
+            .find((err) => err.rowIndex === row.rowIndex)
+            .errors.join(", "),
+        }));
 
       setUploadTotal(validRows.length);
 
       // Process valid rows individually with progress tracking
       let successCount = 0;
       const failedItems = [...invalidRows]; // Start with validation failures
-      
+
       for (let i = 0; i < validRows.length; i++) {
         try {
           const rowData = validRows[i];
           const { rowIndex, _originalIndex, ...payload } = rowData;
-          
+
           const response = await axios.post(NURSERY_FINANCIAL_API_URL, payload);
 
           if (response.status === 200 || response.status === 201) {
@@ -1042,20 +1124,21 @@ const NurseryFinancialEntry = () => {
             failedItems.push({
               rowIndex: rowIndex,
               data: rowData,
-              reason: "Upload failed"
+              reason: "Upload failed",
             });
           }
         } catch (error) {
           const rowIndex = validRows[i].rowIndex;
-          const errorMsg = error.response?.data?.message ||
-                          error.response?.data?.error ||
-                          error.message ||
-                          "Upload failed";
-          
+          const errorMsg =
+            error.response?.data?.message ||
+            error.response?.data?.error ||
+            error.message ||
+            "Upload failed";
+
           failedItems.push({
             rowIndex: rowIndex,
             data: validRows[i],
-            reason: errorMsg
+            reason: errorMsg,
           });
         }
 
@@ -1078,14 +1161,11 @@ const NurseryFinancialEntry = () => {
         });
       } else if (successCount > 0 && failedItems.length > 0) {
         setApiError(
-          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`
+          `⚠️ आंशिक अपलोड: ${successCount} सफल, ${failedItems.length} विफल।`,
         );
       } else if (failedItems.length > 0) {
-        setApiError(
-          `❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`
-        );
+        setApiError(`❌ अपलोड विफल: सभी रिकॉर्ड विफल रहे।`);
       }
-
     } catch (error) {
       console.error("Error during upload:", error);
       setApiError(`अपलोड में त्रुटि: ${error.message}`);
@@ -1098,17 +1178,27 @@ const NurseryFinancialEntry = () => {
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Clear otherMode only when selecting an existing option from the dropdown (not when typing in text input)
-    if (name === "nursery_name" && value !== "अन्य" && otherMode.nursery_name && e.target.tagName === "SELECT") {
-      setOtherMode(prev => ({ ...prev, nursery_name: false }));
+    if (
+      name === "nursery_name" &&
+      value !== "अन्य" &&
+      otherMode.nursery_name &&
+      e.target.tagName === "SELECT"
+    ) {
+      setOtherMode((prev) => ({ ...prev, nursery_name: false }));
     }
-    
+
     // Same for standard_item
-    if (name === "standard_item" && value !== "अन्य" && otherMode.standard_item && e.target.tagName === "SELECT") {
-      setOtherMode(prev => ({ ...prev, standard_item: false }));
+    if (
+      name === "standard_item" &&
+      value !== "अन्य" &&
+      otherMode.standard_item &&
+      e.target.tagName === "SELECT"
+    ) {
+      setOtherMode((prev) => ({ ...prev, standard_item: false }));
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -1165,7 +1255,7 @@ const NurseryFinancialEntry = () => {
 
       // Refresh table with latest data from API
       await fetchNurseryFinancialItems();
-      
+
       // Reset to first page to show new entry
       setCurrentPage(1);
     } catch (error) {
@@ -1219,11 +1309,11 @@ const NurseryFinancialEntry = () => {
     paginationItems.push(
       <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
         1
-      </Pagination.Item>
+      </Pagination.Item>,
     );
     if (startPage > 2) {
       paginationItems.push(
-        <Pagination.Ellipsis key="start-ellipsis" disabled />
+        <Pagination.Ellipsis key="start-ellipsis" disabled />,
       );
     }
   }
@@ -1236,7 +1326,7 @@ const NurseryFinancialEntry = () => {
         onClick={() => handlePageChange(number)}
       >
         {number}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -1250,17 +1340,29 @@ const NurseryFinancialEntry = () => {
         onClick={() => handlePageChange(totalPages)}
       >
         {totalPages}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
   return (
     <div>
       {isAdmin && <DashBoardHeader />}
-      <Container fluid className={isAdmin ? "p-4" : "p-0"} style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}>
+      <Container
+        fluid
+        className={isAdmin ? "p-4" : "p-0"}
+        style={isAdmin ? {} : { marginTop: "70px", paddingTop: "15px" }}
+      >
         <Row className={isAdmin ? "left-top" : "w-100 m-0"}>
           <Col lg={12} md={12} sm={12} className={isAdmin ? "p-0" : "p-3"}>
-            <Container fluid className={isAdmin ? "dashboard-body-main bg-home" : "dashboard-body-main bg-home"} style={isAdmin ? {} : { paddingTop: "10px" }}>
+            <Container
+              fluid
+              className={
+                isAdmin
+                  ? "dashboard-body-main bg-home"
+                  : "dashboard-body-main bg-home"
+              }
+              style={isAdmin ? {} : { paddingTop: "10px" }}
+            >
               <h1 className="page-title">{translations.pageTitle}</h1>
 
               {/* Progress Bar Section - Displayed at top during upload */}
@@ -1269,29 +1371,54 @@ const NurseryFinancialEntry = () => {
                   <Col xs={12}>
                     <div className="p-3 border rounded bg-light">
                       <div className="mb-3">
-                        <h6 className="small-fonts mb-3">📊 अपलोड प्रगति विवरण</h6>
+                        <h6 className="small-fonts mb-3">
+                          📊 अपलोड प्रगति विवरण
+                        </h6>
                         <div className="d-flex justify-content-around mb-3">
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">✅ पूर्ण</small>
-                            <span className="badge bg-success" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ✅ पूर्ण
+                            </small>
+                            <span
+                              className="badge bg-success"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {Math.round((uploadProgress / 100) * uploadTotal)}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⏳ शेष</small>
-                            <span className="badge bg-warning text-dark" style={{ fontSize: "14px", padding: "8px 12px" }}>
-                              {uploadTotal - Math.round((uploadProgress / 100) * uploadTotal)}
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⏳ शेष
+                            </small>
+                            <span
+                              className="badge bg-warning text-dark"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
+                              {uploadTotal -
+                                Math.round(
+                                  (uploadProgress / 100) * uploadTotal,
+                                )}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">📁 कुल</small>
-                            <span className="badge bg-primary" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              📁 कुल
+                            </small>
+                            <span
+                              className="badge bg-primary"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadTotal}
                             </span>
                           </div>
                           <div className="text-center">
-                            <small className="text-dark fw-bold d-block mb-2">⚡ प्रगति</small>
-                            <span className="badge bg-info text-white" style={{ fontSize: "14px", padding: "8px 12px" }}>
+                            <small className="text-dark fw-bold d-block mb-2">
+                              ⚡ प्रगति
+                            </small>
+                            <span
+                              className="badge bg-info text-white"
+                              style={{ fontSize: "14px", padding: "8px 12px" }}
+                            >
                               {uploadProgress}%
                             </span>
                           </div>
@@ -1306,7 +1433,9 @@ const NurseryFinancialEntry = () => {
                           aria-valuemin="0"
                           aria-valuemax="100"
                         >
-                          <small className="fw-bold text-white">{uploadProgress}%</small>
+                          <small className="fw-bold text-white">
+                            {uploadProgress}%
+                          </small>
                         </div>
                       </div>
                       <small className="text-muted mt-2 d-block text-center">
@@ -1339,13 +1468,17 @@ const NurseryFinancialEntry = () => {
                   <div className="w-100">
                     <Button
                       variant="secondary"
-                      onClick={() => previewData.length > 0 && !isUploading && handleConfirmUpload()}
+                      onClick={() =>
+                        previewData.length > 0 &&
+                        !isUploading &&
+                        handleConfirmUpload()
+                      }
                       disabled={!excelFile || isUploading}
                       className="compact-submit-btn w-100"
                     >
                       {isUploading
                         ? `अपलोड हो रहा है... ${uploadProgress}%`
-                        : previewData.length > 0 
+                        : previewData.length > 0
                           ? `${previewData.length} रिकॉर्ड अपलोड करें`
                           : translations.uploadButton}
                     </Button>
@@ -1365,22 +1498,41 @@ const NurseryFinancialEntry = () => {
 
               {apiResponse && (
                 <Alert variant="success" className="small-fonts">
-                  <div style={{ whiteSpace: "pre-wrap" }}>{apiResponse.message}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    {apiResponse.message}
+                  </div>
                 </Alert>
               )}
               {apiError && (
                 <Alert variant="danger" className="small-fonts">
-                  <div style={{ whiteSpace: "pre-wrap", maxHeight: "300px", overflowY: "auto" }}>
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      maxHeight: "300px",
+                      overflowY: "auto",
+                    }}
+                  >
                     {apiError}
                   </div>
                 </Alert>
               )}
               {uploadErrors.length > 0 && !isUploading && (
                 <Alert variant="warning" className="small-fonts">
-                  <strong>📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):</strong>
-                  <div style={{ maxHeight: "400px", overflowY: "auto", marginTop: "10px" }}>
+                  <strong>
+                    📋 विस्तृत त्रुटि लॉग ({uploadErrors.length} समस्याएं):
+                  </strong>
+                  <div
+                    style={{
+                      maxHeight: "400px",
+                      overflowY: "auto",
+                      marginTop: "10px",
+                    }}
+                  >
                     {uploadErrors.map((error, idx) => (
-                      <div key={idx} style={{ marginBottom: "5px", fontSize: "12px" }}>
+                      <div
+                        key={idx}
+                        style={{ marginBottom: "5px", fontSize: "12px" }}
+                      >
                         • {error}
                       </div>
                     ))}
@@ -1414,7 +1566,15 @@ const NurseryFinancialEntry = () => {
                           <td>{row.data?.allocated_amount || "-"}</td>
                           <td>{row.data?.spent_amount || "-"}</td>
                           <td>{row.data?.description || "-"}</td>
-                          <td style={{ backgroundColor: row.reason?.includes('तिथि') ? '#ffcccc' : 'inherit' }}>{row.data?.registration_date || "-"}</td>
+                          <td
+                            style={{
+                              backgroundColor: row.reason?.includes("तिथि")
+                                ? "#ffcccc"
+                                : "inherit",
+                            }}
+                          >
+                            {row.data?.registration_date || "-"}
+                          </td>
                           <td>{row.reason}</td>
                         </tr>
                       ))}
@@ -1429,9 +1589,16 @@ const NurseryFinancialEntry = () => {
               )}
 
               {/* Preview Modal */}
-              <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" centered>
+              <Modal
+                show={showPreviewModal}
+                onHide={() => setShowPreviewModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)</Modal.Title>
+                  <Modal.Title>
+                    डेटा पूर्वावलोकन ({previewData.length} रिकॉर्ड)
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   {previewData.length === 0 ? (
@@ -1439,10 +1606,17 @@ const NurseryFinancialEntry = () => {
                   ) : (
                     <>
                       <Alert variant="info" className="small-fonts">
-                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें।
-                        खाली पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
+                        <strong>निर्देश:</strong> नीचे डेटा की जांच करें। यदि
+                        सभी डेटा सही है तो "अपलोड करें" बटन पर क्लिक करें। खाली
+                        पंक्तियाँ स्वचालित रूप से छोड़ दी जाएंगी।
                       </Alert>
-                      <Table striped bordered hover size="sm" className="small-fonts">
+                      <Table
+                        striped
+                        bordered
+                        hover
+                        size="sm"
+                        className="small-fonts"
+                      >
                         <thead>
                           <tr>
                             <th>क्र.सं.</th>
@@ -1456,14 +1630,34 @@ const NurseryFinancialEntry = () => {
                         </thead>
                         <tbody>
                           {previewData.slice(0, 100).map((row, idx) => (
-                            <tr key={idx} style={{ backgroundColor: duplicateRowIndices.includes(row.rowIndex) ? '#ffcccc' : 'inherit' }}>
+                            <tr
+                              key={idx}
+                              style={{
+                                backgroundColor: duplicateRowIndices.includes(
+                                  row.rowIndex,
+                                )
+                                  ? "#ffcccc"
+                                  : "inherit",
+                              }}
+                            >
                               <td>{idx + 1}</td>
                               <td>{row.nursery_name}</td>
                               <td>{row.standard_item}</td>
                               <td>{row.allocated_amount}</td>
                               <td>{row.spent_amount}</td>
                               <td>{row.description || "-"}</td>
-                              <td style={{ backgroundColor: !/^\d{2}\/\d{2}\/\d{4}$/.test(row.original_registration_date) ? '#ffcccc' : 'inherit' }}>{row.original_registration_date}</td>
+                              <td
+                                style={{
+                                  backgroundColor:
+                                    !/^\d{2}\/\d{2}\/\d{4}$/.test(
+                                      row.original_registration_date,
+                                    )
+                                      ? "#ffcccc"
+                                      : "inherit",
+                                }}
+                              >
+                                {row.original_registration_date}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -1480,16 +1674,29 @@ const NurseryFinancialEntry = () => {
                   {validationErrorsList.length > 0 && (
                     <div className="w-100 mb-3">
                       <Alert variant="warning" className="small-fonts mb-0">
-                        <strong>⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:</strong>
-                        <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                          {validationErrorsList.slice(0, 10).map((err, errIdx) => (
-                            <div key={errIdx} className="mt-1">
-                              <span className="badge bg-danger me-1">पंक्ति {err.rowIndex - 1}</span>
-                              {err.errors.map((e, i) => <span key={i} className="d-block text-danger">{e}</span>)}
-                            </div>
-                          ))}
+                        <strong>
+                          ⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:
+                        </strong>
+                        <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+                          {validationErrorsList
+                            .slice(0, 10)
+                            .map((err, errIdx) => (
+                              <div key={errIdx} className="mt-1">
+                                <span className="badge bg-danger me-1">
+                                  पंक्ति {err.rowIndex - 1}
+                                </span>
+                                {err.errors.map((e, i) => (
+                                  <span key={i} className="d-block text-danger">
+                                    {e}
+                                  </span>
+                                ))}
+                              </div>
+                            ))}
                           {validationErrorsList.length > 10 && (
-                            <div className="text-muted">... और {validationErrorsList.length - 10} और त्रुटियां</div>
+                            <div className="text-muted">
+                              ... और {validationErrorsList.length - 10} और
+                              त्रुटियां
+                            </div>
                           )}
                         </div>
                       </Alert>
@@ -1499,7 +1706,9 @@ const NurseryFinancialEntry = () => {
                           size="sm"
                           className="mt-2"
                           onClick={() => {
-                            const duplicates = previewData.filter(row => duplicateRowIndices.includes(row.rowIndex));
+                            const duplicates = previewData.filter((row) =>
+                              duplicateRowIndices.includes(row.rowIndex),
+                            );
                             setAllDuplicateEntries(duplicates);
                             setShowAllDuplicatesModal(true);
                           }}
@@ -1510,18 +1719,28 @@ const NurseryFinancialEntry = () => {
                     </div>
                   )}
                   <div className="d-flex justify-content-between w-100">
-                    <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowPreviewModal(false)}
+                    >
                       रद्द करें
                     </Button>
                     {(() => {
-                      const validCount = previewData.filter(row => !validationErrorsList.some(err => err.rowIndex === row.rowIndex)).length;
+                      const validCount = previewData.filter(
+                        (row) =>
+                          !validationErrorsList.some(
+                            (err) => err.rowIndex === row.rowIndex,
+                          ),
+                      ).length;
                       return (
                         <Button
                           variant="primary"
                           onClick={handleConfirmUpload}
                           disabled={validCount === 0}
                         >
-                          {validCount > 0 ? `${validCount} रिकॉर्ड अपलोड करें` : 'कोई मान्य रिकॉर्ड नहीं'}
+                          {validCount > 0
+                            ? `${validCount} रिकॉर्ड अपलोड करें`
+                            : "कोई मान्य रिकॉर्ड नहीं"}
                         </Button>
                       );
                     })()}
@@ -1530,15 +1749,30 @@ const NurseryFinancialEntry = () => {
               </Modal>
 
               {/* All Duplicates Modal */}
-              <Modal show={showAllDuplicatesModal} onHide={() => setShowAllDuplicatesModal(false)} size="lg" centered>
+              <Modal
+                show={showAllDuplicatesModal}
+                onHide={() => setShowAllDuplicatesModal(false)}
+                size="lg"
+                centered
+              >
                 <Modal.Header closeButton>
-                  <Modal.Title>सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})</Modal.Title>
+                  <Modal.Title>
+                    सभी डुप्लीकेट रिकॉर्ड ({allDuplicateEntries.length})
+                  </Modal.Title>
                 </Modal.Header>
                 <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
                   {allDuplicateEntries.length === 0 ? (
-                    <Alert variant="warning">कोई डुप्लीकेट रिकॉर्ड नहीं मिला</Alert>
+                    <Alert variant="warning">
+                      कोई डुप्लीकेट रिकॉर्ड नहीं मिला
+                    </Alert>
                   ) : (
-                    <Table striped bordered hover size="sm" className="small-fonts">
+                    <Table
+                      striped
+                      bordered
+                      hover
+                      size="sm"
+                      className="small-fonts"
+                    >
                       <thead>
                         <tr>
                           <th>क्र.सं. (Excel)</th>
@@ -1552,7 +1786,7 @@ const NurseryFinancialEntry = () => {
                       </thead>
                       <tbody>
                         {allDuplicateEntries.map((row, idx) => (
-                          <tr key={idx} style={{ backgroundColor: '#ffcccc' }}>
+                          <tr key={idx} style={{ backgroundColor: "#ffcccc" }}>
                             <td>{row.rowIndex - 1}</td>
                             <td>{row.nursery_name || "-"}</td>
                             <td>{row.standard_item || "-"}</td>
@@ -1567,7 +1801,10 @@ const NurseryFinancialEntry = () => {
                   )}
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowAllDuplicatesModal(false)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAllDuplicatesModal(false)}
+                  >
                     बंद करें
                   </Button>
                 </Modal.Footer>
@@ -1579,7 +1816,8 @@ const NurseryFinancialEntry = () => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, मानक आइटम, धनराशि, व्यय राशि, पंजीकरण तिथि
+                    <strong>अनिवार्य फ़ील्ड:</strong> नर्सरी का नाम, मानक आइटम,
+                    धनराशि, व्यय राशि, पंजीकरण तिथि
                   </li>
                   <li>धनराशि और व्यय राशि संख्यात्मक होनी चाहिए</li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
@@ -1613,8 +1851,14 @@ const NurseryFinancialEntry = () => {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() => {
-                              setOtherMode(prev => ({ ...prev, nursery_name: false }));
-                              setFormData(prev => ({ ...prev, nursery_name: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                nursery_name: false,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                nursery_name: "",
+                              }));
                             }}
                             className="ms-1"
                             title="वापस सूची में जाएं"
@@ -1628,8 +1872,14 @@ const NurseryFinancialEntry = () => {
                           value={formData.nursery_name}
                           onChange={(e) => {
                             if (e.target.value === "अन्य") {
-                              setOtherMode(prev => ({ ...prev, nursery_name: true }));
-                              setFormData(prev => ({ ...prev, nursery_name: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                nursery_name: true,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                nursery_name: "",
+                              }));
                             } else {
                               handleChange(e);
                             }
@@ -1671,7 +1921,12 @@ const NurseryFinancialEntry = () => {
                           <Button
                             variant="outline-secondary"
                             size="sm"
-                            onClick={() => setOtherMode(prev => ({ ...prev, standard_item: false }))}
+                            onClick={() =>
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                standard_item: false,
+                              }))
+                            }
                             className="ms-1"
                             title="वापस सूची में जाएं"
                           >
@@ -1684,8 +1939,14 @@ const NurseryFinancialEntry = () => {
                           value={formData.standard_item}
                           onChange={(e) => {
                             if (e.target.value === "अन्य") {
-                              setOtherMode(prev => ({ ...prev, standard_item: true }));
-                              setFormData(prev => ({ ...prev, standard_item: "" }));
+                              setOtherMode((prev) => ({
+                                ...prev,
+                                standard_item: true,
+                              }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                standard_item: "",
+                              }));
                             } else {
                               handleChange(e);
                             }
@@ -1767,7 +2028,12 @@ const NurseryFinancialEntry = () => {
                       </Form.Control.Feedback>
                     </Form.Group>
                   </Col> */}
-                  <Col xs={12} sm={6} md={4} className="d-flex align-items-center">
+                  <Col
+                    xs={12}
+                    sm={6}
+                    md={4}
+                    className="d-flex align-items-center"
+                  >
                     <Button
                       variant="primary"
                       type="submit"
@@ -1810,7 +2076,9 @@ const NurseryFinancialEntry = () => {
                           <OverlayTrigger
                             placement="top"
                             overlay={
-                              <Tooltip id="tooltip-refresh">रीफ्रेश करें</Tooltip>
+                              <Tooltip id="tooltip-refresh">
+                                रीफ्रेश करें
+                              </Tooltip>
                             }
                           >
                             <Button
@@ -1830,7 +2098,9 @@ const NurseryFinancialEntry = () => {
                             <OverlayTrigger
                               placement="top"
                               overlay={
-                                <Tooltip id="tooltip-delete">चयनित हटाएं</Tooltip>
+                                <Tooltip id="tooltip-delete">
+                                  चयनित हटाएं
+                                </Tooltip>
                               }
                             >
                               <Button
@@ -1866,7 +2136,7 @@ const NurseryFinancialEntry = () => {
                                     .toISOString()
                                     .slice(0, 10)}`,
                                   nurseryFinancialColumnMapping,
-                                  selectedColumns
+                                  selectedColumns,
                                 )
                               }
                               className="me-2"
@@ -1878,7 +2148,9 @@ const NurseryFinancialEntry = () => {
                           <OverlayTrigger
                             placement="top"
                             overlay={
-                              <Tooltip id="tooltip-pdf">PDF डाउनलोड करें</Tooltip>
+                              <Tooltip id="tooltip-pdf">
+                                PDF डाउनलोड करें
+                              </Tooltip>
                             }
                           >
                             <Button
@@ -1892,7 +2164,7 @@ const NurseryFinancialEntry = () => {
                                     .slice(0, 10)}`,
                                   nurseryFinancialColumnMapping,
                                   selectedColumns,
-                                  "नर्सरी वित्तीय प्रविष्टि डेटा"
+                                  "नर्सरी वित्तीय प्रविष्टि डेटा",
                                 )
                               }
                             >
@@ -1917,29 +2189,36 @@ const NurseryFinancialEntry = () => {
                 )}
 
                 {/* Table info with pagination details */}
-                {filters.from_date && filters.to_date && filteredItems.length > 0 && (
-                  <div className="table-info mb-2 d-flex justify-content-between align-items-center">
-                    <span className="small-fonts">
-                      {translations.showing}{" "}
-                      {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
-                      {Math.min(currentPage * itemsPerPage, filteredItems.length)}{" "}
-                      {translations.of} {filteredItems.length}{" "}
-                      {translations.entries}
-                    </span>
-                    <div className="d-flex align-items-center">
-                      <span className="small-fonts me-2">
-                        {translations.itemsPerPage}
+                {filters.from_date &&
+                  filters.to_date &&
+                  filteredItems.length > 0 && (
+                    <div className="table-info mb-2 d-flex justify-content-between align-items-center">
+                      <span className="small-fonts">
+                        {translations.showing}{" "}
+                        {(currentPage - 1) * itemsPerPage + 1} {translations.to}{" "}
+                        {Math.min(
+                          currentPage * itemsPerPage,
+                          filteredItems.length,
+                        )}{" "}
+                        {translations.of} {filteredItems.length}{" "}
+                        {translations.entries}
                       </span>
-                      <span className="badge bg-primary">{itemsPerPage}</span>
+                      <div className="d-flex align-items-center">
+                        <span className="small-fonts me-2">
+                          {translations.itemsPerPage}
+                        </span>
+                        <span className="badge bg-primary">{itemsPerPage}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* New Created At Date Filter Section - Separate from date range filters */}
                 {nurseryFinancialItems.length > 0 && (
                   <div className="created-at-filter-section mb-3 p-3 border rounded bg-light">
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="small-fonts mb-0">तिथि से फ़िल्टर करें (created_at)</h6>
+                      <h6 className="small-fonts mb-0">
+                        तिथि से फ़िल्टर करें (created_at)
+                      </h6>
                     </div>
                     <Row>
                       <Col xs={12} md={4}>
@@ -1949,14 +2228,16 @@ const NurseryFinancialEntry = () => {
                           </Form.Label>
                           <Form.Select
                             value={createdAtFilter.selectedDate}
-                            onChange={(e) => handleCreatedAtDateSelect(e.target.value)}
+                            onChange={(e) =>
+                              handleCreatedAtDateSelect(e.target.value)
+                            }
                             className="compact-input"
                             disabled={createdAtFilter.showManualPicker}
                           >
                             <option value="">-- तिथि चुनें --</option>
                             {uniqueCreatedAtDates.map((date) => (
                               <option key={date} value={date}>
-                                {new Date(date).toLocaleDateString('hi-IN')}
+                                {new Date(date).toLocaleDateString("hi-IN")}
                               </option>
                             ))}
                           </Form.Select>
@@ -1965,12 +2246,18 @@ const NurseryFinancialEntry = () => {
                       <Col xs={12} md={4}>
                         <Form.Group className="mb-2 d-flex align-items-end">
                           <Button
-                            variant={createdAtFilter.showManualPicker ? "primary" : "outline-secondary"}
+                            variant={
+                              createdAtFilter.showManualPicker
+                                ? "primary"
+                                : "outline-secondary"
+                            }
                             size="sm"
                             onClick={toggleManualDatePicker}
                             className="mb-2"
                           >
-                            {createdAtFilter.showManualPicker ? "मैन्युअल तिथि छुपाएं" : "मैन्युअल तिथि"}
+                            {createdAtFilter.showManualPicker
+                              ? "मैन्युअल तिथि छुपाएं"
+                              : "मैन्युअल तिथि"}
                           </Button>
                         </Form.Group>
                       </Col>
@@ -1983,7 +2270,9 @@ const NurseryFinancialEntry = () => {
                             <Form.Control
                               type="date"
                               value={createdAtFilter.manualDate}
-                              onChange={(e) => handleCreatedAtManualDateChange(e.target.value)}
+                              onChange={(e) =>
+                                handleCreatedAtManualDateChange(e.target.value)
+                              }
                               className="compact-input"
                             />
                           </Form.Group>
@@ -1991,12 +2280,19 @@ const NurseryFinancialEntry = () => {
                       )}
                     </Row>
                     {/* Show selected filter info */}
-                    {(createdAtFilter.selectedDate || createdAtFilter.manualDate) && (
+                    {(createdAtFilter.selectedDate ||
+                      createdAtFilter.manualDate) && (
                       <div className="mt-2">
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => setCreatedAtFilter({ selectedDate: "", manualDate: "", showManualPicker: false })}
+                          onClick={() =>
+                            setCreatedAtFilter({
+                              selectedDate: "",
+                              manualDate: "",
+                              showManualPicker: false,
+                            })
+                          }
                         >
                           तिथि फ़िल्टर साफ़ करें
                         </Button>
@@ -2027,7 +2323,12 @@ const NurseryFinancialEntry = () => {
                           <Form.Control
                             type="date"
                             value={filters.from_date}
-                            onChange={(e) => setFilters(prev => ({ ...prev, from_date: e.target.value }))}
+                            onChange={(e) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                from_date: e.target.value,
+                              }))
+                            }
                             className="compact-input"
                           />
                         </Form.Group>
@@ -2040,7 +2341,12 @@ const NurseryFinancialEntry = () => {
                           <Form.Control
                             type="date"
                             value={filters.to_date}
-                            onChange={(e) => setFilters(prev => ({ ...prev, to_date: e.target.value }))}
+                            onChange={(e) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                to_date: e.target.value,
+                              }))
+                            }
                             className="compact-input"
                           />
                         </Form.Group>
@@ -2065,10 +2371,12 @@ const NurseryFinancialEntry = () => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.nursery_name.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.nursery_name.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -2094,10 +2402,12 @@ const NurseryFinancialEntry = () => {
                                   : [],
                               }));
                             }}
-                            options={filterOptions.standard_item.map((option) => ({
-                              value: option,
-                              label: option,
-                            }))}
+                            options={filterOptions.standard_item.map(
+                              (option) => ({
+                                value: option,
+                                label: option,
+                              }),
+                            )}
                             className="compact-input"
                             placeholder="चुनें"
                           />
@@ -2162,7 +2472,7 @@ const NurseryFinancialEntry = () => {
                         {filteredItems
                           .slice(
                             (currentPage - 1) * itemsPerPage,
-                            currentPage * itemsPerPage
+                            currentPage * itemsPerPage,
                           )
                           .map((item, index) => (
                             <tr key={item.id || index}>
@@ -2209,11 +2519,13 @@ const NurseryFinancialEntry = () => {
                                       size="sm"
                                     >
                                       <option value="">चुनें</option>
-                                      {filterOptions.standard_item.map((opt, idx) => (
-                                        <option key={idx} value={opt}>
-                                          {opt}
-                                        </option>
-                                      ))}
+                                      {filterOptions.standard_item.map(
+                                        (opt, idx) => (
+                                          <option key={idx} value={opt}>
+                                            {opt}
+                                          </option>
+                                        ),
+                                      )}
                                     </Form.Select>
                                   ) : (
                                     item.standard_item
@@ -2280,7 +2592,9 @@ const NurseryFinancialEntry = () => {
                                   )}
                                 </td>
                               )}
-                              {selectedColumns.includes("registration_date") && (
+                              {selectedColumns.includes(
+                                "registration_date",
+                              ) && (
                                 <td>
                                   {editingRowId === item.id ? (
                                     <Form.Control
@@ -2294,8 +2608,12 @@ const NurseryFinancialEntry = () => {
                                       }
                                       size="sm"
                                     />
+                                  ) : item.registration_date ? (
+                                    new Date(
+                                      item.registration_date,
+                                    ).toLocaleDateString("hi-IN")
                                   ) : (
-                                    item.registration_date ? new Date(item.registration_date).toLocaleDateString("hi-IN") : "-"
+                                    "-"
                                   )}
                                 </td>
                               )}
@@ -2339,49 +2657,81 @@ const NurseryFinancialEntry = () => {
                             </tr>
                           ))}
                         {/* Total Row */}
-                        {currentPage === Math.ceil(filteredItems.length / itemsPerPage) && filteredItems.length > 0 && (
-                          <tr style={{ backgroundColor: "#e8e8e8", fontWeight: "bold" }}>
-                            <td></td>
-                            <td><strong>कुल</strong></td>
-                            {selectedColumns.includes("nursery_name") && (
-                              <td>
-                                <strong>{new Set(filteredItems.map(item => item.nursery_name)).size}</strong>
-                              </td>
-                            )}
-                            {selectedColumns.includes("standard_item") && (
-                              <td>
-                                <strong>{new Set(filteredItems.map(item => item.standard_item)).size}</strong>
-                              </td>
-                            )}
-                            {selectedColumns.includes("allocated_amount") && (
-                              <td>
-                                <strong>
-                                  {filteredItems.reduce((total, item) => {
-                                    const value = parseFloat(item.allocated_amount) || 0;
-                                    return total + value;
-                                  }, 0).toFixed(2)}
-                                </strong>
-                              </td>
-                            )}
-                            {selectedColumns.includes("spent_amount") && (
-                              <td>
-                                <strong>
-                                  {filteredItems.reduce((total, item) => {
-                                    const value = parseFloat(item.spent_amount) || 0;
-                                    return total + value;
-                                  }, 0).toFixed(2)}
-                                </strong>
-                              </td>
-                            )}
-                            {selectedColumns.includes("description") && (
+                        {currentPage ===
+                          Math.ceil(filteredItems.length / itemsPerPage) &&
+                          filteredItems.length > 0 && (
+                            <tr
+                              style={{
+                                backgroundColor: "#e8e8e8",
+                                fontWeight: "bold",
+                              }}
+                            >
                               <td></td>
-                            )}
-                            {selectedColumns.includes("registration_date") && (
+                              <td>
+                                <strong>कुल</strong>
+                              </td>
+                              {selectedColumns.includes("nursery_name") && (
+                                <td>
+                                  <strong>
+                                    {
+                                      new Set(
+                                        filteredItems.map(
+                                          (item) => item.nursery_name,
+                                        ),
+                                      ).size
+                                    }
+                                  </strong>
+                                </td>
+                              )}
+                              {selectedColumns.includes("standard_item") && (
+                                <td>
+                                  <strong>
+                                    {
+                                      new Set(
+                                        filteredItems.map(
+                                          (item) => item.standard_item,
+                                        ),
+                                      ).size
+                                    }
+                                  </strong>
+                                </td>
+                              )}
+                              {selectedColumns.includes("allocated_amount") && (
+                                <td>
+                                  <strong>
+                                    {filteredItems
+                                      .reduce((total, item) => {
+                                        const value =
+                                          parseFloat(item.allocated_amount) ||
+                                          0;
+                                        return total + value;
+                                      }, 0)
+                                      .toFixed(2)}
+                                  </strong>
+                                </td>
+                              )}
+                              {selectedColumns.includes("spent_amount") && (
+                                <td>
+                                  <strong>
+                                    {filteredItems
+                                      .reduce((total, item) => {
+                                        const value =
+                                          parseFloat(item.spent_amount) || 0;
+                                        return total + value;
+                                      }, 0)
+                                      .toFixed(2)}
+                                  </strong>
+                                </td>
+                              )}
+                              {selectedColumns.includes("description") && (
+                                <td></td>
+                              )}
+                              {selectedColumns.includes(
+                                "registration_date",
+                              ) && <td></td>}
                               <td></td>
-                            )}
-                            <td></td>
-                          </tr>
-                        )}
+                            </tr>
+                          )}
                       </tbody>
                     </Table>
 
