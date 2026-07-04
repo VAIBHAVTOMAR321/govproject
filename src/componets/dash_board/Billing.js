@@ -74,7 +74,7 @@ const customSelectStyles = {
   }),
 };
 
-  // Hindi translations
+// Hindi translations
 const translations = {
   dashboard: "डैशबोर्ड",
   billingItems: "बिलिंग आइटम्स",
@@ -181,7 +181,7 @@ const Billing = () => {
 
   // State for selected columns for download
   const [selectedColumns, setSelectedColumns] = useState(
-    availableColumns.map((col) => col.key)
+    availableColumns.map((col) => col.key),
   );
 
   // State for form submission
@@ -248,7 +248,7 @@ const Billing = () => {
         calculateQuantityLeft(
           item.allocated_quantity,
           item.updated_quantity,
-          item.cut_quantity
+          item.cut_quantity,
         ),
     },
     alloted_rashi: {
@@ -351,31 +351,31 @@ const Billing = () => {
       center_name: [
         { value: "select_all", label: "सभी चुनें" },
         ...[...new Set(billingData.map((item) => item.center_name))].map(
-          (name) => ({ value: name, label: name })
+          (name) => ({ value: name, label: name }),
         ),
       ],
       source_of_receipt: [
         { value: "select_all", label: "सभी चुनें" },
         ...[...new Set(billingData.map((item) => item.source_of_receipt))].map(
-          (name) => ({ value: name, label: name })
+          (name) => ({ value: name, label: name }),
         ),
       ],
       nivesh: [
         { value: "select_all", label: "सभी चुनें" },
         ...[...new Set(billingData.map((item) => item.investment_name))].map(
-          (name) => ({ value: name, label: name })
+          (name) => ({ value: name, label: name }),
         ),
       ],
       subnivesh_name: [
         { value: "select_all", label: "सभी चुनें" },
-        ...[...new Set(billingData.map((item) => item.sub_investment_name))].map(
-          (name) => ({ value: name, label: name })
-        ),
+        ...[
+          ...new Set(billingData.map((item) => item.sub_investment_name)),
+        ].map((name) => ({ value: name, label: name })),
       ],
       scheme_name: [
         { value: "select_all", label: "सभी चुनें" },
         ...[...new Set(billingData.map((item) => item.scheme_name))].map(
-          (name) => ({ value: name, label: name })
+          (name) => ({ value: name, label: name }),
         ),
       ],
     };
@@ -390,7 +390,7 @@ const Billing = () => {
       const matchesSource =
         filters.source_of_receipt.length === 0 ||
         filters.source_of_receipt.some(
-          (s) => s.value === item.source_of_receipt
+          (s) => s.value === item.source_of_receipt,
         );
       const matchesScheme =
         filters.scheme_name.length === 0 ||
@@ -401,7 +401,7 @@ const Billing = () => {
       const matchesSubnivesh =
         filters.subnivesh_name.length === 0 ||
         filters.subnivesh_name.some(
-          (sub) => sub.value === item.sub_investment_name
+          (sub) => sub.value === item.sub_investment_name,
         );
 
       // Date range filter
@@ -445,7 +445,7 @@ const Billing = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const paginatedBillingData = filteredData.slice(
     indexOfFirstItem,
-    indexOfLastItem
+    indexOfLastItem,
   );
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
@@ -462,7 +462,7 @@ const Billing = () => {
             item,
             index,
             currentPage,
-            itemsPerPage
+            itemsPerPage,
           );
         });
         return row;
@@ -493,8 +493,8 @@ const Billing = () => {
                   item,
                   index,
                   currentPage,
-                  itemsPerPage
-                )}</td>`
+                  itemsPerPage,
+                )}</td>`,
             )
             .join("");
           return `<tr>${cells}</tr>`;
@@ -537,7 +537,7 @@ const Billing = () => {
     if (value && value.some((v) => v.value === "select_all")) {
       // Select all options except 'select_all'
       const allOptions = filterOptions[filterName].filter(
-        (opt) => opt.value !== "select_all"
+        (opt) => opt.value !== "select_all",
       );
       setFilters((prev) => ({
         ...prev,
@@ -553,33 +553,42 @@ const Billing = () => {
 
   // Handle cut quantity change
   const handleCutQuantityChange = (id, value) => {
-    // Ensure value is a non-negative number
-    const numValue = Math.max(0, parseFloat(value) || 0);
-
-    // Get the item to check allocated quantity
     const item = billingData.find((item) => item.id === id);
-    const allocatedNum = parseFloat(item.allocated_quantity) || 0;
-    const updatedNum = parseFloat(item.updated_quantity) || 0;
+    if (!item) return;
 
-    // Calculate the maximum allowed cut quantity
-    const maxCut = allocatedNum - updatedNum;
-
-    // Validate that the cut quantity doesn't exceed the available quantity
-    if (numValue > maxCut) {
-      setSubmitError(
-        `${translations.cannotCutMore} (${maxCut}) ${translations.for} ${item.bill_id}`
-      );
-      return;
-    }
+    const sanitizedValue = value === "" ? "" : String(value).trim();
+    const numValue =
+      sanitizedValue === "" ? 0 : Math.max(0, parseFloat(sanitizedValue) || 0);
 
     setBillingData((prevData) =>
-      prevData.map((item) =>
-        item.id === id ? { ...item, cut_quantity: numValue } : item
-      )
+      prevData.map((row) =>
+        row.id === id ? { ...row, cut_quantity: numValue } : row,
+      ),
     );
 
-    // Track that this item has been modified
     setModifiedItems((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const applyBulkFieldValue = (fieldName, value, changedItemId) => {
+    const normalizedValue =
+      value === "" || value === null || value === undefined
+        ? ""
+        : typeof value === "string"
+          ? value.trim()
+          : value;
+
+    setBillingData((prevData) =>
+      prevData.map((item) => ({ ...item, [fieldName]: normalizedValue })),
+    );
+
+    setModifiedItems((prev) => {
+      const next = { ...prev };
+      billingData.forEach((item) => {
+        next[item.id] = true;
+      });
+      next[changedItemId] = true;
+      return next;
+    });
   };
 
   // Handle billing date change
@@ -599,24 +608,23 @@ const Billing = () => {
       }
     }
 
-    setBillingData((prevData) =>
-      prevData.map((item) =>
-        item.id === id ? { ...item, billing_date: formattedDate } : item
-      )
-    );
-
-    // Track that this item has been modified
-    setModifiedItems((prev) => ({ ...prev, [id]: true }));
+    applyBulkFieldValue("billing_date", formattedDate, id);
   };
 
   // Handle bill_report_id change
   const handleBillReportIdChange = (id, value) => {
     const trimmed = value ? value.toString().trim() : "";
-    setBillingData((prevData) =>
-      prevData.map((item) => (item.id === id ? { ...item, bill_report_id: trimmed } : item))
-    );
+    applyBulkFieldValue("bill_report_id", trimmed, id);
+  };
 
-    // Track that this item has been modified
+  const resetRowFields = (id) => {
+    setBillingData((prevData) =>
+      prevData.map((item) =>
+        item.id === id
+          ? { ...item, cut_quantity: 0, billing_date: "", bill_report_id: "" }
+          : item,
+      ),
+    );
     setModifiedItems((prev) => ({ ...prev, [id]: true }));
   };
 
@@ -655,7 +663,7 @@ const Billing = () => {
 
     // Get only the items that have been modified
     const updatedItems = billingData.filter(
-      (item) => modifiedItems[item.id] && item.cut_quantity > 0
+      (item) => modifiedItems[item.id] && item.cut_quantity > 0,
     );
 
     if (updatedItems.length === 0) {
@@ -670,11 +678,11 @@ const Billing = () => {
 
       // Check if all items have billing dates selected
       const itemsWithoutDate = updatedItems.filter(
-        (item) => !item.billing_date
+        (item) => !item.billing_date,
       );
       if (itemsWithoutDate.length > 0) {
         setSubmitError(
-          `Please select billing date for all items. Missing dates for ${itemsWithoutDate.length} item(s).`
+          `Please select billing date for all items. Missing dates for ${itemsWithoutDate.length} item(s).`,
         );
         return;
       }
@@ -682,11 +690,11 @@ const Billing = () => {
       // Validate date format (YYYY-MM-DD)
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       const itemsWithInvalidDate = updatedItems.filter(
-        (item) => !dateRegex.test(item.billing_date)
+        (item) => !dateRegex.test(item.billing_date),
       );
       if (itemsWithInvalidDate.length > 0) {
         setSubmitError(
-          `Invalid date format found. All dates must be in YYYY-MM-DD format. Please check ${itemsWithInvalidDate.length} item(s).`
+          `Invalid date format found. All dates must be in YYYY-MM-DD format. Please check ${itemsWithInvalidDate.length} item(s).`,
         );
         return;
       }
@@ -718,11 +726,12 @@ const Billing = () => {
 
       // Ensure bill_report_id is provided for all updated items
       const itemsWithoutReportId = updatedItems.filter(
-        (item) => !item.bill_report_id || item.bill_report_id.toString().trim() === ""
+        (item) =>
+          !item.bill_report_id || item.bill_report_id.toString().trim() === "",
       );
       if (itemsWithoutReportId.length > 0) {
         setSubmitError(
-          `Please enter Bill Report ID for all modified items. Missing for ${itemsWithoutReportId.length} item(s).`
+          `Please enter Bill Report ID for all modified items. Missing for ${itemsWithoutReportId.length} item(s).`,
         );
         return;
       }
@@ -748,7 +757,7 @@ const Billing = () => {
       // Log the payloads for debugging
       console.log(
         "Submitting payloads:",
-        JSON.stringify({ data: payloads }, null, 2)
+        JSON.stringify({ data: payloads }, null, 2),
       );
 
       // Send POST request with the array of billing data
@@ -867,11 +876,11 @@ const Billing = () => {
     paginationItems.push(
       <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
         1
-      </Pagination.Item>
+      </Pagination.Item>,
     );
     if (startPage > 2) {
       paginationItems.push(
-        <Pagination.Ellipsis key="start-ellipsis" disabled />
+        <Pagination.Ellipsis key="start-ellipsis" disabled />,
       );
     }
   }
@@ -885,7 +894,7 @@ const Billing = () => {
         onClick={() => handlePageChange(number)}
       >
         {number}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -900,7 +909,7 @@ const Billing = () => {
         onClick={() => handlePageChange(totalPages)}
       >
         {totalPages}
-      </Pagination.Item>
+      </Pagination.Item>,
     );
   }
 
@@ -961,7 +970,9 @@ const Billing = () => {
           <Row className="left-top">
             <Col lg={12} md={12} sm={10}>
               <Container fluid className="dashboard-body-main bg-home">
-                <h1 className="page-title small-fonts">{translations.billing}</h1>
+                <h1 className="page-title small-fonts">
+                  {translations.billing}
+                </h1>
 
                 {submitSuccess && (
                   <Alert
@@ -990,7 +1001,9 @@ const Billing = () => {
                       md={12}
                       className="d-flex justify-content-between align-items-center"
                     >
-                      <h5 className="mb-0 small-fonts">{translations.filters}</h5>
+                      <h5 className="mb-0 small-fonts">
+                        {translations.filters}
+                      </h5>
                       {(filters.center_name.length > 0 ||
                         filters.source_of_receipt.length > 0 ||
                         filters.nivesh.length > 0 ||
@@ -1150,8 +1163,6 @@ const Billing = () => {
                         />
                       </FormGroup>
                     </Col>
-
-                    
                   </Row>
                 </div>
                 <div>
@@ -1164,7 +1175,9 @@ const Billing = () => {
                             {!fromDate && !toDate ? (
                               <Alert variant="info" className="text-center">
                                 <h5>{translations.selectDateRange}</h5>
-                                <p className="mb-0">{translations.pleaseSelectDateRange}</p>
+                                <p className="mb-0">
+                                  {translations.pleaseSelectDateRange}
+                                </p>
                               </Alert>
                             ) : filteredData.length > 0 ? (
                               <>
@@ -1177,7 +1190,7 @@ const Billing = () => {
                                         filteredData,
                                         `BillingItems_${
                                           new Date().toISOString().split("T")[0]
-                                        }`
+                                        }`,
                                       )
                                     }
                                     className="me-2"
@@ -1193,7 +1206,7 @@ const Billing = () => {
                                         filteredData,
                                         `BillingItems_${
                                           new Date().toISOString().split("T")[0]
-                                        }`
+                                        }`,
                                       )
                                     }
                                   >
@@ -1203,9 +1216,12 @@ const Billing = () => {
                                 </div>
                                 <div className="table-info mb-2 d-flex justify-content-between align-items-center">
                                   <span className="small-fonts">
-                                    {translations.showing} {indexOfFirstItem + 1}{" "}
-                                    {translations.to}{" "}
-                                    {Math.min(indexOfLastItem, filteredData.length)}{" "}
+                                    {translations.showing}{" "}
+                                    {indexOfFirstItem + 1} {translations.to}{" "}
+                                    {Math.min(
+                                      indexOfLastItem,
+                                      filteredData.length,
+                                    )}{" "}
                                     {translations.of} {filteredData.length}{" "}
                                     {translations.entries}
                                   </span>
@@ -1236,7 +1252,7 @@ const Billing = () => {
                                               type="checkbox"
                                               id={`col-${col.key}`}
                                               checked={selectedColumns.includes(
-                                                col.key
+                                                col.key,
                                               )}
                                               onChange={(e) => {
                                                 if (e.target.checked) {
@@ -1247,8 +1263,8 @@ const Billing = () => {
                                                 } else {
                                                   setSelectedColumns(
                                                     selectedColumns.filter(
-                                                      (c) => c !== col.key
-                                                    )
+                                                      (c) => c !== col.key,
+                                                    ),
                                                   );
                                                 }
                                               }}
@@ -1294,23 +1310,26 @@ const Billing = () => {
                                       const allocatedAmount =
                                         calculateAllocatedAmount(
                                           item.allocated_quantity,
-                                          item.rate
+                                          item.rate,
                                         );
                                       const soldAmount = calculateAmount(
                                         item.updated_quantity,
-                                        item.rate
+                                        item.rate,
                                       );
-                                      const quantityLeft = calculateQuantityLeft(
-                                        item.allocated_quantity,
-                                        item.updated_quantity,
-                                        item.cut_quantity
-                                      );
+                                      const quantityLeft =
+                                        calculateQuantityLeft(
+                                          item.allocated_quantity,
+                                          item.updated_quantity,
+                                          item.cut_quantity,
+                                        );
                                       const maxCut =
-                                        (parseFloat(item.allocated_quantity) || 0) -
-                                        (parseFloat(item.updated_quantity) || 0);
+                                        (parseFloat(item.allocated_quantity) ||
+                                          0) -
+                                        (parseFloat(item.updated_quantity) ||
+                                          0);
                                       const totalBill = calculateTotalBill(
                                         item.cut_quantity,
-                                        item.rate
+                                        item.rate,
                                       );
 
                                       return (
@@ -1318,7 +1337,9 @@ const Billing = () => {
                                           <td data-label={translations.sno}>
                                             {indexOfFirstItem + index + 1}
                                           </td>
-                                          <td data-label={translations.centerName}>
+                                          <td
+                                            data-label={translations.centerName}
+                                          >
                                             {item.center_name}
                                           </td>
                                           <td
@@ -1332,11 +1353,15 @@ const Billing = () => {
                                             {item.investment_name}
                                           </td>
                                           <td
-                                            data-label={translations.subniveshName}
+                                            data-label={
+                                              translations.subniveshName
+                                            }
                                           >
                                             {item.sub_investment_name}
                                           </td>
-                                          <td data-label={translations.schemeName}>
+                                          <td
+                                            data-label={translations.schemeName}
+                                          >
                                             {item.scheme_name}
                                           </td>
                                           <td data-label={translations.unit}>
@@ -1357,19 +1382,29 @@ const Billing = () => {
                                             {item.updated_quantity}
                                           </td>
                                           <td
-                                            data-label={translations.quantityLeft}
+                                            data-label={
+                                              translations.quantityLeft
+                                            }
                                           >
                                             {quantityLeft}
                                           </td>
                                           <td
-                                            data-label={translations.allotedRashi}
+                                            data-label={
+                                              translations.allotedRashi
+                                            }
                                           >
                                             {allocatedAmount}
                                           </td>
-                                          <td data-label={translations.soldRashi}>
+                                          <td
+                                            data-label={translations.soldRashi}
+                                          >
                                             {soldAmount}
                                           </td>
-                                          <td data-label={translations.cutQuantity}>
+                                          <td
+                                            data-label={
+                                              translations.cutQuantity
+                                            }
+                                          >
                                             <Form.Control
                                               type="number"
                                               min="0"
@@ -1379,7 +1414,7 @@ const Billing = () => {
                                               onChange={(e) =>
                                                 handleCutQuantityChange(
                                                   item.id,
-                                                  e.target.value
+                                                  e.target.value,
                                                 )
                                               }
                                               className={`small-fonts ${
@@ -1392,7 +1427,9 @@ const Billing = () => {
                                           <td data-label={translations.rate}>
                                             {item.rate}
                                           </td>
-                                          <td data-label={translations.totalBill}>
+                                          <td
+                                            data-label={translations.totalBill}
+                                          >
                                             <Form.Control
                                               type="text"
                                               value={totalBill}
@@ -1407,7 +1444,7 @@ const Billing = () => {
                                               onChange={(e) =>
                                                 handleBillReportIdChange(
                                                   item.id,
-                                                  e.target.value
+                                                  e.target.value,
                                                 )
                                               }
                                               className={`small-fonts ${
@@ -1417,22 +1454,38 @@ const Billing = () => {
                                               }`}
                                             />
                                           </td>
-                                          <td data-label={translations.billingDate}>
-                                            <Form.Control
-                                              type="date"
-                                              value={item.billing_date || ""}
-                                              onChange={(e) =>
-                                                handleBillingDateChange(
-                                                  item.id,
-                                                  e.target.value
-                                                )
-                                              }
-                                              className={`small-fonts ${
-                                                modifiedItems[item.id]
-                                                  ? "border-warning"
-                                                  : ""
-                                              }`}
-                                            />
+                                          <td
+                                            data-label={
+                                              translations.billingDate
+                                            }
+                                          >
+                                            <div className="d-flex align-items-center gap-2">
+                                              <Form.Control
+                                                type="date"
+                                                value={item.billing_date || ""}
+                                                onChange={(e) =>
+                                                  handleBillingDateChange(
+                                                    item.id,
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                className={`small-fonts ${
+                                                  modifiedItems[item.id]
+                                                    ? "border-warning"
+                                                    : ""
+                                                }`}
+                                              />
+                                              <Button
+                                                variant="outline-secondary"
+                                                size="sm"
+                                                onClick={() =>
+                                                  resetRowFields(item.id)
+                                                }
+                                                title="Reset row"
+                                              >
+                                                00
+                                              </Button>
+                                            </div>
                                           </td>
                                         </tr>
                                       );
@@ -1478,7 +1531,8 @@ const Billing = () => {
                           variant="primary"
                           type="submit"
                           disabled={
-                            submitting || Object.keys(modifiedItems).length === 0
+                            submitting ||
+                            Object.keys(modifiedItems).length === 0
                           }
                         >
                           {submitting ? (
