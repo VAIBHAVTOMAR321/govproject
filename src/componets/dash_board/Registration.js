@@ -52,6 +52,33 @@ const roundTo2Decimals = (value) => {
   return isNaN(num) ? 0 : Math.round(num * 100) / 100;
 };
 
+const validKendraNames = [
+  "कोटद्वार",
+  "किनगोड़िखाल",
+  "चौखाल",
+  "धुमाकोट",
+  "बीरोंखाल",
+  "हल्दूखाल",
+  "किल्वोंखाल",
+  "चेलूसैंण",
+  "जयहरीखाल",
+  "जेठागांव",
+  "देवियोंखाल",
+  "सिलोगी",
+  "सिसल्ड़ी",
+  "पौखाल",
+  "सतपुली",
+  "संगलाकोटी",
+  "देवराजखाल",
+  "पोखड़ा",
+  "वेदीखाल",
+  "विथ्याणी",
+  "गंगाभोगपुर",
+  "दिउली",
+  "दुगड्डा",
+  "सेंधीखाल",
+];
+
 // Static options for form fields
 const investmentOptions = [
   "भवन निर्माण",
@@ -308,6 +335,7 @@ const Registration = () => {
   const [showAllDuplicatesModal, setShowAllDuplicatesModal] = useState(false);
   const [allDuplicateEntries, setAllDuplicateEntries] = useState([]);
   const [centerNameCorrections, setCenterNameCorrections] = useState([]);
+  const [centerNameCorrectionValues, setCenterNameCorrectionValues] = useState({});
   const [showCenterNameCorrectionModal, setShowCenterNameCorrectionModal] =
     useState(false);
   const fileInputRef = useRef(null);
@@ -1530,6 +1558,14 @@ const Registration = () => {
 
     if (!rowData.center_name || !rowData.center_name.toString().trim()) {
       errors.push(`Row ${rowIndex}: केंद्र का नाम आवश्यक है`);
+    } else if (rowData.center_name_invalid) {
+      errors.push(
+        `Row ${rowIndex}: Invalid Kendra Name - entered value: "${rowData.center_name_original || rowData.center_name}"`,
+      );
+    } else if (rowData.center_name_needs_correction) {
+      errors.push(
+        `Row ${rowIndex}: Please replace the Kendra name with the correct valid name`,
+      );
     }
     if (
       !rowData.investment_name ||
@@ -1572,32 +1608,69 @@ const Registration = () => {
     return errors;
   };
 
+  const normalizeKendraName = (value) => {
+    if (value === null || value === undefined) return "";
+
+    return String(value)
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u200c\u200d]/g, "")
+      .replace(/\s+/g, "")
+      .toLowerCase();
+  };
+
   // Function to find closest matching center name
   const findClosestCenterName = (inputName) => {
-    if (!inputName || !inputName.toString().trim()) return null;
+    if (!inputName || !inputName.toString().trim()) {
+      return { matched: false, corrected: null, exact: false };
+    }
 
     const input = inputName.toString().trim();
+    const normalizedInput = normalizeKendraName(input);
 
-    if (centerOptions.includes(input)) {
-      return { original: input, corrected: input, exact: true };
+    const exactMatch = validKendraNames.find(
+      (option) => normalizeKendraName(option) === normalizedInput,
+    );
+
+    if (exactMatch) {
+      return { matched: true, corrected: exactMatch, exact: true };
     }
 
     let closestMatch = null;
     let minDistance = Infinity;
+    let bestSimilarity = 0;
 
-    for (const option of centerOptions) {
-      const distance = levenshteinDistance(input, option);
-      if (distance < minDistance) {
+    for (const option of validKendraNames) {
+      const normalizedOption = normalizeKendraName(option);
+      const distance = levenshteinDistance(normalizedInput, normalizedOption);
+      const maxLength = Math.max(normalizedInput.length, normalizedOption.length) || 1;
+      const similarity = 1 - distance / maxLength;
+
+      if (
+        distance < minDistance ||
+        (distance === minDistance && similarity > bestSimilarity)
+      ) {
         minDistance = distance;
+        bestSimilarity = similarity;
         closestMatch = option;
       }
     }
 
-    if (minDistance <= 2 && closestMatch) {
-      return { original: input, corrected: closestMatch, exact: false };
+    const shouldAutoCorrect =
+      Boolean(closestMatch) &&
+      (minDistance <= 2 || bestSimilarity >= 0.85) &&
+      normalizedInput.length >= 4;
+
+    if (shouldAutoCorrect) {
+      return {
+        matched: true,
+        corrected: closestMatch,
+        exact: false,
+        needsCorrection: true,
+      };
     }
 
-    return null;
+    return { matched: false, corrected: null, exact: false, needsCorrection: false };
   };
 
   // Helper function to calculate Levenshtein distance
@@ -1625,11 +1698,19 @@ const Registration = () => {
   };
 
   // Function to apply center name corrections to parsed rows
-  const applyCenterNameCorrections = (rows, corrections) => {
+  const applyCenterNameCorrections = (rows, corrections, selectedValues = {}) => {
     return rows.map((row) => {
       const correction = corrections.find((c) => c.rowIndex === row.rowIndex);
       if (correction) {
-        return { ...row, center_name: correction.corrected };
+        const selectedValue = selectedValues[row.rowIndex];
+        if (selectedValue) {
+          return {
+            ...row,
+            center_name: selectedValue,
+            center_name_invalid: false,
+            center_name_needs_correction: false,
+          };
+        }
       }
       return row;
     });
@@ -1713,14 +1794,31 @@ const Registration = () => {
             const billDateRaw = row[billDateIndex] || "";
             const billDateISO = parseDateFromExcel(billDateRaw);
 
+            const rawCenterName = (
+              row[headerMapping["केंद्र का नाम"]] ||
+              row[headerMapping["center_name"]] ||
+              ""
+            )
+              .toString()
+              .trim();
+            const centerNameMatch = rawCenterName
+              ? findClosestCenterName(rawCenterName)
+              : null;
             const parsedRow = {
-              center_name: (
-                row[headerMapping["केंद्र का नाम"]] ||
-                row[headerMapping["center_name"]] ||
-                ""
-              )
-                .toString()
-                .trim(),
+              center_name: rawCenterName,
+              center_name_original: rawCenterName,
+              center_name_invalid: Boolean(
+                rawCenterName && centerNameMatch && !centerNameMatch.matched,
+              ),
+              center_name_needs_correction: Boolean(
+                rawCenterName &&
+                  centerNameMatch &&
+                  centerNameMatch.needsCorrection,
+              ),
+              center_name_suggested:
+                rawCenterName && centerNameMatch && centerNameMatch.needsCorrection
+                  ? centerNameMatch.corrected
+                  : "",
               vidhan_sabha_name: (
                 row[headerMapping["विधानसभा का नाम"]] ||
                 row[headerMapping["vidhan_sabha_name"]] ||
@@ -1814,6 +1912,8 @@ const Registration = () => {
                 rowIndex: rowData.rowIndex,
                 errors: rowErrors,
                 data: rowData,
+                invalidCenterName: rowData.center_name_invalid,
+                needsCorrection: rowData.center_name_needs_correction,
               });
             }
           });
@@ -1906,25 +2006,28 @@ const Registration = () => {
             setValidationErrorsList(newValidationErrors);
             setDuplicateRowIndices(Array.from(duplicateIndices));
 
-            // Check for center name corrections needed
-            const corrections = [];
-            parsedRows.forEach((row) => {
-              if (row.center_name && row.center_name.toString().trim()) {
-                const correction = findClosestCenterName(row.center_name);
-                if (correction && !correction.exact) {
-                  corrections.push({
-                    rowIndex: row.rowIndex,
-                    original: correction.original,
-                    corrected: correction.corrected,
-                    data: row,
-                  });
-                }
-              }
-            });
+            const corrections = parsedRows
+              .filter(
+                (row) =>
+                  row.center_name_original &&
+                  (row.center_name_invalid || row.center_name_needs_correction),
+              )
+              .map((row) => ({
+                rowIndex: row.rowIndex,
+                original: row.center_name_original,
+                corrected: row.center_name_suggested || "",
+                data: row,
+              }));
 
-            // If there are corrections needed, show modal for confirmation
             if (corrections.length > 0) {
               setCenterNameCorrections(corrections);
+              const initialCorrectionValues = {};
+              corrections.forEach((correction) => {
+                if (correction.corrected) {
+                  initialCorrectionValues[correction.rowIndex] = correction.corrected;
+                }
+              });
+              setCenterNameCorrectionValues(initialCorrectionValues);
               setShowCenterNameCorrectionModal(true);
               setPreviewData(parsedRows);
               return;
@@ -4667,6 +4770,22 @@ const Registration = () => {
                   <strong>
                     ⚠️ {validationErrorsList.length} पंक्तियों में त्रुटि:
                   </strong>
+                  {validationErrorsList.some((err) => err.invalidCenterName) && (
+                    <div className="mt-2">
+                      <strong className="text-danger">
+                        अमान्य केन्द्र नाम ({validationErrorsList.filter((err) => err.invalidCenterName).length}):
+                      </strong>
+                      <div style={{ maxHeight: "120px", overflowY: "auto" }}>
+                        {validationErrorsList
+                          .filter((err) => err.invalidCenterName)
+                          .map((err) => (
+                            <div key={err.rowIndex} className="mt-1 text-danger">
+                              पंक्ति {err.rowIndex - 1}: “{err.data?.center_name_original || err.data?.center_name || "-"}”
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ maxHeight: "150px", overflowY: "auto" }}>
                     {validationErrorsList.slice(0, 10).map((err, errIdx) => (
                       <div key={errIdx} className="mt-1">
@@ -4723,7 +4842,10 @@ const Registration = () => {
                   <Button
                     variant="primary"
                     onClick={handleConfirmUpload}
-                    disabled={validCount === 0}
+                    disabled={
+                      validCount === 0 ||
+                      validationErrorsList.some((err) => err.invalidCenterName)
+                    }
                   >
                     {validCount > 0
                       ? `${validCount} रिकॉर्ड अपलोड करें`
@@ -4884,17 +5006,16 @@ const Registration = () => {
         </Modal.Header>
         <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
           <Alert variant="warning" className="small-fonts">
-            <strong>निम्न केंद्र नामों में बोलचाल की भिन्नता पाई गई है:</strong>
+            <strong>सिस्टम द्वारा सुझाया गया सही नाम पहले से चुना गया है; यदि चाहें तो इसे ड्रॉपडाउन से बदल सकते हैं:</strong>
             <br />
-            कृपया पुष्टि करें कि आप इन नामों को सिस्टम में उपलब्ध सही नामों से
-            बदलना चाहते हैं।
+            इनमें से कोई भी नाम सही नहीं होने पर अपलोड नहीं होगा।
           </Alert>
           <Table striped bordered hover size="sm" className="small-fonts">
             <thead>
               <tr>
                 <th>क्र.सं. (Excel)</th>
                 <th>मूल केंद्र नाम</th>
-                <th>सुधारित केंद्र नाम</th>
+                <th>सुझावित/चयनित नाम</th>
               </tr>
             </thead>
             <tbody>
@@ -4902,8 +5023,25 @@ const Registration = () => {
                 <tr key={idx}>
                   <td>{correction.rowIndex}</td>
                   <td style={{ color: "red" }}>{correction.original}</td>
-                  <td style={{ color: "green", fontWeight: "bold" }}>
-                    {correction.corrected}
+                  <td>
+                    <Form.Select
+                      value={
+                        centerNameCorrectionValues[correction.rowIndex] ?? correction.corrected ?? ""
+                      }
+                      onChange={(e) => {
+                        setCenterNameCorrectionValues((prev) => ({
+                          ...prev,
+                          [correction.rowIndex]: e.target.value,
+                        }));
+                      }}
+                    >
+                      <option value="">सुझावित/नया नाम चुनें</option>
+                      {validKendraNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </Form.Select>
                   </td>
                 </tr>
               ))}
@@ -4917,13 +5055,29 @@ const Registration = () => {
               const correctedRows = applyCenterNameCorrections(
                 previewData,
                 centerNameCorrections,
+                centerNameCorrectionValues,
               );
+              const correctedRowIndices = new Set(
+                centerNameCorrections.map((correction) => correction.rowIndex),
+              );
+              const updatedValidationErrorsList = validationErrorsList.filter(
+                (error) => {
+                  if (!correctedRowIndices.has(error.rowIndex)) return true;
+                  const correctedRow = correctedRows.find(
+                    (row) => row.rowIndex === error.rowIndex,
+                  );
+                  if (!correctedRow) return true;
+                  const rowErrors = validateRow(correctedRow, correctedRow.rowIndex);
+                  return rowErrors.length > 0;
+                },
+              );
+              setValidationErrorsList(updatedValidationErrorsList);
               setPreviewData(correctedRows);
               setShowCenterNameCorrectionModal(false);
               setShowPreviewModal(true);
             }}
           >
-            सुधार करें और आगे बढ़ें
+            सुझाए गए या चुने गए नाम से बदलें
           </Button>
           <Button
             variant="primary"
@@ -4932,7 +5086,7 @@ const Registration = () => {
               setShowPreviewModal(true);
             }}
           >
-            बिना सुधार के आगे बढ़ें
+            बाद में ठीक करूंगा
           </Button>
         </Modal.Footer>
       </Modal>
