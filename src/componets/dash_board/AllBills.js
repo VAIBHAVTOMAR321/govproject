@@ -27,6 +27,8 @@ const GET_REPORTS_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/report-billing-items/";
 const UPDATE_REPORT_STATUS_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/update-billing-item/";
+const UPDATE_BILLING_REPORT_URL =
+  "https://mahadevaaya.com/govbillingsystem/backend/api/billing-report/update/";
 const BASE_URL = "https://mahadevaaya.com/govbillingsystem/backend";
 
 // Custom styles for react-select components to match dashboard styling
@@ -140,6 +142,17 @@ const translations = {
   cutQuantity: "कट मात्रा",
   totalBill: "कुल बिल",
   billingDate: "बिलिंग दिनांक",
+  edit: "संपादित करें",
+  save: "सहेजें",
+  cancel: "रद्द करें",
+  editBillDetails: "बिल विवरण संपादित करें",
+  changeBillNumber: "बिल संख्या बदलें",
+  keepBillNumber: "बिल संख्या न बदलें",
+  editing: "संपादन...",
+  updateSuccess: "बिल विवरण सफलतापूर्वक अपडेट किए गए।",
+  updateError: "बिल विवरण अपडेट करने में विफल। कृपया बाद में पुन: प्रयास करें।",
+  oldBillNumber: "पुरानी बिल संख्या",
+  newBillNumber: "नई बिल संख्या",
 };
 
 // Available columns for download
@@ -358,6 +371,23 @@ const AllBills = () => {
   const [selectedComponentColumns, setSelectedComponentColumns] = useState(
     availableComponentColumns.map((col) => col.key)
   );
+
+  // State for edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingReportId, setEditingReportId] = useState(null);
+  const [editData, setEditData] = useState({
+    old_bill_report_id: "",
+    new_bill_report_id: "",
+    billing_date: "",
+    multiple_bills: [],
+    changeNewBillNumber: false,
+  });
+  const [editingStatus, setEditingStatus] = useState(false);
+  const [editSuccess, setEditSuccess] = useState(false);
+  const [editError, setEditError] = useState(null);
+  const [currentEditItem, setCurrentEditItem] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
@@ -897,6 +927,133 @@ const AllBills = () => {
     });
   };
 
+  // Open edit modal
+  const openEditModal = (item) => {
+    setCurrentEditItem(item);
+    setEditingReportId(item.id);
+    setEditData({
+      old_bill_report_id: item.bill_report_id,
+      new_bill_report_id: item.bill_report_id,
+      billing_date: item.billing_date,
+      multiple_bills: item.component_data.map((comp) => ({
+        bill_id: comp.bill_id,
+        allocated_quantity: parseFloat(comp.allocated_quantity),
+        rate: parseFloat(comp.rate),
+        updated_quantity: parseFloat(comp.updated_quantity),
+      })),
+      changeNewBillNumber: false,
+    });
+    setShowEditModal(true);
+  };
+
+  // Close edit modal
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingReportId(null);
+    setCurrentEditItem(null);
+    setEditData({
+      old_bill_report_id: "",
+      new_bill_report_id: "",
+      billing_date: "",
+      multiple_bills: [],
+      changeNewBillNumber: false,
+    });
+    setEditError(null);
+  };
+
+  // Handle edit data change
+  const handleEditDataChange = (field, value) => {
+    setEditData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Handle individual bill quantity change
+  const handleBillQuantityChange = (billId, newQuantity) => {
+    setEditData((prev) => ({
+      ...prev,
+      multiple_bills: prev.multiple_bills.map((bill) =>
+        bill.bill_id === billId
+          ? { ...bill, updated_quantity: parseFloat(newQuantity) || 0 }
+          : bill
+      ),
+    }));
+  };
+
+  // Submit edit
+  const handleSubmitEdit = async () => {
+    try {
+      setEditingStatus(true);
+      setEditError(null);
+
+      const payload = {
+        old_bill_report_id: editData.old_bill_report_id,
+        billing_date: editData.billing_date,
+        multiple_bills: editData.multiple_bills.map((bill) => ({
+          bill_id: bill.bill_id,
+          updated_quantity: bill.updated_quantity,
+          allocated_quantity: bill.allocated_quantity,
+          rate: bill.rate,
+        })),
+      };
+
+      // Add new bill number if it changed
+      if (editData.changeNewBillNumber && editData.new_bill_report_id !== editData.old_bill_report_id) {
+        payload.new_bill_report_id = editData.new_bill_report_id;
+      }
+
+      const response = await fetch(UPDATE_BILLING_REPORT_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Update the local state with new data
+      setReportsData((prevData) =>
+        prevData.map((item) => {
+          if (item.id === editingReportId) {
+            return {
+              ...item,
+              bill_report_id: editData.changeNewBillNumber ? editData.new_bill_report_id : item.bill_report_id,
+              billing_date: editData.billing_date,
+              component_data: item.component_data.map((comp) => {
+                const updatedBill = editData.multiple_bills.find(
+                  (b) => b.bill_id === comp.bill_id
+                );
+                return updatedBill
+                  ? {
+                      ...comp,
+                      allocated_quantity: updatedBill.allocated_quantity,
+                      rate: updatedBill.rate,
+                      updated_quantity: updatedBill.updated_quantity,
+                      sold_amount: (parseFloat(updatedBill.updated_quantity) * parseFloat(updatedBill.rate)).toFixed(2),
+                    }
+                  : comp;
+              }),
+            };
+          }
+          return item;
+        })
+      );
+
+      setShowSuccessModal(true);
+      closeEditModal();
+    } catch (e) {
+      setEditError(e.message || translations.updateError);
+    } finally {
+      setEditingStatus(false);
+    }
+  };
+
   // Function to handle page change
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -1068,6 +1225,26 @@ const AllBills = () => {
                     onClose={() => setStatusUpdateError(null)}
                   >
                     {translations.error}: {statusUpdateError}
+                  </Alert>
+                )}
+
+                {editSuccess && (
+                  <Alert
+                    variant="success"
+                    dismissible
+                    onClose={() => setEditSuccess(false)}
+                  >
+                    {translations.updateSuccess}
+                  </Alert>
+                )}
+
+                {editError && (
+                  <Alert
+                    variant="danger"
+                    dismissible
+                    onClose={() => setEditError(null)}
+                  >
+                    {translations.error}: {editError}
                   </Alert>
                 )}
 
@@ -1471,10 +1648,22 @@ const AllBills = () => {
                                                       item.bill_report_id
                                                     )
                                                   }
+                                                  className="me-2"
                                                 >
                                                   <FaFilePdf className="me-1" />
                                                   PDF
                                                 </Button>
+                                                {item.status === "accepted" && (
+                                                  <Button
+                                                    variant="outline-warning"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                      openEditModal(item)
+                                                    }
+                                                  >
+                                                    {translations.edit}
+                                                  </Button>
+                                                )}
                                               </div>
                                             </div>
                                             {item.component_data.length > 0 ? (
@@ -1731,6 +1920,215 @@ const AllBills = () => {
                           onClick={cancelConfirmation}
                         >
                           {translations.no}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit Modal */}
+              {showEditModal && currentEditItem && (
+                <div className="confirmation-dialog-overlay">
+                  <div className="confirmation-dialog" style={{ maxHeight: "90vh", overflowY: "auto", minWidth: "600px" }}>
+                    <div className="confirmation-dialog-content">
+                      <h5>{translations.editBillDetails}</h5>
+                      
+                      <div style={{ marginBottom: "20px" }}>
+                        <FormGroup>
+                          <FormLabel>{translations.billingDate}</FormLabel>
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={editData.billing_date}
+                            onChange={(e) =>
+                              handleEditDataChange("billing_date", e.target.value)
+                            }
+                          />
+                        </FormGroup>
+
+                        <FormGroup className="mt-3">
+                          <Form.Check
+                            type="checkbox"
+                            id="changeBillNumber"
+                            label={translations.changeBillNumber}
+                            checked={editData.changeNewBillNumber}
+                            onChange={(e) =>
+                              handleEditDataChange(
+                                "changeNewBillNumber",
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </FormGroup>
+
+                        {editData.changeNewBillNumber && (
+                          <FormGroup className="mt-3">
+                            <FormLabel>{translations.newBillNumber}</FormLabel>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={editData.new_bill_report_id}
+                              onChange={(e) =>
+                                handleEditDataChange(
+                                  "new_bill_report_id",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </FormGroup>
+                        )}
+                      </div>
+
+                      <div style={{ marginBottom: "20px" }}>
+                        <h6>{translations.nivesh}</h6>
+                        <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                          <table className="table table-sm table-bordered">
+                            <thead>
+                              <tr>
+                                <th>{translations.reportId}</th>
+                                <th>{translations.subniveshName}</th>
+                                <th>{translations.allocatedQuantity}</th>
+                                <th>{translations.rate}</th>
+                                <th>{translations.updatedQuantity}</th>
+                                <th>{translations.buyAmount}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {editData.multiple_bills.map((bill) => {
+                                const componentData = currentEditItem.component_data.find(
+                                  (c) => c.bill_id === bill.bill_id
+                                );
+                                const allocatedQty = parseFloat(componentData?.allocated_quantity || 0);
+                                const rate = parseFloat(componentData?.rate || 0);
+                                const updatedQty = parseFloat(bill.updated_quantity || 0);
+                                const totalAmount = (updatedQty * rate).toFixed(2);
+                                
+                                return (
+                                  <tr key={bill.bill_id}>
+                                    <td>{bill.bill_id}</td>
+                                    <td>{componentData?.sub_investment_name || "-"}</td>
+                                    <td>
+                                      <input
+                                        type="number"
+                                        className="form-control form-control-sm"
+                                        value={allocatedQty}
+                                        onChange={(e) => {
+                                          const newValue = parseFloat(e.target.value) || 0;
+                                          setEditData((prev) => ({
+                                            ...prev,
+                                            multiple_bills: prev.multiple_bills.map((bill_item) =>
+                                              bill_item.bill_id === bill.bill_id
+                                                ? { ...bill_item, allocated_quantity: newValue }
+                                                : bill_item
+                                            ),
+                                          }));
+                                        }}
+                                        step="0.01"
+                                      />
+                                    </td>
+                                    <td>
+                                      <input
+                                        type="number"
+                                        className="form-control form-control-sm"
+                                        value={rate}
+                                        onChange={(e) => {
+                                          const newValue = parseFloat(e.target.value) || 0;
+                                          setEditData((prev) => ({
+                                            ...prev,
+                                            multiple_bills: prev.multiple_bills.map((bill_item) =>
+                                              bill_item.bill_id === bill.bill_id
+                                                ? { ...bill_item, rate: newValue }
+                                                : bill_item
+                                            ),
+                                          }));
+                                        }}
+                                        step="0.01"
+                                      />
+                                    </td>
+                                    <td>
+                                      <input
+                                        type="number"
+                                        className="form-control form-control-sm"
+                                        value={bill.updated_quantity}
+                                        onChange={(e) =>
+                                          handleBillQuantityChange(
+                                            bill.bill_id,
+                                            e.target.value
+                                          )
+                                        }
+                                        step="0.01"
+                                      />
+                                    </td>
+                                    <td>
+                                      <input
+                                        type="number"
+                                        className="form-control form-control-sm"
+                                        value={totalAmount}
+                                        disabled
+                                        step="0.01"
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="confirmation-dialog-buttons">
+                        <Button
+                          variant="success"
+                          onClick={handleSubmitEdit}
+                          disabled={editingStatus}
+                        >
+                          {editingStatus ? (
+                            <>
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                className="me-2"
+                              />
+                              {translations.editing}
+                            </>
+                          ) : (
+                            translations.save
+                          )}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={closeEditModal}
+                          disabled={editingStatus}
+                        >
+                          {translations.cancel}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Modal */}
+              {showSuccessModal && (
+                <div className="confirmation-dialog-overlay">
+                  <div className="confirmation-dialog">
+                    <div className="confirmation-dialog-content" style={{ textAlign: "center" }}>
+                      <div style={{ marginBottom: "20px" }}>
+                        <h5 style={{ color: "#28a745", marginBottom: "10px" }}>
+                          ✓ {translations.updateSuccess}
+                        </h5>
+                        <p style={{ marginBottom: "0" }}>
+                          बिल विवरण सफलतापूर्वक अपडेट कर दिए गए हैं।
+                        </p>
+                      </div>
+                      <div className="confirmation-dialog-buttons" style={{ justifyContent: "center" }}>
+                        <Button
+                          variant="success"
+                          onClick={() => setShowSuccessModal(false)}
+                        >
+                          ठीक है
                         </Button>
                       </div>
                     </div>

@@ -9,6 +9,7 @@ import {
   Button,
   FormGroup,
   FormLabel,
+  Modal,
   Pagination,
 } from "react-bootstrap";
 import Select from "react-select";
@@ -188,6 +189,9 @@ const Billing = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+
+  // State for error modal
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // State for filtering with multi-select for all fields
   const [filters, setFilters] = useState({
@@ -674,6 +678,7 @@ const Billing = () => {
     try {
       setSubmitting(true);
       setSubmitError(null);
+      setShowErrorModal(false);
       setSubmitSuccess(false);
 
       // Check if all items have billing dates selected
@@ -798,10 +803,18 @@ const Billing = () => {
         console.error("Response body:", responseText);
 
         // Create a more detailed error message
-        const errorMessage =
-          responseData?.message ||
-          responseData?.error ||
-          `HTTP error! status: ${response.status}`;
+        let errorMessage;
+        if (responseData && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+          // Handle specific error for existing bill_report_id
+          errorMessage = responseData.errors
+            .map(err => `बिल रिपोर्ट आईडी '${err.bill_report_id}' के लिए त्रुटि: ${err.error}`)
+            .join("\n");
+        } else {
+          errorMessage =
+            responseData?.message ||
+            responseData?.error ||
+            `HTTP error! status: ${response.status}`;
+        }
         throw new Error(errorMessage);
       }
 
@@ -809,6 +822,8 @@ const Billing = () => {
       // Clear modified items after successful submission
       setModifiedItems({});
 
+      // Reset form fields for cut quantity, bill report id and billing date
+      
       // Refresh data from the GET API
       const refreshResponse = await fetch(GET_API_URL);
       if (refreshResponse.ok) {
@@ -838,6 +853,7 @@ const Billing = () => {
     } catch (e) {
       console.error("Submit error:", e);
       setSubmitError(e.message);
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -1549,6 +1565,26 @@ const Billing = () => {
           </Row>
         </Container>
       </div>
+
+      {/* Error Modal */}
+      <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered>
+        <Modal.Header closeButton style={{ backgroundColor: '#dc3545', color: 'white' }}>
+          <Modal.Title>
+            <FaFileExcel className="me-2" /> {translations.error}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{submitError}</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowErrorModal(false)}
+          >
+            बंद करें
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };
