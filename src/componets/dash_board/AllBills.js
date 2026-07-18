@@ -24,6 +24,10 @@ import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
+import {
+  buildReceiptZipDownloadPayload,
+  triggerBlobDownload,
+} from "../../utils/receiptDownload";
 
 // API URLs
 const GET_REPORTS_URL =
@@ -699,81 +703,48 @@ const AllBills = () => {
     setDownloadPhase("fetching");
     setDownloadProgress({ current: 0, total: selectedItems.length });
 
-    let successCount = 0;
-    let failCount = 0;
-    const failedBillIds = [];
+    try {
+      const payload = buildReceiptZipDownloadPayload(selectedItems);
+      const response = await fetch(
+        "https://mahadevaaya.com/govbillingsystem/backend/api/download-multiple-receipts/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-    for (let i = 0; i < selectedItems.length; i++) {
-      const item = selectedItems[i];
-      const pdfPath = getBillPdfPath(item);
-      const billLabel = item.bill_report_id || `bill_${item.id}`;
-
-      if (!pdfPath) {
-        failCount++;
-        failedBillIds.push(billLabel);
-        console.warn(
-          `[AllBills] No PDF path found for bill ${billLabel}.`
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `HTTP error! status: ${response.status}, details: ${errorText}`
         );
-        setDownloadProgress((prev) => ({ ...prev, current: i + 1 }));
-        continue;
       }
 
-      const url = buildBillPdfUrl(pdfPath);
-      console.log(`[AllBills] Downloading bill ${billLabel} from: ${url}`);
+      const blob = await response.blob();
+      triggerBlobDownload(blob, "billing_receipts.zip");
 
-      try {
-        // Create an anchor element to trigger the download.
-        // This method is less likely to be blocked by CORS for simple downloads.
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = `${billLabel}.pdf`; // This attribute suggests a filename and prompts a download.
-        anchor.target = "_blank"; // Fallback to open in a new tab if the browser blocks the download.
-
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-
-        successCount++;
-      } catch (fetchErr) {
-        console.warn(
-          `[AllBills] Fetch/download failed for ${billLabel}: ${fetchErr.message}.`
-        );
-        failCount++;
-        failedBillIds.push(billLabel);
-      }
-
-      setDownloadProgress((prev) => ({ ...prev, current: i + 1 }));
-    }
-
-    // Phase 3: Result
-    setDownloadPhase("complete");
-    setDownloading(false);
-    setDownloadProgress(null);
-
-    if (failCount === 0) {
+      setDownloadPhase("complete");
       setDownloadSuccess(true);
-      setLastDownloadType("bills");
-    } else if (successCount > 0) {
+      setLastDownloadType("receipts");
+    } catch (downloadErr) {
+      console.error("[AllBills] Receipt zip download failed:", downloadErr);
       setDownloadError(
-        `${successCount} बिल डाउनलोड हुए, ${failCount} विफल (${failedBillIds
-          .slice(0, 5)
-          .join(", ")}${failedBillIds.length > 5 ? "..." : ""})`
+        downloadErr.message || translations.downloadError
       );
-    } else {
-      setDownloadError(
-        `${translations.allBillsFailed} (${failedBillIds
-          .slice(0, 5)
-          .join(", ")}${failedBillIds.length > 5 ? "..." : ""})। कृपया ब्राउज़र कंसोल (F12) चेक करें और "AllBills Debug" लॉग देखें।`
-      );
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(null);
+      setSelectedBillIds(new Set());
+
+      setTimeout(() => {
+        setDownloadSuccess(false);
+        setDownloadError(null);
+        setDownloadPhase("");
+      }, 8000);
     }
-
-    setSelectedBillIds(new Set());
-
-    setTimeout(() => {
-      setDownloadSuccess(false);
-      setDownloadError(null);
-      setDownloadPhase("");
-    }, 8000);
   };
 
   // ─── View receipt (existing single-bill logic) ───
