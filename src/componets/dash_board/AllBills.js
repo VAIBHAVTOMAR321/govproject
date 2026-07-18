@@ -722,7 +722,17 @@ const AllBills = () => {
       console.log(`[AllBills] Downloading bill ${billLabel} from: ${url}`);
 
       try {
-        await downloadFile(url, `${billLabel}.pdf`);
+        // Create an anchor element to trigger the download.
+        // This method is less likely to be blocked by CORS for simple downloads.
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `${billLabel}.pdf`; // This attribute suggests a filename and prompts a download.
+        anchor.target = "_blank"; // Fallback to open in a new tab if the browser blocks the download.
+
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+
         successCount++;
       } catch (fetchErr) {
         console.warn(
