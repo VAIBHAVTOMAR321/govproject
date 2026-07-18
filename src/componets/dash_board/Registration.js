@@ -351,6 +351,7 @@ const Registration = () => {
   const [filters, setFilters] = useState({
     center_name: [],
     investment_name: [],
+    sub_investment_name: [],
     source_of_receipt: [],
     scheme_name: [],
     vikas_khand_name: [],
@@ -771,6 +772,7 @@ const Registration = () => {
     setFilters({
       center_name: [],
       investment_name: [],
+      sub_investment_name: [],
       source_of_receipt: [],
       scheme_name: [],
       vikas_khand_name: [],
@@ -924,6 +926,7 @@ const Registration = () => {
     setFilters({
       center_name: [],
       investment_name: [],
+      sub_investment_name: [],
       source_of_receipt: [],
       scheme_name: [],
       vikas_khand_name: [],
@@ -3485,6 +3488,34 @@ const Registration = () => {
                               }));
                             }}
                             options={filterOptions.investment_name.map(
+                              (option) => ({ value: option, label: option }),
+                            )}
+                            className="compact-input"
+                            placeholder="चुनें"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12} sm={6} md={3}>
+                        <Form.Group className="mb-2">
+                          <Form.Label className="small-fonts fw-bold">
+                            {translations.subInvestmentName}
+                          </Form.Label>
+                          <Select
+                            isMulti
+                            name="sub_investment_name"
+                            value={filters.sub_investment_name.map((val) => ({
+                              value: val,
+                              label: val,
+                            }))}
+                            onChange={(selected) => {
+                              setFilters((prev) => ({
+                                ...prev,
+                                sub_investment_name: selected
+                                  ? selected.map((s) => s.value)
+                                  : [],
+                              }));
+                            }}
+                            options={filterOptions.sub_investment_name.map(
                               (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
