@@ -2594,7 +2594,15 @@ const KrishiRegistration = () => {
             return;
           }
 
-          const dataRows = jsonData.slice(1);
+          const dataRows = jsonData.slice(1).filter((row) =>
+            Array.isArray(row) &&
+            row.some(
+              (cell) =>
+                cell !== null &&
+                cell !== undefined &&
+                String(cell).trim() !== "",
+            ),
+          );
           const headers = jsonData[0];
 
           const headerMapping = {};
@@ -3492,7 +3500,6 @@ const KrishiRegistration = () => {
                           <td>{row.data?.vidhan_sabha_name || "-"}</td>
                           <td>{row.data?.vikas_khand_name || "-"}</td>
                           <td>{row.data?.scheme_name || "-"}</td>
-                          <td>{row.data?.unit || "-"}</td>
                           <td>{row.data?.supplied_item_name || "-"}</td>
                           <td>{row.data?.farmer_name || "-"}</td>
                           <td>{row.data?.father_name || "-"}</td>
@@ -3502,6 +3509,7 @@ const KrishiRegistration = () => {
                           <td>{row.data?.aadhaar_number || "-"}</td>
                           <td>{row.data?.bank_account_number || "-"}</td>
                           <td>{row.data?.ifsc_code || "-"}</td>
+                          <td>{row.data?.unit || "-"}</td>
                           <td>{row.data?.quantity || "-"}</td>
                           <td>{row.data?.rate || "-"}</td>
                           <td>{row.data?.amount || "-"}</td>
@@ -3606,15 +3614,6 @@ const KrishiRegistration = () => {
                               <td>{row.scheme_name || "-"}</td>
                               <td
                                 style={{
-                                  backgroundColor: !row.unit
-                                    ? "#ffcccc"
-                                    : "inherit",
-                                }}
-                              >
-                                {row.unit || "-"}
-                              </td>
-                              <td
-                                style={{
                                   backgroundColor: !row.supplied_item_name
                                     ? "#ffcccc"
                                     : "inherit",
@@ -3638,6 +3637,15 @@ const KrishiRegistration = () => {
                               <td>{row.aadhaar_number || "-"}</td>
                               <td>{row.bank_account_number || "-"}</td>
                               <td>{row.ifsc_code || "-"}</td>
+                              <td
+                                style={{
+                                  backgroundColor: !row.unit
+                                    ? "#ffcccc"
+                                    : "inherit",
+                                }}
+                              >
+                                {row.unit || "-"}
+                              </td>
                               <td
                                 style={{
                                   backgroundColor: isNaN(
@@ -3844,7 +3852,6 @@ const KrishiRegistration = () => {
                             <td>{row.vidhan_sabha_name || "-"}</td>
                             <td>{row.vikas_khand_name || "-"}</td>
                             <td>{row.scheme_name || "-"}</td>
-                            <td>{row.unit || "-"}</td>
                             <td>{row.supplied_item_name || "-"}</td>
                             <td>{row.farmer_name || "-"}</td>
                             <td>{row.father_name || "-"}</td>
@@ -3854,6 +3861,7 @@ const KrishiRegistration = () => {
                             <td>{row.aadhaar_number || "-"}</td>
                             <td>{row.bank_account_number || "-"}</td>
                             <td>{row.ifsc_code || "-"}</td>
+                            <td>{row.unit || "-"}</td>
                             <td>{row.quantity || "-"}</td>
                             <td>{row.rate || "-"}</td>
                             <td>{row.amount || "-"}</td>

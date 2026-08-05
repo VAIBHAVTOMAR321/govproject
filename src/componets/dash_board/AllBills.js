@@ -18,6 +18,7 @@ import {
 } from "react-bootstrap";
 import Select from "react-select";
 import * as XLSX from "xlsx";
+import html2pdf from "html2pdf.js";
 import { FaDownload } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
@@ -80,6 +81,7 @@ const translations = {
   reportDate: "रिपोर्ट दिनांक",
   status: "स्थिति",
   download: "डाउनलोड",
+  downloadFilteredPdf: "फ़िल्टर किए गए डेटा का PDF डाउनलोड करें",
   viewDetails: "विवरण देखें",
   loading: "लोड हो रहा है...",
   noReportsFound: "कोई बिल रिपोर्ट नहीं मिली।",
@@ -267,6 +269,120 @@ const calculateReportSoldAmount = (item) => {
       0
     ) || 0
   );
+};
+
+const downloadFilteredBillsPdf = (data, currentFilters) => {
+  if (!data || data.length === 0) {
+    return;
+  }
+
+  const formatStatus = (status) =>
+    status === "accepted"
+      ? translations.accepted
+      : status === "cancelled"
+      ? translations.cancelled
+      : status || "";
+
+  const filterSummary = [];
+  if (currentFilters.center_name.length > 0)
+    filterSummary.push(
+      `केंद्र: ${currentFilters.center_name
+        .map((c) => c.label)
+        .join(", ")}`,
+    );
+  if (currentFilters.bill_id.length > 0)
+    filterSummary.push(
+      `बिल संख्या: ${currentFilters.bill_id
+        .map((b) => b.label)
+        .join(", ")}`,
+    );
+  if (currentFilters.status.length > 0)
+    filterSummary.push(
+      `स्थिति: ${currentFilters.status
+        .map((s) => s.label)
+        .join(", ")}`,
+    );
+  if (currentFilters.dateFrom)
+    filterSummary.push(`From: ${currentFilters.dateFrom}`);
+  if (currentFilters.dateTo)
+    filterSummary.push(`To: ${currentFilters.dateTo}`);
+
+  const rowsHtml = data
+    .map(
+      (item, idx) => `
+        <tr>
+          <td style="border:1px solid #444;padding:6px;text-align:center;">${
+            idx + 1
+          }</td>
+          <td style="border:1px solid #444;padding:6px;">${
+            item.bill_report_id || ""
+          }</td>
+          <td style="border:1px solid #444;padding:6px;">${
+            item.center_name || ""
+          }</td>
+          <td style="border:1px solid #444;padding:6px;">${formatDate(
+            item.billing_date,
+          )}</td>
+          <td style="border:1px solid #444;padding:6px;">${formatStatus(
+            item.status,
+          )}</td>
+          <td style="border:1px solid #444;padding:6px;text-align:right;">${
+            item.component_data?.length || 0
+          }</td>
+          <td style="border:1px solid #444;padding:6px;text-align:right;">${
+            calculateReportSoldAmount(item)
+          }</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  const html = `
+    <div style="font-family:Arial, sans-serif; font-size:12px; color:#000;">
+      <style>
+        body { margin: 10mm; }
+        table { border-collapse: collapse; width: 100%; page-break-inside: auto; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; page-break-inside: avoid; }
+        th { background: #f2f2f2; }
+        p { margin: 0 0 6px; }
+      </style>
+      <h2 style="text-align:center; margin-bottom:8px;">${translations.allBills}</h2>
+      ${filterSummary.length > 0 ? `<p style="font-size:11px;">${filterSummary.join(" | ")}</p>` : ""}
+      <table>
+        <thead>
+          <tr>
+            <th>${translations.sno}</th>
+            <th>${translations.reportId}</th>
+            <th>${translations.centerName}</th>
+            <th>${translations.reportDate}</th>
+            <th>${translations.status}</th>
+            <th>${translations.totalItems}</th>
+            <th>${translations.buyAmount}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  const opt = {
+    margin: [12, 12, 12, 12],
+    filename: "filtered_bills.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+    pagebreak: { mode: ["css", "legacy"], avoid: "tr" },
+  };
+
+  html2pdf().set(opt).from(container).save();
 };
 
 // Column mapping for reports table display
@@ -1478,6 +1594,19 @@ const AllBills = () => {
                                       </Button>
                                     </div>
                                   )}
+
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={() =>
+                                      downloadFilteredBillsPdf(filteredData, filters)
+                                    }
+                                    disabled={filteredData.length === 0 || downloading}
+                                    className="small-fonts d-flex align-items-center gap-1"
+                                  >
+                                    <FaDownload />
+                                    <span>{translations.downloadFilteredPdf}</span>
+                                  </Button>
 
                                   <Button
                                     variant="primary"
