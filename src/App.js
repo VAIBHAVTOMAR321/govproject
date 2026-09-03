@@ -59,7 +59,7 @@ function NavbarWrapper() {
     // For admin loginType - return null (Dashboard will show DashBoardHeader)
     return null;
   }
-  return <NavBar />;
+  return ;
 }
 
 // Main App content component
