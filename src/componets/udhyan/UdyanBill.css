@@ -1,0 +1,1011 @@
+/* =========================================================
+   UDYAN BILL
+   Main Application Styling
+========================================================= */
+
+:root {
+  --udyan-green: #2b5c3f;
+  --udyan-green-dark: #1e452f;
+  --udyan-green-light: #e6f1e9;
+
+  --udyan-cream: #f5f2e9;
+  --udyan-panel: #fffdf7;
+
+  --udyan-border: #a8a8a8;
+  --udyan-text: #161616;
+
+  --udyan-success: #24613a;
+  --udyan-success-bg: #e2f0e6;
+
+  --udyan-danger: #9b3f1c;
+  --udyan-danger-bg: #fbe6df;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #858585;
+  color: var(--udyan-text);
+
+  font-family:
+    "Nirmala UI",
+    "Mangal",
+    "Noto Sans Devanagari",
+    "Kokila",
+    "Segoe UI",
+    sans-serif;
+}
+
+/* =========================================================
+   APPLICATION
+========================================================= */
+
+.udyan-app {
+  min-height: 100vh;
+}
+
+/* =========================================================
+   CONTROL PANEL
+========================================================= */
+
+.udyan-control-panel {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  background: var(--udyan-cream);
+
+  border-bottom: 2px solid #555;
+
+  padding: 14px 18px;
+
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.3);
+
+  max-height: 96vh;
+  overflow-y: auto;
+}
+
+.udyan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+.udyan-header h1 {
+  margin: 0;
+
+  font-size: 19px;
+
+  color: var(--udyan-green-dark);
+}
+
+.udyan-header p {
+  margin: 3px 0 0;
+
+  font-size: 12px;
+
+  color: #555;
+}
+
+/* =========================================================
+   INPUT GRID
+========================================================= */
+
+.udyan-input-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(160px, 1fr));
+
+  gap: 12px;
+}
+
+.udyan-field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.udyan-field label {
+  font-size: 12px;
+
+  font-weight: 600;
+
+  color: #444;
+}
+
+.udyan-field input,
+.udyan-field select {
+  width: 100%;
+
+  min-height: 36px;
+
+  border: 1px solid #999;
+
+  border-radius: 5px;
+
+  padding: 6px 9px;
+
+  background: white;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  outline: none;
+}
+
+.udyan-field input:focus,
+.udyan-field select:focus {
+  border-color: var(--udyan-green);
+
+  box-shadow:
+    0 0 0 2px
+    rgba(43, 92, 63, 0.12);
+}
+
+.udyan-field small {
+  font-size: 10px;
+
+  color: #666;
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.udyan-actions,
+.norm-actions {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  margin-top: 14px;
+}
+
+.udyan-actions button,
+.norm-actions button,
+.file-btn {
+  min-height: 36px;
+
+  border-radius: 5px;
+
+  padding: 7px 15px;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    0.2s ease;
+}
+
+.primary-btn {
+  background: var(--udyan-green);
+
+  color: white;
+
+  border: 1px solid
+    var(--udyan-green);
+}
+
+.primary-btn:hover {
+  background: var(--udyan-green-dark);
+}
+
+.secondary-btn,
+.file-btn {
+  background: white;
+
+  color: var(--udyan-green);
+
+  border: 1px solid
+    var(--udyan-green);
+}
+
+.secondary-btn:hover,
+.file-btn:hover {
+  background: var(--udyan-green-light);
+}
+
+.danger-btn {
+  background: white;
+
+  color: var(--udyan-danger);
+
+  border: 1px solid
+    var(--udyan-danger);
+}
+
+.danger-btn:hover {
+  background: var(--udyan-danger-bg);
+}
+
+/* =========================================================
+   TALLY
+========================================================= */
+
+.udyan-tally {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  align-items: center;
+
+  margin-top: 12px;
+
+  padding: 8px 11px;
+
+  border-radius: 5px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.udyan-tally span {
+  padding-left: 8px;
+
+  border-left: 1px solid
+    rgba(0, 0, 0, 0.2);
+}
+
+.udyan-tally.success {
+  background:
+    var(--udyan-success-bg);
+
+  border: 1px solid
+    #5b8d68;
+
+  color:
+    var(--udyan-success);
+}
+
+.udyan-tally.error {
+  background:
+    var(--udyan-danger-bg);
+
+  border: 1px solid
+    var(--udyan-danger);
+
+  color:
+    var(--udyan-danger);
+}
+
+/* =========================================================
+   NORMS
+========================================================= */
+
+.udyan-norms {
+  margin-top: 14px;
+
+  padding: 10px;
+
+  background: white;
+
+  border: 1px solid #bbb;
+
+  border-radius: 6px;
+}
+
+.udyan-norms summary {
+  cursor: pointer;
+
+  color:
+    var(--udyan-green);
+
+  font-size: 14px;
+
+  font-weight: 700;
+}
+
+.norms-help {
+  margin: 8px 0 12px;
+
+  font-size: 11px;
+
+  color: #555;
+
+  line-height: 1.6;
+}
+
+/* =========================================================
+   NORM CARD
+========================================================= */
+
+.norm-card {
+  margin-bottom: 14px;
+
+  border: 1px solid #aaa;
+
+  border-radius: 5px;
+
+  overflow: hidden;
+
+  background: white;
+}
+
+.norm-card-header {
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+  padding: 8px;
+
+  background: #ebe7da;
+
+  border-bottom: 1px solid #aaa;
+}
+
+.norm-card-header span:first-child {
+  font-weight: 700;
+}
+
+.norm-card-header label {
+  font-size: 11px;
+
+  color: #555;
+}
+
+.norm-card-header input {
+  min-width: 80px;
+
+  padding: 5px 7px;
+
+  border: 1px solid #999;
+
+  border-radius: 4px;
+
+  font-family: inherit;
+
+  font-size: 12px;
+}
+
+.norm-card-header input:first-of-type {
+  width: 210px;
+}
+
+.norm-card-header input[type="number"] {
+  width: 110px;
+}
+
+.norm-ok,
+.norm-error {
+  padding: 3px 7px;
+
+  border-radius: 4px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+.norm-ok {
+  background: #e2f0e6;
+
+  color: #245c36;
+
+  border: 1px solid #70a27b;
+}
+
+.norm-error {
+  background: #fbe6df;
+
+  color: #8a3517;
+
+  border: 1px solid #bb7657;
+}
+
+.small-danger {
+  margin-left: auto;
+
+  border: 1px solid
+    var(--udyan-danger);
+
+  background: white;
+
+  color:
+    var(--udyan-danger);
+
+  padding: 4px 10px;
+
+  border-radius: 4px;
+
+  cursor: pointer;
+
+  font-family: inherit;
+}
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+.norm-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+}
+
+.norm-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  font-size: 11px;
+}
+
+.norm-table th,
+.norm-table td {
+  border: 1px solid #aaa;
+
+  padding: 5px;
+
+  text-align: right;
+
+  vertical-align: middle;
+}
+
+.norm-table th {
+  text-align: center;
+
+  background: #f0ede2;
+
+  font-weight: 700;
+}
+
+.norm-table td:first-child {
+  text-align: center;
+}
+
+.norm-table td:nth-child(2) {
+  text-align: left;
+}
+
+.norm-table input {
+  width: 75px;
+
+  padding: 3px 5px;
+
+  background: #fffde9;
+
+  border: 1px solid #aaa;
+
+  border-radius: 3px;
+
+  text-align: right;
+
+  font-family: inherit;
+}
+
+.norm-table input:disabled {
+  background: #eee;
+
+  color: #555;
+}
+
+.auto-check {
+  display: block;
+
+  margin-top: 5px;
+
+  font-size: 10px;
+
+  color: #555;
+}
+
+.norm-total td {
+  background: #f5f5f0;
+
+  font-weight: 700;
+}
+
+/* =========================================================
+   DOCUMENT AREA
+========================================================= */
+
+.udyan-document {
+  padding: 20px 0 50px;
+}
+
+/* =========================================================
+   A4 PAGE
+========================================================= */
+
+.udyan-page {
+  width: 210mm;
+
+  min-height: 297mm;
+
+  margin: 0 auto 18px;
+
+  padding:
+    12mm 12mm 10mm;
+
+  background: white;
+
+  box-shadow:
+    0 4px 16px
+    rgba(0, 0, 0, 0.35);
+
+  font-size: 11pt;
+
+  line-height: 1.65;
+
+  position: relative;
+}
+
+/* =========================================================
+   DOCUMENT TEXT
+========================================================= */
+
+.document-copy {
+  text-align: right;
+
+  font-weight: 700;
+
+  margin-bottom: 4px;
+}
+
+.document-center {
+  text-align: center;
+
+  margin: 4px 0;
+
+  font-weight: 700;
+}
+
+.document-title {
+  text-align: center;
+
+  margin: 6px 0 15px;
+
+  font-size: 14pt;
+
+  font-weight: 700;
+}
+
+.document-row {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+
+  gap: 4px 8px;
+
+  margin-bottom: 4px;
+}
+
+.document-row input {
+  min-width: 100px;
+
+  flex: 0 1 auto;
+
+  border: none;
+
+  border-bottom: 1px dotted #444;
+
+  outline: none;
+
+  padding: 1px 4px;
+
+  font-family: inherit;
+
+  font-size: 10.5pt;
+
+  background: transparent;
+}
+
+.document-row input:focus {
+  background: #eef6f0;
+
+  border-bottom:
+    1px solid
+    var(--udyan-green);
+}
+
+.document-row strong {
+  border-bottom: 1px solid #222;
+
+  padding: 0 4px;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   BILL TABLE
+========================================================= */
+
+.bill-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  margin-top: 12px;
+
+  font-size: 9.8pt;
+}
+
+.bill-table th,
+.bill-table td {
+  border: 1px solid #111;
+
+  padding: 4px 5px;
+
+  vertical-align: middle;
+}
+
+.bill-table th {
+  text-align: center;
+
+  font-weight: 700;
+
+  background: #f2f2f2;
+}
+
+.bill-table td:first-child {
+  text-align: center;
+}
+
+.bill-table td:nth-child(3) {
+  text-align: center;
+}
+
+.bill-table td:nth-child(n + 4) {
+  text-align: right;
+
+  white-space: nowrap;
+}
+
+.total-row td {
+  font-weight: 700;
+
+  background: #f3f3f3;
+}
+
+.grand-total-row td {
+  font-weight: 700;
+
+  background: #e8e8e8;
+}
+
+/* =========================================================
+   DOCUMENT PARAGRAPHS
+========================================================= */
+
+.document-paragraph,
+.voucher-text {
+  margin-top: 18px;
+
+  text-align: justify;
+
+  line-height: 1.8;
+}
+
+.document-paragraph strong,
+.voucher-text strong {
+  font-weight: 700;
+
+  border-bottom: 1px solid #222;
+
+  padding: 0 3px;
+}
+
+/* =========================================================
+   SIGNATURE
+========================================================= */
+
+.signature-block {
+  margin-top: 18px;
+
+  margin-left: auto;
+
+  width: 48%;
+
+  line-height: 2.2;
+
+  text-align: right;
+}
+
+.signature-block input {
+  min-width: 150px;
+
+  border: none;
+
+  border-bottom: 1px dotted #444;
+
+  background: transparent;
+
+  outline: none;
+
+  font-family: inherit;
+
+  font-size: 11pt;
+}
+
+.signature-block strong {
+  margin-left: 8px;
+}
+
+.official-sign {
+  margin-top: 20px;
+
+  text-align: right;
+
+  font-weight: 700;
+
+  line-height: 1.6;
+}
+
+/* =========================================================
+   STANDARD PRINT TABLE
+========================================================= */
+
+.standard-print-section {
+  margin-top: 12px;
+}
+
+.standard-print-section h3 {
+  font-size: 11pt;
+
+  margin:
+    12px 0 4px;
+}
+
+.standard-print-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  font-size: 8.8pt;
+}
+
+.standard-print-table th,
+.standard-print-table td {
+  border: 1px solid #111;
+
+  padding: 3px 4px;
+
+  text-align: right;
+}
+
+.standard-print-table th {
+  text-align: center;
+
+  background: #efefef;
+}
+
+.standard-print-table td:first-child {
+  text-align: center;
+}
+
+.standard-print-table td:nth-child(2) {
+  text-align: left;
+}
+
+.standard-print-table .total-row td {
+  font-weight: 700;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+  body {
+    background: #f0f0f0;
+  }
+
+  .udyan-control-panel {
+    position: relative;
+
+    max-height: none;
+  }
+
+  .udyan-document {
+    padding: 10px;
+  }
+
+  .udyan-page {
+    width: 100%;
+
+    min-height: auto;
+
+    margin-bottom: 15px;
+
+    padding: 25px 20px;
+
+    box-shadow:
+      0 2px 8px
+      rgba(0, 0, 0, 0.15);
+  }
+
+  .document-row {
+    display: block;
+
+    margin-bottom: 8px;
+  }
+
+  .document-row input {
+    width: auto;
+
+    margin:
+      0 5px 0 3px;
+  }
+
+  .signature-block {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+
+  .udyan-control-panel {
+    padding: 10px;
+  }
+
+  .udyan-header h1 {
+    font-size: 16px;
+  }
+
+  .udyan-input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .udyan-actions,
+  .norm-actions {
+    flex-direction: column;
+  }
+
+  .udyan-actions button,
+  .norm-actions button,
+  .file-btn {
+    width: 100%;
+
+    text-align: center;
+  }
+
+  .udyan-tally {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+  .udyan-tally span {
+    border-left: none;
+
+    padding-left: 0;
+  }
+
+  .udyan-page {
+    padding: 18px 12px;
+
+    font-size: 10pt;
+  }
+
+  .document-title {
+    font-size: 12pt;
+  }
+
+  .bill-table {
+    font-size: 8pt;
+  }
+
+  .bill-table th,
+  .bill-table td {
+    padding: 3px;
+  }
+
+  .document-row input {
+    max-width: 100%;
+
+    margin:
+      2px 0;
+  }
+
+  .signature-block {
+    text-align: left;
+  }
+
+  .official-sign {
+    text-align: right;
+  }
+}
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+  @page {
+    size: A4;
+
+    margin: 12mm;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .udyan-control-panel {
+    display: none !important;
+  }
+
+  .udyan-document {
+    padding: 0 !important;
+
+    margin: 0 !important;
+  }
+
+  .udyan-page {
+    width: auto;
+
+    min-height: 0;
+
+    margin: 0;
+
+    padding: 0;
+
+    box-shadow: none;
+
+    page-break-after: always;
+
+    break-after: page;
+
+    background: white;
+  }
+
+  .udyan-page:last-child {
+    page-break-after: auto;
+
+    break-after: auto;
+  }
+
+  input {
+    border: none !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+  }
+
+  .standard-print-section {
+    page-break-inside: avoid;
+  }
+
+  .bill-table,
+  .standard-print-table {
+    page-break-inside: avoid;
+  }
+
+  .document-paragraph,
+  .voucher-text {
+    page-break-inside: avoid;
+  }
+
+  .signature-block,
+  .official-sign {
+    page-break-inside: avoid;
+  }
+}
