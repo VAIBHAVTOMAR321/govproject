@@ -1,95 +1,319 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./UdyanBill.css";
 
-/*
-|--------------------------------------------------------------------------
-| API BASE
-|--------------------------------------------------------------------------
-| Change this only if your Django API is hosted on another base URL.
-*/
 const API_BASE = "/api/udyan";
 
+/* =========================================================
+   CSRF
+   ========================================================= */
 
-/*
-|--------------------------------------------------------------------------
-| CSRF HELPER
-|--------------------------------------------------------------------------
-*/
 const getCookie = (name) => {
-    const cookies = document.cookie ? document.cookie.split("; ") : [];
+    const cookies = document.cookie
+        ? document.cookie.split("; ")
+        : [];
 
     const cookie = cookies.find((row) =>
         row.startsWith(`${name}=`)
     );
 
     return cookie
-        ? decodeURIComponent(cookie.substring(name.length + 1))
+        ? decodeURIComponent(
+              cookie.substring(name.length + 1)
+          )
         : "";
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| API HELPER
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   API
+   ========================================================= */
+
 const apiFetch = async (url, options = {}) => {
-    const method = (options.method || "GET").toUpperCase();
+    const method = (
+        options.method || "GET"
+    ).toUpperCase();
 
     const headers = {
         ...(options.headers || {}),
     };
 
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-        headers["X-CSRFToken"] = getCookie("csrftoken");
+    if (
+        ["POST", "PUT", "PATCH", "DELETE"].includes(
+            method
+        )
+    ) {
+        const csrf = getCookie("csrftoken");
+
+        if (csrf) {
+            headers["X-CSRFToken"] = csrf;
+        }
     }
 
-    const response = await fetch(url, {
+    return fetch(url, {
         ...options,
         method,
         headers,
         credentials: "include",
     });
-
-    return response;
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| EMPTY STANDARD
-|--------------------------------------------------------------------------
-*/
-const emptyStandard = {
-    financial_year: "",
-    crop_name: "",
-    spacing: "",
-    plants_per_hectare: "",
-    plant_rate: "",
-    pit_rate: "",
-    manure_rate: "",
-    manure_quantity: "",
-    standard_total: "",
-    standard_subsidy: "",
-    is_active: true,
+/* =========================================================
+   NUMBER HELPERS
+   ========================================================= */
+
+const num = (value, fallback = 0) => {
+    const parsed = parseFloat(
+        String(value ?? "").replace(/[^0-9.-]/g, "")
+    );
+
+    return Number.isFinite(parsed)
+        ? parsed
+        : fallback;
+};
+
+const roundValue = (value, digits = 2) => {
+    const factor = Math.pow(10, digits);
+
+    return (
+        Math.round(
+            (Number(value) + Number.EPSILON) *
+                factor
+        ) / factor
+    );
+};
+
+const formatMoney = (
+    value,
+    digits = 2
+) => {
+    return Number(value || 0).toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits,
+        }
+    );
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| EMPTY BILL
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   HINDI NUMBER WORDS
+   ========================================================= */
+
+const HINDI_NUMBERS = [
+    "शून्य",
+    "एक",
+    "दो",
+    "तीन",
+    "चार",
+    "पाँच",
+    "छह",
+    "सात",
+    "आठ",
+    "नौ",
+    "दस",
+    "ग्यारह",
+    "बारह",
+    "तेरह",
+    "चौदह",
+    "पन्द्रह",
+    "सोलह",
+    "सत्रह",
+    "अठारह",
+    "उन्नीस",
+    "बीस",
+    "इक्कीस",
+    "बाईस",
+    "तेईस",
+    "चौबीस",
+    "पच्चीस",
+    "छब्बीस",
+    "सत्ताईस",
+    "अट्ठाईस",
+    "उनतीस",
+    "तीस",
+    "इकतीस",
+    "बत्तीस",
+    "तैंतीस",
+    "चौंतीस",
+    "पैंतीस",
+    "छत्तीस",
+    "सैंतीस",
+    "अड़तीस",
+    "उनतालीस",
+    "चालीस",
+    "इकतालीस",
+    "बयालीस",
+    "तैंतालीस",
+    "चवालीस",
+    "पैंतालीस",
+    "छियालीस",
+    "सैंतालीस",
+    "अड़तालीस",
+    "उनचास",
+    "पचास",
+    "इक्यावन",
+    "बावन",
+    "तिरपन",
+    "चौवन",
+    "पचपन",
+    "छप्पन",
+    "सत्तावन",
+    "अट्ठावन",
+    "उनसठ",
+    "साठ",
+    "इकसठ",
+    "बासठ",
+    "तिरसठ",
+    "चौंसठ",
+    "पैंसठ",
+    "छियासठ",
+    "सड़सठ",
+    "अड़सठ",
+    "उनहत्तर",
+    "सत्तर",
+    "इकहत्तर",
+    "बहत्तर",
+    "तिहत्तर",
+    "चौहत्तर",
+    "पचहत्तर",
+    "छिहत्तर",
+    "सतहत्तर",
+    "अठहत्तर",
+    "उन्यासी",
+    "अस्सी",
+    "इक्यासी",
+    "बयासी",
+    "तिरासी",
+    "चौरासी",
+    "पचासी",
+    "छियासी",
+    "सत्तासी",
+    "अट्ठासी",
+    "नवासी",
+    "नब्बे",
+    "इक्यानवे",
+    "बानवे",
+    "तिरानवे",
+    "चौरानवे",
+    "पचानवे",
+    "छियानवे",
+    "सत्तानवे",
+    "निन्यानवे",
+];
+
+const belowThousand = (number) => {
+    let result = "";
+
+    const hundred = Math.floor(number / 100);
+    const remainder = number % 100;
+
+    if (hundred) {
+        result +=
+            HINDI_NUMBERS[hundred] +
+            " सौ ";
+    }
+
+    if (remainder) {
+        result +=
+            HINDI_NUMBERS[remainder] +
+            " ";
+    }
+
+    return result.trim();
+};
+
+const numberToHindiWords = (value) => {
+    let n = Math.round(Number(value) || 0);
+
+    if (n === 0) {
+        return "शून्य";
+    }
+
+    let result = "";
+
+    const crore = Math.floor(
+        n / 10000000
+    );
+
+    n %= 10000000;
+
+    const lakh = Math.floor(
+        n / 100000
+    );
+
+    n %= 100000;
+
+    const thousand = Math.floor(
+        n / 1000
+    );
+
+    n %= 1000;
+
+    if (crore) {
+        result +=
+            belowThousand(crore) +
+            " करोड़ ";
+    }
+
+    if (lakh) {
+        result +=
+            belowThousand(lakh) +
+            " लाख ";
+    }
+
+    if (thousand) {
+        result +=
+            belowThousand(thousand) +
+            " हजार ";
+    }
+
+    if (n) {
+        result += belowThousand(n);
+    }
+
+    return result.trim();
+};
+
+const amountToHindiWords = (value) => {
+    const amount = Number(value) || 0;
+
+    const rupees = Math.floor(amount);
+
+    const paise = Math.round(
+        (amount - rupees) * 100
+    );
+
+    let text =
+        numberToHindiWords(rupees) +
+        " रुपये";
+
+    if (paise > 0) {
+        text +=
+            " " +
+            numberToHindiWords(paise) +
+            " पैसे";
+    }
+
+    return text + " मात्र";
+};
+
+
+/* =========================================================
+   EMPTY FORM
+   ========================================================= */
+
 const emptyBill = {
     financial_year: "2026-27",
 
     crop: "",
 
-    area: "",
+    area: "1.00",
     plants: "",
 
     calculation_basis: "area",
-    rounding: "paise",
+    rounding: "2",
 
     caste: "",
     scheme_name: "",
@@ -102,787 +326,154 @@ const emptyBill = {
     center: "",
 
     bank_name_1: "",
+    account_number_1: "",
+    ifsc_code_1: "",
+
     bank_name_2: "",
-    account_number: "",
-    ifsc_code: "",
+    account_number_2: "",
+    ifsc_code_2: "",
 
     aadhaar_number: "",
     mobile_number: "",
     pan_number: "",
 
     supplier_name: "",
-    supplier_mobile: "",
-    supplier_address: "",
+    supplier_father_name: "",
+    supplier_village: "",
 
     labour_name: "",
-    labour_mobile: "",
-    labour_address: "",
+    labour_father_name: "",
+    labour_village: "",
 
-    voucher_2: true,
+    voucher_2: false,
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| NUMBER HELPER
-|--------------------------------------------------------------------------
-*/
-const numberValue = (value) => {
-    const number = Number(value);
+/* =========================================================
+   EMPTY STANDARD
+   ========================================================= */
 
-    return Number.isFinite(number) ? number : 0;
+const emptyStandard = {
+    financial_year: "2026-27",
+
+    crop_name: "",
+
+    spacing: "",
+
+    plants_per_hectare: "",
+
+    plant_rate: "",
+
+    pit_rate: "",
+
+    manure_rate: "",
+
+    manure_quantity: "",
+
+    standard_total: "",
+
+    standard_subsidy: "",
+
+    is_active: true,
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| ROUNDING
-|--------------------------------------------------------------------------
-*/
-const roundMoney = (value, rounding) => {
-    if (rounding === "whole") {
-        return Math.round(value);
-    }
+/* =========================================================
+   COMPONENT
+   ========================================================= */
 
-    return Math.round(value * 100) / 100;
-};
+export default function UdyanBill() {
 
+    const [financialYear, setFinancialYear] =
+        useState("2026-27");
 
-/*
-|--------------------------------------------------------------------------
-| FORMAT MONEY
-|--------------------------------------------------------------------------
-*/
-const formatMoney = (value, rounding = "paise") => {
-    const amount = roundMoney(numberValue(value), rounding);
+    const [bill, setBill] =
+        useState(emptyBill);
 
-    return new Intl.NumberFormat("en-IN", {
-        minimumFractionDigits: rounding === "whole" ? 0 : 2,
-        maximumFractionDigits: rounding === "whole" ? 0 : 2,
-    }).format(amount);
-};
+    const [standards, setStandards] =
+        useState([]);
 
+    const [selectedCropId, setSelectedCropId] =
+        useState("");
 
-/*
-|--------------------------------------------------------------------------
-| COMPONENT
-|--------------------------------------------------------------------------
-*/
-const UdyanBill = () => {
+    const [loadingStandards, setLoadingStandards] =
+        useState(false);
 
-    /*
-    |--------------------------------------------------------------------------
-    | MAIN STATE
-    |--------------------------------------------------------------------------
-    */
-    const [financialYear, setFinancialYear] = useState("2026-27");
+    const [activeSection, setActiveSection] =
+        useState("bill");
 
-    const [bill, setBill] = useState(emptyBill);
+    const [showStandardModal, setShowStandardModal] =
+        useState(false);
 
-    const [standards, setStandards] = useState([]);
+    const [editingStandard, setEditingStandard] =
+        useState(null);
 
-    const [selectedCropId, setSelectedCropId] = useState("");
+    const [standardForm, setStandardForm] =
+        useState(emptyStandard);
 
-    const [loadingStandards, setLoadingStandards] = useState(false);
+    const [savingStandard, setSavingStandard] =
+        useState(false);
 
-    const [savingBill, setSavingBill] = useState(false);
+    const [savingBill, setSavingBill] =
+        useState(false);
 
-    const [activePage, setActivePage] = useState("bill");
+    const [includeStandardPrint, setIncludeStandardPrint] =
+        useState(false);
 
-    const [savedBill, setSavedBill] = useState(null);
+    const [showVoucher2, setShowVoucher2] =
+        useState(false);
+
+    const [message, setMessage] =
+        useState("");
+
+    const [lastSavedBill, setLastSavedBill] =
+        useState(null);
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | STANDARD MODAL
-    |--------------------------------------------------------------------------
-    */
-    const [showStandardModal, setShowStandardModal] = useState(false);
+    /* =====================================================
+       LOAD STANDARDS
+       ===================================================== */
 
-    const [editingStandard, setEditingStandard] = useState(null);
-
-    const [standardForm, setStandardForm] = useState({
-        ...emptyStandard,
-        financial_year: financialYear,
-    });
-
-    const [savingStandard, setSavingStandard] = useState(false);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | MESSAGE
-    |--------------------------------------------------------------------------
-    */
-    const [message, setMessage] = useState({
-        type: "",
-        text: "",
-    });
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOAD STANDARDS
-    |--------------------------------------------------------------------------
-    */
     const loadStandards = async () => {
 
         setLoadingStandards(true);
 
         try {
+
             const response = await apiFetch(
                 `${API_BASE}/crop-standards/?financial_year=${encodeURIComponent(
                     financialYear
-                )}`,
-                {
-                    method: "GET",
-                }
+                )}`
             );
 
             if (!response.ok) {
-                throw new Error("Unable to load crop standards.");
+                throw new Error(
+                    "मानक सूची प्राप्त नहीं हो सकी।"
+                );
             }
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             const list = Array.isArray(data)
                 ? data
                 : data.results || [];
 
-            setStandards(list);
+            const activeList =
+                list.filter(
+                    (item) =>
+                        item.is_active !== false
+                );
 
-            /*
-            |--------------------------------------------------------------------------
-            | If currently selected crop no longer exists,
-            | clear it.
-            |--------------------------------------------------------------------------
-            */
+            setStandards(activeList);
+
             if (
                 selectedCropId &&
-                !list.some(
+                !activeList.some(
                     (item) =>
                         String(item.id) ===
                         String(selectedCropId)
                 )
-            ) {
-                setSelectedCropId("");
-            }
-
-        } catch (error) {
-            console.error(error);
-
-            setMessage({
-                type: "error",
-                text: "Crop standards could not be loaded.",
-            });
-
-        } finally {
-            setLoadingStandards(false);
-        }
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOAD WHEN YEAR CHANGES
-    |--------------------------------------------------------------------------
-    */
-    useEffect(() => {
-        loadStandards();
-
-        setSelectedCropId("");
-
-        setBill((previous) => ({
-            ...previous,
-            financial_year: financialYear,
-            crop: "",
-        }));
-    }, [financialYear]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SELECTED STANDARD
-    |--------------------------------------------------------------------------
-    */
-    const selectedStandard = useMemo(() => {
-
-        return standards.find(
-            (standard) =>
-                String(standard.id) ===
-                String(selectedCropId)
-        ) || null;
-
-    }, [standards, selectedCropId]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE BILL FIELD
-    |--------------------------------------------------------------------------
-    */
-    const updateBill = (field, value) => {
-
-        setBill((previous) => ({
-            ...previous,
-            [field]: value,
-        }));
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CROP CHANGE
-    |--------------------------------------------------------------------------
-    */
-    const handleCropChange = (event) => {
-
-        const cropId = event.target.value;
-
-        setSelectedCropId(cropId);
-
-        setBill((previous) => ({
-            ...previous,
-            crop: cropId,
-        }));
-
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CALCULATE PLANTS
-    |--------------------------------------------------------------------------
-    */
-    const calculatedPlants = useMemo(() => {
-
-        if (!selectedStandard) {
-            return numberValue(bill.plants);
-        }
-
-        if (bill.calculation_basis === "area") {
-
-            const area = numberValue(bill.area);
-
-            return Math.round(
-                area *
-                numberValue(
-                    selectedStandard.plants_per_hectare
-                )
-            );
-        }
-
-        return numberValue(bill.plants);
-
-    }, [
-        bill.area,
-        bill.plants,
-        bill.calculation_basis,
-        selectedStandard,
-    ]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CALCULATIONS
-    |--------------------------------------------------------------------------
-    */
-    const calculations = useMemo(() => {
-
-        if (!selectedStandard) {
-            return {
-                plants: 0,
-                plantTotal: 0,
-                pitTotal: 0,
-                manureTotal: 0,
-                manureQuantity: 0,
-                plantSubsidy: 0,
-                manureSubsidy: 0,
-                grandTotal: 0,
-                grandSubsidy: 0,
-                farmerContribution: 0,
-            };
-        }
-
-        const plants = calculatedPlants;
-
-        const plantRate = numberValue(
-            selectedStandard.plant_rate
-        );
-
-        const pitRate = numberValue(
-            selectedStandard.pit_rate
-        );
-
-        const manureRate = numberValue(
-            selectedStandard.manure_rate
-        );
-
-        const standardTotal = numberValue(
-            selectedStandard.standard_total
-        );
-
-        const standardSubsidy = numberValue(
-            selectedStandard.standard_subsidy
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Plant Total
-        |--------------------------------------------------------------------------
-        */
-        const plantTotal = plants * plantRate;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Pit Total
-        |--------------------------------------------------------------------------
-        */
-        const pitTotal = plants * pitRate;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Manure Total
-        |--------------------------------------------------------------------------
-        */
-        const manureTotal = Math.max(
-            0,
-            standardTotal - plantRate * plants - pitRate * plants
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Manure Quantity
-        |--------------------------------------------------------------------------
-        */
-        const manureQuantity =
-            manureRate > 0
-                ? manureTotal / manureRate
-                : 0;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Plant Subsidy
-        |--------------------------------------------------------------------------
-        */
-        const plantSubsidy = Math.min(
-            plantTotal,
-            standardSubsidy
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Manure Subsidy
-        |--------------------------------------------------------------------------
-        */
-        const manureSubsidy = Math.min(
-            Math.max(
-                0,
-                standardSubsidy - plantSubsidy
-            ),
-            manureTotal
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Grand Total
-        |--------------------------------------------------------------------------
-        */
-        const grandTotal =
-            plantTotal +
-            pitTotal +
-            manureTotal;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Grand Subsidy
-        |--------------------------------------------------------------------------
-        */
-        const grandSubsidy =
-            plantSubsidy +
-            manureSubsidy;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Farmer Contribution
-        |--------------------------------------------------------------------------
-        */
-        const farmerContribution =
-            grandTotal -
-            grandSubsidy;
-
-
-        return {
-            plants: roundMoney(
-                plants,
-                bill.rounding
-            ),
-
-            plantTotal: roundMoney(
-                plantTotal,
-                bill.rounding
-            ),
-
-            pitTotal: roundMoney(
-                pitTotal,
-                bill.rounding
-            ),
-
-            manureTotal: roundMoney(
-                manureTotal,
-                bill.rounding
-            ),
-
-            manureQuantity: roundMoney(
-                manureQuantity,
-                bill.rounding
-            ),
-
-            plantSubsidy: roundMoney(
-                plantSubsidy,
-                bill.rounding
-            ),
-
-            manureSubsidy: roundMoney(
-                manureSubsidy,
-                bill.rounding
-            ),
-
-            grandTotal: roundMoney(
-                grandTotal,
-                bill.rounding
-            ),
-
-            grandSubsidy: roundMoney(
-                grandSubsidy,
-                bill.rounding
-            ),
-
-            farmerContribution: roundMoney(
-                farmerContribution,
-                bill.rounding
-            ),
-        };
-
-    }, [
-        selectedStandard,
-        calculatedPlants,
-        bill.rounding,
-    ]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | OPEN ADD STANDARD
-    |--------------------------------------------------------------------------
-    */
-    const openAddStandard = () => {
-
-        setEditingStandard(null);
-
-        setStandardForm({
-            ...emptyStandard,
-            financial_year: financialYear,
-        });
-
-        setShowStandardModal(true);
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | OPEN EDIT STANDARD
-    |--------------------------------------------------------------------------
-    */
-    const openEditStandard = (standard) => {
-
-        setEditingStandard(standard);
-
-        setStandardForm({
-            financial_year:
-                standard.financial_year || financialYear,
-
-            crop_name:
-                standard.crop_name || "",
-
-            spacing:
-                standard.spacing || "",
-
-            plants_per_hectare:
-                standard.plants_per_hectare ?? "",
-
-            plant_rate:
-                standard.plant_rate ?? "",
-
-            pit_rate:
-                standard.pit_rate ?? "",
-
-            manure_rate:
-                standard.manure_rate ?? "",
-
-            manure_quantity:
-                standard.manure_quantity ?? "",
-
-            standard_total:
-                standard.standard_total ?? "",
-
-            standard_subsidy:
-                standard.standard_subsidy ?? "",
-
-            is_active:
-                standard.is_active !== false,
-        });
-
-        setShowStandardModal(true);
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CLOSE STANDARD MODAL
-    |--------------------------------------------------------------------------
-    */
-    const closeStandardModal = () => {
-
-        setShowStandardModal(false);
-
-        setEditingStandard(null);
-
-        setStandardForm({
-            ...emptyStandard,
-            financial_year: financialYear,
-        });
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE STANDARD FORM
-    |--------------------------------------------------------------------------
-    */
-    const updateStandardForm = (field, value) => {
-
-        setStandardForm((previous) => ({
-            ...previous,
-            [field]: value,
-        }));
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SAVE STANDARD
-    |--------------------------------------------------------------------------
-    */
-    const saveStandard = async () => {
-
-        if (!standardForm.financial_year.trim()) {
-            alert("Please enter financial year.");
-            return;
-        }
-
-        if (!standardForm.crop_name.trim()) {
-            alert("Please enter crop name.");
-            return;
-        }
-
-        if (!standardForm.spacing.trim()) {
-            alert("Please enter spacing.");
-            return;
-        }
-
-        if (
-            standardForm.standard_total === "" ||
-            numberValue(standardForm.standard_total) < 0
-        ) {
-            alert("Please enter a valid standard total.");
-            return;
-        }
-
-        if (
-            numberValue(standardForm.standard_subsidy) >
-            numberValue(standardForm.standard_total)
-        ) {
-            alert(
-                "Subsidy cannot be greater than standard total."
-            );
-            return;
-        }
-
-
-        setSavingStandard(true);
-
-        const isEditing = Boolean(editingStandard);
-
-        const url = isEditing
-            ? `${API_BASE}/crop-standards/${editingStandard.id}/`
-            : `${API_BASE}/crop-standards/`;
-
-        const method = isEditing ? "PUT" : "POST";
-
-
-        const payload = {
-            financial_year:
-                standardForm.financial_year.trim(),
-
-            crop_name:
-                standardForm.crop_name.trim(),
-
-            spacing:
-                standardForm.spacing.trim(),
-
-            plants_per_hectare:
-                numberValue(
-                    standardForm.plants_per_hectare
-                ),
-
-            plant_rate:
-                numberValue(
-                    standardForm.plant_rate
-                ),
-
-            pit_rate:
-                numberValue(
-                    standardForm.pit_rate
-                ),
-
-            manure_rate:
-                numberValue(
-                    standardForm.manure_rate
-                ),
-
-            manure_quantity:
-                numberValue(
-                    standardForm.manure_quantity
-                ),
-
-            standard_total:
-                numberValue(
-                    standardForm.standard_total
-                ),
-
-            standard_subsidy:
-                numberValue(
-                    standardForm.standard_subsidy
-                ),
-
-            is_active:
-                Boolean(standardForm.is_active),
-        };
-
-
-        try {
-
-            const response = await apiFetch(url, {
-                method,
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-
-            const data = await response.json().catch(
-                () => ({})
-            );
-
-
-            if (!response.ok) {
-
-                console.error(data);
-
-                const backendMessage =
-                    data?.detail ||
-                    data?.error ||
-                    Object.values(data || {})
-                        .flat()
-                        .join(" ");
-
-                throw new Error(
-                    backendMessage ||
-                    "Unable to save standard."
-                );
-            }
-
-
-            closeStandardModal();
-
-            await loadStandards();
-
-            setMessage({
-                type: "success",
-                text: isEditing
-                    ? "Crop standard updated successfully."
-                    : "Crop standard added successfully.",
-            });
-
-        } catch (error) {
-
-            console.error(error);
-
-            alert(
-                error.message ||
-                "Unable to save crop standard."
-            );
-
-        } finally {
-
-            setSavingStandard(false);
-        }
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | DELETE STANDARD
-    |--------------------------------------------------------------------------
-    */
-    const deleteStandard = async (id) => {
-
-        const confirmed = window.confirm(
-            "Are you sure you want to delete this crop standard?"
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
-
-        try {
-
-            const response = await apiFetch(
-                `${API_BASE}/crop-standards/${id}/`,
-                {
-                    method: "DELETE",
-                }
-            );
-
-
-            if (!response.ok) {
-
-                const data = await response.json().catch(
-                    () => ({})
-                );
-
-                throw new Error(
-                    data?.detail ||
-                    "Unable to delete standard."
-                );
-            }
-
-
-            if (
-                String(selectedCropId) ===
-                String(id)
             ) {
                 setSelectedCropId("");
 
@@ -892,220 +483,993 @@ const UdyanBill = () => {
                 }));
             }
 
-
-            await loadStandards();
-
-            setMessage({
-                type: "success",
-                text: "Crop standard deleted successfully.",
-            });
-
         } catch (error) {
 
             console.error(error);
 
-            alert(
+            setMessage(
                 error.message ||
-                "Unable to delete standard."
-            );
-        }
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SAVE BILL
-    |--------------------------------------------------------------------------
-    */
-    const saveBill = async () => {
-
-        if (!selectedStandard) {
-            alert("Please select a crop.");
-            return;
-        }
-
-        if (!bill.financial_year) {
-            alert("Please select financial year.");
-            return;
-        }
-
-        if (!bill.farmer_name.trim()) {
-            alert("Please enter farmer name.");
-            return;
-        }
-
-
-        setSavingBill(true);
-
-
-        const payload = {
-            ...bill,
-
-            crop: Number(selectedCropId),
-
-            financial_year:
-                bill.financial_year,
-
-            area:
-                numberValue(bill.area),
-
-            plants:
-                calculations.plants,
-
-            calculation_basis:
-                bill.calculation_basis,
-
-            rounding:
-                bill.rounding,
-
-            plant_total:
-                calculations.plantTotal,
-
-            pit_total:
-                calculations.pitTotal,
-
-            manure_quantity:
-                calculations.manureQuantity,
-
-            manure_total:
-                calculations.manureTotal,
-
-            plant_subsidy:
-                calculations.plantSubsidy,
-
-            pit_subsidy:
-                0,
-
-            manure_subsidy:
-                calculations.manureSubsidy,
-
-            farmer_contribution:
-                calculations.farmerContribution,
-
-            grand_total:
-                calculations.grandTotal,
-
-            grand_subsidy:
-                calculations.grandSubsidy,
-        };
-
-
-        try {
-
-            const response = await apiFetch(
-                `${API_BASE}/bills/`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-
-                    body: JSON.stringify(payload),
-                }
-            );
-
-
-            const data = await response.json().catch(
-                () => ({})
-            );
-
-
-            if (!response.ok) {
-
-                console.error(data);
-
-                const backendMessage =
-                    data?.detail ||
-                    data?.error ||
-                    Object.values(data || {})
-                        .flat()
-                        .join(" ");
-
-                throw new Error(
-                    backendMessage ||
-                    "Unable to save bill."
-                );
-            }
-
-
-            setSavedBill(data);
-
-            setMessage({
-                type: "success",
-                text: "Bill saved successfully.",
-            });
-
-        } catch (error) {
-
-            console.error(error);
-
-            alert(
-                error.message ||
-                "Unable to save bill."
+                    "मानक सूची प्राप्त नहीं हो सकी।"
             );
 
         } finally {
 
-            setSavingBill(false);
+            setLoadingStandards(false);
         }
     };
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | RESET BILL
-    |--------------------------------------------------------------------------
-    */
+    useEffect(() => {
+        loadStandards();
+    }, [financialYear]);
+
+
+    /* =====================================================
+       SELECTED STANDARD
+       ===================================================== */
+
+    const selectedStandard = useMemo(() => {
+
+        return standards.find(
+            (item) =>
+                String(item.id) ===
+                String(selectedCropId)
+        ) || null;
+
+    }, [
+        standards,
+        selectedCropId,
+    ]);
+
+
+    /* =====================================================
+       BILL UPDATE
+       ===================================================== */
+
+    const updateBill = (
+        field,
+        value
+    ) => {
+
+        setBill((previous) => ({
+            ...previous,
+            [field]: value,
+        }));
+    };
+
+
+    /* =====================================================
+       CROP
+       ===================================================== */
+
+    const handleCropChange = (event) => {
+
+        const id =
+            event.target.value;
+
+        setSelectedCropId(id);
+
+        updateBill("crop", id);
+    };
+
+
+    /* =====================================================
+       CALCULATION
+       ===================================================== */
+
+    const calculation =
+        useMemo(() => {
+
+            if (!selectedStandard) {
+
+                return {
+                    plants: 0,
+
+                    plantTotal: 0,
+                    plantSubsidy: 0,
+
+                    pitTotal: 0,
+                    pitSubsidy: 0,
+                    pitFarmer: 0,
+
+                    manureTotal: 0,
+                    manureSubsidy: 0,
+                    manureFarmer: 0,
+
+                    manureQuantity: 0,
+
+                    billTotal: 0,
+                    billSubsidy: 0,
+                    billFarmer: 0,
+
+                    grandTotal: 0,
+                    grandSubsidy: 0,
+                };
+            }
+
+
+            const area =
+                Math.max(
+                    0,
+                    num(bill.area)
+                );
+
+            const plantsPerHectare =
+                num(
+                    selectedStandard.plants_per_hectare
+                );
+
+            let plants;
+
+            if (
+                bill.calculation_basis ===
+                "plant"
+            ) {
+
+                plants = Math.max(
+                    0,
+                    Math.round(
+                        num(bill.plants)
+                    )
+                );
+
+            } else {
+
+                plants = Math.max(
+                    0,
+                    Math.round(
+                        area *
+                            plantsPerHectare
+                    )
+                );
+            }
+
+
+            const plantRate =
+                num(
+                    selectedStandard.plant_rate
+                );
+
+            const pitRate =
+                num(
+                    selectedStandard.pit_rate
+                );
+
+            const manureRate =
+                num(
+                    selectedStandard.manure_rate
+                );
+
+            const standardTotal =
+                num(
+                    selectedStandard.standard_total
+                );
+
+            const standardSubsidy =
+                num(
+                    selectedStandard.standard_subsidy
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Plant
+            |--------------------------------------------------------------------------
+            */
+
+            const plantTotal =
+                plants * plantRate;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Pit
+            |--------------------------------------------------------------------------
+            */
+
+            const pitTotal =
+                plants * pitRate;
+
+            const pitSubsidy = 0;
+
+            const pitFarmer =
+                pitTotal - pitSubsidy;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Manure
+            |--------------------------------------------------------------------------
+            */
+
+            let manureTotal;
+
+            if (
+                bill.calculation_basis ===
+                "plant"
+            ) {
+
+                manureTotal =
+                    standardTotal *
+                        area -
+                    plantTotal -
+                    pitTotal;
+
+            } else {
+
+                manureTotal =
+                    (
+                        standardTotal -
+                        plantRate *
+                            plantsPerHectare -
+                        pitRate *
+                            plantsPerHectare
+                    ) *
+                    area;
+            }
+
+            manureTotal =
+                Math.max(
+                    0,
+                    manureTotal
+                );
+
+
+            const manureQuantity =
+                manureRate > 0
+                    ? manureTotal /
+                      manureRate
+                    : 0;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Subsidy
+            |--------------------------------------------------------------------------
+            */
+
+            const plantSubsidy =
+                Math.min(
+                    plantTotal,
+                    standardSubsidy *
+                        area
+                );
+
+
+            const manureSubsidy =
+                Math.min(
+                    manureTotal,
+                    Math.max(
+                        0,
+                        standardSubsidy *
+                            area -
+                            plantSubsidy
+                    )
+                );
+
+
+            const manureFarmer =
+                Math.max(
+                    0,
+                    manureTotal -
+                        manureSubsidy
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Bill
+            |--------------------------------------------------------------------------
+            */
+
+            const billTotal =
+                pitTotal +
+                manureTotal;
+
+            const billSubsidy =
+                pitSubsidy +
+                manureSubsidy;
+
+            const billFarmer =
+                pitFarmer +
+                manureFarmer;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Grand
+            |--------------------------------------------------------------------------
+            */
+
+            const grandTotal =
+                billTotal +
+                plantTotal;
+
+            const grandSubsidy =
+                billSubsidy +
+                plantSubsidy;
+
+
+            const digits =
+                Number(bill.rounding);
+
+
+            return {
+
+                plants,
+
+                plantTotal:
+                    roundValue(
+                        plantTotal,
+                        digits
+                    ),
+
+                plantSubsidy:
+                    roundValue(
+                        plantSubsidy,
+                        digits
+                    ),
+
+                pitTotal:
+                    roundValue(
+                        pitTotal,
+                        digits
+                    ),
+
+                pitSubsidy:
+                    roundValue(
+                        pitSubsidy,
+                        digits
+                    ),
+
+                pitFarmer:
+                    roundValue(
+                        pitFarmer,
+                        digits
+                    ),
+
+                manureTotal:
+                    roundValue(
+                        manureTotal,
+                        digits
+                    ),
+
+                manureSubsidy:
+                    roundValue(
+                        manureSubsidy,
+                        digits
+                    ),
+
+                manureFarmer:
+                    roundValue(
+                        manureFarmer,
+                        digits
+                    ),
+
+                manureQuantity:
+                    roundValue(
+                        manureQuantity,
+                        2
+                    ),
+
+                billTotal:
+                    roundValue(
+                        billTotal,
+                        digits
+                    ),
+
+                billSubsidy:
+                    roundValue(
+                        billSubsidy,
+                        digits
+                    ),
+
+                billFarmer:
+                    roundValue(
+                        billFarmer,
+                        digits
+                    ),
+
+                grandTotal:
+                    roundValue(
+                        grandTotal,
+                        digits
+                    ),
+
+                grandSubsidy:
+                    roundValue(
+                        grandSubsidy,
+                        digits
+                    ),
+            };
+
+        }, [
+            bill.area,
+            bill.plants,
+            bill.calculation_basis,
+            bill.rounding,
+            selectedStandard,
+        ]);
+
+
+    /* =====================================================
+       STANDARD CRUD
+       ===================================================== */
+
+    const openAddStandard = () => {
+
+        setEditingStandard(null);
+
+        setStandardForm({
+            ...emptyStandard,
+            financial_year:
+                financialYear,
+        });
+
+        setShowStandardModal(true);
+    };
+
+
+    const openEditStandard = (
+        standard
+    ) => {
+
+        setEditingStandard(
+            standard
+        );
+
+        setStandardForm({
+
+            financial_year:
+                standard.financial_year ||
+                financialYear,
+
+            crop_name:
+                standard.crop_name || "",
+
+            spacing:
+                standard.spacing || "",
+
+            plants_per_hectare:
+                standard.plants_per_hectare ??
+                "",
+
+            plant_rate:
+                standard.plant_rate ??
+                "",
+
+            pit_rate:
+                standard.pit_rate ??
+                "",
+
+            manure_rate:
+                standard.manure_rate ??
+                "",
+
+            manure_quantity:
+                standard.manure_quantity ??
+                "",
+
+            standard_total:
+                standard.standard_total ??
+                "",
+
+            standard_subsidy:
+                standard.standard_subsidy ??
+                "",
+
+            is_active:
+                standard.is_active !== false,
+        });
+
+        setShowStandardModal(true);
+    };
+
+
+    const closeStandardModal =
+        () => {
+
+            setShowStandardModal(false);
+
+            setEditingStandard(
+                null
+            );
+
+            setStandardForm({
+                ...emptyStandard,
+                financial_year:
+                    financialYear,
+            });
+        };
+
+
+    const updateStandardForm = (
+        field,
+        value
+    ) => {
+
+        setStandardForm(
+            (previous) => ({
+                ...previous,
+                [field]: value,
+            })
+        );
+    };
+
+
+    const saveStandard =
+        async () => {
+
+            if (
+                !standardForm.financial_year.trim()
+            ) {
+                alert(
+                    "वित्तीय वर्ष दर्ज करें।"
+                );
+                return;
+            }
+
+            if (
+                !standardForm.crop_name.trim()
+            ) {
+                alert(
+                    "फसल का नाम दर्ज करें।"
+                );
+                return;
+            }
+
+            if (
+                !standardForm.spacing.trim()
+            ) {
+                alert(
+                    "दूरी दर्ज करें।"
+                );
+                return;
+            }
+
+            const total =
+                num(
+                    standardForm.standard_total
+                );
+
+            const subsidy =
+                num(
+                    standardForm.standard_subsidy
+                );
+
+            if (
+                subsidy > total
+            ) {
+                alert(
+                    "राजसहायता मानक महायोग से अधिक नहीं हो सकती।"
+                );
+                return;
+            }
+
+
+            setSavingStandard(true);
+
+
+            const isEdit =
+                Boolean(
+                    editingStandard
+                );
+
+
+            const url = isEdit
+                ? `${API_BASE}/crop-standards/${editingStandard.id}/`
+                : `${API_BASE}/crop-standards/`;
+
+
+            const payload = {
+
+                financial_year:
+                    standardForm.financial_year.trim(),
+
+                crop_name:
+                    standardForm.crop_name.trim(),
+
+                spacing:
+                    standardForm.spacing.trim(),
+
+                plants_per_hectare:
+                    num(
+                        standardForm.plants_per_hectare
+                    ),
+
+                plant_rate:
+                    num(
+                        standardForm.plant_rate
+                    ),
+
+                pit_rate:
+                    num(
+                        standardForm.pit_rate
+                    ),
+
+                manure_rate:
+                    num(
+                        standardForm.manure_rate
+                    ),
+
+                manure_quantity:
+                    num(
+                        standardForm.manure_quantity
+                    ),
+
+                standard_total:
+                    total,
+
+                standard_subsidy:
+                    subsidy,
+
+                is_active:
+                    Boolean(
+                        standardForm.is_active
+                    ),
+            };
+
+
+            try {
+
+                const response =
+                    await apiFetch(
+                        url,
+                        {
+                            method:
+                                isEdit
+                                    ? "PUT"
+                                    : "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                ),
+                        }
+                    );
+
+
+                const data =
+                    await response
+                        .json()
+                        .catch(
+                            () => ({})
+                        );
+
+
+                if (
+                    !response.ok
+                ) {
+
+                    const error =
+                        data?.detail ||
+                        data?.error ||
+                        Object.values(
+                            data || {}
+                        )
+                            .flat()
+                            .join(" ");
+
+                    throw new Error(
+                        error ||
+                            "मानक सेव नहीं हो सका।"
+                    );
+                }
+
+
+                closeStandardModal();
+
+                await loadStandards();
+
+                setMessage(
+                    isEdit
+                        ? "मानक सफलतापूर्वक अपडेट किया गया।"
+                        : "नया मानक सफलतापूर्वक जोड़ा गया।"
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    error.message
+                );
+
+            } finally {
+
+                setSavingStandard(
+                    false
+                );
+            }
+        };
+
+
+    const deleteStandard =
+        async (id) => {
+
+            if (
+                !window.confirm(
+                    "क्या आप इस मानक को हटाना चाहते हैं?"
+                )
+            ) {
+                return;
+            }
+
+
+            try {
+
+                const response =
+                    await apiFetch(
+                        `${API_BASE}/crop-standards/${id}/`,
+                        {
+                            method:
+                                "DELETE",
+                        }
+                    );
+
+
+                if (
+                    !response.ok
+                ) {
+                    throw new Error(
+                        "मानक हटाया नहीं जा सका।"
+                    );
+                }
+
+
+                if (
+                    String(
+                        selectedCropId
+                    ) === String(id)
+                ) {
+
+                    setSelectedCropId("");
+
+                    updateBill(
+                        "crop",
+                        ""
+                    );
+                }
+
+
+                await loadStandards();
+
+                setMessage(
+                    "मानक सफलतापूर्वक हटाया गया।"
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    error.message
+                );
+            }
+        };
+
+
+    /* =====================================================
+       SAVE BILL
+       ===================================================== */
+
+    const saveBill =
+        async () => {
+
+            if (
+                !selectedStandard
+            ) {
+                alert(
+                    "कृपया फल पौध का मानक चुनें।"
+                );
+                return;
+            }
+
+            if (
+                !bill.farmer_name.trim()
+            ) {
+                alert(
+                    "कृपया कृषक का नाम दर्ज करें।"
+                );
+                return;
+            }
+
+
+            setSavingBill(true);
+
+
+            try {
+
+                const payload = {
+
+                    ...bill,
+
+                    crop:
+                        Number(
+                            selectedCropId
+                        ),
+
+                    financial_year:
+                        financialYear,
+
+                    area:
+                        num(
+                            bill.area
+                        ),
+
+                    plants:
+                        calculation.plants,
+
+                    plant_total:
+                        calculation.plantTotal,
+
+                    plant_subsidy:
+                        calculation.plantSubsidy,
+
+                    pit_total:
+                        calculation.pitTotal,
+
+                    pit_subsidy:
+                        calculation.pitSubsidy,
+
+                    manure_quantity:
+                        calculation.manureQuantity,
+
+                    manure_total:
+                        calculation.manureTotal,
+
+                    manure_subsidy:
+                        calculation.manureSubsidy,
+
+                    farmer_contribution:
+                        calculation.billFarmer,
+
+                    grand_total:
+                        calculation.grandTotal,
+
+                    grand_subsidy:
+                        calculation.grandSubsidy,
+                };
+
+
+                const response =
+                    await apiFetch(
+                        `${API_BASE}/bills/`,
+                        {
+                            method:
+                                "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                ),
+                        }
+                    );
+
+
+                const data =
+                    await response
+                        .json()
+                        .catch(
+                            () => ({})
+                        );
+
+
+                if (
+                    !response.ok
+                ) {
+
+                    const error =
+                        data?.detail ||
+                        data?.error ||
+                        Object.values(
+                            data || {}
+                        )
+                            .flat()
+                            .join(" ");
+
+                    throw new Error(
+                        error ||
+                            "बिल सेव नहीं हो सका।"
+                    );
+                }
+
+
+                setLastSavedBill(
+                    data
+                );
+
+                setMessage(
+                    "बिल सफलतापूर्वक सेव किया गया।"
+                );
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    error.message
+                );
+
+            } finally {
+
+                setSavingBill(
+                    false
+                );
+            }
+        };
+
+
+    /* =====================================================
+       RESET
+       ===================================================== */
+
     const resetBill = () => {
+
+        if (
+            !window.confirm(
+                "भरी गई सभी सूचनाएँ मिटा दी जाएँगी। जारी रखें?"
+            )
+        ) {
+            return;
+        }
 
         setBill({
             ...emptyBill,
-            financial_year: financialYear,
+            financial_year:
+                financialYear,
         });
 
         setSelectedCropId("");
 
-        setSavedBill(null);
+        setShowVoucher2(
+            false
+        );
 
-        setMessage({
-            type: "",
-            text: "",
-        });
+        setLastSavedBill(
+            null
+        );
     };
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | PRINT
-    |--------------------------------------------------------------------------
-    */
-    const handlePrint = () => {
-        window.print();
-    };
+    /* =====================================================
+       INPUT COMPONENT
+       ===================================================== */
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | INPUT COMPONENT
-    |--------------------------------------------------------------------------
-    */
-    const InputField = ({
+    const Field = ({
         label,
         field,
         type = "text",
+        width = "",
         placeholder = "",
     }) => (
-        <div className="udyan-form-group">
 
-            <label>
+        <label
+            className={`live-field ${width}`}
+        >
+
+            <span>
                 {label}
-            </label>
+            </span>
 
             <input
                 type={type}
-                value={bill[field] ?? ""}
-                placeholder={placeholder}
+                value={
+                    bill[field] ?? ""
+                }
+                placeholder={
+                    placeholder
+                }
                 onChange={(event) =>
                     updateBill(
                         field,
@@ -1114,432 +1478,177 @@ const UdyanBill = () => {
                 }
             />
 
-        </div>
+        </label>
     );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | STANDARD MANAGEMENT
-    |--------------------------------------------------------------------------
-    */
-    const renderStandards = () => (
-        <section className="udyan-card standards-card">
+    /* =====================================================
+       DOCUMENT FIELD
+       ===================================================== */
 
-            <div className="standards-header">
+    const DocField = ({
+        field,
+        className = "",
+    }) => (
 
-                <div>
-                    <h2>
-                        Crop Standards
-                    </h2>
-
-                    <p>
-                        Add and manage crop-wise
-                        standards for {financialYear}.
-                    </p>
-                </div>
-
-                <button
-                    type="button"
-                    className="udyan-btn primary"
-                    onClick={openAddStandard}
-                >
-                    + Add Standard
-                </button>
-
-            </div>
-
-
-            {loadingStandards ? (
-                <div className="empty-state">
-                    Loading crop standards...
-                </div>
-            ) : standards.length === 0 ? (
-
-                <div className="empty-state">
-
-                    <div className="empty-icon">
-                        +
-                    </div>
-
-                    <h3>
-                        No crop standards added
-                    </h3>
-
-                    <p>
-                        The reference crops are not
-                        predefined. Add your first
-                        crop standard manually.
-                    </p>
-
-                    <button
-                        type="button"
-                        className="udyan-btn primary"
-                        onClick={openAddStandard}
-                    >
-                        Add First Standard
-                    </button>
-
-                </div>
-
-            ) : (
-
-                <div className="standards-table-wrapper">
-
-                    <table className="standards-table">
-
-                        <thead>
-                            <tr>
-                                <th>Crop</th>
-                                <th>Year</th>
-                                <th>Spacing</th>
-                                <th>Plants / Ha</th>
-                                <th>Plant Rate</th>
-                                <th>Pit Rate</th>
-                                <th>Manure Rate</th>
-                                <th>Manure Qty</th>
-                                <th>Total</th>
-                                <th>Subsidy</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            {standards.map(
-                                (standard) => (
-
-                                    <tr
-                                        key={
-                                            standard.id
-                                        }
-                                    >
-
-                                        <td>
-                                            <strong>
-                                                {
-                                                    standard.crop_name
-                                                }
-                                            </strong>
-                                        </td>
-
-                                        <td>
-                                            {
-                                                standard.financial_year
-                                            }
-                                        </td>
-
-                                        <td>
-                                            {
-                                                standard.spacing
-                                            }
-                                        </td>
-
-                                        <td>
-                                            {
-                                                standard.plants_per_hectare
-                                            }
-                                        </td>
-
-                                        <td>
-                                            ₹
-                                            {
-                                                standard.plant_rate
-                                            }
-                                        </td>
-
-                                        <td>
-                                            ₹
-                                            {
-                                                standard.pit_rate
-                                            }
-                                        </td>
-
-                                        <td>
-                                            ₹
-                                            {
-                                                standard.manure_rate
-                                            }
-                                        </td>
-
-                                        <td>
-                                            {
-                                                standard.manure_quantity
-                                            }
-                                        </td>
-
-                                        <td>
-                                            ₹
-                                            {
-                                                standard.standard_total
-                                            }
-                                        </td>
-
-                                        <td>
-                                            ₹
-                                            {
-                                                standard.standard_subsidy
-                                            }
-                                        </td>
-
-                                        <td>
-
-                                            <div className="standard-actions">
-
-                                                <button
-                                                    type="button"
-                                                    className="table-action edit"
-                                                    onClick={() =>
-                                                        openEditStandard(
-                                                            standard
-                                                        )
-                                                    }
-                                                >
-                                                    Edit
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="table-action delete"
-                                                    onClick={() =>
-                                                        deleteStandard(
-                                                            standard.id
-                                                        )
-                                                    }
-                                                >
-                                                    Delete
-                                                </button>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
-
-                                )
-                            )}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            )}
-
-        </section>
+        <input
+            className={`doc-input ${className}`}
+            value={
+                bill[field] ?? ""
+            }
+            onChange={(event) =>
+                updateBill(
+                    field,
+                    event.target.value
+                )
+            }
+        />
     );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | BILL FORM
-    |--------------------------------------------------------------------------
-    */
-    const renderBill = () => (
-        <>
+    /* =====================================================
+       PRINT PREVIEW
+       ===================================================== */
 
-            <section className="udyan-card">
+    const PrintPreview =
+        () => {
 
-                <div className="section-heading">
-                    <div>
-                        <span className="section-number">
-                            01
-                        </span>
+            if (
+                !selectedStandard
+            ) {
 
-                        <div>
-                            <h2>
-                                Crop & Calculation
-                            </h2>
+                return (
+                    <div className="preview-empty">
 
-                            <p>
-                                Select the crop standard
-                                created by the user.
-                            </p>
+                        <div className="preview-empty-icon">
+                            ☷
                         </div>
-                    </div>
-                </div>
 
+                        <h3>
+                            प्रपत्र पूर्वावलोकन
+                        </h3>
 
-                <div className="udyan-form-grid">
-
-                    <div className="udyan-form-group">
-
-                        <label>
-                            Financial Year
-                        </label>
-
-                        <select
-                            value={financialYear}
-                            onChange={(event) =>
-                                setFinancialYear(
-                                    event.target.value
-                                )
-                            }
-                        >
-                            <option value="2026-27">
-                                2026-27
-                            </option>
-
-                            <option value="2027-28">
-                                2027-28
-                            </option>
-
-                            <option value="2028-29">
-                                2028-29
-                            </option>
-                        </select>
+                        <p>
+                            ऊपर से फल पौध का
+                            मानक चुनें। चयन करते
+                            ही यहाँ A4 प्रपत्र
+                            स्वतः तैयार होगा।
+                        </p>
 
                     </div>
+                );
+            }
 
 
-                    <div className="udyan-form-group">
+            return (
+                <div
+                    className="document-area"
+                    id="printDocument"
+                >
 
-                        <label>
-                            Crop
-                        </label>
+                    {/* =================================================
+                       PAGE 1
+                       ================================================= */}
 
-                        <select
-                            value={selectedCropId}
-                            onChange={
-                                handleCropChange
-                            }
-                        >
+                    <div className="a4-page">
 
-                            <option value="">
-                                Select Crop
-                            </option>
+                        <div className="treasury-copy">
+                            कोषागार प्रति
+                        </div>
 
-                            {standards.map(
-                                (standard) => (
+                        <div className="document-center document-title-small">
+                            कार्यालय उद्यान विशेषज्ञ, कोटद्वार गढ़वाल
+                        </div>
 
-                                    <option
-                                        key={
-                                            standard.id
-                                        }
-                                        value={
-                                            standard.id
-                                        }
-                                    >
-                                        {
-                                            standard.crop_name
-                                        }
-                                    </option>
-
-                                )
-                            )}
-
-                        </select>
-
-                    </div>
+                        <div className="document-center document-title">
+                            जिला योजनान्तर्गत उद्यान स्थापना — वर्ष{" "}
+                            {financialYear} &nbsp;(बिल)
+                        </div>
 
 
-                    <div className="udyan-form-group">
+                        <div className="document-line">
+                            जाति{" "}
+                            <DocField
+                                field="caste"
+                                className="w-160"
+                            />
 
-                        <label>
-                            Calculation Basis
-                        </label>
-
-                        <select
-                            value={
-                                bill.calculation_basis
-                            }
-                            onChange={(event) =>
-                                updateBill(
-                                    "calculation_basis",
-                                    event.target.value
-                                )
-                            }
-                        >
-
-                            <option value="area">
-                                Area Based
-                            </option>
-
-                            <option value="plant">
-                                Actual Plant Based
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <InputField
-                        label="Area (Hectare)"
-                        field="area"
-                        type="number"
-                        placeholder="Enter area"
-                    />
-
-
-                    <div className="udyan-form-group">
-
-                        <label>
-                            Plants
-                        </label>
-
-                        <input
-                            type="number"
-                            value={
-                                bill.calculation_basis ===
-                                "area"
-                                    ? calculatedPlants
-                                    : bill.plants
-                            }
-                            disabled={
-                                bill.calculation_basis ===
-                                "area"
-                            }
-                            onChange={(event) =>
-                                updateBill(
-                                    "plants",
-                                    event.target.value
-                                )
-                            }
-                        />
-
-                    </div>
-
-
-                    <div className="udyan-form-group">
-
-                        <label>
-                            Rounding
-                        </label>
-
-                        <select
-                            value={bill.rounding}
-                            onChange={(event) =>
-                                updateBill(
-                                    "rounding",
-                                    event.target.value
-                                )
-                            }
-                        >
-
-                            <option value="paise">
-                                Rupees + Paise
-                            </option>
-
-                            <option value="whole">
-                                Whole Rupees
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-
-                {selectedStandard && (
-
-                    <div className="selected-standard-box">
-
-                        <div>
                             <span>
-                                Selected Standard
+                                मद
+                            </span>
+
+                            <DocField
+                                field="scheme_name"
+                                className="w-210"
+                            />
+                        </div>
+
+
+                        <div className="document-line">
+                            नाम कृषक{" "}
+                            <DocField
+                                field="farmer_name"
+                                className="w-220"
+                            />
+
+                            <span>
+                                पिता/पति का नाम
+                            </span>
+
+                            <DocField
+                                field="father_husband_name"
+                                className="w-220"
+                            />
+                        </div>
+
+
+                        <div className="document-line">
+                            जन्म तिथि{" "}
+                            <DocField
+                                field="date_of_birth"
+                                className="w-110"
+                            />
+
+                            <span>
+                                ग्राम
+                            </span>
+
+                            <DocField
+                                field="village"
+                                className="w-150"
+                            />
+
+                            <span>
+                                उद्यान सचल दल केन्द्र
+                            </span>
+
+                            <DocField
+                                field="center"
+                                className="w-150"
+                            />
+                        </div>
+
+
+                        <div className="document-line">
+                            रोपित पौधों की संख्या{" "}
+                            <strong>
+                                {
+                                    calculation.plants
+                                }
+                            </strong>
+
+                            <span>
+                                क्षेत्रफल है0{" "}
+                            </span>
+
+                            <strong>
+                                {num(
+                                    bill.area
+                                ).toFixed(2)}
+                            </strong>
+
+                            <span>
+                                &nbsp; फल पौध का नाम{" "}
                             </span>
 
                             <strong>
@@ -1547,442 +1656,206 @@ const UdyanBill = () => {
                                     selectedStandard.crop_name
                                 }
                             </strong>
-                        </div>
 
-                        <div>
                             <span>
-                                Spacing
-                            </span>
-
-                            <strong>
+                                &nbsp;(दूरी{" "}
                                 {
                                     selectedStandard.spacing
                                 }
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>
-                                Plants / Ha
-                            </span>
-
-                            <strong>
-                                {
-                                    selectedStandard.plants_per_hectare
-                                }
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>
-                                Standard Total
-                            </span>
-
-                            <strong>
-                                ₹
-                                {formatMoney(
-                                    selectedStandard.standard_total,
-                                    bill.rounding
-                                )}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>
-                                Standard Subsidy
-                            </span>
-
-                            <strong>
-                                ₹
-                                {formatMoney(
-                                    selectedStandard.standard_subsidy,
-                                    bill.rounding
-                                )}
-                            </strong>
-                        </div>
-
-                    </div>
-
-                )}
-
-            </section>
-
-
-            <section className="udyan-card">
-
-                <div className="section-heading">
-
-                    <div>
-
-                        <span className="section-number">
-                            02
-                        </span>
-
-                        <div>
-
-                            <h2>
-                                Farmer Details
-                            </h2>
-
-                            <p>
-                                Enter farmer and scheme
-                                information.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div className="udyan-form-grid">
-
-                    <InputField
-                        label="Caste"
-                        field="caste"
-                    />
-
-                    <InputField
-                        label="Scheme / Mad"
-                        field="scheme_name"
-                    />
-
-                    <InputField
-                        label="Farmer Name"
-                        field="farmer_name"
-                    />
-
-                    <InputField
-                        label="Father / Husband Name"
-                        field="father_husband_name"
-                    />
-
-                    <InputField
-                        label="Date of Birth"
-                        field="date_of_birth"
-                        type="date"
-                    />
-
-                    <InputField
-                        label="Village"
-                        field="village"
-                    />
-
-                    <InputField
-                        label="Center"
-                        field="center"
-                    />
-
-                    <InputField
-                        label="Mobile Number"
-                        field="mobile_number"
-                    />
-
-                    <InputField
-                        label="Aadhaar Number"
-                        field="aadhaar_number"
-                    />
-
-                    <InputField
-                        label="PAN Number"
-                        field="pan_number"
-                    />
-
-                </div>
-
-            </section>
-
-
-            <section className="udyan-card">
-
-                <div className="section-heading">
-
-                    <div>
-
-                        <span className="section-number">
-                            03
-                        </span>
-
-                        <div>
-
-                            <h2>
-                                Bank Details
-                            </h2>
-
-                            <p>
-                                Enter farmer bank account
-                                information.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div className="udyan-form-grid">
-
-                    <InputField
-                        label="Bank Name 1"
-                        field="bank_name_1"
-                    />
-
-                    <InputField
-                        label="Bank Name 2"
-                        field="bank_name_2"
-                    />
-
-                    <InputField
-                        label="Account Number"
-                        field="account_number"
-                    />
-
-                    <InputField
-                        label="IFSC Code"
-                        field="ifsc_code"
-                    />
-
-                </div>
-
-            </section>
-
-
-            <section className="udyan-card">
-
-                <div className="section-heading">
-
-                    <div>
-
-                        <span className="section-number">
-                            04
-                        </span>
-
-                        <div>
-
-                            <h2>
-                                Supplier Details
-                            </h2>
-
-                            <p>
-                                Enter supplier information.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div className="udyan-form-grid">
-
-                    <InputField
-                        label="Supplier Name"
-                        field="supplier_name"
-                    />
-
-                    <InputField
-                        label="Supplier Mobile"
-                        field="supplier_mobile"
-                    />
-
-                    <div className="udyan-form-group full-width">
-
-                        <label>
-                            Supplier Address
-                        </label>
-
-                        <textarea
-                            value={
-                                bill.supplier_address
-                            }
-                            onChange={(event) =>
-                                updateBill(
-                                    "supplier_address",
-                                    event.target.value
                                 )
-                            }
-                            rows="3"
-                        />
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <section className="udyan-card">
-
-                <div className="section-heading">
-
-                    <div>
-
-                        <span className="section-number">
-                            05
-                        </span>
-
-                        <div>
-
-                            <h2>
-                                Labour Details
-                            </h2>
-
-                            <p>
-                                Enter labour information.
-                            </p>
-
+                            </span>
                         </div>
 
-                    </div>
 
-                </div>
+                        <div className="document-line">
+                            (1) बैंक का नाम व शाखा{" "}
+                            <DocField
+                                field="bank_name_1"
+                                className="w-200"
+                            />
 
+                            <span>
+                                खाता संख्या
+                            </span>
 
-                <div className="udyan-form-grid">
-
-                    <InputField
-                        label="Labour Name"
-                        field="labour_name"
-                    />
-
-                    <InputField
-                        label="Labour Mobile"
-                        field="labour_mobile"
-                    />
-
-                    <div className="udyan-form-group full-width">
-
-                        <label>
-                            Labour Address
-                        </label>
-
-                        <textarea
-                            value={
-                                bill.labour_address
-                            }
-                            onChange={(event) =>
-                                updateBill(
-                                    "labour_address",
-                                    event.target.value
-                                )
-                            }
-                            rows="3"
-                        />
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <section className="udyan-card calculation-card">
-
-                <div className="section-heading">
-
-                    <div>
-
-                        <span className="section-number">
-                            06
-                        </span>
-
-                        <div>
-
-                            <h2>
-                                Bill Calculation
-                            </h2>
-
-                            <p>
-                                Calculated automatically
-                                from the selected database
-                                standard.
-                            </p>
-
+                            <DocField
+                                field="account_number_1"
+                                className="w-150"
+                            />
                         </div>
 
-                    </div>
 
-                </div>
+                        <div className="document-line indent">
+                            आई0एफ0एस0सी0 कोड{" "}
+                            <DocField
+                                field="ifsc_code_1"
+                                className="w-150"
+                            />
+                        </div>
 
 
-                {!selectedStandard ? (
+                        <div className="document-line">
+                            (2) बैंक का नाम व शाखा{" "}
+                            <DocField
+                                field="bank_name_2"
+                                className="w-200"
+                            />
 
-                    <div className="calculation-empty">
-                        Select a crop to view calculations.
-                    </div>
+                            <span>
+                                खाता संख्या
+                            </span>
 
-                ) : (
+                            <DocField
+                                field="account_number_2"
+                                className="w-150"
+                            />
+                        </div>
 
-                    <div className="calculation-table-wrapper">
 
-                        <table className="calculation-table">
+                        <div className="document-line indent">
+                            आई0एफ0एस0सी0 कोड{" "}
+                            <DocField
+                                field="ifsc_code_2"
+                                className="w-150"
+                            />
+                        </div>
+
+
+                        <div className="document-line">
+                            आधार कार्ड सं0 (बारह अंकों का){" "}
+                            <DocField
+                                field="aadhaar_number"
+                                className="w-220"
+                            />
+                        </div>
+
+
+                        <div className="document-line">
+                            मोबाइल नम्बर{" "}
+                            <DocField
+                                field="mobile_number"
+                                className="w-150"
+                            />
+
+                            <span>
+                                पैन नम्बर
+                            </span>
+
+                            <DocField
+                                field="pan_number"
+                                className="w-150"
+                            />
+                        </div>
+
+
+                        {/* BILL TABLE */}
+
+                        <table className="document-table bill-table">
 
                             <thead>
+
                                 <tr>
-                                    <th>
-                                        Work / Item
+
+                                    <th rowSpan="2">
+                                        क्र0<br />
+                                        सं0
                                     </th>
 
-                                    <th>
-                                        Quantity
+                                    <th rowSpan="2">
+                                        कार्य/मद का विवरण
                                     </th>
 
-                                    <th>
-                                        Total Expenditure
+                                    <th rowSpan="2">
+                                        मात्रा/सं0
                                     </th>
 
-                                    <th>
-                                        Subsidy
+                                    <th colSpan="3">
+                                        व्यय का विवरण
+                                        <br />
+                                        (क्षेत्रफल{" "}
+                                        {
+                                            num(
+                                                bill.area
+                                            ).toFixed(2)
+                                        }{" "}
+                                        है0 हेतु)
                                     </th>
 
-                                    <th>
-                                        Farmer Contribution
-                                    </th>
                                 </tr>
+
+                                <tr>
+
+                                    <th>
+                                        कुल व्यय
+                                    </th>
+
+                                    <th>
+                                        देय राजसहायता
+                                    </th>
+
+                                    <th>
+                                        कृषक अंश
+                                    </th>
+
+                                </tr>
+
                             </thead>
+
 
                             <tbody>
 
                                 <tr>
 
-                                    <td>
-                                        Plant Material
+                                    <td className="center">
+                                        1
                                     </td>
 
                                     <td>
+                                        गोबर खाद/जैविक एवं वर्मी
+                                        कम्पोस्ट/अन्य पोषक
+                                        तत्व/पौध सुरक्षा/रोपण
+                                        सिंचाई आदि (कु0)
+                                        @ रु0{" "}
                                         {
-                                            calculations.plants
-                                        }
+                                            selectedStandard.manure_rate
+                                        }{" "}
+                                        प्रति कु0
                                     </td>
 
-                                    <td>
+                                    <td className="center">
+                                        {
+                                            calculation.manureQuantity
+                                        }{" "}
+                                        कु0
+                                    </td>
+
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            calculations.plantTotal,
-                                            bill.rounding
+                                            calculation.manureTotal,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
-                                    <td>
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            calculations.plantSubsidy,
-                                            bill.rounding
+                                            calculation.manureSubsidy,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
-                                    <td>
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            Math.max(
-                                                0,
-                                                calculations.plantTotal -
-                                                calculations.plantSubsidy
-                                            ),
-                                            bill.rounding
+                                            calculation.manureFarmer,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
@@ -1991,76 +1864,196 @@ const UdyanBill = () => {
 
                                 <tr>
 
-                                    <td>
-                                        Pit / Digging
+                                    <td className="center">
+                                        2
                                     </td>
 
                                     <td>
+                                        गड्ढा खुदान, भरान,
+                                        पौध रोपण
+                                        (1×1×1 मी0)
+                                        @ रु0{" "}
                                         {
-                                            calculations.plants
-                                        }
+                                            selectedStandard.pit_rate
+                                        }{" "}
+                                        प्रति गड्ढा
                                     </td>
 
-                                    <td>
+                                    <td className="center">
+                                        {
+                                            calculation.plants
+                                        }{" "}
+                                        गड्ढा
+                                    </td>
+
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            calculations.pitTotal,
-                                            bill.rounding
+                                            calculation.pitTotal,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
-                                    <td>
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.pitSubsidy,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.pitFarmer,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                </tr>
+
+
+                                <tr className="total-row">
+
+                                    <td
+                                        colSpan="3"
+                                        className="right"
+                                    >
+                                        योग :-
+                                    </td>
+
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.billTotal,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.billSubsidy,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.billFarmer,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                </tr>
+
+
+                                <tr>
+
+                                    <td className="center">
+                                        —
+                                    </td>
+
+                                    <td className="small-text">
+                                        फल पौध की लागत
+                                        (
+                                        {
+                                            selectedStandard.spacing
+                                        }
+                                        )
+                                        @ रु0{" "}
+                                        {
+                                            selectedStandard.plant_rate
+                                        }{" "}
+                                        प्रति पौध —
+                                        विभाग द्वारा पौध
+                                        के रूप में आपूर्ति
+                                        (नगद देय नहीं)
+                                    </td>
+
+                                    <td className="center">
+                                        {
+                                            calculation.plants
+                                        }
+                                    </td>
+
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.plantTotal,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                    <td className="money">
+                                        ₹
+                                        {formatMoney(
+                                            calculation.plantSubsidy,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </td>
+
+                                    <td className="money">
                                         ₹0
                                     </td>
 
-                                    <td>
-                                        ₹
-                                        {formatMoney(
-                                            calculations.pitTotal,
-                                            bill.rounding
-                                        )}
-                                    </td>
-
                                 </tr>
 
 
-                                <tr>
+                                <tr className="grand-row">
 
-                                    <td>
-                                        Manure
+                                    <td
+                                        colSpan="3"
+                                        className="right"
+                                    >
+                                        महायोग
+                                        (मानकानुसार) :-
                                     </td>
 
-                                    <td>
-                                        {
-                                            calculations.manureQuantity
-                                        }
-                                    </td>
-
-                                    <td>
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            calculations.manureTotal,
-                                            bill.rounding
+                                            calculation.grandTotal,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
-                                    <td>
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            calculations.manureSubsidy,
-                                            bill.rounding
+                                            calculation.grandSubsidy,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
-                                    <td>
+                                    <td className="money">
                                         ₹
                                         {formatMoney(
-                                            Math.max(
-                                                0,
-                                                calculations.manureTotal -
-                                                calculations.manureSubsidy
-                                            ),
-                                            bill.rounding
+                                            calculation.billFarmer,
+                                            Number(
+                                                bill.rounding
+                                            )
                                         )}
                                     </td>
 
@@ -2068,490 +2061,1475 @@ const UdyanBill = () => {
 
                             </tbody>
 
-
-                            <tfoot>
-
-                                <tr>
-
-                                    <th>
-                                        Grand Total
-                                    </th>
-
-                                    <th>
-                                        —
-                                    </th>
-
-                                    <th>
-                                        ₹
-                                        {formatMoney(
-                                            calculations.grandTotal,
-                                            bill.rounding
-                                        )}
-                                    </th>
-
-                                    <th>
-                                        ₹
-                                        {formatMoney(
-                                            calculations.grandSubsidy,
-                                            bill.rounding
-                                        )}
-                                    </th>
-
-                                    <th>
-                                        ₹
-                                        {formatMoney(
-                                            calculations.farmerContribution,
-                                            bill.rounding
-                                        )}
-                                    </th>
-
-                                </tr>
-
-                            </tfoot>
-
                         </table>
 
-                    </div>
 
-                )}
+                        {/* CERTIFICATION */}
 
-            </section>
+                        <p className="document-paragraph">
 
+                            प्रमाणित किया जाता है कि मेरे द्वारा{" "}
 
-            <section className="udyan-card voucher-options">
-
-                <div className="voucher-option">
-
-                    <div>
-
-                        <strong>
-                            Voucher 2
-                        </strong>
-
-                        <span>
-                            Generate the second voucher
-                            page with the bill.
-                        </span>
-
-                    </div>
-
-                    <label className="switch">
-
-                        <input
-                            type="checkbox"
-                            checked={bill.voucher_2}
-                            onChange={(event) =>
-                                updateBill(
-                                    "voucher_2",
-                                    event.target.checked
-                                )
-                            }
-                        />
-
-                        <span className="slider" />
-
-                    </label>
-
-                </div>
-
-            </section>
-
-
-            <div className="udyan-actions">
-
-                <button
-                    type="button"
-                    className="udyan-btn secondary"
-                    onClick={resetBill}
-                >
-                    Reset
-                </button>
-
-                <button
-                    type="button"
-                    className="udyan-btn secondary"
-                    onClick={handlePrint}
-                >
-                    Print / PDF
-                </button>
-
-                <button
-                    type="button"
-                    className="udyan-btn primary"
-                    onClick={saveBill}
-                    disabled={savingBill}
-                >
-                    {savingBill
-                        ? "Saving..."
-                        : "Save Bill"}
-                </button>
-
-            </div>
-
-        </>
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | PRINT BILL
-    |--------------------------------------------------------------------------
-    */
-    const renderPrintableBill = () => {
-
-        if (!selectedStandard) {
-            return null;
-        }
-
-        return (
-            <div className="print-document">
-
-                <div className="print-page">
-
-                    <div className="print-header">
-
-                        <h1>
-                            उद्यान विभाग
-                        </h1>
-
-                        <h2>
-                            बिल एवं कृषक अंश वाउचर
-                        </h2>
-
-                        <p>
-                            वित्तीय वर्ष {bill.financial_year}
-                        </p>
-
-                    </div>
-
-
-                    <div className="print-info-grid">
-
-                        <div>
                             <strong>
-                                कृषक का नाम
+                                {num(
+                                    bill.area
+                                ).toFixed(2)}
                             </strong>
 
-                            <span>
-                                {bill.farmer_name || "—"}
-                            </span>
-                        </div>
+                            {" "}है0 क्षेत्रफल में{" "}
 
-                        <div>
                             <strong>
-                                पिता / पति का नाम
-                            </strong>
-
-                            <span>
-                                {
-                                    bill.father_husband_name ||
-                                    "—"
-                                }
-                            </span>
-                        </div>
-
-                        <div>
-                            <strong>
-                                ग्राम
-                            </strong>
-
-                            <span>
-                                {bill.village || "—"}
-                            </span>
-                        </div>
-
-                        <div>
-                            <strong>
-                                केन्द्र
-                            </strong>
-
-                            <span>
-                                {bill.center || "—"}
-                            </span>
-                        </div>
-
-                        <div>
-                            <strong>
-                                फसल
-                            </strong>
-
-                            <span>
                                 {
                                     selectedStandard.crop_name
                                 }
-                            </span>
-                        </div>
-
-                        <div>
-                            <strong>
-                                क्षेत्रफल
                             </strong>
 
-                            <span>
-                                {bill.area || "0"} हे.
-                            </span>
+                            {" "}उद्यान लगाने हेतु मु0 रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.billTotal,
+                                    Number(
+                                        bill.rounding
+                                    )
+                                )}
+                            </strong>
+
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.billTotal
+                                )
+                            }
+                            )
+                            की धनराशि का कुल व्यय
+                            किया गया है, अतः कार्य
+                            योजना के अनुसार क्र0 सं0
+                            1 व 2 की धनराशि मु0 रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.billSubsidy,
+                                    Number(
+                                        bill.rounding
+                                    )
+                                )}
+                            </strong>
+
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.billSubsidy
+                                )
+                            }
+                            )
+                            राजसहायता का भुगतान
+                            मुझे करने की कृपा करेंगे।
+
+                        </p>
+
+
+                        <div className="signature-block">
+
+                            हस्ताक्षर कृषक
+                            <DocField
+                                field="farmer_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            कृषक का नाम
+                            <DocField
+                                field="farmer_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            पिता/पति का नाम
+                            <DocField
+                                field="father_husband_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            ग्राम
+                            <DocField
+                                field="village"
+                                className="signature-input"
+                            />
+
+                        </div>
+
+
+                        <p className="document-paragraph">
+
+                            प्रमाणित किया जाता है कि
+                            कृषक द्वारा उक्तानुसार{" "}
+
+                            <strong>
+                                {num(
+                                    bill.area
+                                ).toFixed(2)}
+                            </strong>
+
+                            {" "}है0 उद्यान लगाने हेतु{" "}
+
+                            <strong>
+                                {
+                                    calculation.plants
+                                }
+                            </strong>
+
+                            {" "}पौधों का रोपण किया गया
+                            है, जिसका मेरे द्वारा
+                            स्थलीय सत्यापन कर दिया
+                            गया है। अतः कृषक को योजना
+                            अनुसार मु0 रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.billSubsidy,
+                                    Number(
+                                        bill.rounding
+                                    )
+                                )}
+                            </strong>
+
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.billSubsidy
+                                )
+                            }
+                            )
+                            का अनुदान भुगतान करने की
+                            संस्तुति की जाती है।
+
+                        </p>
+
+
+                        <div className="officer-sign">
+
+                            प्रभारी
+                            <br />
+                            उद्यान सचल दल
+                            <br />
+
+                            केन्द्र{" "}
+
+                            <DocField
+                                field="center"
+                                className="officer-input"
+                            />
+
                         </div>
 
                     </div>
 
 
-                    <table className="print-table">
+                    {/* =================================================
+                       PAGE 2
+                       ================================================= */}
 
-                        <thead>
+                    <div className="a4-page">
 
-                            <tr>
-                                <th>
-                                    क्र.
-                                </th>
+                        <div className="document-center document-title">
+                            कृषक अंश वाउचर सं0 - 1
+                        </div>
 
-                                <th>
-                                    कार्य / सामग्री
-                                </th>
+                        <div className="document-center document-title-small">
+                            गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/
+                            अन्य पोषक तत्व आदि
+                        </div>
 
-                                <th>
-                                    मात्रा
-                                </th>
+                        <div className="document-center document-line">
 
-                                <th>
-                                    कुल व्यय
-                                </th>
+                            फल पौध :{" "}
 
-                                <th>
-                                    अनुदान
-                                </th>
+                            <strong>
+                                {
+                                    selectedStandard.crop_name
+                                }
+                            </strong>
 
-                                <th>
-                                    कृषक अंश
-                                </th>
-                            </tr>
+                            &nbsp;&nbsp;
 
-                        </thead>
+                            क्षेत्रफल :{" "}
 
-                        <tbody>
+                            <strong>
+                                {num(
+                                    bill.area
+                                ).toFixed(2)}
+                            </strong>
 
-                            <tr>
-                                <td>1</td>
+                            है0
 
-                                <td>
-                                    पौध सामग्री
-                                </td>
+                            &nbsp;&nbsp;
 
-                                <td>
-                                    {calculations.plants}
-                                </td>
+                            वर्ष :{" "}
 
-                                <td>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.plantTotal,
+                            <strong>
+                                {financialYear}
+                            </strong>
+
+                        </div>
+
+
+                        <p className="document-paragraph large-gap">
+
+                            मु0 रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.manureTotal,
+                                    Number(
                                         bill.rounding
-                                    )}
-                                </td>
+                                    )
+                                )}
+                            </strong>
 
-                                <td>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.plantSubsidy,
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.manureTotal
+                                )
+                            }
+                            )
+                            बावत गोबर खाद/जैविक एवं
+                            वर्मी कम्पोस्ट/अन्य पोषक
+                            तत्व आदि का भुगतान रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.manureTotal,
+                                    Number(
                                         bill.rounding
-                                    )}
-                                </td>
+                                    )
+                                )}
+                            </strong>
 
-                                <td>
-                                    ₹
-                                    {formatMoney(
-                                        Math.max(
-                                            0,
-                                            calculations.plantTotal -
-                                            calculations.plantSubsidy
-                                        ),
+                            {" "}श्री{" "}
+
+                            <DocField
+                                field="farmer_name"
+                                className="inline-document-input"
+                            />
+
+                            पुत्र श्री{" "}
+
+                            <DocField
+                                field="father_husband_name"
+                                className="inline-document-input"
+                            />
+
+                            ग्राम{" "}
+
+                            <DocField
+                                field="village"
+                                className="inline-document-input"
+                            />
+
+                            से नगद प्राप्त किया।
+
+                        </p>
+
+
+                        <div className="signature-block">
+
+                            हस्ताक्षर आपूर्ति कर्ता
+                            <DocField
+                                field="supplier_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            आपूर्ति कर्ता का नाम
+                            <DocField
+                                field="supplier_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            पिता/पति का नाम
+                            <DocField
+                                field="supplier_father_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            ग्राम
+                            <DocField
+                                field="supplier_village"
+                                className="signature-input"
+                            />
+
+                        </div>
+
+
+                        <p className="document-paragraph large-gap">
+
+                            प्रमाणित किया जाता है कि
+                            मेरे द्वारा श्री{" "}
+
+                            <DocField
+                                field="supplier_name"
+                                className="inline-document-input"
+                            />
+
+                            पुत्र श्री{" "}
+
+                            <DocField
+                                field="supplier_father_name"
+                                className="inline-document-input"
+                            />
+
+                            ग्राम{" "}
+
+                            <DocField
+                                field="supplier_village"
+                                className="inline-document-input"
+                            />
+
+                            को{" "}
+
+                            <strong>
+                                {num(
+                                    bill.area
+                                ).toFixed(2)}
+                            </strong>
+
+                            {" "}है0 में गोबर खाद/जैविक
+                            एवं वर्मी कम्पोस्ट/अन्य
+                            पोषक तत्व आदि हेतु मु0
+                            रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.manureTotal,
+                                    Number(
                                         bill.rounding
-                                    )}
-                                </td>
-                            </tr>
+                                    )
+                                )}
+                            </strong>
 
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.manureTotal
+                                )
+                            }
+                            )
+                            का नगद भुगतान किया गया
+                            है। अतः राजसहायता का भुगतान
+                            रु0{" "}
 
-                            <tr>
-                                <td>2</td>
-
-                                <td>
-                                    गड्ढा खुदाई
-                                </td>
-
-                                <td>
-                                    {calculations.plants}
-                                </td>
-
-                                <td>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.pitTotal,
+                            <strong>
+                                {formatMoney(
+                                    calculation.manureSubsidy,
+                                    Number(
                                         bill.rounding
-                                    )}
-                                </td>
+                                    )
+                                )}
+                            </strong>
 
-                                <td>
-                                    ₹0
-                                </td>
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.manureSubsidy
+                                )
+                            }
+                            )
+                            मुझे करने की कृपा कीजियेगा।
 
-                                <td>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.pitTotal,
+                        </p>
+
+
+                        <div className="signature-block">
+
+                            हस्ताक्षर कृषक
+                            <DocField
+                                field="farmer_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            कृषक का नाम
+                            <DocField
+                                field="farmer_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            पिता/पति का नाम
+                            <DocField
+                                field="father_husband_name"
+                                className="signature-input"
+                            />
+
+                            <br />
+
+                            ग्राम
+                            <DocField
+                                field="village"
+                                className="signature-input"
+                            />
+
+                        </div>
+
+
+                        <p className="document-paragraph large-gap">
+
+                            प्रमाणित किया जाता है कि
+                            कृषक श्री{" "}
+
+                            <strong>
+                                {bill.farmer_name ||
+                                    "________"}
+                            </strong>
+
+                            पुत्र श्री{" "}
+
+                            <strong>
+                                {
+                                    bill.father_husband_name ||
+                                    "________"
+                                }
+                            </strong>
+
+                            ग्राम{" "}
+
+                            <strong>
+                                {
+                                    bill.village ||
+                                    "________"
+                                }
+                            </strong>
+
+                            द्वारा{" "}
+
+                            <strong>
+                                {
+                                    calculation.manureQuantity
+                                }
+                            </strong>
+
+                            {" "}गोबर खाद/जैविक एवं
+                            वर्मी कम्पोस्ट/अन्य पोषक
+                            तत्व आदि का कार्य किया
+                            गया है, जिसका स्थलीय
+                            सत्यापन मेरे द्वारा कर
+                            दिया गया है। अतः राजसहायता
+                            रु0{" "}
+
+                            <strong>
+                                {formatMoney(
+                                    calculation.manureSubsidy,
+                                    Number(
                                         bill.rounding
-                                    )}
-                                </td>
-                            </tr>
+                                    )
+                                )}
+                            </strong>
+
+                            {" "}
+                            (
+                            {
+                                amountToHindiWords(
+                                    calculation.manureSubsidy
+                                )
+                            }
+                            )
+                            का भुगतान करने की
+                            संस्तुति की जाती है।
+
+                        </p>
 
 
-                            <tr>
-                                <td>3</td>
+                        <div className="officer-sign">
 
-                                <td>
-                                    खाद / Manure
-                                </td>
+                            प्रभारी
+                            <br />
+                            उद्यान सचल दल
+                            <br />
 
-                                <td>
+                            केन्द्र{" "}
+
+                            <DocField
+                                field="center"
+                                className="officer-input"
+                            />
+
+                        </div>
+
+                    </div>
+
+
+                    {/* =================================================
+                       PAGE 3
+                       ================================================= */}
+
+                    {showVoucher2 && (
+
+                        <div className="a4-page">
+
+                            <div className="document-center document-title">
+                                कृषक अंश वाउचर सं0 - 2
+                            </div>
+
+                            <div className="document-center document-title-small">
+                                गड्ढा खुदान, भरान, पौध रोपण
+                                (1×1×1 मी0)
+                            </div>
+
+                            <div className="document-center document-line">
+
+                                फल पौध :{" "}
+
+                                <strong>
                                     {
-                                        calculations.manureQuantity
+                                        selectedStandard.crop_name
                                     }
-                                </td>
+                                </strong>
 
-                                <td>
-                                    ₹
+                                &nbsp;&nbsp;
+
+                                क्षेत्रफल :{" "}
+
+                                <strong>
+                                    {num(
+                                        bill.area
+                                    ).toFixed(2)}
+                                </strong>
+
+                                है0
+
+                                &nbsp;&nbsp;
+
+                                वर्ष :{" "}
+
+                                <strong>
+                                    {financialYear}
+                                </strong>
+
+                            </div>
+
+
+                            <p className="document-paragraph large-gap">
+
+                                मु0 रु0{" "}
+
+                                <strong>
                                     {formatMoney(
-                                        calculations.manureTotal,
-                                        bill.rounding
+                                        calculation.pitTotal,
+                                        Number(
+                                            bill.rounding
+                                        )
                                     )}
-                                </td>
+                                </strong>
 
-                                <td>
-                                    ₹
+                                {" "}
+                                (
+                                {
+                                    amountToHindiWords(
+                                        calculation.pitTotal
+                                    )
+                                }
+                                )
+                                बावत गड्ढा खुदान,
+                                भरान, पौध रोपण
+                                (1×1×1 मी0) का भुगतान
+                                रु0{" "}
+
+                                <strong>
                                     {formatMoney(
-                                        calculations.manureSubsidy,
-                                        bill.rounding
+                                        calculation.pitTotal,
+                                        Number(
+                                            bill.rounding
+                                        )
                                     )}
-                                </td>
+                                </strong>
 
-                                <td>
-                                    ₹
+                                {" "}श्री{" "}
+
+                                <DocField
+                                    field="farmer_name"
+                                    className="inline-document-input"
+                                />
+
+                                पुत्र श्री{" "}
+
+                                <DocField
+                                    field="father_husband_name"
+                                    className="inline-document-input"
+                                />
+
+                                ग्राम{" "}
+
+                                <DocField
+                                    field="village"
+                                    className="inline-document-input"
+                                />
+
+                                से नगद प्राप्त किया।
+
+                            </p>
+
+
+                            <div className="signature-block">
+
+                                हस्ताक्षर श्रमिक
+                                <DocField
+                                    field="labour_name"
+                                    className="signature-input"
+                                />
+
+                                <br />
+
+                                श्रमिक का नाम
+                                <DocField
+                                    field="labour_name"
+                                    className="signature-input"
+                                />
+
+                                <br />
+
+                                पिता/पति का नाम
+                                <DocField
+                                    field="labour_father_name"
+                                    className="signature-input"
+                                />
+
+                                <br />
+
+                                ग्राम
+                                <DocField
+                                    field="labour_village"
+                                    className="signature-input"
+                                />
+
+                            </div>
+
+
+                            <p className="document-paragraph large-gap">
+
+                                प्रमाणित किया जाता है
+                                कि मेरे द्वारा श्री{" "}
+
+                                <strong>
+                                    {
+                                        bill.labour_name ||
+                                        "________"
+                                    }
+                                </strong>
+
+                                पुत्र श्री{" "}
+
+                                <strong>
+                                    {
+                                        bill.labour_father_name ||
+                                        "________"
+                                    }
+                                </strong>
+
+                                ग्राम{" "}
+
+                                <strong>
+                                    {
+                                        bill.labour_village ||
+                                        "________"
+                                    }
+                                </strong>
+
+                                को{" "}
+
+                                <strong>
+                                    {num(
+                                        bill.area
+                                    ).toFixed(2)}
+                                </strong>
+
+                                {" "}है0 में गड्ढा खुदान,
+                                भरान, पौध रोपण
+                                (1×1×1 मी0) हेतु
+                                मु0 रु0{" "}
+
+                                <strong>
                                     {formatMoney(
+                                        calculation.pitTotal,
+                                        Number(
+                                            bill.rounding
+                                        )
+                                    )}
+                                </strong>
+
+                                {" "}
+                                (
+                                {
+                                    amountToHindiWords(
+                                        calculation.pitTotal
+                                    )
+                                }
+                                )
+                                का नगद भुगतान किया
+                                गया है।
+
+                            </p>
+
+
+                            <div className="signature-block">
+
+                                हस्ताक्षर कृषक
+                                <DocField
+                                    field="farmer_name"
+                                    className="signature-input"
+                                />
+
+                                <br />
+
+                                कृषक का नाम
+                                <DocField
+                                    field="farmer_name"
+                                    className="signature-input"
+                                />
+
+                                <br />
+
+                                पिता/पति का नाम
+                                <DocField
+                                    field="father_husband_name"
+                                    className="signature-input"
+                                />
+
+                                <br />
+
+                                ग्राम
+                                <DocField
+                                    field="village"
+                                    className="signature-input"
+                                />
+
+                            </div>
+
+
+                            <p className="document-paragraph large-gap">
+
+                                प्रमाणित किया जाता है
+                                कि कृषक श्री{" "}
+
+                                <strong>
+                                    {
+                                        bill.farmer_name ||
+                                        "________"
+                                    }
+                                </strong>
+
+                                द्वारा{" "}
+
+                                <strong>
+                                    {
+                                        calculation.plants
+                                    }
+                                </strong>
+
+                                {" "}गड्ढा खुदान, भरान,
+                                पौध रोपण का कार्य
+                                किया गया है, जिसका
+                                स्थलीय सत्यापन मेरे
+                                द्वारा कर दिया गया है।
+
+                            </p>
+
+
+                            <div className="officer-sign">
+
+                                प्रभारी
+                                <br />
+                                उद्यान सचल दल
+                                <br />
+
+                                केन्द्र{" "}
+
+                                <DocField
+                                    field="center"
+                                    className="officer-input"
+                                />
+
+                            </div>
+
+                        </div>
+
+                    )}
+
+
+                    {/* =================================================
+                       STANDARD PAGE
+                       ================================================= */}
+
+                    {includeStandardPrint && (
+
+                        <div className="a4-page standard-print-page">
+
+                            <div className="document-center document-title-small">
+                                कार्यालय उद्यान विशेषज्ञ,
+                                कोटद्वार गढ़वाल
+                            </div>
+
+                            <div className="document-center document-title">
+                                जिला योजनान्तर्गत व्यक्तिगत
+                                उद्यानीकरण हेतु वर्षाकालीन
+                                फलपौध — संशोधित मानक
+                            </div>
+
+                            <div className="document-center">
+                                समस्त धनराशि प्रति 1.00 है0
+                            </div>
+
+
+                            {standards.map(
+                                (standard) => {
+
+                                    const perPlants =
+                                        num(
+                                            standard.plants_per_hectare
+                                        );
+
+                                    const plantTotal =
+                                        perPlants *
+                                        num(
+                                            standard.plant_rate
+                                        );
+
+                                    const pitTotal =
+                                        perPlants *
+                                        num(
+                                            standard.pit_rate
+                                        );
+
+                                    const manureTotal =
                                         Math.max(
                                             0,
-                                            calculations.manureTotal -
-                                            calculations.manureSubsidy
-                                        ),
-                                        bill.rounding
-                                    )}
-                                </td>
-                            </tr>
+                                            num(
+                                                standard.standard_total
+                                            ) -
+                                                plantTotal -
+                                                pitTotal
+                                        );
 
-                        </tbody>
+                                    const manureQty =
+                                        num(
+                                            standard.manure_rate
+                                        ) > 0
+                                            ? manureTotal /
+                                              num(
+                                                  standard.manure_rate
+                                              )
+                                            : 0;
+
+                                    const manureSubsidy =
+                                        Math.min(
+                                            manureTotal,
+                                            Math.max(
+                                                0,
+                                                num(
+                                                    standard.standard_subsidy
+                                                ) -
+                                                    plantTotal
+                                            )
+                                        );
+
+                                    return (
+
+                                        <div
+                                            className="standard-print-block"
+                                            key={
+                                                standard.id
+                                            }
+                                        >
+
+                                            <h3>
+                                                {
+                                                    standard.crop_name
+                                                }
+                                                {" "}
+                                                — क्षेत्रफल विस्तार
+                                                हेतु मानक
+                                            </h3>
+
+                                            <table className="document-table standard-table">
+
+                                                <thead>
+
+                                                    <tr>
+
+                                                        <th>
+                                                            क्र0
+                                                            सं0
+                                                        </th>
+
+                                                        <th>
+                                                            कार्य/मद विवरण
+                                                        </th>
+
+                                                        <th>
+                                                            मात्रा
+                                                        </th>
+
+                                                        <th>
+                                                            दर प्रति
+                                                        </th>
+
+                                                        <th>
+                                                            कुल व्यय
+                                                        </th>
+
+                                                        <th>
+                                                            देय राजसहायता
+                                                        </th>
+
+                                                        <th>
+                                                            कृषक अंश
+                                                        </th>
+
+                                                    </tr>
+
+                                                </thead>
+
+                                                <tbody>
+
+                                                    <tr>
+
+                                                        <td>
+                                                            1
+                                                        </td>
+
+                                                        <td>
+                                                            फल पौध
+                                                            की लागत
+                                                            (
+                                                            {
+                                                                standard.spacing
+                                                            }
+                                                            )
+                                                        </td>
+
+                                                        <td>
+                                                            {
+                                                                perPlants
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            {
+                                                                standard.plant_rate
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                plantTotal
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                plantTotal
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            0.00
+                                                        </td>
+
+                                                    </tr>
 
 
-                        <tfoot>
+                                                    <tr>
 
-                            <tr>
+                                                        <td>
+                                                            2
+                                                        </td>
 
-                                <th
-                                    colSpan="3"
-                                >
-                                    कुल
-                                </th>
+                                                        <td>
+                                                            गड्ढा खुदान,
+                                                            भरान,
+                                                            पौध रोपण
+                                                            (1×1×1 मी0)
+                                                        </td>
 
-                                <th>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.grandTotal,
-                                        bill.rounding
-                                    )}
-                                </th>
+                                                        <td>
+                                                            {
+                                                                perPlants
+                                                            }
+                                                        </td>
 
-                                <th>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.grandSubsidy,
-                                        bill.rounding
-                                    )}
-                                </th>
+                                                        <td>
+                                                            {
+                                                                standard.pit_rate
+                                                            }
+                                                        </td>
 
-                                <th>
-                                    ₹
-                                    {formatMoney(
-                                        calculations.farmerContribution,
-                                        bill.rounding
-                                    )}
-                                </th>
+                                                        <td>
+                                                            {formatMoney(
+                                                                pitTotal
+                                                            )}
+                                                        </td>
 
-                            </tr>
+                                                        <td>
+                                                            0.00
+                                                        </td>
 
-                        </tfoot>
+                                                        <td>
+                                                            {formatMoney(
+                                                                pitTotal
+                                                            )}
+                                                        </td>
 
-                    </table>
+                                                    </tr>
 
 
-                    <div className="signature-grid">
+                                                    <tr>
 
-                        <div>
-                            <span>
-                                कृषक के हस्ताक्षर
-                            </span>
+                                                        <td>
+                                                            3
+                                                        </td>
+
+                                                        <td>
+                                                            गोबर खाद/
+                                                            जैविक एवं
+                                                            वर्मी कम्पोस्ट/
+                                                            पोषक तत्व/
+                                                            पौध सुरक्षा/
+                                                            रोपण सिंचाई
+                                                        </td>
+
+                                                        <td>
+                                                            {roundValue(
+                                                                manureQty
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            {
+                                                                standard.manure_rate
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                manureTotal
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                manureSubsidy
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                manureTotal -
+                                                                    manureSubsidy
+                                                            )}
+                                                        </td>
+
+                                                    </tr>
+
+
+                                                    <tr className="standard-total-row">
+
+                                                        <td
+                                                            colSpan="4"
+                                                        >
+                                                            योग :-
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                num(
+                                                                    standard.standard_total
+                                                                )
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                num(
+                                                                    standard.standard_subsidy
+                                                                )
+                                                            )}
+                                                        </td>
+
+                                                        <td>
+                                                            {formatMoney(
+                                                                num(
+                                                                    standard.standard_total
+                                                                ) -
+                                                                    num(
+                                                                        standard.standard_subsidy
+                                                                    )
+                                                            )}
+                                                        </td>
+
+                                                    </tr>
+
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+                                    );
+                                }
+                            )}
+
                         </div>
 
-                        <div>
-                            <span>
-                                आपूर्तिकर्ता के हस्ताक्षर
-                            </span>
-                        </div>
-
-                        <div>
-                            <span>
-                                अधिकारी के हस्ताक्षर
-                            </span>
-                        </div>
-
-                    </div>
+                    )}
 
                 </div>
-
-            </div>
-        );
-    };
+            );
+        };
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | MAIN RENDER
-    |--------------------------------------------------------------------------
-    */
-    return (
-        <div className="udyan-page">
+    /* =====================================================
+       STANDARD MANAGEMENT VIEW
+       ===================================================== */
 
-            <header className="udyan-header">
+    const StandardsManager =
+        () => (
 
-                <div className="udyan-header-content">
+            <div className="standards-manager">
+
+                <div className="standards-toolbar">
 
                     <div>
 
-                        <div className="udyan-eyebrow">
-                            UDYAN DEPARTMENT
-                        </div>
-
-                        <h1>
-                            Bill & Farmer Contribution
-                        </h1>
+                        <h2>
+                            मानक तालिका
+                        </h2>
 
                         <p>
-                            Dynamic Crop Standard and
-                            Voucher Management
+                            फसलवार मानक उपयोगकर्ता
+                            द्वारा दर्ज एवं संपादित किए
+                            जाएंगे।
                         </p>
 
                     </div>
 
+                    <button
+                        type="button"
+                        className="green-button"
+                        onClick={
+                            openAddStandard
+                        }
+                    >
+                        + नई फसल जोड़ें
+                    </button>
 
-                    <div className="header-year">
+                </div>
+
+
+                {loadingStandards ? (
+
+                    <div className="loading-box">
+                        मानक लोड हो रहे हैं...
+                    </div>
+
+                ) : standards.length === 0 ? (
+
+                    <div className="no-standards">
+
+                        <div className="no-standard-icon">
+                            +
+                        </div>
+
+                        <h3>
+                            अभी कोई मानक दर्ज नहीं है
+                        </h3>
+
+                        <p>
+                            मूल HTML में दिए गए पाँच
+                            उदाहरण अब hard-coded नहीं
+                            हैं। यहाँ उपयोगकर्ता अपनी
+                            आवश्यकता के अनुसार नई फसल
+                            और उसके सभी मानक दर्ज करेगा।
+                        </p>
+
+                        <button
+                            type="button"
+                            className="green-button"
+                            onClick={
+                                openAddStandard
+                            }
+                        >
+                            पहला मानक जोड़ें
+                        </button>
+
+                    </div>
+
+                ) : (
+
+                    <div className="standards-scroll">
+
+                        {standards.map(
+                            (standard, index) => {
+
+                                const plantTotal =
+                                    num(
+                                        standard.plants_per_hectare
+                                    ) *
+                                    num(
+                                        standard.plant_rate
+                                    );
+
+                                const pitTotal =
+                                    num(
+                                        standard.plants_per_hectare
+                                    ) *
+                                    num(
+                                        standard.pit_rate
+                                    );
+
+                                const manureTotal =
+                                    Math.max(
+                                        0,
+                                        num(
+                                            standard.standard_total
+                                        ) -
+                                            plantTotal -
+                                            pitTotal
+                                    );
+
+                                const calculatedTotal =
+                                    plantTotal +
+                                    pitTotal +
+                                    manureTotal;
+
+                                const isMatched =
+                                    Math.abs(
+                                        calculatedTotal -
+                                            num(
+                                                standard.standard_total
+                                            )
+                                    ) < 0.01;
+
+                                return (
+
+                                    <div
+                                        className="standard-card"
+                                        key={
+                                            standard.id
+                                        }
+                                    >
+
+                                        <div className="standard-card-header">
+
+                                            <div className="standard-title">
+
+                                                <span>
+                                                    {index + 1}.
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        standard.crop_name
+                                                    }
+                                                </strong>
+
+                                            </div>
+
+                                            <div className="standard-card-actions">
+
+                                                <span
+                                                    className={
+                                                        isMatched
+                                                            ? "match-badge"
+                                                            : "warning-badge"
+                                                    }
+                                                >
+                                                    {isMatched
+                                                        ? "मिलान सही ✓"
+                                                        : "मानक में अन्तर"}
+                                                </span>
+
+                                                <button
+                                                    type="button"
+                                                    className="edit-button"
+                                                    onClick={() =>
+                                                        openEditStandard(
+                                                            standard
+                                                        )
+                                                    }
+                                                >
+                                                    संपादित करें
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    className="delete-button"
+                                                    onClick={() =>
+                                                        deleteStandard(
+                                                            standard.id
+                                                        )
+                                                    }
+                                                >
+                                                    हटाएँ
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div className="standard-values-grid">
+
+                                            <div>
+                                                <span>
+                                                    दूरी
+                                                </span>
+                                                <strong>
+                                                    {
+                                                        standard.spacing
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>
+                                                    पौध संख्या
+                                                </span>
+                                                <strong>
+                                                    {
+                                                        standard.plants_per_hectare
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>
+                                                    पौध दर
+                                                </span>
+                                                <strong>
+                                                    ₹
+                                                    {
+                                                        standard.plant_rate
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>
+                                                    गड्ढा दर
+                                                </span>
+                                                <strong>
+                                                    ₹
+                                                    {
+                                                        standard.pit_rate
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>
+                                                    खाद दर
+                                                </span>
+                                                <strong>
+                                                    ₹
+                                                    {
+                                                        standard.manure_rate
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>
+                                                    मानक महायोग
+                                                </span>
+                                                <strong>
+                                                    ₹
+                                                    {
+                                                        standard.standard_total
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                            <div>
+                                                <span>
+                                                    देय राजसहायता
+                                                </span>
+                                                <strong>
+                                                    ₹
+                                                    {
+                                                        standard.standard_subsidy
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                );
+                            }
+                        )}
+
+                    </div>
+                )}
+
+            </div>
+        );
+
+
+    /* =====================================================
+       RENDER
+       ===================================================== */
+
+    return (
+
+        <div className="udyan-app">
+
+            {/* =====================================================
+               CONTROL PANEL
+               ===================================================== */}
+
+            <div className="control-panel">
+
+                <div className="control-heading">
+
+                    <div>
+
+                        <div className="control-eyebrow">
+                            उद्यान विभाग
+                        </div>
+
+                        <h1>
+                            उद्यान बिल एवं कृषक अंश वाउचर
+                        </h1>
+
+                        <p>
+                            स्वतः गणना प्रपत्र —
+                            उपयोगकर्ता द्वारा दर्ज
+                            फसल मानक
+                        </p>
+
+                    </div>
+
+                    <div className="panel-year">
 
                         <span>
-                            Financial Year
+                            वर्ष
                         </span>
 
                         <strong>
@@ -2562,86 +3540,882 @@ const UdyanBill = () => {
 
                 </div>
 
-            </header>
 
+                <div className="control-tabs">
 
-            <nav className="udyan-tabs">
-
-                <button
-                    type="button"
-                    className={
-                        activePage === "bill"
-                            ? "active"
-                            : ""
-                    }
-                    onClick={() =>
-                        setActivePage("bill")
-                    }
-                >
-                    Bill Generator
-                </button>
-
-                <button
-                    type="button"
-                    className={
-                        activePage === "standards"
-                            ? "active"
-                            : ""
-                    }
-                    onClick={() =>
-                        setActivePage("standards")
-                    }
-                >
-                    Crop Standards
-                </button>
-
-            </nav>
-
-
-            <main className="udyan-container">
-
-                {message.text && (
-                    <div
-                        className={`udyan-message ${message.type}`}
+                    <button
+                        type="button"
+                        className={
+                            activeSection === "bill"
+                                ? "active"
+                                : ""
+                        }
+                        onClick={() =>
+                            setActiveSection(
+                                "bill"
+                            )
+                        }
                     >
-                        {message.text}
+                        बिल प्रपत्र
+                    </button>
 
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setMessage({
-                                    type: "",
-                                    text: "",
-                                })
-                            }
-                        >
-                            ×
-                        </button>
+                    <button
+                        type="button"
+                        className={
+                            activeSection ===
+                            "standards"
+                                ? "active"
+                                : ""
+                        }
+                        onClick={() =>
+                            setActiveSection(
+                                "standards"
+                            )
+                        }
+                    >
+                        मानक तालिका
+                    </button>
+
+                </div>
+
+
+                {activeSection ===
+                "standards" ? (
+
+                    <div className="panel-content">
+                        <div className="year-selector-row">
+
+                            <label>
+                                <span>
+                                    वर्ष
+                                </span>
+
+                                <input
+                                    value={
+                                        financialYear
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setFinancialYear(
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                />
+
+                            </label>
+
+                        </div>
+
+                        <StandardsManager />
                     </div>
-                )}
-
-
-                {activePage === "standards" ? (
-
-                    renderStandards()
 
                 ) : (
 
                     <>
-                        {renderBill()}
 
-                        {renderPrintableBill()}
+                        <div className="quick-controls">
+
+                            <label className="control-field crop-field">
+
+                                <span>
+                                    फल पौध
+                                </span>
+
+                                <select
+                                    value={
+                                        selectedCropId
+                                    }
+                                    onChange={
+                                        handleCropChange
+                                    }
+                                >
+
+                                    <option value="">
+                                        — फल पौध चुनें —
+                                    </option>
+
+                                    {standards.map(
+                                        (standard) => (
+
+                                            <option
+                                                key={
+                                                    standard.id
+                                                }
+                                                value={
+                                                    standard.id
+                                                }
+                                            >
+                                                {
+                                                    standard.crop_name
+                                                }
+                                            </option>
+
+                                        )
+                                    )}
+
+                                </select>
+
+                            </label>
+
+
+                            <label className="control-field">
+
+                                <span>
+                                    क्षेत्रफल है0
+                                    (सीधे अंकों में लिखें)
+                                </span>
+
+                                <input
+                                    value={
+                                        bill.area
+                                    }
+                                    inputMode="decimal"
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        updateBill(
+                                            "area",
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                    placeholder="जैसे 0.125"
+                                />
+
+                            </label>
+
+
+                            <label className="control-field">
+
+                                <span>
+                                    पौध संख्या
+                                    (स्वतः / बदल सकते हैं)
+                                </span>
+
+                                <input
+                                    type="number"
+                                    value={
+                                        bill.calculation_basis ===
+                                        "area"
+                                            ? calculation.plants
+                                            : bill.plants
+                                    }
+                                    disabled={
+                                        bill.calculation_basis ===
+                                        "area"
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        updateBill(
+                                            "plants",
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                />
+
+                            </label>
+
+
+                            <label className="control-field">
+
+                                <span>
+                                    गणना का आधार
+                                </span>
+
+                                <select
+                                    value={
+                                        bill.calculation_basis
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        updateBill(
+                                            "calculation_basis",
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                >
+
+                                    <option value="area">
+                                        क्षेत्रफल के अनुपात में
+                                        (मानक)
+                                    </option>
+
+                                    <option value="plant">
+                                        वास्तविक पौध संख्या
+                                        के अनुसार
+                                    </option>
+
+                                </select>
+
+                            </label>
+
+
+                            <label className="control-field">
+
+                                <span>
+                                    राशि
+                                </span>
+
+                                <select
+                                    value={
+                                        bill.rounding
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        updateBill(
+                                            "rounding",
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                >
+
+                                    <option value="2">
+                                        पैसे सहित
+                                        (2 दशमलव)
+                                    </option>
+
+                                    <option value="0">
+                                        पूर्णांक रुपये में
+                                    </option>
+
+                                </select>
+
+                            </label>
+
+
+                            <label className="control-field">
+
+                                <span>
+                                    वर्ष
+                                </span>
+
+                                <input
+                                    value={
+                                        financialYear
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setFinancialYear(
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                />
+
+                            </label>
+
+
+                            <label className="control-field">
+
+                                <span>
+                                    वाउचर सं0-2
+                                </span>
+
+                                <select
+                                    value={
+                                        showVoucher2
+                                            ? "yes"
+                                            : "no"
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setShowVoucher2(
+                                            event
+                                                .target
+                                                .value ===
+                                            "yes"
+                                        )
+                                    }
+                                >
+
+                                    <option value="no">
+                                        न दें
+                                    </option>
+
+                                    <option value="yes">
+                                        दें
+                                    </option>
+
+                                </select>
+
+                            </label>
+
+                        </div>
+
+
+                        <div className="action-row">
+
+                            <button
+                                type="button"
+                                className="green-button"
+                                onClick={() =>
+                                    window.print()
+                                }
+                            >
+                                प्रिंट / PDF
+                            </button>
+
+                            <button
+                                type="button"
+                                className="outline-button"
+                                onClick={
+                                    saveBill
+                                }
+                                disabled={
+                                    savingBill
+                                }
+                            >
+                                {savingBill
+                                    ? "सेव हो रहा है..."
+                                    : "बिल सेव करें"}
+                            </button>
+
+                            <label className="print-check">
+
+                                <input
+                                    type="checkbox"
+                                    checked={
+                                        includeStandardPrint
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setIncludeStandardPrint(
+                                            event
+                                                .target
+                                                .checked
+                                        )
+                                    }
+                                />
+
+                                प्रिंट में मानक
+                                तालिका का पृष्ठ
+                                जोड़ें
+
+                            </label>
+
+                            <button
+                                type="button"
+                                className="warning-button"
+                                onClick={
+                                    resetBill
+                                }
+                            >
+                                रीसेट
+                            </button>
+
+                        </div>
+
+
+                        {/* LIVE TALLY */}
+
+                        {selectedStandard && (
+
+                            <div className="live-tally">
+
+                                <div>
+
+                                    <span>
+                                        महायोग
+                                    </span>
+
+                                    <strong>
+                                        ₹
+                                        {formatMoney(
+                                            calculation.grandTotal,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </strong>
+
+                                </div>
+
+                                <div>
+
+                                    <span>
+                                        कुल राजसहायता
+                                    </span>
+
+                                    <strong>
+                                        ₹
+                                        {formatMoney(
+                                            calculation.grandSubsidy,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </strong>
+
+                                </div>
+
+                                <div>
+
+                                    <span>
+                                        कृषक अंश
+                                    </span>
+
+                                    <strong>
+                                        ₹
+                                        {formatMoney(
+                                            calculation.billFarmer,
+                                            Number(
+                                                bill.rounding
+                                            )
+                                        )}
+                                    </strong>
+
+                                </div>
+
+                                <div className="tally-status">
+                                    लेखा मिलान सही ✓
+                                </div>
+
+                            </div>
+                        )}
+
+
+                        {/* =================================================
+                           FORM INPUTS
+                           ================================================= */}
+
+                        <details
+                            className="input-section"
+                            open
+                        >
+
+                            <summary>
+                                प्रपत्र में भरने योग्य विवरण
+                            </summary>
+
+                            <div className="input-grid">
+
+                                <Field
+                                    label="जाति"
+                                    field="caste"
+                                />
+
+                                <Field
+                                    label="मद"
+                                    field="scheme_name"
+                                />
+
+                                <Field
+                                    label="नाम कृषक"
+                                    field="farmer_name"
+                                />
+
+                                <Field
+                                    label="पिता/पति का नाम"
+                                    field="father_husband_name"
+                                />
+
+                                <Field
+                                    label="जन्म तिथि"
+                                    field="date_of_birth"
+                                    type="date"
+                                />
+
+                                <Field
+                                    label="ग्राम"
+                                    field="village"
+                                />
+
+                                <Field
+                                    label="उद्यान सचल दल केन्द्र"
+                                    field="center"
+                                />
+
+                                <Field
+                                    label="बैंक का नाम व शाखा (1)"
+                                    field="bank_name_1"
+                                />
+
+                                <Field
+                                    label="खाता संख्या (1)"
+                                    field="account_number_1"
+                                />
+
+                                <Field
+                                    label="आई0एफ0एस0सी0 कोड (1)"
+                                    field="ifsc_code_1"
+                                />
+
+                                <Field
+                                    label="बैंक का नाम व शाखा (2)"
+                                    field="bank_name_2"
+                                />
+
+                                <Field
+                                    label="खाता संख्या (2)"
+                                    field="account_number_2"
+                                />
+
+                                <Field
+                                    label="आई0एफ0एस0सी0 कोड (2)"
+                                    field="ifsc_code_2"
+                                />
+
+                                <Field
+                                    label="आधार कार्ड सं0"
+                                    field="aadhaar_number"
+                                />
+
+                                <Field
+                                    label="मोबाइल नम्बर"
+                                    field="mobile_number"
+                                />
+
+                                <Field
+                                    label="पैन नम्बर"
+                                    field="pan_number"
+                                />
+
+                                <Field
+                                    label="आपूर्ति कर्ता का नाम"
+                                    field="supplier_name"
+                                />
+
+                                <Field
+                                    label="आपूर्ति कर्ता के पिता/पति का नाम"
+                                    field="supplier_father_name"
+                                />
+
+                                <Field
+                                    label="आपूर्ति कर्ता ग्राम"
+                                    field="supplier_village"
+                                />
+
+                                <Field
+                                    label="श्रमिक का नाम"
+                                    field="labour_name"
+                                />
+
+                                <Field
+                                    label="श्रमिक के पिता/पति का नाम"
+                                    field="labour_father_name"
+                                />
+
+                                <Field
+                                    label="श्रमिक ग्राम"
+                                    field="labour_village"
+                                />
+
+                            </div>
+
+                        </details>
+
+
+                        {/* =================================================
+                           STANDARD QUICK EDIT
+                           ================================================= */}
+
+                        <details className="standards-inline">
+
+                            <summary>
+                                मानक तालिका — फसलवार,
+                                सम्पादन योग्य
+                            </summary>
+
+                            <div className="standard-inline-header">
+
+                                <span>
+                                    यहाँ से सीधे मानक
+                                    जोड़ें / बदलें।
+                                    कोई भी फसल पहले से
+                                    निर्धारित नहीं है।
+                                </span>
+
+                                <button
+                                    type="button"
+                                    className="green-button"
+                                    onClick={
+                                        openAddStandard
+                                    }
+                                >
+                                    + नई फसल जोड़ें
+                                </button>
+
+                            </div>
+
+                            {standards.length === 0 ? (
+
+                                <div className="inline-empty">
+                                    अभी कोई मानक उपलब्ध नहीं है।
+                                </div>
+
+                            ) : (
+
+                                <div className="inline-standard-table-wrapper">
+
+                                    <table className="inline-standard-table">
+
+                                        <thead>
+
+                                            <tr>
+
+                                                <th>
+                                                    फसल
+                                                </th>
+
+                                                <th>
+                                                    दूरी
+                                                </th>
+
+                                                <th>
+                                                    पौध संख्या
+                                                </th>
+
+                                                <th>
+                                                    पौध दर
+                                                </th>
+
+                                                <th>
+                                                    गड्ढा दर
+                                                </th>
+
+                                                <th>
+                                                    खाद दर
+                                                </th>
+
+                                                <th>
+                                                    महायोग
+                                                </th>
+
+                                                <th>
+                                                    राजसहायता
+                                                </th>
+
+                                                <th>
+                                                    कार्यवाही
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+                                        <tbody>
+
+                                            {standards.map(
+                                                (
+                                                    standard
+                                                ) => (
+
+                                                    <tr
+                                                        key={
+                                                            standard.id
+                                                        }
+                                                    >
+
+                                                        <td>
+                                                            {
+                                                                standard.crop_name
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            {
+                                                                standard.spacing
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            {
+                                                                standard.plants_per_hectare
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            ₹
+                                                            {
+                                                                standard.plant_rate
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            ₹
+                                                            {
+                                                                standard.pit_rate
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            ₹
+                                                            {
+                                                                standard.manure_rate
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            ₹
+                                                            {
+                                                                standard.standard_total
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            ₹
+                                                            {
+                                                                standard.standard_subsidy
+                                                            }
+                                                        </td>
+
+                                                        <td>
+
+                                                            <div className="small-actions">
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        openEditStandard(
+                                                                            standard
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    संपादित
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        deleteStandard(
+                                                                            standard.id
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    हटाएँ
+                                                                </button>
+
+                                                            </div>
+
+                                                        </td>
+
+                                                    </tr>
+                                                )
+                                            )}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+                            )}
+
+                        </details>
+
                     </>
-
                 )}
 
-            </main>
+            </div>
 
+
+            {/* =========================================================
+               MESSAGE
+               ========================================================= */}
+
+            {message && (
+
+                <div className="toast-message">
+
+                    <span>
+                        {message}
+                    </span>
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setMessage("")
+                        }
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+            )}
+
+
+            {/* =========================================================
+               LIVE PREVIEW
+               ========================================================= */}
+
+            {activeSection === "bill" && (
+
+                <main className="preview-wrapper">
+
+                    <div className="preview-heading">
+
+                        <div>
+
+                            <span>
+                                LIVE PREVIEW
+                            </span>
+
+                            <h2>
+                                प्रपत्र पूर्वावलोकन
+                            </h2>
+
+                        </div>
+
+                        {selectedStandard && (
+
+                            <div className="preview-meta">
+
+                                <span>
+                                    फसल
+                                </span>
+
+                                <strong>
+                                    {
+                                        selectedStandard.crop_name
+                                    }
+                                </strong>
+
+                                <span>
+                                    वर्ष
+                                </span>
+
+                                <strong>
+                                    {financialYear}
+                                </strong>
+
+                            </div>
+
+                        )}
+
+                    </div>
+
+
+                    {PrintPreview()}
+
+                </main>
+            )}
+
+
+            {/* =========================================================
+               STANDARD MODAL
+               ========================================================= */}
 
             {showStandardModal && (
 
                 <div
-                    className="standard-modal-overlay"
+                    className="modal-backdrop"
                     onMouseDown={(event) => {
 
                         if (
@@ -2656,22 +4430,21 @@ const UdyanBill = () => {
 
                     <div className="standard-modal">
 
-                        <div className="standard-modal-header">
+                        <div className="modal-header">
 
                             <div>
 
                                 <span>
-                                    CROP STANDARD
+                                    मानक प्रविष्टि
                                 </span>
 
                                 <h2>
                                     {editingStandard
-                                        ? "Edit Crop Standard"
-                                        : "Add Crop Standard"}
+                                        ? "मानक संपादित करें"
+                                        : "नई फसल का मानक दर्ज करें"}
                                 </h2>
 
                             </div>
-
 
                             <button
                                 type="button"
@@ -2686,84 +4459,85 @@ const UdyanBill = () => {
                         </div>
 
 
-                        <div className="standard-modal-body">
+                        <div className="modal-body">
 
-                            <div className="standard-form-grid">
+                            <div className="modal-grid">
 
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Financial Year *
-                                    </label>
+                                <label>
+                                    <span>
+                                        वर्ष *
+                                    </span>
 
                                     <input
-                                        type="text"
                                         value={
                                             standardForm.financial_year
                                         }
-                                        placeholder="2026-27"
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "financial_year",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Crop Name *
-                                    </label>
+                                <label>
+                                    <span>
+                                        फल पौध / फसल का नाम *
+                                    </span>
 
                                     <input
-                                        type="text"
                                         value={
                                             standardForm.crop_name
                                         }
-                                        placeholder="Enter crop name"
-                                        onChange={(event) =>
+                                        placeholder="जैसे आम कलमी"
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "crop_name",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Spacing *
-                                    </label>
+                                <label>
+                                    <span>
+                                        दूरी / Spacing *
+                                    </span>
 
                                     <input
-                                        type="text"
                                         value={
                                             standardForm.spacing
                                         }
-                                        placeholder="Example: 6 × 6 मी0"
-                                        onChange={(event) =>
+                                        placeholder="जैसे 8 × 8 मी0"
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "spacing",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Plants Per Hectare *
-                                    </label>
+                                <label>
+                                    <span>
+                                        पौध संख्या प्रति है0 *
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2772,22 +4546,24 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.plants_per_hectare
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "plants_per_hectare",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Plant Rate *
-                                    </label>
+                                <label>
+                                    <span>
+                                        पौध दर *
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2796,22 +4572,24 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.plant_rate
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "plant_rate",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Pit Rate *
-                                    </label>
+                                <label>
+                                    <span>
+                                        गड्ढा दर *
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2820,22 +4598,24 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.pit_rate
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "pit_rate",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Manure Rate *
-                                    </label>
+                                <label>
+                                    <span>
+                                        खाद दर *
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2844,22 +4624,24 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.manure_rate
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "manure_rate",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Manure Quantity
-                                    </label>
+                                <label>
+                                    <span>
+                                        खाद मात्रा
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2868,22 +4650,24 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.manure_quantity
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "manure_quantity",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Standard Total *
-                                    </label>
+                                <label>
+                                    <span>
+                                        मानक महायोग *
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2892,22 +4676,24 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.standard_total
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "standard_total",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                     />
+                                </label>
 
-                                </div>
 
-
-                                <div className="udyan-form-group">
-
-                                    <label>
-                                        Standard Subsidy *
-                                    </label>
+                                <label>
+                                    <span>
+                                        देय राजसहायता *
+                                    </span>
 
                                     <input
                                         type="number"
@@ -2916,56 +4702,60 @@ const UdyanBill = () => {
                                         value={
                                             standardForm.standard_subsidy
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             updateStandardForm(
                                                 "standard_subsidy",
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
+                                            )
+                                        }
+                                    />
+                                </label>
+
+
+                                <label className="active-checkbox">
+
+                                    <input
+                                        type="checkbox"
+                                        checked={
+                                            standardForm.is_active
+                                        }
+                                        onChange={(
+                                            event
+                                        ) =>
+                                            updateStandardForm(
+                                                "is_active",
+                                                event
+                                                    .target
+                                                    .checked
                                             )
                                         }
                                     />
 
-                                </div>
+                                    <span>
+                                        यह मानक सक्रिय है
+                                    </span>
 
-
-                                <div className="standard-active-field">
-
-                                    <label className="checkbox-label">
-
-                                        <input
-                                            type="checkbox"
-                                            checked={
-                                                standardForm.is_active
-                                            }
-                                            onChange={(event) =>
-                                                updateStandardForm(
-                                                    "is_active",
-                                                    event.target.checked
-                                                )
-                                            }
-                                        />
-
-                                        <span>
-                                            Active Standard
-                                        </span>
-
-                                    </label>
-
-                                </div>
+                                </label>
 
                             </div>
 
 
-                            <div className="standard-calculation-note">
+                            <div className="modal-note">
 
                                 <strong>
-                                    Note:
+                                    ध्यान दें :-
                                 </strong>
 
                                 <span>
-                                    These values are entered
-                                    by the user and stored in
-                                    the database. No predefined
-                                    crop standards are used.
+                                    यहाँ दर्ज किया गया मानक
+                                    database में सेव होगा।
+                                    कोई भी फसल या दर पहले
+                                    से hard-code नहीं की गई
+                                    है।
                                 </span>
 
                             </div>
@@ -2973,34 +4763,33 @@ const UdyanBill = () => {
                         </div>
 
 
-                        <div className="standard-modal-footer">
+                        <div className="modal-footer">
 
                             <button
                                 type="button"
-                                className="udyan-btn secondary"
+                                className="outline-button"
                                 onClick={
                                     closeStandardModal
                                 }
-                                disabled={
-                                    savingStandard
-                                }
                             >
-                                Cancel
+                                रद्द करें
                             </button>
 
                             <button
                                 type="button"
-                                className="udyan-btn primary"
-                                onClick={saveStandard}
+                                className="green-button"
+                                onClick={
+                                    saveStandard
+                                }
                                 disabled={
                                     savingStandard
                                 }
                             >
                                 {savingStandard
-                                    ? "Saving..."
+                                    ? "सेव हो रहा है..."
                                     : editingStandard
-                                    ? "Update Standard"
-                                    : "Save Standard"}
+                                    ? "मानक अपडेट करें"
+                                    : "मानक सेव करें"}
                             </button>
 
                         </div>
@@ -3013,6 +4802,4 @@ const UdyanBill = () => {
 
         </div>
     );
-};
-
-export default UdyanBill;
+}
