@@ -95,6 +95,15 @@ function DashBoardHeader() {
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
+            <Nav className="ms-auto">
+            <NavDropdown title="Udhyan" id="account-nav-dropdown" align="end">
+               <NavDropdown.Item as={Link} to="/UdyanBill" active={location.pathname === '/UdyanBill'}>
+              Udyan Bill
+              </NavDropdown.Item>
+              <NavDropdown.Divider />
+             
+            </NavDropdown>
+          </Nav>
         </Navbar.Collapse>
       </Container>
     </Navbar>

@@ -38,6 +38,7 @@ import NurseryPhysicalEntry from "./componets/dash_board/NurseryPhysicalEntry";
 import { useAuth } from "./context/AuthContext";
 import HorticultureManagementSystem from "./componets/dash_board/HorticultureManagementSystem";
 import UdyanBill from "./componets/udhyan/UdyanBill";
+import DashBoardHeader from "./componets/dash_board/DashBoardHeader";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -59,7 +60,7 @@ function NavbarWrapper() {
     // For admin loginType - return null (Dashboard will show DashBoardHeader)
     return null;
   }
-  return ;
+  return <DashBoardHeader />;
 }
 
 // Main App content component
