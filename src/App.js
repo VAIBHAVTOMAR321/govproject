@@ -36,6 +36,8 @@ import DemandView from "./componets/dash_board/DemandView";
 import NurseryFinancialEntry from "./componets/dash_board/NurseryFinancialEntry";
 import NurseryPhysicalEntry from "./componets/dash_board/NurseryPhysicalEntry";
 import { useAuth } from "./context/AuthContext";
+import HorticultureManagementSystem from "./componets/dash_board/HorticultureManagementSystem";
+import UdyanBill from "./componets/udhyan/UdyanBill";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -84,6 +86,16 @@ function AppContent() {
             <Route path="/Registration" element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Registration />
+              </ProtectedRoute>
+            } />
+            <Route path="/UdyanBill" element={
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
+                <UdyanBill />
+              </ProtectedRoute>
+            } />
+            <Route path="/HorticultureManagementSystem" element={
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
+                <HorticultureManagementSystem />
               </ProtectedRoute>
             } />
             <Route path="/KrishiRegistration" element={
