@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./KishanBeej.css";
 
-const API = "/api/kishan-beej";
+const API = "https://mahadevaaya.com/govbillingsystem/backend/api";
 
 const today = () =>
   new Date().toISOString().slice(0, 10);
@@ -119,7 +119,7 @@ async function apiFetch(
       ...options,
       method,
       headers,
-      credentials: "include",
+    //   credentials: "include",
     }
   );
 
@@ -451,20 +451,88 @@ export default function KishanBeej() {
     setOpenStandard,
   ] = useState({});
 
+  const asList = (value) => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (Array.isArray(value?.results)) {
+      return value.results;
+    }
+
+    return [];
+  };
+
   async function load() {
     setLoading(true);
     setError("");
 
     try {
-      const result =
+      // Bootstrap initializes/loads the complete data set first.
+      const bootstrap =
         await apiFetch(
           "/bootstrap/"
         );
 
+      // Then load every resource from its own API so the UI is
+      // directly connected to the individual backend endpoints.
+      const [
+        masterResult,
+        centresResult,
+        varietiesResult,
+        standardsResult,
+        purchasesResult,
+        allocationsResult,
+        distributionsResult,
+      ] = await Promise.all([
+        apiFetch("/master/"),
+        apiFetch("/centres/"),
+        apiFetch("/varieties/"),
+        apiFetch("/standards/"),
+        apiFetch("/purchases/"),
+        apiFetch("/allocations/"),
+        apiFetch("/distributions/"),
+      ]);
+
+      const result = {
+        master:
+          masterResult ||
+          bootstrap.master ||
+          null,
+
+        centres:
+          asList(centresResult).length
+            ? asList(centresResult)
+            : asList(bootstrap.centres),
+
+        varieties:
+          asList(varietiesResult).length
+            ? asList(varietiesResult)
+            : asList(bootstrap.varieties),
+
+        standards:
+          asList(standardsResult).length
+            ? asList(standardsResult)
+            : asList(bootstrap.standards),
+
+        purchases:
+          asList(purchasesResult).length
+            ? asList(purchasesResult)
+            : asList(bootstrap.purchases),
+
+        allocations:
+          asList(allocationsResult).length
+            ? asList(allocationsResult)
+            : asList(bootstrap.allocations),
+
+        entries:
+          asList(distributionsResult).length
+            ? asList(distributionsResult)
+            : asList(bootstrap.entries),
+      };
+
       setData(result);
-      setMasterDraft(
-        result.master
-      );
+      setMasterDraft(result.master);
     } catch (e) {
       setError(e.message);
     } finally {
