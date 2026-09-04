@@ -3220,7 +3220,7 @@ export default function UdyanBill() {
                             वित्तीय वर्ष {financialYear}
                         </div>
 
-                        <table className="document-table">
+                        <table className="standard-table">
                             <thead>
                                 <tr>
                                     <th>
