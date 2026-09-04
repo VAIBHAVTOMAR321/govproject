@@ -89,7 +89,7 @@ function NavbarWrapper() {
     }
   }
 
-  return <DashBoardHeader />;
+  return <NavBar />;
 }
 
 // Main App content component
