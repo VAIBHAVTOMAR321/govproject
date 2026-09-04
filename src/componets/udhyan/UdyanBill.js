@@ -386,6 +386,75 @@ const emptyBill = {
     voucher_2: false,
 };
 
+/* =========================================================
+   BILL PAYLOAD NORMALIZER
+   Map frontend form field names to the exact Bill API names.
+   Optional fields stay optional: blank -> null, filled -> value.
+   ========================================================= */
+
+const optionalText = (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? null : text;
+};
+
+const buildBillPayload = ({
+    bill,
+    financialYear,
+    selectedCropId,
+    calculation,
+}) => ({
+    financial_year: String(
+        financialYear ?? bill.financial_year ?? ""
+    ).trim(),
+    crop: Number(selectedCropId),
+    area: num(bill.area),
+    plants: Number(calculation.plants) || 0,
+    calculation_basis: bill.calculation_basis || "area",
+    rounding: Number(bill.rounding) || 2,
+
+    caste: optionalText(bill.caste),
+    scheme: optionalText(bill.scheme_name),
+    farmer_name: optionalText(bill.farmer_name),
+    father_husband_name: optionalText(bill.father_husband_name),
+    date_of_birth: optionalText(bill.date_of_birth),
+    village: optionalText(bill.village),
+    center: optionalText(bill.center),
+
+    bank_name_1: optionalText(bill.bank_name_1),
+    account_number_1: optionalText(bill.account_number_1),
+    ifsc_1: optionalText(bill.ifsc_code_1),
+
+    bank_name_2: optionalText(bill.bank_name_2),
+    account_number_2: optionalText(bill.account_number_2),
+    ifsc_2: optionalText(bill.ifsc_code_2),
+
+    aadhaar: optionalText(bill.aadhaar_number),
+    mobile: optionalText(bill.mobile_number),
+    pan: optionalText(bill.pan_number),
+
+    supplier_name: optionalText(bill.supplier_name),
+    supplier_father_name: optionalText(bill.supplier_father_name),
+    supplier_village: optionalText(bill.supplier_village),
+    labour_name: optionalText(bill.labour_name),
+    labour_father_name: optionalText(bill.labour_father_name),
+    labour_village: optionalText(bill.labour_village),
+
+    voucher_2: Boolean(bill.voucher_2),
+
+    plant_total: num(calculation.plantTotal),
+    pit_total: num(calculation.pitTotal),
+    manure_quantity: num(calculation.manureQuantity),
+    manure_total: num(calculation.manureTotal),
+    plant_subsidy: num(calculation.plantSubsidy),
+    pit_subsidy: num(calculation.pitSubsidy),
+    manure_subsidy: num(calculation.manureSubsidy),
+    farmer_contribution: num(calculation.billFarmer),
+    grand_total: num(calculation.grandTotal),
+    grand_subsidy: num(calculation.grandSubsidy),
+
+    items: Array.isArray(bill.items) ? bill.items : [],
+});
+
 const emptyStandard = {
     financial_year: "2026-27",
 
@@ -521,6 +590,10 @@ export default function UdyanBill() {
 
     const [savingBill, setSavingBill] =
         useState(false);
+
+    // null = new bill, value = existing saved bill being edited
+    const [editingBillId, setEditingBillId] =
+        useState(null);
 
     const [includeStandardPrint, setIncludeStandardPrint] =
         useState(false);
@@ -1332,7 +1405,7 @@ export default function UdyanBill() {
     };
 
     /* =====================================================
-       SAVE BILL
+       SAVE / UPDATE BILL
        ===================================================== */
 
     const saveBill = async () => {
@@ -1343,11 +1416,7 @@ export default function UdyanBill() {
             return;
         }
 
-        if (
-            !String(
-                bill.farmer_name
-            ).trim()
-        ) {
+        if (!String(bill.farmer_name ?? "").trim()) {
             alert(
                 "कृपया कृषक का नाम दर्ज करें।"
             );
@@ -1357,78 +1426,33 @@ export default function UdyanBill() {
         setSavingBill(true);
 
         try {
-            const payload = {
-                ...bill,
+            const payload = buildBillPayload({
+                bill,
+                financialYear,
+                selectedCropId,
+                calculation,
+            });
 
-                crop:
-                    Number(
-                        selectedCropId
-                    ),
+            // Existing bill opened from "अपलोड किए गए बिल"
+            // is updated with PUT /bills/{id}/
+            const isEditing = editingBillId !== null && editingBillId !== undefined;
+            const url = isEditing
+                ? `${API_BASE}/bills/${encodeURIComponent(editingBillId)}/`
+                : `${API_BASE}/bills/`;
+            const method = isEditing ? "PUT" : "POST";
 
-                financial_year:
-                    financialYear,
+            const response = await apiFetch(
+                url,
+                {
+                    method,
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                }
+            );
 
-                area:
-                    num(
-                        bill.area
-                    ),
-
-                plants:
-                    calculation.plants,
-
-                plant_total:
-                    calculation.plantTotal,
-
-                plant_subsidy:
-                    calculation.plantSubsidy,
-
-                pit_total:
-                    calculation.pitTotal,
-
-                pit_subsidy:
-                    calculation.pitSubsidy,
-
-                manure_quantity:
-                    calculation.manureQuantity,
-
-                manure_total:
-                    calculation.manureTotal,
-
-                manure_subsidy:
-                    calculation.manureSubsidy,
-
-                farmer_contribution:
-                    calculation.billFarmer,
-
-                grand_total:
-                    calculation.grandTotal,
-
-                grand_subsidy:
-                    calculation.grandSubsidy,
-            };
-
-            const response =
-                await apiFetch(
-                    `${API_BASE}/bills/`,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json",
-                        },
-
-                        body:
-                            JSON.stringify(
-                                payload
-                            ),
-                    }
-                );
-
-            const data =
-                await readJsonResponse(
-                    response
-                );
+            const data = await readJsonResponse(response);
 
             if (!response.ok) {
                 const error =
@@ -1440,14 +1464,28 @@ export default function UdyanBill() {
 
                 throw new Error(
                     error ||
-                        "बिल सेव नहीं हो सका।"
+                        (isEditing
+                            ? "बिल अपडेट नहीं हो सका।"
+                            : "बिल सेव नहीं हो सका।")
                 );
             }
 
             setLastSavedBill(data);
 
+            // Keep the returned ID when updating an existing bill.
+            // For a newly created bill we intentionally remain in
+            // "new bill" mode until the user opens a saved bill.
+            if (isEditing && data?.id !== undefined && data?.id !== null) {
+                setEditingBillId(data.id);
+            }
+
+            // Refresh saved bills after both POST and PUT.
+            await loadUploadedBills();
+
             setMessage(
-                "बिल सफलतापूर्वक सेव किया गया।"
+                isEditing
+                    ? `बिल #${editingBillId} सफलतापूर्वक अपडेट किया गया।`
+                    : "बिल सफलतापूर्वक सेव किया गया।"
             );
         } catch (error) {
             console.error(
@@ -1457,7 +1495,9 @@ export default function UdyanBill() {
 
             alert(
                 error.message ||
-                    "बिल सेव नहीं हो सका।"
+                    (editingBillId !== null
+                        ? "बिल अपडेट नहीं हो सका।"
+                        : "बिल सेव नहीं हो सका।")
             );
         } finally {
             setSavingBill(false);
@@ -1489,34 +1529,97 @@ export default function UdyanBill() {
 
         setLastSavedBill(null);
 
+        setEditingBillId(null);
+
         setMessage("");
     };
 
     const openUploadedBill = (savedBill) => {
+        if (!savedBill?.id) {
+            alert("इस बिल का ID उपलब्ध नहीं है, इसलिए इसे अपडेट नहीं किया जा सकता।");
+            return;
+        }
+
         const selectedId = String(savedBill.crop ?? "");
         const matchingStandard = standards.find(
             (standard) => String(standard.id) === selectedId
         );
 
-        setFinancialYear(savedBill.year || savedBill.financial_year || "2026-27");
+        // Store the exact server-side bill ID. This controls
+        // POST vs PUT and is used in /bills/{id}/.
+        setEditingBillId(savedBill.id);
+
+        setFinancialYear(
+            savedBill.year ||
+            savedBill.financial_year ||
+            "2026-27"
+        );
+
         setSelectedCropId(selectedId);
+
         setBill({
             ...emptyBill,
             ...savedBill,
-            financial_year: savedBill.year || savedBill.financial_year || "2026-27",
+            financial_year:
+                savedBill.year ||
+                savedBill.financial_year ||
+                "2026-27",
             crop: selectedId,
-            scheme_name: savedBill.scheme ?? savedBill.scheme_name ?? "",
-            ifsc_code_1: savedBill.ifsc_1 ?? savedBill.ifsc_code_1 ?? "",
-            ifsc_code_2: savedBill.ifsc_2 ?? savedBill.ifsc_code_2 ?? "",
-            aadhaar_number: savedBill.aadhaar ?? savedBill.aadhaar_number ?? "",
-            mobile_number: savedBill.mobile ?? savedBill.mobile_number ?? "",
-            pan_number: savedBill.pan ?? savedBill.pan_number ?? "",
+
+            // API field -> frontend field
+            scheme_name:
+                savedBill.scheme ??
+                savedBill.scheme_name ??
+                "",
+
+            ifsc_code_1:
+                savedBill.ifsc_1 ??
+                savedBill.ifsc_code_1 ??
+                "",
+
+            ifsc_code_2:
+                savedBill.ifsc_2 ??
+                savedBill.ifsc_code_2 ??
+                "",
+
+            aadhaar_number:
+                savedBill.aadhaar ??
+                savedBill.aadhaar_number ??
+                "",
+
+            mobile_number:
+                savedBill.mobile ??
+                savedBill.mobile_number ??
+                "",
+
+            pan_number:
+                savedBill.pan ??
+                savedBill.pan_number ??
+                "",
+
+            voucher_2:
+                Boolean(
+                    savedBill.voucher_2
+                ),
         });
+
+        setShowVoucher2(
+            Boolean(savedBill.voucher_2)
+        );
+
         setLastSavedBill(savedBill);
+
+        // Go directly back to the bill form.
         setActiveSection("bill");
 
+        setMessage(
+            `बिल #${savedBill.id} खोला गया है। अब आप डेटा बदलकर "बिल अपडेट करें" दबा सकते हैं।`
+        );
+
         if (!matchingStandard) {
-            setMessage("बिल खोला गया है। संबंधित मानक उपलब्ध नहीं है, इसलिए गणना मानक पुनः चुनें।");
+            setMessage(
+                `बिल #${savedBill.id} खोला गया है। संबंधित मानक उपलब्ध नहीं है, इसलिए गणना मानक पुनः चुनें।`
+            );
         }
     };
 
@@ -1566,12 +1669,264 @@ export default function UdyanBill() {
 
     const printBill = () => {
         const printDocument = document.getElementById("printDocument");
+
         if (!printDocument) {
             alert("प्रिंट प्रपत्र अभी तैयार नहीं है।");
             return;
         }
 
-        requestAnimationFrame(() => window.print());
+        /*
+         * Use a hidden iframe instead of window.open().
+         * This avoids Chrome opening an empty about:blank window and
+         * gives the browser a real document to print.
+         */
+        const existingFrame = document.getElementById("udyan-print-frame");
+        if (existingFrame) {
+            existingFrame.remove();
+        }
+
+        const iframe = document.createElement("iframe");
+        iframe.id = "udyan-print-frame";
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.style.position = "fixed";
+        iframe.style.right = "0";
+        iframe.style.bottom = "0";
+        iframe.style.width = "1px";
+        iframe.style.height = "1px";
+        iframe.style.border = "0";
+        iframe.style.opacity = "0";
+        iframe.style.pointerEvents = "none";
+
+        document.body.appendChild(iframe);
+
+        const iframeDocument = iframe.contentDocument;
+        const iframeWindow = iframe.contentWindow;
+
+        if (!iframeDocument || !iframeWindow) {
+            iframe.remove();
+            alert("प्रिंट प्रपत्र तैयार नहीं हो सका।");
+            return;
+        }
+
+        const clonedDocument = printDocument.cloneNode(true);
+
+        /* Preserve current React-controlled field values. */
+        const sourceFields = printDocument.querySelectorAll(
+            "input, textarea, select"
+        );
+        const clonedFields = clonedDocument.querySelectorAll(
+            "input, textarea, select"
+        );
+
+        sourceFields.forEach((sourceField, index) => {
+            const clonedField = clonedFields[index];
+            if (!clonedField) return;
+
+            if (sourceField instanceof HTMLInputElement) {
+                clonedField.value = sourceField.value;
+                clonedField.setAttribute("value", sourceField.value);
+
+                if (
+                    sourceField.type === "checkbox" ||
+                    sourceField.type === "radio"
+                ) {
+                    clonedField.checked = sourceField.checked;
+
+                    if (sourceField.checked) {
+                        clonedField.setAttribute("checked", "checked");
+                    } else {
+                        clonedField.removeAttribute("checked");
+                    }
+                }
+            } else if (sourceField instanceof HTMLTextAreaElement) {
+                clonedField.value = sourceField.value;
+                clonedField.textContent = sourceField.value;
+            } else if (sourceField instanceof HTMLSelectElement) {
+                clonedField.value = sourceField.value;
+
+                Array.from(clonedField.options).forEach(
+                    (option, optionIndex) => {
+                        const sourceOption = sourceField.options[optionIndex];
+                        const selected = Boolean(sourceOption?.selected);
+
+                        option.selected = selected;
+
+                        if (selected) {
+                            option.setAttribute("selected", "selected");
+                        } else {
+                            option.removeAttribute("selected");
+                        }
+                    }
+                );
+            }
+        });
+
+        /* Copy the application's loaded CSS/style tags into the iframe. */
+        const styleMarkup = Array.from(
+            document.querySelectorAll(
+                'link[rel="stylesheet"], style'
+            )
+        )
+            .map((node) => node.outerHTML)
+            .join("\n");
+
+        iframeDocument.open();
+        iframeDocument.write(`<!doctype html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>उद्यान बिल</title>
+    ${styleMarkup}
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm;
+        }
+
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+        }
+
+        body {
+            color: #111 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-family: "Nirmala UI", "Mangal", "Noto Sans Devanagari", "Kokila", "Segoe UI", sans-serif !important;
+        }
+
+        #printDocument {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+        }
+
+        .a4-page {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            page-break-after: always !important;
+            break-after: page !important;
+        }
+
+        .a4-page:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+        }
+
+        .document-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+
+        .document-table th,
+        .document-table td {
+            border: 1px solid #000 !important;
+        }
+
+        .doc-input {
+            color: #000 !important;
+            background: transparent !important;
+        }
+    </style>
+</head>
+<body>
+    ${clonedDocument.outerHTML}
+</body>
+</html>`);
+        iframeDocument.close();
+
+        const waitForImages = async () => {
+            const images = Array.from(iframeDocument.images || []);
+
+            await Promise.all(
+                images.map(
+                    (image) =>
+                        image.complete
+                            ? Promise.resolve()
+                            : new Promise((resolve) => {
+                                  image.addEventListener("load", resolve, {
+                                      once: true,
+                                  });
+                                  image.addEventListener("error", resolve, {
+                                      once: true,
+                                  });
+                              })
+                )
+            );
+
+            if (iframeDocument.fonts?.ready) {
+                try {
+                    await iframeDocument.fonts.ready;
+                } catch {
+                    // Continue printing even if a web font fails to load.
+                }
+            }
+        };
+
+        const cleanup = () => {
+            setTimeout(() => {
+                iframe.remove();
+            }, 500);
+        };
+
+        let printStarted = false;
+
+        const printFromFrame = async () => {
+            if (printStarted) return;
+            printStarted = true;
+
+            try {
+                await waitForImages();
+            } catch {
+                // Do not block printing because of optional assets.
+            }
+
+            iframeWindow.focus();
+
+            iframeWindow.addEventListener("afterprint", cleanup, {
+                once: true,
+            });
+
+            setTimeout(() => {
+                iframeWindow.print();
+            }, 100);
+        };
+
+        if (iframeDocument.readyState === "complete") {
+            printFromFrame();
+        } else {
+            iframeWindow.addEventListener("load", printFromFrame, {
+                once: true,
+            });
+
+            /* srcdoc/document.write can complete without a load event. */
+            setTimeout(() => {
+                printFromFrame();
+            }, 300);
+        }
     };
 
     /* =====================================================
@@ -3527,6 +3882,19 @@ export default function UdyanBill() {
                            ================================================= */}
 
                         <div className="action-row">
+                            {editingBillId !== null && (
+                                <span
+                                    style={{
+                                        fontSize: "11px",
+                                        color: "#7a4b00",
+                                        fontWeight: 700,
+                                        marginRight: "4px",
+                                    }}
+                                >
+                                    बिल #{editingBillId} संपादन मोड
+                                </span>
+                            )}
+
                             <button
                                 type="button"
                                 className="green-button"
@@ -3538,16 +3906,20 @@ export default function UdyanBill() {
                             <button
                                 type="button"
                                 className="outline-button"
-                                onClick={
-                                    saveBill
-                                }
-                                disabled={
-                                    savingBill
-                                }
+                                onClick={saveBill}
+                                disabled={savingBill}
                             >
                                 {savingBill
-                                    ? "सेव हो रहा है..."
-                                    : "बिल सेव करें"}
+                                    ? (
+                                        editingBillId !== null
+                                            ? "अपडेट हो रहा है..."
+                                            : "सेव हो रहा है..."
+                                      )
+                                    : (
+                                        editingBillId !== null
+                                            ? "बिल अपडेट करें"
+                                            : "बिल सेव करें"
+                                      )}
                             </button>
 
                             <label className="print-check">
