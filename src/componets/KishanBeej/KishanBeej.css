@@ -158,14 +158,14 @@ h2{
   margin:0 0 3px;
 }
 
-.sub{
+.kishan-beej-sub{
   color:var(--soft);
   font-size:12.5px;
   margin:0 0 14px;
   line-height:1.5;
 }
 
-.card{
+.kishan-beej-card{
   background:var(--card);
   border:1px solid var(--line);
   border-radius:10px;
@@ -173,7 +173,7 @@ h2{
   margin-bottom:14px;
 }
 
-.card h3{
+.kishan-beej-card h3{
   margin:0 0 10px;
   font-size:15px;
   color:var(--navy);
@@ -242,7 +242,7 @@ input[readonly]{
   background:var(--yellow);
 }
 
-.btn{
+.kishan-beej-btn{
   font-family:var(--f);
   font-weight:700;
   font-size:14px;
@@ -254,7 +254,7 @@ input[readonly]{
   cursor:pointer;
 }
 
-.btn:active{
+.kishan-beej-btn:active{
   transform:translateY(1px);
 }
 
@@ -289,14 +289,14 @@ input[readonly]{
   border-radius:6px;
 }
 
-.row{
+.kishan-beej-row{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
   align-items:center;
 }
 
-.row.end{
+.kishan-beej-row.end{
   justify-content:space-between;
 }
 
@@ -630,15 +630,15 @@ footer{
     padding:10px;
   }
 
-  .card{
+  .kishan-beej-card{
     padding:11px;
   }
 
-  .btn{
+  .kishan-beej-btn{
     width:100%;
   }
 
-  .row .btn{
+  .kishan-beej-row .kishan-beej-btn{
     width:auto;
   }
 }
