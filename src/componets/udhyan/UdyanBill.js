@@ -467,6 +467,7 @@ const DocField = ({
         <input
             className={`doc-input ${className}`}
             value={bill[field] ?? ""}
+            placeholder="________________"
             onChange={(event) => {
                 onChange(
                     field,
@@ -3034,8 +3035,10 @@ export default function UdyanBill() {
         };
 
         return (
-            <div className="standards-manager">
-                <div className="standards-toolbar">
+            <details className="standards-section" open>
+                <summary>मानक तालिका — फसलवार, सम्पादन योग्य</summary>
+                <div className="standards-manager">
+                    <div className="standards-toolbar">
                     <div>
                         <h2>मानक तालिका</h2>
                         <p>
@@ -3045,9 +3048,9 @@ export default function UdyanBill() {
                     <button type="button" className="green-button" onClick={openAddStandard}>
                         + नई फसल जोड़ें
                     </button>
-                </div>
+                    </div>
 
-                {loadingStandards ? (
+                    {loadingStandards ? (
                     <div className="loading-box">मानक लोड हो रहे हैं...</div>
                 ) : standards.length === 0 ? (
                     <div className="no-standards">
@@ -3068,8 +3071,9 @@ export default function UdyanBill() {
                             />
                         ))}
                     </div>
-                )}
-            </div>
+                    )}
+                </div>
+            </details>
         );
     };
 

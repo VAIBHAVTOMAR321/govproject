@@ -502,6 +502,36 @@ body {
     color: var(--accent);
 }
 
+.standards-section {
+    max-width: 1450px;
+
+    margin: 10px auto 0;
+
+    background: #fffdf7;
+
+    border: 1px solid #b9b3a2;
+
+    border-radius: 4px;
+
+    padding: 8px 10px;
+}
+
+.standards-section > summary {
+    cursor: pointer;
+
+    color: var(--accent);
+
+    font-size: 13px;
+
+    font-weight: 700;
+}
+
+.standards-section .standards-manager {
+    max-width: none;
+
+    margin-top: 10px;
+}
+
 .standard-inline-header {
     display: flex;
 
@@ -915,6 +945,10 @@ body {
     min-width: 60px;
 
     line-height: 1.4;
+}
+
+.doc-input::placeholder {
+    color: transparent;
 }
 
 .doc-input:focus {
@@ -1860,6 +1894,11 @@ body {
         border-bottom: 1px dotted #444 !important;
 
         background: transparent !important;
+    }
+
+    .doc-input::placeholder {
+        color: #444 !important;
+        opacity: 1 !important;
     }
 }
 /* =========================================================
