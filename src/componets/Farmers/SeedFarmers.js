@@ -1,8 +1,232 @@
 import React, { useState } from 'react';
 import "../../assets/css/seedfarmers.css";
 
+const centres = [
+  "किनगोड़ीखाल",
+  "धुमाकोट",
+  "हल्दूखाल",
+  "किल्वोखाल",
+  "देवियोखाल",
+  "जेठागांव",
+  "बीरोंखाल",
+  "वेदीखाल",
+  "चौखाल",
+  "जयहरीखाल",
+  "सिसल्ड़ी",
+  "सेंधीखाल",
+  "संगलाकोटी",
+  "देवराजखाल",
+  "पोखड़ा",
+  "विथ्याणी",
+  "दिउली",
+  "गंगाभोगपुर",
+  "चेलूसैण",
+  "सिलोगी",
+  "सतपुली",
+  "कोटद्वार",
+  "दुगड्डा",
+  "पौखाल",
+];
+
+const varietiesByCentre = {
+  "किनगोड़ीखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "धुमाकोट": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "हल्दूखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "किल्वोखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "देवियोखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "जेठागांव": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "बीरोंखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "वेदीखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "चौखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "जयहरीखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "सिसल्ड़ी": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "सेंधीखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "संगलाकोटी": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "देवराजखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "पोखड़ा": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "विथ्याणी": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "दिउली": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "गंगाभोगपुर": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "चेलूसैण": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "सिलोगी": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "सतपुली": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "कोटद्वार": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "दुगड्डा": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+  "पौखाल": [
+    "ब्रोकली Rock 001",
+    "बैंगन BSHB-33 (Navin)",
+    "टमाटर Sindhu",
+    "शिमला मिर्च Alaska",
+    "बंदगोभी Bajwa60",
+    "फूलगोभी AZCL-900",
+  ],
+};
+
 const SeedFarmers = () => {
   const [activeTab, setActiveTab] = useState('home');
+  const [selectedCentre, setSelectedCentre] = useState('');
+  const [selectedVariety, setSelectedVariety] = useState('');
 
   const tabs = [
     { id: 'home', label: 'होम' },
@@ -11,6 +235,10 @@ const SeedFarmers = () => {
     { id: 'standard', label: '⚙️ मानक' },
     { id: 'report', label: '📊 रिपोर्ट' },
   ];
+
+  const availableVarieties = selectedCentre
+    ? varietiesByCentre[selectedCentre] || []
+    : [];
 
   return (
     <div className="school-finance-app">
@@ -99,12 +327,127 @@ const SeedFarmers = () => {
         {/* Distribution Tab */}
         {activeTab === 'distribution' && (
           <div className="tab-content active">
-            <div className="page-title">वितरण विवरण</div>
-            <div className="actions">
-              <button className="btn">नया वितरण जोड़ें</button>
+            <div className="page-title">✍️ वितरण — किसान को बीज वितरण</div>
+            <p className="subtext">केवल केन्द्र, किस्म, किसान का नाम और क्षेत्रफल भरना है — बीज की मात्रा, चारों मद और राशि अपने आप निकल आएँगी।</p>
+
+            {/* New Entry Form */}
+            <div className="info-box form-section">
+              <h3>नई प्रविष्टि</h3>
+              <div className="form-grid four-col">
+                <div className="form-group">
+                  <label>दिनांक <span className="required">*</span></label>
+                  <input type="text" defaultValue="04-09-2026" />
+                </div>
+
+                <div className="form-group">
+                  <label>उ0स0द0 केन्द्र <span className="required">*</span></label>
+                  <select
+                    id="f-centre"
+                    className="need"
+                    value={selectedCentre}
+                    onChange={(e) => {
+                      setSelectedCentre(e.target.value);
+                      setSelectedVariety('');
+                    }}
+                  >
+                    <option value="">— केन्द्र चुनें —</option>
+                    {centres.map((centre) => (
+                      <option key={centre} value={centre}>
+                        {centre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>किस्म <span className="required">*</span></label>
+                  <select
+                    id="f-variety"
+                    className="need"
+                    value={selectedVariety}
+                    onChange={(e) => setSelectedVariety(e.target.value)}
+                    disabled={!selectedCentre}
+                  >
+                    <option value="">— किस्म चुनें —</option>
+                    {availableVarieties.map((variety) => (
+                      <option key={variety} value={variety}>
+                        {variety}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>क्षेत्रफल (है0) <span className="required">*</span></label>
+                  <input type="text" placeholder="जैसे 0.200" />
+                </div>
+
+                <div className="form-group">
+                  <label>कृषक का नाम <span className="required">*</span></label>
+                  <input type="text" placeholder="श्री ..." />
+                </div>
+
+                <div className="form-group">
+                  <label>पिता/पति का नाम</label>
+                  <input type="text" />
+                </div>
+
+                <div className="form-group">
+                  <label>ग्राम</label>
+                  <input type="text" />
+                </div>
+
+                <div className="form-group">
+                  <label>मोबाइल नं0</label>
+                  <input type="text" />
+                </div>
+
+                <div className="form-group">
+                  <label>कृषक हस्ताक्षर/अंगूठा</label>
+                  <input type="text" defaultValue="नहीं लिया" />
+                </div>
+
+                <div className="form-group">
+                  <label>वितरक हस्ताक्षर</label>
+                  <input type="text" defaultValue="नहीं लिया" />
+                </div>
+              </div>
+               
+              <div className="form-group full-width">
+                <label>टिप्पणी</label>
+                <textarea readOnly placeholder="क्षेत्रफल भरते ही यहाँ पूरी गणना और केन्द्र का शेष स्टॉक दिखेगा।"></textarea>
+              </div>
+
+              <div className="actions">
+                <button className="btn">✓ रजिस्टर में जोड़ें</button>
+                <button className="btn secondary">साफ़ करें</button>
+              </div>
             </div>
+
+            {/* List & Filters */}
             <div className="info-box">
               <h3>वितरण सूची</h3>
+              <div className="filter-bar">
+                <div className="filter-group">
+                  <label>केन्द्र से छाँटें</label>
+                  <select><option>सभी केन्द्र</option></select>
+                </div>
+                <div className="filter-group">
+                  <label>किस्म से छाँटें</label>
+                  <select><option>सभी किस्में</option></select>
+                </div>
+                <div className="filter-group">
+                  <label>नाम/ग्राम से खोजें</label>
+                  <input type="text" placeholder="टाइप करें..." />
+                </div>
+                <div className="entries-count">0 प्रविष्टियाँ</div>
+              </div>
+
+              <div className="table-actions">
+                <button className="btn">🖨 छापें (A4)</button>
+                <button className="btn secondary">⬇ CSV</button>
+              </div>
+
               <table>
                 <thead>
                   <tr>

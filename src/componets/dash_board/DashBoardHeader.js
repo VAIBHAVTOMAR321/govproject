@@ -106,7 +106,7 @@ function DashBoardHeader() {
           </Nav>
           
           <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/SeedFarmers" active={location.pathname === '/SeedFarmers'}>SeedFarmers</Nav.Link>
+            <Nav.Link as={Link} to="/SeedFarmers" active={location.pathname === '/SeedFarmers'}>किसान बीज </Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>
