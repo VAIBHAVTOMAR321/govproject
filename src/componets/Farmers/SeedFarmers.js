@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import "../../assets/css/seedfarmers.css";
+
 
 const centres = [
   "किनगोड़ीखाल",

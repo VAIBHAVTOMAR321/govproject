@@ -41,13 +41,14 @@ import UdyanBill from "./componets/udhyan/UdyanBill";
 import KishanBeej from "./componets/KishanBeej/KishanBeej";
 import SeedFarmers from "./componets/Farmers/SeedFarmers";
 import DashBoardHeader from "./componets/dash_board/DashBoardHeader";
+import LibrarySystem from "./componets/Library/LibrarySystem";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
   const location = useLocation();
   const { user } = useAuth();
 
-   const hiddenPaths = new Set(["/Dashboard", "/Registration", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/DemandGenerate/CenterwiseEntry","/DemandGenerate/KrishiwiseEntry","/KendraPasswordReset","/DemandView","/NurseryFinancialEntry","/NurseryPhysicalEntry","/UdyanBill","/KishanBeej","/UdyanBill"]);
+   const hiddenPaths = new Set(["/Dashboard", "/Registration","/LibrarySystem", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/DemandGenerate/CenterwiseEntry","/DemandGenerate/KrishiwiseEntry","/KendraPasswordReset","/DemandView","/NurseryFinancialEntry","/NurseryPhysicalEntry","/UdyanBill","/KishanBeej","/UdyanBill"]);
 
   const shouldHideNavbar = hiddenPaths.has(location.pathname);
   
@@ -99,6 +100,11 @@ function AppContent() {
             <Route path="/KishanBeej" element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <KishanBeej />
+              </ProtectedRoute>
+            } />
+             <Route path="/LibrarySystem" element={
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
+                <LibrarySystem />
               </ProtectedRoute>
             } />
             <Route path="/HorticultureManagementSystem" element={
