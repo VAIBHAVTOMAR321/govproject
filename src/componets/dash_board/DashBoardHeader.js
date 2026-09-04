@@ -59,6 +59,14 @@ function DashBoardHeader() {
               <NavDropdown.Item as={Link} to="/NurseryPhysicalEntry" active={location.pathname === '/NurseryPhysicalEntry'}>
                 नर्सरी भौतिक प्रविष्टि
               </NavDropdown.Item>
+               <NavDropdown.Item as={Link} to="/UdyanBill" active={location.pathname === '/UdyanBill'}>
+                उद्यान बिल
+              </NavDropdown.Item>
+               <NavDropdown.Item as={Link} to="/KishanBeej" active={location.pathname === '/KishanBeej'}>
+                किशन बीज
+              </NavDropdown.Item>
+             
+              
             </NavDropdown>
 
             <NavDropdown 
@@ -84,6 +92,9 @@ function DashBoardHeader() {
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
+           <Nav className="ms-auto">
+            <Nav.Link as={Link} to="/LibrarySystem/" active={location.pathname === '/LibrarySystem'}>लाइब्रेरी सिस्टम</Nav.Link>
+          </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
               <NavDropdown.Item onClick={handleKendraPasswordReset}>
@@ -95,23 +106,11 @@ function DashBoardHeader() {
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
-          <Nav className="ms-auto">
-            <NavDropdown title="Udhyan" id="account-nav-dropdown" align="end">
-               <NavDropdown.Item as={Link} to="/UdyanBill/" active={location.pathname === '/UdyanBill/'}>
-              Udyan Bill
-              </NavDropdown.Item>
-              <NavDropdown.Divider />
-              
-            </NavDropdown>
-          </Nav>
+        
           
-          <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/LibrarySystem/" active={location.pathname === '/LibrarySystem'}>Library System</Nav.Link>
-          </Nav>
+         
           
-          {/* <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/KishanBeej/" active={location.pathname === '/KishanBeej'}>किसान बीज </Nav.Link>
-          </Nav> */}
+          
         </Navbar.Collapse>
       </Container>
     </Navbar>

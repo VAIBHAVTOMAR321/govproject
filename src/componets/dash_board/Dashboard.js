@@ -9,7 +9,7 @@ import "../../assets/css/dashboard.css";
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
-import { FaClipboardList, FaRupeeSign, FaHandHoldingUsd, FaChartLine, FaCalendarAlt, FaFilter, FaChartBar, FaChartPie, FaFilePdf, FaFileExcel, FaDownload, FaEye, FaTable, FaInfoCircle } from 'react-icons/fa';
+import { FaClipboardList, FaRupeeSign, FaHandHoldingUsd, FaChartLine, FaCalendarAlt, FaFilter, FaChartBar, FaChartPie, FaFilePdf, FaFileExcel, FaDownload, FaEye, FaTable, FaInfoCircle, FaShareAlt, FaWhatsapp, FaLinkedin, FaEnvelope, FaCopy } from 'react-icons/fa';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement);
@@ -1128,6 +1128,12 @@ const Dashboard = () => {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
 
+  // State for share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareType, setShareType] = useState(null); // 'pdf' or 'excel'
+  const [shareFileUrl, setShareFileUrl] = useState('');
+  const [shareFileName, setShareFileName] = useState('');
+
   // Get filter status text for report
   const getFilterStatusText = () => {
     const filters = [];
@@ -1785,6 +1791,177 @@ const Dashboard = () => {
     }
   };
 
+  // Share handlers for PDF and Excel
+  const handleShare = async (type) => {
+    setShareType(type);
+    setShowShareModal(true);
+    setShareFileUrl('');
+    setShareFileName('');
+  };
+
+  const handleShareGenerate = async () => {
+    if (!shareType) return;
+
+    try {
+      let blob;
+      let fileName;
+
+      if (shareType === 'pdf') {
+        const currentDate = new Date().toLocaleDateString('hi-IN').replace(/\//g, '-');
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = pdfPreviewUrl ? `<iframe src="${pdfPreviewUrl}" style="width:100%;height:100%;border:none;"></iframe>` : '';
+        document.body.appendChild(tempDiv);
+        
+        const html2pdf = (await import('html2pdf.js')).default;
+        blob = await html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename: `DHO_रिपोर्ट_${currentDate}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        }).from(tempDiv).outputPdf('blob');
+        
+        document.body.removeChild(tempDiv);
+        fileName = `DHO_रिपोर्ट_${currentDate}.pdf`;
+      } else if (shareType === 'excel') {
+        const currentDate = new Date().toLocaleDateString('hi-IN');
+        const { schemeWise, investmentWise } = getReportData();
+        const { investments, schemes, data, totals, grandTotal } = getCombinedData();
+        const { subInvestments, schemes: subSchemes, data: subData, totals: subTotals, grandTotal: subGrandTotal } = getSubCombinedData();
+        const mainInvestmentSubsidy = getMainInvestmentSubsidyData();
+        
+        const wb = XLSX.utils.book_new();
+        const summaryData = [
+          ['DHO कोटद्वार बिलिंग रिपोर्ट'],
+          [`रिपोर्ट तिथि: ${currentDate}`],
+          [`फ़िल्टर: ${getFilterStatusText()}`],
+          [],
+          ['सारांश'],
+          ['कुल रिकॉर्ड', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
+          [
+            aggregatedStats.totalRecords,
+            aggregatedStats.allocatedQuantity.toFixed(2),
+            aggregatedStats.farmerShareAmount.toFixed(2),
+            aggregatedStats.subsidyAmount.toFixed(2),
+            aggregatedStats.totalAmount.toFixed(2)
+          ]
+        ];
+        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+        summaryWs['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
+        XLSX.utils.book_append_sheet(wb, summaryWs, 'सारांश');
+        
+        const schemeData = schemeChartData && schemeChartData.rawData ? schemeChartData.rawData : {};
+        const schemeHeaders = ['#', 'योजना', 'आवंटित मात्रा', 'कुल राशि'];
+        const schemeRows = Object.entries(schemeData)
+          .filter(([label]) => selectedTableSchemes.length === 0 || selectedTableSchemes.some(s => s.value === label))
+          .sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0)))
+          .map(([name, val], idx) => [
+            idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
+          ]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([schemeHeaders, ...schemeRows]), 'योजना-वार');
+        
+        const invData = investmentChartData && investmentChartData.rawData ? investmentChartData.rawData : {};
+        const investmentHeaders = ['#', 'उपनिवेश', 'आवंटित मात्रा', 'कुल राशि'];
+        const investmentRows = Object.entries(invData)
+          .sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0)))
+          .map(([name, val], idx) => [
+            idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
+          ]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([investmentHeaders, ...investmentRows]), 'उपनिवेश-वार');
+        
+        blob = new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'binary' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        fileName = `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`;
+      }
+
+      if (blob && fileName) {
+        const url = URL.createObjectURL(blob);
+        setShareFileUrl(url);
+        setShareFileName(fileName);
+      }
+    } catch (err) {
+      console.error('Share error:', err);
+      alert('Unable to generate shareable file.');
+    }
+  };
+
+  const handleSocialShare = async (platform) => {
+    if (!shareFileUrl || !shareFileName) return;
+
+    const reportInfo = `DHO कोटद्वार बिलिंग रिपोर्ट\nरिपोर्ट: ${shareFileName}\nतिथि: ${new Date().toLocaleDateString('hi-IN')}\nफ़िल्टर: ${getFilterStatusText()}`;
+    const encodedInfo = encodeURIComponent(reportInfo);
+
+    switch (platform) {
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodedInfo}`, '_blank');
+        break;
+      case 'linkedin':
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent('DHO कोटद्वार बिलिंग रिपोर्ट')}&summary=${encodedInfo}`, '_blank');
+        break;
+      case 'email':
+        window.location.href = `mailto:?subject=${encodeURIComponent('DHO कोटद्वार बिलिंग रिपोर्ट')}&body=${encodedInfo}`;
+        break;
+      case 'copy':
+        try {
+          await navigator.clipboard.writeText(reportInfo);
+          alert('रिपोर्ट जानकारी कॉपी हो गई है। अब आप किसी भी प्लेटफॉर्म पर शेयर कर सकते हैं।');
+        } catch (err) {
+          alert('कॉपी करने में त्रुटि हुई। कृपया मैन्युअल रूप से कॉपी करें।');
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleDirectShare = async () => {
+    if (!shareFileUrl || !shareFileName) return;
+
+    try {
+      const blob = await fetch(shareFileUrl).then(res => res.blob());
+      const file = new File([blob], shareFileName, { type: blob.type });
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'DHO कोटद्वार बिलिंग रिपोर्ट',
+          text: `रिपोर्ट शेयर की जा रही है: ${shareFileName}`,
+          files: [file]
+        });
+      } else {
+        alert('Direct sharing is not supported on this browser. Please use the download option to share the file.');
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Share error:', err);
+        alert('Unable to share file. Please try downloading instead.');
+      }
+    }
+  };
+
+  const handleShareDownload = () => {
+    if (shareFileUrl && shareFileName) {
+      const link = document.createElement('a');
+      link.href = shareFileUrl;
+      link.download = shareFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(shareFileUrl);
+      setShowShareModal(false);
+      setShareFileUrl('');
+      setShareFileName('');
+    }
+  };
+
+  const handleShareClose = () => {
+    setShowShareModal(false);
+    setShareType(null);
+    if (shareFileUrl) {
+      URL.revokeObjectURL(shareFileUrl);
+    }
+    setShareFileUrl('');
+    setShareFileName('');
+  };
+
   // Generate Excel Report
   const generateExcel = (action = 'download') => {
     const { schemeWise, investmentWise } = getReportData();
@@ -2053,6 +2230,9 @@ const Dashboard = () => {
                             <Dropdown.Item onClick={() => generatePDF('download')}>
                               <FaDownload className="me-2" /> डाउनलोड (Download)
                             </Dropdown.Item>
+                            <Dropdown.Item onClick={() => handleShare('pdf')}>
+                              <FaShareAlt className="me-2" /> शेयर करें (Share)
+                            </Dropdown.Item>
                           </Dropdown.Menu>
                         </Dropdown>
 
@@ -2068,6 +2248,9 @@ const Dashboard = () => {
                             </Dropdown.Item>
                             <Dropdown.Item onClick={() => generateExcel('download')}>
                               <FaDownload className="me-2" /> डाउनलोड (Download)
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => handleShare('excel')}>
+                              <FaShareAlt className="me-2" /> शेयर करें (Share)
                             </Dropdown.Item>
                           </Dropdown.Menu>
                         </Dropdown>
@@ -3423,6 +3606,91 @@ const Dashboard = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Share Modal */}
+      <Modal show={showShareModal} onHide={handleShareClose} centered>
+        <Modal.Header closeButton style={{ backgroundColor: '#198754', color: 'white' }}>
+          <Modal.Title style={{ fontSize: '1rem' }}>
+            <FaShareAlt className="me-2" />
+            {shareType === 'pdf' ? 'PDF' : 'Excel'} शेयर करें
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {shareFileUrl ? (
+            <div>
+              <div className="text-center" style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', marginBottom: '15px' }}>
+                <FaDownload style={{ fontSize: '3rem', color: '#198754', marginBottom: '10px' }} />
+                <h5 style={{ margin: '10px 0' }}>{shareFileName}</h5>
+                <p style={{ color: '#666', fontSize: '0.9rem' }}>फ़ाइल तैयार है। नीचे दिए गए विकल्पों से शेयर करें।</p>
+              </div>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <h6 style={{ marginBottom: '10px', color: '#333' }}>सोशल मीडिया पर शेयर करें:</h6>
+                <div className="d-flex gap-3 justify-content-center flex-wrap">
+                  <Button 
+                    variant="success" 
+                    size="lg" 
+                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => handleSocialShare('whatsapp')}
+                    title="WhatsApp पर शेयर करें"
+                  >
+                    <FaWhatsapp style={{ fontSize: '1.8rem' }} />
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    size="lg" 
+                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => handleSocialShare('linkedin')}
+                    title="LinkedIn पर शेयर करें"
+                  >
+                    <FaLinkedin style={{ fontSize: '1.8rem' }} />
+                  </Button>
+                  <Button 
+                    variant="danger" 
+                    size="lg" 
+                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => handleSocialShare('email')}
+                    title="ईमेल से शेयर करें"
+                  >
+                    <FaEnvelope style={{ fontSize: '1.8rem' }} />
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="lg" 
+                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => handleSocialShare('copy')}
+                    title="लिंक कॉपी करें"
+                  >
+                    <FaCopy style={{ fontSize: '1.8rem' }} />
+                  </Button>
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid #ddd', paddingTop: '15px', marginTop: '15px' }}>
+                <h6 style={{ marginBottom: '10px', color: '#333' }}>अन्य विकल्प:</h6>
+                <div className="d-flex gap-2 justify-content-center flex-wrap">
+                  <Button variant="primary" onClick={handleDirectShare} disabled={!shareFileUrl}>
+                    <FaShareAlt className="me-2" />
+                    सीधे शेयर करें
+                  </Button>
+                  <Button variant="success" onClick={handleShareDownload} disabled={!shareFileUrl}>
+                    <FaDownload className="me-2" />
+                    डाउनलोड करें
+                  </Button>
+                  <Button variant="secondary" onClick={handleShareClose}>
+                    बंद करें
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p>फ़ाइल तैयार की जा रही है...</p>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+
     </>
   );
 };
