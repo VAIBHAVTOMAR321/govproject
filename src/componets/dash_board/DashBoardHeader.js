@@ -93,7 +93,7 @@ function DashBoardHeader() {
             </NavDropdown>
           </Nav>
            <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/LibrarySystem/" active={location.pathname === '/LibrarySystem'}>लाइब्रेरी सिस्टम</Nav.Link>
+            <Nav.Link as={Link} to="/LibrarySystem" active={location.pathname === '/LibrarySystem'}>लाइब्रेरी सिस्टम</Nav.Link>
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">

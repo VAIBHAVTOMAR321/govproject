@@ -4,11 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "@fontsource/poppins";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../src/custom/style.css";
-import {
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./componets/ProtectedRoute";
@@ -48,147 +44,236 @@ function NavbarWrapper() {
   const location = useLocation();
   const { user } = useAuth();
 
-   const hiddenPaths = new Set(["/Dashboard", "/Registration","/LibrarySystem", "/KrishiRegistration", "/MainDashboard","/Billing","/AllBills","/MPR","/AddEditComponent","/DemandGenerate","/DemandGenerate/CenterwiseEntry","/DemandGenerate/KrishiwiseEntry","/KendraPasswordReset","/DemandView","/NurseryFinancialEntry","/NurseryPhysicalEntry","/UdyanBill","/KishanBeej","/UdyanBill"]);
+  const dashboardHeaderPaths = new Set([
+    "/UdyanBill",
+    "/KishanBeej",
+    "/LibrarySystem",
+  ]);
+  const hiddenPaths = new Set([
+    "/Dashboard",
+    "/Registration",
+    "/LibrarySystem",
+    "/KrishiRegistration",
+    "/MainDashboard",
+    "/Billing",
+    "/AllBills",
+    "/MPR",
+    "/AddEditComponent",
+    "/DemandGenerate",
+    "/DemandGenerate/CenterwiseEntry",
+    "/DemandGenerate/KrishiwiseEntry",
+    "/KendraPasswordReset",
+    "/DemandView",
+    "/NurseryFinancialEntry",
+    "/NurseryPhysicalEntry",
+    "/UdyanBill",
+    "/KishanBeej",
+  ]);
 
-  const shouldHideNavbar = hiddenPaths.has(location.pathname);
-  
-  if (shouldHideNavbar) {
-    const loginType = (user && user.loginType) || 'admin';
-    
-    if (loginType === 'demand') {
+  if (dashboardHeaderPaths.has(location.pathname) && user) {
+    return <DashBoardHeader />;
+  }
+
+  if (!user) {
+    return <NavBar />;
+  }
+
+  if (hiddenPaths.has(location.pathname)) {
+    const loginType = user.loginType || "admin";
+
+    if (loginType === "demand") {
       return <DemandNavigation />;
-    } else if (loginType === 'nursery') {
+    }
+    if (loginType === "nursery") {
       return <NurseryNavigation />;
     }
-    // For admin loginType - return null (Dashboard will show DashBoardHeader)
-    return null;
   }
+
   return <DashBoardHeader />;
 }
 
 // Main App content component
 function AppContent() {
   const location = useLocation();
-  
+
   return (
     <div className="app-container">
       <NavbarWrapper />
-      
+
       <main className="main-content">
         <Routes>
-            {/* Public Route */}
-            <Route path="/" element={<Home />} />
-            <Route path="/ForgotPassword" element={<ForgotPassword />} />
-            
-            {/* PROTECTED ROUTES */}
-            <Route path="/Dashboard" element={
+          {/* Public Route */}
+          <Route path="/" element={<Home />} />
+          <Route path="/ForgotPassword" element={<ForgotPassword />} />
+
+          {/* PROTECTED ROUTES */}
+          <Route
+            path="/Dashboard"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Dashboard />
               </ProtectedRoute>
-            } />
-           
-            <Route path="/Registration" element={
+            }
+          />
+
+          <Route
+            path="/Registration"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Registration />
               </ProtectedRoute>
-            } />
-            <Route path="/UdyanBill" element={
+            }
+          />
+          <Route
+            path="/UdyanBill"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <UdyanBill />
               </ProtectedRoute>
-            } />
-            <Route path="/KishanBeej" element={
+            }
+          />
+          <Route
+            path="/KishanBeej"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <KishanBeej />
               </ProtectedRoute>
-            } />
-             <Route path="/LibrarySystem" element={
+            }
+          />
+          <Route
+            path="/LibrarySystem"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <LibrarySystem />
               </ProtectedRoute>
-            } />
-            <Route path="/HorticultureManagementSystem" element={
+            }
+          />
+          <Route
+            path="/HorticultureManagementSystem"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <HorticultureManagementSystem />
               </ProtectedRoute>
-            } />
-            <Route path="/SeedFarmers" element={
+            }
+          />
+          <Route
+            path="/SeedFarmers"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <SeedFarmers />
               </ProtectedRoute>
-            } />
-            <Route path="/KrishiRegistration" element={
+            }
+          />
+          <Route
+            path="/KrishiRegistration"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <KrishiRegistration />
               </ProtectedRoute>
-            } />
-            <Route path="/MainDashboard" element={
+            }
+          />
+          <Route
+            path="/MainDashboard"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <MainDashboard />
               </ProtectedRoute>
-            } />
-            <Route path="/Billing" element={
+            }
+          />
+          <Route
+            path="/Billing"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Billing />
               </ProtectedRoute>
-            } />
-            <Route path="/AllBills" element={
+            }
+          />
+          <Route
+            path="/AllBills"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <AllBills />
               </ProtectedRoute>
-            } />
-            <Route path="/MPR" element={
+            }
+          />
+          <Route
+            path="/MPR"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <MPR />
               </ProtectedRoute>
-            } />
-            <Route path="/AddEditComponent" element={
+            }
+          />
+          <Route
+            path="/AddEditComponent"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <AddEditComponent />
               </ProtectedRoute>
-            } />
-             <Route path="/DemandGenerate" element={
-               <ProtectedRoute allowedLoginTypes={["demand"]}>
-               <DemandGenerate />
-               </ProtectedRoute>
-             } />
-             <Route path="/DemandGenerate/CenterwiseEntry" element={
-               <ProtectedRoute allowedLoginTypes={["demand"]}>
-               <DemandCenterwiseEntry />
-               </ProtectedRoute>
-             } />
-             <Route path="/DemandGenerate/KrishiwiseEntry" element={
-               <ProtectedRoute allowedLoginTypes={["demand"]}>
-               <DemandKrishiwiseEntry />
-               </ProtectedRoute>
-             } />
-            <Route path="/KendraPasswordReset" element={
+            }
+          />
+          <Route
+            path="/DemandGenerate"
+            element={
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
+                <DemandGenerate />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/DemandGenerate/CenterwiseEntry"
+            element={
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
+                <DemandCenterwiseEntry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/DemandGenerate/KrishiwiseEntry"
+            element={
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
+                <DemandKrishiwiseEntry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/KendraPasswordReset"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <KendraPasswordReset />
               </ProtectedRoute>
-            } />
-            <Route path="/DemandView" element={
+            }
+          />
+          <Route
+            path="/DemandView"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <DemandView />
               </ProtectedRoute>
-            } />
-            <Route path="/NurseryFinancialEntry" element={
+            }
+          />
+          <Route
+            path="/NurseryFinancialEntry"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin", "nursery"]}>
                 <NurseryFinancialEntry />
               </ProtectedRoute>
-            } />
-            <Route path="/NurseryPhysicalEntry" element={
+            }
+          />
+          <Route
+            path="/NurseryPhysicalEntry"
+            element={
               <ProtectedRoute allowedLoginTypes={["admin", "nursery"]}>
                 <NurseryPhysicalEntry />
               </ProtectedRoute>
-            } />
-          </Routes>
+            }
+          />
+        </Routes>
+      </main>
 
-        </main>
-        
-        <Footer />
-      </div>
-    );
+      <Footer />
+    </div>
+  );
 }
 
 function App() {
