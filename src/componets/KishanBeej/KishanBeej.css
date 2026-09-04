@@ -1,81 +1,62 @@
-/* =========================================================
-   KishanBeej.css
-   किसान बीज वितरण — सरल प्रणाली
-   ========================================================= */
+:root{
+  --navy:#1F4E78;
+  --navy-d:#143352;
+  --paper:#F7F5EF;
+  --card:#FFFFFF;
 
-:root {
-  --navy: #1F4E78;
-  --navy-d: #143352;
+  --line:#DCD5C4;
+  --ink:#1E232B;
+  --soft:#66707E;
+  --gold:#A9781F;
 
-  --paper: #F7F5EF;
-  --card: #FFFFFF;
+  --ok:#2F6B45;
+  --ok-bg:#E8F3EA;
 
-  --line: #DCD5C4;
+  --bad:#A5312B;
+  --bad-bg:#FBEBEA;
 
-  --ink: #1E232B;
-  --soft: #66707E;
-
-  --gold: #A9781F;
-
-  --ok: #2F6B45;
-  --ok-bg: #E8F3EA;
-
-  --bad: #A5312B;
-  --bad-bg: #FBEBEA;
-
-  --warn-bg: #FDF3D8;
-
-  --yellow: #FFF9DB;
+  --warn-bg:#FDF3D8;
+  --yellow:#FFF9DB;
 
   --f:
-    "Nirmala UI",
-    "Noto Sans Devanagari",
-    "Segoe UI",
+    'Nirmala UI',
+    'Noto Sans Devanagari',
+    'Segoe UI',
     Arial,
     sans-serif;
 
   --m:
-    "Nirmala UI",
-    "Consolas",
+    'Nirmala UI',
+    'Consolas',
     monospace;
 }
 
-
-/* =========================================================
-   MAIN APP
-   ========================================================= */
-
-.kishan-beej-app {
-  min-height: 100vh;
-
-  background:
-    var(--paper);
-
-  color:
-    var(--ink);
-
-  font-family:
-    var(--f);
-
-  font-size:
-    15px;
-
-  padding-bottom:
-    80px;
+*{
+  box-sizing:border-box;
 }
 
-
-.kishan-beej-app * {
-  box-sizing:
-    border-box;
+html,
+body{
+  margin:0;
+  padding:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f);
+  font-size:15px;
 }
 
+body{
+  padding-bottom:80px;
+}
 
-/* =========================================================
-   HEADER
-   ========================================================= */
+.kishan-beej-app{
+  min-height:100vh;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f);
+}
 
-.kishan-beej-app header {
+.kishan-beej-app header{
   background:
     linear-gradient(
       180deg,
@@ -83,700 +64,350 @@
       var(--navy-d)
     );
 
-  color:
-    #fff;
-
-  padding:
-    14px 16px;
+  color:#fff;
+  padding:14px 16px;
 }
 
-
-.kishan-beej-app header .in,
-.kishan-beej-app nav .in {
-  max-width:
-    1250px;
-
-  margin:
-    0 auto;
+.kishan-beej-app header .in{
+  max-width:1250px;
+  margin:0 auto;
 }
 
-
-.eyebrow {
-  font-size:
-    11px;
-
-  letter-spacing:
-    .12em;
-
-  color:
-    #D9C68A;
-
-  text-transform:
-    uppercase;
+.kishan-beej-app header .eyebrow{
+  font-size:11px;
+  letter-spacing:.12em;
+  color:#D9C68A;
+  text-transform:uppercase;
 }
 
-
-.kishan-beej-app header h1 {
-  margin:
-    4px 0 0;
-
-  font-size:
-    19px;
-
-  font-weight:
-    700;
+.kishan-beej-app header h1{
+  margin:4px 0 0;
+  font-size:19px;
+  font-weight:700;
 }
 
-
-.kishan-beej-app header p {
-  margin:
-    3px 0 0;
-
-  font-size:
-    12.5px;
-
-  color:
-    #C7D3E0;
+.kishan-beej-app header p{
+  margin:3px 0 0;
+  font-size:12.5px;
+  color:#C7D3E0;
 }
 
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-.kishan-beej-app nav {
-  position:
-    sticky;
-
-  top:
-    0;
-
-  z-index:
-    30;
-
-  background:
-    var(--card);
-
-  border-bottom:
-    2px solid var(--navy);
-
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, .06);
+.kishan-beej-app nav{
+  position:sticky;
+  top:0;
+  z-index:30;
+  background:var(--card);
+  border-bottom:2px solid var(--navy);
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
 }
 
-
-.kishan-beej-app nav .in {
-  display:
-    flex;
-
-  overflow-x:
-    auto;
+.kishan-beej-app nav .in{
+  max-width:1250px;
+  margin:0 auto;
+  display:flex;
+  overflow-x:auto;
 }
 
+.kishan-beej-app nav button{
+  flex:1 0 auto;
+  min-width:96px;
+  border:none;
+  background:none;
+  padding:12px 10px;
 
-.kishan-beej-app nav button {
-  flex:
-    1 0 auto;
+  font-family:var(--f);
+  font-size:13.5px;
+  font-weight:600;
 
-  min-width:
-    96px;
+  color:var(--soft);
+  cursor:pointer;
 
-  border:
-    none;
-
-  background:
-    none;
-
-  padding:
-    12px 10px;
-
-  font-family:
-    var(--f);
-
-  font-size:
-    13.5px;
-
-  font-weight:
-    600;
-
-  color:
-    var(--soft);
-
-  cursor:
-    pointer;
-
-  border-bottom:
-    3px solid transparent;
+  border-bottom:3px solid transparent;
 }
 
-
-.kishan-beej-app nav button.on {
-  color:
-    var(--navy);
-
-  border-bottom-color:
-    var(--gold);
-
-  background:
-    #F4F1E8;
+.kishan-beej-app nav button.on{
+  color:var(--navy);
+  border-bottom-color:var(--gold);
+  background:#F4F1E8;
 }
 
-
-.ic {
-  display:
-    block;
-
-  font-size:
-    17px;
-
-  line-height:
-    1.1;
-
-  margin-bottom:
-    2px;
+.kishan-beej-app nav button .ic{
+  display:block;
+  font-size:17px;
+  line-height:1.1;
+  margin-bottom:2px;
 }
 
-
-/* =========================================================
-   MAIN
-   ========================================================= */
-
-.kishan-beej-app main {
-  max-width:
-    1250px;
-
-  margin:
-    0 auto;
-
-  padding:
-    16px;
+.kishan-beej-app main{
+  max-width:1250px;
+  margin:0 auto;
+  padding:16px;
 }
 
-
-.panel {
-  display:
-    block;
+.panel{
+  display:none;
 }
 
-
-.kishan-beej-app h2 {
-  font-size:
-    17px;
-
-  color:
-    var(--navy);
-
-  margin:
-    0 0 3px;
+.panel.on{
+  display:block;
 }
 
-
-.sub {
-  color:
-    var(--soft);
-
-  font-size:
-    12.5px;
-
-  margin:
-    0 0 14px;
-
-  line-height:
-    1.5;
+h2{
+  font-size:17px;
+  color:var(--navy);
+  margin:0 0 3px;
 }
 
-
-/* =========================================================
-   CARDS
-   ========================================================= */
-
-.card {
-  background:
-    var(--card);
-
-  border:
-    1px solid var(--line);
-
-  border-radius:
-    10px;
-
-  padding:
-    14px;
-
-  margin-bottom:
-    14px;
+.sub{
+  color:var(--soft);
+  font-size:12.5px;
+  margin:0 0 14px;
+  line-height:1.5;
 }
 
-
-.card h3 {
-  margin:
-    0 0 10px;
-
-  font-size:
-    15px;
-
-  color:
-    var(--navy);
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:14px;
+  margin-bottom:14px;
 }
 
-
-/* =========================================================
-   GRID
-   ========================================================= */
-
-.grid {
-  display:
-    grid;
-
-  gap:
-    10px;
+.card h3{
+  margin:0 0 10px;
+  font-size:15px;
+  color:var(--navy);
 }
 
+.grid{
+  display:grid;
+  gap:10px;
+}
 
-.g2 {
+.g2{
   grid-template-columns:
-    repeat(2, 1fr);
+    repeat(2,1fr);
 }
 
-
-.g3 {
+.g3{
   grid-template-columns:
-    repeat(3, 1fr);
+    repeat(3,1fr);
 }
 
-
-.g4 {
+.g4{
   grid-template-columns:
-    repeat(4, 1fr);
+    repeat(4,1fr);
 }
 
-
-/* =========================================================
-   SPACING
-   ========================================================= */
-
-.mt10 {
-  margin-top:
-    10px;
+label{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  color:var(--soft);
+  margin-bottom:4px;
 }
 
-
-.mt12 {
-  margin-top:
-    12px;
+label .r{
+  color:var(--bad);
 }
 
+input,
+select,
+textarea{
+  width:100%;
+  padding:10px;
+  font-size:14.5px;
+  font-family:var(--f);
 
-/* =========================================================
-   FORM
-   ========================================================= */
+  border:1px solid #C7CDD6;
+  border-radius:7px;
 
-.kishan-beej-app label {
-  display:
-    block;
-
-  font-size:
-    12px;
-
-  font-weight:
-    600;
-
-  color:
-    var(--soft);
-
-  margin-bottom:
-    4px;
+  background:#fff;
+  color:var(--ink);
 }
 
-
-.kishan-beej-app input,
-.kishan-beej-app select,
-.kishan-beej-app textarea {
-  width:
-    100%;
-
-  padding:
-    10px;
-
-  font-size:
-    14.5px;
-
-  font-family:
-    var(--f);
-
-  border:
-    1px solid #C7CDD6;
-
-  border-radius:
-    7px;
-
-  background:
-    #fff;
-
-  color:
-    var(--ink);
+input:focus,
+select:focus,
+textarea:focus{
+  outline:2px solid var(--navy);
+  outline-offset:1px;
 }
 
-
-.kishan-beej-app input:focus,
-.kishan-beej-app select:focus,
-.kishan-beej-app textarea:focus {
-  outline:
-    2px solid var(--navy);
-
-  outline-offset:
-    1px;
+input[readonly]{
+  background:#F1EEE5;
+  font-weight:700;
 }
 
-
-.kishan-beej-app input[readonly] {
-  background:
-    #F1EEE5;
-
-  font-weight:
-    700;
+.need{
+  background:var(--yellow);
 }
 
+.btn{
+  font-family:var(--f);
+  font-weight:700;
+  font-size:14px;
 
-.need {
-  background:
-    var(--yellow) !important;
+  border:1px solid transparent;
+  border-radius:8px;
+
+  padding:11px 18px;
+  cursor:pointer;
 }
 
-
-/* =========================================================
-   BUTTONS
-   ========================================================= */
-
-.btn {
-  font-family:
-    var(--f);
-
-  font-weight:
-    700;
-
-  font-size:
-    14px;
-
-  border:
-    1px solid transparent;
-
-  border-radius:
-    8px;
-
-  padding:
-    11px 18px;
-
-  cursor:
-    pointer;
+.btn:active{
+  transform:translateY(1px);
 }
 
-
-.btn:active {
-  transform:
-    translateY(1px);
+.b1{
+  background:var(--navy);
+  color:#fff;
 }
 
-
-.b1 {
-  background:
-    var(--navy);
-
-  color:
-    #fff;
+.b1:hover{
+  filter:brightness(1.15);
 }
 
-
-.b1:hover {
-  filter:
-    brightness(1.15);
+.b2{
+  background:#fff;
+  color:var(--navy);
+  border-color:var(--navy);
 }
 
-
-.b2 {
-  background:
-    #fff;
-
-  color:
-    var(--navy);
-
-  border-color:
-    var(--navy);
+.b2:hover{
+  background:#EFEBE0;
 }
 
-
-.b2:hover {
-  background:
-    #EFEBE0;
+.b3{
+  background:#fff;
+  color:var(--bad);
+  border-color:#E0AFAC;
 }
 
-
-.b3 {
-  background:
-    #fff;
-
-  color:
-    var(--bad);
-
-  border-color:
-    #E0AFAC;
+.sm{
+  padding:7px 12px;
+  font-size:12.5px;
+  border-radius:6px;
 }
 
-
-.sm {
-  padding:
-    7px 12px;
-
-  font-size:
-    12.5px;
-
-  border-radius:
-    6px;
+.row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
 }
 
-
-/* =========================================================
-   ROW
-   ========================================================= */
-
-.row {
-  display:
-    flex;
-
-  gap:
-    10px;
-
-  flex-wrap:
-    wrap;
-
-  align-items:
-    center;
+.row.end{
+  justify-content:space-between;
 }
 
+.note{
+  border-radius:8px;
+  padding:10px 13px;
+  font-size:13px;
+  line-height:1.55;
 
-.row.end {
-  justify-content:
-    space-between;
+  border:1px solid var(--gold);
+  background:var(--warn-bg);
+  color:#5c4416;
 }
 
-
-/* =========================================================
-   NOTES
-   ========================================================= */
-
-.note {
-  border-radius:
-    8px;
-
-  padding:
-    10px 13px;
-
-  font-size:
-    13px;
-
-  line-height:
-    1.55;
-
-  border:
-    1px solid var(--gold);
-
-  background:
-    var(--warn-bg);
-
-  color:
-    #5c4416;
+.note.ok{
+  border-color:#8FBF9F;
+  background:var(--ok-bg);
+  color:var(--ok);
 }
 
-
-.note.ok {
-  border-color:
-    #8FBF9F;
-
-  background:
-    var(--ok-bg);
-
-  color:
-    var(--ok);
+.note.bad{
+  border-color:#DDA6A2;
+  background:var(--bad-bg);
+  color:var(--bad);
 }
 
-
-.note.bad {
-  border-color:
-    #DDA6A2;
-
-  background:
-    var(--bad-bg);
-
-  color:
-    var(--bad);
-}
-
-
-/* =========================================================
-   KPI
-   ========================================================= */
-
-.kpis {
-  display:
-    grid;
-
+.kpis{
+  display:grid;
   grid-template-columns:
-    repeat(4, 1fr);
+    repeat(4,1fr);
 
-  gap:
-    10px;
-
-  margin-bottom:
-    14px;
+  gap:10px;
+  margin-bottom:14px;
 }
 
+.kpi{
+  background:var(--card);
 
-.kpi {
-  background:
-    var(--card);
+  border:1px solid var(--line);
+  border-left:4px solid var(--navy);
 
-  border:
-    1px solid var(--line);
-
-  border-left:
-    4px solid var(--navy);
-
-  border-radius:
-    9px;
-
-  padding:
-    11px 13px;
+  border-radius:9px;
+  padding:11px 13px;
 }
 
-
-.kpi.ok {
-  border-left-color:
-    var(--ok);
+.kpi.ok{
+  border-left-color:var(--ok);
 }
 
-
-.kpi.bad {
-  border-left-color:
-    var(--bad);
-
-  background:
-    var(--bad-bg);
+.kpi.bad{
+  border-left-color:var(--bad);
+  background:var(--bad-bg);
 }
 
-
-.kpi .l {
-  font-size:
-    11.5px;
-
-  color:
-    var(--soft);
+.kpi .l{
+  font-size:11.5px;
+  color:var(--soft);
 }
 
-
-.kpi .v {
-  font-family:
-    var(--m);
-
-  font-size:
-    19px;
-
-  font-weight:
-    700;
-
-  color:
-    var(--navy);
-
-  margin-top:
-    2px;
+.kpi .v{
+  font-family:var(--m);
+  font-size:19px;
+  font-weight:700;
+  color:var(--navy);
+  margin-top:2px;
 }
 
-
-.kpi.bad .v {
-  color:
-    var(--bad);
+.kpi.bad .v{
+  color:var(--bad);
 }
 
-
-.kpi .s {
-  font-size:
-    11px;
-
-  color:
-    var(--soft);
-
-  margin-top:
-    2px;
+.kpi .s{
+  font-size:11px;
+  color:var(--soft);
+  margin-top:2px;
 }
 
-
-/* =========================================================
-   TABLE
-   ========================================================= */
-
-.tw {
-  overflow-x:
-    auto;
-
-  border:
-    1px solid var(--line);
-
-  border-radius:
-    9px;
-
-  background:
-    #fff;
+.tw{
+  overflow-x:auto;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
 }
 
-
-table {
-  border-collapse:
-    collapse;
-
-  width:
-    100%;
-
-  font-size:
-    12.5px;
-
-  min-width:
-    720px;
+table{
+  border-collapse:collapse;
+  width:100%;
+  font-size:12.5px;
+  min-width:720px;
 }
 
+th{
+  background:var(--navy);
+  color:#fff;
 
-th {
-  background:
-    var(--navy);
+  font-weight:600;
+  font-size:11.5px;
 
-  color:
-    #fff;
+  padding:8px 6px;
+  text-align:center;
 
-  font-weight:
-    600;
-
-  font-size:
-    11.5px;
-
-  padding:
-    8px 6px;
-
-  text-align:
-    center;
-
-  line-height:
-    1.3;
+  line-height:1.3;
 
   border-right:
     1px solid
     rgba(255,255,255,.15);
 }
 
-
-td {
-  padding:
-    8px 6px;
-
-  text-align:
-    center;
+td{
+  padding:8px 6px;
+  text-align:center;
 
   border-bottom:
     1px solid #EDE8DA;
@@ -784,530 +415,291 @@ td {
   border-right:
     1px solid #F3F0E7;
 
-  white-space:
-    nowrap;
+  white-space:nowrap;
 }
 
-
-td.l {
-  text-align:
-    right;
-
-  white-space:
-    normal;
+td.l{
+  text-align:right;
+  white-space:normal;
 }
 
+tr:nth-child(even) td{
+  background:#FCFBF7;
+}
 
-tr:nth-child(even) td {
+tfoot td{
+  background:#E9F0F7;
+  font-weight:700;
+  color:var(--navy);
+}
+
+td.neg{
   background:
-    #FCFBF7;
+    var(--bad-bg)!important;
+
+  color:var(--bad);
+  font-weight:700;
 }
 
+.tag{
+  display:inline-block;
 
-tfoot td {
-  background:
-    #E9F0F7;
+  padding:2px 9px;
 
-  font-weight:
-    700;
+  border-radius:20px;
 
-  color:
-    var(--navy);
+  font-size:10.5px;
+  font-weight:700;
+
+  margin-left:5px;
 }
 
-
-td.neg {
-  background:
-    var(--bad-bg) !important;
-
-  color:
-    var(--bad);
-
-  font-weight:
-    700;
+.tag.ok{
+  background:var(--ok-bg);
+  color:var(--ok);
 }
 
-
-/* =========================================================
-   TAGS
-   ========================================================= */
-
-.tag {
-  display:
-    inline-block;
-
-  padding:
-    2px 9px;
-
-  border-radius:
-    20px;
-
-  font-size:
-    10.5px;
-
-  font-weight:
-    700;
-
-  margin-left:
-    5px;
+.tag.bad{
+  background:var(--bad-bg);
+  color:var(--bad);
 }
 
-
-.tag.ok {
-  background:
-    var(--ok-bg);
-
-  color:
-    var(--ok);
+.tag.n{
+  background:#EDE8DA;
+  color:var(--soft);
 }
 
-
-.tag.bad {
-  background:
-    var(--bad-bg);
-
-  color:
-    var(--bad);
+.seg{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
 }
 
+.seg button{
+  border:1px solid var(--line);
+  background:#fff;
 
-.tag.n {
-  background:
-    #EDE8DA;
+  color:var(--soft);
 
-  color:
-    var(--soft);
+  font-family:var(--f);
+  font-weight:600;
+  font-size:13px;
+
+  padding:8px 14px;
+
+  border-radius:20px;
+
+  cursor:pointer;
 }
 
-
-/* =========================================================
-   SEGMENT BUTTONS
-   ========================================================= */
-
-.seg {
-  display:
-    flex;
-
-  gap:
-    6px;
-
-  flex-wrap:
-    wrap;
-
-  margin-bottom:
-    12px;
+.seg button.on{
+  background:var(--navy);
+  color:#fff;
+  border-color:var(--navy);
 }
 
+details{
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  margin-bottom:8px;
+}
 
-.seg button {
-  border:
+summary{
+  padding:11px 13px;
+  cursor:pointer;
+
+  font-weight:600;
+  color:var(--navy);
+
+  font-size:14px;
+}
+
+details[open] summary{
+  border-bottom:
     1px solid var(--line);
-
-  background:
-    #fff;
-
-  color:
-    var(--soft);
-
-  font-family:
-    var(--f);
-
-  font-weight:
-    600;
-
-  font-size:
-    13px;
-
-  padding:
-    8px 14px;
-
-  border-radius:
-    20px;
-
-  cursor:
-    pointer;
 }
 
-
-.seg button.on {
-  background:
-    var(--navy);
-
-  color:
-    #fff;
-
-  border-color:
-    var(--navy);
+.dbody{
+  padding:12px;
 }
 
-
-/* =========================================================
-   CHECK LIST
-   ========================================================= */
-
-ul.chk {
-  list-style:
-    none;
-
-  margin:
-    0;
-
-  padding:
-    0;
+ul.chk{
+  list-style:none;
+  margin:0;
+  padding:0;
 }
 
+ul.chk li{
+  display:flex;
+  gap:9px;
 
-ul.chk li {
-  display:
-    flex;
-
-  gap:
-    9px;
-
-  padding:
-    9px 2px;
+  padding:9px 2px;
 
   border-bottom:
     1px solid #EFEADB;
 
-  font-size:
-    13px;
-
-  line-height:
-    1.5;
+  font-size:13px;
+  line-height:1.5;
 }
 
-
-ul.chk li:last-child {
-  border:
-    none;
+ul.chk li:last-child{
+  border:none;
 }
 
-
-.chk .i {
-  font-weight:
-    700;
+ul.chk .i{
+  font-weight:700;
 }
 
-
-.i.ok {
-  color:
-    var(--ok);
+.i.ok{
+  color:var(--ok);
 }
 
-
-.i.bad {
-  color:
-    var(--bad);
+.i.bad{
+  color:var(--bad);
 }
 
+.empty{
+  text-align:center;
 
-/* =========================================================
-   DETAILS / MANAK
-   ========================================================= */
+  padding:30px 14px;
 
-details {
-  border:
-    1px solid var(--line);
+  color:var(--soft);
 
-  border-radius:
-    9px;
-
-  background:
-    #fff;
-
-  margin-bottom:
-    8px;
+  font-size:13.5px;
 }
 
-
-summary {
-  padding:
-    11px 13px;
-
-  cursor:
-    pointer;
-
-  font-weight:
-    600;
-
-  color:
-    var(--navy);
-
-  font-size:
-    14px;
-
-  list-style-position:
-    inside;
+.table-card{
+  padding:0;
+  overflow:hidden;
 }
 
+footer{
+  max-width:1250px;
 
-details[open] summary {
-  border-bottom:
-    1px solid var(--line);
-}
+  margin:20px auto 0;
 
-
-.dbody {
-  padding:
-    12px;
-}
-
-
-/* =========================================================
-   EMPTY
-   ========================================================= */
-
-.empty {
-  text-align:
-    center;
-
-  padding:
-    30px 14px;
-
-  color:
-    var(--soft);
-
-  font-size:
-    13.5px;
-}
-
-
-/* =========================================================
-   TABLE CARD
-   ========================================================= */
-
-.table-card {
-  padding:
-    0;
-
-  overflow:
-    hidden;
-}
-
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
-.short-input {
-  max-width:
-    280px;
-}
-
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-.kishan-beej-app footer {
-  max-width:
-    1250px;
-
-  margin:
-    20px auto 0;
-
-  padding:
-    14px 16px;
+  padding:14px 16px;
 
   border-top:
     1px solid var(--line);
 
-  color:
-    var(--soft);
+  color:var(--soft);
 
-  font-size:
-    11.5px;
+  font-size:11.5px;
 
-  text-align:
-    center;
+  text-align:center;
 }
 
-
-/* =========================================================
-   PRINT PAGE
-   ========================================================= */
-
-.print-page {
-  font-family:
-    var(--f);
-
-  background:
-    #fff;
-
-  color:
-    #111;
+#printarea{
+  display:none;
 }
 
-
-/* =========================================================
+/* =========================================
    RESPONSIVE
-   ========================================================= */
+========================================= */
 
-@media (max-width: 820px) {
+@media(max-width:820px){
 
   .g3,
-  .g4 {
+  .g4{
     grid-template-columns:
-      repeat(2, 1fr);
+      repeat(2,1fr);
   }
 
-  .kpis {
+  .kpis{
     grid-template-columns:
-      repeat(2, 1fr);
+      repeat(2,1fr);
   }
-
 }
 
-
-@media (max-width: 520px) {
+@media(max-width:520px){
 
   .g2,
   .g3,
-  .g4 {
-    grid-template-columns:
-      1fr;
+  .g4{
+    grid-template-columns:1fr;
   }
 
-  .kpis {
-    grid-template-columns:
-      1fr;
+  .kpis{
+    grid-template-columns:1fr;
   }
 
-  .kishan-beej-app main {
-    padding:
-      10px;
+  .kishan-beej-app main{
+    padding:10px;
   }
 
-  .card {
-    padding:
-      11px;
+  .card{
+    padding:11px;
   }
 
-  .btn {
-    width:
-      100%;
+  .btn{
+    width:100%;
   }
 
-  .row .btn {
-    width:
-      auto;
+  .row .btn{
+    width:auto;
   }
-
-  .short-input {
-    max-width:
-      100%;
-  }
-
 }
 
-
-/* =========================================================
+/* =========================================
    PRINT
-   ========================================================= */
+========================================= */
 
-@media print {
+@media print{
 
-  body {
-    background:
-      #fff !important;
-
-    margin:
-      0;
+  header,
+  nav,
+  footer,
+  .noprint,
+  main{
+    display:none!important;
   }
 
-  .kishan-beej-app header,
-  .kishan-beej-app nav,
-  .kishan-beej-app footer,
-  .noprint {
-    display:
-      none !important;
+  #printarea{
+    display:block!important;
   }
 
-  .kishan-beej-app main {
-    max-width:
-      none;
-
-    padding:
-      0;
+  body{
+    background:#fff;
+    padding:0;
   }
 
-  .panel {
-    display:
-      none !important;
+  #printarea table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:9px;
   }
 
-  .print-page {
-    display:
-      block !important;
+  #printarea th,
+  #printarea td{
+    border:1px solid #999;
+    padding:3px;
   }
 
-  .print-page table {
-    width:
-      100%;
-
-    border-collapse:
-      collapse;
-
-    font-size:
-      9px;
+  #printarea th{
+    background:#1F4E78;
+    color:#fff;
   }
 
-  .print-page th,
-  .print-page td {
-    border:
-      1px solid #999;
-
-    padding:
-      3px;
+  #printarea h2{
+    font-size:13px;
+    margin:0 0 2px;
   }
 
-  .print-page th {
-    background:
-      #1F4E78 !important;
-
-    color:
-      #fff !important;
+  #printarea .pm{
+    font-size:9px;
+    color:#444;
+    margin:0 0 6px;
   }
 
-  .print-page h2 {
-    font-size:
-      13px;
-
-    margin:
-      0 0 2px;
-
-    color:
-      #1F4E78;
+  #printarea .sg{
+    height:26px;
   }
 
-  .print-page .pm {
-    font-size:
-      9px;
-
-    color:
-      #444;
-
-    margin:
-      0 0 6px;
+  @page{
+    size:A4 landscape;
+    margin:8mm;
   }
-
-  .signature-cell {
-    height:
-      26px;
-  }
-
-  .signline {
-    margin-top:
-      14px;
-  }
-
-  @page {
-    size:
-      A4 landscape;
-
-    margin:
-      8mm;
-  }
-
 }

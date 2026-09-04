@@ -756,7 +756,7 @@ body {
 }
 
 .a4-page {
-    width: 210mm;
+    /* width: 210mm; */
 
     min-height: 297mm;
 
@@ -1798,6 +1798,18 @@ body {
         print-color-adjust: exact;
     }
 
+    .app-container,
+    .main-content,
+    .udyan-app {
+        display: block !important;
+
+        height: auto !important;
+
+        min-height: 0 !important;
+
+        overflow: visible !important;
+    }
+
     .control-panel,
     .preview-heading,
     .toast-message {
@@ -1823,7 +1835,7 @@ body {
 
         margin: 0 !important;
 
-        padding: 0 !important;
+        padding: 12mm 12mm 10mm !important;
 
         box-shadow: none !important;
 
@@ -1839,7 +1851,7 @@ body {
     @page {
         size: A4 portrait;
 
-        margin: 12mm;
+        margin: 0;
     }
 
     .doc-input {
@@ -1848,5 +1860,165 @@ body {
         border-bottom: 1px dotted #444 !important;
 
         background: transparent !important;
+    }
+}
+/* =========================================================
+   DATABASE STANDARD TABLE - REFERENCE HTML MATCH
+   ========================================================= */
+.standard-card-header-editable {
+    align-items: center;
+}
+
+.standard-title-editable {
+    flex: 1;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.standard-crop-name-input,
+.standard-top-input,
+.standard-cell-input {
+    font-family: inherit;
+    font-size: 12px;
+    border: 1px solid #aaa;
+    border-radius: 3px;
+    background: #fffef0;
+    outline: none;
+}
+
+.standard-crop-name-input {
+    width: min(280px, 100%);
+    min-width: 180px;
+    height: 32px;
+    padding: 5px 8px;
+    font-weight: 700;
+}
+
+.standard-top-input {
+    height: 32px;
+    padding: 5px 8px;
+}
+
+.spacing-input {
+    width: 120px;
+}
+
+.money-input {
+    width: 120px;
+}
+
+.standard-inline-label {
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
+}
+
+.standard-table-wrapper {
+    overflow-x: auto;
+}
+
+.standard-calc-table {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.standard-calc-table th,
+.standard-calc-table td {
+    border: 1px solid #999;
+    padding: 5px 7px;
+    vertical-align: middle;
+}
+
+.standard-calc-table th {
+    background: #eeece4;
+    text-align: center;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.standard-calc-table td:nth-child(2) {
+    text-align: left;
+    min-width: 360px;
+}
+
+.standard-cell-input {
+    width: 94px;
+    height: 29px;
+    padding: 4px 7px;
+    text-align: right;
+}
+
+.standard-cell-input:focus,
+.standard-crop-name-input:focus,
+.standard-top-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(43, 92, 63, 0.12);
+}
+
+.standard-cell-input:disabled {
+    background: #ececec;
+    color: #666;
+}
+
+.auto-qty-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 7px;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.auto-qty-label input {
+    width: 14px;
+    height: 14px;
+    accent-color: #1976d2;
+}
+
+.standard-sum-row td {
+    font-weight: 700;
+    background: #f3f2ee;
+}
+
+.standard-sum-row .money {
+    font-size: 12px;
+}
+
+.standard-card-actions button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+@media (max-width: 900px) {
+    .standard-card-header-editable {
+        align-items: flex-start;
+    }
+
+    .standard-title-editable {
+        width: 100%;
+    }
+
+    .standard-crop-name-input {
+        width: 100%;
+    }
+}
+
+@media print {
+    .standard-card-header-editable input,
+    .standard-card-actions,
+    .standards-toolbar {
+        display: none !important;
+    }
+
+    .standard-calc-table {
+        min-width: 0;
+        font-size: 9pt;
+    }
+
+    .standard-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 }

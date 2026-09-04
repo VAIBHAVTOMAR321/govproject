@@ -1,31 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./UdyanBill.css";
 
-const API_BASE = "/api/udyan";
+const API_BASE = "https://mahadevaaya.com/govbillingsystem/backend/api/udyan";
 
 /* =========================================================
-   CSRF
-   ========================================================= */
-
-const getCookie = (name) => {
-    if (!document.cookie) return "";
-
-    const cookies = document.cookie.split("; ");
-
-    const cookie = cookies.find((row) =>
-        row.startsWith(`${name}=`)
-    );
-
-    if (!cookie) return "";
-
-    return decodeURIComponent(
-        cookie.substring(name.length + 1)
-    );
-};
-
-/* =========================================================
-   API HELPERS
-   ========================================================= */
+    API HELPERS
+    ========================================================= */
 
 const apiFetch = async (url, options = {}) => {
     const method = (
@@ -36,21 +16,11 @@ const apiFetch = async (url, options = {}) => {
         ...(options.headers || {}),
     };
 
-    if (
-        ["POST", "PUT", "PATCH", "DELETE"].includes(method)
-    ) {
-        const csrf = getCookie("csrftoken");
-
-        if (csrf) {
-            headers["X-CSRFToken"] = csrf;
-        }
-    }
-
     return fetch(url, {
         ...options,
         method,
         headers,
-        credentials: "include",
+        credentials: "omit",
     });
 };
 
@@ -602,6 +572,17 @@ export default function UdyanBill() {
 
             setStandards(activeList);
 
+            // Select the first database standard automatically so the
+            // calculation and A4 preview are visible immediately.
+            if (!selectedCropId && activeList.length > 0) {
+                const firstId = String(activeList[0].id);
+                setSelectedCropId(firstId);
+                setBill((previous) => ({
+                    ...previous,
+                    crop: firstId,
+                }));
+            }
+
             if (
                 selectedCropId &&
                 !activeList.some(
@@ -787,22 +768,10 @@ export default function UdyanBill() {
             bill.calculation_basis ===
             "plant"
         ) {
-            /*
-             * For actual plant count, scale the standard
-             * total according to actual plants.
-             */
-            const standardPlants =
-                plantsPerHectare > 0
-                    ? plantsPerHectare
-                    : 1;
-
-            const scale =
-                plants /
-                standardPlants;
-
+            // Same rule as the reference form:
+            // standard total for selected area minus actual plant/pit cost.
             manureTotal =
-                standardTotal *
-                    scale -
+                standardTotal * area -
                 plantTotal -
                 pitTotal;
         } else {
@@ -2779,262 +2748,325 @@ export default function UdyanBill() {
        ===================================================== */
 
     const StandardsManager = () => {
+        const saveInlineStandard = async (id, draft) => {
+            const total = num(draft.standard_total);
+            const subsidy = num(draft.standard_subsidy);
+
+            if (!String(draft.crop_name || "").trim()) {
+                throw new Error("फसल का नाम दर्ज करें।");
+            }
+            if (!String(draft.spacing || "").trim()) {
+                throw new Error("दूरी दर्ज करें।");
+            }
+            if (subsidy > total) {
+                throw new Error("राजसहायता मानक महायोग से अधिक नहीं हो सकती।");
+            }
+
+            const payload = {
+                financial_year: String(draft.financial_year || financialYear).trim(),
+                crop_name: String(draft.crop_name || "").trim(),
+                spacing: String(draft.spacing || "").trim(),
+                plants_per_hectare: num(draft.plants_per_hectare),
+                plant_rate: num(draft.plant_rate),
+                pit_rate: num(draft.pit_rate),
+                manure_rate: num(draft.manure_rate),
+                manure_quantity: num(draft.manure_quantity),
+                standard_total: total,
+                standard_subsidy: subsidy,
+                is_active: draft.is_active !== false,
+            };
+
+            const response = await apiFetch(
+                `${API_BASE}/crop-standards/${id}/`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            const data = await readJsonResponse(response);
+            if (!response.ok) {
+                const error =
+                    data?.detail ||
+                    data?.error ||
+                    Object.values(data || {}).flat().join(" ");
+                throw new Error(error || "मानक सेव नहीं हो सका।");
+            }
+
+            await loadStandards();
+            setMessage("मानक सफलतापूर्वक अपडेट किया गया।");
+        };
+
+        const StandardEditorCard = ({ standard, index }) => {
+            const [draft, setDraft] = useState({ ...standard });
+            const [saving, setSaving] = useState(false);
+
+            useEffect(() => {
+                setDraft({ ...standard });
+            }, [standard]);
+
+            const update = (field, value) => {
+                setDraft((previous) => ({ ...previous, [field]: value }));
+            };
+
+            const calculated = useMemo(() => {
+                const plants = Math.max(0, Math.round(num(draft.plants_per_hectare)));
+                const pRate = num(draft.plant_rate);
+                const pitRate = num(draft.pit_rate);
+                const manRate = num(draft.manure_rate);
+                const stdTotal = num(draft.standard_total);
+                const stdSub = num(draft.standard_subsidy);
+
+                const plantTotal = plants * pRate;
+                const pitTotal = plants * pitRate;
+                let manureTotal;
+                let manureQty;
+
+                if (draft.manAuto !== false) {
+                    manureTotal = Math.max(0, stdTotal - plantTotal - pitTotal);
+                    manureQty = manRate > 0 ? manureTotal / manRate : 0;
+                } else {
+                    manureQty = Math.max(0, num(draft.manure_quantity));
+                    manureTotal = manureQty * manRate;
+                }
+
+                const plantSubsidy = Math.min(plantTotal, stdSub);
+                const manureSubsidy = Math.min(
+                    manureTotal,
+                    Math.max(0, stdSub - plantSubsidy)
+                );
+                const manureFarmer = Math.max(0, manureTotal - manureSubsidy);
+                const pitFarmer = pitTotal;
+                const total = plantTotal + pitTotal + manureTotal;
+                const subsidy = plantSubsidy + manureSubsidy;
+                const farmer = pitFarmer + manureFarmer;
+
+                return {
+                    plants,
+                    plantTotal,
+                    plantSubsidy,
+                    pitTotal,
+                    pitFarmer,
+                    manureQty,
+                    manureTotal,
+                    manureSubsidy,
+                    manureFarmer,
+                    total,
+                    subsidy,
+                    farmer,
+                };
+            }, [draft]);
+
+            const isMatched =
+                Math.abs(calculated.total - num(draft.standard_total)) < 0.51 &&
+                Math.abs(calculated.subsidy - num(draft.standard_subsidy)) < 0.51;
+
+            const save = async () => {
+                setSaving(true);
+                try {
+                    await saveInlineStandard(standard.id, draft);
+                } catch (error) {
+                    alert(error.message || "मानक सेव नहीं हो सका।");
+                } finally {
+                    setSaving(false);
+                }
+            };
+
+            return (
+                <div className="standard-card">
+                    <div className="standard-card-header standard-card-header-editable">
+                        <div className="standard-title standard-title-editable">
+                            <span>{index + 1}.</span>
+                            <input
+                                className="standard-crop-name-input"
+                                value={draft.crop_name ?? ""}
+                                onChange={(e) => update("crop_name", e.target.value)}
+                            />
+                            <span className="standard-inline-label">दूरी</span>
+                            <input
+                                className="standard-top-input spacing-input"
+                                value={draft.spacing ?? ""}
+                                onChange={(e) => update("spacing", e.target.value)}
+                            />
+                            <span className="standard-inline-label">मानक महायोग</span>
+                            <input
+                                className="standard-top-input money-input"
+                                inputMode="decimal"
+                                value={draft.standard_total ?? ""}
+                                onChange={(e) => update("standard_total", e.target.value)}
+                            />
+                            <span className="standard-inline-label">देय राजसहायता</span>
+                            <input
+                                className="standard-top-input money-input"
+                                inputMode="decimal"
+                                value={draft.standard_subsidy ?? ""}
+                                onChange={(e) => update("standard_subsidy", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="standard-card-actions">
+                            <span className={isMatched ? "match-badge" : "warning-badge"}>
+                                {isMatched
+                                    ? "मिलान सही ✓"
+                                    : `अन्तर : योग ${formatMoney(calculated.total, 2)} / मानक ${formatMoney(num(draft.standard_total), 2)}`}
+                            </span>
+                            <button
+                                type="button"
+                                className="edit-button"
+                                onClick={save}
+                                disabled={saving}
+                            >
+                                {saving ? "सेव..." : "सेव करें"}
+                            </button>
+                            <button
+                                type="button"
+                                className="delete-button"
+                                onClick={() => deleteStandard(standard.id)}
+                            >
+                                हटाएँ
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="standard-table-wrapper">
+                        <table className="standard-calc-table">
+                            <thead>
+                                <tr>
+                                    <th>क्र0</th>
+                                    <th>कार्य/मद विवरण</th>
+                                    <th>मात्रा</th>
+                                    <th>दर प्रति</th>
+                                    <th>कुल व्यय</th>
+                                    <th>देय राजसहायता</th>
+                                    <th>कृषक अंश</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className="center">1</td>
+                                    <td>फल पौध की लागत ({draft.spacing || "—"})</td>
+                                    <td>
+                                        <input
+                                            className="standard-cell-input"
+                                            type="number"
+                                            min="0"
+                                            value={draft.plants_per_hectare ?? ""}
+                                            onChange={(e) => update("plants_per_hectare", e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            className="standard-cell-input"
+                                            inputMode="decimal"
+                                            value={draft.plant_rate ?? ""}
+                                            onChange={(e) => update("plant_rate", e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="money">{formatMoney(calculated.plantTotal, 2)}</td>
+                                    <td className="money">{formatMoney(calculated.plantSubsidy, 2)}</td>
+                                    <td className="money">0.00</td>
+                                </tr>
+
+                                <tr>
+                                    <td className="center">2</td>
+                                    <td>गड्ढा खुदान, भरान, पौध रोपण (1×1×1 मी0)</td>
+                                    <td className="center">{calculated.plants}</td>
+                                    <td>
+                                        <input
+                                            className="standard-cell-input"
+                                            inputMode="decimal"
+                                            value={draft.pit_rate ?? ""}
+                                            onChange={(e) => update("pit_rate", e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="money">{formatMoney(calculated.pitTotal, 2)}</td>
+                                    <td className="money">0.00</td>
+                                    <td className="money">{formatMoney(calculated.pitFarmer, 2)}</td>
+                                </tr>
+
+                                <tr>
+                                    <td className="center">3</td>
+                                    <td>
+                                        गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/पोषक तत्व/पौध सुरक्षा/रोपण सिंचाई
+                                        <label className="auto-qty-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={draft.manAuto !== false}
+                                                onChange={(e) => update("manAuto", e.target.checked)}
+                                            />
+                                            मात्रा स्वतः
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input
+                                            className="standard-cell-input"
+                                            inputMode="decimal"
+                                            value={formatMoney(calculated.manureQty, 2)}
+                                            disabled={draft.manAuto !== false}
+                                            onChange={(e) => update("manure_quantity", e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            className="standard-cell-input"
+                                            inputMode="decimal"
+                                            value={draft.manure_rate ?? ""}
+                                            onChange={(e) => update("manure_rate", e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="money">{formatMoney(calculated.manureTotal, 2)}</td>
+                                    <td className="money">{formatMoney(calculated.manureSubsidy, 2)}</td>
+                                    <td className="money">{formatMoney(calculated.manureFarmer, 2)}</td>
+                                </tr>
+
+                                <tr className="standard-sum-row">
+                                    <td colSpan="4" className="right">योग :-</td>
+                                    <td className="money">{formatMoney(calculated.total, 2)}</td>
+                                    <td className="money">{formatMoney(calculated.subsidy, 2)}</td>
+                                    <td className="money">{formatMoney(calculated.farmer, 2)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
         return (
             <div className="standards-manager">
                 <div className="standards-toolbar">
                     <div>
-                        <h2>
-                            मानक तालिका
-                        </h2>
-
+                        <h2>मानक तालिका</h2>
                         <p>
-                            फसलवार मानक उपयोगकर्ता
-                            द्वारा दर्ज एवं संपादित किए
-                            जाएंगे।
+                            फसलवार मानक डेटाबेस से आते हैं। पीले खानों में मान बदलने पर नीचे की गणना तुरन्त बदलती है।
                         </p>
                     </div>
-
-                    <button
-                        type="button"
-                        className="green-button"
-                        onClick={
-                            openAddStandard
-                        }
-                    >
+                    <button type="button" className="green-button" onClick={openAddStandard}>
                         + नई फसल जोड़ें
                     </button>
                 </div>
 
                 {loadingStandards ? (
-                    <div className="loading-box">
-                        मानक लोड हो रहे हैं...
-                    </div>
+                    <div className="loading-box">मानक लोड हो रहे हैं...</div>
                 ) : standards.length === 0 ? (
                     <div className="no-standards">
-                        <div className="no-standard-icon">
-                            +
-                        </div>
-
-                        <h3>
-                            अभी कोई मानक दर्ज नहीं है
-                        </h3>
-
-                        <p>
-                            यहाँ उपयोगकर्ता अपनी
-                            आवश्यकता के अनुसार नई फसल
-                            और उसके सभी मानक दर्ज करेगा।
-                        </p>
-
-                        <button
-                            type="button"
-                            className="green-button"
-                            onClick={
-                                openAddStandard
-                            }
-                        >
+                        <div className="no-standard-icon">+</div>
+                        <h3>अभी कोई मानक दर्ज नहीं है</h3>
+                        <p>पहले डेटाबेस में फसल का मानक जोड़ें।</p>
+                        <button type="button" className="green-button" onClick={openAddStandard}>
                             पहला मानक जोड़ें
                         </button>
                     </div>
                 ) : (
                     <div className="standards-scroll">
-                        {standards.map(
-                            (
-                                standard,
-                                index
-                            ) => {
-                                const plantTotal =
-                                    num(
-                                        standard.plants_per_hectare
-                                    ) *
-                                    num(
-                                        standard.plant_rate
-                                    );
-
-                                const pitTotal =
-                                    num(
-                                        standard.plants_per_hectare
-                                    ) *
-                                    num(
-                                        standard.pit_rate
-                                    );
-
-                                const manureTotal =
-                                    Math.max(
-                                        0,
-                                        num(
-                                            standard.standard_total
-                                        ) -
-                                            plantTotal -
-                                            pitTotal
-                                    );
-
-                                const calculatedTotal =
-                                    plantTotal +
-                                    pitTotal +
-                                    manureTotal;
-
-                                const isMatched =
-                                    Math.abs(
-                                        calculatedTotal -
-                                            num(
-                                                standard.standard_total
-                                            )
-                                    ) < 0.01;
-
-                                return (
-                                    <div
-                                        className="standard-card"
-                                        key={
-                                            standard.id
-                                        }
-                                    >
-                                        <div className="standard-card-header">
-                                            <div className="standard-title">
-                                                <span>
-                                                    {index +
-                                                        1}.
-                                                </span>
-
-                                                <strong>
-                                                    {
-                                                        standard.crop_name
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div className="standard-card-actions">
-                                                <span
-                                                    className={
-                                                        isMatched
-                                                            ? "match-badge"
-                                                            : "warning-badge"
-                                                    }
-                                                >
-                                                    {isMatched
-                                                        ? "मिलान सही ✓"
-                                                        : "मानक में अन्तर"}
-                                                </span>
-
-                                                <button
-                                                    type="button"
-                                                    className="edit-button"
-                                                    onClick={() =>
-                                                        openEditStandard(
-                                                            standard
-                                                        )
-                                                    }
-                                                >
-                                                    संपादित करें
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="delete-button"
-                                                    onClick={() =>
-                                                        deleteStandard(
-                                                            standard.id
-                                                        )
-                                                    }
-                                                >
-                                                    हटाएँ
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="standard-values-grid">
-                                            <div>
-                                                <span>
-                                                    दूरी
-                                                </span>
-
-                                                <strong>
-                                                    {
-                                                        standard.spacing
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div>
-                                                <span>
-                                                    पौध संख्या
-                                                </span>
-
-                                                <strong>
-                                                    {
-                                                        standard.plants_per_hectare
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div>
-                                                <span>
-                                                    पौध दर
-                                                </span>
-
-                                                <strong>
-                                                    ₹
-                                                    {
-                                                        standard.plant_rate
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div>
-                                                <span>
-                                                    गड्ढा दर
-                                                </span>
-
-                                                <strong>
-                                                    ₹
-                                                    {
-                                                        standard.pit_rate
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div>
-                                                <span>
-                                                    खाद दर
-                                                </span>
-
-                                                <strong>
-                                                    ₹
-                                                    {
-                                                        standard.manure_rate
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div>
-                                                <span>
-                                                    मानक महायोग
-                                                </span>
-
-                                                <strong>
-                                                    ₹
-                                                    {
-                                                        standard.standard_total
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                            <div>
-                                                <span>
-                                                    देय राजसहायता
-                                                </span>
-
-                                                <strong>
-                                                    ₹
-                                                    {
-                                                        standard.standard_subsidy
-                                                    }
-                                                </strong>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        )}
+                        {standards.map((standard, index) => (
+                            <StandardEditorCard
+                                key={standard.id}
+                                standard={standard}
+                                index={index}
+                            />
+                        ))}
                     </div>
                 )}
             </div>
@@ -3651,165 +3683,7 @@ export default function UdyanBill() {
                             QUICK STANDARD TABLE
                            ================================================= */}
 
-                        <details className="standards-inline">
-                            <summary>
-                                मानक तालिका — फसलवार,
-                                सम्पादन योग्य
-                            </summary>
-
-                            <div className="standard-inline-header">
-                                <span>
-                                    यहाँ से सीधे मानक
-                                    जोड़ें / बदलें।
-                                </span>
-
-                                <button
-                                    type="button"
-                                    className="green-button"
-                                    onClick={
-                                        openAddStandard
-                                    }
-                                >
-                                    + नई फसल जोड़ें
-                                </button>
-                            </div>
-
-                            {standards.length ===
-                            0 ? (
-                                <div className="inline-empty">
-                                    अभी कोई मानक उपलब्ध नहीं है।
-                                </div>
-                            ) : (
-                                <div className="inline-standard-table-wrapper">
-                                    <table className="inline-standard-table">
-                                        <thead>
-                                            <tr>
-                                                <th>
-                                                    फसल
-                                                </th>
-                                                <th>
-                                                    दूरी
-                                                </th>
-                                                <th>
-                                                    पौध संख्या
-                                                </th>
-                                                <th>
-                                                    पौध दर
-                                                </th>
-                                                <th>
-                                                    गड्ढा दर
-                                                </th>
-                                                <th>
-                                                    खाद दर
-                                                </th>
-                                                <th>
-                                                    महायोग
-                                                </th>
-                                                <th>
-                                                    राजसहायता
-                                                </th>
-                                                <th>
-                                                    कार्यवाही
-                                                </th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody>
-                                            {standards.map(
-                                                (
-                                                    standard
-                                                ) => (
-                                                    <tr
-                                                        key={
-                                                            standard.id
-                                                        }
-                                                    >
-                                                        <td>
-                                                            {
-                                                                standard.crop_name
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            {
-                                                                standard.spacing
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            {
-                                                                standard.plants_per_hectare
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            ₹
-                                                            {
-                                                                standard.plant_rate
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            ₹
-                                                            {
-                                                                standard.pit_rate
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            ₹
-                                                            {
-                                                                standard.manure_rate
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            ₹
-                                                            {
-                                                                standard.standard_total
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            ₹
-                                                            {
-                                                                standard.standard_subsidy
-                                                            }
-                                                        </td>
-
-                                                        <td>
-                                                            <div className="small-actions">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        openEditStandard(
-                                                                            standard
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    संपादित
-                                                                </button>
-
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        deleteStandard(
-                                                                            standard.id
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    हटाएँ
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </details>
+                        <StandardsManager />
                     </>
                 )}
             </div>

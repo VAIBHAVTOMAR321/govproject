@@ -1,1100 +1,1345 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./KishanBeej.css";
 
-/*
- * किसान बीज वितरण — सरल प्रणाली
- * React version of the supplied HTML reference.
- *
- * Features:
- * - किसान वितरण
- * - बीज क्रय
- * - केन्द्रवार आवंटन
- * - स्टॉक लेजर
- * - किस्मवार मानक
- * - लाइव गणना
- * - ऑडिट जाँच
- * - रिपोर्ट
- * - CSV Export
- * - A4 Print
- *
- * Data is currently stored in localStorage.
- */
+const API = "/api/kishan-beej";
 
-const RAW = {
-  centres: [
-    "किनगोड़ीखाल",
-    "धुमाकोट",
-    "हल्दूखाल",
-    "किल्वोखाल",
-    "देवियोखाल",
-    "जेठागांव",
-    "बीरोंखाल",
-    "वेदीखाल",
-    "चौखाल",
-    "जयहरीखाल",
-    "सिसल्ड़ी",
-    "सेंधीखाल",
-    "संगलाकोटी",
-    "देवराजखाल",
-    "पोखड़ा",
-    "विथ्याणी",
-    "दिउली",
-    "गंगाभोगपुर",
-    "चेलूसैण",
-    "सिलोगी",
-    "सतपुली",
-    "कोटद्वार",
-    "दुगड्डा",
-    "पौखाल"
-  ],
-
-  varieties: [
-    {
-      name: "ब्रोकली Rock 001",
-      jati: "सा0जाति",
-      rate: 95600
-    },
-    {
-      name: "बैंगन BSHB-33 (Navin)",
-      jati: "अनु0जाति",
-      rate: 14400
-    },
-    {
-      name: "टमाटर BSHT-10 (Amol)",
-      jati: "सा0जाति",
-      rate: 87450
-    },
-    {
-      name: "टमाटर Sindhu",
-      jati: "सा0जाति",
-      rate: 98000
-    },
-    {
-      name: "शिमला मिर्च BSCH-888 (Indu)",
-      jati: "सा0जाति",
-      rate: 99000
-    },
-    {
-      name: "शिमला मिर्च Alaska",
-      jati: "सा0जाति",
-      rate: 125000
-    },
-    {
-      name: "बंदगोभी BSCB-01 (Coral)",
-      jati: "सा0जाति",
-      rate: 58400
-    },
-    {
-      name: "बंदगोभी Bajwa60",
-      jati: "सा0जाति",
-      rate: 47900
-    },
-    {
-      name: "फूलगोभी BSCF-11 (Mansi)",
-      jati: "अनु0जाति",
-      rate: 59500
-    },
-    {
-      name: "फूलगोभी AZCL-900",
-      jati: "सा0जाति",
-      rate: 57200
-    }
-  ],
-
-  allot: {
-    "ब्रोकली Rock 001": [
-      40, 40, 40, 40, 40, 40,
-      40, 40, 40, 40, 40, 40,
-      40, 40, 40, 40, 40, 40,
-      40, 40, 40, 80, 40, 40
-    ],
-
-    "बैंगन BSHB-33 (Navin)": [
-      500, 500, 500, 500, 500, 500,
-      500, 500, 500, 200, 200, 200,
-      500, 500, 500, 500, 200, 400,
-      500, 500, 500, 500, 500, 500
-    ],
-
-    "टमाटर BSHT-10 (Amol)": [
-      240, 240, 240, 240, 240, 240,
-      240, 240, 240, 200, 200, 240,
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0
-    ],
-
-    "टमाटर Sindhu": [
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0,
-      200, 200, 200, 200, 200, 200,
-      200, 200, 200, 350, 200, 200
-    ],
-
-    "शिमला मिर्च BSCH-888 (Indu)": [
-      320, 200, 200, 200, 200, 200,
-      200, 200, 200, 200, 200, 200,
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0
-    ],
-
-    "शिमला मिर्च Alaska": [
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0,
-      160, 160, 160, 160, 160, 160,
-      160, 160, 160, 240, 160, 160
-    ],
-
-    "बंदगोभी BSCB-01 (Coral)": [
-      350, 350, 430, 350, 350, 350,
-      350, 350, 350, 350, 350, 350,
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0
-    ],
-
-    "बंदगोभी Bajwa60": [
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0,
-      420, 420, 420, 420, 420, 420,
-      420, 420, 420, 420, 590, 420
-    ],
-
-    "फूलगोभी BSCF-11 (Mansi)": [
-      440, 460, 330, 330, 330, 330,
-      330, 330, 330, 330, 330, 330,
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0
-    ],
-
-    "फूलगोभी AZCL-900": [
-      0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0,
-      330, 330, 330, 330, 330, 330,
-      330, 330, 330, 630, 440, 330
-    ]
-  }
-};
-
-const PURCHASE_SEED = [
-  [
-    "टमाटर BSHT-10 (Amol)",
-    "2026-05-15",
-    "Anishree Traders",
-    87450,
-    2.8,
-    "देयक सं0 90"
-  ],
-  [
-    "टमाटर Sindhu",
-    "2026-05-15",
-    "Devbhoomi Farming Solutions",
-    98000,
-    2.55,
-    "देयक सं0 86"
-  ],
-  [
-    "ब्रोकली Rock 001",
-    "2026-05-15",
-    "Devbhoomi Farming Solutions",
-    95600,
-    1.0,
-    "देयक सं0 113"
-  ],
-  [
-    "बैंगन BSHB-33 (Navin)",
-    "2026-05-15",
-    "Devbhoomi Farming Solutions",
-    14400,
-    10.7,
-    "देयक सं0 113"
-  ],
-  [
-    "शिमला मिर्च BSCH-888 (Indu)",
-    "2026-05-15",
-    "NIRVANA IRRIGATION",
-    99000,
-    2.52,
-    "देयक सं0 65"
-  ],
-  [
-    "शिमला मिर्च Alaska",
-    "2026-05-15",
-    "Anishree Traders",
-    125000,
-    2.0,
-    "देयक सं0 81"
-  ],
-  [
-    "फूलगोभी AZCL-900",
-    "2026-05-22",
-    "NIRVANA IRRIGATION",
-    57200,
-    4.37,
-    "देयक सं0 116"
-  ],
-  [
-    "फूलगोभी BSCF-11 (Mansi)",
-    "2026-05-22",
-    "Devbhoomi Farming Solutions",
-    59500,
-    4.2,
-    "देयक सं0 182"
-  ],
-  [
-    "बंदगोभी Bajwa60",
-    "2026-05-22",
-    "Anishree Traders",
-    47900,
-    5.21,
-    "देयक सं0 138"
-  ],
-  [
-    "बंदगोभी BSCB-01 (Coral)",
-    "2026-05-22",
-    "NIRVANA IRRIGATION",
-    58400,
-    4.28,
-    "देयक सं0 177"
-  ]
-];
-
-const CENTRES = RAW.centres;
-const VARS = RAW.varieties;
-const NAMES = VARS.map((v) => v.name);
-
-const STORAGE = {
-  master: "kishan-beej-master",
-  manak: "kishan-beej-manak",
-  purchases: "kishan-beej-purchases",
-  receipts: "kishan-beej-receipts",
-  entries: "kishan-beej-entries"
-};
-
-const today = () => {
-  return new Date().toISOString().slice(0, 10);
-};
+const today = () =>
+  new Date().toISOString().slice(0, 10);
 
 const money = (x) =>
   "₹" +
   Number(x || 0).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   });
 
-const num = (x, d = 2) =>
+const n = (x, d = 2) =>
   Number(x || 0).toLocaleString("en-IN", {
     minimumFractionDigits: d,
-    maximumFractionDigits: d
+    maximumFractionDigits: d,
   });
 
-const gm = (x) => num(x, 2);
+const gm = (x) => n(x, 2);
 
 const dmy = (s) =>
-  s ? String(s).split("-").reverse().join("-") : "";
+  s
+    ? String(s).split("-").reverse().join("-")
+    : "";
 
-const uid = () =>
-  `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-const defMaster = () => ({
-  purchaseLimit: 250000,
-  projectCost: 60000,
-  maxSubsidy: 30000,
-  farmerShare: 30000
-});
-
-function defManak() {
-  const out = {};
-
-  VARS.forEach((v) => {
-    out[v.name] = {
-      jati: v.jati,
-
-      item1: {
-        label:
-          "खेत तैयारी + पौधशाला प्रबन्धन (कृषक अंश)",
-        unit: "हैक्टेयर-तुल्य",
-        qty: 1,
-        rate: 8700
-      },
-
-      item2: {
-        label: "बीज की कीमत (राजसहायता)",
-        unit: "किग्रा0",
-        qty: 30000 / v.rate,
-        rate: v.rate
-      },
-
-      item3: {
-        label: "गोबर/कम्पोस्ट खाद (कृषक अंश)",
-        unit: "कुन्तल",
-        qty: 100,
-        rate: 150
-      },
-
-      item4: {
-        label:
-          "रोपण/सिंचाई/स्टेकिंग आदि (कृषक अंश)",
-        unit: "श्रमिक/अन्य",
-        qty: 20,
-        rate: 315
-      }
-    };
-  });
-
-  return out;
-}
-
-const defPurchases = () =>
-  PURCHASE_SEED.map(
-    (
-      [variety, date, supplier, rate, qty, ref],
-      i
-    ) => ({
-      id: uid(),
-      serial: i + 1,
-      date,
-      variety,
-      supplier,
-      qty,
-      unit: "kg",
-      rate,
-      amount: qty * rate,
-      ref
-    })
+function getCookie(name) {
+  const match = document.cookie.match(
+    new RegExp(
+      "(^|; )" +
+        name.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          "\\$&"
+        ) +
+        "=([^;]*)"
+    )
   );
 
-function defReceipts() {
-  const out = [];
-  let serial = 1;
-
-  CENTRES.forEach((centre, i) => {
-    VARS.forEach((v) => {
-      const qty =
-        RAW.allot[v.name]?.[i] || 0;
-
-      if (qty > 0) {
-        out.push({
-          id: uid(),
-          serial: serial++,
-          date: "2026-06-01",
-          centre,
-          variety: v.name,
-          qty,
-          source:
-            "आवंटन पत्र जिला यो0-सब्जी/2026-27"
-        });
-      }
-    });
-  });
-
-  return out;
+  return match
+    ? decodeURIComponent(match[1])
+    : "";
 }
 
-function readStore(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
+async function jsonResponse(response) {
+  const text = await response.text();
 
-    return raw
-      ? JSON.parse(raw)
-      : fallback();
+  let data = {};
+
+  try {
+    data = text
+      ? JSON.parse(text)
+      : {};
   } catch {
-    return fallback();
-  }
-}
-
-function writeStore(key, value) {
-  try {
-    localStorage.setItem(
-      key,
-      JSON.stringify(value)
+    throw new Error(
+      `Server ने JSON के बजाय HTML/अन्य response दिया (${response.status}).`
     );
-  } catch {}
+  }
+
+  if (!response.ok) {
+    let message =
+      data?.detail ||
+      data?.error ||
+      "";
+
+    if (!message) {
+      message = Object.values(data || {})
+        .flat()
+        .join(" ");
+    }
+
+    throw new Error(
+      message ||
+        `Request failed (${response.status})`
+    );
+  }
+
+  return data;
 }
 
-const amount = (item) =>
-  Number(item?.qty || 0) *
-  Number(item?.rate || 0);
+async function apiFetch(
+  path,
+  options = {}
+) {
+  const method = (
+    options.method || "GET"
+  ).toUpperCase();
 
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (
+    options.body &&
+    !headers["Content-Type"]
+  ) {
+    headers["Content-Type"] =
+      "application/json";
+  }
+
+  if (
+    !["GET", "HEAD", "OPTIONS"].includes(
+      method
+    )
+  ) {
+    const csrf =
+      getCookie("csrftoken");
+
+    if (csrf) {
+      headers["X-CSRFToken"] =
+        csrf;
+    }
+  }
+
+  const response = await fetch(
+    `${API}${path}`,
+    {
+      ...options,
+      method,
+      headers,
+      credentials: "include",
+    }
+  );
+
+  return jsonResponse(response);
+}
+
+const emptyForm = () => ({
+  date: today(),
+  centre: "",
+  variety: "",
+  area: "",
+  name: "",
+  father: "",
+  village: "",
+  mobile: "",
+  sign1: "नहीं",
+  sign2: "नहीं",
+  note: "",
+});
+
+const emptyAllot = () => ({
+  date: today(),
+  centre: "",
+  variety: "",
+  qty: "",
+  source: "",
+});
+
+const emptyPurchase = () => ({
+  date: today(),
+  variety: "",
+  qty: "",
+  rate: "",
+  supplier: "",
+  ref: "",
+});
+
+function standardObject(s) {
+  return {
+    ...s,
+
+    item1: {
+      label: s.item1_label,
+      unit: s.item1_unit,
+      qty: Number(s.item1_qty),
+      rate: Number(s.item1_rate),
+    },
+
+    item2: {
+      label: s.item2_label,
+      unit: s.item2_unit,
+      qty: Number(s.item2_qty),
+      rate: Number(s.item2_rate),
+    },
+
+    item3: {
+      label: s.item3_label,
+      unit: s.item3_unit,
+      qty: Number(s.item3_qty),
+      rate: Number(s.item3_rate),
+    },
+
+    item4: {
+      label: s.item4_label,
+      unit: s.item4_unit,
+      qty: Number(s.item4_qty),
+      rate: Number(s.item4_rate),
+    },
+  };
+}
+
+/*
+ * SAME CALCULATION AS ORIGINAL HTML
+ *
+ * item amount = qty × rate
+ *
+ * total =
+ * item1 + item2 + item3 + item4
+ *
+ * subsidy = item2
+ *
+ * farmer = item1 + item3 + item4
+ *
+ * seed gram/hectare =
+ * item2 quantity × 1000
+ */
 function totals(c) {
-  const t1 = amount(c.item1);
-  const t2 = amount(c.item2);
-  const t3 = amount(c.item3);
-  const t4 = amount(c.item4);
+  const t1 =
+    Number(c.item1?.qty || 0) *
+    Number(c.item1?.rate || 0);
+
+  const t2 =
+    Number(c.item2?.qty || 0) *
+    Number(c.item2?.rate || 0);
+
+  const t3 =
+    Number(c.item3?.qty || 0) *
+    Number(c.item3?.rate || 0);
+
+  const t4 =
+    Number(c.item4?.qty || 0) *
+    Number(c.item4?.rate || 0);
 
   return {
     t1,
     t2,
     t3,
     t4,
-    total: t1 + t2 + t3 + t4,
+
+    total:
+      t1 +
+      t2 +
+      t3 +
+      t4,
+
     subsidy: t2,
-    farmer: t1 + t3 + t4,
+
+    farmer:
+      t1 +
+      t3 +
+      t4,
+
     gmha:
-      Number(c.item2.qty || 0) * 1000
+      Number(c.item2?.qty || 0) *
+      1000,
   };
 }
 
-const escapeCsv = (value) =>
-  `"${String(value ?? "").replace(/"/g, '""')}"`;
+function Field({
+  label,
+  required = false,
+  children,
+}) {
+  return (
+    <div>
+      <label>
+        {label}{" "}
+        {required && (
+          <span className="r">
+            *
+          </span>
+        )}
+      </label>
+
+      {children}
+    </div>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  sub,
+  state = "",
+}) {
+  return (
+    <div
+      className={`kpi ${state}`}
+    >
+      <div className="l">
+        {label}
+      </div>
+
+      <div className="v">
+        {value}
+      </div>
+
+      <div className="s">
+        {sub}
+      </div>
+    </div>
+  );
+}
+
+function EntryPreview({
+  calc,
+  centre,
+  stock,
+}) {
+  if (!calc) {
+    return (
+      <div
+        className="note"
+        style={{
+          marginTop: 12,
+        }}
+      >
+        क्षेत्रफल भरते ही यहाँ
+        पूरी गणना और केन्द्र का
+        शेष स्टॉक दिखेगा।
+      </div>
+    );
+  }
+
+  const left =
+    Number(stock || 0) -
+    Number(calc.seed_gm || 0);
+
+  return (
+    <div
+      className={`note ${
+        left < 0
+          ? "bad"
+          : "ok"
+      }`}
+      style={{
+        marginTop: 12,
+      }}
+    >
+      बीज{" "}
+      <b>
+        {gm(calc.seed_gm)}
+        ग्राम
+      </b>{" "}
+      · कुल लागत{" "}
+      <b>
+        {money(calc.total)}
+      </b>{" "}
+      (राजसहायता{" "}
+      {money(calc.subsidy)}
+      {" "}+ कृषक अंश{" "}
+      {money(calc.farmer)}
+      )
+      <br />
+
+      मद-1{" "}
+      {n(calc.i1.qty)}
+      {" / "}
+      {money(calc.i1.amt)}
+
+      {" · "}
+
+      मद-2{" "}
+      {gm(calc.seed_gm)}
+      ग्राम /{" "}
+      {money(calc.i2.amt)}
+
+      {" · "}
+
+      मद-3{" "}
+      {n(calc.i3.qty)}
+      {" / "}
+      {money(calc.i3.amt)}
+
+      {" · "}
+
+      मद-4{" "}
+      {n(calc.i4.qty)}
+      {" / "}
+      {money(calc.i4.amt)}
+
+      {centre && (
+        <>
+          <br />
+
+          <b>
+            {left < 0
+              ? `चेतावनी — इसके बाद ${centre} में बैलेंस ऋणात्मक (${gm(
+                  left
+                )} ग्राम) हो जाएगा।`
+              : `${centre} में इसके बाद शेष रहेगा: ${gm(
+                  left
+                )} ग्राम`}
+          </b>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function KishanBeej() {
-  const [tab, setTab] = useState("home");
+  const [tab, setTab] =
+    useState("home");
 
   const [stockTab, setStockTab] =
     useState("ledger");
 
-  const [master, setMaster] = useState(() =>
-    readStore(
-      STORAGE.master,
-      defMaster
-    )
-  );
+  const [loading, setLoading] =
+    useState(true);
 
-  const [manak, setManak] = useState(() =>
-    readStore(
-      STORAGE.manak,
-      defManak
-    )
-  );
+  const [error, setError] =
+    useState("");
 
-  const [purchases, setPurchases] =
-    useState(() =>
-      readStore(
-        STORAGE.purchases,
-        defPurchases
-      )
-    );
+  const [message, setMessage] =
+    useState("");
 
-  const [receipts, setReceipts] =
-    useState(() =>
-      readStore(
-        STORAGE.receipts,
-        defReceipts
-      )
-    );
+  const [data, setData] =
+    useState({
+      master: null,
+      centres: [],
+      varieties: [],
+      standards: [],
+      purchases: [],
+      allocations: [],
+      entries: [],
+    });
 
-  const [entries, setEntries] =
-    useState(() =>
-      readStore(
-        STORAGE.entries,
-        () => []
-      )
-    );
+  const [form, setForm] =
+    useState(emptyForm);
 
-  const [form, setForm] = useState({
-    date: today(),
-    centre: "",
-    variety: "",
-    area: "",
-    name: "",
-    father: "",
-    village: "",
-    mobile: "",
-    sign1: "नहीं",
-    sign2: "नहीं",
-    note: ""
-  });
+  const [allotForm, setAllotForm] =
+    useState(emptyAllot);
+
+  const [
+    purchaseForm,
+    setPurchaseForm,
+  ] = useState(emptyPurchase);
 
   const [filters, setFilters] =
     useState({
       centre: "",
       variety: "",
-      search: ""
+      search: "",
     });
 
   const [stockSearch, setStockSearch] =
     useState("");
 
-  const [allotForm, setAllotForm] =
-    useState({
-      date: today(),
-      centre: "",
-      variety: "",
-      qty: "",
-      source: ""
-    });
-
-  const [purchaseForm, setPurchaseForm] =
-    useState({
-      date: today(),
-      variety: "",
-      qty: "",
-      rate: "",
-      supplier: "",
-      ref: ""
-    });
-
-  const [masterDraft, setMasterDraft] =
-    useState(master);
-
-  const [message, setMessage] =
+  const [allotFilter, setAllotFilter] =
     useState("");
 
-  const [expanded, setExpanded] =
-    useState({});
+  const [
+    masterDraft,
+    setMasterDraft,
+  ] = useState(null);
+
+  const [
+    openStandard,
+    setOpenStandard,
+  ] = useState({});
+
+  async function load() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const result =
+        await apiFetch(
+          "/bootstrap/"
+        );
+
+      setData(result);
+      setMasterDraft(
+        result.master
+      );
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    writeStore(
-      STORAGE.master,
-      master
-    );
-  }, [master]);
+    load();
+  }, []);
 
-  useEffect(() => {
-    writeStore(
-      STORAGE.manak,
-      manak
-    );
-  }, [manak]);
+  const centres =
+    data.centres || [];
 
-  useEffect(() => {
-    writeStore(
-      STORAGE.purchases,
-      purchases
-    );
-  }, [purchases]);
+  const varieties =
+    data.varieties || [];
 
-  useEffect(() => {
-    writeStore(
-      STORAGE.receipts,
-      receipts
-    );
-  }, [receipts]);
+  const standards =
+    data.standards || [];
 
-  useEffect(() => {
-    writeStore(
-      STORAGE.entries,
-      entries
-    );
-  }, [entries]);
+  const purchases =
+    data.purchases || [];
 
-  const purchAmt = (v) =>
+  const allocations =
+    data.allocations || [];
+
+  const entries =
+    data.entries || [];
+
+  const master =
+    data.master || {
+      purchase_limit: 250000,
+      project_cost: 60000,
+      max_subsidy: 30000,
+      farmer_share: 30000,
+    };
+
+  const names =
+    varieties.map(
+      (v) => v.name
+    );
+
+  const varietyById =
+    Object.fromEntries(
+      varieties.map(
+        (v) => [
+          v.id,
+          v,
+        ]
+      )
+    );
+
+  const standardByVariety =
+    Object.fromEntries(
+      standards.map(
+        (s) => [
+          s.variety,
+          standardObject(s),
+        ]
+      )
+    );
+
+  /*
+   * =============================
+   * STOCK CALCULATIONS
+   * =============================
+   */
+
+  const purchAmt = (
+    varietyId
+  ) =>
     purchases
-      .filter((p) => p.variety === v)
-      .reduce(
-        (s, p) =>
-          s + Number(p.amount || 0),
-        0
-      );
-
-  const purchGm = (v) =>
-    purchases
-      .filter((p) => p.variety === v)
-      .reduce(
-        (s, p) =>
-          s +
-          (p.unit === "kg"
-            ? Number(p.qty || 0) * 1000
-            : Number(p.qty || 0)),
-        0
-      );
-
-  const allotGm = (v) =>
-    receipts
-      .filter((r) => r.variety === v)
-      .reduce(
-        (s, r) =>
-          s + Number(r.qty || 0),
-        0
-      );
-
-  const centralLeft = (v) =>
-    purchGm(v) - allotGm(v);
-
-  const opening = (c, v) =>
-    receipts
       .filter(
-        (r) =>
-          r.centre === c &&
-          r.variety === v
+        (p) =>
+          Number(p.variety) ===
+          Number(varietyId)
       )
       .reduce(
-        (s, r) =>
-          s + Number(r.qty || 0),
+        (sum, p) =>
+          sum +
+          Number(
+            p.amount || 0
+          ),
         0
       );
 
-  const issued = (c, v) =>
+  const purchGm = (
+    varietyId
+  ) =>
+    purchases
+      .filter(
+        (p) =>
+          Number(p.variety) ===
+          Number(varietyId)
+      )
+      .reduce(
+        (sum, p) =>
+          sum +
+          Number(
+            p.qty_kg || 0
+          ) *
+            1000,
+        0
+      );
+
+  const allotGm = (
+    varietyId
+  ) =>
+    allocations
+      .filter(
+        (a) =>
+          Number(a.variety) ===
+          Number(varietyId)
+      )
+      .reduce(
+        (sum, a) =>
+          sum +
+          Number(
+            a.qty_gm || 0
+          ),
+        0
+      );
+
+  const centralLeft = (
+    varietyId
+  ) =>
+    purchGm(varietyId) -
+    allotGm(varietyId);
+
+  const opening = (
+    centreId,
+    varietyId
+  ) =>
+    allocations
+      .filter(
+        (a) =>
+          Number(a.centre) ===
+            Number(centreId) &&
+          Number(a.variety) ===
+            Number(varietyId)
+      )
+      .reduce(
+        (sum, a) =>
+          sum +
+          Number(
+            a.qty_gm || 0
+          ),
+        0
+      );
+
+  const issued = (
+    centreId,
+    varietyId
+  ) =>
     entries
       .filter(
         (e) =>
-          e.centre === c &&
-          e.variety === v
+          Number(e.centre) ===
+            Number(centreId) &&
+          Number(e.variety) ===
+            Number(varietyId)
       )
       .reduce(
-        (s, e) =>
-          s + Number(e.seed_gm || 0),
+        (sum, e) =>
+          sum +
+          Number(
+            e.seed_gm || 0
+          ),
         0
       );
 
-  const remPower = (v) =>
-    Math.max(
-      0,
-      master.purchaseLimit -
-        purchAmt(v)
-    );
-
-  const gmha = (v) =>
+  const gmha = (
+    varietyId
+  ) =>
     Number(
-      manak[v]?.item2?.qty || 0
+      standardByVariety[
+        Number(varietyId)
+      ]?.item2?.qty || 0
     ) * 1000;
 
-  const centreVarieties = (centre) =>
-    centre
-      ? NAMES.filter(
-          (v) =>
-            opening(centre, v) > 0
-        )
-      : NAMES;
+  const centreVarieties = (
+    centreId
+  ) =>
+    names.filter((name) => {
+      const v =
+        varieties.find(
+          (x) =>
+            x.name === name
+        );
+
+      return (
+        v &&
+        opening(
+          centreId,
+          v.id
+        ) > 0
+      );
+    });
 
   /*
-   * Live farmer distribution calculation
+   * =============================
+   * DISTRIBUTION LIVE CALCULATION
+   * =============================
    */
-  const calcEntry = useMemo(() => {
-    const a = parseFloat(form.area);
 
-    const c = manak[form.variety];
+  const selectedStandard =
+    form.variety
+      ? standardByVariety[
+          Number(form.variety)
+        ]
+      : null;
 
-    if (
-      !form.variety ||
-      !a ||
-      a <= 0 ||
-      !c
-    ) {
-      return null;
-    }
+  const calcEntry =
+    useMemo(() => {
+      const area =
+        Number(form.area);
 
-    const t = totals(c);
+      if (
+        !selectedStandard ||
+        !area ||
+        area <= 0
+      ) {
+        return null;
+      }
 
-    return {
-      variety: form.variety,
+      const t =
+        totals(
+          selectedStandard
+        );
 
-      area: a,
+      return {
+        area,
 
-      seed_gm:
-        a *
-        c.item2.qty *
-        1000,
+        seed_gm:
+          area *
+          t.gmha,
 
-      i1: {
-        qty:
-          a *
-          c.item1.qty,
+        i1: {
+          qty:
+            area *
+            selectedStandard
+              .item1.qty,
 
-        amt:
-          a *
-          t.t1
-      },
+          amt:
+            area *
+            t.t1,
+        },
 
-      i2: {
-        qty:
-          a *
-          c.item2.qty,
+        i2: {
+          qty:
+            area *
+            selectedStandard
+              .item2.qty,
 
-        amt:
-          a *
-          t.t2
-      },
+          amt:
+            area *
+            t.t2,
+        },
 
-      i3: {
-        qty:
-          a *
-          c.item3.qty,
+        i3: {
+          qty:
+            area *
+            selectedStandard
+              .item3.qty,
 
-        amt:
-          a *
-          t.t3
-      },
+          amt:
+            area *
+            t.t3,
+        },
 
-      i4: {
-        qty:
-          a *
-          c.item4.qty,
+        i4: {
+          qty:
+            area *
+            selectedStandard
+              .item4.qty,
 
-        amt:
-          a *
-          t.t4
-      },
+          amt:
+            area *
+            t.t4,
+        },
 
-      subsidy:
-        a * t.subsidy,
+        subsidy:
+          area *
+          t.subsidy,
 
-      farmer:
-        a * t.farmer,
+        farmer:
+          area *
+          t.farmer,
 
-      total:
-        a * t.total,
-
-      snap: JSON.parse(
-        JSON.stringify(c)
-      )
-    };
-  }, [
-    form.area,
-    form.variety,
-    manak
-  ]);
+        total:
+          area *
+          t.total,
+      };
+    }, [
+      form.area,
+      form.variety,
+      standards,
+    ]);
 
   /*
-   * Live allocation calculation
+   * =============================
+   * ALLOCATION CALCULATION
+   * =============================
    */
-  const allotCalc = useMemo(() => {
-    const q =
-      parseFloat(allotForm.qty);
 
-    const v =
-      allotForm.variety;
+  const allotCalc =
+    useMemo(() => {
+      const qty =
+        Number(
+          allotForm.qty
+        );
 
-    if (
-      !v ||
-      !q ||
-      q <= 0
-    ) {
-      return null;
-    }
+      const standard =
+        standardByVariety[
+          Number(
+            allotForm.variety
+          )
+        ];
 
-    const area =
-      q / gmha(v);
+      if (
+        !standard ||
+        !qty ||
+        qty <= 0
+      ) {
+        return null;
+      }
 
-    return {
-      variety: v,
+      const area =
+        qty /
+        (Number(
+          standard.item2.qty
+        ) * 1000);
 
-      gmv: q,
+      return {
+        gmv: qty,
 
-      area,
+        area,
 
-      project:
-        area *
-        master.projectCost,
+        project:
+          area *
+          Number(
+            master.project_cost
+          ),
 
-      subsidy:
-        area *
-        master.maxSubsidy,
+        subsidy:
+          area *
+          Number(
+            master.max_subsidy
+          ),
 
-      farmer:
-        area *
-        master.farmerShare
-    };
-  }, [
-    allotForm.qty,
-    allotForm.variety,
-    master,
-    manak
-  ]);
+        farmer:
+          area *
+          Number(
+            master.farmer_share
+          ),
+      };
+    }, [
+      allotForm.qty,
+      allotForm.variety,
+      standards,
+      master,
+    ]);
 
   /*
-   * Live purchase calculation
+   * =============================
+   * PURCHASE CALCULATION
+   * =============================
    */
+
   const purchaseCalc =
     useMemo(() => {
-      const q =
-        parseFloat(
+      const qty =
+        Number(
           purchaseForm.qty
         );
 
-      const r =
-        parseFloat(
+      const rate =
+        Number(
           purchaseForm.rate
         );
 
       if (
         !purchaseForm.variety ||
-        !q ||
-        !r
+        !qty ||
+        !rate
       ) {
         return null;
       }
 
-      const total = q * r;
+      const total =
+        qty * rate;
 
       const done =
         purchAmt(
-          purchaseForm.variety
+          Number(
+            purchaseForm.variety
+          )
         );
 
       const left =
-        master.purchaseLimit -
-        done;
+        Number(
+          master.purchase_limit
+        ) - done;
 
       return {
         total,
         done,
         left,
+
         after:
           done + total,
+
         remaining:
-          left - total
+          left - total,
       };
     }, [
       purchaseForm,
       purchases,
-      master
+      master,
     ]);
 
-  const filteredEntries =
-    entries.filter((e) =>
-      (!filters.centre ||
-        e.centre ===
-          filters.centre) &&
-      (!filters.variety ||
-        e.variety ===
-          filters.variety) &&
-      (!filters.search ||
-        `${e.name || ""}${
-          e.village || ""
-        }${e.father || ""}`
-          .toLowerCase()
-          .includes(
-            filters.search.toLowerCase()
-          ))
-    );
+  /*
+   * =============================
+   * LEDGER
+   * =============================
+   */
+
+  const ledgerRows =
+    useMemo(() => {
+      const result = [];
+
+      centres.forEach(
+        (centre) => {
+          varieties.forEach(
+            (variety) => {
+              const received =
+                opening(
+                  centre.id,
+                  variety.id
+                );
+
+              const distributed =
+                issued(
+                  centre.id,
+                  variety.id
+                );
+
+              if (
+                received ||
+                distributed
+              ) {
+                result.push({
+                  centre:
+                    centre.name,
+
+                  centreId:
+                    centre.id,
+
+                  variety:
+                    variety.name,
+
+                  varietyId:
+                    variety.id,
+
+                  opening:
+                    received,
+
+                  issued:
+                    distributed,
+
+                  balance:
+                    received -
+                    distributed,
+
+                  farmers:
+                    entries.filter(
+                      (e) =>
+                        Number(
+                          e.centre
+                        ) ===
+                          Number(
+                            centre.id
+                          ) &&
+                        Number(
+                          e.variety
+                        ) ===
+                          Number(
+                            variety.id
+                          )
+                    ).length,
+                });
+              }
+            }
+          );
+        }
+      );
+
+      const q =
+        stockSearch
+          .trim()
+          .toLowerCase();
+
+      if (!q) {
+        return result;
+      }
+
+      return result.filter(
+        (r) =>
+          `${r.centre}${r.variety}`
+            .toLowerCase()
+            .includes(q)
+      );
+    }, [
+      centres,
+      varieties,
+      allocations,
+      entries,
+      stockSearch,
+    ]);
 
   /*
-   * Centre stock ledger
+   * =============================
+   * DISTRIBUTION FILTER
+   * =============================
    */
-  const ledgerRows = useMemo(() => {
-    const out = [];
 
-    CENTRES.forEach((c) => {
-      NAMES.forEach((v) => {
-        const o = opening(c, v);
-        const i = issued(c, v);
-
-        if (o || i) {
-          out.push({
-            centre: c,
-            variety: v,
-            opening: o,
-            issued: i,
-            balance: o - i,
-            farmers:
-              entries.filter(
-                (e) =>
-                  e.centre === c &&
-                  e.variety === v
-              ).length
-          });
-        }
-      });
+  const filteredEntries =
+    entries.filter((e) => {
+      return (
+        (
+          !filters.centre ||
+          Number(e.centre) ===
+            Number(
+              filters.centre
+            )
+        ) &&
+        (
+          !filters.variety ||
+          Number(e.variety) ===
+            Number(
+              filters.variety
+            )
+        ) &&
+        (
+          !filters.search ||
+          `${e.name}${e.village || ""}${e.father || ""}`
+            .toLowerCase()
+            .includes(
+              filters.search
+                .toLowerCase()
+            )
+        )
+      );
     });
 
-    return out.filter(
-      (r) =>
-        !stockSearch ||
-        `${r.centre}${r.variety}`
-          .toLowerCase()
-          .includes(
-            stockSearch.toLowerCase()
-          )
-    );
-  }, [
-    receipts,
-    entries,
-    stockSearch
-  ]);
-
   /*
-   * Audit checks
+   * =============================
+   * AUDIT
+   * =============================
    */
-  const auditChecks = useMemo(() => {
-    const over =
-      ledgerRows.filter(
-        (r) => r.balance < 0
-      );
 
-    const nosign =
-      entries.filter(
-        (e) =>
-          e.sign1 !== "हाँ" ||
-          e.sign2 !== "हाँ"
-      );
+  const auditChecks =
+    useMemo(() => {
+      const over =
+        ledgerRows.filter(
+          (r) =>
+            r.balance < 0
+        );
 
-    const badManak =
-      NAMES.filter(
-        (v) =>
-          Math.abs(
-            totals(manak[v]).total -
-              master.projectCost
-          ) >= 0.5
-      );
+      const noSign =
+        entries.filter(
+          (e) =>
+            e.sign1 !==
+              "हाँ" ||
+            e.sign2 !==
+              "हाँ"
+        );
 
-    const overAll =
-      NAMES.filter(
-        (v) =>
-          centralLeft(v) < -0.5
-      );
+      const badManak =
+        standards.filter(
+          (s) =>
+            Math.abs(
+              Number(
+                s.total
+              ) -
+                Number(
+                  master.project_cost
+                )
+            ) >= 0.5
+        );
 
-    const atLimit =
-      NAMES.filter(
-        (v) =>
-          remPower(v) <= 0.5 &&
-          purchAmt(v) > 0
-      );
+      const overAll =
+        varieties.filter(
+          (v) =>
+            centralLeft(
+              v.id
+            ) < -0.5
+        );
 
-    const S =
-      entries.reduce(
-        (s, e) =>
-          s + Number(e.subsidy || 0),
-        0
-      );
+      const atLimit =
+        varieties.filter(
+          (v) =>
+            Number(
+              master.purchase_limit
+            ) -
+              purchAmt(
+                v.id
+              ) <=
+              0.5 &&
+            purchAmt(
+              v.id
+            ) > 0
+        );
 
-    const F =
-      entries.reduce(
-        (s, e) =>
-          s + Number(e.farmer || 0),
-        0
-      );
-
-    const T =
-      entries.reduce(
-        (s, e) =>
-          s + Number(e.total || 0),
-        0
-      );
-
-    return [
-      {
-        ok: !over.length,
-        t: over.length
-          ? `${over.length} केन्द्र-किस्म संयोजन में स्टॉक से अधिक वितरण — स्टॉक टैब में लाल पंक्तियाँ देखें।`
-          : "किसी भी केन्द्र में स्टॉक से अधिक वितरण नहीं हुआ।"
-      },
-
-      {
-        ok: !nosign.length,
-        t: nosign.length
-          ? `${nosign.length} प्रविष्टियों में कृषक/वितरक हस्ताक्षर बाकी हैं।`
-          : "सभी प्रविष्टियों में दोनों हस्ताक्षर पूर्ण हैं।"
-      },
-
-      {
-        ok: !badManak.length,
-        t: badManak.length
-          ? `${badManak.join(
-              ", "
-            )} — इनका मानक ₹${num(
-              master.projectCost,
-              0
-            )}/है0 से भिन्न है, मानक टैब में जाँचें।`
-          : `सभी 10 किस्मों का मानक ₹${num(
-              master.projectCost,
-              0
-            )}/है0 से पूरा मेल खाता है।`
-      },
-
-      {
-        ok: !overAll.length,
-        t: overAll.length
-          ? `${overAll.join(
-              ", "
-            )} — इनका केन्द्र-आवंटन कुल खरीद से अधिक है।`
-          : "किसी किस्म का आवंटन उसकी खरीदी मात्रा से अधिक नहीं है।"
-      },
-
-      {
-        ok:
-          Math.abs(
-            S + F - T
-          ) < 0.5,
-
-        t: `कुल राजसहायता ${money(
-          S
-        )} + कृषक अंश ${money(
-          F
-        )} = कुल परियोजना निवेश ${money(
-          T
-        )} — मिलान सही।`
-      },
-
-      {
-        ok: true,
-
-        t: atLimit.length
-          ? `${atLimit.join(
-              ", "
-            )} — इनकी क्रय सीमा ${money(
-              master.purchaseLimit
-            )} समाप्त, आगे खरीद स्वीकार नहीं होगी।`
-          : "किसी भी किस्म की क्रय सीमा अभी समाप्त नहीं हुई है।"
-      },
-
-      {
-        ok: true,
-
-        t: "कृषक अंश नकद वितरित राशि नहीं, केवल अभिलेखीय स्व-अंशदान मूल्य है।"
-      }
-    ];
-  }, [
-    ledgerRows,
-    entries,
-    manak,
-    master,
-    purchases
-  ]);
-
-  /*
-   * Variety report
-   */
-  const reportRows =
-    NAMES.map((v) => {
-      const pa = purchAmt(v);
-
-      const rp = remPower(v);
-
-      const ag = allotGm(v);
-
-      const cl =
-        centralLeft(v);
-
-      const dist =
-        CENTRES.reduce(
-          (s, c) =>
-            s + issued(c, v),
+      const subsidy =
+        entries.reduce(
+          (sum, e) =>
+            sum +
+            Number(
+              e.subsidy || 0
+            ),
           0
         );
 
-      const area =
-        ag / gmha(v);
+      const farmer =
+        entries.reduce(
+          (sum, e) =>
+            sum +
+            Number(
+              e.farmer || 0
+            ),
+          0
+        );
 
-      const proj =
-        area *
-        master.projectCost;
+      const total =
+        entries.reduce(
+          (sum, e) =>
+            sum +
+            Number(
+              e.total || 0
+            ),
+          0
+        );
 
-      return {
-        v,
-        pa,
-        rp,
-        ag,
-        cl,
-        dist,
-        area,
-        proj,
+      return [
+        {
+          ok:
+            !over.length,
 
-        count:
-          entries.filter(
-            (e) =>
-              e.variety === v
-          ).length,
+          t: over.length
+            ? `${over.length} केन्द्र-किस्म संयोजन में स्टॉक से अधिक वितरण — स्टॉक टैब में लाल पंक्तियाँ देखें।`
+            : "किसी भी केन्द्र में स्टॉक से अधिक वितरण नहीं हुआ।",
+        },
 
-        pkg: purchGm(v)
-      };
-    });
+        {
+          ok:
+            !noSign.length,
 
-  function setF(key, value) {
-    setForm((prev) => {
+          t: noSign.length
+            ? `${noSign.length} प्रविष्टियों में कृषक/वितरक हस्ताक्षर बाकी हैं।`
+            : "सभी प्रविष्टियों में दोनों हस्ताक्षर पूर्ण हैं।",
+        },
+
+        {
+          ok:
+            !badManak.length,
+
+          t: badManak.length
+            ? `${badManak
+                .map(
+                  (s) =>
+                    s.variety_name
+                )
+                .join(
+                  ", "
+                )} — इनका मानक ₹${n(
+                master.project_cost,
+                0
+              )}/है0 से भिन्न है, मानक टैब में जाँचें।`
+            : `सभी ${standards.length} किस्मों का मानक ₹${n(
+                master.project_cost,
+                0
+              )}/है0 से पूरा मेल खाता है।`,
+        },
+
+        {
+          ok:
+            !overAll.length,
+
+          t: overAll.length
+            ? `${overAll
+                .map(
+                  (v) =>
+                    v.name
+                )
+                .join(
+                  ", "
+                )} — इनका केन्द्र-आवंटन कुल खरीद से अधिक है।`
+            : "किसी किस्म का आवंटन उसकी खरीदी मात्रा से अधिक नहीं है।",
+        },
+
+        {
+          ok:
+            Math.abs(
+              subsidy +
+                farmer -
+                total
+            ) < 0.5,
+
+          t: `कुल राजसहायता ${money(
+            subsidy
+          )} + कृषक अंश ${money(
+            farmer
+          )} = कुल परियोजना निवेश ${money(
+            total
+          )} — मिलान सही।`,
+        },
+
+        {
+          ok: true,
+
+          t: atLimit.length
+            ? `${atLimit
+                .map(
+                  (v) =>
+                    v.name
+                )
+                .join(
+                  ", "
+                )} — इनकी क्रय सीमा ${money(
+                master.purchase_limit
+              )} समाप्त, आगे खरीद स्वीकार नहीं होगी।`
+            : "किसी भी किस्म की क्रय सीमा अभी समाप्त नहीं हुई है।",
+        },
+
+        {
+          ok: true,
+
+          t: "कृषक अंश नकद वितरित राशि नहीं, केवल अभिलेखीय स्व-अंशदान मूल्य है।",
+        },
+      ];
+    }, [
+      ledgerRows,
+      entries,
+      standards,
+      master,
+      varieties,
+      purchases,
+    ]);
+
+  /*
+   * =============================
+   * REPORT
+   * =============================
+   */
+
+  const reportRows =
+    varieties.map(
+      (v) => {
+        const purchase =
+          purchAmt(v.id);
+
+        const remaining =
+          Math.max(
+            0,
+            Number(
+              master.purchase_limit
+            ) -
+              purchase
+          );
+
+        const allocated =
+          allotGm(v.id);
+
+        const central =
+          centralLeft(
+            v.id
+          );
+
+        const distributed =
+          entries
+            .filter(
+              (e) =>
+                Number(
+                  e.variety
+                ) ===
+                Number(v.id)
+            )
+            .reduce(
+              (sum, e) =>
+                sum +
+                Number(
+                  e.seed_gm ||
+                    0
+                ),
+              0
+            );
+
+        const area =
+          allocated /
+          (
+            gmha(v.id) ||
+            1
+          );
+
+        return {
+          v,
+
+          purchase,
+
+          remaining,
+
+          allocated,
+
+          central,
+
+          distributed,
+
+          area,
+
+          project:
+            area *
+            Number(
+              master.project_cost
+            ),
+
+          count:
+            entries.filter(
+              (e) =>
+                Number(
+                  e.variety
+                ) ===
+                Number(v.id)
+            ).length,
+
+          purchaseGm:
+            purchGm(v.id),
+        };
+      }
+    );
+
+  function setFormValue(
+    key,
+    value
+  ) {
+    setForm((previous) => {
       const next = {
-        ...prev,
-        [key]: value
+        ...previous,
+        [key]: value,
       };
 
-      if (key === "centre") {
-        next.variety =
+      if (
+        key ===
+        "centre"
+      ) {
+        const allowed =
           centreVarieties(
-            value
-          ).includes(
-            prev.variety
+            Number(value)
+          );
+
+        const currentName =
+          varietyById[
+            Number(
+              previous.variety
+            )
+          ]?.name;
+
+        if (
+          previous.variety &&
+          !allowed.includes(
+            currentName
           )
-            ? prev.variety
-            : "";
+        ) {
+          next.variety = "";
+        }
       }
 
       return next;
@@ -1102,13 +1347,17 @@ export default function KishanBeej() {
   }
 
   /*
-   * Add farmer distribution entry
+   * =============================
+   * ADD DISTRIBUTION
+   * =============================
    */
-  function addEntry() {
+
+  async function addEntry() {
     if (
       !form.date ||
       !form.centre ||
-      !calcEntry ||
+      !form.variety ||
+      !form.area ||
       !form.name.trim()
     ) {
       setMessage(
@@ -1118,138 +1367,98 @@ export default function KishanBeej() {
       return;
     }
 
-    const left =
-      opening(
-        form.centre,
-        calcEntry.variety
-      ) -
-      issued(
-        form.centre,
-        calcEntry.variety
-      ) -
-      calcEntry.seed_gm;
+    try {
+      const result =
+        await apiFetch(
+          "/distributions/",
+          {
+            method:
+              "POST",
 
-    if (
-      left < 0 &&
-      !window.confirm(
-        `${form.centre} में ${calcEntry.variety} का स्टॉक कम पड़ रहा है (${gm(
-          left
-        )} ग्राम ऋणात्मक)। फिर भी दर्ज करें?`
-      )
-    ) {
-      return;
+            body:
+              JSON.stringify({
+                date:
+                  form.date,
+
+                centre:
+                  Number(
+                    form.centre
+                  ),
+
+                variety:
+                  Number(
+                    form.variety
+                  ),
+
+                area:
+                  Number(
+                    form.area
+                  ),
+
+                name:
+                  form.name.trim(),
+
+                father:
+                  form.father.trim(),
+
+                village:
+                  form.village.trim(),
+
+                mobile:
+                  form.mobile.trim(),
+
+                sign1:
+                  form.sign1,
+
+                sign2:
+                  form.sign2,
+
+                note:
+                  form.note.trim(),
+              }),
+          }
+        );
+
+      await load();
+
+      setForm(
+        emptyForm()
+      );
+
+      setMessage(
+        `✓ जुड़ गया — ${result.name}, ${result.centre_name}, ${result.variety_name}, ${gm(
+          result.seed_gm
+        )} ग्राम।`
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
     }
-
-    const e = {
-      id: uid(),
-
-      serial:
-        entries.length + 1,
-
-      ...form,
-
-      name:
-        form.name.trim(),
-
-      father:
-        form.father.trim(),
-
-      village:
-        form.village.trim(),
-
-      mobile:
-        form.mobile.trim(),
-
-      note:
-        form.note.trim(),
-
-      area:
-        calcEntry.area,
-
-      seed_gm:
-        calcEntry.seed_gm,
-
-      i1:
-        calcEntry.i1,
-
-      i2:
-        calcEntry.i2,
-
-      i3:
-        calcEntry.i3,
-
-      i4:
-        calcEntry.i4,
-
-      subsidy:
-        calcEntry.subsidy,
-
-      farmer:
-        calcEntry.farmer,
-
-      total:
-        calcEntry.total,
-
-      manakSnapshot:
-        calcEntry.snap
-    };
-
-    setEntries((prev) => [
-      ...prev,
-      e
-    ]);
-
-    setForm((prev) => ({
-      ...prev,
-
-      name: "",
-      father: "",
-      village: "",
-      mobile: "",
-      area: "",
-      note: "",
-      sign1: "नहीं",
-      sign2: "नहीं"
-    }));
-
-    setMessage(
-      `✓ जुड़ गया — ${e.name}, ${e.centre}, ${e.variety}, ${gm(
-        e.seed_gm
-      )} ग्राम।`
-    );
-
-    setTimeout(
-      () => setMessage(""),
-      5000
-    );
   }
 
   /*
-   * Add purchase
+   * =============================
+   * ADD PURCHASE
+   * =============================
    */
-  function addPurchase() {
-    const {
-      date,
-      variety,
-      qty,
-      rate,
-      supplier,
-      ref
-    } = purchaseForm;
 
-    const q =
-      parseFloat(qty);
+  async function addPurchase() {
+    const qty =
+      Number(
+        purchaseForm.qty
+      );
 
-    const r =
-      parseFloat(rate);
-
-    const a = q * r;
+    const rate =
+      Number(
+        purchaseForm.rate
+      );
 
     if (
-      !date ||
-      !variety ||
-      !q ||
-      !r
+      !purchaseForm.date ||
+      !purchaseForm.variety ||
+      !qty ||
+      !rate
     ) {
       setMessage(
         "दिनांक, किस्म, मात्रा व दर भरें।"
@@ -1258,80 +1467,74 @@ export default function KishanBeej() {
       return;
     }
 
-    if (
-      a >
-      master.purchaseLimit -
-        purchAmt(variety) +
-        0.01
-    ) {
-      setMessage(
-        `अस्वीकृत — ${variety} की क्रय सीमा पार हो जाएगी।`
+    try {
+      const result =
+        await apiFetch(
+          "/purchases/",
+          {
+            method:
+              "POST",
+
+            body:
+              JSON.stringify({
+                date:
+                  purchaseForm.date,
+
+                variety:
+                  Number(
+                    purchaseForm.variety
+                  ),
+
+                qty_kg:
+                  qty,
+
+                rate:
+                  rate,
+
+                supplier:
+                  purchaseForm.supplier.trim(),
+
+                ref:
+                  purchaseForm.ref.trim(),
+              }),
+          }
+        );
+
+      await load();
+
+      setPurchaseForm(
+        emptyPurchase()
       );
 
-      return;
+      setMessage(
+        `✓ क्रय जुड़ा — ${result.variety_name}, ${n(
+          result.qty_kg,
+          3
+        )} किग्रा0 = ${money(
+          result.amount
+        )}।`
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
     }
-
-    setPurchases((prev) => [
-      ...prev,
-
-      {
-        id: uid(),
-
-        serial:
-          prev.length + 1,
-
-        date,
-
-        variety,
-
-        supplier,
-
-        qty: q,
-
-        unit: "kg",
-
-        rate: r,
-
-        amount: a,
-
-        ref
-      }
-    ]);
-
-    setPurchaseForm(
-      (prev) => ({
-        ...prev,
-
-        qty: "",
-        rate: "",
-        supplier: "",
-        ref: ""
-      })
-    );
-
-    setMessage(
-      `✓ क्रय जुड़ा — ${variety}, ${num(
-        q,
-        3
-      )} किग्रा0 = ${money(a)}।`
-    );
-
-    setTimeout(
-      () => setMessage(""),
-      5000
-    );
   }
 
   /*
-   * Add centre allocation
+   * =============================
+   * ADD ALLOCATION
+   * =============================
    */
-  function addAllot() {
-    const k = allotCalc;
 
+  async function addAllocation() {
     if (
       !allotForm.date ||
       !allotForm.centre ||
-      !k
+      !allotForm.variety ||
+      !Number(
+        allotForm.qty
+      )
     ) {
       setMessage(
         "दिनांक, केन्द्र, किस्म व मात्रा भरें।"
@@ -1340,86 +1543,428 @@ export default function KishanBeej() {
       return;
     }
 
-    if (
-      k.gmv >
-      centralLeft(k.variety) +
-        0.01
-    ) {
-      setMessage(
-        `अस्वीकृत — केन्द्रीय शेष स्टॉक केवल ${gm(
-          centralLeft(
-            k.variety
-          )
-        )} ग्राम है।`
+    try {
+      const result =
+        await apiFetch(
+          "/allocations/",
+          {
+            method:
+              "POST",
+
+            body:
+              JSON.stringify({
+                date:
+                  allotForm.date,
+
+                centre:
+                  Number(
+                    allotForm.centre
+                  ),
+
+                variety:
+                  Number(
+                    allotForm.variety
+                  ),
+
+                qty_gm:
+                  Number(
+                    allotForm.qty
+                  ),
+
+                source:
+                  allotForm.source.trim(),
+              }),
+          }
+        );
+
+      await load();
+
+      setAllotForm(
+        emptyAllot()
       );
 
-      return;
+      setMessage(
+        `✓ ${result.centre_name} को ${result.variety_name} की ${gm(
+          result.qty_gm
+        )} ग्राम आवंटित।`
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
     }
-
-    setReceipts((prev) => [
-      ...prev,
-
-      {
-        id: uid(),
-
-        serial:
-          prev.length + 1,
-
-        date:
-          allotForm.date,
-
-        centre:
-          allotForm.centre,
-
-        variety:
-          k.variety,
-
-        qty:
-          k.gmv,
-
-        area:
-          k.area,
-
-        project:
-          k.project,
-
-        subsidy:
-          k.subsidy,
-
-        farmer:
-          k.farmer,
-
-        source:
-          allotForm.source
-      }
-    ]);
-
-    setAllotForm(
-      (prev) => ({
-        ...prev,
-
-        qty: "",
-        source: ""
-      })
-    );
-
-    setMessage(
-      `✓ ${allotForm.centre} को ${allotForm.variety} की ${gm(
-        k.gmv
-      )} ग्राम आवंटित।`
-    );
-
-    setTimeout(
-      () => setMessage(""),
-      5000
-    );
   }
 
   /*
-   * CSV export
+   * =============================
+   * DELETE
+   * =============================
    */
+
+  async function deleteItem(
+    type,
+    id,
+    label
+  ) {
+    if (
+      !window.confirm(
+        `क्या ${label} हटाना है? यह वापस नहीं आएगा।`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await apiFetch(
+        `/${type}/${id}/`,
+        {
+          method:
+            "DELETE",
+        }
+      );
+
+      await load();
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
+    }
+  }
+
+  /*
+   * =============================
+   * MASTER SAVE
+   * =============================
+   */
+
+  async function saveMaster() {
+    try {
+      const result =
+        await apiFetch(
+          "/master/",
+          {
+            method:
+              "PUT",
+
+            body:
+              JSON.stringify({
+                purchase_limit:
+                  Number(
+                    masterDraft.purchase_limit
+                  ),
+
+                project_cost:
+                  Number(
+                    masterDraft.project_cost
+                  ),
+
+                max_subsidy:
+                  Number(
+                    masterDraft.max_subsidy
+                  ),
+
+                farmer_share:
+                  Number(
+                    masterDraft.farmer_share
+                  ),
+              }),
+          }
+        );
+
+      setData((previous) => ({
+        ...previous,
+        master:
+          result,
+      }));
+
+      setMasterDraft(
+        result
+      );
+
+      setMessage(
+        "✓ सुरक्षित।"
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
+    }
+  }
+
+  async function resetMaster() {
+    if (
+      !window.confirm(
+        "मूल मूल्यों पर लौटाएँ?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result =
+        await apiFetch(
+          "/master/",
+          {
+            method:
+              "PUT",
+
+            body:
+              JSON.stringify({
+                purchase_limit:
+                  250000,
+
+                project_cost:
+                  60000,
+
+                max_subsidy:
+                  30000,
+
+                farmer_share:
+                  30000,
+              }),
+          }
+        );
+
+      setData((previous) => ({
+        ...previous,
+        master:
+          result,
+      }));
+
+      setMasterDraft(
+        result
+      );
+
+      setMessage(
+        "✓ मूल मूल्य सुरक्षित हो गए।"
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
+    }
+  }
+
+  /*
+   * =============================
+   * STANDARD SAVE
+   * =============================
+   */
+
+  async function saveStandard(
+    standard
+  ) {
+    try {
+      await apiFetch(
+        `/standards/${standard.id}/`,
+        {
+          method:
+            "PUT",
+
+          body:
+            JSON.stringify({
+              variety:
+                Number(
+                  standard.variety
+                ),
+
+              item1_label:
+                standard.item1_label,
+
+              item1_unit:
+                standard.item1_unit,
+
+              item1_qty:
+                Number(
+                  standard.item1_qty
+                ),
+
+              item1_rate:
+                Number(
+                  standard.item1_rate
+                ),
+
+              item2_label:
+                standard.item2_label,
+
+              item2_unit:
+                standard.item2_unit,
+
+              item2_qty:
+                Number(
+                  standard.item2_qty
+                ),
+
+              item2_rate:
+                Number(
+                  standard.item2_rate
+                ),
+
+              item3_label:
+                standard.item3_label,
+
+              item3_unit:
+                standard.item3_unit,
+
+              item3_qty:
+                Number(
+                  standard.item3_qty
+                ),
+
+              item3_rate:
+                Number(
+                  standard.item3_rate
+                ),
+
+              item4_label:
+                standard.item4_label,
+
+              item4_unit:
+                standard.item4_unit,
+
+              item4_qty:
+                Number(
+                  standard.item4_qty
+                ),
+
+              item4_rate:
+                Number(
+                  standard.item4_rate
+                ),
+            }),
+        }
+      );
+
+      await load();
+
+      setMessage(
+        "✓ मानक सुरक्षित।"
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
+    }
+  }
+
+  /*
+   * =============================
+   * RESET ALL STANDARDS
+   * =============================
+   */
+
+  async function resetAllStandards() {
+    if (
+      !window.confirm(
+        "सभी किस्मों के मानक मूल स्थिति पर लौटाएँ? पुरानी वितरण प्रविष्टियाँ नहीं बदलेंगी।"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      for (
+        const standard of standards
+      ) {
+        const variety =
+          varietyById[
+            Number(
+              standard.variety
+            )
+          ];
+
+        const rate =
+          Number(
+            variety?.default_rate ||
+              standard.item2_rate
+          );
+
+        await apiFetch(
+          `/standards/${standard.id}/`,
+          {
+            method:
+              "PUT",
+
+            body:
+              JSON.stringify({
+                variety:
+                  Number(
+                    standard.variety
+                  ),
+
+                item1_label:
+                  "खेत तैयारी + पौधशाला प्रबन्धन (कृषक अंश)",
+
+                item1_unit:
+                  "हैक्टेयर-तुल्य",
+
+                item1_qty:
+                  1,
+
+                item1_rate:
+                  8700,
+
+                item2_label:
+                  "बीज की कीमत (राजसहायता)",
+
+                item2_unit:
+                  "किग्रा0",
+
+                item2_qty:
+                  30000 /
+                  rate,
+
+                item2_rate:
+                  rate,
+
+                item3_label:
+                  "गोबर/कम्पोस्ट खाद (कृषक अंश)",
+
+                item3_unit:
+                  "कुन्तल",
+
+                item3_qty:
+                  100,
+
+                item3_rate:
+                  150,
+
+                item4_label:
+                  "रोपण/सिंचाई/स्टेकिंग आदि (कृषक अंश)",
+
+                item4_unit:
+                  "श्रमिक/अन्य",
+
+                item4_qty:
+                  20,
+
+                item4_rate:
+                  315,
+              }),
+          }
+        );
+      }
+
+      await load();
+
+      setMessage(
+        "✓ सभी मानक मूल स्थिति पर लौट गए।"
+      );
+    } catch (e) {
+      setMessage(
+        `✘ ${e.message}`
+      );
+    }
+  }
+
+  /*
+   * =============================
+   * CSV
+   * =============================
+   */
+
   function downloadCsv(
-    name,
+    filename,
     headers,
     rows
   ) {
@@ -1427,95 +1972,122 @@ export default function KishanBeej() {
       "\uFEFF" +
       [
         headers,
-        ...rows
+        ...rows,
       ]
         .map((row) =>
           row
-            .map(escapeCsv)
+            .map(
+              (value) =>
+                `"${String(
+                  value ?? ""
+                ).replace(
+                  /"/g,
+                  '""'
+                )}"`
+            )
             .join(",")
         )
         .join("\r\n");
 
-    const a =
+    const blob =
+      new Blob(
+        [content],
+        {
+          type:
+            "text/csv;charset=utf-8;",
+        }
+      );
+
+    const url =
+      URL.createObjectURL(
+        blob
+      );
+
+    const link =
       document.createElement(
         "a"
       );
 
-    a.href =
-      URL.createObjectURL(
-        new Blob(
-          [content],
-          {
-            type:
-              "text/csv;charset=utf-8"
-          }
-        )
-      );
+    link.href = url;
 
-    a.download =
-      `${name}-${today()}.csv`;
+    link.download =
+      `${filename}-${today()}.csv`;
 
-    document.body.appendChild(a);
+    document.body.appendChild(
+      link
+    );
 
-    a.click();
+    link.click();
 
-    a.remove();
+    link.remove();
 
-    setTimeout(
-      () =>
-        URL.revokeObjectURL(
-          a.href
-        ),
-      1000
+    URL.revokeObjectURL(
+      url
     );
   }
 
   /*
-   * A4 print helper
+   * =============================
+   * PRINT
+   * =============================
    */
-  function printHtml(html) {
-    const w =
+
+  function printHtml(
+    html,
+    title
+  ) {
+    const css =
+      new URL(
+        "./KishanBeej.css",
+        import.meta.url
+      ).href;
+
+    const win =
       window.open(
         "",
         "_blank",
         "width=1200,height=800"
       );
 
-    if (!w) {
-      window.print();
+    if (!win) {
       return;
     }
 
-    w.document.write(`
+    win.document.write(`
       <!doctype html>
 
       <html lang="hi">
 
       <head>
+
         <meta charset="utf-8">
 
         <title>
-          किसान बीज वितरण
+          ${title}
         </title>
 
         <link
           rel="stylesheet"
-          href="${window.location.origin}/src/KishanBeej/KishanBeej.css"
+          href="${css}"
         >
+
       </head>
 
       <body>
 
-        <div class="print-page">
+        <div id="printarea">
+
           ${html}
+
         </div>
 
         <script>
-          window.onload = () =>
+          window.onload = () => {
             setTimeout(
               () => window.print(),
               250
             );
+          };
         <\/script>
 
       </body>
@@ -1523,19 +2095,17 @@ export default function KishanBeej() {
       </html>
     `);
 
-    w.document.close();
+    win.document.close();
   }
 
-  /*
-   * Print register
-   */
   function printRegister(
     list = filteredEntries,
-    title = "किसान बीज वितरण रजिस्टर"
+    title =
+      "किसान बीज वितरण रजिस्टर"
   ) {
     if (!list.length) {
       alert(
-        "छापने के लिए कोई प्रविष्टि नहीं है।"
+        "कोई प्रविष्टि नहीं।"
       );
 
       return;
@@ -1547,18 +2117,20 @@ export default function KishanBeej() {
           (e, i) => `
             <tr>
 
-              <td>${i + 1}</td>
+              <td>
+                ${i + 1}
+              </td>
 
               <td>
                 ${dmy(e.date)}
               </td>
 
               <td>
-                ${e.centre}
+                ${e.centre_name}
               </td>
 
               <td>
-                ${e.variety}
+                ${e.variety_name}
               </td>
 
               <td>
@@ -1570,17 +2142,19 @@ export default function KishanBeej() {
               </td>
 
               <td>
-                ${num(e.area, 3)}
+                ${n(
+                  e.area,
+                  3
+                )}
               </td>
 
               <td>
-                ${num(
-                  e.i1.qty,
-                  2
+                ${n(
+                  e.item1_qty
                 )}
                 /
                 ${money(
-                  e.i1.amt
+                  e.item1_amount
                 )}
               </td>
 
@@ -1590,29 +2164,27 @@ export default function KishanBeej() {
                 )}
                 /
                 ${money(
-                  e.i2.amt
+                  e.item2_amount
                 )}
               </td>
 
               <td>
-                ${num(
-                  e.i3.qty,
-                  2
+                ${n(
+                  e.item3_qty
                 )}
                 /
                 ${money(
-                  e.i3.amt
+                  e.item3_amount
                 )}
               </td>
 
               <td>
-                ${num(
-                  e.i4.qty,
-                  2
+                ${n(
+                  e.item4_qty
                 )}
                 /
                 ${money(
-                  e.i4.amt
+                  e.item4_amount
                 )}
               </td>
 
@@ -1634,172 +2206,170 @@ export default function KishanBeej() {
                 )}
               </td>
 
-              <td class="signature-cell">
-              </td>
+              <td
+                class="sg"
+              ></td>
 
             </tr>
           `
         )
         .join("");
 
-    printHtml(`
-      <h2>
-        ${title}
-      </h2>
+    printHtml(
+      `
+        <h2>
+          ${title}
+        </h2>
 
-      <p class="pm">
-        उद्यान सचल दल कार्यालय,
-        कोटद्वार गढ़वाल ·
-        जिला कार्ययोजना 2026-27 ·
-        छपाई दिनांक
-        ${dmy(today())}
-      </p>
+        <p class="pm">
+          उद्यान विशेषज्ञ कार्यालय ·
+          कोटद्वार गढ़वाल ·
+          जिला कार्ययोजना 2026-27 ·
+          छपाई दिनांक
+          ${dmy(today())}
+        </p>
 
-      <table>
+        <table>
 
-        <thead>
+          <thead>
 
-          <tr>
+            <tr>
 
-            <th>क्र0</th>
+              <th>क्र0</th>
 
-            <th>दिनांक</th>
+              <th>दिनांक</th>
 
-            <th>केन्द्र</th>
+              <th>केन्द्र</th>
 
-            <th>किस्म</th>
+              <th>किस्म</th>
 
-            <th>कृषक का नाम</th>
+              <th>कृषक का नाम</th>
 
-            <th>ग्राम</th>
+              <th>ग्राम</th>
 
-            <th>
-              क्षे0फ0
-              <br />
-              (है0)
-            </th>
+              <th>
+                क्षे0फ0
+              </th>
 
-            <th>
-              खेत तैयारी +
-              पौधशाला प्रबन्धन
-              <br />
-              मात्रा / राशि
-            </th>
+              <th>
+                मद1
+                मात्रा/राशि
+              </th>
 
-            <th>
-              बीज
-              <br />
-              ग्राम / राशि
-            </th>
+              <th>
+                बीज
+                ग्राम/राशि
+              </th>
 
-            <th>
-              गोबर/कम्पोस्ट खाद
-              <br />
-              मात्रा / राशि
-            </th>
+              <th>
+                मद3
+                मात्रा/राशि
+              </th>
 
-            <th>
-              रोपण/सिंचाई/
-              स्टेकिंग आदि
-              <br />
-              मात्रा / राशि
-            </th>
+              <th>
+                मद4
+                मात्रा/राशि
+              </th>
 
-            <th>
-              कुल लागत
-            </th>
+              <th>
+                कुल लागत
+              </th>
 
-            <th>
-              राजसहायता
-            </th>
+              <th>
+                राजसहायता
+              </th>
 
-            <th>
-              कृषक अंश
-            </th>
+              <th>
+                कृषक अंश
+              </th>
 
-            <th>
-              कृषक
-              हस्ताक्षर/अंगूठा
-            </th>
+              <th>
+                कृषक
+                हस्ताक्षर/
+                अंगूठा
+              </th>
 
-          </tr>
+            </tr>
 
-        </thead>
+          </thead>
 
-        <tbody>
-          ${rows}
-        </tbody>
+          <tbody>
 
-      </table>
+            ${rows}
 
-      <p class="pm signline">
-        हस्ताक्षर उद्यान सचल दल
-        .....................................
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        हस्ताक्षर केन्द्र प्रभारी
-        .....................................
-      </p>
-    `);
+          </tbody>
+
+        </table>
+
+        <p class="pm">
+
+          हस्ताक्षर उद्यान सचल दल
+          .....................................
+
+          &nbsp;&nbsp;&nbsp;
+
+          हस्ताक्षर केन्द्र प्रभारी
+          .....................................
+
+        </p>
+      `,
+      title
+    );
   }
 
-  function updateManak(
-    v,
-    key,
-    field,
-    value
-  ) {
-    setManak((prev) => ({
-      ...prev,
+  /*
+   * =============================
+   * LOADING
+   * =============================
+   */
 
-      [v]: {
-        ...prev[v],
+  if (loading) {
+    return (
+      <div className="kishan-beej-app">
 
-        [key]: {
-          ...prev[v][key],
+        <header>
 
-          [field]:
-            Number(value) || 0
-        }
-      }
-    }));
+          <div className="in">
+
+            <div className="eyebrow">
+              उद्यान विशेषज्ञ कार्यालय ·
+              कोटद्वार गढ़वाल
+            </div>
+
+            <h1>
+              किसान बीज वितरण —
+              सरल प्रणाली
+            </h1>
+
+            <p>
+              जिला कार्ययोजना 2026-27 ·
+              क्षेत्रफल विस्तार सब्जी योजना ·
+              क्रय → आवंटन → वितरण,
+              सब स्वतः जुड़ा
+            </p>
+
+          </div>
+
+        </header>
+
+        <main>
+
+          <div className="card">
+
+            <div className="note">
+
+              डेटा सर्वर से
+              लोड हो रहा है...
+
+            </div>
+
+          </div>
+
+        </main>
+
+      </div>
+    );
   }
-
-  const received =
-    ledgerRows.reduce(
-      (s, r) =>
-        s + r.opening,
-      0
-    );
-
-  const distributed =
-    ledgerRows.reduce(
-      (s, r) =>
-        s + r.issued,
-      0
-    );
-
-  const purchaseTotal =
-    purchases.reduce(
-      (s, p) =>
-        s +
-        Number(
-          p.amount || 0
-        ),
-      0
-    );
-
-  const overCount =
-    ledgerRows.filter(
-      (r) =>
-        r.balance < 0
-    ).length;
-
-  const noSign =
-    entries.filter(
-      (e) =>
-        e.sign1 !== "हाँ" ||
-        e.sign2 !== "हाँ"
-    ).length;
 
   return (
     <div className="kishan-beej-app">
@@ -1838,13 +2408,37 @@ export default function KishanBeej() {
         <div className="in">
 
           {[
-            ["home", "🏠", "होम"],
-            ["entry", "✍️", "वितरण"],
-            ["stock", "📦", "स्टॉक"],
-            ["manak", "⚙️", "मानक"],
-            ["report", "📊", "रिपोर्ट"]
+            [
+              "home",
+              "🏠",
+              "होम",
+            ],
+
+            [
+              "entry",
+              "✍️",
+              "वितरण",
+            ],
+
+            [
+              "stock",
+              "📦",
+              "स्टॉक",
+            ],
+
+            [
+              "manak",
+              "⚙️",
+              "मानक",
+            ],
+
+            [
+              "report",
+              "📊",
+              "रिपोर्ट",
+            ],
           ].map(
-            ([id, ic, label]) => (
+            ([id, icon, label]) => (
               <button
                 key={id}
                 className={
@@ -1852,15 +2446,23 @@ export default function KishanBeej() {
                     ? "on"
                     : ""
                 }
-                onClick={() =>
-                  setTab(id)
-                }
+                onClick={() => {
+                  setTab(id);
+
+                  window.scrollTo({
+                    top: 0,
+                    behavior:
+                      "smooth",
+                  });
+                }}
               >
+
                 <span className="ic">
-                  {ic}
+                  {icon}
                 </span>
 
                 {label}
+
               </button>
             )
           )}
@@ -1869,9 +2471,51 @@ export default function KishanBeej() {
 
       </nav>
 
+      {error && (
+        <main>
+
+          <div className="note bad">
+
+            ✘ {error}
+
+            <button
+              className="btn b2 sm"
+              style={{
+                marginLeft: 10,
+              }}
+              onClick={load}
+            >
+              फिर प्रयास करें
+            </button>
+
+          </div>
+
+        </main>
+      )}
+
+      {message && (
+        <main>
+
+          <div
+            className={`note ${
+              message.startsWith(
+                "✓"
+              )
+                ? "ok"
+                : "bad"
+            }`}
+          >
+            {message}
+          </div>
+
+        </main>
+      )}
+
       <main>
 
-        {/* HOME */}
+        {/* =================================================
+            HOME
+        ================================================= */}
 
         {tab === "home" && (
           <section className="panel on">
@@ -1881,10 +2525,11 @@ export default function KishanBeej() {
             </h2>
 
             <p className="sub">
-              नीचे पूरी योजना की जीवंत
-              स्थिति है। कोई भी संख्या
-              लाल दिखे तो उसी टैब में
-              जाकर जाँच करें।
+              नीचे पूरी योजना की
+              जीवंत स्थिति है। कोई
+              भी संख्या लाल दिखे तो
+              उसी टैब में जाकर जाँच
+              करें।
             </p>
 
             <div className="kpis">
@@ -1892,15 +2537,30 @@ export default function KishanBeej() {
               <Kpi
                 label="कुल क्रय राशि"
                 value={money(
-                  purchaseTotal
+                  purchases.reduce(
+                    (s, p) =>
+                      s +
+                      Number(
+                        p.amount || 0
+                      ),
+                    0
+                  )
                 )}
-                sub="सभी 10 किस्में"
+                sub={`सभी ${varieties.length} किस्में`}
               />
 
               <Kpi
                 label="किसानों को वितरित"
                 value={`${gm(
-                  distributed
+                  entries.reduce(
+                    (s, e) =>
+                      s +
+                      Number(
+                        e.seed_gm ||
+                          0
+                      ),
+                    0
+                  )
                 )} ग्राम`}
                 sub={`${entries.length} प्रविष्टियाँ`}
               />
@@ -1908,17 +2568,29 @@ export default function KishanBeej() {
               <Kpi
                 label="केन्द्रों में शेष"
                 value={`${gm(
-                  received -
-                    distributed
+                  ledgerRows.reduce(
+                    (s, r) =>
+                      s +
+                      r.balance,
+                    0
+                  )
                 )} ग्राम`}
-                sub={`प्राप्त ${num(
-                  received,
+                sub={`प्राप्त ${n(
+                  ledgerRows.reduce(
+                    (s, r) =>
+                      s +
+                      r.opening,
+                    0
+                  ),
                   0
                 )} ग्राम में से`}
                 state={
-                  received -
-                    distributed <
-                  0
+                  ledgerRows.reduce(
+                    (s, r) =>
+                      s +
+                      r.balance,
+                    0
+                  ) < 0
                     ? "bad"
                     : "ok"
                 }
@@ -1927,13 +2599,26 @@ export default function KishanBeej() {
               <Kpi
                 label="ध्यान देने योग्य"
                 value={
-                  overCount +
-                  noSign
+                  auditChecks.filter(
+                    (c) =>
+                      !c.ok
+                  ).length
                 }
-                sub={`${overCount} अधिक-वितरण, ${noSign} हस्ताक्षर बाकी`}
+                sub={`${ledgerRows.filter(
+                  (r) =>
+                    r.balance < 0
+                ).length} अधिक-वितरण, ${entries.filter(
+                  (e) =>
+                    e.sign1 !==
+                      "हाँ" ||
+                    e.sign2 !==
+                      "हाँ"
+                ).length} हस्ताक्षर बाकी`}
                 state={
-                  overCount +
-                    noSign
+                  auditChecks.some(
+                    (c) =>
+                      !c.ok
+                  )
                     ? "bad"
                     : "ok"
                 }
@@ -1982,8 +2667,8 @@ export default function KishanBeej() {
             <div className="card">
 
               <h3>
-                काम का क्रम — बस
-                इतना ही
+                काम का क्रम —
+                बस इतना ही
               </h3>
 
               <ul className="chk">
@@ -2030,7 +2715,8 @@ export default function KishanBeej() {
                     <b>
                       वितरण टैब
                     </b>{" "}
-                    — केन्द्र, किस्म,
+                    — रोज़ का असली काम।
+                    केन्द्र, किस्म,
                     किसान का नाम और
                     क्षेत्रफल भरें —
                     बाक़ी सब अपने आप।
@@ -2057,7 +2743,9 @@ export default function KishanBeej() {
           </section>
         )}
 
-        {/* DISTRIBUTION */}
+        {/* =================================================
+            DISTRIBUTION
+        ================================================= */}
 
         {tab === "entry" && (
           <section className="panel on">
@@ -2087,13 +2775,18 @@ export default function KishanBeej() {
 
               <div className="grid g4">
 
-                <Field label="दिनांक *">
+                <Field
+                  label="दिनांक"
+                  required
+                >
                   <input
                     type="date"
                     className="need"
-                    value={form.date}
+                    value={
+                      form.date
+                    }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "date",
                         e.target.value
                       )
@@ -2101,72 +2794,112 @@ export default function KishanBeej() {
                   />
                 </Field>
 
-                <Field label="उ0स0द0 केन्द्र *">
+                <Field
+                  label="उ0स0द0 केन्द्र"
+                  required
+                >
                   <select
                     className="need"
-                    value={form.centre}
+                    value={
+                      form.centre
+                    }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "centre",
                         e.target.value
                       )
                     }
                   >
+
                     <option value="">
                       — केन्द्र चुनें —
                     </option>
 
-                    {CENTRES.map(
+                    {centres.map(
                       (c) => (
                         <option
-                          key={c}
+                          key={c.id}
+                          value={c.id}
                         >
-                          {c}
+                          {c.name}
                         </option>
                       )
                     )}
+
                   </select>
                 </Field>
 
-                <Field label="किस्म *">
+                <Field
+                  label="किस्म"
+                  required
+                >
                   <select
                     className="need"
-                    value={form.variety}
+                    value={
+                      form.variety
+                    }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "variety",
                         e.target.value
                       )
                     }
                   >
+
                     <option value="">
-                      — किस्म चुनें —
+                      —
+                      {form.centre
+                        ? "किस्म चुनें"
+                        : "पहले केन्द्र चुनें"}
+                      —
                     </option>
 
-                    {centreVarieties(
+                    {(
                       form.centre
+                        ? centreVarieties(
+                            Number(
+                              form.centre
+                            )
+                          )
+                        : names
                     ).map(
-                      (v) => (
-                        <option
-                          key={v}
-                        >
-                          {v}
-                        </option>
-                      )
+                      (name) => {
+                        const v =
+                          varieties.find(
+                            (x) =>
+                              x.name ===
+                              name
+                          );
+
+                        return v ? (
+                          <option
+                            key={v.id}
+                            value={v.id}
+                          >
+                            {v.name}
+                          </option>
+                        ) : null;
+                      }
                     )}
+
                   </select>
                 </Field>
 
-                <Field label="क्षेत्रफल (है0) *">
+                <Field
+                  label="क्षेत्रफल (है0)"
+                  required
+                >
                   <input
                     type="number"
                     className="need"
                     step="0.001"
                     min="0.001"
                     placeholder="जैसे 0.200"
-                    value={form.area}
+                    value={
+                      form.area
+                    }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "area",
                         e.target.value
                       )
@@ -2176,14 +2909,24 @@ export default function KishanBeej() {
 
               </div>
 
-              <div className="grid g4 mt10">
+              <div
+                className="grid g4"
+                style={{
+                  marginTop: 10,
+                }}
+              >
 
-                <Field label="कृषक का नाम *">
+                <Field
+                  label="कृषक का नाम"
+                  required
+                >
                   <input
-                    value={form.name}
+                    value={
+                      form.name
+                    }
                     placeholder="श्री ..."
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "name",
                         e.target.value
                       )
@@ -2191,13 +2934,15 @@ export default function KishanBeej() {
                   />
                 </Field>
 
-                <Field label="पिता/पति का नाम">
+                <Field
+                  label="पिता/पति का नाम"
+                >
                   <input
                     value={
                       form.father
                     }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "father",
                         e.target.value
                       )
@@ -2211,7 +2956,7 @@ export default function KishanBeej() {
                       form.village
                     }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "village",
                         e.target.value
                       )
@@ -2219,14 +2964,16 @@ export default function KishanBeej() {
                   />
                 </Field>
 
-                <Field label="मोबाइल नं0">
+                <Field
+                  label="मोबाइल नं0"
+                >
                   <input
                     type="tel"
                     value={
                       form.mobile
                     }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "mobile",
                         e.target.value
                       )
@@ -2236,15 +2983,22 @@ export default function KishanBeej() {
 
               </div>
 
-              <div className="grid g3 mt10">
+              <div
+                className="grid g3"
+                style={{
+                  marginTop: 10,
+                }}
+              >
 
-                <Field label="कृषक हस्ताक्षर/अंगूठा">
+                <Field
+                  label="कृषक हस्ताक्षर/अंगूठा"
+                >
                   <select
                     value={
                       form.sign1
                     }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "sign1",
                         e.target.value
                       )
@@ -2260,13 +3014,15 @@ export default function KishanBeej() {
                   </select>
                 </Field>
 
-                <Field label="वितरक हस्ताक्षर">
+                <Field
+                  label="वितरक हस्ताक्षर"
+                >
                   <select
                     value={
                       form.sign2
                     }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "sign2",
                         e.target.value
                       )
@@ -2282,13 +3038,15 @@ export default function KishanBeej() {
                   </select>
                 </Field>
 
-                <Field label="टिप्पणी">
+                <Field
+                  label="टिप्पणी"
+                >
                   <input
                     value={
                       form.note
                     }
                     onChange={(e) =>
-                      setF(
+                      setFormValue(
                         "note",
                         e.target.value
                       )
@@ -2301,17 +3059,45 @@ export default function KishanBeej() {
               <EntryPreview
                 calc={calcEntry}
                 centre={
-                  form.centre
+                  centres.find(
+                    (c) =>
+                      Number(
+                        c.id
+                      ) ===
+                      Number(
+                        form.centre
+                      )
+                  )?.name
                 }
-                opening={
-                  opening
-                }
-                issued={
-                  issued
+                stock={
+                  form.centre &&
+                  form.variety
+                    ? opening(
+                        Number(
+                          form.centre
+                        ),
+                        Number(
+                          form.variety
+                        )
+                      ) -
+                      issued(
+                        Number(
+                          form.centre
+                        ),
+                        Number(
+                          form.variety
+                        )
+                      )
+                    : 0
                 }
               />
 
-              <div className="row mt12">
+              <div
+                className="row"
+                style={{
+                  marginTop: 12,
+                }}
+              >
 
                 <button
                   className="btn b1"
@@ -2326,19 +3112,9 @@ export default function KishanBeej() {
                 <button
                   className="btn b2"
                   onClick={() =>
-                    setForm({
-                      date: today(),
-                      centre: "",
-                      variety: "",
-                      area: "",
-                      name: "",
-                      father: "",
-                      village: "",
-                      mobile: "",
-                      sign1: "नहीं",
-                      sign2: "नहीं",
-                      note: ""
-                    })
+                    setForm(
+                      emptyForm()
+                    )
                   }
                 >
                   साफ़ करें
@@ -2346,27 +3122,15 @@ export default function KishanBeej() {
 
               </div>
 
-              {message && (
-                <div
-                  className={`note ${
-                    message.startsWith(
-                      "✓"
-                    )
-                      ? "ok"
-                      : "bad"
-                  } mt10`}
-                >
-                  {message}
-                </div>
-              )}
-
             </div>
 
             <div className="card noprint">
 
               <div className="grid g3">
 
-                <Field label="केन्द्र से छाँटें">
+                <Field
+                  label="केन्द्र से छाँटें"
+                >
                   <select
                     value={
                       filters.centre
@@ -2376,31 +3140,35 @@ export default function KishanBeej() {
                         (p) => ({
                           ...p,
                           centre:
-                            e.target
-                              .value,
+                            e.target.value,
                           variety:
-                            ""
+                            "",
                         })
                       )
                     }
                   >
+
                     <option value="">
                       सभी केन्द्र
                     </option>
 
-                    {CENTRES.map(
+                    {centres.map(
                       (c) => (
                         <option
-                          key={c}
+                          key={c.id}
+                          value={c.id}
                         >
-                          {c}
+                          {c.name}
                         </option>
                       )
                     )}
+
                   </select>
                 </Field>
 
-                <Field label="किस्म से छाँटें">
+                <Field
+                  label="किस्म से छाँटें"
+                >
                   <select
                     value={
                       filters.variety
@@ -2410,31 +3178,33 @@ export default function KishanBeej() {
                         (p) => ({
                           ...p,
                           variety:
-                            e.target
-                              .value
+                            e.target.value,
                         })
                       )
                     }
                   >
+
                     <option value="">
                       सभी किस्में
                     </option>
 
-                    {centreVarieties(
-                      filters.centre
-                    ).map(
+                    {varieties.map(
                       (v) => (
                         <option
-                          key={v}
+                          key={v.id}
+                          value={v.id}
                         >
-                          {v}
+                          {v.name}
                         </option>
                       )
                     )}
+
                   </select>
                 </Field>
 
-                <Field label="नाम/ग्राम से खोजें">
+                <Field
+                  label="नाम/ग्राम से खोजें"
+                >
                   <input
                     placeholder="टाइप करें..."
                     value={
@@ -2445,8 +3215,7 @@ export default function KishanBeej() {
                         (p) => ({
                           ...p,
                           search:
-                            e.target
-                              .value
+                            e.target.value,
                         })
                       )
                     }
@@ -2455,7 +3224,12 @@ export default function KishanBeej() {
 
               </div>
 
-              <div className="row end mt12">
+              <div
+                className="row end"
+                style={{
+                  marginTop: 12,
+                }}
+              >
 
                 <span className="tag n">
                   {
@@ -2480,6 +3254,7 @@ export default function KishanBeej() {
                     onClick={() =>
                       downloadCsv(
                         "वितरण-रजिस्टर",
+
                         [
                           "क्र0",
                           "दिनांक",
@@ -2503,34 +3278,39 @@ export default function KishanBeej() {
                           "कृषक अंश",
                           "कृषक हस्ताक्षर",
                           "वितरक हस्ताक्षर",
-                          "टिप्पणी"
+                          "टिप्पणी",
                         ],
 
                         filteredEntries.map(
-                          (e, i) => [
+                          (
+                            e,
+                            i
+                          ) => [
                             i + 1,
-                            dmy(e.date),
-                            e.centre,
-                            e.variety,
+                            dmy(
+                              e.date
+                            ),
+                            e.centre_name,
+                            e.variety_name,
                             e.name,
                             e.father,
                             e.village,
                             e.mobile,
                             e.area,
-                            e.i1.qty,
-                            e.i1.amt,
+                            e.item1_qty,
+                            e.item1_amount,
                             e.seed_gm,
-                            e.i2.amt,
-                            e.i3.qty,
-                            e.i3.amt,
-                            e.i4.qty,
-                            e.i4.amt,
+                            e.item2_amount,
+                            e.item3_qty,
+                            e.item3_amount,
+                            e.item4_qty,
+                            e.item4_amount,
                             e.total,
                             e.subsidy,
                             e.farmer,
                             e.sign1,
                             e.sign2,
-                            e.note
+                            e.note,
                           ]
                         )
                       )
@@ -2555,24 +3335,73 @@ export default function KishanBeej() {
                     <thead>
 
                       <tr>
+                        <th>
+                          क्र0
+                        </th>
 
-                        <th>क्र0</th>
-                        <th>दिनांक</th>
-                        <th>केन्द्र</th>
-                        <th>किस्म</th>
-                        <th>कृषक का नाम</th>
-                        <th>ग्राम</th>
-                        <th>क्षे0फ0</th>
-                        <th>मद1 मात्रा/राशि</th>
-                        <th>बीज ग्राम/राशि</th>
-                        <th>मद3 मात्रा/राशि</th>
-                        <th>मद4 मात्रा/राशि</th>
-                        <th>कुल</th>
-                        <th>राजसहायता</th>
-                        <th>कृषक अंश</th>
-                        <th>हस्ताक्षर</th>
-                        <th>क्रिया</th>
+                        <th>
+                          दिनांक
+                        </th>
 
+                        <th>
+                          केन्द्र
+                        </th>
+
+                        <th>
+                          किस्म
+                        </th>
+
+                        <th>
+                          कृषक का नाम
+                        </th>
+
+                        <th>
+                          ग्राम
+                        </th>
+
+                        <th>
+                          क्षे0फ0
+                        </th>
+
+                        <th>
+                          मद1
+                          मात्रा/राशि
+                        </th>
+
+                        <th>
+                          बीज
+                          ग्राम/राशि
+                        </th>
+
+                        <th>
+                          मद3
+                          मात्रा/राशि
+                        </th>
+
+                        <th>
+                          मद4
+                          मात्रा/राशि
+                        </th>
+
+                        <th>
+                          कुल
+                        </th>
+
+                        <th>
+                          राजसहायता
+                        </th>
+
+                        <th>
+                          कृषक अंश
+                        </th>
+
+                        <th>
+                          हस्ताक्षर
+                        </th>
+
+                        <th>
+                          क्रिया
+                        </th>
                       </tr>
 
                     </thead>
@@ -2580,8 +3409,15 @@ export default function KishanBeej() {
                     <tbody>
 
                       {filteredEntries.map(
-                        (e, i) => (
-                          <tr key={e.id}>
+                        (
+                          e,
+                          i
+                        ) => (
+                          <tr
+                            key={
+                              e.id
+                            }
+                          >
 
                             <td>
                               {i + 1}
@@ -2594,11 +3430,15 @@ export default function KishanBeej() {
                             </td>
 
                             <td>
-                              {e.centre}
+                              {
+                                e.centre_name
+                              }
                             </td>
 
                             <td>
-                              {e.variety}
+                              {
+                                e.variety_name
+                              }
                             </td>
 
                             <td>
@@ -2606,56 +3446,55 @@ export default function KishanBeej() {
                             </td>
 
                             <td>
-                              {e.village}
+                              {
+                                e.village
+                              }
                             </td>
 
                             <td>
-                              {num(
+                              {n(
                                 e.area,
                                 3
                               )}
                             </td>
 
                             <td>
-                              {num(
-                                e.i1.qty,
-                                2
-                              )}{" "}
-                              /{" "}
+                              {n(
+                                e.item1_qty
+                              )}
+                              {" / "}
                               {money(
-                                e.i1.amt
+                                e.item1_amount
                               )}
                             </td>
 
                             <td>
                               {gm(
                                 e.seed_gm
-                              )}{" "}
-                              /{" "}
+                              )}
+                              {" / "}
                               {money(
-                                e.i2.amt
+                                e.item2_amount
                               )}
                             </td>
 
                             <td>
-                              {num(
-                                e.i3.qty,
-                                2
-                              )}{" "}
-                              /{" "}
+                              {n(
+                                e.item3_qty
+                              )}
+                              {" / "}
                               {money(
-                                e.i3.amt
+                                e.item3_amount
                               )}
                             </td>
 
                             <td>
-                              {num(
-                                e.i4.qty,
-                                2
-                              )}{" "}
-                              /{" "}
+                              {n(
+                                e.item4_qty
+                              )}
+                              {" / "}
                               {money(
-                                e.i4.amt
+                                e.item4_amount
                               )}
                             </td>
 
@@ -2693,29 +3532,18 @@ export default function KishanBeej() {
                             </td>
 
                             <td>
-
                               <button
                                 className="btn b3 sm"
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `क्या "${e.name}" की प्रविष्टि हटानी है?`
-                                    )
-                                  ) {
-                                    setEntries(
-                                      (prev) =>
-                                        prev.filter(
-                                          (x) =>
-                                            x.id !==
-                                            e.id
-                                        )
-                                    );
-                                  }
-                                }}
+                                onClick={() =>
+                                  deleteItem(
+                                    "distributions",
+                                    e.id,
+                                    `"${e.name}" की प्रविष्टि`
+                                  )
+                                }
                               >
                                 हटाएँ
                               </button>
-
                             </td>
 
                           </tr>
@@ -2740,7 +3568,9 @@ export default function KishanBeej() {
           </section>
         )}
 
-        {/* STOCK */}
+        {/* =================================================
+            STOCK
+        ================================================= */}
 
         {tab === "stock" && (
           <section className="panel on">
@@ -2762,18 +3592,20 @@ export default function KishanBeej() {
               {[
                 [
                   "ledger",
-                  "केन्द्रवार शेष"
+                  "केन्द्रवार शेष",
                 ],
+
                 [
                   "allot",
-                  "केन्द्र आवंटन"
+                  "केन्द्र आवंटन",
                 ],
+
                 [
                   "purchase",
-                  "बीज क्रय"
-                ]
+                  "बीज क्रय",
+                ],
               ].map(
-                ([id, l]) => (
+                ([id, label]) => (
                   <button
                     key={id}
                     className={
@@ -2785,7 +3617,7 @@ export default function KishanBeej() {
                       setStockTab(id)
                     }
                   >
-                    {l}
+                    {label}
                   </button>
                 )
               )}
@@ -2797,6 +3629,7 @@ export default function KishanBeej() {
             {stockTab ===
               "ledger" && (
               <>
+
                 <div className="card noprint">
 
                   <div className="row end">
@@ -2807,12 +3640,13 @@ export default function KishanBeej() {
                       }
                       onChange={(e) =>
                         setStockSearch(
-                          e.target
-                            .value
+                          e.target.value
                         )
                       }
                       placeholder="केन्द्र या किस्म खोजें..."
-                      className="short-input"
+                      style={{
+                        maxWidth: 280,
+                      }}
                     />
 
                     <span className="tag n">
@@ -2836,14 +3670,40 @@ export default function KishanBeej() {
 
                         <tr>
 
-                          <th>क्र0</th>
-                          <th>केन्द्र</th>
-                          <th>किस्म</th>
-                          <th>प्राप्त (ग्राम)</th>
-                          <th>वितरित (ग्राम)</th>
-                          <th>शेष (ग्राम)</th>
-                          <th>स्थिति</th>
-                          <th>किसान</th>
+                          <th>
+                            क्र0
+                          </th>
+
+                          <th>
+                            केन्द्र
+                          </th>
+
+                          <th>
+                            किस्म
+                          </th>
+
+                          <th>
+                            प्राप्त
+                            (ग्राम)
+                          </th>
+
+                          <th>
+                            वितरित
+                            (ग्राम)
+                          </th>
+
+                          <th>
+                            शेष
+                            (ग्राम)
+                          </th>
+
+                          <th>
+                            स्थिति
+                          </th>
+
+                          <th>
+                            किसान
+                          </th>
 
                         </tr>
 
@@ -2852,57 +3712,65 @@ export default function KishanBeej() {
                       <tbody>
 
                         {ledgerRows.map(
-                          (r, i) => (
+                          (
+                            row,
+                            index
+                          ) => (
                             <tr
-                              key={`${r.centre}-${r.variety}`}
+                              key={`${row.centreId}-${row.varietyId}`}
                             >
 
                               <td>
-                                {i + 1}
+                                {index +
+                                  1}
                               </td>
 
                               <td>
-                                {r.centre}
+                                {
+                                  row.centre
+                                }
                               </td>
 
                               <td>
-                                {r.variety}
+                                {
+                                  row.variety
+                                }
                               </td>
 
                               <td>
-                                {num(
-                                  r.opening,
+                                {n(
+                                  row.opening,
                                   0
                                 )}
                               </td>
 
                               <td>
                                 {gm(
-                                  r.issued
+                                  row.issued
                                 )}
                               </td>
 
                               <td
                                 className={
-                                  r.balance <
+                                  row.balance <
                                   0
                                     ? "neg"
                                     : ""
                                 }
                               >
                                 {gm(
-                                  r.balance
+                                  row.balance
                                 )}
                               </td>
 
                               <td>
 
-                                {r.balance <
+                                {row.balance <
                                 0 ? (
                                   <span className="tag bad">
                                     अधिक-वितरण
                                   </span>
-                                ) : r.balance ===
+                                ) : row.balance ===
                                   0 ? (
                                   <span className="tag n">
                                     समाप्त
@@ -2917,7 +3785,7 @@ export default function KishanBeej() {
 
                               <td>
                                 {
-                                  r.farmers
+                                  row.farmers
                                 }
                               </td>
 
@@ -2927,11 +3795,60 @@ export default function KishanBeej() {
 
                       </tbody>
 
+                      <tfoot>
+
+                        <tr>
+
+                          <td colSpan="3">
+                            कुल योग
+                          </td>
+
+                          <td>
+                            {n(
+                              ledgerRows.reduce(
+                                (s, r) =>
+                                  s +
+                                  r.opening,
+                                0
+                              ),
+                              0
+                            )}
+                          </td>
+
+                          <td>
+                            {gm(
+                              ledgerRows.reduce(
+                                (s, r) =>
+                                  s +
+                                  r.issued,
+                                0
+                              )
+                            )}
+                          </td>
+
+                          <td>
+                            {gm(
+                              ledgerRows.reduce(
+                                (s, r) =>
+                                  s +
+                                  r.balance,
+                                0
+                              )
+                            )}
+                          </td>
+
+                          <td colSpan="2"></td>
+
+                        </tr>
+
+                      </tfoot>
+
                     </table>
 
                   </div>
 
                 </div>
+
               </>
             )}
 
@@ -2950,7 +3867,10 @@ export default function KishanBeej() {
 
                   <div className="grid g4">
 
-                    <Field label="दिनांक *">
+                    <Field
+                      label="दिनांक"
+                      required
+                    >
                       <input
                         type="date"
                         className="need"
@@ -2962,15 +3882,17 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               date:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       />
                     </Field>
 
-                    <Field label="केन्द्र *">
+                    <Field
+                      label="केन्द्र"
+                      required
+                    >
                       <select
                         className="need"
                         value={
@@ -2981,29 +3903,34 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               centre:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       >
+
                         <option value="">
                           — केन्द्र चुनें —
                         </option>
 
-                        {CENTRES.map(
+                        {centres.map(
                           (c) => (
                             <option
-                              key={c}
+                              key={c.id}
+                              value={c.id}
                             >
-                              {c}
+                              {c.name}
                             </option>
                           )
                         )}
+
                       </select>
                     </Field>
 
-                    <Field label="किस्म *">
+                    <Field
+                      label="किस्म"
+                      required
+                    >
                       <select
                         className="need"
                         value={
@@ -3014,29 +3941,34 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               variety:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       >
+
                         <option value="">
                           — किस्म चुनें —
                         </option>
 
-                        {NAMES.map(
+                        {varieties.map(
                           (v) => (
                             <option
-                              key={v}
+                              key={v.id}
+                              value={v.id}
                             >
-                              {v}
+                              {v.name}
                             </option>
                           )
                         )}
+
                       </select>
                     </Field>
 
-                    <Field label="मात्रा (ग्राम) *">
+                    <Field
+                      label="मात्रा (ग्राम)"
+                      required
+                    >
                       <input
                         type="number"
                         className="need"
@@ -3050,8 +3982,7 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               qty:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
@@ -3060,14 +3991,21 @@ export default function KishanBeej() {
 
                   </div>
 
-                  <div className="grid g3 mt10">
+                  <div
+                    className="grid g3"
+                    style={{
+                      marginTop: 10,
+                    }}
+                  >
 
-                    <Field label="क्षेत्रफल — स्वतः (है0)">
+                    <Field
+                      label="क्षेत्रफल — स्वतः (है0)"
+                    >
                       <input
                         readOnly
                         value={
                           allotCalc
-                            ? `${num(
+                            ? `${n(
                                 allotCalc.area,
                                 4
                               )} है0`
@@ -3076,7 +4014,9 @@ export default function KishanBeej() {
                       />
                     </Field>
 
-                    <Field label="परियोजना लागत — स्वतः (₹)">
+                    <Field
+                      label="परियोजना लागत — स्वतः (₹)"
+                    >
                       <input
                         readOnly
                         value={
@@ -3089,7 +4029,9 @@ export default function KishanBeej() {
                       />
                     </Field>
 
-                    <Field label="स्रोत/देयक सं0">
+                    <Field
+                      label="स्रोत/देयक सं0"
+                    >
                       <input
                         value={
                           allotForm.source
@@ -3099,8 +4041,7 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               source:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
@@ -3115,24 +4056,40 @@ export default function KishanBeej() {
                       className={`note ${
                         allotCalc.gmv >
                         centralLeft(
-                          allotCalc.variety
+                          Number(
+                            allotForm.variety
+                          )
                         ) +
                           0.01
                           ? "bad"
                           : "ok"
-                      } mt12`}
+                      }`}
+                      style={{
+                        marginTop: 12,
+                      }}
                     >
+
                       {allotCalc.gmv >
                       centralLeft(
-                        allotCalc.variety
+                        Number(
+                          allotForm.variety
+                        )
                       ) +
                         0.01
-                        ? `केन्द्रीय स्टॉक कम — ${allotCalc.variety} का शेष केवल ${gm(
+                        ? `केन्द्रीय स्टॉक कम — ${
+                            varietyById[
+                              Number(
+                                allotForm.variety
+                              )
+                            ]?.name
+                          } का शेष केवल ${gm(
                             centralLeft(
-                              allotCalc.variety
+                              Number(
+                                allotForm.variety
+                              )
                             )
                           )} ग्राम है।`
-                        : `ठीक है — क्षेत्रफल ${num(
+                        : `ठीक है — क्षेत्रफल ${n(
                             allotCalc.area,
                             4
                           )} है0, लागत ${money(
@@ -3143,21 +4100,127 @@ export default function KishanBeej() {
                             allotCalc.farmer
                           )})। इसके बाद केन्द्रीय शेष ${gm(
                             centralLeft(
-                              allotCalc.variety
+                              Number(
+                                allotForm.variety
+                              )
                             ) -
                               allotCalc.gmv
                           )} ग्राम।`}
+
                     </div>
                   )}
 
-                  <button
-                    className="btn b1 mt12"
-                    onClick={
-                      addAllot
-                    }
+                  <div
+                    className="row"
+                    style={{
+                      marginTop: 12,
+                    }}
                   >
-                    आवंटन जोड़ें
-                  </button>
+
+                    <button
+                      className="btn b1"
+                      onClick={
+                        addAllocation
+                      }
+                    >
+                      आवंटन जोड़ें
+                    </button>
+
+                  </div>
+
+                </div>
+
+                <div className="card noprint">
+
+                  <div className="row end">
+
+                    <select
+                      value={
+                        allotFilter
+                      }
+                      onChange={(e) =>
+                        setAllotFilter(
+                          e.target.value
+                        )
+                      }
+                      style={{
+                        maxWidth: 280,
+                      }}
+                    >
+
+                      <option value="">
+                        सभी केन्द्र
+                      </option>
+
+                      {centres.map(
+                        (c) => (
+                          <option
+                            key={c.id}
+                            value={c.id}
+                          >
+                            {c.name}
+                          </option>
+                        )
+                      )}
+
+                    </select>
+
+                    <button
+                      className="btn b2 sm"
+                      onClick={() =>
+                        downloadCsv(
+                          "केन्द्र-आवंटन",
+
+                          [
+                            "क्र0",
+                            "दिनांक",
+                            "केन्द्र",
+                            "किस्म",
+                            "मात्रा(ग्राम)",
+                            "क्षे0फ0(है0)",
+                            "परियोजना लागत",
+                            "राजसहायता",
+                            "कृषक अंश",
+                            "स्रोत",
+                          ],
+
+                          allocations
+                            .filter(
+                              (a) =>
+                                !allotFilter ||
+                                Number(
+                                  a.centre
+                                ) ===
+                                  Number(
+                                    allotFilter
+                                  )
+                            )
+                            .map(
+                              (
+                                a,
+                                i
+                              ) => [
+                                i + 1,
+                                dmy(
+                                  a.date
+                                ),
+                                a.centre_name,
+                                a.variety_name,
+                                a.qty_gm,
+                                a.area,
+                                a.project_cost,
+                                a.subsidy,
+                                a.farmer_share,
+                                a.source,
+                              ]
+                            )
+                        )
+                      }
+                    >
+                      ⬇ CSV
+                    </button>
+
+                  </div>
 
                 </div>
 
@@ -3170,37 +4233,81 @@ export default function KishanBeej() {
                       <thead>
 
                         <tr>
-                          <th>क्र0</th>
-                          <th>दिनांक</th>
-                          <th>केन्द्र</th>
-                          <th>किस्म</th>
-                          <th>मात्रा (ग्राम)</th>
-                          <th>क्षे0फ0</th>
-                          <th>परियोजना लागत</th>
-                          <th>राजसहायता</th>
-                          <th>कृषक अंश</th>
-                          <th>स्रोत</th>
+
+                          <th>
+                            क्र0
+                          </th>
+
+                          <th>
+                            दिनांक
+                          </th>
+
+                          <th>
+                            केन्द्र
+                          </th>
+
+                          <th>
+                            किस्म
+                          </th>
+
+                          <th>
+                            मात्रा
+                            (ग्राम)
+                          </th>
+
+                          <th>
+                            क्षे0फ0
+                            (है0)
+                          </th>
+
+                          <th>
+                            परियोजना
+                            लागत (₹)
+                          </th>
+
+                          <th>
+                            राजसहायता
+                            (₹)
+                          </th>
+
+                          <th>
+                            कृषक अंश
+                            (₹)
+                          </th>
+
+                          <th>
+                            स्रोत
+                          </th>
+
+                          <th>
+                            क्रिया
+                          </th>
+
                         </tr>
 
                       </thead>
 
                       <tbody>
 
-                        {receipts.map(
-                          (r, i) => {
-                            const a =
-                              r.area !=
-                              null
-                                ? r.area
-                                : r.qty /
-                                  gmha(
-                                    r.variety
-                                  );
-
-                            return (
+                        {allocations
+                          .filter(
+                            (a) =>
+                              !allotFilter ||
+                              Number(
+                                a.centre
+                              ) ===
+                                Number(
+                                  allotFilter
+                                )
+                          )
+                          .map(
+                            (
+                              a,
+                              i
+                            ) => (
                               <tr
                                 key={
-                                  r.id
+                                  a.id
                                 }
                               >
 
@@ -3210,66 +4317,77 @@ export default function KishanBeej() {
 
                                 <td>
                                   {dmy(
-                                    r.date
+                                    a.date
                                   )}
                                 </td>
 
                                 <td>
                                   {
-                                    r.centre
+                                    a.centre_name
                                   }
                                 </td>
 
                                 <td>
                                   {
-                                    r.variety
+                                    a.variety_name
                                   }
                                 </td>
 
                                 <td>
                                   {gm(
-                                    r.qty
+                                    a.qty_gm
                                   )}
                                 </td>
 
                                 <td>
-                                  {num(
-                                    a,
+                                  {n(
+                                    a.area,
                                     4
                                   )}
                                 </td>
 
                                 <td>
                                   {money(
-                                    a *
-                                      master.projectCost
+                                    a.project_cost
                                   )}
                                 </td>
 
                                 <td>
                                   {money(
-                                    a *
-                                      master.maxSubsidy
+                                    a.subsidy
                                   )}
                                 </td>
 
                                 <td>
                                   {money(
-                                    a *
-                                      master.farmerShare
+                                    a.farmer_share
                                   )}
                                 </td>
 
                                 <td>
                                   {
-                                    r.source
+                                    a.source
                                   }
                                 </td>
 
+                                <td>
+                                  <button
+                                    className="btn b3 sm"
+                                    onClick={() =>
+                                      deleteItem(
+                                        "allocations",
+                                        a.id,
+                                        `आवंटन ${a.centre_name}`
+                                      )
+                                    }
+                                  >
+                                    हटाएँ
+                                  </button>
+                                </td>
+
                               </tr>
-                            );
-                          }
-                        )}
+                            )
+                          )}
 
                       </tbody>
 
@@ -3296,7 +4414,10 @@ export default function KishanBeej() {
 
                   <div className="grid g4">
 
-                    <Field label="दिनांक *">
+                    <Field
+                      label="दिनांक"
+                      required
+                    >
                       <input
                         type="date"
                         className="need"
@@ -3308,15 +4429,17 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               date:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       />
                     </Field>
 
-                    <Field label="किस्म *">
+                    <Field
+                      label="किस्म"
+                      required
+                    >
                       <select
                         className="need"
                         value={
@@ -3327,29 +4450,34 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               variety:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       >
+
                         <option value="">
                           — किस्म चुनें —
                         </option>
 
-                        {NAMES.map(
+                        {varieties.map(
                           (v) => (
                             <option
-                              key={v}
+                              key={v.id}
+                              value={v.id}
                             >
-                              {v}
+                              {v.name}
                             </option>
                           )
                         )}
+
                       </select>
                     </Field>
 
-                    <Field label="मात्रा (किग्रा0) *">
+                    <Field
+                      label="मात्रा (किग्रा0)"
+                      required
+                    >
                       <input
                         type="number"
                         className="need"
@@ -3363,15 +4491,17 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               qty:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       />
                     </Field>
 
-                    <Field label="दर (₹/किग्रा0) *">
+                    <Field
+                      label="दर (₹/किग्रा0)"
+                      required
+                    >
                       <input
                         type="number"
                         className="need"
@@ -3385,8 +4515,7 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               rate:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
@@ -3395,9 +4524,16 @@ export default function KishanBeej() {
 
                   </div>
 
-                  <div className="grid g3 mt10">
+                  <div
+                    className="grid g3"
+                    style={{
+                      marginTop: 10,
+                    }}
+                  >
 
-                    <Field label="कुल राशि — स्वतः (₹)">
+                    <Field
+                      label="कुल राशि — स्वतः (₹)"
+                    >
                       <input
                         readOnly
                         value={
@@ -3410,7 +4546,9 @@ export default function KishanBeej() {
                       />
                     </Field>
 
-                    <Field label="आपूर्तिकर्ता">
+                    <Field
+                      label="आपूर्तिकर्ता"
+                    >
                       <input
                         value={
                           purchaseForm.supplier
@@ -3420,15 +4558,16 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               supplier:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
                       />
                     </Field>
 
-                    <Field label="देयक सं0">
+                    <Field
+                      label="देयक सं0"
+                    >
                       <input
                         value={
                           purchaseForm.ref
@@ -3438,8 +4577,7 @@ export default function KishanBeej() {
                             (p) => ({
                               ...p,
                               ref:
-                                e.target
-                                  .value
+                                e.target.value,
                             })
                           )
                         }
@@ -3448,38 +4586,122 @@ export default function KishanBeej() {
 
                   </div>
 
-                  {purchaseCalc && (
-                    <div
-                      className={`note ${
-                        purchaseCalc.total >
+                  <div
+                    className={`note ${
+                      purchaseCalc &&
+                      purchaseCalc.total >
                         purchaseCalc.left +
                           0.01
-                          ? "bad"
-                          : "ok"
-                      } mt12`}
-                    >
-                      {purchaseCalc.total >
-                      purchaseCalc.left +
-                        0.01
-                        ? `सीमा पार — ${purchaseForm.variety} की शेष क्रय क्षमता केवल ${money(
+                        ? "bad"
+                        : "ok"
+                    }`}
+                    style={{
+                      marginTop: 12,
+                    }}
+                  >
+
+                    {purchaseCalc
+                      ? purchaseCalc.total >
+                        purchaseCalc.left +
+                          0.01
+                        ? `सीमा पार — ${
+                            varietyById[
+                              Number(
+                                purchaseForm.variety
+                              )
+                            ]?.name
+                          } की शेष क्रय क्षमता केवल ${money(
                             purchaseCalc.left
-                          )} है।`
-                        : `ठीक है — इसके बाद ${purchaseForm.variety} की कुल खरीद ${money(
+                          )} है। यह प्रविष्टि स्वीकार नहीं होगी।`
+                        : `ठीक है — इसके बाद ${
+                            varietyById[
+                              Number(
+                                purchaseForm.variety
+                              )
+                            ]?.name
+                          } की कुल खरीद ${money(
                             purchaseCalc.after
                           )} होगी, शेष क्षमता ${money(
                             purchaseCalc.remaining
-                          )}।`}
-                    </div>
-                  )}
+                          )}।`
+                      : "किस्म, मात्रा व दर भरते ही क्रय सीमा की स्थिति दिखेगी।"}
 
-                  <button
-                    className="btn b1 mt12"
-                    onClick={
-                      addPurchase
-                    }
+                  </div>
+
+                  <div
+                    className="row"
+                    style={{
+                      marginTop: 12,
+                    }}
                   >
-                    क्रय जोड़ें
-                  </button>
+
+                    <button
+                      className="btn b1"
+                      onClick={
+                        addPurchase
+                      }
+                    >
+                      क्रय जोड़ें
+                    </button>
+
+                  </div>
+
+                </div>
+
+                <div className="card noprint">
+
+                  <div className="row end">
+
+                    <span className="tag n">
+                      {
+                        purchases.length
+                      }{" "}
+                      क्रय प्रविष्टियाँ
+                    </span>
+
+                    <button
+                      className="btn b2 sm"
+                      onClick={() =>
+                        downloadCsv(
+                          "बीज-क्रय",
+
+                          [
+                            "क्र0",
+                            "दिनांक",
+                            "किस्म",
+                            "आपूर्तिकर्ता",
+                            "मात्रा",
+                            "इकाई",
+                            "दर",
+                            "कुल राशि",
+                            "देयक सं0",
+                          ],
+
+                          purchases.map(
+                            (
+                              p,
+                              i
+                            ) => [
+                              i + 1,
+                              dmy(
+                                p.date
+                              ),
+                              p.variety_name,
+                              p.supplier,
+                              p.qty_kg,
+                              "kg",
+                              p.rate,
+                              p.amount,
+                              p.ref,
+                            ]
+                          )
+                        )
+                      }
+                    >
+                      ⬇ CSV
+                    </button>
+
+                  </div>
 
                 </div>
 
@@ -3492,15 +4714,49 @@ export default function KishanBeej() {
                       <thead>
 
                         <tr>
-                          <th>क्र0</th>
-                          <th>दिनांक</th>
-                          <th>किस्म</th>
-                          <th>आपूर्तिकर्ता</th>
-                          <th>मात्रा</th>
-                          <th>दर</th>
-                          <th>कुल राशि</th>
-                          <th>शेष क्रय क्षमता</th>
-                          <th>देयक सं0</th>
+
+                          <th>
+                            क्र0
+                          </th>
+
+                          <th>
+                            दिनांक
+                          </th>
+
+                          <th>
+                            किस्म
+                          </th>
+
+                          <th>
+                            आपूर्तिकर्ता
+                          </th>
+
+                          <th>
+                            मात्रा
+                          </th>
+
+                          <th>
+                            दर (₹)
+                          </th>
+
+                          <th>
+                            कुल राशि
+                            (₹)
+                          </th>
+
+                          <th>
+                            शेष क्रय
+                            क्षमता (₹)
+                          </th>
+
+                          <th>
+                            देयक सं0
+                          </th>
+
+                          <th>
+                            क्रिया
+                          </th>
+
                         </tr>
 
                       </thead>
@@ -3508,7 +4764,10 @@ export default function KishanBeej() {
                       <tbody>
 
                         {purchases.map(
-                          (p, i) => (
+                          (
+                            p,
+                            i
+                          ) => (
                             <tr
                               key={
                                 p.id
@@ -3527,7 +4786,7 @@ export default function KishanBeej() {
 
                               <td>
                                 {
-                                  p.variety
+                                  p.variety_name
                                 }
                               </td>
 
@@ -3538,8 +4797,8 @@ export default function KishanBeej() {
                               </td>
 
                               <td>
-                                {num(
-                                  p.qty,
+                                {n(
+                                  p.qty_kg,
                                   3
                                 )}{" "}
                                 किग्रा0
@@ -3557,16 +4816,40 @@ export default function KishanBeej() {
                                 )}
                               </td>
 
-                              <td>
+                              <td
+                                className={
+                                  Number(
+                                    p.remaining_capacity
+                                  ) <=
+                                  0.5
+                                    ? "neg"
+                                    : ""
+                                }
+                              >
                                 {money(
-                                  remPower(
-                                    p.variety
-                                  )
+                                  p.remaining_capacity
                                 )}
                               </td>
 
                               <td>
-                                {p.ref}
+                                {
+                                  p.ref
+                                }
+                              </td>
+
+                              <td>
+                                <button
+                                  className="btn b3 sm"
+                                  onClick={() =>
+                                    deleteItem(
+                                      "purchases",
+                                      p.id,
+                                      `क्रय ${p.variety_name}`
+                                    )
+                                  }
+                                >
+                                  हटाएँ
+                                </button>
                               </td>
 
                             </tr>
@@ -3574,6 +4857,34 @@ export default function KishanBeej() {
                         )}
 
                       </tbody>
+
+                      <tfoot>
+
+                        <tr>
+
+                          <td colSpan="6">
+                            कुल योग
+                          </td>
+
+                          <td>
+                            {money(
+                              purchases.reduce(
+                                (s, p) =>
+                                  s +
+                                  Number(
+                                    p.amount ||
+                                      0
+                                  ),
+                                0
+                              )
+                            )}
+                          </td>
+
+                          <td colSpan="3"></td>
+
+                        </tr>
+
+                      </tfoot>
 
                     </table>
 
@@ -3587,7 +4898,9 @@ export default function KishanBeej() {
           </section>
         )}
 
-        {/* MANAK */}
+        {/* =================================================
+            MANAK
+        ================================================= */}
 
         {tab === "manak" && (
           <section className="panel on">
@@ -3604,8 +4917,8 @@ export default function KishanBeej() {
                 आगे
               </b>{" "}
               जोड़ी जाने वाली
-              प्रविष्टियों पर लागू होगा
-              — पुरानी प्रविष्टियाँ अपने
+              प्रविष्टियों पर लागू होगा —
+              पुरानी प्रविष्टियाँ अपने
               समय का मानक सुरक्षित
               रखती हैं।
             </p>
@@ -3618,148 +4931,141 @@ export default function KishanBeej() {
 
               <div className="grid g4">
 
-                <Field label="क्रय सीमा प्रति किस्म (₹)">
-                  <input
-                    type="number"
-                    value={
-                      masterDraft.purchaseLimit
-                    }
-                    onChange={(e) =>
-                      setMasterDraft(
-                        {
-                          ...masterDraft,
-                          purchaseLimit:
-                            +e.target
-                              .value
-                        }
-                      )
-                    }
-                  />
-                </Field>
+                {[
+                  [
+                    "purchase_limit",
+                    "क्रय सीमा प्रति किस्म (₹)",
+                  ],
 
-                <Field label="परियोजना लागत (₹/है0)">
-                  <input
-                    type="number"
-                    value={
-                      masterDraft.projectCost
-                    }
-                    onChange={(e) =>
-                      setMasterDraft(
-                        {
-                          ...masterDraft,
-                          projectCost:
-                            +e.target
-                              .value
-                        }
-                      )
-                    }
-                  />
-                </Field>
+                  [
+                    "project_cost",
+                    "परियोजना लागत (₹/है0)",
+                  ],
 
-                <Field label="अधिकतम राजसहायता (₹/है0)">
-                  <input
-                    type="number"
-                    value={
-                      masterDraft.maxSubsidy
-                    }
-                    onChange={(e) =>
-                      setMasterDraft(
-                        {
-                          ...masterDraft,
-                          maxSubsidy:
-                            +e.target
-                              .value
-                        }
-                      )
-                    }
-                  />
-                </Field>
+                  [
+                    "max_subsidy",
+                    "अधिकतम राजसहायता (₹/है0)",
+                  ],
 
-                <Field label="कृषक अंश (₹/है0)">
-                  <input
-                    type="number"
-                    value={
-                      masterDraft.farmerShare
-                    }
-                    onChange={(e) =>
-                      setMasterDraft(
-                        {
-                          ...masterDraft,
-                          farmerShare:
-                            +e.target
-                              .value
+                  [
+                    "farmer_share",
+                    "कृषक अंश (₹/है0)",
+                  ],
+                ].map(
+                  ([key, label]) => (
+                    <Field
+                      key={key}
+                      label={label}
+                    >
+                      <input
+                        type="number"
+                        value={
+                          masterDraft?.[
+                            key
+                          ] ??
+                          ""
                         }
-                      )
-                    }
-                  />
-                </Field>
+                        onChange={(e) =>
+                          setMasterDraft(
+                            (p) => ({
+                              ...p,
+                              [key]:
+                                e.target.value,
+                            })
+                          )
+                        }
+                      />
+                    </Field>
+                  )
+                )}
 
               </div>
 
               <div
                 className={`note ${
                   Math.abs(
-                    masterDraft.maxSubsidy +
-                      masterDraft.farmerShare -
-                      masterDraft.projectCost
+                    Number(
+                      masterDraft?.max_subsidy ||
+                        0
+                    ) +
+                      Number(
+                        masterDraft?.farmer_share ||
+                          0
+                      ) -
+                      Number(
+                        masterDraft?.project_cost ||
+                          0
+                      )
                   ) < 0.5
                     ? "ok"
                     : "bad"
-                } mt12`}
+                }`}
+                style={{
+                  marginTop: 12,
+                }}
               >
+
                 {Math.abs(
-                  masterDraft.maxSubsidy +
-                    masterDraft.farmerShare -
-                    masterDraft.projectCost
+                  Number(
+                    masterDraft?.max_subsidy ||
+                      0
+                  ) +
+                    Number(
+                      masterDraft?.farmer_share ||
+                        0
+                    ) -
+                    Number(
+                      masterDraft?.project_cost ||
+                        0
+                    )
                 ) < 0.5
                   ? `जाँच सही — राजसहायता ${money(
-                      masterDraft.maxSubsidy
+                      masterDraft?.max_subsidy
                     )} + कृषक अंश ${money(
-                      masterDraft.farmerShare
+                      masterDraft?.farmer_share
                     )} = परियोजना लागत ${money(
-                      masterDraft.projectCost
+                      masterDraft?.project_cost
                     )} ✔`
                   : `मेल नहीं — ${money(
-                      masterDraft.maxSubsidy
+                      masterDraft?.max_subsidy
                     )} + ${money(
-                      masterDraft.farmerShare
+                      masterDraft?.farmer_share
                     )} = ${money(
-                      masterDraft.maxSubsidy +
-                        masterDraft.farmerShare
+                      Number(
+                        masterDraft?.max_subsidy ||
+                          0
+                      ) +
+                        Number(
+                          masterDraft?.farmer_share ||
+                            0
+                        )
                     )}, जबकि परियोजना लागत ${money(
-                      masterDraft.projectCost
+                      masterDraft?.project_cost
                     )} है ✘`}
+
               </div>
 
-              <div className="row mt12">
+              <div
+                className="row"
+                style={{
+                  marginTop: 12,
+                }}
+              >
 
                 <button
                   className="btn b1"
-                  onClick={() => {
-                    setMaster(
-                      masterDraft
-                    );
-
-                    setMessage(
-                      "✓ सुरक्षित।"
-                    );
-                  }}
+                  onClick={
+                    saveMaster
+                  }
                 >
                   सुरक्षित करें
                 </button>
 
                 <button
                   className="btn b2"
-                  onClick={() => {
-                    const d =
-                      defMaster();
-
-                    setMasterDraft(
-                      d
-                    );
-
-                    setMaster(d);
-                  }}
+                  onClick={
+                    resetMaster
+                  }
                 >
                   मूल मूल्यों पर
                   लौटाएँ
@@ -3775,253 +5081,378 @@ export default function KishanBeej() {
                 किस्मवार मानक
               </h3>
 
-              <p className="sub">
+              <p
+                className="sub"
+                style={{
+                  marginBottom: 10,
+                }}
+              >
                 जिस किस्म को खोलना हो
                 उस पर टैप करें। मात्रा या
                 दर बदलते ही राशि और जाँच
                 अपने आप बदल जाएगी।
               </p>
 
-              {NAMES.map((v) => {
-                const c =
-                  manak[v];
+              {standards.map(
+                (standard) => {
+                  const c =
+                    standardObject(
+                      standard
+                    );
 
-                const t =
-                  totals(c);
+                  const t =
+                    totals(c);
 
-                const okT =
-                  Math.abs(
-                    t.total -
-                      master.projectCost
-                  ) < 0.5;
+                  const okTotal =
+                    Math.abs(
+                      t.total -
+                        Number(
+                          master.project_cost
+                        )
+                    ) < 0.5;
 
-                const okS =
-                  Math.abs(
-                    t.subsidy -
-                      master.maxSubsidy
-                  ) < 0.5;
+                  const okSubsidy =
+                    Math.abs(
+                      t.subsidy -
+                        Number(
+                          master.max_subsidy
+                        )
+                    ) < 0.5;
 
-                return (
-                  <details
-                    key={v}
-                    open={
-                      !!expanded[v]
-                    }
-                    onToggle={(e) =>
-                      setExpanded(
-                        (p) => ({
-                          ...p,
-                          [v]:
-                            e.currentTarget
-                              .open
-                        })
-                      )
-                    }
-                  >
+                  return (
+                    <details
+                      key={
+                        standard.id
+                      }
+                      open={
+                        !!openStandard[
+                          standard.id
+                        ]
+                      }
+                      onToggle={(e) =>
+                        setOpenStandard(
+                          (p) => ({
+                            ...p,
+                            [standard.id]:
+                              e.currentTarget
+                                .open,
+                          })
+                        )
+                      }
+                    >
 
-                    <summary>
+                      <summary>
 
-                      {v}
+                        {
+                          standard.variety_name
+                        }
 
-                      <span
-                        className={`tag ${
-                          okT && okS
-                            ? "ok"
-                            : "bad"
-                        }`}
-                      >
-                        {okT && okS
-                          ? "✔ मानक सही"
-                          : "✘ जाँचें"}
-                      </span>
+                        <span
+                          className={`tag ${
+                            okTotal &&
+                            okSubsidy
+                              ? "ok"
+                              : "bad"
+                          }`}
+                        >
+                          {okTotal &&
+                          okSubsidy
+                            ? "✔ मानक सही"
+                            : "✘ जाँचें"}
+                        </span>
 
-                      <span className="tag n">
-                        {gm(
-                          t.gmha
-                        )}{" "}
-                        ग्राम/है0
-                      </span>
+                        <span className="tag n">
+                          {gm(
+                            t.gmha
+                          )}
+                          ग्राम/है0
+                        </span>
 
-                      <span className="tag n">
-                        {money(
-                          t.total
-                        )}
-                        /है0
-                      </span>
+                        <span className="tag n">
+                          {money(
+                            t.total
+                          )}
+                          /है0
+                        </span>
 
-                    </summary>
+                      </summary>
 
-                    <div className="dbody">
+                      <div className="dbody">
 
-                      <div className="tw">
+                        <div className="tw">
 
-                        <table>
+                          <table
+                            style={{
+                              minWidth:
+                                520,
+                            }}
+                          >
 
-                          <thead>
+                            <thead>
 
-                            <tr>
-                              <th>मद</th>
-                              <th>इकाई</th>
-                              <th>मात्रा</th>
-                              <th>दर (₹)</th>
-                              <th>राशि (₹)</th>
-                            </tr>
+                              <tr>
 
-                          </thead>
+                                <th>
+                                  मद
+                                </th>
 
-                          <tbody>
+                                <th>
+                                  इकाई
+                                </th>
 
-                            {[
-                              "item1",
-                              "item2",
-                              "item3",
-                              "item4"
-                            ].map(
-                              (k) => (
-                                <tr
-                                  key={k}
-                                >
+                                <th>
+                                  मात्रा
+                                </th>
 
-                                  <td className="l">
-                                    {
-                                      c[k]
-                                        .label
+                                <th>
+                                  दर (₹)
+                                </th>
+
+                                <th>
+                                  राशि (₹)
+                                </th>
+
+                              </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                              {[
+                                1,
+                                2,
+                                3,
+                                4,
+                              ].map(
+                                (itemNo) => (
+                                  <tr
+                                    key={
+                                      itemNo
                                     }
-                                  </td>
+                                  >
 
-                                  <td>
-                                    {
-                                      c[k]
-                                        .unit
-                                    }
-                                  </td>
-
-                                  <td>
-                                    <input
-                                      type="number"
-                                      step="0.0001"
-                                      value={
-                                        c[k]
-                                          .qty
+                                    <td className="l">
+                                      {
+                                        standard[
+                                          `item${itemNo}_label`
+                                        ]
                                       }
-                                      onChange={(e) =>
-                                        updateManak(
-                                          v,
-                                          k,
-                                          "qty",
+                                    </td>
+
+                                    <td>
+                                      {
+                                        standard[
+                                          `item${itemNo}_unit`
+                                        ]
+                                      }
+                                    </td>
+
+                                    <td>
+
+                                      <input
+                                        type="number"
+                                        step="0.0001"
+                                        value={
+                                          standard[
+                                            `item${itemNo}_qty`
+                                          ]
+                                        }
+                                        onChange={(
                                           e
-                                            .target
-                                            .value
-                                        )
-                                      }
-                                    />
-                                  </td>
+                                        ) =>
+                                          setData(
+                                            (
+                                              previous
+                                            ) => ({
+                                              ...previous,
 
-                                  <td>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={
-                                        c[k]
-                                          .rate
-                                      }
-                                      onChange={(e) =>
-                                        updateManak(
-                                          v,
-                                          k,
-                                          "rate",
+                                              standards:
+                                                previous.standards.map(
+                                                  (
+                                                    x
+                                                  ) =>
+                                                    x.id ===
+                                                    standard.id
+                                                      ? {
+                                                          ...x,
+
+                                                          [`item${itemNo}_qty`]:
+                                                            e
+                                                              .target
+                                                              .value,
+                                                        }
+                                                      : x
+                                                ),
+                                            })
+                                          )
+                                        }
+                                      />
+
+                                    </td>
+
+                                    <td>
+
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={
+                                          standard[
+                                            `item${itemNo}_rate`
+                                          ]
+                                        }
+                                        onChange={(
                                           e
-                                            .target
-                                            .value
-                                        )
-                                      }
-                                    />
-                                  </td>
+                                        ) =>
+                                          setData(
+                                            (
+                                              previous
+                                            ) => ({
+                                              ...previous,
 
-                                  <td>
-                                    {money(
-                                      amount(
-                                        c[k]
-                                      )
-                                    )}
-                                  </td>
+                                              standards:
+                                                previous.standards.map(
+                                                  (
+                                                    x
+                                                  ) =>
+                                                    x.id ===
+                                                    standard.id
+                                                      ? {
+                                                          ...x,
 
-                                </tr>
-                              )
-                            )}
+                                                          [`item${itemNo}_rate`]:
+                                                            e
+                                                              .target
+                                                              .value,
+                                                        }
+                                                      : x
+                                                ),
+                                            })
+                                          )
+                                        }
+                                      />
 
-                          </tbody>
+                                    </td>
 
-                          <tfoot>
+                                    <td>
+                                      {money(
+                                        Number(
+                                          standard[
+                                            `item${itemNo}_qty`
+                                          ]
+                                        ) *
+                                          Number(
+                                            standard[
+                                              `item${itemNo}_rate`
+                                            ]
+                                          )
+                                      )}
+                                    </td>
 
-                            <tr>
+                                  </tr>
+                                )
+                              )}
 
-                              <td colSpan="4">
-                                कुल
-                              </td>
+                            </tbody>
 
-                              <td>
-                                {money(
-                                  t.total
-                                )}
-                              </td>
+                            <tfoot>
 
-                            </tr>
+                              <tr>
 
-                          </tfoot>
+                                <td colSpan="4">
+                                  कुल
+                                </td>
 
-                        </table>
+                                <td>
+                                  {money(
+                                    t.total
+                                  )}
+                                </td>
+
+                              </tr>
+
+                            </tfoot>
+
+                          </table>
+
+                        </div>
+
+                        <div
+                          className={`note ${
+                            okTotal &&
+                            okSubsidy
+                              ? "ok"
+                              : "bad"
+                          }`}
+                          style={{
+                            marginTop: 10,
+                          }}
+                        >
+                          राजसहायता{" "}
+                          {money(
+                            t.subsidy
+                          )}{" "}
+                          + कृषक अंश{" "}
+                          {money(
+                            t.farmer
+                          )}{" "}
+                          ={" "}
+                          {money(
+                            t.total
+                          )}{" "}
+                          {okTotal &&
+                          okSubsidy
+                            ? "— मानक सही ✔"
+                            : "— मानक से भिन्न ✘"}
+                        </div>
+
+                        <button
+                          className="btn b1 sm"
+                          style={{
+                            marginTop: 10,
+                          }}
+                          onClick={() =>
+                            saveStandard(
+                              standard
+                            )
+                          }
+                        >
+                          सुरक्षित करें
+                        </button>
 
                       </div>
 
-                      <div
-                        className={`note ${
-                          okT && okS
-                            ? "ok"
-                            : "bad"
-                        } mt10`}
-                      >
-                        राजसहायता{" "}
-                        {money(
-                          t.subsidy
-                        )}{" "}
-                        + कृषक अंश{" "}
-                        {money(
-                          t.farmer
-                        )}{" "}
-                        ={" "}
-                        {money(
-                          t.total
-                        )}{" "}
-                        {okT && okS
-                          ? "— मानक सही ✔"
-                          : "— मानक से भिन्न ✘"}
-                      </div>
-
-                    </div>
-
-                  </details>
-                );
-              })}
-
-              <button
-                className="btn b2 sm mt10"
-                onClick={() =>
-                  setManak(
-                    defManak()
-                  )
+                    </details>
+                  );
                 }
+              )}
+
+              <div
+                className="row"
+                style={{
+                  marginTop: 10,
+                }}
               >
-                सभी मानक मूल स्थिति
-                पर लौटाएँ
-              </button>
+
+                <button
+                  className="btn b2 sm"
+                  onClick={
+                    resetAllStandards
+                  }
+                >
+                  सभी मानक मूल स्थिति
+                  पर लौटाएँ
+                </button>
+
+              </div>
 
             </div>
 
           </section>
         )}
 
-        {/* REPORT */}
+        {/* =================================================
+            REPORT
+        ================================================= */}
 
         {tab === "report" && (
           <section className="panel on">
@@ -4050,7 +5481,8 @@ export default function KishanBeej() {
                     )
                   }
                 >
-                  🖨 पूरा रजिस्टर छापें
+                  🖨 पूरा रजिस्टर
+                  छापें
                 </button>
 
                 <button
@@ -4069,18 +5501,50 @@ export default function KishanBeej() {
                         )}
                       </p>
 
-                      ${
-                        document.querySelector(
-                          ".report-table"
-                        )?.outerHTML ||
-                        ""
-                      }
-                      `
+                      ${reportRows
+                        .map(
+                          (r) => `
+                            <p>
+                              <b>
+                                ${r.v.name}
+                              </b>
+                              —
+                              कुल क्रय:
+                              ${money(
+                                r.purchase
+                              )},
+                              आवंटित:
+                              ${gm(
+                                r.allocated
+                              )} ग्राम,
+                              केन्द्रीय शेष:
+                              ${gm(
+                                r.central
+                              )} ग्राम,
+                              किसानों को:
+                              ${gm(
+                                r.distributed
+                              )} ग्राम,
+                              क्षेत्रफल:
+                              ${n(
+                                r.area,
+                                4
+                              )} है0,
+                              परियोजना लागत:
+                              ${money(
+                                r.project
+                              )}
+                            </p>
+                          `
+                        )
+                        .join("")}
+                      `,
+                      "किस्मवार सारांश"
                     )
                   }
                 >
-                  🖨 किस्मवार सारांश
-                  छापें
+                  🖨 किस्मवार
+                  सारांश छापें
                 </button>
 
                 <button
@@ -4088,6 +5552,7 @@ export default function KishanBeej() {
                   onClick={() =>
                     downloadCsv(
                       "वितरण-रजिस्टर-पूर्ण",
+
                       [
                         "क्र0",
                         "दिनांक",
@@ -4111,34 +5576,39 @@ export default function KishanBeej() {
                         "कृषक अंश",
                         "कृषक हस्ताक्षर",
                         "वितरक हस्ताक्षर",
-                        "टिप्पणी"
+                        "टिप्पणी",
                       ],
 
                       entries.map(
-                        (e, i) => [
+                        (
+                          e,
+                          i
+                        ) => [
                           i + 1,
-                          dmy(e.date),
-                          e.centre,
-                          e.variety,
+                          dmy(
+                            e.date
+                          ),
+                          e.centre_name,
+                          e.variety_name,
                           e.name,
                           e.father,
                           e.village,
                           e.mobile,
                           e.area,
-                          e.i1.qty,
-                          e.i1.amt,
+                          e.item1_qty,
+                          e.item1_amount,
                           e.seed_gm,
-                          e.i2.amt,
-                          e.i3.qty,
-                          e.i3.amt,
-                          e.i4.qty,
-                          e.i4.amt,
+                          e.item2_amount,
+                          e.item3_qty,
+                          e.item3_amount,
+                          e.item4_qty,
+                          e.item4_amount,
                           e.total,
                           e.subsidy,
                           e.farmer,
                           e.sign1,
                           e.sign2,
-                          e.note
+                          e.note,
                         ]
                       )
                     )
@@ -4152,7 +5622,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card table-card report-table">
+            <div className="card table-card">
 
               <div className="tw">
 
@@ -4161,16 +5631,55 @@ export default function KishanBeej() {
                   <thead>
 
                     <tr>
-                      <th>किस्म</th>
-                      <th>कुल क्रय (₹)</th>
-                      <th>शेष क्रय क्षमता (₹)</th>
-                      <th>क्रय मात्रा (ग्राम)</th>
-                      <th>केन्द्रों को आवंटित</th>
-                      <th>केन्द्रीय शेष</th>
-                      <th>किसानों को वितरित</th>
-                      <th>क्षेत्रफल (है0)</th>
-                      <th>परियोजना लागत (₹)</th>
-                      <th>किसान</th>
+
+                      <th>
+                        किस्म
+                      </th>
+
+                      <th>
+                        कुल क्रय
+                        (₹)
+                      </th>
+
+                      <th>
+                        शेष क्रय
+                        क्षमता (₹)
+                      </th>
+
+                      <th>
+                        क्रय मात्रा
+                        (ग्राम)
+                      </th>
+
+                      <th>
+                        केन्द्रों को
+                        आवंटित
+                      </th>
+
+                      <th>
+                        केन्द्रीय
+                        शेष
+                      </th>
+
+                      <th>
+                        किसानों को
+                        वितरित
+                      </th>
+
+                      <th>
+                        क्षेत्रफल
+                        (है0)
+                      </th>
+
+                      <th>
+                        परियोजना
+                        लागत (₹)
+                      </th>
+
+                      <th>
+                        किसान
+                      </th>
+
                     </tr>
 
                   </thead>
@@ -4178,79 +5687,86 @@ export default function KishanBeej() {
                   <tbody>
 
                     {reportRows.map(
-                      (r) => (
+                      (row) => (
                         <tr
-                          key={r.v}
+                          key={
+                            row.v.id
+                          }
                         >
 
-                          <td>
-                            {r.v}
+                          <td className="l">
+                            {
+                              row.v.name
+                            }
                           </td>
 
                           <td>
                             {money(
-                              r.pa
+                              row.purchase
                             )}
                           </td>
 
                           <td
                             className={
-                              r.rp <=
+                              row.remaining <=
                               0.5
                                 ? "neg"
                                 : ""
                             }
                           >
                             {money(
-                              r.rp
+                              row.remaining
                             )}
                           </td>
 
                           <td>
                             {gm(
-                              r.pkg
+                              row.purchaseGm
                             )}
                           </td>
 
                           <td>
                             {gm(
-                              r.ag
+                              row.allocated
                             )}
                           </td>
 
                           <td
                             className={
-                              r.cl < 0
+                              row.central <
+                              0
                                 ? "neg"
                                 : ""
                             }
                           >
                             {gm(
-                              r.cl
+                              row.central
                             )}
                           </td>
 
                           <td>
                             {gm(
-                              r.dist
+                              row.distributed
                             )}
                           </td>
 
                           <td>
-                            {num(
-                              r.area,
+                            {n(
+                              row.area,
                               4
                             )}
                           </td>
 
                           <td>
                             {money(
-                              r.proj
+                              row.project
                             )}
                           </td>
 
                           <td>
-                            {r.count}
+                            {
+                              row.count
+                            }
                           </td>
 
                         </tr>
@@ -4271,7 +5787,8 @@ export default function KishanBeej() {
                         {money(
                           reportRows.reduce(
                             (s, r) =>
-                              s + r.pa,
+                              s +
+                              r.purchase,
                             0
                           )
                         )}
@@ -4281,19 +5798,8 @@ export default function KishanBeej() {
                         {money(
                           reportRows.reduce(
                             (s, r) =>
-                              s + r.rp,
-                            0
-                          )
-                        )}
-                      </td>
-
-                      <td></td>
-
-                      <td>
-                        {gm(
-                          reportRows.reduce(
-                            (s, r) =>
-                              s + r.ag,
+                              s +
+                              r.remaining,
                             0
                           )
                         )}
@@ -4303,7 +5809,8 @@ export default function KishanBeej() {
                         {gm(
                           reportRows.reduce(
                             (s, r) =>
-                              s + r.cl,
+                              s +
+                              r.purchaseGm,
                             0
                           )
                         )}
@@ -4311,15 +5818,46 @@ export default function KishanBeej() {
 
                       <td>
                         {gm(
-                          distributed
+                          reportRows.reduce(
+                            (s, r) =>
+                              s +
+                              r.allocated,
+                            0
+                          )
                         )}
                       </td>
 
                       <td>
-                        {num(
+                        {gm(
                           reportRows.reduce(
                             (s, r) =>
-                              s + r.area,
+                              s +
+                              r.central,
+                            0
+                          )
+                        )}
+                      </td>
+
+                      <td>
+                        {gm(
+                          entries.reduce(
+                            (s, e) =>
+                              s +
+                              Number(
+                                e.seed_gm ||
+                                  0
+                              ),
+                            0
+                          )
+                        )}
+                      </td>
+
+                      <td>
+                        {n(
+                          reportRows.reduce(
+                            (s, r) =>
+                              s +
+                              r.area,
                             0
                           ),
                           4
@@ -4330,7 +5868,8 @@ export default function KishanBeej() {
                         {money(
                           reportRows.reduce(
                             (s, r) =>
-                              s + r.proj,
+                              s +
+                              r.project,
                             0
                           )
                         )}
@@ -4361,23 +5900,23 @@ export default function KishanBeej() {
               <ul className="chk">
 
                 {auditChecks.map(
-                  (c, i) => (
+                  (check, i) => (
                     <li key={i}>
 
                       <span
                         className={`i ${
-                          c.ok
+                          check.ok
                             ? "ok"
                             : "bad"
                         }`}
                       >
-                        {c.ok
+                        {check.ok
                           ? "✔"
                           : "✘"}
                       </span>
 
                       <span>
-                        {c.t}
+                        {check.t}
                       </span>
 
                     </li>
@@ -4394,184 +5933,21 @@ export default function KishanBeej() {
       </main>
 
       <footer>
-        किसान बीज वितरण — सरल प्रणाली ·
+
+        किसान बीज वितरण —
+        सरल प्रणाली ·
         जिला कार्ययोजना 2026-27 ·
         उद्यान विशेषज्ञ कार्यालय,
         कोटद्वार गढ़वाल
+
         <br />
-        डेटा इसी ब्राउज़र में सुरक्षित
-        रहता है — नियमित CSV निर्यात
-        व छपी प्रति अवश्य रखें।
+
+        डेटा सर्वर पर सुरक्षित रहता है —
+        नियमित CSV निर्यात व छपी प्रति
+        अवश्य रखें।
+
       </footer>
 
-    </div>
-  );
-}
-
-
-/* =========================================================
-   REUSABLE COMPONENTS
-   ========================================================= */
-
-function Field({
-  label,
-  children
-}) {
-  return (
-    <div>
-      <label>
-        {label}
-      </label>
-
-      {children}
-    </div>
-  );
-}
-
-
-function Kpi({
-  label,
-  value,
-  sub,
-  state = ""
-}) {
-  return (
-    <div
-      className={`kpi ${state}`}
-    >
-      <div className="l">
-        {label}
-      </div>
-
-      <div className="v">
-        {value}
-      </div>
-
-      <div className="s">
-        {sub}
-      </div>
-    </div>
-  );
-}
-
-
-function EntryPreview({
-  calc,
-  centre,
-  opening,
-  issued
-}) {
-  if (!calc) {
-    return (
-      <div className="note mt12">
-        क्षेत्रफल भरते ही यहाँ
-        पूरी गणना और केन्द्र का
-        शेष स्टॉक दिखेगा।
-      </div>
-    );
-  }
-
-  const left =
-    centre
-      ? opening(
-          centre,
-          calc.variety
-        ) -
-        issued(
-          centre,
-          calc.variety
-        ) -
-        calc.seed_gm
-      : 0;
-
-  const bad = left < 0;
-
-  return (
-    <div
-      className={`note ${
-        bad
-          ? "bad"
-          : "ok"
-      } mt12`}
-    >
-      बीज{" "}
-      <b>
-        {gm(
-          calc.seed_gm
-        )}{" "}
-        ग्राम
-      </b>{" "}
-      · कुल लागत{" "}
-      <b>
-        {money(
-          calc.total
-        )}
-      </b>{" "}
-      (राजसहायता{" "}
-      {money(
-        calc.subsidy
-      )}{" "}
-      + कृषक अंश{" "}
-      {money(
-        calc.farmer
-      )}
-      )
-      <br />
-
-      मद-1{" "}
-      {num(
-        calc.i1.qty,
-        2
-      )}{" "}
-      /{" "}
-      {money(
-        calc.i1.amt
-      )}{" "}
-
-      · मद-2{" "}
-      {gm(
-        calc.seed_gm
-      )}{" "}
-      ग्राम /{" "}
-      {money(
-        calc.i2.amt
-      )}{" "}
-
-      · मद-3{" "}
-      {num(
-        calc.i3.qty,
-        2
-      )}{" "}
-      /{" "}
-      {money(
-        calc.i3.amt
-      )}{" "}
-
-      · मद-4{" "}
-      {num(
-        calc.i4.qty,
-        2
-      )}{" "}
-      /{" "}
-      {money(
-        calc.i4.amt
-      )}
-
-      {centre && (
-        <>
-          <br />
-
-          <b>
-            {bad
-              ? `चेतावनी — इसके बाद ${centre} में बैलेंस ऋणात्मक (${gm(
-                  left
-                )} ग्राम) हो जाएगा।`
-              : `${centre} में इसके बाद शेष रहेगा: ${gm(
-                  left
-                )} ग्राम`}
-          </b>
-        </>
-      )}
     </div>
   );
 }
