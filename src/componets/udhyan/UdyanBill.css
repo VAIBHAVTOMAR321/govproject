@@ -1304,6 +1304,27 @@ body {
     font-size: 11px;
 }
 
+.uploaded-bill-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap !important;
+}
+
+.uploaded-bill-actions button {
+    margin: 0;
+}
+
+.table-delete-button {
+    padding: 5px 11px;
+    font-size: 11px;
+}
+
+.table-delete-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 
 /* =========================================================
    STANDARDS MANAGER

@@ -591,6 +591,9 @@ export default function UdyanBill() {
     const [savingBill, setSavingBill] =
         useState(false);
 
+    const [deletingBillId, setDeletingBillId] =
+        useState(null);
+
     // null = new bill, value = existing saved bill being edited
     const [editingBillId, setEditingBillId] =
         useState(null);
@@ -722,6 +725,90 @@ export default function UdyanBill() {
             setMessage(error.message || "बिल सूची प्राप्त नहीं हो सकी।");
         } finally {
             setLoadingBills(false);
+        }
+    };
+
+    const deleteBill = async (billId) => {
+        if (
+            billId === null ||
+            billId === undefined ||
+            billId === ""
+        ) {
+            alert("इस बिल का ID उपलब्ध नहीं है।");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `क्या आप बिल #${billId} को स्थायी रूप से हटाना चाहते हैं?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingBillId(billId);
+
+        try {
+            const response = await apiFetch(
+                `${API_BASE}/bills/${encodeURIComponent(billId)}/`,
+                {
+                    method: "DELETE",
+                }
+            );
+
+            if (!response.ok) {
+                const data =
+                    await readJsonResponse(response);
+
+                const error =
+                    data?.detail ||
+                    data?.error ||
+                    Object.values(data || {})
+                        .flat()
+                        .join(" ");
+
+                throw new Error(
+                    error ||
+                        `बिल #${billId} हटाया नहीं जा सका।`
+                );
+            }
+
+            // If the deleted bill was currently open in the form,
+            // leave edit mode and clear the form.
+            if (
+                editingBillId !== null &&
+                String(editingBillId) === String(billId)
+            ) {
+                setBill({
+                    ...emptyBill,
+                    financial_year:
+                        financialYear,
+                });
+
+                setSelectedCropId("");
+                setShowVoucher2(false);
+                setLastSavedBill(null);
+                setEditingBillId(null);
+                setActiveSection("bills");
+            }
+
+            await loadUploadedBills();
+
+            setMessage(
+                `बिल #${billId} सफलतापूर्वक हटा दिया गया।`
+            );
+        } catch (error) {
+            console.error(
+                "deleteBill:",
+                error
+            );
+
+            alert(
+                error.message ||
+                    `बिल #${billId} हटाया नहीं जा सका।`
+            );
+        } finally {
+            setDeletingBillId(null);
         }
     };
 
@@ -1657,7 +1744,33 @@ export default function UdyanBill() {
                                     <td>{savedBill.area || "0.00"}</td>
                                     <td className="money">₹ {formatMoney(savedBill.grand_total)}</td>
                                     <td>{savedBill.created_at ? new Date(savedBill.created_at).toLocaleDateString("hi-IN") : "—"}</td>
-                                    <td><button type="button" className="green-button table-view-button" onClick={() => openUploadedBill(savedBill)}>देखें</button></td>
+                                    <td className="uploaded-bill-actions">
+                                        <button
+                                            type="button"
+                                            className="green-button table-view-button"
+                                            onClick={() => openUploadedBill(savedBill)}
+                                            disabled={deletingBillId !== null}
+                                        >
+                                            देखें
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="warning-button table-delete-button"
+                                            onClick={() => deleteBill(savedBill.id)}
+                                            disabled={
+                                                deletingBillId !== null &&
+                                                String(deletingBillId) === String(savedBill.id)
+                                            }
+                                        >
+                                            {
+                                                deletingBillId !== null &&
+                                                String(deletingBillId) === String(savedBill.id)
+                                                    ? "हटाया जा रहा है..."
+                                                    : "हटाएं"
+                                            }
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
