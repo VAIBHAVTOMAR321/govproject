@@ -492,6 +492,12 @@ export default function UdyanBill() {
     const [standards, setStandards] =
         useState([]);
 
+    const [uploadedBills, setUploadedBills] =
+        useState([]);
+
+    const [loadingBills, setLoadingBills] =
+        useState(false);
+
     const [selectedCropId, setSelectedCropId] =
         useState("");
 
@@ -619,6 +625,38 @@ export default function UdyanBill() {
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [financialYear]);
+
+    const loadUploadedBills = async () => {
+        setLoadingBills(true);
+
+        try {
+            const response = await apiFetch(`${API_BASE}/bills/`);
+            const data = await readJsonResponse(response);
+
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.error || "बिल सूची प्राप्त नहीं हो सकी।");
+            }
+
+            setUploadedBills(
+                Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.results)
+                    ? data.results
+                    : []
+            );
+        } catch (error) {
+            console.error("loadUploadedBills:", error);
+            setMessage(error.message || "बिल सूची प्राप्त नहीं हो सकी।");
+        } finally {
+            setLoadingBills(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeSection === "bills") {
+            loadUploadedBills();
+        }
+    }, [activeSection]);
 
     /* =====================================================
        SELECTED STANDARD
@@ -1452,6 +1490,88 @@ export default function UdyanBill() {
         setLastSavedBill(null);
 
         setMessage("");
+    };
+
+    const openUploadedBill = (savedBill) => {
+        const selectedId = String(savedBill.crop ?? "");
+        const matchingStandard = standards.find(
+            (standard) => String(standard.id) === selectedId
+        );
+
+        setFinancialYear(savedBill.year || savedBill.financial_year || "2026-27");
+        setSelectedCropId(selectedId);
+        setBill({
+            ...emptyBill,
+            ...savedBill,
+            financial_year: savedBill.year || savedBill.financial_year || "2026-27",
+            crop: selectedId,
+            scheme_name: savedBill.scheme ?? savedBill.scheme_name ?? "",
+            ifsc_code_1: savedBill.ifsc_1 ?? savedBill.ifsc_code_1 ?? "",
+            ifsc_code_2: savedBill.ifsc_2 ?? savedBill.ifsc_code_2 ?? "",
+            aadhaar_number: savedBill.aadhaar ?? savedBill.aadhaar_number ?? "",
+            mobile_number: savedBill.mobile ?? savedBill.mobile_number ?? "",
+            pan_number: savedBill.pan ?? savedBill.pan_number ?? "",
+        });
+        setLastSavedBill(savedBill);
+        setActiveSection("bill");
+
+        if (!matchingStandard) {
+            setMessage("बिल खोला गया है। संबंधित मानक उपलब्ध नहीं है, इसलिए गणना मानक पुनः चुनें।");
+        }
+    };
+
+    const UploadedBillsManager = () => (
+        <div className="uploaded-bills-panel">
+            <div className="uploaded-bills-heading">
+                <div>
+                    <span className="section-kicker">SAVED RECORDS</span>
+                    <h2>अपलोड किए गए बिल</h2>
+                    <p>सर्वर पर सुरक्षित बिलों की सूची और उनका प्रपत्र पूर्वावलोकन।</p>
+                </div>
+                <button type="button" className="outline-button" onClick={loadUploadedBills} disabled={loadingBills}>
+                    {loadingBills ? "लोड हो रहा है..." : "सूची ताज़ा करें"}
+                </button>
+            </div>
+
+            {loadingBills ? (
+                <div className="loading-box">बिल लोड हो रहे हैं...</div>
+            ) : uploadedBills.length === 0 ? (
+                <div className="no-standards"><h3>अभी कोई बिल उपलब्ध नहीं है</h3><p>सेव किया गया बिल यहाँ दिखाई देगा।</p></div>
+            ) : (
+                <div className="uploaded-bills-table-wrap">
+                    <table className="uploaded-bills-table">
+                        <thead>
+                            <tr><th>क्र0</th><th>वर्ष</th><th>कृषक</th><th>फसल</th><th>केन्द्र</th><th>क्षेत्रफल</th><th>कुल राशि</th><th>दिनांक</th><th>कार्य</th></tr>
+                        </thead>
+                        <tbody>
+                            {uploadedBills.map((savedBill, index) => (
+                                <tr key={savedBill.id ?? index}>
+                                    <td>{index + 1}</td>
+                                    <td>{savedBill.year || savedBill.financial_year || "—"}</td>
+                                    <td><strong>{savedBill.farmer_name || "—"}</strong><small>{savedBill.village || ""}</small></td>
+                                    <td>{savedBill.crop_name || savedBill.crop || "—"}</td>
+                                    <td>{savedBill.center || "—"}</td>
+                                    <td>{savedBill.area || "0.00"}</td>
+                                    <td className="money">₹ {formatMoney(savedBill.grand_total)}</td>
+                                    <td>{savedBill.created_at ? new Date(savedBill.created_at).toLocaleDateString("hi-IN") : "—"}</td>
+                                    <td><button type="button" className="green-button table-view-button" onClick={() => openUploadedBill(savedBill)}>देखें</button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+
+    const printBill = () => {
+        const printDocument = document.getElementById("printDocument");
+        if (!printDocument) {
+            alert("प्रिंट प्रपत्र अभी तैयार नहीं है।");
+            return;
+        }
+
+        requestAnimationFrame(() => window.print());
     };
 
     /* =====================================================
@@ -3150,10 +3270,21 @@ export default function UdyanBill() {
                     >
                         मानक तालिका
                     </button>
+
+                    <button
+                        type="button"
+                        className={activeSection === "bills" ? "active" : ""}
+                        onClick={() => setActiveSection("bills")}
+                    >
+                        अपलोड किए गए बिल
+                    </button>
                 </div>
 
-                {activeSection ===
-                "standards" ? (
+                {activeSection === "bills" ? (
+                    <div className="panel-content">
+                        <UploadedBillsManager />
+                    </div>
+                ) : activeSection === "standards" ? (
                     <div className="panel-content">
                         <div className="year-selector-row">
                             <label>
@@ -3399,9 +3530,7 @@ export default function UdyanBill() {
                             <button
                                 type="button"
                                 className="green-button"
-                                onClick={() =>
-                                    window.print()
-                                }
+                                onClick={printBill}
                             >
                                 प्रिंट / PDF
                             </button>
