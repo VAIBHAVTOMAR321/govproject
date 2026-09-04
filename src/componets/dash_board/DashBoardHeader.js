@@ -95,19 +95,23 @@ function DashBoardHeader() {
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
-            <Nav className="ms-auto">
+          <Nav className="ms-auto">
             <NavDropdown title="Udhyan" id="account-nav-dropdown" align="end">
                <NavDropdown.Item as={Link} to="/UdyanBill/" active={location.pathname === '/UdyanBill/'}>
               Udyan Bill
               </NavDropdown.Item>
               <NavDropdown.Divider />
-             
+              
             </NavDropdown>
           </Nav>
           
           <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/SeedFarmers" active={location.pathname === '/SeedFarmers'}>किसान बीज </Nav.Link>
+            <Nav.Link as={Link} to="/LibrarySystem/" active={location.pathname === '/LibrarySystem'}>Library System</Nav.Link>
           </Nav>
+          
+          {/* <Nav className="ms-auto">
+            <Nav.Link as={Link} to="/KishanBeej/" active={location.pathname === '/KishanBeej'}>किसान बीज </Nav.Link>
+          </Nav> */}
         </Navbar.Collapse>
       </Container>
     </Navbar>
