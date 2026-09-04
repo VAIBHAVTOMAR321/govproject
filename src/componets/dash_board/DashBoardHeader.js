@@ -104,6 +104,10 @@ function DashBoardHeader() {
              
             </NavDropdown>
           </Nav>
+          
+          <Nav className="ms-auto">
+            <Nav.Link as={Link} to="/SeedFarmers" active={location.pathname === '/SeedFarmers'}>SeedFarmers</Nav.Link>
+          </Nav>
         </Navbar.Collapse>
       </Container>
     </Navbar>
