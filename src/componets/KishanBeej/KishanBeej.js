@@ -2354,7 +2354,7 @@ export default function KishanBeej() {
 
         <main>
 
-          <div className="card">
+          <div className="kishan-beej-card">
 
             <div className="note">
 
@@ -2479,7 +2479,7 @@ export default function KishanBeej() {
             ✘ {error}
 
             <button
-              className="btn b2 sm"
+              className="kishan-beej-btn b2 sm"
               style={{
                 marginLeft: 10,
               }}
@@ -2524,7 +2524,7 @@ export default function KishanBeej() {
               एक नज़र में स्थिति
             </h2>
 
-            <p className="sub">
+            <p className="kishan-beej-sub">
               नीचे पूरी योजना की
               जीवंत स्थिति है। कोई
               भी संख्या लाल दिखे तो
@@ -2626,7 +2626,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card">
+            <div className="kishan-beej-card">
 
               <h3>
                 ज़रूरी जाँच
@@ -2664,7 +2664,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card">
+            <div className="kishan-beej-card">
 
               <h3>
                 काम का क्रम —
@@ -2754,7 +2754,7 @@ export default function KishanBeej() {
               किसान को बीज वितरण
             </h2>
 
-            <p className="sub">
+            <p className="kishan-beej-sub">
               केवल{" "}
               <b>
                 केन्द्र, किस्म,
@@ -2767,7 +2767,7 @@ export default function KishanBeej() {
               आएँगी।
             </p>
 
-            <div className="card noprint">
+            <div className="kishan-beej-card noprint">
 
               <h3>
                 नई प्रविष्टि
@@ -3093,14 +3093,14 @@ export default function KishanBeej() {
               />
 
               <div
-                className="row"
+                className="kishan-beej-row"
                 style={{
                   marginTop: 12,
                 }}
               >
 
                 <button
-                  className="btn b1"
+                  className="kishan-beej-btn b1"
                   onClick={
                     addEntry
                   }
@@ -3110,7 +3110,7 @@ export default function KishanBeej() {
                 </button>
 
                 <button
-                  className="btn b2"
+                  className="kishan-beej-btn b2"
                   onClick={() =>
                     setForm(
                       emptyForm()
@@ -3124,7 +3124,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card noprint">
+            <div className="kishan-beej-card noprint">
 
               <div className="grid g3">
 
@@ -3225,7 +3225,7 @@ export default function KishanBeej() {
               </div>
 
               <div
-                className="row end"
+                className="kishan-beej-row end"
                 style={{
                   marginTop: 12,
                 }}
@@ -3238,10 +3238,10 @@ export default function KishanBeej() {
                   प्रविष्टियाँ
                 </span>
 
-                <div className="row">
+                <div className="kishan-beej-row">
 
                   <button
-                    className="btn b2 sm"
+                    className="kishan-beej-btn b2 sm"
                     onClick={() =>
                       printRegister()
                     }
@@ -3250,7 +3250,7 @@ export default function KishanBeej() {
                   </button>
 
                   <button
-                    className="btn b2 sm"
+                    className="kishan-beej-btn b2 sm"
                     onClick={() =>
                       downloadCsv(
                         "वितरण-रजिस्टर",
@@ -3325,7 +3325,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card table-card">
+            <div className="kishan-beej-card table-card">
 
               {filteredEntries.length ? (
                 <div className="tw">
@@ -3533,7 +3533,7 @@ export default function KishanBeej() {
 
                             <td>
                               <button
-                                className="btn b3 sm"
+                                className="kishan-beej-btn b3 sm"
                                 onClick={() =>
                                   deleteItem(
                                     "distributions",
@@ -3579,7 +3579,7 @@ export default function KishanBeej() {
               बीज स्टॉक
             </h2>
 
-            <p className="sub">
+            <p className="kishan-beej-sub">
               खरीद → केन्द्रों को
               आवंटन → केन्द्र का
               शेष। तीनों एक ही
@@ -3630,9 +3630,9 @@ export default function KishanBeej() {
               "ledger" && (
               <>
 
-                <div className="card noprint">
+                <div className="kishan-beej-card noprint">
 
-                  <div className="row end">
+                  <div className="kishan-beej-row end">
 
                     <input
                       value={
@@ -3660,7 +3660,7 @@ export default function KishanBeej() {
 
                 </div>
 
-                <div className="card table-card">
+                <div className="kishan-beej-card table-card">
 
                   <div className="tw">
 
@@ -3858,7 +3858,7 @@ export default function KishanBeej() {
               "allot" && (
               <>
 
-                <div className="card noprint">
+                <div className="kishan-beej-card noprint">
 
                   <h3>
                     नया आवंटन
@@ -4111,14 +4111,14 @@ export default function KishanBeej() {
                   )}
 
                   <div
-                    className="row"
+                    className="kishan-beej-row"
                     style={{
                       marginTop: 12,
                     }}
                   >
 
                     <button
-                      className="btn b1"
+                      className="kishan-beej-btn b1"
                       onClick={
                         addAllocation
                       }
@@ -4130,9 +4130,9 @@ export default function KishanBeej() {
 
                 </div>
 
-                <div className="card noprint">
+                <div className="kishan-beej-card noprint">
 
-                  <div className="row end">
+                  <div className="kishan-beej-row end">
 
                     <select
                       value={
@@ -4166,7 +4166,7 @@ export default function KishanBeej() {
                     </select>
 
                     <button
-                      className="btn b2 sm"
+                      className="kishan-beej-btn b2 sm"
                       onClick={() =>
                         downloadCsv(
                           "केन्द्र-आवंटन",
@@ -4224,7 +4224,7 @@ export default function KishanBeej() {
 
                 </div>
 
-                <div className="card table-card">
+                <div className="kishan-beej-card table-card">
 
                   <div className="tw">
 
@@ -4372,7 +4372,7 @@ export default function KishanBeej() {
 
                                 <td>
                                   <button
-                                    className="btn b3 sm"
+                                    className="kishan-beej-btn b3 sm"
                                     onClick={() =>
                                       deleteItem(
                                         "allocations",
@@ -4406,7 +4406,7 @@ export default function KishanBeej() {
               "purchase" && (
               <>
 
-                <div className="card noprint">
+                <div className="kishan-beej-card noprint">
 
                   <h3>
                     नई क्रय प्रविष्टि
@@ -4629,14 +4629,14 @@ export default function KishanBeej() {
                   </div>
 
                   <div
-                    className="row"
+                    className="kishan-beej-row"
                     style={{
                       marginTop: 12,
                     }}
                   >
 
                     <button
-                      className="btn b1"
+                      className="kishan-beej-btn b1"
                       onClick={
                         addPurchase
                       }
@@ -4648,9 +4648,9 @@ export default function KishanBeej() {
 
                 </div>
 
-                <div className="card noprint">
+                <div className="kishan-beej-card noprint">
 
-                  <div className="row end">
+                  <div className="kishan-beej-row end">
 
                     <span className="tag n">
                       {
@@ -4660,7 +4660,7 @@ export default function KishanBeej() {
                     </span>
 
                     <button
-                      className="btn b2 sm"
+                      className="kishan-beej-btn b2 sm"
                       onClick={() =>
                         downloadCsv(
                           "बीज-क्रय",
@@ -4705,7 +4705,7 @@ export default function KishanBeej() {
 
                 </div>
 
-                <div className="card table-card">
+                <div className="kishan-beej-card table-card">
 
                   <div className="tw">
 
@@ -4839,7 +4839,7 @@ export default function KishanBeej() {
 
                               <td>
                                 <button
-                                  className="btn b3 sm"
+                                  className="kishan-beej-btn b3 sm"
                                   onClick={() =>
                                     deleteItem(
                                       "purchases",
@@ -4909,7 +4909,7 @@ export default function KishanBeej() {
               मानक एवं मूल सेटिंग्स
             </h2>
 
-            <p className="sub">
+            <p className="kishan-beej-sub">
               एक बार जाँच लें, फिर
               छूने की ज़रूरत नहीं। यहाँ
               किया बदलाव केवल{" "}
@@ -4923,7 +4923,7 @@ export default function KishanBeej() {
               रखती हैं।
             </p>
 
-            <div className="card">
+            <div className="kishan-beej-card">
 
               <h3>
                 चार मूल मूल्य
@@ -5046,14 +5046,14 @@ export default function KishanBeej() {
               </div>
 
               <div
-                className="row"
+                className="kishan-beej-row"
                 style={{
                   marginTop: 12,
                 }}
               >
 
                 <button
-                  className="btn b1"
+                  className="kishan-beej-btn b1"
                   onClick={
                     saveMaster
                   }
@@ -5062,7 +5062,7 @@ export default function KishanBeej() {
                 </button>
 
                 <button
-                  className="btn b2"
+                  className="kishan-beej-btn b2"
                   onClick={
                     resetMaster
                   }
@@ -5075,14 +5075,14 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card">
+            <div className="kishan-beej-card">
 
               <h3>
                 किस्मवार मानक
               </h3>
 
               <p
-                className="sub"
+                className="kishan-beej-sub"
                 style={{
                   marginBottom: 10,
                 }}
@@ -5406,7 +5406,7 @@ export default function KishanBeej() {
                         </div>
 
                         <button
-                          className="btn b1 sm"
+                          className="kishan-beej-btn b1 sm"
                           style={{
                             marginTop: 10,
                           }}
@@ -5427,14 +5427,14 @@ export default function KishanBeej() {
               )}
 
               <div
-                className="row"
+                className="kishan-beej-row"
                 style={{
                   marginTop: 10,
                 }}
               >
 
                 <button
-                  className="btn b2 sm"
+                  className="kishan-beej-btn b2 sm"
                   onClick={
                     resetAllStandards
                   }
@@ -5461,19 +5461,19 @@ export default function KishanBeej() {
               रिपोर्ट, छपाई एवं ऑडिट
             </h2>
 
-            <p className="sub">
+            <p className="kishan-beej-sub">
               किस्मवार पूरी तस्वीर और
               सत्यापन सूची। छपी प्रति पर
               हस्ताक्षर करवाकर फाइल में
               रखना ही भौतिक साक्ष्य है।
             </p>
 
-            <div className="card noprint">
+            <div className="kishan-beej-card noprint">
 
-              <div className="row">
+              <div className="kishan-beej-row">
 
                 <button
-                  className="btn b2 sm"
+                  className="kishan-beej-btn b2 sm"
                   onClick={() =>
                     printRegister(
                       entries,
@@ -5486,7 +5486,7 @@ export default function KishanBeej() {
                 </button>
 
                 <button
-                  className="btn b2 sm"
+                  className="kishan-beej-btn b2 sm"
                   onClick={() =>
                     printHtml(
                       `
@@ -5548,7 +5548,7 @@ export default function KishanBeej() {
                 </button>
 
                 <button
-                  className="btn b2 sm"
+                  className="kishan-beej-btn b2 sm"
                   onClick={() =>
                     downloadCsv(
                       "वितरण-रजिस्टर-पूर्ण",
@@ -5622,7 +5622,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card table-card">
+            <div className="kishan-beej-card table-card">
 
               <div className="tw">
 
@@ -5891,7 +5891,7 @@ export default function KishanBeej() {
 
             </div>
 
-            <div className="card">
+            <div className="kishan-beej-card">
 
               <h3>
                 ऑडिट जाँच सूची
