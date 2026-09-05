@@ -39,6 +39,7 @@ import SeedFarmers from "./componets/Farmers/SeedFarmers";
 import DashBoardHeader from "./componets/dash_board/DashBoardHeader";
 import LibrarySystem from "./componets/Library/LibrarySystem";
 import MonthReport from "./componets/MonthReport/MonthReport";
+import KisanAavedanPortal from "./componets/kishanavedan/KisanAavedanPortal";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -171,6 +172,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <SeedFarmers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/KisanAavedanPortal"
+            element={
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
+                <KisanAavedanPortal />
               </ProtectedRoute>
             }
           />
