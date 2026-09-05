@@ -38,6 +38,7 @@ import KishanBeej from "./componets/KishanBeej/KishanBeej";
 import SeedFarmers from "./componets/Farmers/SeedFarmers";
 import DashBoardHeader from "./componets/dash_board/DashBoardHeader";
 import LibrarySystem from "./componets/Library/LibrarySystem";
+import MonthReport from "./componets/MonthReport/MonthReport";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -68,6 +69,7 @@ function NavbarWrapper() {
     "/NurseryPhysicalEntry",
     "/UdyanBill",
     "/KishanBeej",
+    "/MonthReport"
   ]);
 
   if (dashboardHeaderPaths.has(location.pathname) && user) {
@@ -112,6 +114,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+  <Route
+            path="/MonthReport"
+            element={
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
+                <MonthReport />
               </ProtectedRoute>
             }
           />

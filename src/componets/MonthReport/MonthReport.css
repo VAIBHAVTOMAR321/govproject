@@ -1,0 +1,914 @@
+/* =========================================
+   MONTH REPORT PAGE
+========================================= */
+
+.month-report-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fb;
+  padding: 30px;
+  box-sizing: border-box;
+}
+
+.month-report-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.month-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.month-report-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.month-report-header p {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+
+/* =========================================
+   ADD BUTTON
+========================================= */
+
+.mpr-add-btn {
+  border: none;
+  outline: none;
+  background: #0b5cab;
+  color: #ffffff;
+  padding: 11px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mpr-add-btn:hover {
+  background: #084b8a;
+  transform: translateY(-1px);
+}
+
+.mpr-add-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================
+   ALERT
+========================================= */
+
+.mpr-alert {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 45px 13px 16px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mpr-alert button {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 5px;
+}
+
+.mpr-success {
+  color: #166534;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+}
+
+.mpr-success button {
+  color: #166534;
+}
+
+.mpr-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.mpr-error button {
+  color: #b91c1c;
+}
+
+
+/* =========================================
+   TABLE CARD
+========================================= */
+
+.mpr-table-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+
+/* =========================================
+   TABLE HEADER
+========================================= */
+
+.mpr-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.mpr-table-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+
+/* =========================================
+   REFRESH BUTTON
+========================================= */
+
+.mpr-refresh-btn {
+  border: 1px solid #d1d5db;
+  outline: none;
+  background: #ffffff;
+  color: #374151;
+  padding: 8px 14px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mpr-refresh-btn:hover {
+  background: #f8fafc;
+  border-color: #0b5cab;
+  color: #0b5cab;
+}
+
+.mpr-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   TABLE WRAPPER
+========================================= */
+
+.mpr-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+
+/* =========================================
+   TABLE
+========================================= */
+
+.mpr-table {
+  width: 100%;
+  min-width: 750px;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.mpr-table thead {
+  background: #f8fafc;
+}
+
+.mpr-table th {
+  padding: 14px 18px;
+  text-align: left;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mpr-table td {
+  padding: 15px 18px;
+  color: #374151;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.mpr-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.mpr-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.mpr-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+
+/* =========================================
+   MONTH BADGE
+========================================= */
+
+.mpr-month {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 85px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: #eaf3ff;
+  color: #0b5cab;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* =========================================
+   PDF LINK
+========================================= */
+
+.mpr-pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #0b5cab;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.mpr-pdf-link:hover {
+  color: #084b8a;
+  text-decoration: underline;
+}
+
+.mpr-no-file {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+
+/* =========================================
+   ACTION BUTTONS
+========================================= */
+
+.mpr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mpr-edit-btn,
+.mpr-delete-btn {
+  border: none;
+  outline: none;
+  padding: 7px 13px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mpr-edit-btn {
+  background: #eaf3ff;
+  color: #0b5cab;
+}
+
+.mpr-edit-btn:hover {
+  background: #dbeafe;
+}
+
+.mpr-delete-btn {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.mpr-delete-btn:hover {
+  background: #ffe4e6;
+}
+
+
+/* =========================================
+   LOADING
+========================================= */
+
+.mpr-loading {
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+
+/* =========================================
+   EMPTY STATE
+========================================= */
+
+.mpr-empty {
+  min-height: 330px;
+  padding: 35px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.mpr-empty-icon {
+  width: 65px;
+  height: 65px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef5ff;
+  font-size: 28px;
+}
+
+.mpr-empty h4 {
+  margin: 0 0 8px;
+  color: #374151;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.mpr-empty p {
+  margin: 0 0 20px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.mpr-empty-btn {
+  border: none;
+  outline: none;
+  background: #0b5cab;
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.mpr-empty-btn:hover {
+  background: #084b8a;
+}
+
+
+/* =========================================
+   MODAL OVERLAY
+========================================= */
+
+.mpr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+  box-sizing: border-box;
+
+  background: rgba(15, 23, 42, 0.58);
+}
+
+
+/* =========================================
+   MODAL
+========================================= */
+
+.mpr-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+
+  animation: mprModalOpen 0.2s ease;
+}
+
+@keyframes mprModalOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+/* =========================================
+   MODAL HEADER
+========================================= */
+
+.mpr-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+
+  padding: 20px 22px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mpr-modal-header h3 {
+  margin: 0;
+  color: #172b4d;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.mpr-modal-header p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+
+/* =========================================
+   CLOSE BUTTON
+========================================= */
+
+.mpr-close-btn {
+  width: 32px;
+  height: 32px;
+
+  flex-shrink: 0;
+
+  border: none;
+  outline: none;
+  border-radius: 50%;
+
+  background: #f3f4f6;
+  color: #374151;
+
+  font-size: 21px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.mpr-close-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+
+/* =========================================
+   MODAL BODY
+========================================= */
+
+.mpr-modal-body {
+  padding: 22px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+
+/* =========================================
+   FORM GROUP
+========================================= */
+
+.mpr-form-group {
+  margin-bottom: 20px;
+}
+
+.mpr-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.mpr-form-group label {
+  display: block;
+  margin-bottom: 7px;
+
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mpr-form-group label span {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.mpr-form-group label small {
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+
+/* =========================================
+   SELECT
+========================================= */
+
+.mpr-form-group select {
+  width: 100%;
+  height: 42px;
+
+  box-sizing: border-box;
+
+  padding: 0 12px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: #374151;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.mpr-form-group select:focus {
+  border-color: #0b5cab;
+  box-shadow: 0 0 0 3px rgba(11, 92, 171, 0.1);
+}
+
+
+/* =========================================
+   TEXT INPUT
+========================================= */
+
+.mpr-form-group input[type="text"] {
+  width: 100%;
+  height: 42px;
+
+  box-sizing: border-box;
+
+  padding: 0 12px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: #374151;
+
+  font-size: 14px;
+
+  transition: all 0.2s ease;
+}
+
+.mpr-form-group input[type="text"]::placeholder {
+  color: #9ca3af;
+}
+
+.mpr-form-group input[type="text"]:focus {
+  border-color: #0b5cab;
+  box-shadow: 0 0 0 3px rgba(11, 92, 171, 0.1);
+}
+
+
+/* =========================================
+   FILE INPUT
+========================================= */
+
+.mpr-form-group input[type="file"] {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 10px;
+
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+
+  background: #f8fafc;
+
+  color: #475569;
+
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+.mpr-form-group input[type="file"]:hover {
+  border-color: #0b5cab;
+  background: #f8fbff;
+}
+
+.mpr-form-group input[type="file"]::file-selector-button {
+  margin-right: 10px;
+
+  padding: 7px 12px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #eaf3ff;
+  color: #0b5cab;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+/* =========================================
+   FILE HELP TEXT
+========================================= */
+
+.mpr-help {
+  display: block;
+
+  margin-top: 6px;
+
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+/* =========================================
+   MODAL FOOTER
+========================================= */
+
+.mpr-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 16px 22px;
+
+  border-top: 1px solid #e5e7eb;
+
+  background: #fafafa;
+}
+
+
+/* =========================================
+   CANCEL BUTTON
+========================================= */
+
+.mpr-cancel-btn {
+  border: 1px solid #d1d5db;
+  outline: none;
+
+  background: #ffffff;
+  color: #374151;
+
+  padding: 10px 18px;
+
+  border-radius: 5px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.mpr-cancel-btn:hover {
+  background: #f3f4f6;
+}
+
+
+/* =========================================
+   SUBMIT BUTTON
+========================================= */
+
+.mpr-submit-btn {
+  border: none;
+  outline: none;
+
+  background: #0b5cab;
+  color: #ffffff;
+
+  padding: 10px 20px;
+
+  border-radius: 5px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.mpr-submit-btn:hover {
+  background: #084b8a;
+}
+
+.mpr-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mpr-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+.mpr-modal-body::-webkit-scrollbar,
+.mpr-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.mpr-modal-body::-webkit-scrollbar-track,
+.mpr-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.mpr-modal-body::-webkit-scrollbar-thumb,
+.mpr-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.mpr-modal-body::-webkit-scrollbar-thumb:hover,
+.mpr-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
+/* =========================================
+   RESPONSIVE - TABLET
+========================================= */
+
+@media (max-width: 992px) {
+  .month-report-page {
+    padding: 20px;
+  }
+
+  .month-report-header h2 {
+    font-size: 24px;
+  }
+}
+
+
+/* =========================================
+   RESPONSIVE - MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+  .month-report-page {
+    padding: 15px;
+  }
+
+  .month-report-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .month-report-header h2 {
+    font-size: 22px;
+  }
+
+  .mpr-add-btn {
+    width: 100%;
+  }
+
+  .mpr-table-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mpr-refresh-btn {
+    width: 100%;
+  }
+
+  .mpr-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mpr-edit-btn,
+  .mpr-delete-btn {
+    width: 100%;
+  }
+
+  .mpr-modal-overlay {
+    padding: 12px;
+  }
+
+  .mpr-modal {
+    max-height: 95vh;
+  }
+
+  .mpr-modal-header {
+    padding: 16px;
+  }
+
+  .mpr-modal-body {
+    padding: 16px;
+    max-height: 65vh;
+  }
+
+  .mpr-modal-footer {
+    flex-direction: column-reverse;
+    padding: 14px 16px;
+  }
+
+  .mpr-cancel-btn,
+  .mpr-submit-btn {
+    width: 100%;
+  }
+}
+
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 480px) {
+  .month-report-page {
+    padding: 10px;
+  }
+
+  .month-report-header h2 {
+    font-size: 20px;
+  }
+
+  .month-report-header p {
+    font-size: 12px;
+  }
+
+  .mpr-table-header {
+    padding: 15px;
+  }
+
+  .mpr-table th,
+  .mpr-table td {
+    padding: 12px;
+  }
+
+  .mpr-modal-header h3 {
+    font-size: 17px;
+  }
+
+  .mpr-form-group {
+    margin-bottom: 16px;
+  }
+}
