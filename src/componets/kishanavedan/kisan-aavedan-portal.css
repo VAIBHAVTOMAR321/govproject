@@ -482,7 +482,6 @@ select.control {
   word-break: normal;
   overflow-wrap: break-word;
 }
-</oldString>
 
 /* ---------- PHOTO ---------- */
 .photo-row {
@@ -708,14 +707,12 @@ select.control {
    RESPONSIVE BREAKPOINTS
    ============================================ */
 
-/* Tablet: 2-column → 1-column for forms */
 @media (max-width: 1024px) {
   .scheme-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Mobile: full single-column, tighter spacing */
 @media (max-width: 768px) {
   .portal {
     padding: 18px 14px 160px;
@@ -774,7 +771,6 @@ select.control {
     font-size: 12.5px;
   }
 
-  /* All full-width elements */
   .ledger,
   .standards,
   .docs,
@@ -823,7 +819,6 @@ select.control {
     gap: 8px;
   }
 
-  /* Actions: stack save line, full-width buttons */
   .actions {
     padding: 10px 14px;
     flex-direction: column;
@@ -870,7 +865,6 @@ select.control {
   }
 }
 
-/* Small phones */
 @media (max-width: 420px) {
   .portal {
     padding: 14px 10px 170px;
@@ -920,14 +914,29 @@ select.control {
   font-size: 12px;
 }
 
+/* 
+  Instead of display: none, we move the actual print container off-screen.
+  This ensures Chromium captures its layout properly when printing.
+*/
 .print-document {
-  display: none;
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 210mm;
+  z-index: -1;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .print-document-preview {
+  position: static;
+  z-index: 1;
   display: block;
   overflow-x: auto;
   padding: 4px;
+  width: 100%;
+  opacity: 1;
 }
 
 .print-page {
@@ -1091,15 +1100,13 @@ select.control {
   margin: 0;
 }
 
-/* Explicit printing state. This is also applied by the Print button so
-   Chrome has a stable DOM state before opening Print Preview. */
-.kisan-printing .kisan-page {
-  display: none !important;
-}
-
+/* When printing is triggered, we bring the document back to a normal static position */
 .kisan-printing .print-document {
-  display: block !important;
-  visibility: visible !important;
+  position: static !important;
+  left: 0 !important;
+  opacity: 1 !important;
+  z-index: 9999 !important;
+  overflow: visible !important;
 }
 
 @media print {
@@ -1119,16 +1126,16 @@ select.control {
     font-size: 11.5pt !important;
   }
 
-  /* Hide only the portal UI. Do not hide #root or an ancestor of the
-     printable sheet, otherwise Chromium can produce a blank preview. */
   .kisan-page {
     display: none !important;
   }
 
   .print-document {
     display: block !important;
-    visibility: visible !important;
     position: static !important;
+    left: 0 !important;
+    opacity: 1 !important;
+    z-index: 9999 !important;
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;

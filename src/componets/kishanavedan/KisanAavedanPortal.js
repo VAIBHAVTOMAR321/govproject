@@ -703,9 +703,6 @@ export default function KisanAavedanPortal() {
     r.readAsDataURL(f);
   };
   const print = () => {
-    // Mark the document as printing before opening the browser print dialog.
-    // This avoids a race where Chrome captures the DOM while the print-only
-    // A4 sheet is still hidden by the normal-screen CSS.
     document.body.classList.add("kisan-printing");
 
     const cleanup = () => {
@@ -715,7 +712,6 @@ export default function KisanAavedanPortal() {
 
     window.addEventListener("afterprint", cleanup);
 
-    // Give React/browser layout one frame to apply the print state.
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         window.print();
