@@ -113,6 +113,8 @@ const emptyForm = () => ({
   note: "",
 });
 
+const emptyItemRow = () => ({ standard: null, label: "", unit: "", standard_qty: 0, qty: "", rate: "" });
+
 const emptyAllot = () => ({ date: today(), centre: "", variety: "", qty: "", source: "" });
 const emptyPurchase = () => ({ date: today(), variety: "", qty: "", rate: "", supplier: "", ref: "" });
 const emptyVariety = () => ({ name: "", jati: "", default_rate: "", is_active: true });
@@ -242,6 +244,14 @@ export default function KishanBeej() {
   const [editingVarietyId, setEditingVarietyId] = useState(null);
   const [editingPurchaseId, setEditingPurchaseId] = useState(null);
 
+  // Distribution edit mode (only items are editable; rest is locked)
+  const [editingDistId, setEditingDistId] = useState(null);
+  // Items table state for current/new distribution
+  const [distItems, setDistItems] = useState([]); // [{standard, label, unit, standard_qty, qty, rate}]
+  // Variety standards loaded for the currently selected variety in the form
+  const [currentStandards, setDistCurrentStandards] = useState([]);
+  const [currentStandardsLoading, setCurrentStandardsLoading] = useState(false);
+
   const [filters, setFilters] = useState({ centre: "", variety: "", search: "" });
   const [stockSearch, setStockSearch] = useState("");
   const [allotFilter, setAllotFilter] = useState("");
@@ -325,9 +335,94 @@ export default function KishanBeej() {
       const result = await apiFetch(`/standards/?variety=${varietyId}`);
       const items = asList(result).map(makeStandardItem);
       setVarietyItems((p) => ({ ...p, [varietyId]: items }));
+      return items;
     } catch (e) {
       setMessage(`✘ मानक लोड नहीं हुआ — ${e.message}`);
+      return [];
     }
+  }
+
+  /* === Standards for the currently selected variety in distribution form === */
+  async function loadStandardsForForm(varietyId) {
+    if (!varietyId) {
+      setDistCurrentStandards([]);
+      setDistItems([]);
+      return;
+    }
+    setCurrentStandardsLoading(true);
+    try {
+      const result = await apiFetch(`/standards/?variety=${varietyId}`);
+      const rows = asList(result);
+      setDistCurrentStandards(rows);
+      // Seed items from the variety's standards
+      setDistItems(
+        rows.map((s) => ({
+          standard: s.id,
+          label: s.item_label || "",
+          unit: s.item_unit || "",
+          standard_qty: Number(s.item_qty || 0),
+          qty: String(Number(s.item_qty || 0)),
+          rate: String(Number(s.item_rate || 0)),
+        }))
+      );
+    } catch (e) {
+      setMessage(`✘ मानक लोड नहीं हुआ — ${e.message}`);
+      setDistCurrentStandards([]);
+      setDistItems([]);
+    } finally {
+      setCurrentStandardsLoading(false);
+    }
+  }
+
+  function setItemField(idx, key, value) {
+    setDistItems((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [key]: value };
+      return next;
+    });
+  }
+
+  function clearDistributionEdit() {
+    setEditingDistId(null);
+    setForm(emptyForm());
+    setDistItems([]);
+    setDistCurrentStandards([]);
+  }
+
+  function startEditDistribution(entry) {
+    setEditingDistId(entry.id);
+    setForm({
+      date: entry.date || today(),
+      centre: String(entry.centre || ""),
+      variety: String(entry.variety || ""),
+      area: String(entry.area || ""),
+      name: entry.name || "",
+      father: entry.father || "",
+      village: entry.village || "",
+      mobile: entry.mobile || "",
+      sign1: entry.sign1 || "नहीं",
+      sign2: entry.sign2 || "नहीं",
+      note: entry.note || "",
+    });
+    // Pre-fill items from existing entry items
+    const existing = (entry.items || []).map((it) => ({
+      standard: it.standard,
+      label: it.label || it.standard_label || "",
+      unit: it.unit || it.standard_unit || "",
+      standard_qty: Number(it.qty || 0),
+      qty: String(it.qty || ""),
+      rate: String(it.rate || ""),
+    }));
+    setDistItems(existing);
+    // Fetch standards for this variety (in background, won't overwrite items)
+    if (entry.variety) {
+      apiFetch(`/standards/?variety=${entry.variety}`)
+        .then((rows) => setDistCurrentStandards(asList(rows)))
+        .catch(() => {});
+    }
+    setTab("entry");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setMessage(`✎ संपादन — मद बदलने हेतु तैयार। अन्य फ़ील्ड भी बदल सकते हैं।`);
   }
 
   async function addStandardItem(varietyId) {
@@ -630,11 +725,23 @@ export default function KishanBeej() {
       }
       return next;
     });
+    // Whenever variety changes (in new or edit mode), reload that variety's standards
+    if (key === "variety") {
+      loadStandardsForForm(value);
+    }
   }
+
+  // Ref to know editing state from inside async setters (kept for future use)
+  const editingDistIdRef = React.useRef(null);
+  React.useEffect(() => { editingDistIdRef.current = editingDistId; }, [editingDistId]);
 
   async function addEntry() {
     if (!form.date || !form.centre || !form.variety || !form.area || !form.name.trim()) {
       setMessage("दिनांक, केन्द्र, किस्म, कृषक का नाम एवं क्षेत्रफल — पाँचों भरना ज़रूरी है।");
+      return;
+    }
+    if (!distItems.length) {
+      setMessage("✘ पहले किस्म का मानक लोड होने दें, फिर मद जोड़ें।");
       return;
     }
     const centreId = Number(form.centre);
@@ -656,6 +763,17 @@ export default function KishanBeej() {
       return;
     }
     try {
+      const itemsPayload = distItems
+        .filter((it) => it.standard && (Number(it.qty) > 0 || Number(it.rate) > 0))
+        .map((it) => ({
+          standard: Number(it.standard),
+          qty: Number(it.qty || 0),
+          rate: Number(it.rate || 0),
+        }));
+      if (!itemsPayload.length) {
+        setMessage("✘ कम से कम एक मद में मात्रा/दर भरें।");
+        return;
+      }
       const result = await apiFetch("/distributions/", {
         method: "POST",
         body: JSON.stringify({
@@ -670,13 +788,60 @@ export default function KishanBeej() {
           sign1: form.sign1,
           sign2: form.sign2,
           note: form.note.trim(),
+          items: itemsPayload,
         }),
       });
       await load();
       setForm(emptyForm());
+      setDistItems([]);
+      setDistCurrentStandards([]);
       setMessage(
-        `✓ जुड़ गया — ${result.name}, ${result.centre_name}, ${result.variety_name}, ${gm(result.seed_gm)} ग्राम।`
+        `✓ जुड़ गया — ${result.name}, ${result.centre_name}, ${result.variety_name}, ${gm(result.seed_gm)} ग्राम, कुल ${money(result.total)}।`
       );
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  /* Update an existing distribution — only items can change */
+  async function updateDistributionItems() {
+    if (!editingDistId) return;
+    if (!distItems.length) {
+      setMessage("✘ मद सूची खाली नहीं हो सकती।");
+      return;
+    }
+    const itemsPayload = distItems
+      .filter((it) => it.standard && (Number(it.qty) > 0 || Number(it.rate) > 0))
+      .map((it) => ({
+        standard: Number(it.standard),
+        qty: Number(it.qty || 0),
+        rate: Number(it.rate || 0),
+      }));
+    if (!itemsPayload.length) {
+      setMessage("✘ कम से कम एक मद में मात्रा/दर भरें।");
+      return;
+    }
+    try {
+      const result = await apiFetch(`/distributions/${editingDistId}/`, {
+        method: "PUT",
+        body: JSON.stringify({
+          date: form.date,
+          centre: Number(form.centre),
+          variety: Number(form.variety),
+          area: Number(form.area),
+          name: form.name.trim(),
+          father: form.father.trim(),
+          village: form.village.trim(),
+          mobile: form.mobile.trim(),
+          sign1: form.sign1,
+          sign2: form.sign2,
+          note: form.note.trim(),
+          items: itemsPayload,
+        }),
+      });
+      await load();
+      clearDistributionEdit();
+      setMessage(`✓ अद्यतन — ${result.name}, कुल ${money(result.total)}।`);
     } catch (e) {
       setMessage(`✘ ${e.message}`);
     }
@@ -1085,7 +1250,24 @@ export default function KishanBeej() {
               केवल <b>केन्द्र, किस्म, किसान का नाम और क्षेत्रफल</b> भरना है — बीज की मात्रा व राशि अपने आप निकल आएँगी।
             </p>
             <div className="kishan-beej-card noprint">
-              <h3>नई प्रविष्टि</h3>
+              <h3>
+                {editingDistId ? `✎ संपादन — क्रमांक ${editingDistId}` : "नई प्रविष्टि"}
+                {editingDistId && (
+                  <button
+                    className="kishan-beej-btn b2 sm"
+                    style={{ marginLeft: 10 }}
+                    onClick={clearDistributionEdit}
+                  >
+                    रद्द करूँ
+                  </button>
+                )}
+              </h3>
+              {editingDistId && (
+                <div className="note ok" style={{ marginBottom: 10 }}>
+                  संपादन मोड — सभी फ़ील्ड बदल सकते हैं। मद तालिका में नई मात्रा/दर भरकर
+                  <b> "मद अद्यतन करें"</b> पर क्लिक करें। किस्म बदलने पर मद तालिका उस किस्म के मानक से अपने आप भर जाएगी।
+                </div>
+              )}
               <div className="grid g4">
                 <Field label="दिनांक" required>
                   <input type="date" className="need" value={form.date}
@@ -1156,9 +1338,189 @@ export default function KishanBeej() {
                     issued(Number(form.centre), Number(form.variety))
                   : 0}
               />
+
+              {/* === Items table — fetched as soon as variety is selected === */}
+              <div className="kishan-beej-card" style={{ marginTop: 12, padding: 12, background: "#fafcfa" }}>
+                <h4 style={{ margin: "0 0 8px" }}>
+                  किस्म के मानक मद {currentStandardsLoading ? " (लोड हो रहे…)" : ""}
+                </h4>
+                {form.variety && distItems.length > 0 && (
+                  <div className="kishan-beej-sub" style={{ marginBottom: 6, fontSize: 12 }}>
+                    🔒 सभी फ़ील्ड किस्म के मानक से स्वतः भरे गए हैं — बदले नहीं जा सकते। मानक बदलने हेतु <b>मानक</b> टैब में जाएँ।
+                  </div>
+                )}
+                {!form.variety && (
+                  <div className="empty" style={{ padding: 16 }}>
+                    पहले ऊपर से किस्म चुनें — चुनते ही यहाँ मानक मद तालिका आ जाएगी।
+                  </div>
+                )}
+                {form.variety && !currentStandardsLoading && distItems.length === 0 && (
+                  <div className="empty" style={{ padding: 16 }}>
+                    इस किस्म का कोई मानक मद नहीं। पहले <b>मानक</b> टैब में जोड़ें।
+                  </div>
+                )}
+                {distItems.length > 0 && (
+                  <div className="tw" style={{ marginTop: 6 }}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>मद 🔒</th>
+                            <th>इकाई 🔒</th>
+                            <th>मानक मात्रा 🔒</th>
+                            <th>वास्तविक मात्रा 🔒</th>
+                            <th>दर (₹) 🔒</th>
+                            <th>राशि (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {distItems.map((it, idx) => {
+                            const qty = Number(it.qty || 0);
+                            const rate = Number(it.rate || 0);
+                            const amount = qty * rate;
+                            return (
+                              <tr key={`${it.standard}-${idx}`}>
+                                <td className="l">
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "5px 9px",
+                                      background: "#f1eee5",
+                                      border: "1px solid var(--line)",
+                                      borderRadius: 6,
+                                      fontWeight: 700,
+                                      color: "var(--soft)",
+                                      cursor: "not-allowed",
+                                      minWidth: 140,
+                                    }}
+                                    title="मानक से लिया गया — बदला नहीं जा सकता"
+                                  >
+                                    🔒 {it.label}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "5px 9px",
+                                      background: "#f1eee5",
+                                      border: "1px solid var(--line)",
+                                      borderRadius: 6,
+                                      color: "var(--soft)",
+                                      cursor: "not-allowed",
+                                      minWidth: 70,
+                                      textAlign: "center",
+                                    }}
+                                    title="मानक से लिया गया"
+                                  >
+                                    {it.unit}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "5px 9px",
+                                      background: "#f1eee5",
+                                      border: "1px solid var(--line)",
+                                      borderRadius: 6,
+                                      color: "var(--soft)",
+                                      cursor: "not-allowed",
+                                      minWidth: 80,
+                                      textAlign: "right",
+                                      fontFamily: "var(--m)",
+                                    }}
+                                    title="मानक मात्रा — बदली नहीं जा सकती"
+                                  >
+                                    {n(it.standard_qty)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "5px 9px",
+                                      background: "#f1eee5",
+                                      border: "1px solid var(--line)",
+                                      borderRadius: 6,
+                                      color: "var(--soft)",
+                                      cursor: "not-allowed",
+                                      minWidth: 90,
+                                      textAlign: "right",
+                                      fontFamily: "var(--m)",
+                                    }}
+                                    title="वास्तविक मात्रा — बदली नहीं जा सकती"
+                                  >
+                                    🔒 {n(it.qty || 0)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      padding: "5px 9px",
+                                      background: "#f1eee5",
+                                      border: "1px solid var(--line)",
+                                      borderRadius: 6,
+                                      color: "var(--soft)",
+                                      cursor: "not-allowed",
+                                      minWidth: 90,
+                                      textAlign: "right",
+                                      fontFamily: "var(--m)",
+                                    }}
+                                    title="दर — बदली नहीं जा सकती"
+                                  >
+                                    🔒 {money(it.rate || 0)}
+                                  </span>
+                                </td>
+                                <td><b>{money(amount)}</b></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colSpan={5} style={{ textAlign: "right" }}>कुल योग</td>
+                            <td>
+                              <b>
+                                {money(
+                                  distItems.reduce(
+                                    (s, it) => s + Number(it.qty || 0) * Number(it.rate || 0),
+                                    0
+                                  )
+                                )}
+                              </b>
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                )}
+              </div>
+
               <div className="kishan-beej-row" style={{ marginTop: 12 }}>
-                <button className="kishan-beej-btn b1" onClick={addEntry}>✓ रजिस्टर में जोड़ें</button>
-                <button className="kishan-beej-btn b2" onClick={() => setForm(emptyForm())}>साफ़ करें</button>
+                {editingDistId ? (
+                  <>
+                    <button className="kishan-beej-btn b1" onClick={updateDistributionItems}>
+                      ✓ मद अद्यतन करें
+                    </button>
+                    <button className="kishan-beej-btn b2" onClick={clearDistributionEdit}>
+                      रद्द করूँ
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="kishan-beej-btn b1"
+                      onClick={addEntry}
+                      disabled={!form.variety || distItems.length === 0}
+                    >
+                      ✓ रजिस्टर में जोड़ें
+                    </button>
+                    <button className="kishan-beej-btn b2" onClick={() => { setForm(emptyForm()); setDistItems([]); setDistCurrentStandards([]); }}>
+                      साफ़ करें
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1234,10 +1596,16 @@ export default function KishanBeej() {
                               : <span className="tag bad">अपूर्ण</span>}
                           </td>
                           <td>
-                            <button className="kishan-beej-btn b3 sm"
-                              onClick={() => deleteItem("distributions", e.id, `"${e.name}" की प्रविष्टि`)}>
-                              हटाएँ
-                            </button>
+                            <div className="kishan-beej-row">
+                              <button className="kishan-beej-btn b2 sm"
+                                onClick={() => startEditDistribution(e)}>
+                                मद बदलें
+                              </button>
+                              <button className="kishan-beej-btn b3 sm"
+                                onClick={() => deleteItem("distributions", e.id, `"${e.name}" की प्रविष्टि`)}>
+                                हटाएँ
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

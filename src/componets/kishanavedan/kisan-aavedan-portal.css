@@ -1,33 +1,22 @@
 :root {
-  --paper: #f4f6f1;
-  --card: #ffffff;
-  --ink: #0f1a14;
-  --ink2: #4b5a52;
-  --line: #d8e0d3;
-  --accent: #2f5d3a;
-  --accent-dark: #244a2e;
-  --soft: #e6ede4;
-  --warn: #9a3412;
-  --shadow:
+  --kp-paper: #f4f6f1;
+  --kp-card: #ffffff;
+  --kp-ink: #0f1a14;
+  --kp-ink2: #4b5a52;
+  --kp-line: #d8e0d3;
+  --kp-accent: #2f5d3a;
+  --kp-accent-dark: #244a2e;
+  --kp-soft: #e6ede4;
+  --kp-warn: #9a3412;
+  --kp-shadow:
     0 4px 14px rgba(15, 26, 20, 0.06), 0 12px 32px rgba(15, 26, 20, 0.08);
-  --radius: 14px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
-  padding: 0;
+  --kp-radius: 14px;
 }
 
 .kisan-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #f4f6f1 0%, #eaeedd 100%);
-  color: var(--ink);
+  color: var(--kp-ink);
   font-family: "Noto Sans Devanagari", "Nirmala UI", Arial, sans-serif;
   font-size: 14px;
   line-height: 1.55;
@@ -35,11 +24,11 @@ body,
 }
 
 /* ---------- HEADER ---------- */
-.portal-header {
+.kisan-page .portal-header {
   background: linear-gradient(
     135deg,
-    var(--accent) 0%,
-    var(--accent-dark) 100%
+    var(--kp-accent) 0%,
+    var(--kp-accent-dark) 100%
   );
   color: #fff;
   padding: 20px 28px;
@@ -48,13 +37,13 @@ body,
   top: 0;
   z-index: 30;
 }
-.brand {
+.kisan-page .brand {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: 0.2px;
   color: #fff;
 }
-.subtitle {
+.kisan-page .subtitle {
   font-size: 13px;
   opacity: 0.9;
   margin-top: 4px;
@@ -62,7 +51,7 @@ body,
 }
 
 /* ---------- LAYOUT ---------- */
-.portal {
+.kisan-page .portal {
   max-width: 1120px;
   margin: auto;
   padding: 28px 22px 140px;
@@ -70,105 +59,105 @@ body,
 }
 
 /* ---------- INTRO ---------- */
-.intro {
+.kisan-page .intro {
   text-align: center;
   margin: 14px auto 32px;
 }
-.eyebrow {
+.kisan-page .eyebrow {
   display: block;
   font-size: 12px;
   letter-spacing: 0.12em;
-  color: var(--accent);
+  color: var(--kp-accent);
   font-weight: 700;
   text-transform: uppercase;
 }
-.intro h1 {
+.kisan-page .intro h1 {
   font-size: 36px;
   margin: 8px 0 6px;
-  color: var(--ink);
+  color: var(--kp-ink);
   font-weight: 800;
   letter-spacing: -0.3px;
 }
-.intro p {
-  color: var(--ink2);
+.kisan-page .intro p {
+  color: var(--kp-ink2);
   margin: 0;
   font-size: 15px;
 }
 
 /* ---------- SCHEME CARDS ---------- */
-.scheme-grid {
+.kisan-page .scheme-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
-.scheme-card {
+.kisan-page .scheme-card {
   position: relative;
   text-align: left;
-  border: 1px solid var(--line);
-  background: var(--card);
-  border-radius: var(--radius);
+  border: 1px solid var(--kp-line);
+  background: var(--kp-card);
+  border-radius: var(--kp-radius);
   padding: 26px 24px 56px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
   cursor: pointer;
-  box-shadow: var(--shadow);
+  box-shadow: var(--kp-shadow);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
   font: inherit;
-  color: var(--ink);
+  color: var(--kp-ink);
 }
-.scheme-card:hover {
+.kisan-page .scheme-card:hover {
   transform: translateY(-4px);
-  border-color: var(--accent);
+  border-color: var(--kp-accent);
   box-shadow:
     0 8px 22px rgba(15, 26, 20, 0.1),
     0 18px 40px rgba(15, 26, 20, 0.12);
 }
-.scheme-icon {
+.kisan-page .scheme-icon {
   font-size: 34px;
   line-height: 1;
   flex-shrink: 0;
 }
-.scheme-card h3 {
+.kisan-page .scheme-card h3 {
   margin: 0 0 8px;
   font-size: 20px;
-  color: var(--ink);
+  color: var(--kp-ink);
   font-weight: 800;
 }
-.scheme-card p {
+.kisan-page .scheme-card p {
   margin: 0 0 14px;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   font-size: 14px;
   line-height: 1.65;
 }
-.tags {
+.kisan-page .scheme-card .tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
-.tag {
-  background: var(--soft);
-  color: var(--accent-dark);
+.kisan-page .scheme-card .tag {
+  background: var(--kp-soft);
+  color: var(--kp-accent-dark);
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2px;
 }
-.arrow {
+.kisan-page .scheme-card .arrow {
   position: absolute;
   right: 22px;
   bottom: 20px;
   font-size: 22px;
-  color: var(--accent);
+  color: var(--kp-accent);
   font-weight: 700;
 }
 
 /* ---------- TOPLINE / PROGRESS ---------- */
-.topline {
+.kisan-page .topline {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -176,36 +165,36 @@ body,
   gap: 12px;
   flex-wrap: wrap;
 }
-.topline b {
+.kisan-page .topline b {
   font-family: "IBM Plex Mono", "Consolas", monospace;
   font-size: 13px;
   margin-left: 8px;
-  color: var(--ink);
+  color: var(--kp-ink);
   font-weight: 700;
 }
-.link-btn {
+.kisan-page .link-btn {
   border: 0;
   background: none;
-  color: var(--accent);
+  color: var(--kp-accent);
   font-weight: 700;
   cursor: pointer;
   font: inherit;
   padding: 4px 6px;
   border-radius: 6px;
 }
-.link-btn:hover {
-  background: var(--soft);
+.kisan-page .link-btn:hover {
+  background: var(--kp-soft);
 }
-.progress {
+.kisan-page .progress {
   display: flex;
   gap: 16px;
   align-items: center;
   margin-bottom: 20px;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   font-size: 13px;
   font-weight: 600;
 }
-.progressbar {
+.kisan-page .progressbar {
   height: 8px;
   background: #dde3d9;
   border-radius: 99px;
@@ -213,92 +202,92 @@ body,
   min-width: 100px;
   overflow: hidden;
 }
-.progressbar i {
+.kisan-page .progressbar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  background: linear-gradient(90deg, var(--kp-accent), var(--kp-accent-dark));
   border-radius: inherit;
   transition: width 0.3s ease;
 }
 
 /* ---------- FORM CARD ---------- */
-.form-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+.kisan-page .form-card {
+  background: var(--kp-card);
+  border: 1px solid var(--kp-line);
+  border-radius: var(--kp-radius);
   padding: 28px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--kp-shadow);
   width: 100%;
 }
-.section-head {
-  border-bottom: 1px solid var(--line);
+.kisan-page .section-head {
+  border-bottom: 1px solid var(--kp-line);
   padding-bottom: 16px;
   margin-bottom: 22px;
 }
-.section-head h2 {
+.kisan-page .section-head h2 {
   margin: 0 0 6px;
   font-size: 24px;
-  color: var(--ink);
+  color: var(--kp-ink);
   font-weight: 800;
 }
-.section-head p {
+.kisan-page .section-head p {
   margin: 4px 0 0;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   font-size: 13.5px;
   font-weight: 500;
   line-height: 1.55;
 }
 
 /* ---------- FORM GRID ---------- */
-.form-grid {
+.kisan-page .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   width: 100%;
 }
-.field {
+.kisan-page .field {
   min-width: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
 }
-.field-error .control,
-.field-error .area-wrap > .control,
-.field-error .opts,
-.field-error .area-wrap {
+.kisan-page .field-error .control,
+.kisan-page .field-error .area-wrap > .control,
+.kisan-page .field-error .opts,
+.kisan-page .field-error .area-wrap {
   border-color: #b91c1c;
 }
-.lbl {
+.kisan-page .lbl {
   display: block;
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: var(--ink);
+  color: var(--kp-ink);
 }
-.req {
+.kisan-page .req {
   color: #b91c1c;
   margin-left: 2px;
 }
-.control {
+.kisan-page .control {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   background: #fff;
   border-radius: 10px;
   padding: 11px 13px;
   font: inherit;
   font-size: 14px;
-  color: var(--ink);
+  color: var(--kp-ink);
   outline: none;
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
   min-width: 0;
 }
-.control:focus {
-  border-color: var(--accent);
+.kisan-page .control:focus {
+  border-color: var(--kp-accent);
   box-shadow: 0 0 0 3px rgba(47, 93, 58, 0.15);
 }
-select.control {
+.kisan-page select.control {
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%234b5a52' d='M6 8L0 0h12z'/%3e%3c/svg%3e");
@@ -309,7 +298,7 @@ select.control {
 }
 
 /* ---------- OPTIONS (radio/checkbox chips) ---------- */
-.opts {
+.kisan-page .opts {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -317,43 +306,43 @@ select.control {
   border: 1px solid transparent;
   border-radius: 10px;
 }
-.opt {
+.kisan-page .opt {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   border-radius: 10px;
   padding: 9px 13px;
   background: #fff;
   font-size: 13px;
   cursor: pointer;
-  color: var(--ink);
+  color: var(--kp-ink);
   transition:
     border-color 0.15s,
     background 0.15s;
 }
-.opt:hover {
-  border-color: var(--accent);
+.kisan-page .opt:hover {
+  border-color: var(--kp-accent);
 }
-.opt input {
-  accent-color: var(--accent);
+.kisan-page .opt input {
+  accent-color: var(--kp-accent);
   cursor: pointer;
 }
-.opt:has(input:checked) {
-  border-color: var(--accent);
-  background: var(--soft);
-  color: var(--accent-dark);
+.kisan-page .opt:has(input:checked) {
+  border-color: var(--kp-accent);
+  background: var(--kp-soft);
+  color: var(--kp-accent-dark);
   font-weight: 600;
 }
 
 /* ---------- HINTS / ERRORS ---------- */
-.hint {
+.kisan-page .hint {
   font-size: 11.5px;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   margin-top: 6px;
   line-height: 1.5;
 }
-.errmsg {
+.kisan-page .errmsg {
   font-size: 11.5px;
   color: #b91c1c;
   margin-top: 6px;
@@ -361,7 +350,7 @@ select.control {
 }
 
 /* ---------- AREA (value + unit) ---------- */
-.area-wrap {
+.kisan-page .area-wrap {
   display: grid;
   grid-template-columns: 1fr 150px;
   gap: 8px;
@@ -369,113 +358,113 @@ select.control {
 }
 
 /* ---------- LEDGER ---------- */
-.ledger {
+.kisan-page .ledger {
   grid-column: 1 / -1;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   border-radius: 12px;
   overflow: hidden;
   margin-top: 12px;
   background: #fbfcfa;
   width: 100%;
 }
-.lhead {
-  background: var(--soft);
+.kisan-page .lhead {
+  background: var(--kp-soft);
   padding: 11px 14px;
   font-size: 13px;
   font-weight: 800;
-  color: var(--accent-dark);
+  color: var(--kp-accent-dark);
   letter-spacing: 0.2px;
 }
-.lbody {
+.kisan-page .lbody {
   padding: 6px 14px;
 }
-.lrow {
+.kisan-page .lrow {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   padding: 9px 0;
-  border-bottom: 1px dashed var(--line);
+  border-bottom: 1px dashed var(--kp-line);
   font-size: 13px;
 }
-.lrow:last-child {
+.kisan-page .lrow:last-child {
   border-bottom: 0;
 }
-.lrow span {
-  color: var(--ink2);
+.kisan-page .lrow span {
+  color: var(--kp-ink2);
 }
-.lrow b {
-  color: var(--ink);
+.kisan-page .lrow b {
+  color: var(--kp-ink);
   font-weight: 700;
   text-align: right;
   word-break: break-word;
 }
-.lfoot {
+.kisan-page .lfoot {
   padding: 10px 14px;
   font-size: 11.5px;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   background: #f6f8f5;
   line-height: 1.55;
 }
 
 /* ---------- STANDARDS ---------- */
-.standards {
+.kisan-page .standards {
   grid-column: 1 / -1;
   background: #f8faf7;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   border-radius: 12px;
   padding: 16px 18px;
   width: 100%;
 }
-.standards h3 {
+.kisan-page .standards h3 {
   font-size: 15px;
   margin: 0 0 10px;
-  color: var(--accent-dark);
+  color: var(--kp-accent-dark);
   font-weight: 800;
 }
-.standards ul {
+.kisan-page .standards ul {
   margin: 0;
   padding-left: 22px;
 }
-.standards li {
+.kisan-page .standards li {
   font-size: 12.5px;
   line-height: 1.65;
   margin: 6px 0;
-  color: var(--ink);
+  color: var(--kp-ink);
 }
 
 /* ---------- DECLARATION ---------- */
-.declare-block {
+.kisan-page .declare-block {
   grid-column: 1 / -1;
-  background: var(--soft);
-  border: 1px solid var(--line);
+  background: var(--kp-soft);
+  border: 1px solid var(--kp-line);
   border-radius: 12px;
   padding: 16px 18px;
   margin-top: 4px;
   width: 100%;
 }
-.declare-block .field {
+.kisan-page .declare-block .field {
   width: 100%;
 }
-.declare {
+.kisan-page .declare {
   display: flex;
   gap: 12px;
   align-items: flex-start;
   font-size: 14px;
   line-height: 1.7;
-  color: var(--ink);
+  color: var(--kp-ink);
   cursor: pointer;
   width: 100%;
 }
-.declare input {
+.kisan-page .declare input {
   margin-top: 5px;
   width: 18px;
   height: 18px;
   min-width: 18px;
-  accent-color: var(--accent);
+  accent-color: var(--kp-accent);
   cursor: pointer;
   flex-shrink: 0;
 }
-.declare-text {
+.kisan-page .declare-text {
   flex: 1;
   min-width: 0;
   white-space: normal;
@@ -484,99 +473,99 @@ select.control {
 }
 
 /* ---------- PHOTO ---------- */
-.photo-row {
+.kisan-page .photo-row {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
 }
-.photo-preview {
+.kisan-page .photo-preview {
   width: 95px;
   height: 115px;
-  border: 1px dashed var(--line);
+  border: 1px dashed var(--kp-line);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   overflow: hidden;
   font-size: 12px;
   background: #fafcf8;
   flex-shrink: 0;
 }
-.photo-preview img {
+.kisan-page .photo-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.photo-row input[type="file"] {
+.kisan-page .photo-row input[type="file"] {
   font-size: 12px;
-  color: var(--ink);
+  color: var(--kp-ink);
   cursor: pointer;
   min-width: 0;
 }
 
 /* ---------- DOCS ---------- */
-.docs {
+.kisan-page .docs {
   grid-column: 1 / -1;
   background: #fbfcfa;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   border-radius: 12px;
   padding: 18px 20px;
   width: 100%;
 }
-.docs p {
-  color: var(--ink2);
+.kisan-page .docs p {
+  color: var(--kp-ink2);
   font-size: 13.5px;
   margin: 0 0 12px;
   font-weight: 600;
 }
-.doc {
+.kisan-page .doc {
   display: flex;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--kp-line);
   font-size: 13.5px;
   line-height: 1.6;
-  color: var(--ink);
+  color: var(--kp-ink);
   cursor: pointer;
   align-items: flex-start;
 }
-.doc:last-child {
+.kisan-page .doc:last-child {
   border-bottom: 0;
 }
-.doc input {
+.kisan-page .doc input {
   margin-top: 3px;
   width: 18px;
   height: 18px;
   min-width: 18px;
-  accent-color: var(--accent);
+  accent-color: var(--kp-accent);
   cursor: pointer;
   flex-shrink: 0;
 }
-.doc-text {
+.kisan-page .doc-text {
   flex: 1;
   min-width: 0;
   white-space: normal;
   word-break: normal;
   overflow-wrap: break-word;
 }
-.doc:hover .doc-text {
-  color: var(--accent-dark);
+.kisan-page .doc:hover .doc-text {
+  color: var(--kp-accent-dark);
 }
 
 /* ---------- GPS BUTTON ---------- */
-.btn.gps {
+.kisan-page .btn.gps {
   grid-column: 1 / -1;
   margin-top: 4px;
   justify-self: start;
-  background: var(--accent);
+  background: var(--kp-accent);
   color: #fff;
 }
 
 /* ---------- ACTIONS BAR ---------- */
-.actions {
+.kisan-page .actions {
   position: fixed;
   left: 0;
   right: 0;
@@ -584,7 +573,7 @@ select.control {
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--kp-line);
   box-shadow: 0 -8px 24px rgba(15, 26, 20, 0.08);
   padding: 12px 22px;
   display: flex;
@@ -594,19 +583,19 @@ select.control {
   z-index: 20;
   flex-wrap: wrap;
 }
-.save-line {
+.kisan-page .save-line {
   font-size: 11.5px;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   font-weight: 500;
 }
-.action-buttons {
+.kisan-page .action-buttons {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
-.btn {
+.kisan-page .btn {
   border: 0;
-  background: var(--accent);
+  background: var(--kp-accent);
   color: #fff;
   padding: 11px 22px;
   border-radius: 10px;
@@ -620,87 +609,87 @@ select.control {
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
-.btn:hover {
+.kisan-page .btn:hover {
   filter: brightness(0.94);
 }
-.btn:active {
+.kisan-page .btn:active {
   transform: translateY(1px);
 }
-.btn.ghost {
+.kisan-page .btn.ghost {
   background: #fff;
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  color: var(--kp-accent);
+  border: 1px solid var(--kp-accent);
 }
-.btn.ghost:hover {
-  background: var(--soft);
+.kisan-page .btn.ghost:hover {
+  background: var(--kp-soft);
   filter: none;
 }
 
 /* ---------- REVIEW ---------- */
-.review-grid {
+.kisan-page .review-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 18px;
   width: 100%;
 }
-.revrow {
+.kisan-page .revrow {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
   gap: 12px;
   padding: 11px 14px;
-  border-bottom: 1px solid var(--line);
-  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--kp-line);
+  border-right: 1px solid var(--kp-line);
   font-size: 12.5px;
   background: #fff;
 }
-.revrow:nth-child(2n) {
+.kisan-page .revrow:nth-child(2n) {
   border-right: 0;
 }
-.revrow span {
-  color: var(--ink2);
+.kisan-page .revrow span {
+  color: var(--kp-ink2);
   font-weight: 500;
 }
-.revrow b {
-  color: var(--ink);
+.kisan-page .revrow b {
+  color: var(--kp-ink);
   font-weight: 700;
   word-break: break-word;
 }
-.docs-summary {
+.kisan-page .docs-summary {
   margin-top: 18px;
   padding: 14px 16px;
   border-radius: 10px;
-  background: var(--soft);
+  background: var(--kp-soft);
   font-size: 13px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
 }
-.docs-summary b {
-  color: var(--accent-dark);
+.kisan-page .docs-summary b {
+  color: var(--kp-accent-dark);
   font-weight: 700;
 }
-.docs-summary p {
-  color: var(--warn);
+.kisan-page .docs-summary p {
+  color: var(--kp-warn);
   margin: 6px 0 0;
   font-size: 12.5px;
 }
 
 /* ---------- THEMES ---------- */
-.theme-kwi {
-  --accent: #5c7a16;
-  --accent-dark: #455c0f;
-  --soft: #eaf0de;
+.kisan-page .theme-kwi {
+  --kp-accent: #5c7a16;
+  --kp-accent-dark: #455c0f;
+  --kp-soft: #eaf0de;
 }
-.theme-drf {
-  --accent: #a11256;
-  --accent-dark: #7d0d40;
-  --soft: #f6e5ee;
+.kisan-page .theme-drf {
+  --kp-accent: #a11256;
+  --kp-accent-dark: #7d0d40;
+  --kp-soft: #f6e5ee;
 }
-.theme-clf {
-  --accent: #3b5566;
-  --accent-dark: #2c4250;
-  --soft: #e7edf1;
+.kisan-page .theme-clf {
+  --kp-accent: #3b5566;
+  --kp-accent-dark: #2c4250;
+  --kp-soft: #e7edf1;
 }
 
 /* ============================================
@@ -708,136 +697,136 @@ select.control {
    ============================================ */
 
 @media (max-width: 1024px) {
-  .scheme-grid {
+  .kisan-page .scheme-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .portal {
+  .kisan-page .portal {
     padding: 18px 14px 160px;
   }
-  .portal-header {
+  .kisan-page .portal-header {
     padding: 16px 18px;
   }
-  .brand {
+  .kisan-page .brand {
     font-size: 18px;
   }
-  .subtitle {
+  .kisan-page .subtitle {
     font-size: 12px;
   }
-  .intro {
+  .kisan-page .intro {
     margin: 8px auto 22px;
   }
-  .intro h1 {
+  .kisan-page .intro h1 {
     font-size: 24px;
   }
-  .intro p {
+  .kisan-page .intro p {
     font-size: 13.5px;
   }
-  .scheme-grid {
+  .kisan-page .scheme-grid {
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .scheme-card {
+  .kisan-page .scheme-card {
     padding: 20px 18px 50px;
   }
-  .scheme-icon {
+  .kisan-page .scheme-icon {
     font-size: 28px;
   }
-  .scheme-card h3 {
+  .kisan-page .scheme-card h3 {
     font-size: 17px;
   }
-  .scheme-card p {
+  .kisan-page .scheme-card p {
     font-size: 13px;
   }
 
-  .form-grid,
-  .review-grid {
+  .kisan-page .form-grid,
+  .kisan-page .review-grid {
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .form-card {
+  .kisan-page .form-card {
     padding: 18px 16px;
   }
-  .section-head {
+  .kisan-page .section-head {
     margin-bottom: 16px;
     padding-bottom: 12px;
   }
-  .section-head h2 {
+  .kisan-page .section-head h2 {
     font-size: 18px;
   }
-  .section-head p {
+  .kisan-page .section-head p {
     font-size: 12.5px;
   }
 
-  .ledger,
-  .standards,
-  .docs,
-  .declare-block,
-  .btn.gps {
+  .kisan-page .ledger,
+  .kisan-page .standards,
+  .kisan-page .docs,
+  .kisan-page .declare-block,
+  .kisan-page .btn.gps {
     grid-column: 1 / -1;
   }
 
-  .area-wrap {
+  .kisan-page .area-wrap {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  .area-wrap > .control:last-child {
+  .kisan-page .area-wrap > .control:last-child {
     width: 100%;
   }
 
-  .review-grid {
+  .kisan-page .review-grid {
     grid-template-columns: 1fr;
   }
-  .revrow {
+  .kisan-page .revrow {
     grid-template-columns: 1fr;
     gap: 4px;
     border-right: 0;
     padding: 10px 14px;
   }
-  .revrow span {
+  .kisan-page .revrow span {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  .revrow b {
+  .kisan-page .revrow b {
     font-size: 13px;
   }
 
-  .progress {
+  .kisan-page .progress {
     font-size: 12px;
     gap: 10px;
   }
-  .progressbar {
+  .kisan-page .progressbar {
     min-width: 80px;
   }
 
-  .topline {
+  .kisan-page .topline {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
 
-  .actions {
+  .kisan-page .actions {
     padding: 10px 14px;
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
-  .save-line {
+  .kisan-page .save-line {
     display: block;
     text-align: center;
     font-size: 11px;
     order: 2;
   }
-  .action-buttons {
+  .kisan-page .action-buttons {
     width: 100%;
     justify-content: space-between;
     gap: 8px;
     order: 1;
   }
-  .btn {
+  .kisan-page .btn {
     flex: 1;
     padding: 12px 14px;
     font-size: 13.5px;
@@ -845,10 +834,10 @@ select.control {
     min-width: 0;
   }
 
-  .opts {
+  .kisan-page .opts {
     gap: 6px;
   }
-  .opt {
+  .kisan-page .opt {
     padding: 8px 10px;
     font-size: 12.5px;
     flex: 1 1 auto;
@@ -856,65 +845,69 @@ select.control {
     justify-content: center;
   }
 
-  .photo-row {
+  .kisan-page .photo-row {
     gap: 12px;
   }
-  .photo-preview {
+  .kisan-page .photo-preview {
     width: 80px;
     height: 100px;
   }
 }
 
 @media (max-width: 420px) {
-  .portal {
+  .kisan-page .portal {
     padding: 14px 10px 170px;
   }
-  .form-card {
+  .kisan-page .form-card {
     padding: 16px 12px;
   }
-  .btn {
+  .kisan-page .btn {
     padding: 11px 10px;
     font-size: 13px;
   }
-  .scheme-card {
+  .kisan-page .scheme-card {
     padding: 18px 16px 48px;
   }
-  .opt {
+  .kisan-page .opt {
     font-size: 12px;
     padding: 7px 9px;
   }
 }
 
-/* ---------- PRINT PREVIEW / PRINT DOCUMENT ---------- */
-.print-preview-box {
+/* ---------- PRINT PREVIEW / PRINT DOCUMENT ----------
+   NOTE: .print-document and its children are rendered OUTSIDE the .kisan-page
+   wrapper, so these rules must NOT be scoped under .kisan-page.
+   .print-preview-box stays inside .kisan-page, so it IS scoped.
+*/
+.kisan-page .print-preview-box {
   margin-top: 24px;
   padding: 18px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kp-line);
   border-radius: 14px;
   background: #f3f5f1;
 }
 
-.print-preview-heading {
+.kisan-page .print-preview-heading {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
-  color: var(--ink);
+  color: var(--kp-ink);
 }
 
-.print-preview-heading b {
+.kisan-page .print-preview-heading b {
   display: block;
   font-size: 16px;
 }
 
-.print-preview-heading span {
+.kisan-page .print-preview-heading span {
   display: block;
   margin-top: 3px;
-  color: var(--ink2);
+  color: var(--kp-ink2);
   font-size: 12px;
 }
 
-/* 
+/*
   Instead of display: none, we move the actual print container off-screen.
   This ensures Chromium captures its layout properly when printing.
 */
@@ -1085,7 +1078,7 @@ select.control {
 }
 
 @media (max-width: 768px) {
-  .print-preview-box {
+  .kisan-page .print-preview-box {
     padding: 10px;
   }
 
