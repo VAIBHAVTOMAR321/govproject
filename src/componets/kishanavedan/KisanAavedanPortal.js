@@ -114,6 +114,283 @@ const initialData = {
   photo: "",
 };
 
+
+// =========================================================
+// KISAN APPLICATION API
+// =========================================================
+const KISAN_API = {
+  application: "https://mahadevaaya.com/govbillingsystem/backend/api/kisan-application/",
+  personalLandUpdate:
+    "https://mahadevaaya.com/govbillingsystem/backend/api/kisan-personal-land-update/",
+  planTechnicalBankUpdate:
+    "https://mahadevaaya.com/govbillingsystem/backend/api/kisan-plan-technical-bank-update/",
+  documentsUpdate:
+    "https://mahadevaaya.com/govbillingsystem/backend/api/kisan-application-documents-update/",
+};
+
+const API_TO_HI = {
+  gender: { Male: "पुरुष", Female: "महिला", Other: "अन्य" },
+  category: {
+    General: "सामान्य",
+    Scheduled: "अनुसूचित",
+    SC: "अनुसूचित",
+    ST: "अनुसूचित",
+    Small: "लघु कृषक",
+    Marginal: "सीमांत कृषक",
+    Other: "अन्य",
+  },
+  irrigation: { Yes: "हाँ", No: "नहीं" },
+  prop_area_unit: { Nali: "नाली", Hectare: "हेक्टेयर", Acre: "एकड़" },
+  slope: {
+    Flat: "समतल",
+    Mild: "हल्का ढाल",
+    Moderate: "मध्यम ढाल",
+    Steep: "तीव्र ढाल",
+  },
+  soil: {
+    Loamy: "दोमट",
+    Loam: "दोमट",
+    Loamyu: "दोमट",
+    SandyLoam: "बलुई दोमट",
+    ClayLoam: "चिकनी दोमट",
+    Sandy: "बलुई",
+  },
+  plan_type: { Individual: "व्यक्तिगत", Group: "समूह" },
+  execution: {
+    Self: "स्वयं कार्य करने पर",
+    Department: "विभागीय पंजीकृत फर्म के माध्यम से",
+  },
+};
+
+const HI_TO_API = {
+  gender: { पुरुष: "Male", महिला: "Female", अन्य: "Other" },
+  category: {
+    सामान्य: "General",
+    अनुसूचित: "Scheduled",
+    "लघु कृषक": "Small",
+    "सीमांत कृषक": "Marginal",
+    अन्य: "Other",
+  },
+  irrigation: { हाँ: "Yes", नहीं: "No" },
+  prop_area_unit: { नाली: "Nali", हेक्टेयर: "Hectare", एकड़: "Acre" },
+  slope: {
+    समतल: "Flat",
+    "हल्का ढाल": "Mild",
+    "मध्यम ढाल": "Moderate",
+    "तीव्र ढाल": "Steep",
+  },
+  plan_type: { व्यक्तिगत: "Individual", समूह: "Group" },
+  execution: {
+    "स्वयं कार्य करने पर": "Self",
+    "विभागीय पंजीकृत फर्म के माध्यम से": "Department",
+  },
+};
+
+
+const DOC_TO_API = {
+  "अद्यतन खतौनी की प्रति": "Land Ownership Document",
+  "अद्यतन खतौनी (06 माह के भीतर) की प्रति": "Land Ownership Document",
+  "पहचान पत्र (आधार कार्ड)": "Aadhaar Card",
+  "उद्यान कार्ड": "Udyan Card",
+  "बैंक पासबुक की प्रति": "Bank Passbook",
+  "₹10/- का शपथ पत्र": "Affidavit",
+  "कार्य प्रारम्भ से पूर्व प्रस्तावित स्थल का जियो-टैग फोटो": "Geo-tagged Site Photo",
+  "समूह का पंजीकरण प्रमाण पत्र (यदि समूह हो)": "Group Registration Certificate",
+};
+
+const API_TO_DOC = Object.fromEntries(
+  Object.entries(DOC_TO_API).map(([hi, en]) => [en, hi]),
+);
+
+const IRR_TO_API = {
+  पाइपलाइन: "Pipeline",
+  "पानी की टंकी": "Water Tank",
+  नहर: "Canal",
+  बोरिंग: "Boring",
+  अन्य: "Other",
+};
+
+const API_TO_IRR = Object.fromEntries(
+  Object.entries(IRR_TO_API).map(([hi, en]) => [en, hi]),
+);
+
+function apiJsonValue(value) {
+  return value === "" || value === undefined ? null : value;
+}
+
+function buildPersonalLandPayload(data) {
+  return {
+    name: apiJsonValue(data.name),
+    gender: HI_TO_API.gender[data.gender] || data.gender || null,
+    father: apiJsonValue(data.father),
+    udyan_card: apiJsonValue(data.udyanCard),
+    village: apiJsonValue(data.village),
+    post: apiJsonValue(data.post),
+    block: apiJsonValue(data.block),
+    district: apiJsonValue(data.district),
+    mobile: apiJsonValue(data.mobile),
+    aadhaar: apiJsonValue(data.aadhaar),
+    category: HI_TO_API.category[data.category] || data.category || null,
+    total_land: data.totalLand === "" ? null : Number(data.totalLand),
+    prop_area_val: data.propArea_val === "" ? null : Number(data.propArea_val),
+    prop_area_unit:
+      HI_TO_API.prop_area_unit[data.propArea_unit] || data.propArea_unit || null,
+    irrigation: HI_TO_API.irrigation[data.irrigation] || data.irrigation || null,
+    irrigation_sources: (data.irrSource || []).map(
+      (item) => IRR_TO_API[item] || item,
+    ),
+    irrigation_other: apiJsonValue(data.irrOther),
+    altitude: data.altitude === "" ? null : Number(data.altitude),
+    road_dist: data.roadDist === "" ? null : Number(data.roadDist),
+    slope: HI_TO_API.slope[data.slope] || data.slope || null,
+    soil: data.soil || null,
+    latitude: data.lat === "" ? null : Number(data.lat),
+    longitude: data.lng === "" ? null : Number(data.lng),
+  };
+}
+
+function buildPlanTechnicalBankPayload(data) {
+  let subsidyRatio = data.subsidyRatio || "";
+  if (subsidyRatio.startsWith("80%")) subsidyRatio = "80%";
+  else if (subsidyRatio.startsWith("50%")) subsidyRatio = "50%";
+
+  let fencingType = data.fencingType || "";
+  if (fencingType === "चेन लिंक फेंसिंग") fencingType = "Chain Link";
+  if (fencingType === "कांटेदार तार की बाड़") fencingType = "Barbed Wire";
+
+  return {
+    form_id: data.formId || undefined,
+    plan_scheme: apiJsonValue(data.planScheme),
+    cost_per_ha:
+      data.costPerHa !== "" && data.costPerHa !== undefined
+        ? Number(data.costPerHa)
+        : null,
+    plan_type: HI_TO_API.plan_type[data.planType] || data.planType || null,
+    group_name: apiJsonValue(data.groupName),
+    contribution: apiJsonValue(data.contribution),
+    other_scheme: apiJsonValue(data.otherScheme),
+    fencing_type: apiJsonValue(fencingType),
+    subsidy_ratio: apiJsonValue(subsidyRatio),
+    execution: HI_TO_API.execution[data.execution] || data.execution || null,
+    firm_name: apiJsonValue(data.firmName),
+    technical_standard_accepted: !!data.accept,
+    bank_name: apiJsonValue(data.bankName),
+    branch: apiJsonValue(data.branch),
+    account: apiJsonValue(data.account),
+    ifsc: apiJsonValue(data.ifsc),
+  };
+}
+
+function buildDocumentsPayload(data, formId) {
+  return {
+    form_id: formId,
+    place: apiJsonValue(data.place),
+    application_date: data.date || null,
+    documents: (data.docs || []).map(
+      (item) => DOC_TO_API[item] || item,
+    ),
+    photo: null,
+    declaration_accepted: !!data.declare,
+  };
+}
+
+async function apiRequest(url, options = {}) {
+  const isFormData = options.body instanceof FormData;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(options.headers || {}),
+    },
+  });
+
+  const text = await response.text();
+  let body = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = text;
+  }
+
+  if (!response.ok) {
+    const message =
+      body?.message ||
+      body?.error ||
+      body?.detail ||
+      `API request failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  return body;
+}
+
+function applicationFromApi(record) {
+  const p = record?.personal || record || {};
+  const t = record?.plan_technical_bank || {};
+  const d = record?.application_documents || {};
+
+  const irrigationSources = Array.isArray(p.irrigation_sources)
+    ? p.irrigation_sources.map((x) => API_TO_IRR[x] || x)
+    : [];
+
+  return {
+    name: p.name || "",
+    gender: API_TO_HI.gender[p.gender] || p.gender || "",
+    father: p.father || "",
+    udyanCard: p.udyan_card || "",
+    village: p.village || "",
+    post: p.post || "",
+    block: p.block || "",
+    district: p.district || "",
+    mobile: p.mobile || "",
+    aadhaar: p.aadhaar || "",
+    category: API_TO_HI.category[p.category] || p.category || "",
+    totalLand: p.total_land ?? "",
+    propArea_val: p.prop_area_val ?? "",
+    propArea_unit:
+      API_TO_HI.prop_area_unit[p.prop_area_unit] || p.prop_area_unit || "नाली",
+    irrigation: API_TO_HI.irrigation[p.irrigation] || p.irrigation || "",
+    irrSource: irrigationSources,
+    irrOther: p.irrigation_other || "",
+    altitude: p.altitude ?? "",
+    roadDist: p.road_dist ?? "",
+    slope: API_TO_HI.slope[p.slope] || p.slope || "",
+    soil: API_TO_HI.soil[p.soil] || p.soil || "",
+    lat: p.latitude ?? "",
+    lng: p.longitude ?? "",
+    planScheme: t.plan_scheme || "",
+    costPerHa: t.cost_per_ha ?? "",
+    planType: API_TO_HI.plan_type[t.plan_type] || t.plan_type || "",
+    groupName: t.group_name || "",
+    contribution: t.contribution || "",
+    otherScheme: t.other_scheme || "",
+    fencingType:
+      t.fencing_type === "Chain Link"
+        ? "चेन लिंक फेंसिंग"
+        : t.fencing_type === "Barbed Wire"
+          ? "कांटेदार तार की बाड़"
+          : t.fencing_type || "",
+    subsidyRatio: t.subsidy_ratio
+      ? `${t.subsidy_ratio} राजसहायता`
+      : "",
+    execution: API_TO_HI.execution[t.execution] || t.execution || "",
+    firmName: t.firm_name || "",
+    bankName: t.bank_name || "",
+    branch: t.branch || "",
+    account: t.account || "",
+    ifsc: t.ifsc || "",
+    place: d.place || "",
+    date: d.application_date || initialData.date,
+    docs: Array.isArray(d.documents)
+      ? d.documents.map((item) => API_TO_DOC[item] || item)
+      : [],
+    photo: d.photo || "",
+    accept: !!t.technical_standard_accepted,
+    declare: !!d.declaration_accepted,
+  };
+}
+
+
 const stepTitles = {
   scheme: "योजना एवं फेंसिंग का प्रकार",
   personal: "कृषक का विवरण",
@@ -530,6 +807,10 @@ export default function KisanAavedanPortal() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState(initialData);
   const [errors, setErrors] = useState({});
+  const [formId, setFormId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [submittedApplication, setSubmittedApplication] = useState(null);
   const scheme = schemeId ? SCHEMES[schemeId] : null;
   const calc = useMemo(
     () =>
@@ -538,35 +819,74 @@ export default function KisanAavedanPortal() {
   );
   const appNo = useMemo(
     () =>
-      scheme
+      formId ||
+      (scheme
         ? `${scheme.code}/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`
-        : "",
-    [schemeId],
+        : ""),
+    [schemeId, formId],
   );
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("udyan-aavedan:draft");
-      if (raw) {
+    let cancelled = false;
+
+    const loadDraftAndServerData = async () => {
+      try {
+        const raw = localStorage.getItem("udyan-aavedan:draft");
+        if (!raw) return;
+
         const d = JSON.parse(raw);
+        if (cancelled) return;
+
         if (d.schemeId && SCHEMES[d.schemeId]) {
           setSchemeId(d.schemeId);
           setStep(d.step || 0);
           setData(d.data || initialData);
+          setFormId(d.formId || "");
+
+          // If a server form already exists, GET the latest server data.
+          if (d.formId) {
+            try {
+              const result = await apiRequest(
+                `${KISAN_API.application}?form_id=${encodeURIComponent(d.formId)}`,
+              );
+              const records = Array.isArray(result?.data) ? result.data : [];
+              const record =
+                records.find((item) => item.form_id === d.formId) ||
+                (result?.form_id === d.formId ? result : null);
+
+              if (record && !cancelled) {
+                setData((current) => ({
+                  ...current,
+                  ...applicationFromApi(record),
+                }));
+                setSubmittedApplication(record);
+              }
+            } catch (error) {
+              // Keep the local draft if the server record cannot be loaded.
+              console.warn("Kisan application GET failed:", error);
+            }
+          }
         }
+      } catch (error) {
+        console.warn("Unable to restore Kisan application draft:", error);
       }
-    } catch {}
+    };
+
+    loadDraftAndServerData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
   useEffect(() => {
-    if (schemeId) {
-      try {
-        localStorage.setItem(
-          "udyan-aavedan:draft",
-          JSON.stringify({ schemeId, step, data }),
-        );
-      } catch {}
-    }
-  }, [schemeId, step, data]);
+    if (!schemeId) return;
+    try {
+      localStorage.setItem(
+        "udyan-aavedan:draft",
+        JSON.stringify({ schemeId, step, data, formId }),
+      );
+    } catch {}
+  }, [schemeId, step, data, formId]);
   const set = (k, v) => {
     setData((d) => ({ ...d, [k]: v }));
     setErrors((e) => ({ ...e, [k]: false }));
@@ -583,6 +903,9 @@ export default function KisanAavedanPortal() {
     setStep(0);
     setData({ ...initialData });
     setErrors({});
+    setFormId("");
+    setApiError("");
+    setSubmittedApplication(null);
   };
   const backToSchemes = () => {
     setSchemeId(null);
@@ -681,6 +1004,90 @@ export default function KisanAavedanPortal() {
     setErrors(e);
     return Object.keys(e).length === 0;
   };
+  const submitApplication = async () => {
+    if (!scheme || isSubmitting) return;
+
+    setApiError("");
+    setIsSubmitting(true);
+
+    try {
+      // 1) Create the base application and receive the server-generated form_id.
+      let currentFormId = formId;
+      if (!currentFormId) {
+        const created = await apiRequest(KISAN_API.application, {
+          method: "POST",
+          body: JSON.stringify(buildPersonalLandPayload(data)),
+        });
+
+        currentFormId =
+          created?.form_id ||
+          created?.data?.[0]?.form_id ||
+          created?.data?.form_id ||
+          "";
+
+        if (!currentFormId) {
+          throw new Error("POST API ने form_id नहीं लौटाया।");
+        }
+
+        setFormId(currentFormId);
+      }
+
+      // 2) Update personal + land data using the dedicated PUT endpoint.
+      await apiRequest(KISAN_API.personalLandUpdate, {
+        method: "PUT",
+        body: JSON.stringify({
+          form_id: currentFormId,
+          ...buildPersonalLandPayload(data),
+        }),
+      });
+
+      // 3) Update plan + technical + bank data.
+      await apiRequest(KISAN_API.planTechnicalBankUpdate, {
+        method: "PUT",
+        body: JSON.stringify({
+          form_id: currentFormId,
+          ...buildPlanTechnicalBankPayload(data),
+        }),
+      });
+
+      // 4) Update documents + declaration.
+      // Keep the JSON contract shown in the supplied API example.
+      await apiRequest(KISAN_API.documentsUpdate, {
+        method: "PUT",
+        body: JSON.stringify(buildDocumentsPayload(data, currentFormId)),
+      });
+
+      // 5) GET the completed application so the UI always reflects server data.
+      const result = await apiRequest(
+        `${KISAN_API.application}?form_id=${encodeURIComponent(currentFormId)}`,
+      );
+      const records = Array.isArray(result?.data) ? result.data : [];
+      const record =
+        records.find((item) => item.form_id === currentFormId) ||
+        (result?.form_id === currentFormId ? result : null);
+
+      if (record) {
+        const serverData = applicationFromApi(record);
+        setData((current) => ({ ...current, ...serverData }));
+        setSubmittedApplication(record);
+      }
+
+      localStorage.removeItem("udyan-aavedan:draft");
+      setStep(scheme.steps.length);
+
+      // Print only after every API operation has succeeded.
+      window.setTimeout(() => print(), 150);
+    } catch (error) {
+      console.error("Kisan application submission failed:", error);
+      setApiError(
+        error?.message ||
+          "आवेदन API पर जमा नहीं हो सका। कृपया पुनः प्रयास करें।",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const next = () => {
     if (validate()) setStep((s) => s + 1);
   };
@@ -985,8 +1392,30 @@ export default function KisanAavedanPortal() {
         ) : (
           <Review />
         )}
+        {apiError && (
+          <div
+            className="api-error"
+            role="alert"
+            style={{
+              marginTop: 12,
+              padding: "10px 14px",
+              borderRadius: 8,
+              background: "#fff1f1",
+              border: "1px solid #e0a0a0",
+              color: "#a00000",
+            }}
+          >
+            {apiError}
+          </div>
+        )}
         <div className="actions">
-          <div className="save-line">विवरण इसी डिवाइस पर सुरक्षित</div>
+          <div className="save-line">
+            {isSubmitting
+              ? "आवेदन API पर जमा किया जा रहा है…"
+              : formId
+                ? `सर्वर पर सुरक्षित: ${formId}`
+                : "विवरण इसी डिवाइस पर सुरक्षित"}
+          </div>
           <div className="action-buttons">
             {step === 0 ? (
               <button className="btn ghost" onClick={backToSchemes}>
@@ -1005,8 +1434,13 @@ export default function KisanAavedanPortal() {
                 {step === total - 1 ? "आवेदन देखें" : "आगे बढ़ें"}
               </button>
             ) : (
-              <button className="btn" onClick={print}>
-                प्रिंट / PDF
+              <button
+                className="btn"
+                onClick={submitApplication}
+                disabled={isSubmitting}
+                type="button"
+              >
+                {isSubmitting ? "जमा हो रहा है…" : "आवेदन जमा करें एवं प्रिंट / PDF"}
               </button>
             )}
           </div>
