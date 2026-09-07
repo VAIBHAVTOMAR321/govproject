@@ -50,6 +50,8 @@ function NavbarWrapper() {
     "/UdyanBill",
     "/KishanBeej",
     "/LibrarySystem",
+    "/MonthReport",
+    
   ]);
   const hiddenPaths = new Set([
     "/Dashboard",
@@ -69,8 +71,8 @@ function NavbarWrapper() {
     "/NurseryFinancialEntry",
     "/NurseryPhysicalEntry",
     "/UdyanBill",
-    "/KishanBeej",
-    "/MonthReport"
+    "/KishanBeej"
+   
   ]);
 
   if (dashboardHeaderPaths.has(location.pathname) && user) {
