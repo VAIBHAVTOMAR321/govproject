@@ -29,6 +29,8 @@ const MonthReport = () => {
     month_report: null,
   });
 
+  const [monthYear, setMonthYear] = useState("");
+
   const [editingId, setEditingId] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
@@ -89,6 +91,24 @@ const MonthReport = () => {
     }));
   };
 
+  const handleMonthYearChange = (e) => {
+    const value = e.target.value;
+    setMonthYear(value);
+
+    const [monthName, ...yearParts] = value.split("-");
+    const financial_year = yearParts.join("-");
+
+    const monthObj = months.find(
+      (m) => m.label.toLowerCase() === monthName.trim().toLowerCase()
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      month: monthObj ? monthObj.value : "",
+      financial_year: financial_year || "",
+    }));
+  };
+
   // =====================================================
   // HANDLE FILE
   // =====================================================
@@ -135,6 +155,8 @@ const MonthReport = () => {
       month_report: null,
     });
 
+    setMonthYear("");
+
     setError("");
     setSuccess("");
 
@@ -160,6 +182,9 @@ const MonthReport = () => {
         financial_year: report.financial_year || "",
         month_report: null,
       });
+
+      const monthName = getMonthName(report.month || "");
+      setMonthYear(`${monthName}-${report.financial_year || ""}`);
 
       setShowModal(true);
     } catch (err) {
@@ -250,6 +275,8 @@ const MonthReport = () => {
         financial_year: "",
         month_report: null,
       });
+
+      setMonthYear("");
 
       setEditingId(null);
 
@@ -349,11 +376,13 @@ const MonthReport = () => {
       month_report: null,
     });
 
+    setMonthYear("");
+
     setError("");
   };
 
   return (
-    <div className="month-report-page">
+    <div className="month-report-page ">
       <div className="month-report-container">
 
         {/* ================= HEADER ================= */}
@@ -572,52 +601,43 @@ const MonthReport = () => {
 
               <div className="mpr-modal-body">
 
-                {/* MONTH */}
+                {/* MONTH + FINANCIAL YEAR */}
 
                 <div className="mpr-form-group">
 
                   <label>
-                    Month <span>*</span>
-                  </label>
-
-                  <select
-                    name="month"
-                    value={formData.month}
-                    onChange={handleChange}
-                  >
-
-                    <option value="">
-                      Select Month
-                    </option>
-
-                    {months.map((month) => (
-                      <option
-                        key={month.value}
-                        value={month.value}
-                      >
-                        {month.label}
-                      </option>
-                    ))}
-
-                  </select>
-
-                </div>
-
-                {/* FINANCIAL YEAR */}
-
-                <div className="mpr-form-group">
-
-                  <label>
-                    Financial Year <span>*</span>
+                    Month / Financial Year <span>*</span>
                   </label>
 
                   <input
                     type="text"
-                    name="financial_year"
-                    value={formData.financial_year}
-                    onChange={handleChange}
-                    placeholder="2026-27"
+                    name="monthYear"
+                    value={monthYear}
+                    onChange={handleMonthYearChange}
+                    placeholder="Example: January-2026-27"
+                    list="month-year-list"
                   />
+
+                  <datalist id="month-year-list">
+                    {months.map((month) => (
+                      <option
+                        key={month.value}
+                        value={`${month.label}-2025-26`}
+                      />
+                    ))}
+                    {months.map((month) => (
+                      <option
+                        key={`fy2-${month.value}`}
+                        value={`${month.label}-2026-27`}
+                      />
+                    ))}
+                    {months.map((month) => (
+                      <option
+                        key={`fy3-${month.value}`}
+                        value={`${month.label}-2027-28`}
+                      />
+                    ))}
+                  </datalist>
 
                 </div>
 
