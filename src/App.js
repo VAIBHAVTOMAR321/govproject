@@ -71,7 +71,8 @@ function NavbarWrapper() {
     "/NurseryFinancialEntry",
     "/NurseryPhysicalEntry",
     "/UdyanBill",
-    "/KishanBeej"
+    "/KishanBeej",
+    "/KisanAavedanPortal"
    
   ]);
 
@@ -180,7 +181,7 @@ function AppContent() {
           <Route
             path="/KisanAavedanPortal"
             element={
-              <ProtectedRoute allowedLoginTypes={["admin"]}>
+              <ProtectedRoute allowedLoginTypes={["admin", "demand"]}>
                 <KisanAavedanPortal />
               </ProtectedRoute>
             }

@@ -15,6 +15,7 @@
 
 .kisan-page {
   min-height: 100vh;
+  margin-top:85px;
   background: linear-gradient(180deg, #f4f6f1 0%, #eaeedd 100%);
   color: var(--kp-ink);
   font-family: "Noto Sans Devanagari", "Nirmala UI", Arial, sans-serif;
