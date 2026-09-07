@@ -1127,120 +1127,120 @@ export default function KishanBeej() {
             <p>{fill(meta.subtitle, { year: meta.year, scheme: meta.scheme })}</p>
           </div>
         </header>
-        <main>
+        <div className="kishan-beej-main">
           <div className="kishan-beej-card">
             <div className="note">डेटा सर्वर से लोड हो रहा है...</div>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="kishan-beej-app">
-      <header>
-        <div className="in">
-          <div className="eyebrow">{meta.office}</div>
-          <h1>{meta.title}</h1>
-          <p>{fill(meta.subtitle, { year: meta.year, scheme: meta.scheme })}</p>
-        </div>
-      </header>
-
-      <nav>
-        <div className="in">
-          {meta.nav.map(([id, icon, label]) => (
-            <button
-              key={id}
-              className={tab === id ? "on" : ""}
-              onClick={() => {
-                setTab(id);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <span className="ic">{icon}</span>
-              {label}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      {error && (
-        <main>
-          <div className="note bad">
-            ✘ {error}
-            <button className="kishan-beej-btn b2 sm" style={{ marginLeft: 10 }} onClick={load}>
-              फिर प्रयास करें
-            </button>
+      <div className="kishan-beej-app">
+        <header>
+          <div className="in">
+            <div className="eyebrow">{meta.office}</div>
+            <h1>{meta.title}</h1>
+            <p>{fill(meta.subtitle, { year: meta.year, scheme: meta.scheme })}</p>
           </div>
-        </main>
-      )}
+        </header>
 
-      {message && (
-        <main>
-          <div className={`note ${message.startsWith("✓") ? "ok" : "bad"}`}>{message}</div>
-        </main>
-      )}
+        <nav>
+          <div className="in">
+            {meta.nav.map(([id, icon, label]) => (
+              <button
+                key={id}
+                className={tab === id ? "on" : ""}
+                onClick={() => {
+                  setTab(id);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                <span className="ic">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        </nav>
 
-      <main>
-        {/* ===================== HOME ===================== */}
-        {tab === "home" && (
-          <section className="panel on">
-            <h2>एक नज़र में स्थिति</h2>
-            <p className="kishan-beej-sub">
-              नीचे पूरी योजना की जीवंत स्थिति है। कोई भी संख्या लाल दिखे तो उसी टैब में जाकर जाँच करें।
-            </p>
-            <div className="kpis">
-              <Kpi
-                label="कुल क्रय राशि"
-                value={money(purchases.reduce((s, p) => s + Number(p.amount || 0), 0))}
-                sub={`सभी ${varieties.length} किस्में`}
-              />
-              <Kpi
-                label="किसानों को वितरित"
-                value={`${gm(entries.reduce((s, e) => s + Number(e.seed_gm || 0), 0))} ग्राम`}
-                sub={`${entries.length} प्रविष्टियाँ`}
-              />
-              <Kpi
-                label="केन्द्रों में शेष"
-                value={`${gm(ledgerRows.reduce((s, r) => s + r.balance, 0))} ग्राम`}
-                sub={`प्राप्त ${n(ledgerRows.reduce((s, r) => s + r.opening, 0), 0)} ग्राम में से`}
-                state={ledgerRows.reduce((s, r) => s + r.balance, 0) < 0 ? "bad" : "ok"}
-              />
-              <Kpi
-                label="ध्यान देने योग्य"
-                value={auditChecks.filter((c) => !c.ok).length}
-                sub={`${ledgerRows.filter((r) => r.balance < 0).length} अधिक-वितरण, ${
-                  entries.filter((e) => e.sign1 !== "हाँ" || e.sign2 !== "हाँ").length
-                } हस्ताक्षर बाकी`}
-                state={auditChecks.some((c) => !c.ok) ? "bad" : "ok"}
-              />
+        {error && (
+          <div className="kishan-beej-main">
+            <div className="note bad">
+              ✘ {error}
+              <button className="kishan-beej-btn b2 sm" style={{ marginLeft: 10 }} onClick={load}>
+                फिर प्रयास करें
+              </button>
             </div>
-            <div className="kishan-beej-card">
-              <h3>ज़रूरी जाँच</h3>
-              <ul className="chk">
-                {auditChecks.slice(0, 5).map((c, i) => (
-                  <li key={i}>
-                    <span className={`i ${c.ok ? "ok" : "bad"}`}>{c.ok ? "✔" : "✘"}</span>
-                    <span>{c.t}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="kishan-beej-card">
-              <h3>काम का क्रम — बस इतना ही</h3>
-              <ul className="chk">
-                {meta.workflow.map((step) => (
-                  <li key={step.n}>
-                    <span className="i ok">{step.n}</span>
-                    <span>
-                      <b>{step.label}</b> — {fill(step.desc, {})}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
+          </div>
         )}
+
+        {message && (
+          <div className="kishan-beej-main">
+            <div className={`note ${message.startsWith("✓") ? "ok" : "bad"}`}>{message}</div>
+          </div>
+        )}
+
+        <div className="kishan-beej-main">
+          {/* ===================== HOME ===================== */}
+          {tab === "home" && (
+            <section className="panel on">
+              <h2>एक नज़र में स्थिति</h2>
+              <p className="kishan-beej-sub">
+                नीचे पूरी योजना की जीवंत स्थिति है। कोई भी संख्या लाल दिखे तो उसी टैब में जाकर जाँच करें।
+              </p>
+              <div className="kpis">
+                <Kpi
+                  label="कुल क्रय राशि"
+                  value={money(purchases.reduce((s, p) => s + Number(p.amount || 0), 0))}
+                  sub={`सभी ${varieties.length} किस्में`}
+                />
+                <Kpi
+                  label="किसानों को वितरित"
+                  value={`${gm(entries.reduce((s, e) => s + Number(e.seed_gm || 0), 0))} ग्राम`}
+                  sub={`${entries.length} प्रविष्टियाँ`}
+                />
+                <Kpi
+                  label="केन्द्रों में शेष"
+                  value={`${gm(ledgerRows.reduce((s, r) => s + r.balance, 0))} ग्राम`}
+                  sub={`प्राप्त ${n(ledgerRows.reduce((s, r) => s + r.opening, 0), 0)} ग्राम में से`}
+                  state={ledgerRows.reduce((s, r) => s + r.balance, 0) < 0 ? "bad" : "ok"}
+                />
+                <Kpi
+                  label="ध्यान देने योग्य"
+                  value={auditChecks.filter((c) => !c.ok).length}
+                  sub={`${ledgerRows.filter((r) => r.balance < 0).length} अधिक-वितरण, ${
+                    entries.filter((e) => e.sign1 !== "हाँ" || e.sign2 !== "हाँ").length
+                  } हस्ताक्षर बाकी`}
+                  state={auditChecks.some((c) => !c.ok) ? "bad" : "ok"}
+                />
+              </div>
+              <div className="kishan-beej-card">
+                <h3>ज़रूरी जाँच</h3>
+                <ul className="chk">
+                  {auditChecks.slice(0, 5).map((c, i) => (
+                    <li key={i}>
+                      <span className={`i ${c.ok ? "ok" : "bad"}`}>{c.ok ? "✔" : "✘"}</span>
+                      <span>{c.t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="kishan-beej-card">
+                <h3>काम का क्रम — बस इतना ही</h3>
+                <ul className="chk">
+                  {meta.workflow.map((step) => (
+                    <li key={step.n}>
+                      <span className="i ok">{step.n}</span>
+                      <span>
+                        <b>{step.label}</b> — {fill(step.desc, {})}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
 
         {/* ===================== DISTRIBUTION ===================== */}
         {tab === "entry" && (
@@ -2293,7 +2293,7 @@ export default function KishanBeej() {
             </div>
           </section>
         )}
-      </main>
+      </div>
 
       <footer>
         {fill(meta.footer || DEFAULT_CONFIG.meta.footer, {

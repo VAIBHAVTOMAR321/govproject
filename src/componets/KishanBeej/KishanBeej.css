@@ -51,6 +51,7 @@ body{
 
 .kishan-beej-app{
   min-height:100vh;
+  margin-top:100px;
   background:var(--paper);
   color:var(--ink);
   font-family:var(--f);
@@ -138,7 +139,7 @@ body{
   margin-bottom:2px;
 }
 
-.kishan-beej-app main{
+.kishan-beej-app .kishan-beej-main{
   max-width:1250px;
   margin:0 auto;
   padding:16px;
