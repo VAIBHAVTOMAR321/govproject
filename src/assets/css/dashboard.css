@@ -1291,173 +1291,6 @@ font-size: 14px;
   }
 }
 
-/* ==================== CHARTS/GRAPHS SECTION STYLES ==================== */
-
-.graphs-section-title {
-  border-bottom: 2px solid #194e8b;
-  padding-bottom: 10px;
-}
-.graphs-section-title p{
-  color: #000;
-  font-size: 12px;
-}
-
-.graphs-section-title h4 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-
-.chart-card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.chart-card:hover {
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.chart-card-header {
-  background: linear-gradient(135deg, #194e8b 0%, #2d6db5 100%);
-  color: #ffffff;
-  padding: 12px 15px;
-  border-bottom: none;
-}
-
-.chart-card-header h6 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0;
-  display: flex;
-  align-items: center;
-}
-
-.chart-card-header.bg-success-gradient {
-  background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);
-}
-
-.chart-card-header.bg-combined-gradient {
-  background: linear-gradient(135deg, #6f42c1 0%, #9c69e2 100%);
-}
-
-.chart-container {
-  position: relative;
-  padding: 10px;
-}
-
-.no-data-message {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: #6c757d;
-  font-size: 0.9rem;
-  font-style: italic;
-}
-
-/* Chart responsive adjustments */
-@media (max-width: 992px) {
-  .chart-container {
-    height: 250px !important;
-  }
-  
-  .graphs-section-title h4 {
-    font-size: 1rem;
-  }
-  
-  .chart-card-header h6 {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .chart-container {
-    height: 220px !important;
-  }
-  
-  .graphs-section-title {
-    text-align: center;
-  }
-}
-
-@media (max-width: 576px) {
-  .chart-container {
-    height: 200px !important;
-    padding: 5px;
-  }
-  
-  .chart-card {
-    margin-bottom: 15px;
-  }
-  
-  .chart-card-header {
-    padding: 10px 12px;
-  }
-  
-  .chart-card-header h6 {
-    font-size: 0.75rem;
-  }
-}
-
-/* ==================== उपनिवेश LEGEND TABLE STYLES ==================== */
-
-.upnivesh-legend-table {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.upnivesh-legend-table table {
-  margin-bottom: 0;
-}
-
-.upnivesh-legend-table thead th {
-  font-weight: 600;
-  font-size: 0.75rem;
-  padding: 10px 8px;
-  border: none;
-}
-
-.upnivesh-legend-table tbody tr:hover {
-  background-color: #e8f5e9 !important;
-}
-
-.upnivesh-legend-table tbody td {
-  padding: 8px;
-  vertical-align: middle;
-  border-color: #f0f0f0;
-}
-
-/* Scrollbar styling for the legend table */
-.upnivesh-legend-table::-webkit-scrollbar {
-  width: 6px;
-}
-
-.upnivesh-legend-table::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.upnivesh-legend-table::-webkit-scrollbar-thumb {
-  background: #28a745;
-  border-radius: 3px;
-}
-
-.upnivesh-legend-table::-webkit-scrollbar-thumb:hover {
-  background: #218838;
-}
-
-@media (max-width: 992px) {
-  .upnivesh-legend-table {
-    max-height: 300px !important;
-    margin-top: 15px;
-  }
-}
-
 /* ==================== REPORT EXPORT CARD STYLES ==================== */
 
 .report-export-card {
@@ -1516,4 +1349,583 @@ font-size: 14px;
     font-size: 0.75rem;
     padding: 5px 10px;
   }
+}
+
+/* ==================== DYNAMIC EXCEL-STYLE REPORT TABS ==================== */
+.dynamic-report-section{
+  margin-top:24px;
+  background:#fff;
+  border:1px solid #dfe4ea;
+  border-radius:12px;
+  box-shadow:0 4px 18px rgba(0,0,0,.07);
+  overflow:visible;
+}
+.dynamic-report-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:16px 20px;
+  background:linear-gradient(135deg,#194e8b 0%,#2d6db5 100%);
+  color:#fff;
+}
+.dynamic-report-heading h4{margin:0;font-size:1.05rem;font-weight:700;color:#fff;}
+.dynamic-report-heading p{margin:4px 0 0;font-size:.76rem;color:rgba(255,255,255,.9);}
+.dynamic-report-record-badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:18px;padding:6px 11px;font-size:.75rem;font-weight:600;white-space:nowrap;}
+.dynamic-report-tabs{display:flex;overflow-x:auto;background:#e8e8e8;border-bottom:1px solid #bfbfbf;}
+.dynamic-report-tabs button{padding:10px 20px;border:0;border-right:1px solid #cfcfcf;background:#dedede;color:#333;font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;}
+.dynamic-report-tabs button:hover:not(.active){background:#efefef;}
+.dynamic-report-tabs button.active{background:#fff;color:#194e8b;font-weight:700;border-bottom:3px solid #217346;}
+.dynamic-report-content{padding:18px;}
+.dynamic-report-panel h5{margin:0 0 5px;color:#194e8b;font-size:1rem;font-weight:700;}
+.dynamic-report-note{margin:0 0 15px;color:#666;font-size:.74rem;line-height:1.5;}
+.dynamic-report-subtitle{margin:22px 0 8px;color:#194e8b;font-size:.88rem;font-weight:700;border-bottom:1px solid #e5e7eb;padding-bottom:6px;}
+.dynamic-report-filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px;padding:10px;background:#f5f6f8;border:1px solid #e1e5ea;border-radius:6px;}
+.dynamic-report-filter-wrap{position:relative;}
+.dynamic-report-filter-btn{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #bfc5cc;border-radius:4px;background:#f0f0f0;color:#333;font-size:12px;cursor:pointer;white-space:nowrap;}
+.dynamic-report-filter-btn:hover{background:#e5e7e9;}
+.dynamic-report-filter-btn.filtered{background:#fff2cc;border-color:#c9a227;color:#0000ee;font-weight:600;}
+.dynamic-report-badge{background:#fff;border:1px solid #d0d0d0;border-radius:10px;padding:1px 6px;font-size:10px;color:#666;}
+.dynamic-report-filter-menu{position:absolute;top:calc(100% + 5px);left:0;z-index:10050;width:270px;background:#fff;border:1px solid #999;border-radius:5px;box-shadow:0 8px 22px rgba(0,0,0,.2);padding:9px;}
+.dynamic-report-filter-actions{display:flex;gap:12px;margin-bottom:7px;}
+.dynamic-report-filter-actions button{border:0;background:none;color:#1155cc;text-decoration:underline;font-size:11px;cursor:pointer;padding:0;}
+.dynamic-report-filter-list{max-height:230px;overflow-y:auto;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:5px 0;}
+.dynamic-report-filter-option{display:flex;align-items:center;gap:7px;padding:4px 5px;font-size:12px;cursor:pointer;border-radius:3px;}
+.dynamic-report-filter-option:hover{background:#f2f2f2;}
+.dynamic-report-filter-option input{cursor:pointer;}
+.dynamic-report-filter-close{width:100%;margin-top:8px;padding:6px;border:0;border-radius:3px;background:#217346;color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
+.dynamic-report-clear-btn{padding:7px 11px;border:1px solid #6c757d;border-radius:4px;background:#fff;color:#495057;font-size:12px;cursor:pointer;}
+.dynamic-report-clear-btn:hover{background:#6c757d;color:#fff;}
+.dynamic-report-view-row{display:flex;align-items:center;gap:10px;margin-bottom:15px;}
+.dynamic-report-view-row label{font-weight:700;color:#194e8b;font-size:12px;}
+.dynamic-report-view-row select{min-width:170px;padding:7px 10px;border:1px solid #bfc5cc;border-radius:4px;background:#fff;font-size:12px;}
+.dynamic-report-table-scroll{width:100%;overflow:auto;border:1px solid #bfbfbf;max-height:500px;}
+.dynamic-report-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:12px;background:#fff;}
+.dynamic-report-table th,.dynamic-report-table td{border:1px solid #bfbfbf;padding:6px 8px;text-align:center;vertical-align:middle;white-space:nowrap;}
+.dynamic-report-table thead th{background:#1f4e79;color:#fff;font-weight:700;font-size:11.5px;position:sticky;top:0;z-index:3;}
+.dynamic-report-table tbody tr:nth-child(even){background:#f8f9fa;}
+.dynamic-report-table tbody tr:hover{background:#eef5fb;}
+.dynamic-report-table tfoot td,.dynamic-report-table td.tot{background:#ddebf7;font-weight:700;}
+.dynamic-report-vahan-row td{background:#eae3f2;}
+.dynamic-report-empty,.dynamic-report-empty-box{text-align:center!important;color:#777;font-style:italic;padding:18px!important;}
+.dynamic-report-empty-box{border:1px solid #dee2e6;border-radius:6px;background:#f8f9fa;}
+.matrix-scroll{max-height:560px;}
+.matrix-table th{min-width:88px;}
+.master-table th,.master-table td{font-size:11px;}
+.master-table thead th{white-space:normal;min-width:95px;}
+.master-table thead th:first-child{min-width:45px;}
+
+@media (max-width: 768px){
+  .dynamic-report-heading{padding:13px 14px;align-items:flex-start;flex-direction:column;}
+  .dynamic-report-content{padding:10px;}
+  .dynamic-report-tabs button{padding:9px 14px;font-size:12px;}
+  .dynamic-report-filterbar{gap:6px;}
+  .dynamic-report-filter-btn,.dynamic-report-clear-btn{font-size:11px;padding:6px 8px;}
+  .dynamic-report-filter-menu{position:fixed;left:10px;right:10px;top:120px;width:auto;max-width:none;}
+  .dynamic-report-view-row{flex-wrap:wrap;}
+  .dynamic-report-table{font-size:11px;}
+  .dynamic-report-table th,.dynamic-report-table td{padding:5px 6px;}
+}
+
+/* ================================================================
+   RESPONSIVE TABLE OVERRIDE
+   Tables use the same compact, fluid behaviour as the Registration UI.
+   No horizontal table scrolling is used.
+   ================================================================ */
+.dynamic-report-table-scroll,
+.dynamic-report-table-scroll.matrix-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  overflow-y: visible;
+  box-sizing: border-box;
+}
+
+.dynamic-report-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+}
+
+.dynamic-report-table th,
+.dynamic-report-table td {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+  box-sizing: border-box;
+}
+
+.dynamic-report-table thead th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Master has many fields, so use compact proportional columns on desktop. */
+.master-table th:first-child,
+.master-table td:first-child { width: 4%; }
+.master-table th:nth-child(2),
+.master-table td:nth-child(2) { width: 7%; }
+.master-table th:nth-child(3),
+.master-table td:nth-child(3) { width: 7%; }
+.master-table th:nth-child(4),
+.master-table td:nth-child(4) { width: 7%; }
+.master-table th:nth-child(5),
+.master-table td:nth-child(5) { width: 7%; }
+.master-table th:nth-child(6),
+.master-table td:nth-child(6) { width: 7%; }
+.master-table th:nth-child(7),
+.master-table td:nth-child(7) { width: 5%; }
+.master-table th:nth-child(8),
+.master-table td:nth-child(8) { width: 6%; }
+.master-table th:nth-child(9),
+.master-table td:nth-child(9) { width: 6%; }
+.master-table th:nth-child(10),
+.master-table td:nth-child(10) { width: 6%; }
+.master-table th:nth-child(11),
+.master-table td:nth-child(11) { width: 6%; }
+.master-table th:nth-child(12),
+.master-table td:nth-child(12) { width: 7%; }
+.master-table th:nth-child(13),
+.master-table td:nth-child(13) { width: 7%; }
+.master-table th:nth-child(14),
+.master-table td:nth-child(14) { width: 7%; }
+.master-table th:nth-child(15),
+.master-table td:nth-child(15) { width: 7%; }
+.master-table th:nth-child(16),
+.master-table td:nth-child(16) { width: 7%; }
+.master-table th:nth-child(17),
+.master-table td:nth-child(17) { width: 6%; }
+
+/* Matrix reports: force every generated column to share available width. */
+.matrix-table th,
+.matrix-table td {
+  min-width: 0 !important;
+  width: auto;
+  padding: 5px 3px !important;
+  font-size: 10px !important;
+}
+
+.matrix-table thead th {
+  font-size: 9.5px !important;
+  line-height: 1.15;
+}
+
+@media (max-width: 1200px) {
+  .dynamic-report-content { padding: 12px; }
+
+  .dynamic-report-table {
+    font-size: 10.5px !important;
+  }
+
+  .dynamic-report-table th,
+  .dynamic-report-table td {
+    padding: 5px 4px !important;
+    line-height: 1.25;
+  }
+
+  .master-table thead th {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .dynamic-report-section {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .dynamic-report-content {
+    padding: 8px !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dynamic-report-table-scroll,
+  .dynamic-report-table-scroll.matrix-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    border: 1px solid #bfbfbf;
+    border-radius: 4px;
+  }
+
+  .dynamic-report-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    font-size: 9px !important;
+  }
+
+  .dynamic-report-table th,
+  .dynamic-report-table td {
+    padding: 4px 2px !important;
+    font-size: 9px !important;
+    line-height: 1.2;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .dynamic-report-table thead th {
+    font-size: 8.5px !important;
+    line-height: 1.1;
+  }
+
+  .master-table th,
+  .master-table td {
+    min-width: 0 !important;
+  }
+
+  .matrix-table th,
+  .matrix-table td {
+    padding: 3px 1px !important;
+    font-size: 7.5px !important;
+  }
+
+  .matrix-table thead th {
+    font-size: 7px !important;
+  }
+
+  .dynamic-report-tabs {
+    overflow-x: hidden !important;
+    flex-wrap: wrap;
+  }
+
+  .dynamic-report-tabs button {
+    flex: 1 1 auto;
+    min-width: 20%;
+    padding: 8px 5px !important;
+    font-size: 10px !important;
+    white-space: normal !important;
+    line-height: 1.15;
+  }
+
+  .dynamic-report-filterbar {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dynamic-report-filter-wrap,
+  .dynamic-report-filter-btn,
+  .dynamic-report-clear-btn {
+    max-width: 100%;
+  }
+
+  .dynamic-report-filter-btn {
+    white-space: normal;
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dynamic-report-heading h4 { font-size: .9rem; }
+  .dynamic-report-heading p { font-size: .65rem; }
+  .dynamic-report-record-badge { font-size: .65rem; padding: 5px 8px; }
+
+  .dynamic-report-table th,
+  .dynamic-report-table td {
+    padding: 3px 1px !important;
+    font-size: 7.5px !important;
+  }
+
+  .dynamic-report-table thead th {
+    font-size: 7px !important;
+  }
+
+  .matrix-table th,
+  .matrix-table td {
+    font-size: 6.5px !important;
+    padding: 2px 1px !important;
+  }
+
+  .matrix-table thead th {
+    font-size: 6px !important;
+  }
+}
+
+
+/* ============================================================
+   FINAL TABLE RESPONSIVENESS
+   - Tables stay within the container when they can fit.
+   - If the table has more columns/content than the viewport,
+     horizontal scrolling appears automatically.
+   - Vertical scrolling is retained for long datasets.
+   ============================================================ */
+
+.dynamic-report-table-scroll,
+.dynamic-report-table-scroll.matrix-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+}
+
+/* Let the browser calculate the real table width from its content.
+   This means no scrollbar when the table fits, but a scrollbar when
+   the content is wider than the available container. */
+.dynamic-report-table {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  table-layout: auto !important;
+}
+
+/* Normal cells may wrap when there is enough room. */
+.dynamic-report-table th,
+.dynamic-report-table td {
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+/* Master has many columns, so preserve readable minimum widths.
+   The wrapper will scroll only when these widths exceed the viewport. */
+.master-table {
+  min-width: 1250px !important;
+}
+
+.matrix-table {
+  min-width: 850px !important;
+}
+
+/* Small screens: keep tables readable instead of squeezing every
+   column into a few pixels. The parent wrapper provides horizontal
+   scrolling when required. */
+@media (max-width: 992px) {
+  .dynamic-report-table-scroll,
+  .dynamic-report-table-scroll.matrix-scroll {
+    overflow-x: auto !important;
+  }
+
+  .master-table {
+    min-width: 1250px !important;
+  }
+
+  .matrix-table {
+    min-width: 850px !important;
+  }
+
+  .dynamic-report-table th,
+  .dynamic-report-table td {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .dynamic-report-table-scroll,
+  .dynamic-report-table-scroll.matrix-scroll {
+    overflow-x: auto !important;
+    width: 100% !important;
+  }
+
+  .master-table {
+    min-width: 1250px !important;
+  }
+
+  .matrix-table {
+    min-width: 850px !important;
+  }
+
+  .dynamic-report-table th,
+  .dynamic-report-table td {
+    white-space: nowrap !important;
+  }
+
+  /* Keep the scrollbar visible/usable on touch and desktop browsers. */
+  .dynamic-report-table-scroll::-webkit-scrollbar,
+  .dynamic-report-table-scroll.matrix-scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .dynamic-report-table-scroll::-webkit-scrollbar-thumb,
+  .dynamic-report-table-scroll.matrix-scroll::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+  }
+}
+
+/* Summary and mapping tables are naturally compact and should not
+   be forced wider than necessary. They will still scroll if their
+   actual content becomes wider than the viewport. */
+.dynamic-report-panel .dynamic-report-table:not(.master-table):not(.matrix-table) {
+  min-width: 100% !important;
+  width: max-content !important;
+}
+
+
+/* ============================================================
+   UPPER DASHBOARD FILTERS
+   Same checkbox/multi-select appearance and behavior as
+   the filters inside "विस्तृत रिपोर्ट".
+   ============================================================ */
+.dashboard-report-filter-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.dashboard-report-filter-button {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-report-filter-button:hover,
+.dashboard-report-filter-button.filtered {
+  border-color: #194e8b;
+  box-shadow: 0 0 0 2px rgba(25, 78, 139, 0.08);
+}
+
+.dashboard-report-filter-button-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.dashboard-report-filter-count {
+  background: #e8f0f8;
+  color: #194e8b;
+  border-radius: 12px;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.dashboard-report-filter-arrow {
+  font-size: 0.65rem;
+  color: #194e8b;
+}
+
+.dashboard-report-filter-menu {
+  position: absolute;
+  z-index: 10000;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 280px;
+  max-height: 360px;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 7px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+
+.dashboard-report-filter-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8f9fa;
+}
+
+.dashboard-report-filter-actions button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.dashboard-report-filter-actions button:hover {
+  background: #e8f0f8;
+  border-color: #194e8b;
+}
+
+.dashboard-report-filter-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.dashboard-report-filter-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  margin: 0;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.dashboard-report-filter-option:hover {
+  background: #f1f5f9;
+}
+
+.dashboard-report-filter-option input {
+  margin-top: 2px;
+  accent-color: #194e8b;
+}
+
+.dashboard-report-filter-empty {
+  padding: 14px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 576px) {
+  .dashboard-report-filter-menu {
+    min-width: 240px;
+  }
+}
+
+/* ============================================================
+   FILTER DROPDOWN OVERFLOW / FLOATING FIX
+   The menu must stay above the next statistics container.
+   ============================================================ */
+.filter-card,
+.filter-card .card-body,
+.filter-card .row,
+.filter-card [class*="col-"],
+.dashboard-report-filter-wrap {
+  overflow: visible !important;
+}
+
+.filter-card {
+  position: relative;
+  z-index: 50;
+}
+
+.dashboard-report-filter-wrap {
+  z-index: 100;
+}
+
+.dashboard-report-filter-menu {
+  z-index: 99999 !important;
+}
+
+.stats-row,
+.total-amount-card,
+.summary-table-card {
+  position: relative;
+  z-index: 1;
+}
+
+/* Do not let the dashboard content clip an opened dropdown. */
+.container,
+.container-fluid,
+.dashboard-content,
+.main-content,
+.content-wrapper {
+  overflow: visible !important;
 }

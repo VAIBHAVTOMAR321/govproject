@@ -215,7 +215,7 @@ label .r{
 input,
 select,
 textarea{
-  width:100%;
+  /* width:100%; */
   padding:10px;
   font-size:14.5px;
   font-family:var(--f);

@@ -43,67 +43,69 @@ const API_URL =
 // Hindi translations for form
 const translations = {
   pageTitle: "मुख्य डैशबोर्ड",
-  centerName: "केंद्र",
-  investmentName: "निवेश",
-  subInvestmentName: "उप-निवेश",
+  centerName: "केंद्र का नाम",
+  investmentName: "मद का नाम",
+  subInvestmentName: "उप-मद का नाम",
   sourceOfReceipt: "सप्लायर",
-  schemeName: "योजना ",
-  vikasKhandName: "विकास खंड",
-  vidhanSabhaName: "विधानसभा",
+  schemeName: "क्रय योजना का नाम",
+  vikasKhandName: "विकास खंड का नाम",
+  vidhanSabhaName: "विधानसभा का नाम",
+  unit: "इकाई",
+  allocatedQuantity: "आवंटित मात्रा",
+  rate: "क्रय दर (प्रति इकाई)",
+  farmerSellingRate: "कृषक विक्रय दर (प्रति इकाई)",
+  farmerSubsidyRate: "कृषक अनुदान दर (प्रति इकाई)",
+  amountOfFarmerShare: "कृषक अंश (रु0)",
+  amountOfSubsidy: "अनुदान राशि (रु0)",
+  totalAmount: "कुल राशि (रु0)",
+  anudanName: "अनुदान वहन योजना",
+  remark: "रिमार्क",
+  billDate: "पंजीकरण तिथि",
   selectOption: "चुनें",
 };
 
 // Define the table column order
 const tableColumnOrder = [
-  "vikas_khand_name",
   "center_name",
   "vidhan_sabha_name",
+  "vikas_khand_name",
   "scheme_name",
   "source_of_receipt",
   "investment_name",
   "sub_investment_name",
   "unit",
   "allocated_quantity",
+  "rate",
+  "farmer_selling_rate",
+  "farmer_subsidy_rate",
   "amount_of_farmer_share",
   "amount_of_subsidy",
   "total_amount",
+  "anudan_name",
+  "remark",
   "bill_date",
 ];
 
 // Column definitions
 const columnDefs = {
   center_name: { label: translations.centerName, key: "center_name" },
-  vidhan_sabha_name: {
-    label: translations.vidhanSabhaName,
-    key: "vidhan_sabha_name",
-  },
-  vikas_khand_name: {
-    label: translations.vikasKhandName,
-    key: "vikas_khand_name",
-  },
+  vidhan_sabha_name: { label: translations.vidhanSabhaName, key: "vidhan_sabha_name" },
+  vikas_khand_name: { label: translations.vikasKhandName, key: "vikas_khand_name" },
   scheme_name: { label: translations.schemeName, key: "scheme_name" },
-  source_of_receipt: {
-    label: translations.sourceOfReceipt,
-    key: "source_of_receipt",
-  },
-  investment_name: {
-    label: translations.investmentName,
-    key: "investment_name",
-  },
-  sub_investment_name: {
-    label: translations.subInvestmentName,
-    key: "sub_investment_name",
-  },
-  unit: { label: "इकाई", key: "unit" },
-  bill_date: { label: "पंजीकरण तिथि", key: "bill_date" },
-  allocated_quantity: { label: "आवंटित मात्रा", key: "allocated_quantity" },
-  rate: { label: "दर", key: "rate", hidden: true },
-  amount_of_farmer_share: {
-    label: "किसान की हिस्सेदारी की राशि",
-    key: "amount_of_farmer_share",
-  },
-  amount_of_subsidy: { label: "सब्सिडी की राशि", key: "amount_of_subsidy" },
-  total_amount: { label: "कुल राशि", key: "total_amount" },
+  source_of_receipt: { label: translations.sourceOfReceipt, key: "source_of_receipt" },
+  investment_name: { label: translations.investmentName, key: "investment_name" },
+  sub_investment_name: { label: translations.subInvestmentName, key: "sub_investment_name" },
+  unit: { label: translations.unit, key: "unit" },
+  allocated_quantity: { label: translations.allocatedQuantity, key: "allocated_quantity" },
+  rate: { label: translations.rate, key: "rate" },
+  farmer_selling_rate: { label: translations.farmerSellingRate, key: "farmer_selling_rate" },
+  farmer_subsidy_rate: { label: translations.farmerSubsidyRate, key: "farmer_subsidy_rate" },
+  amount_of_farmer_share: { label: translations.amountOfFarmerShare, key: "amount_of_farmer_share" },
+  amount_of_subsidy: { label: translations.amountOfSubsidy, key: "amount_of_subsidy" },
+  total_amount: { label: translations.totalAmount, key: "total_amount" },
+  anudan_name: { label: translations.anudanName, key: "anudan_name" },
+  remark: { label: translations.remark, key: "remark" },
+  bill_date: { label: translations.billDate, key: "bill_date" },
 };
 
 // Helper function to return the default financial year date range
@@ -261,7 +263,8 @@ const MainDashboard = () => {
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
-    unit: [], // Keep for filtering but not display
+    unit: [],
+    anudan_name: [],
   });
 
   // State for date range filter
@@ -277,7 +280,11 @@ const MainDashboard = () => {
     scheme_name: false,
     vikas_khand_name: false,
     vidhan_sabha_name: false,
-    unit: false, // Keep for filtering but not display
+    unit: false,
+    farmer_selling_rate: false,
+    farmer_subsidy_rate: false,
+    anudan_name: false,
+    remark: false,
   });
 
   // State for filter options (populated from API)
@@ -289,7 +296,8 @@ const MainDashboard = () => {
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
-    unit: [], // Keep for filtering but not display
+    unit: [],
+    anudan_name: [],
   });
 
   // State for detailed view
@@ -348,6 +356,7 @@ const MainDashboard = () => {
     source_of_receipt: [],
     investment_name: [],
     sub_investment_name: [],
+    anudan_name: [],
   });
 
   // State for graph filter dropdown visibility
@@ -804,8 +813,8 @@ const MainDashboard = () => {
             .map((key) => columnDefs[key].label),
           "इकाई",
           "आवंटित मात्रा",
-          "कृषक धनराशि",
-          "सब्सिडी धनराशि",
+          "कृषक अंश (रु0)",
+          "अनुदान राशि (रु0)",
           "कुल राशि",
         ].filter((col) => col && col.trim() !== ""); // Filter out empty columns
 
@@ -1840,8 +1849,8 @@ const MainDashboard = () => {
           )
           .map((key) => columnDefs[key].label),
         "आवंटित मात्रा",
-        "कृषक धनराशि",
-        "सब्सिडी धनराशि",
+        "कृषक अंश (रु0)",
+        "अनुदान राशि (रु0)",
         "कुल राशि",
       ];
 
@@ -2087,6 +2096,26 @@ const MainDashboard = () => {
             ),
           ],
           unit: [...new Set(data.map((item) => item.unit).filter(Boolean))],
+          farmer_selling_rate: [
+            ...new Set(
+              data
+                .map((item) => item.farmer_selling_rate)
+                .filter((v) => v !== null && v !== undefined && v !== ""),
+            ),
+          ],
+          farmer_subsidy_rate: [
+            ...new Set(
+              data
+                .map((item) => item.farmer_subsidy_rate)
+                .filter((v) => v !== null && v !== undefined && v !== ""),
+            ),
+          ],
+          anudan_name: [
+            ...new Set(data.map((item) => item.anudan_name).filter(Boolean)),
+          ],
+          remark: [
+            ...new Set(data.map((item) => item.remark).filter(Boolean)),
+          ],
         };
 
         setTableData(data);
@@ -2119,7 +2148,8 @@ const MainDashboard = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
-      unit: [], // Keep for filtering but not display
+      unit: [],
+      anudan_name: [],
     };
     setFilters(clearedFilters);
     setDateFilter({ start, end });
@@ -2497,8 +2527,16 @@ const MainDashboard = () => {
           filters.source_of_receipt.includes(item.source_of_receipt)) &&
         (filters.scheme_name.length === 0 ||
           filters.scheme_name.includes(item.scheme_name)) &&
-        (filters.unit.length === 0 || // Keep for filtering but not display
-          filters.unit.includes(item.unit))
+        (filters.unit.length === 0 ||
+          filters.unit.includes(item.unit)) &&
+        (filters.farmer_selling_rate.length === 0 ||
+          filters.farmer_selling_rate.map(String).includes(String(item.farmer_selling_rate))) &&
+        (filters.farmer_subsidy_rate.length === 0 ||
+          filters.farmer_subsidy_rate.map(String).includes(String(item.farmer_subsidy_rate))) &&
+        (filters.anudan_name.length === 0 ||
+          filters.anudan_name.includes(item.anudan_name)) &&
+        (filters.remark.length === 0 ||
+          filters.remark.includes(item.remark))
       );
     });
 
@@ -2576,6 +2614,10 @@ const MainDashboard = () => {
     filters.vikas_khand_name,
     filters.vidhan_sabha_name,
     filters.unit,
+    filters.farmer_selling_rate,
+    filters.farmer_subsidy_rate,
+    filters.anudan_name,
+    filters.remark,
   ]);
 
   // Update graph when main table data changes
@@ -2679,13 +2721,13 @@ const MainDashboard = () => {
             0,
           )
           .toFixed(2),
-        "कृषक धनराशि": dataForValue
+        "कृषक अंश (रु0)": dataForValue
           .reduce(
             (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
             0,
           )
           .toFixed(2),
-        "सब्सिडी धनराशि": dataForValue
+        "अनुदान राशि (रु0)": dataForValue
           .reduce(
             (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
             0,
@@ -2706,11 +2748,11 @@ const MainDashboard = () => {
     totalRow["आवंटित मात्रा"] = summaryData
       .reduce((sum, row) => sum + (parseFloat(row["आवंटित मात्रा"]) || 0), 0)
       .toFixed(2);
-    totalRow["कृषक धनराशि"] = summaryData
-      .reduce((sum, row) => sum + (parseFloat(row["कृषक धनराशि"]) || 0), 0)
+    totalRow["कृषक अंश (रु0)"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["कृषक अंश (रु0)"]) || 0), 0)
       .toFixed(2);
-    totalRow["सब्सिडी धनराशि"] = summaryData
-      .reduce((sum, row) => sum + (parseFloat(row["सब्सिडी धनराशि"]) || 0), 0)
+    totalRow["अनुदान राशि (रु0)"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["अनुदान राशि (रु0)"]) || 0), 0)
       .toFixed(2);
     totalRow["कुल राशि"] = summaryData
       .reduce((sum, row) => sum + (parseFloat(row["कुल राशि"]) || 0), 0)
@@ -2760,8 +2802,8 @@ const MainDashboard = () => {
       columnDefs[column]?.label,
       ...filteredVisibleColumns,
       "आवंटित मात्रा",
-      "कृषक धनराशि",
-      "सब्सिडी धनराशि",
+      "कृषक अंश (रु0)",
+      "अनुदान राशि (रु0)",
       "कुल राशि",
     ];
 
@@ -2797,9 +2839,9 @@ const MainDashboard = () => {
 
     // Determine which amount field to use based on rashiType
     const amountField =
-      rashiType === "कृषक धनराशि"
+      rashiType === "कृषक अंश (रु0)"
         ? "amount_of_farmer_share"
-        : rashiType === "सब्सिडी धनराशि"
+        : rashiType === "अनुदान राशि (रु0)"
           ? "amount_of_subsidy"
           : "total_amount";
 
@@ -2857,13 +2899,13 @@ const MainDashboard = () => {
           0,
         )
         .toFixed(2);
-      row["कृषक धनराशि"] = groupData
+      row["कृषक अंश (रु0)"] = groupData
         .reduce(
           (acc, item) => acc + (parseFloat(item.amount_of_farmer_share) || 0),
           0,
         )
         .toFixed(2);
-      row["सब्सिडी धनराशि"] = groupData
+      row["अनुदान राशि (रु0)"] = groupData
         .reduce(
           (acc, item) => acc + (parseFloat(item.amount_of_subsidy) || 0),
           0,
@@ -2888,11 +2930,11 @@ const MainDashboard = () => {
     totalRow["आवंटित मात्रा"] = rows
       .reduce((sum, row) => sum + (parseFloat(row["आवंटित मात्रा"]) || 0), 0)
       .toFixed(2);
-    totalRow["कृषक धनराशि"] = rows
-      .reduce((sum, row) => sum + (parseFloat(row["कृषक धनराशि"]) || 0), 0)
+    totalRow["कृषक अंश (रु0)"] = rows
+      .reduce((sum, row) => sum + (parseFloat(row["कृषक अंश (रु0)"]) || 0), 0)
       .toFixed(2);
-    totalRow["सब्सिडी धनराशि"] = rows
-      .reduce((sum, row) => sum + (parseFloat(row["सब्सिडी धनराशि"]) || 0), 0)
+    totalRow["अनुदान राशि (रु0)"] = rows
+      .reduce((sum, row) => sum + (parseFloat(row["अनुदान राशि (रु0)"]) || 0), 0)
       .toFixed(2);
     totalRow["कुल राशि"] = rows
       .reduce((sum, row) => sum + (parseFloat(row["कुल राशि"]) || 0), 0)
@@ -2904,8 +2946,8 @@ const MainDashboard = () => {
       groupLabel,
       ...dynamicColumns.flatMap((col) => [`${col}_मात्रा`, `${col}_राशि`]),
       "आवंटित मात्रा",
-      "कृषक धनराशि",
-      "सब्सिडी धनराशि",
+      "कृषक अंश (रु0)",
+      "अनुदान राशि (रु0)",
       "कुल राशि",
     ];
 
@@ -2952,7 +2994,7 @@ const MainDashboard = () => {
               ? "विधानसभा"
               : "विकास खंड";
         const columnLabel =
-          vidhanSabhaColumnType === "investment_name" ? "निवेश" : "उप-निवेश";
+          vidhanSabhaColumnType === "investment_name" ? "मद" : "उप-मद";
         const heading = `${groupLabel} ${columnLabel} तालिका`;
         setAdditionalTables((prev) => {
           const existingIndex = prev.findIndex(
@@ -3139,6 +3181,7 @@ const MainDashboard = () => {
       source_of_receipt: [],
       investment_name: [],
       sub_investment_name: [],
+      anudan_name: [],
     });
   };
 
@@ -3486,72 +3529,39 @@ const MainDashboard = () => {
   // Get current table data with totals for export
   const getCurrentTableData = () => {
     if (view === "main") {
-      // Calculate totals for the main table
-      const totals = {
-        "केंद्र का नाम": new Set(
-          filteredTableData.map((item) => item.center_name),
-        ).size,
-        विधानसभा: new Set(
-          filteredTableData.map((item) => item.vidhan_sabha_name),
-        ).size,
-        "विकास खंड": new Set(
-          filteredTableData.map((item) => item.vikas_khand_name),
-        ).size,
-        योजना: new Set(filteredTableData.map((item) => item.scheme_name)).size,
-        सप्लायर: new Set(
-          filteredTableData.map((item) => item.source_of_receipt),
-        ).size,
-        निवेश: new Set(filteredTableData.map((item) => item.investment_name))
-          .size,
-        "उप-निवेश": new Set(
-          filteredTableData.map((item) => item.sub_investment_name),
-        ).size,
-        "आवंटित मात्रा": filteredTableData
-          .reduce(
-            (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
-            0,
-          )
-          .toFixed(2),
-        "किसान की हिस्सेदारी की राशि": filteredTableData
-          .reduce(
-            (sum, item) => sum + (parseFloat(item.amount_of_farmer_share) || 0),
-            0,
-          )
-          .toFixed(2),
-        "सब्सिडी की राशि": filteredTableData
-          .reduce(
-            (sum, item) => sum + (parseFloat(item.amount_of_subsidy) || 0),
-            0,
-          )
-          .toFixed(2),
-        "कुल राशि": filteredTableData
-          .reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0)
-          .toFixed(2),
-      };
+      // Build totals dynamically from the same column definitions used by the
+      // Registration page. This keeps the dashboard synchronized when fields change.
+      const numericTotalColumns = new Set([
+        "allocated_quantity",
+        "rate",
+        "amount_of_farmer_share",
+        "amount_of_subsidy",
+        "total_amount",
+      ]);
 
-      // Also include totals for all column labels to ensure consistency
-      Object.keys(columnDefs).forEach((col) => {
-        const label = columnDefs[col].label;
-        if (!totals[label] && !columnDefs[col].hidden) {
-          if (
-            col === "allocated_quantity" ||
-            col === "rate" ||
-            col === "amount_of_farmer_share" ||
-            col === "amount_of_subsidy" ||
-            col === "total_amount"
-          ) {
+      const totals = {};
+      tableColumnOrder
+        .filter((col) => !columnDefs[col].hidden)
+        .forEach((col) => {
+          const label = columnDefs[col].label;
+          if (col === "bill_date") {
+            totals[label] = "";
+          } else if (numericTotalColumns.has(col)) {
             totals[label] = filteredTableData
-              .reduce((sum, item) => sum + (parseFloat(item[col]) || 0), 0)
+              .reduce(
+                (sum, item) => sum + (parseFloat(item[col]) || 0),
+                0,
+              )
               .toFixed(2);
           } else {
             totals[label] = new Set(
-              filteredTableData.map((item) => item[col]),
+              filteredTableData
+                .map((item) => item[col])
+                .filter((value) => value !== null && value !== undefined && value !== ""),
             ).size;
           }
-        }
-      });
+        });
 
-      // Use ALL columns for export (not just selected columns)
       const allColumns = tableColumnOrder
         .filter((col) => !columnDefs[col].hidden)
         .map((col) => columnDefs[col].label);
@@ -3560,8 +3570,9 @@ const MainDashboard = () => {
         heading: getSummaryHeading(),
         data: filteredTableData,
         columns: allColumns,
-        totals: totals,
+        totals,
       };
+
     } else if (view === "detail" && !showDetailed) {
       // Summary table view - Export with breakdown format matching the table display
       const baseData =
@@ -3697,8 +3708,8 @@ const MainDashboard = () => {
         };
 
         row["आवंटित मात्रा"] = rowTotals.allocated_quantity.toFixed(2);
-        row["कृषक धनराशि"] = rowTotals.amount_of_farmer_share.toFixed(2);
-        row["सब्सिडी धनराशि"] = rowTotals.amount_of_subsidy.toFixed(2);
+        row["कृषक अंश (रु0)"] = rowTotals.amount_of_farmer_share.toFixed(2);
+        row["अनुदान राशि (रु0)"] = rowTotals.amount_of_subsidy.toFixed(2);
         row["कुल राशि"] = rowTotals.total_amount.toFixed(2);
 
         summaryData.push(row);
@@ -3781,8 +3792,8 @@ const MainDashboard = () => {
 
       // Add monetary columns with grand total only for totals
       totalRow["आवंटित मात्रा"] = grandTotals.allocated_quantity.toFixed(2);
-      totalRow["कृषक धनराशि"] = grandTotals.amount_of_farmer_share.toFixed(2);
-      totalRow["सब्सिडी धनराशि"] = grandTotals.amount_of_subsidy.toFixed(2);
+      totalRow["कृषक अंश (रु0)"] = grandTotals.amount_of_farmer_share.toFixed(2);
+      totalRow["अनुदान राशि (रु0)"] = grandTotals.amount_of_subsidy.toFixed(2);
       totalRow["कुल राशि"] = grandTotals.total_amount.toFixed(2);
 
       // Add total row to summary data
@@ -3808,8 +3819,8 @@ const MainDashboard = () => {
                 )
                 .map((key) => columnDefs[key].label),
               "आवंटित मात्रा",
-              "कृषक धनराशि",
-              "सब्सिडी धनराशि",
+              "कृषक अंश (रु0)",
+              "अनुदान राशि (रु0)",
               "कुल राशि",
             ];
 
@@ -4027,10 +4038,10 @@ const MainDashboard = () => {
           if (
             col.startsWith("कुल") ||
             col === "आवंटित मात्रा" ||
-            col === "कृषक धनराशि" ||
-            col === "सब्सिडी धनराशि"
+            col === "कृषक अंश (रु0)" ||
+            col === "अनुदान राशि (रु0)"
           ) {
-            // Use the explicit total keys placed on the rows: "आवंटित मात्रा", "कृषक धनराशि", "सब्सिडी धनराशि", "कुल राशि"
+            // Use the explicit total keys placed on the rows: "आवंटित मात्रा", "कृषक अंश (रु0)", "अनुदान राशि (रु0)", "कुल राशि"
             const matraVal = parseFloat(row["आवंटित मात्रा"] || 0).toFixed(2);
             const darVal = parseFloat(row["कुल राशि"] || 0).toFixed(2);
             if (showMatra && showDar) newRow[col] = `${matraVal} / ${darVal}`;
@@ -4108,8 +4119,8 @@ const MainDashboard = () => {
         c !== table.columns[0] &&
         !c.startsWith("कुल") &&
         c !== "आवंटित मात्रा" &&
-        c !== "कृषक धनराशि" &&
-        c !== "सब्सिडी धनराशि",
+        c !== "कृषक अंश (रु0)" &&
+        c !== "अनुदान राशि (रु0)",
     );
 
     visibleColumns.forEach((col) => {
@@ -4178,7 +4189,7 @@ const MainDashboard = () => {
             )
             .toFixed(2);
         }
-      } else if (col === "कृषक धनराशि") {
+      } else if (col === "कृषक अंश (रु0)") {
         if (table.isAllocationTable) {
           totals[col] = filteredTableData
             .reduce(
@@ -4193,10 +4204,10 @@ const MainDashboard = () => {
             .toFixed(2);
         } else {
           totals[col] = filteredTableData
-            .reduce((sum, row) => sum + parseFloat(row["कृषक धनराशि"] || 0), 0)
+            .reduce((sum, row) => sum + parseFloat(row["कृषक अंश (रु0)"] || 0), 0)
             .toFixed(2);
         }
-      } else if (col === "सब्सिडी धनराशि") {
+      } else if (col === "अनुदान राशि (रु0)") {
         if (table.isAllocationTable) {
           totals[col] = filteredTableData
             .reduce(
@@ -4212,7 +4223,7 @@ const MainDashboard = () => {
         } else {
           totals[col] = filteredTableData
             .reduce(
-              (sum, row) => sum + parseFloat(row["सब्सिडी धनराशि"] || 0),
+              (sum, row) => sum + parseFloat(row["अनुदान राशि (रु0)"] || 0),
               0,
             )
             .toFixed(2);
@@ -4364,8 +4375,8 @@ const MainDashboard = () => {
       (c) =>
         (c.startsWith("कुल") ||
           c === "आवंटित मात्रा" ||
-          c === "कृषक धनराशि" ||
-          c === "सब्सिडी धनराशि") &&
+          c === "कृषक अंश (रु0)" ||
+          c === "अनुदान राशि (रु0)") &&
         c !== "कुल रिकॉर्ड",
     );
     const visibleClickedColsForExport = isRotated[index]
@@ -4470,15 +4481,15 @@ const MainDashboard = () => {
       (col) =>
         !col.startsWith("कुल") &&
         col !== "आवंटित मात्रा" &&
-        col !== "कृषक धनराशि" &&
-        col !== "सब्सिडी धनराशि",
+        col !== "कृषक अंश (रु0)" &&
+        col !== "अनुदान राशि (रु0)",
     );
     const summaryColsToInclude = allClickedCols.filter(
       (col) =>
         col.startsWith("कुल") ||
         col === "आवंटित मात्रा" ||
-        col === "कृषक धनराशि" ||
-        col === "सब्सिडी धनराशि",
+        col === "कृषक अंश (रु0)" ||
+        col === "अनुदान राशि (रु0)",
     );
 
     // For each visible dynamic column, create a transposed row
@@ -4623,7 +4634,7 @@ const MainDashboard = () => {
               table.showIkai,
               table.showDar,
             );
-          } else if (summaryCol === "कृषक धनराशि") {
+          } else if (summaryCol === "कृषक अंश (रु0)") {
             newRow[rh] = dynamicCols
               .reduce(
                 (s, c) =>
@@ -4631,7 +4642,7 @@ const MainDashboard = () => {
                 0,
               )
               .toFixed(2);
-          } else if (summaryCol === "सब्सिडी धनराशि") {
+          } else if (summaryCol === "अनुदान राशि (रु0)") {
             newRow[rh] = dynamicCols
               .reduce(
                 (s, c) =>
@@ -4687,7 +4698,7 @@ const MainDashboard = () => {
             newRow["कुल"] = `${matraTotal} / ${darTotal}`;
           else if (table.showDar) newRow["कुल"] = darTotal;
           else newRow["कुल"] = matraTotal;
-        } else if (summaryCol === "कृषक धनराशि") {
+        } else if (summaryCol === "कृषक अंश (रु0)") {
           newRow["कुल"] = rowHeaders
             .reduce((s, rh) => {
               const r = sourceData.find((rr) => rr[firstColLabel] === rh);
@@ -4701,7 +4712,7 @@ const MainDashboard = () => {
               );
             }, 0)
             .toFixed(2);
-        } else if (summaryCol === "सब्सिडी धनराशि") {
+        } else if (summaryCol === "अनुदान राशि (रु0)") {
           newRow["कुल"] = rowHeaders
             .reduce((s, rh) => {
               const r = sourceData.find((rr) => rr[firstColLabel] === rh);
@@ -5498,8 +5509,8 @@ const MainDashboard = () => {
       return tableData.reduce((sum, row) => sum + (row[column] || 0), 0);
     } else if (
       column === "आवंटित मात्रा" ||
-      column === "कृषक धनराशि" ||
-      column === "सब्सिडी धनराशि" ||
+      column === "कृषक अंश (रु0)" ||
+      column === "अनुदान राशि (रु0)" ||
       column === "कुल राशि"
     ) {
       return tableData
@@ -6029,7 +6040,7 @@ const MainDashboard = () => {
         if (schemeTable)
           openTables.push({
             element: schemeTable,
-            name: "योजना-वार कुल सब्सिडी तुलना",
+            name: "क्रय योजना-वार कुल सब्सिडी तुलना",
           });
       }
 
@@ -6038,7 +6049,7 @@ const MainDashboard = () => {
         if (investmentTable)
           openTables.push({
             element: investmentTable,
-            name: "निवेश - योजना सब्सिडी तुलना",
+            name: "मद - क्रय योजना सब्सिडी तुलना",
           });
       }
 
@@ -6049,7 +6060,7 @@ const MainDashboard = () => {
         if (subInvestmentTable)
           openTables.push({
             element: subInvestmentTable,
-            name: "उपनिवेश - योजना सब्सिडी तुलना",
+            name: "उप-मद - क्रय योजना सब्सिडी तुलना",
           });
       }
 
@@ -6195,7 +6206,7 @@ const MainDashboard = () => {
         if (schemeTable)
           openTables.push({
             element: schemeTable,
-            name: "योजना-वार कुल सब्सिडी तुलना",
+            name: "क्रय योजना-वार कुल सब्सिडी तुलना",
           });
       }
 
@@ -6204,7 +6215,7 @@ const MainDashboard = () => {
         if (investmentTable)
           openTables.push({
             element: investmentTable,
-            name: "निवेश - योजना सब्सिडी तुलना",
+            name: "मद - क्रय योजना सब्सिडी तुलना",
           });
       }
 
@@ -6215,7 +6226,7 @@ const MainDashboard = () => {
         if (subInvestmentTable)
           openTables.push({
             element: subInvestmentTable,
-            name: "उपनिवेश - योजना सब्सिडी तुलना",
+            name: "उप-मद - क्रय योजना सब्सिडी तुलना",
           });
       }
 
@@ -6541,8 +6552,8 @@ const MainDashboard = () => {
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
-        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
-        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
+        showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
       };
 
@@ -6551,13 +6562,13 @@ const MainDashboard = () => {
       if (visible.showVidhansabha) headers.push("विधानसभा");
       if (visible.showVikasKhand) headers.push("विकास खंड");
       if (visible.showKendra) headers.push("केंद्र");
-      if (visible.showYojana) headers.push("योजना");
-      if (visible.showNivesh) headers.push("निवेश");
-      if (visible.showUpNivesh) headers.push("उप-निवेश");
+      if (visible.showYojana) headers.push("क्रय योजना");
+      if (visible.showNivesh) headers.push("मद");
+      if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
       if (visible.showAllocated) headers.push("आवंटित मात्रा");
-      if (visible.showFarmer) headers.push("कृषक धनराशि");
-      if (visible.showSubsidy) headers.push("सब्सिडी धनराशि");
+      if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
+      if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
 
       // Get flattened rows with rowspan info
@@ -6908,8 +6919,8 @@ const MainDashboard = () => {
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
-        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
-        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
+        showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
       };
 
@@ -6918,13 +6929,13 @@ const MainDashboard = () => {
       if (visible.showVidhansabha) headers.push("विधानसभा");
       if (visible.showVikasKhand) headers.push("विकास खंड");
       if (visible.showKendra) headers.push("केंद्र");
-      if (visible.showYojana) headers.push("योजना");
-      if (visible.showNivesh) headers.push("निवेश");
-      if (visible.showUpNivesh) headers.push("उप-निवेश");
+      if (visible.showYojana) headers.push("क्रय योजना");
+      if (visible.showNivesh) headers.push("मद");
+      if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
       if (visible.showAllocated) headers.push("आवंटित मात्रा");
-      if (visible.showFarmer) headers.push("कृषक धनराशि");
-      if (visible.showSubsidy) headers.push("सब्सिडी धनराशि");
+      if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
+      if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
 
       const numCols = headers.length;
@@ -7192,10 +7203,10 @@ const MainDashboard = () => {
           h === "विधानसभा" ||
           h === "विकास खंड" ||
           h === "केंद्र" ||
-          h === "योजना"
+          h === "क्रय योजना"
         )
           return { wch: 25 };
-        if (h === "निवेश" || h === "उप-निवेश" || h === "इकाई")
+        if (h === "मद" || h === "उप-मद" || h === "इकाई")
           return { wch: 20 };
         return { wch: 18 };
       });
@@ -7273,8 +7284,8 @@ const MainDashboard = () => {
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
-        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
-        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
+        showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
       };
 
@@ -7283,13 +7294,13 @@ const MainDashboard = () => {
       if (visible.showVidhansabha) headers.push("विधानसभा");
       if (visible.showVikasKhand) headers.push("विकास खंड");
       if (visible.showKendra) headers.push("केंद्र");
-      if (visible.showYojana) headers.push("योजना");
-      if (visible.showNivesh) headers.push("निवेश");
-      if (visible.showUpNivesh) headers.push("उप-निवेश");
+      if (visible.showYojana) headers.push("क्रय योजना");
+      if (visible.showNivesh) headers.push("मद");
+      if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
       if (visible.showAllocated) headers.push("आवंटित मात्रा");
-      if (visible.showFarmer) headers.push("कृषक धनराशि");
-      if (visible.showSubsidy) headers.push("सब्सिडी धनराशि");
+      if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
+      if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
 
       // Get flattened rows with rowspan info
@@ -7503,8 +7514,8 @@ const MainDashboard = () => {
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
         showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
-        showFarmer: tableColumnFilters.summary.includes("कृषक धनराशि"),
-        showSubsidy: tableColumnFilters.summary.includes("सब्सिडी धनराशि"),
+        showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
+        showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
       };
 
@@ -7513,13 +7524,13 @@ const MainDashboard = () => {
       if (visible.showVidhansabha) headers.push("विधानसभा");
       if (visible.showVikasKhand) headers.push("विकास खंड");
       if (visible.showKendra) headers.push("केंद्र");
-      if (visible.showYojana) headers.push("योजना");
-      if (visible.showNivesh) headers.push("निवेश");
-      if (visible.showUpNivesh) headers.push("उप-निवेश");
+      if (visible.showYojana) headers.push("क्रय योजना");
+      if (visible.showNivesh) headers.push("मद");
+      if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
       if (visible.showAllocated) headers.push("आवंटित मात्रा");
-      if (visible.showFarmer) headers.push("कृषक धनराशि");
-      if (visible.showSubsidy) headers.push("सब्सिडी धनराशि");
+      if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
+      if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
 
       // Get flattened rows with rowspan info
@@ -8407,10 +8418,10 @@ const MainDashboard = () => {
       });
 
       // Add row totals in requested sequence:
-      // "आवंटित मात्रा", "कृषक धनराशि", "सब्सिडी धनराशि", "कुल राशि"
+      // "आवंटित मात्रा", "कृषक अंश (रु0)", "अनुदान राशि (रु0)", "कुल राशि"
       rowData["आवंटित मात्रा"] = rowTotal.toFixed(2);
-      rowData["कृषक धनराशि"] = rowFarmerTotal.toFixed(2);
-      rowData["सब्सिडी धनराशि"] = rowSubsidyTotal.toFixed(2);
+      rowData["कृषक अंश (रु0)"] = rowFarmerTotal.toFixed(2);
+      rowData["अनुदान राशि (रु0)"] = rowSubsidyTotal.toFixed(2);
       rowData["कुल राशि"] = rowDarTotal.toFixed(2);
       newTableData.push(rowData);
     });
@@ -8436,8 +8447,8 @@ const MainDashboard = () => {
     });
 
     totalRow["आवंटित मात्रा"] = grandTotal.toFixed(2);
-    totalRow["कृषक धनराशि"] = grandFarmerTotal.toFixed(2);
-    totalRow["सब्सिडी धनराशि"] = grandSubsidyTotal.toFixed(2);
+    totalRow["कृषक अंश (रु0)"] = grandFarmerTotal.toFixed(2);
+    totalRow["अनुदान राशि (रु0)"] = grandSubsidyTotal.toFixed(2);
     totalRow["कुल राशि"] = grandDarTotal.toFixed(2);
     newTableData.push(totalRow);
 
@@ -8446,8 +8457,8 @@ const MainDashboard = () => {
       columnDefs[firstColumnKey]?.label,
       ...clickedColumnValues,
       "आवंटित मात्रा",
-      "कृषक धनराशि",
-      "सब्सिडी धनराशि",
+      "कृषक अंश (रु0)",
+      "अनुदान राशि (रु0)",
       "कुल राशि",
     ];
 
@@ -8796,9 +8807,9 @@ const MainDashboard = () => {
                           <option value="center_name">केंद्र</option>
                           <option value="vidhan_sabha_name">विधानसभा</option>
                           <option value="vikas_khand_name">विकास खंड</option>
-                          <option value="scheme_name">योजना</option>
-                          <option value="investment_name">निवेश</option>
-                          <option value="sub_investment_name">उप-निवेश</option>
+                          <option value="scheme_name">क्रय योजना</option>
+                          <option value="investment_name">मद</option>
+                          <option value="sub_investment_name">उप-मद</option>
                         </Form.Select>
                       </Form.Group>
                     </Col>
@@ -8914,577 +8925,104 @@ const MainDashboard = () => {
                     </div>
                   )}
                   <Row>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.centerName}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" && toggleDropdown("center_name")
-                            }
-                          >
-                            {filters.center_name.length === 0
-                              ? translations.selectOption
-                              : `${filters.center_name.length} selected`}
-                          </button>
-                          {dropdownOpen.center_name && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
+                    {[
+                      "center_name",
+                      "vidhan_sabha_name",
+                      "vikas_khand_name",
+                      "scheme_name",
+                      "source_of_receipt",
+                      "investment_name",
+                      "sub_investment_name",
+                      "unit",
+                                                  "anudan_name",
+                                  ].map((filterKey) => (
+                      <Col lg={3} md={4} sm={6} key={filterKey}>
+                        <Form.Group className="mb-2">
+                          <Form.Label className="form-label fw-bold">
+                            {columnDefs[filterKey]?.label || filterKey}
+                          </Form.Label>
+                          <div className="dropdown" style={{ position: "relative" }}>
+                            <button
+                              className="btn btn-secondary dropdown-toggle drop-option-custom w-100"
+                              type="button"
+                              onClick={() =>
+                                view === "main" && toggleDropdown(filterKey)
+                              }
                             >
+                              {filters[filterKey].length === 0
+                                ? translations.selectOption
+                                : `${filters[filterKey].length} selected`}
+                            </button>
+
+                            {dropdownOpen[filterKey] && (
                               <div
-                                key="select_all_center"
-                                className="dropdown-item"
+                                className="dropdown-menu show"
+                                style={{
+                                  position: "absolute",
+                                  top: "100%",
+                                  left: 0,
+                                  zIndex: 1000,
+                                  width: "100%",
+                                  maxHeight: "250px",
+                                  overflowY: "auto",
+                                }}
                               >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.center_name.length > 0 &&
-                                    filters.center_name.length ===
-                                      filterOptions.center_name.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`center_name_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "center_name",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.center_name.map((option) => (
-                                <div key={option} className="dropdown-item">
+                                <div className="dropdown-item">
                                   <FormCheck
                                     className="check-box"
                                     type="checkbox"
-                                    id={`center_name_${option}`}
-                                    label={option}
-                                    checked={filters.center_name.includes(
-                                      option,
-                                    )}
+                                    id={`${filterKey}_SELECT_ALL`}
+                                    label={
+                                      filterOptions[filterKey].length > 0 &&
+                                      filters[filterKey].length ===
+                                        filterOptions[filterKey].length
+                                        ? "सभी हटाएं"
+                                        : "सभी चुनें"
+                                    }
+                                    checked={
+                                      filterOptions[filterKey].length > 0 &&
+                                      filters[filterKey].length ===
+                                        filterOptions[filterKey].length
+                                    }
                                     onChange={() =>
                                       handleCheckboxChange(
-                                        "center_name",
-                                        option,
+                                        filterKey,
+                                        "SELECT_ALL",
                                       )
                                     }
                                   />
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.vikasKhandName}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" &&
-                              toggleDropdown("vikas_khand_name")
-                            }
-                          >
-                            {filters.vikas_khand_name.length === 0
-                              ? translations.selectOption
-                              : `${filters.vikas_khand_name.length} selected`}
-                          </button>
-                          {dropdownOpen.vikas_khand_name && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
-                            >
-                              <div
-                                key="select_all_vikas"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.vikas_khand_name.length > 0 &&
-                                    filters.vikas_khand_name.length ===
-                                      filterOptions.vikas_khand_name.length;
-                                  return (
+
+                                {filterOptions[filterKey].map((option) => (
+                                  <div
+                                    key={`${filterKey}_${String(option)}`}
+                                    className="dropdown-item"
+                                  >
                                     <FormCheck
                                       className="check-box"
                                       type="checkbox"
-                                      id={`vikas_khand_name_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "vikas_khand_name",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.vikas_khand_name.map((option) => (
-                                <div key={option} className="dropdown-item">
-                                  <FormCheck
-                                    className="check-box"
-                                    type="checkbox"
-                                    id={`vikas_khand_name_${option}`}
-                                    label={option}
-                                    checked={filters.vikas_khand_name.includes(
-                                      option,
-                                    )}
-                                    onChange={() =>
-                                      handleCheckboxChange(
-                                        "vikas_khand_name",
-                                        option,
-                                      )
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.vidhanSabhaName}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom "
-                            type="button"
-                            onClick={() =>
-                              view === "main" &&
-                              toggleDropdown("vidhan_sabha_name")
-                            }
-                          >
-                            {filters.vidhan_sabha_name.length === 0
-                              ? translations.selectOption
-                              : `${filters.vidhan_sabha_name.length} selected`}
-                          </button>
-                          {dropdownOpen.vidhan_sabha_name && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
-                            >
-                              <div
-                                key="select_all_vidhan"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.vidhan_sabha_name.length >
-                                      0 &&
-                                    filters.vidhan_sabha_name.length ===
-                                      filterOptions.vidhan_sabha_name.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`vidhan_sabha_name_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "vidhan_sabha_name",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.vidhan_sabha_name.map((option) => (
-                                <div key={option} className="dropdown-item">
-                                  <FormCheck
-                                    className="check-box"
-                                    type="checkbox"
-                                    id={`vidhan_sabha_name_${option}`}
-                                    label={option}
-                                    checked={filters.vidhan_sabha_name.includes(
-                                      option,
-                                    )}
-                                    onChange={() =>
-                                      handleCheckboxChange(
-                                        "vidhan_sabha_name",
-                                        option,
-                                      )
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.investmentName}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" &&
-                              toggleDropdown("investment_name")
-                            }
-                          >
-                            {filters.investment_name.length === 0
-                              ? translations.selectOption
-                              : `${filters.investment_name.length} selected`}
-                          </button>
-                          {dropdownOpen.investment_name && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
-                            >
-                              <div
-                                key="select_all_investment"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.investment_name.length > 0 &&
-                                    filters.investment_name.length ===
-                                      filterOptions.investment_name.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`investment_name_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "investment_name",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.investment_name.map((option) => (
-                                <div key={option} className="dropdown-item">
-                                  <FormCheck
-                                    className="check-box"
-                                    type="checkbox"
-                                    id={`investment_name_${option}`}
-                                    label={option}
-                                    checked={filters.investment_name.includes(
-                                      option,
-                                    )}
-                                    onChange={() =>
-                                      handleCheckboxChange(
-                                        "investment_name",
-                                        option,
-                                      )
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.subInvestmentName}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" &&
-                              toggleDropdown("sub_investment_name")
-                            }
-                          >
-                            {filters.sub_investment_name.length === 0
-                              ? translations.selectOption
-                              : `${filters.sub_investment_name.length} selected`}
-                          </button>
-                          {dropdownOpen.sub_investment_name && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
-                            >
-                              <div
-                                key="select_all_sub_investment"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.sub_investment_name.length >
-                                      0 &&
-                                    filters.sub_investment_name.length ===
-                                      filterOptions.sub_investment_name.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`sub_investment_name_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "sub_investment_name",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.sub_investment_name.map(
-                                (option) => (
-                                  <div key={option} className="dropdown-item">
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`sub_investment_name_${option}`}
-                                      label={option}
-                                      checked={filters.sub_investment_name.includes(
-                                        option,
+                                      id={`${filterKey}_${String(option)}`}
+                                      label={String(option)}
+                                      checked={filters[filterKey].some(
+                                        (v) => String(v) === String(option),
                                       )}
                                       onChange={() =>
                                         handleCheckboxChange(
-                                          "sub_investment_name",
+                                          filterKey,
                                           option,
                                         )
                                       }
                                     />
                                   </div>
-                                ),
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.sourceOfReceipt}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" &&
-                              toggleDropdown("source_of_receipt")
-                            }
-                          >
-                            {filters.source_of_receipt.length === 0
-                              ? translations.selectOption
-                              : `${filters.source_of_receipt.length} selected`}
-                          </button>
-                          {dropdownOpen.source_of_receipt && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
-                            >
-                              <div
-                                key="select_all_source"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.source_of_receipt.length >
-                                      0 &&
-                                    filters.source_of_receipt.length ===
-                                      filterOptions.source_of_receipt.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`source_of_receipt_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "source_of_receipt",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
+                                ))}
                               </div>
-                              {filterOptions.source_of_receipt.map((option) => (
-                                <div key={option} className="dropdown-item">
-                                  <FormCheck
-                                    className="check-box"
-                                    type="checkbox"
-                                    id={`source_of_receipt_${option}`}
-                                    label={option}
-                                    checked={filters.source_of_receipt.includes(
-                                      option,
-                                    )}
-                                    onChange={() =>
-                                      handleCheckboxChange(
-                                        "source_of_receipt",
-                                        option,
-                                      )
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                    <Col>
-                      <Form.Group className="mb-2">
-                        <Form.Label className="form-label fw-bold">
-                          {translations.schemeName}
-                        </Form.Label>
-                        <div className="dropdown">
-                          <button
-                            className="btn btn-secondary dropdown-toggle drop-option-custom"
-                            type="button"
-                            onClick={() =>
-                              view === "main" && toggleDropdown("scheme_name")
-                            }
-                          >
-                            {filters.scheme_name.length === 0
-                              ? translations.selectOption
-                              : `${filters.scheme_name.length} selected`}
-                          </button>
-                          {dropdownOpen.scheme_name && (
-                            <div
-                              className="dropdown-menu show"
-                              style={{
-                                position: "absolute",
-                                top: "100%",
-                                zIndex: 1000,
-                                maxHeight: "250px",
-                                overflowY: "auto",
-                              }}
-                            >
-                              <div
-                                key="select_all_scheme"
-                                className="dropdown-item"
-                              >
-                                {(() => {
-                                  const allSelected =
-                                    filterOptions.scheme_name.length > 0 &&
-                                    filters.scheme_name.length ===
-                                      filterOptions.scheme_name.length;
-                                  return (
-                                    <FormCheck
-                                      className="check-box"
-                                      type="checkbox"
-                                      id={`scheme_name_SELECT_ALL`}
-                                      label={
-                                        allSelected ? "सभी हटाएं" : "सभी चुनें"
-                                      }
-                                      checked={allSelected}
-                                      onChange={() =>
-                                        handleCheckboxChange(
-                                          "scheme_name",
-                                          "SELECT_ALL",
-                                        )
-                                      }
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              {filterOptions.scheme_name.map((option) => (
-                                <div key={option} className="dropdown-item">
-                                  <FormCheck
-                                    className="check-box"
-                                    type="checkbox"
-                                    id={`scheme_name_${option}`}
-                                    label={option}
-                                    checked={filters.scheme_name.includes(
-                                      option,
-                                    )}
-                                    onChange={() =>
-                                      handleCheckboxChange(
-                                        "scheme_name",
-                                        option,
-                                      )
-                                    }
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
+                            )}
+                          </div>
+                        </Form.Group>
+                      </Col>
+                    ))}
                   </Row>
+
                   <div className="d-flex gap-2 justify-content-end mt-2">
                     <Button
                       variant="primary"
@@ -10241,8 +9779,8 @@ const MainDashboard = () => {
                                                 (key) => columnDefs[key].label,
                                               ),
                                             "आवंटित मात्रा",
-                                            "कृषक धनराशि",
-                                            "सब्सिडी धनराशि",
+                                            "कृषक अंश (रु0)",
+                                            "अनुदान राशि (रु0)",
                                             "कुल राशि",
                                           ]}
                                           selectedColumns={
@@ -10557,14 +10095,14 @@ const MainDashboard = () => {
                                               "आवंटित मात्रा",
                                             ) && <th>आवंटित मात्रा</th>}
                                             {tableColumnFilters.summary.includes(
-                                              "कृषक धनराशि",
+                                              "कृषक अंश (रु0)",
                                             ) && <th>कृषक धनराशि</th>}
                                             {tableColumnFilters.summary.includes(
-                                              "सब्सिडी धनराशि",
+                                              "अनुदान राशि (रु0)",
                                             ) && <th>सब्सिडी धनराशि</th>}
                                             {tableColumnFilters.summary.includes(
                                               "कुल राशि",
-                                            ) && <th>कुल राशि</th>}
+                                            ) && <th>कुल राशि (रु0)</th>}
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -10643,8 +10181,8 @@ const MainDashboard = () => {
                                               const extraCols = [
                                                 "इकाई",
                                                 "आवंटित मात्रा",
-                                                "कृषक धनराशि",
-                                                "सब्सिडी धनराशि",
+                                                "कृषक अंश (रु0)",
+                                                "अनुदान राशि (रु0)",
                                                 "कुल राशि",
                                               ].filter((c) =>
                                                 tableColumnFilters.summary.includes(
@@ -10768,11 +10306,11 @@ const MainDashboard = () => {
                                                             ),
                                                           showFarmer:
                                                             tableColumnFilters.summary.includes(
-                                                              "कृषक धनराशि",
+                                                              "कृषक अंश (रु0)",
                                                             ),
                                                           showSubsidy:
                                                             tableColumnFilters.summary.includes(
-                                                              "सब्सिडी धनराशि",
+                                                              "अनुदान राशि (रु0)",
                                                             ),
                                                           showTotal:
                                                             tableColumnFilters.summary.includes(
@@ -12400,7 +11938,7 @@ const MainDashboard = () => {
                                               </td>
                                             )}
                                             {tableColumnFilters.summary.includes(
-                                              "कृषक धनराशि",
+                                              "कृषक अंश (रु0)",
                                             ) && (
                                               <td
                                                 style={{
@@ -12502,7 +12040,7 @@ const MainDashboard = () => {
                                               </td>
                                             )}
                                             {tableColumnFilters.summary.includes(
-                                              "सब्सिडी धनराशि",
+                                              "अनुदान राशि (रु0)",
                                             ) && (
                                               <td
                                                 style={{
@@ -12807,7 +12345,7 @@ const MainDashboard = () => {
                                     </div>
 
                                     {/* Collapsible Tables Section */}
-                                    {/* 1. योजना-वार कुल सब्सिडी तुलना */}
+                                    {/* 1. क्रय योजना-वार कुल सब्सिडी तुलना */}
                                     <Card className="chart-card mb-4">
                                       <Card.Header
                                         onClick={() => toggleCollapse("scheme")}
@@ -12816,7 +12354,7 @@ const MainDashboard = () => {
                                       >
                                         <h6 className="mb-0 text-white">
                                           <FaTable className="me-2" />
-                                          योजना-वार कुल सब्सिडी तुलना
+                                          क्रय योजना-वार कुल सब्सिडी तुलना
                                           <span className="float-end">
                                             {openCollapses.scheme ? "▼" : "▶"}
                                           </span>
@@ -12861,7 +12399,7 @@ const MainDashboard = () => {
                                                         >
                                                           #
                                                         </th>
-                                                        <th>योजना</th>
+                                                        <th>क्रय योजना</th>
                                                         <th className="text-end">
                                                           आवंटित मात्रा
                                                         </th>
@@ -13800,7 +13338,7 @@ const MainDashboard = () => {
                                           <div className="mb-3">
                                             <Form.Group>
                                               <Form.Label>
-                                                योजना चुनें
+                                                क्रय योजना चुनें
                                               </Form.Label>
                                               <Select
                                                 isMulti
@@ -13836,13 +13374,13 @@ const MainDashboard = () => {
                                                       : [],
                                                   )
                                                 }
-                                                placeholder="योजना चुनें"
+                                                placeholder="क्रय योजना चुनें"
                                               />
                                               {vidhanSabhaSchemeFilter.length >
                                                 0 && (
                                                 <div className="mt-2">
                                                   <small className="text-muted">
-                                                    चयनित योजनाएं:{" "}
+                                                    चयनित क्रय योजनाएं:{" "}
                                                     {vidhanSabhaSchemeFilter.join(
                                                       ", ",
                                                     )}
@@ -13939,10 +13477,10 @@ const MainDashboard = () => {
                                                     <option value="कुल राशि">
                                                       कुल राशि
                                                     </option>
-                                                    <option value="कृषक धनराशि">
+                                                    <option value="कृषक अंश (रु0)">
                                                       कृषक धनराशि
                                                     </option>
-                                                    <option value="सब्सिडी धनराशि">
+                                                    <option value="अनुदान राशि (रु0)">
                                                       सब्सिडी धनराशि
                                                     </option>
                                                   </Form.Select>
@@ -14169,7 +13707,7 @@ const MainDashboard = () => {
                                                     {(() => {
                                                       if (isRotated[index]) {
                                                         // When rotated, list the original column keys (these become rows in rotated view)
-                                                        // Include summary columns like "आवंटित मात्रा", "कृषक धनराशि", etc.
+                                                        // Include summary columns like "आवंटित मात्रा", "कृषक अंश (रु0)", etc.
                                                         // Only filter out hidden columns like _dar, _farmer, _subsidy
                                                         const values =
                                                           table.columns
@@ -14859,9 +14397,9 @@ const MainDashboard = () => {
                                                                 col !==
                                                                   "आवंटित मात्रा" &&
                                                                 col !==
-                                                                  "कृषक धनराशि" &&
+                                                                  "कृषक अंश (रु0)" &&
                                                                 col !==
-                                                                  "सब्सिडी धनराशि" &&
+                                                                  "अनुदान राशि (रु0)" &&
                                                                 col !==
                                                                   "कुल राशि" && (
                                                                   <Button
@@ -14989,9 +14527,9 @@ const MainDashboard = () => {
                                                         ) &&
                                                         col !==
                                                           "आवंटित मात्रा" &&
-                                                        col !== "कृषक धनराशि" &&
+                                                        col !== "कृषक अंश (रु0)" &&
                                                         col !==
-                                                          "सब्सिडी धनराशि",
+                                                          "अनुदान राशि (रु0)",
                                                     );
 
                                                   // Special handling for Vidhan Sabha Investment table - split मात्रा and राशि into separate rows
@@ -15286,9 +14824,9 @@ const MainDashboard = () => {
                                                             col ===
                                                               "आवंटित मात्रा" ||
                                                             col ===
-                                                              "कृषक धनराशि" ||
+                                                              "कृषक अंश (रु0)" ||
                                                             col ===
-                                                              "सब्सिडी धनराशि";
+                                                              "अनुदान राशि (रु0)";
 
                                                           // For each visible transposed column (i.e., visible original rows), map value
                                                           visibleTransposed.forEach(
@@ -15384,7 +14922,7 @@ const MainDashboard = () => {
                                                                         matraTotal;
                                                                   } else if (
                                                                     col ===
-                                                                    "कृषक धनराशि"
+                                                                    "कृषक अंश (रु0)"
                                                                   ) {
                                                                     row[
                                                                       newCol
@@ -15409,7 +14947,7 @@ const MainDashboard = () => {
                                                                         );
                                                                   } else if (
                                                                     col ===
-                                                                    "सब्सिडी धनराशि"
+                                                                    "अनुदान राशि (रु0)"
                                                                   ) {
                                                                     row[
                                                                       newCol
@@ -15724,7 +15262,7 @@ const MainDashboard = () => {
                                                                     );
                                                                 } else if (
                                                                   col ===
-                                                                  "कृषक धनराशि"
+                                                                  "कृषक अंश (रु0)"
                                                                 ) {
                                                                   row["कुल"] =
                                                                     filteredData
@@ -15758,7 +15296,7 @@ const MainDashboard = () => {
                                                                       );
                                                                 } else if (
                                                                   col ===
-                                                                  "सब्सिडी धनराशि"
+                                                                  "अनुदान राशि (रु0)"
                                                                 ) {
                                                                   row["कुल"] =
                                                                     filteredData
@@ -16162,9 +15700,9 @@ const MainDashboard = () => {
                                                             c !==
                                                               "आवंटित मात्रा" &&
                                                             c !==
-                                                              "कृषक धनराशि" &&
+                                                              "कृषक अंश (रु0)" &&
                                                             c !==
-                                                              "सब्सिडी धनराशि",
+                                                              "अनुदान राशि (रु0)",
                                                         )
                                                       : table.columns.filter(
                                                           (c) =>
@@ -16177,9 +15715,9 @@ const MainDashboard = () => {
                                                             c !==
                                                               "आवंटित मात्रा" &&
                                                             c !==
-                                                              "कृषक धनराशि" &&
+                                                              "कृषक अंश (रु0)" &&
                                                             c !==
-                                                              "सब्सिडी धनराशि",
+                                                              "अनुदान राशि (रु0)",
                                                         );
 
                                                   return table.data
@@ -16485,7 +16023,7 @@ const MainDashboard = () => {
                                                             )}
 
                                                             {visibleColumns.includes(
-                                                              "कृषक धनराशि",
+                                                              "कृषक अंश (रु0)",
                                                             ) && (
                                                               <td>
                                                                 {(() =>
@@ -16511,7 +16049,7 @@ const MainDashboard = () => {
                                                             )}
 
                                                             {visibleColumns.includes(
-                                                              "सब्सिडी धनराशि",
+                                                              "अनुदान राशि (रु0)",
                                                             ) && (
                                                               <td>
                                                                 {(() =>
@@ -16575,9 +16113,9 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "आवंटित मात्रा" &&
                                                                   col !==
-                                                                    "कृषक धनराशि" &&
+                                                                    "कृषक अंश (रु0)" &&
                                                                   col !==
-                                                                    "सब्सिडी धनराशि" &&
+                                                                    "अनुदान राशि (रु0)" &&
                                                                   col !==
                                                                     "कुल राशि",
                                                               )
@@ -17315,23 +16853,23 @@ const MainDashboard = () => {
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "कृषक धनराशि",
+                                                              "कृषक अंश (रु0)",
                                                             ) && (
                                                               <td>
                                                                 {
                                                                   row[
-                                                                    "कृषक धनराशि"
+                                                                    "कृषक अंश (रु0)"
                                                                   ]
                                                                 }
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "सब्सिडी धनराशि",
+                                                              "अनुदान राशि (रु0)",
                                                             ) && (
                                                               <td>
                                                                 {
                                                                   row[
-                                                                    "सब्सिडी धनराशि"
+                                                                    "अनुदान राशि (रु0)"
                                                                   ]
                                                                 }
                                                               </td>
@@ -17430,9 +16968,9 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "आवंटित मात्रा" &&
                                                                   col !==
-                                                                    "कृषक धनराशि" &&
+                                                                    "कृषक अंश (रु0)" &&
                                                                   col !==
-                                                                    "सब्सिडी धनराशि",
+                                                                    "अनुदान राशि (रु0)",
                                                               )
                                                               .map(
                                                                 (col, idx) => (
@@ -17535,9 +17073,9 @@ const MainDashboard = () => {
                                                                         c !==
                                                                           "आवंटित मात्रा" &&
                                                                         c !==
-                                                                          "कृषक धनराशि" &&
+                                                                          "कृषक अंश (रु0)" &&
                                                                         c !==
-                                                                          "सब्सिडी धनराशि",
+                                                                          "अनुदान राशि (रु0)",
                                                                     )
                                                                   : table.columns.filter(
                                                                       (c) =>
@@ -17550,9 +17088,9 @@ const MainDashboard = () => {
                                                                         c !==
                                                                           "आवंटित मात्रा" &&
                                                                         c !==
-                                                                          "कृषक धनराशि" &&
+                                                                          "कृषक अंश (रु0)" &&
                                                                         c !==
-                                                                          "सब्सिडी धनराशि",
+                                                                          "अनुदान राशि (रु0)",
                                                                     );
 
                                                               return (
@@ -17659,7 +17197,7 @@ const MainDashboard = () => {
                                                                   )}
 
                                                                   {visibleColumns.includes(
-                                                                    "कृषक धनराशि",
+                                                                    "कृषक अंश (रु0)",
                                                                   ) && (
                                                                     <td>
                                                                       {filteredData
@@ -17692,7 +17230,7 @@ const MainDashboard = () => {
                                                                   )}
 
                                                                   {visibleColumns.includes(
-                                                                    "सब्सिडी धनराशि",
+                                                                    "अनुदान राशि (रु0)",
                                                                   ) && (
                                                                     <td>
                                                                       {filteredData
@@ -17778,9 +17316,9 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "आवंटित मात्रा" &&
                                                                   col !==
-                                                                    "कृषक धनराशि" &&
+                                                                    "कृषक अंश (रु0)" &&
                                                                   col !==
-                                                                    "सब्सिडी धनराशि" &&
+                                                                    "अनुदान राशि (रु0)" &&
                                                                   col !==
                                                                     "कुल राशि",
                                                               )
@@ -18420,7 +17958,7 @@ const MainDashboard = () => {
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "कृषक धनराशि",
+                                                              "कृषक अंश (रु0)",
                                                             ) && (
                                                               <td>
                                                                 {filteredData
@@ -18432,7 +17970,7 @@ const MainDashboard = () => {
                                                                       sum +
                                                                       parseFloat(
                                                                         row[
-                                                                          "कृषक धनराशि"
+                                                                          "कृषक अंश (रु0)"
                                                                         ] || 0,
                                                                       ),
                                                                     0,
@@ -18441,7 +17979,7 @@ const MainDashboard = () => {
                                                               </td>
                                                             )}
                                                             {visibleColumns.includes(
-                                                              "सब्सिडी धनराशि",
+                                                              "अनुदान राशि (रु0)",
                                                             ) && (
                                                               <td>
                                                                 {filteredData
@@ -18453,7 +17991,7 @@ const MainDashboard = () => {
                                                                       sum +
                                                                       parseFloat(
                                                                         row[
-                                                                          "सब्सिडी धनराशि"
+                                                                          "अनुदान राशि (रु0)"
                                                                         ] || 0,
                                                                       ),
                                                                     0,
@@ -18600,36 +18138,13 @@ const MainDashboard = () => {
                             </Form.Label>
                           </div>
                           <Row>
-                            {[
-                              {
-                                key: "center_name",
-                                label: columnDefs.center_name.label,
-                              },
-                              {
-                                key: "vidhan_sabha_name",
-                                label: columnDefs.vidhan_sabha_name.label,
-                              },
-                              {
-                                key: "vikas_khand_name",
-                                label: columnDefs.vikas_khand_name.label,
-                              },
-                              {
-                                key: "scheme_name",
-                                label: columnDefs.scheme_name.label,
-                              },
-                              {
-                                key: "source_of_receipt",
-                                label: columnDefs.source_of_receipt.label,
-                              },
-                              {
-                                key: "investment_name",
-                                label: columnDefs.investment_name.label,
-                              },
-                              {
-                                key: "sub_investment_name",
-                                label: columnDefs.sub_investment_name.label,
-                              },
-                            ].map((col) => {
+                            {tableColumnOrder
+                               .filter((key) => key !== "bill_date")
+                               .map((key) => ({
+                                 key,
+                                 label: columnDefs[key].label,
+                               }))
+                               .map((col) => {
                               // Get base data
                               const baseData =
                                 view === "main"
@@ -18825,52 +18340,13 @@ const MainDashboard = () => {
                             style={{ maxWidth: "300px" }}
                           >
                             {/* Show all available columns, mark selected ones from main table */}
-                            {[
-                              {
-                                key: "center_name",
-                                label: columnDefs.center_name.label,
-                              },
-                              {
-                                key: "vidhan_sabha_name",
-                                label: columnDefs.vidhan_sabha_name.label,
-                              },
-                              {
-                                key: "vikas_khand_name",
-                                label: columnDefs.vikas_khand_name.label,
-                              },
-                              {
-                                key: "scheme_name",
-                                label: columnDefs.scheme_name.label,
-                              },
-                              {
-                                key: "source_of_receipt",
-                                label: columnDefs.source_of_receipt.label,
-                              },
-                              {
-                                key: "investment_name",
-                                label: columnDefs.investment_name.label,
-                              },
-                              {
-                                key: "sub_investment_name",
-                                label: columnDefs.sub_investment_name.label,
-                              },
-                              {
-                                key: "allocated_quantity",
-                                label: columnDefs.allocated_quantity.label,
-                              },
-                              {
-                                key: "amount_of_farmer_share",
-                                label: columnDefs.amount_of_farmer_share.label,
-                              },
-                              {
-                                key: "amount_of_subsidy",
-                                label: columnDefs.amount_of_subsidy.label,
-                              },
-                              {
-                                key: "total_amount",
-                                label: columnDefs.total_amount.label,
-                              },
-                            ].map((col) => {
+                            {tableColumnOrder
+                               .filter((key) => key !== "bill_date")
+                               .map((key) => ({
+                                 key,
+                                 label: columnDefs[key].label,
+                               }))
+                               .map((col) => {
                               const isSelected =
                                 tableColumnFilters.main &&
                                 tableColumnFilters.main.includes(col.key);
