@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal, Dropdown, ButtonGroup, Accordion, Collapse } from "react-bootstrap";
 import Select from "react-select";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
@@ -1779,58 +1780,94 @@ const Dashboard = () => {
 
     if (action === 'download') {
       html2pdf().set(opt).from(element).save().then(() => {
-        document.body.removeChild(element);
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+      }).catch((err) => {
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+        console.error('PDF download error:', err);
+        alert('PDF बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
       });
     } else {
       html2pdf().set(opt).from(element).outputPdf('blob').then((pdfBlob) => {
-        document.body.removeChild(element);
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        setPdfPreviewUrl(pdfUrl);
-        setShowPdfPreview(true);
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+
+        if (action === 'share') {
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          const fileName = `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.pdf`;
+
+          // Replace an older share URL safely.
+          setShareFileUrl(prevUrl => {
+            if (prevUrl) {
+              try { URL.revokeObjectURL(prevUrl); } catch (_) {}
+            }
+            return pdfUrl;
+          });
+          setShareFileName(fileName);
+        } else {
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          setPdfPreviewUrl(pdfUrl);
+          setShowPdfPreview(true);
+        }
+      }).catch((err) => {
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+        console.error('PDF generation error:', err);
+        alert('PDF बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
       });
     }
   };
 
   // Share handlers for PDF and Excel
+  // Share handlers for PDF and Excel
   const handleShare = async (type) => {
+    // IMPORTANT: close every Bootstrap preview/modal before opening Share.
+    // A leftover Bootstrap .modal-backdrop can sit above the page and make
+    // every control appear disabled / unclickable.
+    setShowPdfPreview(false);
+    setShowExcelPreview(false);
+
+    // Remove stale Bootstrap modal state/backdrops immediately.
+    try {
+      document.querySelectorAll('.modal-backdrop').forEach((node) => node.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+      document.body.style.removeProperty('overflow');
+    } catch (cleanupError) {
+      console.warn('Modal cleanup warning:', cleanupError);
+    }
+
+    // Clean up any previous temporary file URL first.
+    if (shareFileUrl) {
+      try { URL.revokeObjectURL(shareFileUrl); } catch (_) {}
+    }
+
     setShareType(type);
-    setShowShareModal(true);
     setShareFileUrl('');
     setShareFileName('');
-  };
-
-  const handleShareGenerate = async () => {
-    if (!shareType) return;
+    setShowShareModal(true);
 
     try {
-      let blob;
-      let fileName;
-
-      if (shareType === 'pdf') {
-        const currentDate = new Date().toLocaleDateString('hi-IN').replace(/\//g, '-');
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = pdfPreviewUrl ? `<iframe src="${pdfPreviewUrl}" style="width:100%;height:100%;border:none;"></iframe>` : '';
-        document.body.appendChild(tempDiv);
-        
-        const html2pdf = (await import('html2pdf.js')).default;
-        blob = await html2pdf().set({
-          margin: [10, 10, 10, 10],
-          filename: `DHO_रिपोर्ट_${currentDate}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-        }).from(tempDiv).outputPdf('blob');
-        
-        document.body.removeChild(tempDiv);
-        fileName = `DHO_रिपोर्ट_${currentDate}.pdf`;
-      } else if (shareType === 'excel') {
+      if (type === 'pdf') {
+        // Use the same PDF generator as the normal PDF download.
+        // This fixes the previous issue where an iframe containing a PDF
+        // was passed to html2pdf, producing an invalid/blank share file.
+        generatePDF('share');
+      } else {
+        // Build the Excel workbook directly and create a real ArrayBuffer Blob.
         const currentDate = new Date().toLocaleDateString('hi-IN');
         const { schemeWise, investmentWise } = getReportData();
         const { investments, schemes, data, totals, grandTotal } = getCombinedData();
         const { subInvestments, schemes: subSchemes, data: subData, totals: subTotals, grandTotal: subGrandTotal } = getSubCombinedData();
         const mainInvestmentSubsidy = getMainInvestmentSubsidyData();
-        
+
         const wb = XLSX.utils.book_new();
+
         const summaryData = [
           ['DHO कोटद्वार बिलिंग रिपोर्ट'],
           [`रिपोर्ट तिथि: ${currentDate}`],
@@ -1840,76 +1877,392 @@ const Dashboard = () => {
           ['कुल रिकॉर्ड', 'आवंटित मात्रा', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
           [
             aggregatedStats.totalRecords,
-            aggregatedStats.allocatedQuantity.toFixed(2),
-            aggregatedStats.farmerShareAmount.toFixed(2),
-            aggregatedStats.subsidyAmount.toFixed(2),
-            aggregatedStats.totalAmount.toFixed(2)
+            Number(aggregatedStats.allocatedQuantity || 0).toFixed(2),
+            Number(aggregatedStats.farmerShareAmount || 0).toFixed(2),
+            Number(aggregatedStats.subsidyAmount || 0).toFixed(2),
+            Number(aggregatedStats.totalAmount || 0).toFixed(2)
           ]
         ];
-        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-        summaryWs['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, summaryWs, 'सारांश');
-        
-        const schemeData = schemeChartData && schemeChartData.rawData ? schemeChartData.rawData : {};
-        const schemeHeaders = ['#', 'योजना', 'आवंटित मात्रा', 'कुल राशि'];
-        const schemeRows = Object.entries(schemeData)
-          .filter(([label]) => selectedTableSchemes.length === 0 || selectedTableSchemes.some(s => s.value === label))
-          .sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0)))
-          .map(([name, val], idx) => [
-            idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
-          ]);
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([schemeHeaders, ...schemeRows]), 'योजना-वार');
-        
-        const invData = investmentChartData && investmentChartData.rawData ? investmentChartData.rawData : {};
-        const investmentHeaders = ['#', 'उपनिवेश', 'आवंटित मात्रा', 'कुल राशि'];
-        const investmentRows = Object.entries(invData)
-          .sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0)))
-          .map(([name, val], idx) => [
-            idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
-          ]);
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([investmentHeaders, ...investmentRows]), 'उपनिवेश-वार');
-        
-        blob = new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'binary' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        fileName = `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`;
-      }
 
-      if (blob && fileName) {
-        const url = URL.createObjectURL(blob);
+        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+        summaryWs['!cols'] = [
+          { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
+        ];
+        XLSX.utils.book_append_sheet(wb, summaryWs, 'सारांश');
+
+        const rashiColumnLabelExcel = {
+          farmerShare: 'किसान की हिस्सेदारी',
+          subsidy: 'सब्सिडी राशि',
+          total: 'कुल राशि'
+        };
+
+        // Scheme-wise
+        if (openCollapses.includes('scheme')) {
+          const schemeRaw = schemeChartData?.rawData || {};
+          const schemeHeaders = ['#', 'योजना', 'आवंटित मात्रा', rashiColumnLabelExcel[selectedRashi]];
+          const schemeRows = Object.entries(schemeRaw)
+            .filter(([label]) =>
+              selectedTableSchemes.length === 0 ||
+              selectedTableSchemes.some(s => s.value === label)
+            )
+            .sort((a, b) => (b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0))
+            .map(([name, val], idx) => [
+              idx + 1,
+              name,
+              Number(val?.quantity || 0).toFixed(2),
+              Number(val?.[selectedRashi] || 0).toFixed(2)
+            ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([schemeHeaders, ...schemeRows]);
+          ws['!cols'] = [{ wch: 6 }, { wch: 40 }, { wch: 15 }, { wch: 18 }];
+          XLSX.utils.book_append_sheet(wb, ws, 'योजना-वार');
+        }
+
+        // Investment-wise
+        if (openCollapses.includes('investment')) {
+          const invRaw = investmentChartData?.rawData || {};
+          const headers = ['#', 'उपनिवेश', 'आवंटित मात्रा', rashiColumnLabelExcel[selectedRashi]];
+          const rows = Object.entries(invRaw)
+            .sort((a, b) => (b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0))
+            .map(([name, val], idx) => [
+              idx + 1,
+              name,
+              Number(val?.quantity || 0).toFixed(2),
+              Number(val?.[selectedRashi] || 0).toFixed(2)
+            ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = [{ wch: 6 }, { wch: 40 }, { wch: 15 }, { wch: 18 }];
+          XLSX.utils.book_append_sheet(wb, ws, 'उपनिवेश-वार');
+        }
+
+        // Sub-investment - Scheme
+        if (openCollapses.includes('subInvestment')) {
+          const sub = subCombinedTableData || {
+            subInvestments: [], schemes: [], data: {}
+          };
+
+          const filteredSchemes = sub.schemes.filter(
+            s => selectedSubInvestmentSchemes.length === 0 ||
+                 selectedSubInvestmentSchemes.some(x => x.value === s)
+          );
+          const filteredSubInvestments = sub.subInvestments.filter(
+            s => selectedSubInvestments.length === 0 ||
+                 selectedSubInvestments.some(x => x.value === s)
+          );
+
+          const headers = [
+            '#',
+            'उपनिवेश',
+            ...filteredSchemes.flatMap(s => [
+              `${s} - मात्रा`,
+              `${s} - ${rashiColumnLabelExcel[selectedRashi]}`
+            ]),
+            'कुल मात्रा',
+            `कुल ${rashiColumnLabelExcel[selectedRashi]}`
+          ];
+
+          const rows = filteredSubInvestments.map((si, idx) => [
+            idx + 1,
+            si,
+            ...filteredSchemes.flatMap(s => [
+              Number(sub.data?.[si]?.[s]?.quantity || 0).toFixed(2),
+              Number(sub.data?.[si]?.[s]?.[selectedRashi] || 0).toFixed(2)
+            ]),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(sub.data?.[si]?.[s]?.quantity || 0), 0
+            ).toFixed(2),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(sub.data?.[si]?.[s]?.[selectedRashi] || 0), 0
+            ).toFixed(2)
+          ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = [
+            { wch: 6 }, { wch: 30 },
+            ...filteredSchemes.flatMap(() => [{ wch: 12 }, { wch: 18 }]),
+            { wch: 15 }, { wch: 18 }
+          ];
+          XLSX.utils.book_append_sheet(wb, ws, 'उपनिवेश - योजना');
+        }
+
+        // Main investment subsidy
+        if (openCollapses.includes('mainInvestment')) {
+          const raw = investmentChartData?.rawData || {};
+          const headers = ['#', 'निवेश नाम', 'आवंटित मात्रा', rashiColumnLabelExcel[selectedRashi]];
+          const rows = Object.entries(raw)
+            .sort((a, b) => (b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0))
+            .map(([name, val], idx) => [
+              idx + 1,
+              name,
+              Number(val?.quantity || 0).toFixed(2),
+              Number(val?.[selectedRashi] || 0).toFixed(2)
+            ]);
+
+          rows.push([
+            'कुल',
+            '',
+            Object.values(raw).reduce((s, v) => s + Number(v?.quantity || 0), 0).toFixed(2),
+            Object.values(raw).reduce((s, v) => s + Number(v?.[selectedRashi] || 0), 0).toFixed(2)
+          ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = [{ wch: 6 }, { wch: 40 }, { wch: 15 }, { wch: 18 }];
+          XLSX.utils.book_append_sheet(wb, ws, 'निवेश सब्सिडी');
+        }
+
+        // Center - Scheme
+        if (openCollapses.includes('centerCombined')) {
+          const center = centerCombinedTableData || {
+            centers: [], schemes: [], data: {}
+          };
+
+          const filteredSchemes = center.schemes.filter(
+            s => selectedCenterSchemes.length === 0 ||
+                 selectedCenterSchemes.some(x => x.value === s)
+          );
+          const filteredCenters = center.centers.filter(
+            c => selectedCenters.length === 0 ||
+                 selectedCenters.some(x => x.value === c)
+          );
+
+          const headers = [
+            '#',
+            'केंद्र',
+            ...filteredSchemes.flatMap(s => [
+              `${s} - मात्रा`,
+              `${s} - ${rashiColumnLabelExcel[selectedRashi]}`
+            ]),
+            'कुल मात्रा',
+            `कुल ${rashiColumnLabelExcel[selectedRashi]}`
+          ];
+
+          const rows = filteredCenters.map((c, idx) => [
+            idx + 1,
+            c,
+            ...filteredSchemes.flatMap(s => [
+              Number(center.data?.[c]?.[s]?.quantity || 0).toFixed(2),
+              Number(center.data?.[c]?.[s]?.[selectedRashi] || 0).toFixed(2)
+            ]),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(center.data?.[c]?.[s]?.quantity || 0), 0
+            ).toFixed(2),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(center.data?.[c]?.[s]?.[selectedRashi] || 0), 0
+            ).toFixed(2)
+          ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = [
+            { wch: 6 }, { wch: 30 },
+            ...filteredSchemes.flatMap(() => [{ wch: 12 }, { wch: 18 }]),
+            { wch: 15 }, { wch: 18 }
+          ];
+          XLSX.utils.book_append_sheet(wb, ws, 'केंद्र - योजना');
+        }
+
+        // Vidhan Sabha - Scheme
+        if (openCollapses.includes('vidhanCombined')) {
+          const vidhan = vidhanCombinedTableData || {
+            vidhans: [], schemes: [], data: {}
+          };
+
+          const filteredSchemes = vidhan.schemes.filter(
+            s => selectedVidhanSchemes.length === 0 ||
+                 selectedVidhanSchemes.some(x => x.value === s)
+          );
+          const filteredVidhans = vidhan.vidhans.filter(
+            v => selectedVidhanSabhas.length === 0 ||
+                 selectedVidhanSabhas.some(x => x.value === v)
+          );
+
+          const headers = [
+            '#',
+            'विधानसभा',
+            ...filteredSchemes.flatMap(s => [
+              `${s} - मात्रा`,
+              `${s} - ${rashiColumnLabelExcel[selectedRashi]}`
+            ]),
+            'कुल मात्रा',
+            `कुल ${rashiColumnLabelExcel[selectedRashi]}`
+          ];
+
+          const rows = filteredVidhans.map((v, idx) => [
+            idx + 1,
+            v,
+            ...filteredSchemes.flatMap(s => [
+              Number(vidhan.data?.[v]?.[s]?.quantity || 0).toFixed(2),
+              Number(vidhan.data?.[v]?.[s]?.[selectedRashi] || 0).toFixed(2)
+            ]),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(vidhan.data?.[v]?.[s]?.quantity || 0), 0
+            ).toFixed(2),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(vidhan.data?.[v]?.[s]?.[selectedRashi] || 0), 0
+            ).toFixed(2)
+          ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = [
+            { wch: 6 }, { wch: 30 },
+            ...filteredSchemes.flatMap(() => [{ wch: 12 }, { wch: 18 }]),
+            { wch: 15 }, { wch: 18 }
+          ];
+          XLSX.utils.book_append_sheet(wb, ws, 'विधानसभा - योजना');
+        }
+
+        // Investment - Scheme
+        if (openCollapses.includes('investmentCombined')) {
+          const comb = combinedTableData || {
+            investments: [], schemes: [], data: {}
+          };
+
+          const filteredSchemes = comb.schemes.filter(
+            s => selectedMainInvestmentSchemes.length === 0 ||
+                 selectedMainInvestmentSchemes.some(x => x.value === s)
+          );
+          const filteredInvestments = comb.investments.filter(
+            inv => selectedMainInvestments.length === 0 ||
+                   selectedMainInvestments.some(x => x.value === inv)
+          );
+
+          const headers = [
+            '#',
+            'निवेश',
+            ...filteredSchemes.flatMap(s => [
+              `${s} - मात्रा`,
+              `${s} - ${rashiColumnLabelExcel[selectedRashi]}`
+            ]),
+            'कुल मात्रा',
+            `कुल ${rashiColumnLabelExcel[selectedRashi]}`
+          ];
+
+          const rows = filteredInvestments.map((inv, idx) => [
+            idx + 1,
+            inv,
+            ...filteredSchemes.flatMap(s => [
+              Number(comb.data?.[inv]?.[s]?.quantity || 0).toFixed(2),
+              Number(comb.data?.[inv]?.[s]?.[selectedRashi] || 0).toFixed(2)
+            ]),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(comb.data?.[inv]?.[s]?.quantity || 0), 0
+            ).toFixed(2),
+            filteredSchemes.reduce(
+              (sum, s) => sum + Number(comb.data?.[inv]?.[s]?.[selectedRashi] || 0), 0
+            ).toFixed(2)
+          ]);
+
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          ws['!cols'] = [
+            { wch: 6 }, { wch: 30 },
+            ...filteredSchemes.flatMap(() => [{ wch: 12 }, { wch: 18 }]),
+            { wch: 15 }, { wch: 18 }
+          ];
+          XLSX.utils.book_append_sheet(wb, ws, 'निवेश - योजना');
+        }
+
+        // Ensure at least one sheet always exists.
+        if (!wb.SheetNames.length) {
+          XLSX.utils.book_append_sheet(
+            wb,
+            XLSX.utils.aoa_to_sheet([['DHO कोटद्वार बिलिंग रिपोर्ट'], ['कोई अतिरिक्त तालिका चयनित नहीं है।']]),
+            'रिपोर्ट'
+          );
+        }
+
+        // IMPORTANT: use type:'array', not type:'binary'.
+        // This produces a valid XLSX Blob in Chrome/Edge/Firefox and on mobile.
+        const excelArray = XLSX.write(wb, {
+          bookType: 'xlsx',
+          type: 'array',
+          compression: true
+        });
+
+        const excelBlob = new Blob(
+          [excelArray],
+          { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+        );
+
+        const fileName = `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`;
+        const url = URL.createObjectURL(excelBlob);
+
         setShareFileUrl(url);
         setShareFileName(fileName);
       }
     } catch (err) {
-      console.error('Share error:', err);
-      alert('Unable to generate shareable file.');
+      console.error('Share file generation error:', err);
+      setShareFileUrl('');
+      setShareFileName('');
+      alert(`फाइल शेयर करने के लिए बनाने में त्रुटि हुई: ${err?.message || 'Unknown error'}`);
     }
   };
 
   const handleSocialShare = async (platform) => {
-    if (!shareFileUrl || !shareFileName) return;
+    if (!shareFileUrl || !shareFileName) {
+      alert('फाइल अभी तैयार नहीं है। कृपया कुछ सेकंड प्रतीक्षा करें।');
+      return;
+    }
 
-    const reportInfo = `DHO कोटद्वार बिलिंग रिपोर्ट\nरिपोर्ट: ${shareFileName}\nतिथि: ${new Date().toLocaleDateString('hi-IN')}\nफ़िल्टर: ${getFilterStatusText()}`;
-    const encodedInfo = encodeURIComponent(reportInfo);
+    const reportInfo =
+      `DHO कोटद्वार बिलिंग रिपोर्ट\n` +
+      `रिपोर्ट: ${shareFileName}\n` +
+      `तिथि: ${new Date().toLocaleDateString('hi-IN')}\n` +
+      `फ़िल्टर: ${getFilterStatusText()}`;
 
-    switch (platform) {
-      case 'whatsapp':
-        window.open(`https://wa.me/?text=${encodedInfo}`, '_blank');
-        break;
-      case 'linkedin':
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent('DHO कोटद्वार बिलिंग रिपोर्ट')}&summary=${encodedInfo}`, '_blank');
-        break;
-      case 'email':
-        window.location.href = `mailto:?subject=${encodeURIComponent('DHO कोटद्वार बिलिंग रिपोर्ट')}&body=${encodedInfo}`;
-        break;
-      case 'copy':
+    try {
+      // Open these URLs directly inside the click handler.
+      // Waiting for async fetch() before window.open() can make browsers
+      // block the new tab as a popup.
+      if (platform === 'whatsapp') {
+        const url = `https://wa.me/?text=${encodeURIComponent(reportInfo)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      if (platform === 'linkedin') {
+        const url =
+          `https://www.linkedin.com/sharing/share-offsite/?url=` +
+          `${encodeURIComponent(window.location.href)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      if (platform === 'email') {
+        const url =
+          `mailto:?subject=${encodeURIComponent('DHO कोटद्वार बिलिंग रिपोर्ट')}` +
+          `&body=${encodeURIComponent(
+            reportInfo + '\n\nफाइल डाउनलोड करके ईमेल में अटैच करें।'
+          )}`;
+        window.location.href = url;
+        return;
+      }
+
+      if (platform === 'copy') {
         try {
           await navigator.clipboard.writeText(reportInfo);
-          alert('रिपोर्ट जानकारी कॉपी हो गई है। अब आप किसी भी प्लेटफॉर्म पर शेयर कर सकते हैं।');
+          alert('रिपोर्ट जानकारी कॉपी हो गई है।');
         } catch (err) {
-          alert('कॉपी करने में त्रुटि हुई। कृपया मैन्युअल रूप से कॉपी करें।');
+          const textarea = document.createElement('textarea');
+          textarea.value = reportInfo;
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+
+          try {
+            document.execCommand('copy');
+            alert('रिपोर्ट जानकारी कॉपी हो गई है।');
+          } catch (_) {
+            alert('कॉपी करने में त्रुटि हुई।');
+          }
+
+          document.body.removeChild(textarea);
         }
-        break;
-      default:
-        break;
+      }
+    } catch (err) {
+      console.error('Social share error:', err);
+      alert('शेयर करने में समस्या हुई। कृपया पुनः प्रयास करें।');
     }
   };
 
@@ -1917,8 +2270,18 @@ const Dashboard = () => {
     if (!shareFileUrl || !shareFileName) return;
 
     try {
-      const blob = await fetch(shareFileUrl).then(res => res.blob());
-      const file = new File([blob], shareFileName, { type: blob.type });
+      const response = await fetch(shareFileUrl);
+      if (!response.ok) throw new Error('Generated file could not be read.');
+
+      const blob = await response.blob();
+      const fallbackType =
+        shareType === 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+      const file = new File([blob], shareFileName, {
+        type: blob.type || fallbackType
+      });
 
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -1926,37 +2289,58 @@ const Dashboard = () => {
           text: `रिपोर्ट शेयर की जा रही है: ${shareFileName}`,
           files: [file]
         });
-      } else {
-        alert('Direct sharing is not supported on this browser. Please use the download option to share the file.');
+        return;
       }
+
+      // Desktop browsers often do not support file sharing. In that case,
+      // download the exact generated file instead of showing a misleading error.
+      handleShareDownload();
+      alert('इस ब्राउज़र में direct file sharing उपलब्ध नहीं है। फाइल डाउनलोड हो गई है; इसे WhatsApp/Email आदि में अटैच करके शेयर करें।');
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Share error:', err);
-        alert('Unable to share file. Please try downloading instead.');
-      }
+      if (err?.name === 'AbortError') return;
+      console.error('Direct share error:', err);
+      alert('फाइल शेयर नहीं हो सकी। कृपया डाउनलोड विकल्प का उपयोग करें।');
     }
   };
 
   const handleShareDownload = () => {
-    if (shareFileUrl && shareFileName) {
-      const link = document.createElement('a');
-      link.href = shareFileUrl;
-      link.download = shareFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(shareFileUrl);
-      setShowShareModal(false);
-      setShareFileUrl('');
-      setShareFileName('');
-    }
+    if (!shareFileUrl || !shareFileName) return;
+
+    const link = document.createElement('a');
+    link.href = shareFileUrl;
+    link.download = shareFileName;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Delay revocation slightly so the browser has time to start the download.
+    const urlToRevoke = shareFileUrl;
+    setTimeout(() => {
+      try { URL.revokeObjectURL(urlToRevoke); } catch (_) {}
+    }, 1500);
+
+    setShowShareModal(false);
+    setShareFileUrl('');
+    setShareFileName('');
+    setShareType(null);
   };
 
   const handleShareClose = () => {
     setShowShareModal(false);
     setShareType(null);
+
+    // Remove any Bootstrap backdrop that may have been left behind.
+    try {
+      document.querySelectorAll('.modal-backdrop').forEach((node) => node.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+      document.body.style.removeProperty('overflow');
+    } catch (cleanupError) {
+      console.warn('Modal close cleanup warning:', cleanupError);
+    }
     if (shareFileUrl) {
-      URL.revokeObjectURL(shareFileUrl);
+      try { URL.revokeObjectURL(shareFileUrl); } catch (_) {}
     }
     setShareFileUrl('');
     setShareFileName('');
@@ -2160,6 +2544,8 @@ const Dashboard = () => {
     }
 
     if (action === 'download') {
+      // XLSX.writeFile handles browser downloads directly.
+      // Keep the workbook binary generation out of this path.
       XLSX.writeFile(wb, `DHO_रिपोर्ट_${currentDate.replace(/\//g, '-')}.xlsx`);
     } else {
       // For view, display preview modal with sheet data
@@ -3607,89 +3993,294 @@ const Dashboard = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Share Modal */}
-      <Modal show={showShareModal} onHide={handleShareClose} centered>
-        <Modal.Header closeButton style={{ backgroundColor: '#198754', color: 'white' }}>
-          <Modal.Title style={{ fontSize: '1rem' }}>
-            <FaShareAlt className="me-2" />
-            {shareType === 'pdf' ? 'PDF' : 'Excel'} शेयर करें
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {shareFileUrl ? (
-            <div>
-              <div className="text-center" style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', marginBottom: '15px' }}>
-                <FaDownload style={{ fontSize: '3rem', color: '#198754', marginBottom: '10px' }} />
-                <h5 style={{ margin: '10px 0' }}>{shareFileName}</h5>
-                <p style={{ color: '#666', fontSize: '0.9rem' }}>फ़ाइल तैयार है। नीचे दिए गए विकल्पों से शेयर करें।</p>
-              </div>
-              
-              <div style={{ marginBottom: '15px' }}>
-                <h6 style={{ marginBottom: '10px', color: '#333' }}>सोशल मीडिया पर शेयर करें:</h6>
-                <div className="d-flex gap-3 justify-content-center flex-wrap">
-                  <Button 
-                    variant="success" 
-                    size="lg" 
-                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => handleSocialShare('whatsapp')}
-                    title="WhatsApp पर शेयर करें"
-                  >
-                    <FaWhatsapp style={{ fontSize: '1.8rem' }} />
-                  </Button>
-                  <Button 
-                    variant="primary" 
-                    size="lg" 
-                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => handleSocialShare('linkedin')}
-                    title="LinkedIn पर शेयर करें"
-                  >
-                    <FaLinkedin style={{ fontSize: '1.8rem' }} />
-                  </Button>
-                  <Button 
-                    variant="danger" 
-                    size="lg" 
-                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => handleSocialShare('email')}
-                    title="ईमेल से शेयर करें"
-                  >
-                    <FaEnvelope style={{ fontSize: '1.8rem' }} />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="lg" 
-                    style={{ borderRadius: '50%', width: '60px', height: '60px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => handleSocialShare('copy')}
-                    title="लिंक कॉपी करें"
-                  >
-                    <FaCopy style={{ fontSize: '1.8rem' }} />
-                  </Button>
-                </div>
+      {/* Share Modal - rendered in document.body to avoid ALL parent/backdrop
+          stacking-context and pointer-event conflicts. */}
+      {showShareModal && typeof document !== 'undefined' && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-report-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              handleShareClose();
+            }
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            pointerEvents: 'auto'
+          }}
+        >
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '600px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              backgroundColor: '#fff',
+              borderRadius: '14px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+              pointerEvents: 'auto'
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: '#198754',
+                color: '#fff',
+                padding: '14px 18px',
+                borderRadius: '14px 14px 0 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div id="share-report-title" style={{ fontSize: '1.05rem', fontWeight: 600 }}>
+                <FaShareAlt className="me-2" />
+                {shareType === 'pdf' ? 'PDF' : 'Excel'} शेयर करें
               </div>
 
-              <div style={{ borderTop: '1px solid #ddd', paddingTop: '15px', marginTop: '15px' }}>
-                <h6 style={{ marginBottom: '10px', color: '#333' }}>अन्य विकल्प:</h6>
-                <div className="d-flex gap-2 justify-content-center flex-wrap">
-                  <Button variant="primary" onClick={handleDirectShare} disabled={!shareFileUrl}>
-                    <FaShareAlt className="me-2" />
-                    सीधे शेयर करें
-                  </Button>
-                  <Button variant="success" onClick={handleShareDownload} disabled={!shareFileUrl}>
-                    <FaDownload className="me-2" />
-                    डाउनलोड करें
-                  </Button>
-                  <Button variant="secondary" onClick={handleShareClose}>
-                    बंद करें
-                  </Button>
+              <button
+                type="button"
+                onClick={handleShareClose}
+                aria-label="Close"
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  color: '#fff',
+                  fontSize: '30px',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                  padding: '0 5px',
+                  pointerEvents: 'auto'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              {shareFileUrl ? (
+                <>
+                  <div
+                    className="text-center"
+                    style={{
+                      padding: '20px',
+                      background: '#f8f9fa',
+                      borderRadius: '8px',
+                      marginBottom: '18px'
+                    }}
+                  >
+                    <FaDownload
+                      style={{
+                        fontSize: '3rem',
+                        color: '#198754',
+                        marginBottom: '10px'
+                      }}
+                    />
+                    <h5 style={{ margin: '10px 0', wordBreak: 'break-word' }}>
+                      {shareFileName}
+                    </h5>
+                    <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: 0 }}>
+                      फ़ाइल तैयार है। नीचे दिए गए विकल्प से शेयर करें।
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: '18px' }}>
+                    <h6 style={{ marginBottom: '12px', color: '#333' }}>
+                      सोशल मीडिया पर शेयर करें:
+                    </h6>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '14px',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSocialShare('whatsapp')}
+                        title="WhatsApp पर शेयर करें"
+                        style={{
+                          border: 0,
+                          borderRadius: '50%',
+                          width: '60px',
+                          height: '60px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#198754',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto',
+                          boxShadow: '0 2px 6px rgba(0,0,0,.2)'
+                        }}
+                      >
+                        <FaWhatsapp style={{ fontSize: '1.8rem' }} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSocialShare('linkedin')}
+                        title="LinkedIn पर शेयर करें"
+                        style={{
+                          border: 0,
+                          borderRadius: '50%',
+                          width: '60px',
+                          height: '60px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#0a66c2',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto',
+                          boxShadow: '0 2px 6px rgba(0,0,0,.2)'
+                        }}
+                      >
+                        <FaLinkedin style={{ fontSize: '1.8rem' }} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSocialShare('email')}
+                        title="ईमेल से शेयर करें"
+                        style={{
+                          border: 0,
+                          borderRadius: '50%',
+                          width: '60px',
+                          height: '60px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#dc3545',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto',
+                          boxShadow: '0 2px 6px rgba(0,0,0,.2)'
+                        }}
+                      >
+                        <FaEnvelope style={{ fontSize: '1.8rem' }} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSocialShare('copy')}
+                        title="रिपोर्ट जानकारी कॉपी करें"
+                        style={{
+                          border: 0,
+                          borderRadius: '50%',
+                          width: '60px',
+                          height: '60px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#6c757d',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto',
+                          boxShadow: '0 2px 6px rgba(0,0,0,.2)'
+                        }}
+                      >
+                        <FaCopy style={{ fontSize: '1.8rem' }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      borderTop: '1px solid #ddd',
+                      paddingTop: '16px',
+                      marginTop: '16px'
+                    }}
+                  >
+                    <h6 style={{ marginBottom: '12px', color: '#333' }}>
+                      अन्य विकल्प:
+                    </h6>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={handleDirectShare}
+                        style={{
+                          border: 0,
+                          borderRadius: '6px',
+                          padding: '9px 15px',
+                          backgroundColor: '#0d6efd',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto'
+                        }}
+                      >
+                        <FaShareAlt className="me-2" />
+                        सीधे शेयर करें
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleShareDownload}
+                        style={{
+                          border: 0,
+                          borderRadius: '6px',
+                          padding: '9px 15px',
+                          backgroundColor: '#198754',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto'
+                        }}
+                      >
+                        <FaDownload className="me-2" />
+                        डाउनलोड करें
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleShareClose}
+                        style={{
+                          border: 0,
+                          borderRadius: '6px',
+                          padding: '9px 15px',
+                          backgroundColor: '#6c757d',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          pointerEvents: 'auto'
+                        }}
+                      >
+                        बंद करें
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center" style={{ padding: '30px 10px' }}>
+                  <div
+                    className="spinner-border text-success mb-3"
+                    role="status"
+                    aria-label="Loading"
+                  />
+                  <p style={{ marginBottom: 0 }}>फ़ाइल तैयार की जा रही है...</p>
                 </div>
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center">
-              <p>फ़ाइल तैयार की जा रही है...</p>
-            </div>
-          )}
-        </Modal.Body>
-      </Modal>
+          </div>
+        </div>
+        , document.body)}
 
     </>
   );
