@@ -488,6 +488,7 @@ font-weight: 700;
 .bg-home{
   background-color: #f4ede4;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-top:-75px;
 }
 .dash-center-name h5{
   font-size: 12px;
