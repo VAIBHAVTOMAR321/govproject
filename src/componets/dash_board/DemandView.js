@@ -1015,7 +1015,7 @@ const DemandView = () => {
                     </Col>
                     <Col md={6}>
                       <Form.Group controlId="subInvestmentFilter">
-                        <Form.Label>उप-निवेश फ़िल्टर</Form.Label>
+                        <Form.Label>उप-मद का नाम फ़िल्टर</Form.Label>
                         <Form.Select
   multiple
   value={selectedSubInvestments}
