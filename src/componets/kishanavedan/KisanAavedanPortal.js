@@ -702,21 +702,207 @@ export default function KisanAavedanPortal() {
     r.onload = () => set("photo", r.result);
     r.readAsDataURL(f);
   };
+  /*
+   * Reliable printing:
+   * Do not depend on changing the current React page into a print-only
+   * layout. Some Chromium print-preview versions can snapshot the page
+   * before the React/CSS state change is painted, which can result in a
+   * completely blank page.
+   *
+   * Instead, copy the already-rendered PrintableApplication into a
+   * dedicated, same-origin print iframe and print that iframe. The
+   * iframe receives the application's existing stylesheets, so all three
+   * schemes (fencing, kiwi and dragon) use the exact same A4 structure.
+   */
   const print = () => {
-    document.body.classList.add("kisan-printing");
+    const source = document.querySelector(
+      ".print-document:not(.print-document-preview)"
+    );
 
-    const cleanup = () => {
-      document.body.classList.remove("kisan-printing");
-      window.removeEventListener("afterprint", cleanup);
+    if (!source) {
+      window.alert("प्रिंट के लिए आवेदन तैयार नहीं है। कृपया पुनः प्रयास करें।");
+      return;
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+
+    document.body.appendChild(iframe);
+
+    const printDocument = iframe.contentDocument;
+    const printWindow = iframe.contentWindow;
+
+    if (!printDocument || !printWindow) {
+      iframe.remove();
+      window.alert("प्रिंट विंडो तैयार नहीं हो सकी।");
+      return;
+    }
+
+    const styles = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    )
+      .map((node) => {
+        if (node.tagName.toLowerCase() === "link") {
+          return `<link rel="stylesheet" href="${node.href}">`;
+        }
+        return `<style>${node.textContent || ""}</style>`;
+      })
+      .join("\n");
+
+    const printableHtml = source.outerHTML
+      .replace(/position:\s*absolute/gi, "position: static")
+      .replace(/left:\s*-9999px/gi, "left: 0")
+      .replace(/opacity:\s*0/gi, "opacity: 1")
+      .replace(/z-index:\s*-1/gi, "z-index: 1");
+
+    printDocument.open();
+    printDocument.write(`<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${scheme.full || "कृषक आवेदन पत्र"}</title>
+  ${styles}
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      width: 100% !important;
+      min-height: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .print-document {
+      display: block !important;
+      position: static !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 1 !important;
+      pointer-events: auto !important;
+      background: #fff !important;
+    }
+
+    .print-page {
+      display: block !important;
+      visibility: visible !important;
+      width: 210mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
+      padding: 12mm !important;
+      box-sizing: border-box !important;
+      background: #fff !important;
+      color: #000 !important;
+      box-shadow: none !important;
+    }
+
+    .print-document-preview {
+      display: none !important;
+    }
+
+    .print-table tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .print-avoid-break {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    .print-photo img {
+      display: block !important;
+      max-width: 100% !important;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 100% !important;
+        background: #fff !important;
+      }
+
+      .print-document {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  ${printableHtml}
+</body>
+</html>`);
+    printDocument.close();
+
+    const finish = () => {
+      window.setTimeout(() => iframe.remove(), 500);
     };
 
-    window.addEventListener("afterprint", cleanup);
+    const waitForImages = () => {
+      const images = Array.from(printDocument.images || []);
 
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        window.print();
+      if (!images.length) {
+        printWindow.focus();
+        printWindow.print();
+        finish();
+        return;
+      }
+
+      let remaining = images.length;
+      let done = false;
+
+      const complete = () => {
+        if (done) return;
+        remaining -= 1;
+        if (remaining > 0) return;
+        done = true;
+        printWindow.focus();
+        printWindow.print();
+        finish();
+      };
+
+      images.forEach((img) => {
+        if (img.complete) {
+          complete();
+        } else {
+          img.addEventListener("load", complete, { once: true });
+          img.addEventListener("error", complete, { once: true });
+        }
       });
-    });
+
+      window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        printWindow.focus();
+        printWindow.print();
+        finish();
+      }, 2500);
+    };
+
+    window.setTimeout(waitForImages, 300);
   };
 
   if (!scheme)

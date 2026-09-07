@@ -913,7 +913,7 @@
 */
 .print-document {
   position: absolute;
-  left: -9999px;
+  left: 0;
   top: 0;
   width: 210mm;
   z-index: -1;
