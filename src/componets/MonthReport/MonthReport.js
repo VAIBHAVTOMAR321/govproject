@@ -5,6 +5,9 @@ import "./MonthReport.css";
 const API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/";
 
+const MEDIA_BASE_URL =
+  "https://mahadevaaya.com/govbillingsystem/backend";
+
   const currentYear = new Date().getFullYear();
 
   const startYear = 2001;
@@ -406,13 +409,20 @@ const MonthReport = () => {
   // FILE URL
   // =====================================================
   const getFileUrl = (report) => {
-    return (
+    const raw =
       report.month_report ||
       report.month_report_url ||
       report.file ||
       report.file_url ||
-      null
-    );
+      null;
+
+    if (!raw) return null;
+
+    if (String(raw).startsWith("http")) {
+      return raw;
+    }
+
+    return `${MEDIA_BASE_URL}${raw}`;
   };
 
   // =====================================================
