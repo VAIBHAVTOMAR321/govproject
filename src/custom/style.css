@@ -485,6 +485,9 @@ font-weight: 700;
   border-color: #0c7cd5 !important;
     padding: 2px 4px 0px 2px !important;
 }
+.table-m-top{
+  margin-top:20px;
+}
 .bg-home{
   background-color: #f4ede4;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);

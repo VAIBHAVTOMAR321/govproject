@@ -33,6 +33,7 @@ const DemandView = () => {
   // State for forms
   const [formData, setFormData] = useState({
     sub_investment_name: '',
+    scheme_name: '',
     allocated_quantity: '',
     rate: '',
     unit: '' 
@@ -149,6 +150,7 @@ const DemandView = () => {
       
       const payload = {
         sub_investment_name: formData.sub_investment_name,
+        scheme_name: formData.scheme_name,
         allocated_quantity: parseFloat(formData.allocated_quantity),
         rate: parseFloat(formData.rate),
         unit: formData.unit
@@ -170,6 +172,7 @@ const DemandView = () => {
       // Reset form and close modal
       setFormData({
         sub_investment_name: '',
+        scheme_name: '',
         allocated_quantity: '',
         rate: '',
         unit: ''
@@ -209,6 +212,7 @@ const DemandView = () => {
       const payload = {
         demand_id: currentDemand.demand_id, // Add demand_id from currentDemand
         sub_investment_name: formData.sub_investment_name,
+        scheme_name: formData.scheme_name,
         allocated_quantity: parseFloat(formData.allocated_quantity),
         rate: parseFloat(formData.rate),
         unit: formData.unit 
@@ -231,6 +235,7 @@ const DemandView = () => {
       // Reset form and close modal
       setFormData({
         sub_investment_name: '',
+        scheme_name: '',
         allocated_quantity: '',
         rate: '',
         unit: ''
@@ -299,6 +304,7 @@ const DemandView = () => {
     setCurrentDemand(demand);
     setFormData({
       sub_investment_name: demand.sub_investment_name,
+      scheme_name: demand.scheme_name || '',
       allocated_quantity: demand.allocated_quantity,
       rate: demand.rate,
       unit: demand.unit || ''  
@@ -480,6 +486,7 @@ const DemandView = () => {
     
     setFormData({
       sub_investment_name: '',
+      scheme_name: '',
       allocated_quantity: '',
       rate: '',
       unit: ''
@@ -512,10 +519,11 @@ const DemandView = () => {
     // Create a new array with the exact structure as displayed in the table
     const exportData = filteredDemands.map((demand, index) => ({
       'S.No.': index + 1,
-      'उप निवेश नाम': demand.sub_investment_name,
+      'उप-मद का नाम': demand.sub_investment_name,
+      'योजना का नाम': demand.scheme_name,
       'DHO, कोटद्वार का कुल लक्ष्य': demand.allocated_quantity,
       'इकाई': demand.unit,
-      'दर': demand.rate
+      'कृषक विक्रय दर / अनुदान दर': demand.rate
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -560,9 +568,10 @@ const DemandView = () => {
           'S.No.': index === 0 ? sNo++ : '',
           'सेंटर नाम': index === 0 ? item.center_name : '',
           'उप-निवेश नाम': item?.demand?.sub_investment_name || '',
+          'योजना का नाम': item?.demand?.scheme_name || '',
           'इकाई': item?.demand?.unit || '',
           'मांगी गई मात्रा': item.demanded_quantity,
-          'दर': item?.demand?.rate || 0,
+          'कृषक विक्रय दर / अनुदान दर': item?.demand?.rate || 0,
           'कुल राशि': (item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)
         });
       });
@@ -573,9 +582,10 @@ const DemandView = () => {
       'S.No.': '',
       'सेंटर नाम': 'कुल',
       'उप-निवेश नाम': '',
+      'योजना का नाम': '',
       'इकाई': '',
       'मांगी गई मात्रा': filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2),
-      'दर': '',
+      'कृषक विक्रय दर / अनुदान दर': '',
       'कुल राशि': filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0).toFixed(2)
     });
     
@@ -624,7 +634,7 @@ const DemandView = () => {
     const headerRow = document.createElement('tr');
     
     // Add headers
-    const headers = ['S.No.', 'उप निवेश नाम', 'DHO, कोटद्वार का कुल लक्ष्य', 'इकाई', 'दर'];
+    const headers = ['S.No.', 'उप-मद का नाम', 'योजना का नाम', 'DHO, कोटद्वार का कुल लक्ष्य', 'इकाई', 'कृषक विक्रय दर / अनुदान दर'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
       th.textContent = headerText;
@@ -649,6 +659,7 @@ const DemandView = () => {
       const cellData = [
         index + 1,
         demand.sub_investment_name,
+        demand.scheme_name,
         demand.allocated_quantity,
         demand.unit,
         demand.rate
@@ -704,7 +715,7 @@ const DemandView = () => {
     const headerRow = document.createElement('tr');
     
     // Add headers
-    const headers = ['S.No.', 'सेंटर नाम', 'उप-निवेश नाम', 'इकाई', 'मांगी गई मात्रा', 'दर', 'कुल राशि'];
+    const headers = ['S.No.', 'सेंटर नाम', 'उप-निवेश नाम', 'योजना का नाम', 'इकाई', 'मांगी गई मात्रा', 'कृषक विक्रय दर / अनुदान दर', 'कुल राशि'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
       th.textContent = headerText;
@@ -756,6 +767,7 @@ const DemandView = () => {
         // Other cells
         const cellData = [
           item?.demand?.sub_investment_name || '',
+          item?.demand?.scheme_name || '',
           item?.demand?.unit || '',
           item.demanded_quantity,
           item?.demand?.rate || 0,
@@ -780,8 +792,8 @@ const DemandView = () => {
     totalRow.style.fontWeight = 'bold';
     totalRow.style.backgroundColor = '#f8f9fa';
     
-    // Empty cells for first 4 columns
-    for (let i = 0; i < 4; i++) {
+    // Empty cells for first 5 columns
+    for (let i = 0; i < 5; i++) {
       const td = document.createElement('td');
       td.textContent = i === 0 ? 'कुल' : '';
       td.style.border = '1px solid #000';
@@ -829,7 +841,7 @@ const DemandView = () => {
     <>
       <DashBoardHeader />
       <Container fluid className="py-4 bg-home">
-        <Row className="mb-4">
+        <Row className="mb-4 table-m-top">
           <Col>
             <div className="d-flex justify-content-between align-items-center">
               <h2>डिमांड प्रबंधन</h2>
@@ -890,24 +902,26 @@ const DemandView = () => {
                     {filteredDemands.length > 0 ? (
                       <div style={{ maxHeight: '400px', overflowY: 'auto' }} ref={demandsTableRef}>
                         <Table striped bordered hover responsive className="mb-0 table-thead-style">
-                          <thead className='table-thead'>
-                            <tr>
-                               <th>S.No.</th>
-                              <th>उप निवेश नाम</th>
-                              <th>DHO, कोटद्वार का कुल लक्ष्य</th>
-                              <th>इकाई</th>
-                              <th>दर</th>
-                              <th>कार्यवाही</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredDemands.map((demand,index) => (
-                              <tr key={demand.id}>
-                                <td>{index + 1}</td>
-                                <td>{demand.sub_investment_name}</td>
-                                <td>{demand.allocated_quantity}</td>
-                                <td>{demand.unit}</td>
-                                <td>{demand.rate}</td>
+                           <thead className='table-thead'>
+                             <tr>
+                                <th>S.No.</th>
+                               <th>उप-मद का नाम</th>
+                               <th>योजना का नाम</th>
+                               <th>DHO, कोटद्वार का कुल लक्ष्य</th>
+                               <th>इकाई</th>
+                               <th>कृषक विक्रय दर / अनुदान दर</th>
+                               <th>कार्यवाही</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {filteredDemands.map((demand,index) => (
+                               <tr key={demand.id}>
+                                 <td>{index + 1}</td>
+                                 <td>{demand.sub_investment_name}</td>
+                                 <td>{demand.scheme_name}</td>
+                                 <td>{demand.allocated_quantity}</td>
+                                 <td>{demand.unit}</td>
+                                 <td>{demand.rate}</td>
                                 <td>
                                   <div className="d-flex gap-1">
                                     <Button 
@@ -1056,7 +1070,7 @@ const DemandView = () => {
                           <th>उप-निवेश नाम</th>
                           <th>इकाई</th>
                           <th>मांगी गई मात्रा</th>
-                          <th>दर</th>
+                          <th>कृषक विक्रय दर / अनुदान दर</th>
                           <th>कुल राशि</th>
                         </tr>
                       </thead>
@@ -1180,7 +1194,7 @@ const DemandView = () => {
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          <Form>
+          <Form onSubmit={(e) => { e.preventDefault(); }}>
             <Form.Group className="mb-3">
               <Form.Label>उप-निवेश नाम <span className="text-danger">*</span></Form.Label>
               <Form.Control
@@ -1190,6 +1204,16 @@ const DemandView = () => {
                 onChange={handleInputChange}
                 placeholder="जैसे: आलू-1, सोलर पैनल स्थापना"
                 required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>योजना का नाम</Form.Label>
+              <Form.Control
+                type="text"
+                name="scheme_name"
+                value={formData.scheme_name}
+                onChange={handleInputChange}
+                placeholder="जैसे: PM-KUSUM Scheme"
               />
             </Form.Group>
             <Form.Group className="mb-3">
@@ -1216,7 +1240,7 @@ const DemandView = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>दर <span className="text-danger">*</span></Form.Label>
+              <Form.Label>कृषक विक्रय दर / अनुदान दर <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -1230,10 +1254,10 @@ const DemandView = () => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => handleCloseModal('add')}>
+          <Button type="button" variant="secondary" onClick={() => handleCloseModal('add')}>
             रद्द करें
           </Button>
-          <Button variant="primary" onClick={handleAddDemand} disabled={isSubmitting}>
+          <Button type="button" variant="primary" onClick={handleAddDemand} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Spinner as="span" animation="border" size="sm" />
@@ -1255,7 +1279,7 @@ const DemandView = () => {
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          <Form>
+          <Form onSubmit={(e) => { e.preventDefault(); }}>
             <Form.Group className="mb-3">
               <Form.Label>उप-निवेश नाम <span className="text-danger">*</span></Form.Label>
               <Form.Control
@@ -1265,6 +1289,16 @@ const DemandView = () => {
                 onChange={handleInputChange}
                 placeholder="जैसे: आलू-1, सोलर पैनल स्थापना"
                 required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>योजना का नाम</Form.Label>
+              <Form.Control
+                type="text"
+                name="scheme_name"
+                value={formData.scheme_name}
+                onChange={handleInputChange}
+                placeholder="जैसे: PM-KUSUM Scheme"
               />
             </Form.Group>
             <Form.Group className="mb-3">
@@ -1291,7 +1325,7 @@ const DemandView = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>दर <span className="text-danger">*</span></Form.Label>
+              <Form.Label>कृषक विक्रय दर / अनुदान दर <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -1305,10 +1339,10 @@ const DemandView = () => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => handleCloseModal('edit')}>
+          <Button type="button" variant="secondary" onClick={() => handleCloseModal('edit')}>
             रद्द करें
           </Button>
-          <Button variant="primary" onClick={handleUpdateDemand} disabled={isSubmitting}>
+          <Button type="button" variant="primary" onClick={handleUpdateDemand} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Spinner as="span" animation="border" size="sm" />
@@ -1335,6 +1369,9 @@ const DemandView = () => {
                 <Col md={6}>
                   <strong>उप-निवेश नाम:</strong> {currentDemand.sub_investment_name}
                 </Col>
+                <Col md={6}>
+                  <strong>योजना का नाम:</strong> {currentDemand.scheme_name}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col md={6}>
@@ -1346,7 +1383,7 @@ const DemandView = () => {
               </Row>
               <Row className="mb-3">
                 <Col md={6}>
-                  <strong>दर:</strong> {currentDemand.rate}
+                  <strong>कृषक विक्रय दर / अनुदान दर:</strong> {currentDemand.rate}
                 </Col>
                 <Col md={6}>
                   <strong>कुल राशि:</strong> {currentDemand.amount?.toLocaleString('hi-IN') || 0}
@@ -1373,9 +1410,10 @@ const DemandView = () => {
           {currentDemand && (
             <div className="border rounded p-3 bg-light">
               <p><strong>उप-निवेश नाम:</strong> {currentDemand.sub_investment_name}</p>
+              <p><strong>योजना का नाम:</strong> {currentDemand.scheme_name}</p>
               <p><strong>DHO, कोटद्वार का कुल लक्ष्य:</strong> {currentDemand.allocated_quantity}</p>
               <p><strong>इकाई:</strong> {currentDemand.unit}</p>
-              <p><strong>दर:</strong> {currentDemand.rate}</p>
+              <p><strong>कृषक विक्रय दर / अनुदान दर:</strong> {currentDemand.rate}</p>
             </div>
           )}
           <p className="text-danger mt-3">
