@@ -294,25 +294,114 @@ const normalizeBillingRow = (item) => ({
   date: item.bill_date || item.date || '',
 });
 
+// ============================================================================
+// Per-table column visibility selector
+// Same idea as Registration page: every table has its OWN checkbox selector.
+// ============================================================================
+const ReportColumnSelector = ({ columns, visibleColumns, setVisibleColumns, label = "स्तंभ चुनें" }) => {
+  const safeColumns = (columns || []).filter(Boolean);
+  const visible = visibleColumns === null || visibleColumns === undefined
+    ? safeColumns.map(c => c.key)
+    : visibleColumns;
+
+  const allSelected = safeColumns.length > 0 && visible.length === safeColumns.length;
+
+  const toggle = (key) => {
+    setVisibleColumns(prev => {
+      const current = prev === null || prev === undefined
+        ? safeColumns.map(c => c.key)
+        : prev;
+
+      const next = current.includes(key)
+        ? current.filter(k => k !== key)
+        : [...current, key];
+
+      return next.length === safeColumns.length ? null : next;
+    });
+  };
+
+  return (
+    <div className="report-column-selector">
+      <div className="report-column-selector-header">
+        <span className="report-column-selector-title">☷ {label}</span>
+        <button
+          type="button"
+          className="report-column-select-all-btn"
+          onClick={() => setVisibleColumns(allSelected ? [] : null)}
+        >
+          {allSelected ? "सभी हटाएं" : "सभी चुनें"}
+        </button>
+      </div>
+
+      <div className="report-column-selector-options">
+        {safeColumns.map(column => (
+          <label key={column.key} className="report-column-option">
+            <input
+              type="checkbox"
+              checked={visible.includes(column.key)}
+              onChange={() => toggle(column.key)}
+            />
+            <span>{column.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const DynamicReportTabs = ({ sourceData }) => {
   const [activeTab, setActiveTab] = useState('saransh');
   const [openFilter, setOpenFilter] = useState(null);
   const [progressView, setProgressView] = useState('vidhan');
   const [saleView, setSaleView] = useState('vidhan');
-  const [masterFilters, setMasterFilters] = useState({ kraya: null, otherKraya: null, vahan: null, nivesh: null, upnivesh: null, kendra: null });
-  const [summaryFilters, setSummaryFilters] = useState({ otherKraya: null, vahan: null, kendra: null, nivesh: null, upnivesh: null });
-  const [progressFilters, setProgressFilters] = useState({ otherKraya: null, vahan: null, kendra: null, block: null, vidhan: null });
-  const [saleFilters, setSaleFilters] = useState({ kendra: null, block: null, vidhan: null });
 
-  const rows = useMemo(() => (Array.isArray(sourceData) ? sourceData : []).map(normalizeBillingRow), [sourceData]);
+  // Independent filters for each report tab.
+  const [masterFilters, setMasterFilters] = useState({
+    kraya: null, otherKraya: null, vahan: null, nivesh: null, upnivesh: null, kendra: null
+  });
+  const [summaryFilters, setSummaryFilters] = useState({
+    otherKraya: null, vahan: null, kendra: null, nivesh: null, upnivesh: null
+  });
+  const [progressFilters, setProgressFilters] = useState({
+    otherKraya: null, vahan: null, kendra: null, block: null, vidhan: null
+  });
+  const [saleFilters, setSaleFilters] = useState({
+    kendra: null, block: null, vidhan: null
+  });
 
-  // Every dropdown option is generated dynamically from the current GET response.
-  // No hard-coded scheme/center/block/mad/sub-mad values are inserted.
-  const uniq = values => [...new Set(
-    values
-      .map(v => String(v ?? '').trim())
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, 'hi'));
+  // Independent column visibility for EVERY TABLE.
+  const [masterColumns, setMasterColumns] = useState(null);
+  const [summaryPlanColumns, setSummaryPlanColumns] = useState(null);
+  const [summaryMadColumns, setSummaryMadColumns] = useState(null);
+  const [summarySubMadColumns, setSummarySubMadColumns] = useState(null);
+  const [progressColumns, setProgressColumns] = useState(null);
+  const [saleColumns, setSaleColumns] = useState(null);
+  const [mappingColumns, setMappingColumns] = useState(null);
+
+  const rows = useMemo(() => (
+    Array.isArray(sourceData) ? sourceData : []
+  ).map(item => ({
+    raw: item,
+    kendra: item.center_name?.trim() || 'अन्य',
+    kraya: item.scheme_name?.trim() || 'अन्य',
+    vahan: item.anudan_name?.trim() || 'अन्य',
+    nivesh: item.investment_name?.trim() || 'अन्य',
+    upnivesh: item.sub_investment_name?.trim() || 'अन्य',
+    ikai: item.unit?.trim() || 'अन्य',
+    vidhan: item.vidhan_sabha_name?.trim() || 'अन्य',
+    block: item.vikas_khand_name?.trim() || 'अन्य',
+    matra: Number(item.allocated_quantity) || 0,
+    rate: Number(item.rate) || 0,
+    vikray: Number(item.farmer_selling_rate) || 0,
+    anudanRate: Number(item.farmer_subsidy_rate) || 0,
+    ansh: Number(item.amount_of_farmer_share) || 0,
+    anudan: Number(item.amount_of_subsidy) || 0,
+    kul: Number(item.total_amount) || 0,
+    date: item.bill_date || '',
+  })), [sourceData]);
+
+  const uniq = values => [...new Set(values.filter(v => v !== null && v !== undefined && String(v).trim() !== ''))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'hi'));
 
   const lists = useMemo(() => ({
     kendra: uniq(rows.map(r => r.kendra)),
@@ -324,25 +413,154 @@ const DynamicReportTabs = ({ sourceData }) => {
     vidhan: uniq(rows.map(r => r.vidhan)),
   }), [rows]);
 
-  // 4401 is available only when that exact scheme is actually present
-  // in the fetched GET response. Never inject a fake 4401 option.
-  const fixedPlan = useMemo(() => {
-    return lists.kraya.find(v => String(v).trim() === '4401 बिक्री हेतु') || null;
-  }, [lists.kraya]);
+  // Only use 4401 when it actually exists in the fetched API data.
+  const fixedPlan = useMemo(
+    () => lists.kraya.find(v => String(v).trim() === '4401 बिक्री हेतु') || null,
+    [lists.kraya]
+  );
 
-  // All other purchase-plan names are also generated only from the GET response.
+  // All other unique scheme names are dynamically fetched and selectable.
   const otherKrayaPlans = useMemo(
     () => lists.kraya.filter(v => v !== fixedPlan),
     [lists.kraya, fixedPlan]
   );
 
-  const applyFilters = (data, filters, fields) => data.filter(r => fields.every(field => {
-    // null/undefined means ALL values are selected.
-    // [] means NO values are selected.
-    // Do not use `filters[field] || []` here because null must remain null.
-    const selected = filters[field];
-    return selected === null || selected === undefined || selected.includes(r[field]);
-  }));
+  const getOptions = (section, field) =>
+    field === 'otherKraya' ? otherKrayaPlans : (lists[field] || []);
+
+  const getFilterState = section =>
+    section === 'master'
+      ? [masterFilters, setMasterFilters]
+      : section === 'summary'
+        ? [summaryFilters, setSummaryFilters]
+        : section === 'progress'
+          ? [progressFilters, setProgressFilters]
+          : [saleFilters, setSaleFilters];
+
+  const toggleFilter = (section, field, value) => {
+    const [, setter] = getFilterState(section);
+
+    setter(prev => {
+      const options = getOptions(section, field);
+      const current = prev[field] === null || prev[field] === undefined
+        ? [...options]
+        : [...prev[field]];
+
+      const next = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value];
+
+      return {
+        ...prev,
+        [field]: next.length === options.length ? null : next
+      };
+    });
+  };
+
+  const clearFilters = section => {
+    const [state, setter] = getFilterState(section);
+    setter(Object.fromEntries(Object.keys(state).map(key => [key, null])));
+    setOpenFilter(null);
+  };
+
+  const FilterButton = ({ section, field, label }) => {
+    const [state, setter] = getFilterState(section);
+    const options = getOptions(section, field);
+    const selected = state[field];
+    const selectedValues = selected === null || selected === undefined ? options : selected;
+    const selectedCount = selectedValues.length;
+    const id = `${section}-${field}`;
+    const open = openFilter === id;
+    const isFiltered = selected !== null && selected !== undefined && selectedCount !== options.length;
+
+    return (
+      <div className="dynamic-report-filter-wrap">
+        <button
+          type="button"
+          className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`}
+          onClick={() => setOpenFilter(open ? null : id)}
+        >
+          <span>{label}</span>
+          <span className="dynamic-report-badge">{`${selectedCount}/${options.length}`}</span>
+          <span>▼</span>
+        </button>
+
+        {open && (
+          <div className="dynamic-report-filter-menu">
+            <div className="dynamic-report-filter-actions">
+              <button type="button" onClick={() => setter(prev => ({ ...prev, [field]: null }))}>सभी चुनें</button>
+              <button type="button" onClick={() => setter(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
+            </div>
+
+            <div className="dynamic-report-filter-list">
+              {options.map(value => (
+                <label key={value} className="dynamic-report-filter-option">
+                  <input
+                    type="checkbox"
+                    checked={selected === null || selected === undefined ? true : selected.includes(value)}
+                    onChange={() => toggleFilter(section, field, value)}
+                  />
+                  <span>{value}</span>
+                </label>
+              ))}
+            </div>
+
+            <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenFilter(null)}>
+              बंद करें
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const FilterBar = ({ section }) => (
+    <div className="dynamic-report-filterbar">
+      {filterDefinitions[section].map(([field, label]) => (
+        <FilterButton key={field} section={section} field={field} label={label} />
+      ))}
+      <button type="button" className="dynamic-report-clear-btn" onClick={() => clearFilters(section)}>
+        फ़िल्टर हटाएं
+      </button>
+    </div>
+  );
+
+  const filterDefinitions = {
+    master: [
+      ['kraya', 'क्रय योजना का नाम'],
+      ['otherKraya', 'अन्य क्रय योजनाएं'],
+      ['vahan', 'अनुदान वहन योजना'],
+      ['nivesh', 'मद का नाम'],
+      ['upnivesh', 'उप-मद का नाम'],
+      ['kendra', 'केंद्र']
+    ],
+    summary: [
+      ['otherKraya', 'अन्य क्रय योजनाएं'],
+      ['vahan', 'अनुदान वहन योजना'],
+      ['kendra', 'केंद्र'],
+      ['nivesh', 'मद'],
+      ['upnivesh', 'उप-मद']
+    ],
+    progress: [
+      ['otherKraya', 'अन्य क्रय योजनाएं'],
+      ['vahan', 'योजना का नाम (अनुदान वहन योजना)'],
+      ['kendra', 'केंद्र'],
+      ['block', 'ब्लॉक'],
+      ['vidhan', 'विधानसभा']
+    ],
+    sale: [
+      ['kendra', 'केंद्र'],
+      ['block', 'ब्लॉक'],
+      ['vidhan', 'विधानसभा']
+    ]
+  };
+
+  const applyFilters = (data, filters, fields) => data.filter(r =>
+    fields.every(field => {
+      const selected = filters[field];
+      return selected === null || selected === undefined || selected.includes(r[field]);
+    })
+  );
 
   const masterRows = useMemo(() => {
     let data = applyFilters(rows, masterFilters, ['kraya', 'vahan', 'nivesh', 'upnivesh', 'kendra']);
@@ -370,135 +588,206 @@ const DynamicReportTabs = ({ sourceData }) => {
     return data;
   }, [rows, progressFilters, fixedPlan]);
 
-  const saleRows = useMemo(
-    () => fixedPlan
-      ? applyFilters(
-          rows.filter(r => r.kraya === fixedPlan),
-          saleFilters,
-          ['kendra', 'block', 'vidhan']
-        )
-      : [],
-    [rows, saleFilters, fixedPlan]
-  );
+  const saleRows = useMemo(() => (
+    fixedPlan
+      ? applyFilters(rows.filter(r => r.kraya === fixedPlan), saleFilters, ['kendra', 'block', 'vidhan'])
+      : []
+  ), [rows, saleFilters, fixedPlan]);
 
   const fmtN = value => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(value) || 0);
   const fmtR = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
   const fmtDate = value => value ? new Date(value).toLocaleDateString('hi-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
 
-  const filterDefinitions = {
-    master: [
-      ['kraya', 'क्रय योजना का नाम'], ['otherKraya', 'अन्य क्रय योजनाएं'], ['vahan', 'अनुदान वहन योजना'], ['nivesh', 'मद का नाम'], ['upnivesh', 'उप-मद का नाम'], ['kendra', 'केंद्र']
-    ],
-    summary: [
-      ['otherKraya', 'अन्य क्रय योजनाएं'], ['vahan', 'अनुदान वहन योजना'], ['kendra', 'केंद्र'], ['nivesh', 'मद'], ['upnivesh', 'उप-मद']
-    ],
-    progress: [
-      ['otherKraya', 'अन्य क्रय योजनाएं'], ['vahan', 'योजना का नाम (अनुदान वहन योजना)'], ['kendra', 'केंद्र'], ['block', 'ब्लॉक'], ['vidhan', 'विधानसभा']
-    ],
-    sale: [
-      ['kendra', 'केंद्र'], ['block', 'ब्लॉक'], ['vidhan', 'विधानसभा']
-    ]
-  };
+  const masterColumnDefs = [
+    { key: 'sno', label: 'क्रम संख्या' },
+    { key: 'kendra', label: 'केंद्र का नाम' },
+    { key: 'kraya', label: 'क्रय योजना का नाम' },
+    { key: 'supplier', label: 'सप्लायर' },
+    { key: 'nivesh', label: 'मद का नाम' },
+    { key: 'upnivesh', label: 'उप-मद का नाम' },
+    { key: 'ikai', label: 'इकाई' },
+    { key: 'matra', label: 'आवंटित मात्रा' },
+    { key: 'rate', label: 'क्रय दर (प्रति इकाई)' },
+    { key: 'vikray', label: 'कृषक विक्रय दर (प्रति इकाई)' },
+    { key: 'anudanRate', label: 'कृषक अनुदान दर (प्रति इकाई)' },
+    { key: 'ansh', label: 'कृषक अंश (रु0)' },
+    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
+    { key: 'kul', label: 'कुल राशि (रु0)' },
+    { key: 'vahan', label: 'अनुदान वहन योजना' },
+    { key: 'remark', label: 'रिमार्क' },
+    { key: 'date', label: 'पंजीकरण तिथि' },
+  ];
 
-  const getOptions = (section, field) => {
-    if (field === 'otherKraya') return otherKrayaPlans;
-    return lists[field] || [];
-  };
+  const summaryPlanDefs = [
+    { key: 'sno', label: 'क्रम संख्या' },
+    { key: 'vahan', label: 'योजना का नाम (अनुदान वहन योजना)' },
+    { key: 'matra', label: 'आवंटित मात्रा' },
+    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
+  ];
 
-  const getFilterState = section => section === 'master' ? [masterFilters, setMasterFilters]
-    : section === 'summary' ? [summaryFilters, setSummaryFilters]
-    : section === 'progress' ? [progressFilters, setProgressFilters]
-    : [saleFilters, setSaleFilters];
+  const summaryMadDefs = [
+    { key: 'sno', label: 'क्रम संख्या' },
+    { key: 'mad', label: 'मद' },
+    { key: 'vahan', label: 'योजना का नाम (अनुदान वहन योजना)' },
+    { key: 'ikai', label: 'इकाई' },
+    { key: 'matra', label: 'आवंटित मात्रा' },
+    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
+  ];
 
-  const toggleFilter = (section, field, value) => {
-    const [, setter] = getFilterState(section);
-    setter(prev => {
-      // When state is null/undefined, all options are currently selected.
-      // Clicking one option should therefore remove only that option.
-      const current = prev[field] === null || prev[field] === undefined
-        ? [...(getOptions(section, field))]
-        : (Array.isArray(prev[field]) ? prev[field] : []);
-      const next = current.includes(value)
-        ? current.filter(v => v !== value)
-        : [...current, value];
+  const summarySubMadDefs = [
+    { key: 'sno', label: 'क्रम संख्या' },
+    { key: 'submad', label: 'उप-मद' },
+    { key: 'vahan', label: 'योजना का नाम (अनुदान वहन योजना)' },
+    { key: 'ikai', label: 'इकाई' },
+    { key: 'matra', label: 'आवंटित मात्रा' },
+    { key: 'dar', label: 'कृषक अनुदान दर (भारित औसत)' },
+    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
+  ];
 
-      // null represents ALL selected, which is always derived from the
-      // currently fetched unique options.
-      const options = getOptions(section, field);
-      return {
-        ...prev,
-        [field]: next.length === options.length ? null : next
-      };
+  const mappingDefs = [
+    { key: 'sno', label: 'क्रम संख्या' },
+    { key: 'kendra', label: 'केंद्र का नाम' },
+    { key: 'block', label: 'विकास खंड' },
+    { key: 'vidhan', label: 'विधानसभा' },
+  ];
+
+  const SummaryPlanTable = () => {
+    const map = new Map();
+    summaryRows.forEach(r => {
+      if (!map.has(r.vahan)) map.set(r.vahan, { matra: 0, anudan: 0 });
+      const g = map.get(r.vahan);
+      g.matra += r.matra;
+      g.anudan += r.anudan;
     });
-  };
 
-  const clearFilters = section => {
-    const [state, setter] = getFilterState(section);
-    setter(Object.fromEntries(Object.keys(state).map(key => [key, null])));
-    setOpenFilter(null);
-  };
+    const groups = [...map.entries()]
+      .filter(([, g]) => g.matra > 0 && g.anudan > 0)
+      .sort((a, b) => b[1].anudan - a[1].anudan);
 
-  const FilterButton = ({ section, field, label }) => {
-    const [state, setter] = getFilterState(section);
-    const options = getOptions(section, field);
-    const selected = state[field];
-    // null/undefined means all values are selected; [] means none selected.
-    const selectedValues = selected === null || selected === undefined ? options : selected;
-    const selectedCount = selectedValues.length;
-    const id = `${section}-${field}`;
-    const open = openFilter === id;
-    const isFiltered = selected !== null && selected !== undefined && selectedCount !== options.length;
+    const visible = summaryPlanColumns === null
+      ? summaryPlanDefs.map(c => c.key)
+      : summaryPlanColumns;
+    const show = key => visible.includes(key);
+
+    const totalMatra = groups.reduce((s, [, g]) => s + g.matra, 0);
+    const totalAnudan = groups.reduce((s, [, g]) => s + g.anudan, 0);
+
     return (
-      <div className="dynamic-report-filter-wrap">
-        <button type="button" className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`} onClick={() => setOpenFilter(open ? null : id)}>
-          <span>{label}</span><span className="dynamic-report-badge">{`${selectedCount}/${options.length}`}</span><span>▼</span>
-        </button>
-        {open && (
-          <div className="dynamic-report-filter-menu">
-            <div className="dynamic-report-filter-actions">
-              <button type="button" onClick={() => setter(prev => ({ ...prev, [field]: [...options] }))}>सभी चुनें</button>
-              <button type="button" onClick={() => setter(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
-            </div>
-            <div className="dynamic-report-filter-list">
-              {options.map(value => <label key={value} className="dynamic-report-filter-option"><input type="checkbox" checked={selected === null || selected === undefined ? true : selected.includes(value)} onChange={() => toggleFilter(section, field, value)} /><span>{value}</span></label>)}
-            </div>
-            <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenFilter(null)}>बंद करें</button>
-          </div>
-        )}
-      </div>
+      <>
+        <ReportColumnSelector
+          columns={summaryPlanDefs}
+          visibleColumns={summaryPlanColumns}
+          setVisibleColumns={setSummaryPlanColumns}
+          label="इस तालिका के स्तंभ चुनें"
+        />
+        <div className="dynamic-report-table-scroll">
+          <table className="dynamic-report-table">
+            <thead><tr>
+              {show('sno') && <th>#</th>}
+              {show('vahan') && <th>योजना का नाम<br/>(अनुदान वहन योजना)</th>}
+              {show('matra') && <th>आवंटित मात्रा</th>}
+              {show('anudan') && <th>अनुदान राशि (रु0)</th>}
+            </tr></thead>
+            <tbody>
+              {groups.length ? groups.map(([name, g], i) => (
+                <tr key={name}>
+                  {show('sno') && <td>{i + 1}</td>}
+                  {show('vahan') && <td>{name}</td>}
+                  {show('matra') && <td>{fmtN(g.matra)}</td>}
+                  {show('anudan') && <td>{fmtR(g.anudan)}</td>}
+                </tr>
+              )) : (
+                <tr><td colSpan={Math.max(1, visible.length)} className="dynamic-report-empty">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</td></tr>
+              )}
+            </tbody>
+            {groups.length > 0 && (
+              <tfoot><tr>
+                <td colSpan={Math.max(1, visible.length - (show('matra') ? 1 : 0) - (show('anudan') ? 1 : 0))}>योग</td>
+                {show('matra') && <td>{fmtN(totalMatra)}</td>}
+                {show('anudan') && <td>{fmtR(totalAnudan)}</td>}
+              </tr></tfoot>
+            )}
+          </table>
+        </div>
+      </>
     );
   };
 
-  const FilterBar = ({ section }) => (
-    <div className="dynamic-report-filterbar">
-      {filterDefinitions[section].map(([field, label]) => <FilterButton key={field} section={section} field={field} label={label} />)}
-      <button type="button" className="dynamic-report-clear-btn" onClick={() => clearFilters(section)}>फ़िल्टर हटाएं</button>
-    </div>
-  );
-
-  const SummaryGroupTable = ({ data, field, label, showRate }) => {
+  const SummaryGroupTable = ({ data, field, label, showRate, columns, setColumns }) => {
     const map = new Map();
     data.forEach(r => {
       const key = r[field] || 'अन्य';
       if (!map.has(key)) map.set(key, { matra: 0, anudan: 0, vahan: new Set(), ikai: new Set() });
-      const g = map.get(key); g.matra += r.matra; g.anudan += r.anudan; g.vahan.add(r.vahan); if (r.ikai) g.ikai.add(r.ikai);
+      const g = map.get(key);
+      g.matra += r.matra;
+      g.anudan += r.anudan;
+      g.vahan.add(r.vahan);
+      if (r.ikai) g.ikai.add(r.ikai);
     });
-    const groups = [...map.entries()].filter(([, g]) => g.matra > 0 && g.anudan > 0).sort((a, b) => b[1].anudan - a[1].anudan);
+
+    const groups = [...map.entries()]
+      .filter(([, g]) => g.matra > 0 && g.anudan > 0)
+      .sort((a, b) => b[1].anudan - a[1].anudan);
+
+    const defs = field === 'nivesh' ? summaryMadDefs : summarySubMadDefs;
+    const visible = columns === null ? defs.map(c => c.key) : columns;
+    const show = key => visible.includes(key);
+
     const totalMatra = groups.reduce((s, [, g]) => s + g.matra, 0);
     const totalAnudan = groups.reduce((s, [, g]) => s + g.anudan, 0);
-    return <div className="dynamic-report-table-scroll"><table className="dynamic-report-table"><thead><tr><th>#</th><th>{label}</th><th>योजना का नाम<br/>(अनुदान वहन योजना)</th><th>इकाई</th><th>आवंटित मात्रा</th>{showRate && <th>कृषक अनुदान दर (भारित औसत)</th>}<th>अनुदान राशि (रु0)</th></tr></thead><tbody>{groups.length ? groups.map(([name, g], i) => <tr key={name}><td>{i + 1}</td><td>{name}</td><td>{[...g.vahan].join(', ')}</td><td>{[...g.ikai].join(', ')}</td><td>{fmtN(g.matra)}</td>{showRate && <td>{fmtR(g.matra ? g.anudan / g.matra : 0)}</td>}<td>{fmtR(g.anudan)}</td></tr>) : <tr><td colSpan={showRate ? 7 : 6} className="dynamic-report-empty">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</td></tr>}</tbody>{groups.length > 0 && <tfoot><tr><td colSpan="4">योग</td><td>{fmtN(totalMatra)}</td>{showRate && <td>{fmtR(totalMatra ? totalAnudan / totalMatra : 0)}</td>}<td>{fmtR(totalAnudan)}</td></tr></tfoot>}</table></div>;
+
+    return (
+      <>
+        <ReportColumnSelector
+          columns={defs}
+          visibleColumns={columns}
+          setVisibleColumns={setColumns}
+          label={`${label} — इस तालिका के स्तंभ चुनें`}
+        />
+        <div className="dynamic-report-table-scroll">
+          <table className="dynamic-report-table">
+            <thead><tr>
+              {show('sno') && <th>#</th>}
+              {show(field === 'nivesh' ? 'mad' : 'submad') && <th>{label}</th>}
+              {show('vahan') && <th>योजना का नाम<br/>(अनुदान वहन योजना)</th>}
+              {show('ikai') && <th>इकाई</th>}
+              {show('matra') && <th>आवंटित मात्रा</th>}
+              {show('dar') && showRate && <th>कृषक अनुदान दर (भारित औसत)</th>}
+              {show('anudan') && <th>अनुदान राशि (रु0)</th>}
+            </tr></thead>
+            <tbody>
+              {groups.length ? groups.map(([name, g], i) => (
+                <tr key={name}>
+                  {show('sno') && <td>{i + 1}</td>}
+                  {show(field === 'nivesh' ? 'mad' : 'submad') && <td>{name}</td>}
+                  {show('vahan') && <td>{[...g.vahan].join(', ')}</td>}
+                  {show('ikai') && <td>{[...g.ikai].join(', ')}</td>}
+                  {show('matra') && <td>{fmtN(g.matra)}</td>}
+                  {show('dar') && showRate && <td>{fmtR(g.matra ? g.anudan / g.matra : 0)}</td>}
+                  {show('anudan') && <td>{fmtR(g.anudan)}</td>}
+                </tr>
+              )) : (
+                <tr><td colSpan={Math.max(1, visible.length)} className="dynamic-report-empty">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</td></tr>
+              )}
+            </tbody>
+            {groups.length > 0 && (
+              <tfoot><tr>
+                <td colSpan={Math.max(1, visible.length - (show('matra') ? 1 : 0) - (show('anudan') ? 1 : 0) - (show('dar') && showRate ? 1 : 0))}>योग</td>
+                {show('matra') && <td>{fmtN(totalMatra)}</td>}
+                {show('dar') && showRate && <td>{fmtR(totalMatra ? totalAnudan / totalMatra : 0)}</td>}
+                {show('anudan') && <td>{fmtR(totalAnudan)}</td>}
+              </tr></tfoot>
+            )}
+          </table>
+        </div>
+      </>
+    );
   };
 
-  const SummaryPlanTable = () => {
-    const map = new Map();
-    summaryRows.forEach(r => { if (!map.has(r.vahan)) map.set(r.vahan, { matra: 0, anudan: 0 }); const g = map.get(r.vahan); g.matra += r.matra; g.anudan += r.anudan; });
-    const groups = [...map.entries()].filter(([, g]) => g.matra > 0 && g.anudan > 0).sort((a, b) => b[1].anudan - a[1].anudan);
-    return <div className="dynamic-report-table-scroll"><table className="dynamic-report-table"><thead><tr><th>#</th><th>योजना का नाम<br/>(अनुदान वहन योजना)</th><th>आवंटित मात्रा</th><th>अनुदान राशि (रु0)</th></tr></thead><tbody>{groups.length ? groups.map(([name, g], i) => <tr className="dynamic-report-vahan-row" key={name}><td>{i + 1}</td><td>{name}</td><td>{fmtN(g.matra)}</td><td>{fmtR(g.anudan)}</td></tr>) : <tr><td colSpan="4" className="dynamic-report-empty">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</td></tr>}</tbody>{groups.length > 0 && <tfoot><tr><td colSpan="2">योग</td><td>{fmtN(groups.reduce((s, [, g]) => s + g.matra, 0))}</td><td>{fmtR(groups.reduce((s, [, g]) => s + g.anudan, 0))}</td></tr></tfoot>}</table></div>;
-  };
-
-  const MatrixTable = ({ data, geoField, geoList, saleMode, schemeLabel }) => {
+  const MatrixTable = ({ data, geoField, geoList, saleMode, schemeLabel, columns, setColumns }) => {
     const items = [];
     const seen = new Set();
+
     data.forEach(r => {
       const key = `${r.nivesh}|${r.upnivesh}|${r.ikai}`;
       if (!seen.has(key)) {
@@ -516,8 +805,35 @@ const DynamicReportTabs = ({ sourceData }) => {
     const visibleGeo = geoList.filter(geo => items.some(item => hasData(item, geo)));
     const visibleItems = items.filter(item => visibleGeo.some(geo => hasData(item, geo)));
 
+    const subColumns = saleMode
+      ? ['विक्रय दर', 'भौतिक पूर्ति', 'वित्तीय (₹)']
+      : ['भौतिक पूर्ति', 'वित्तीय (₹)'];
+
+    const matrixDefs = [
+      { key: 'sno', label: 'क्रम संख्या' },
+      { key: 'scheme', label: 'योजना का नाम' },
+      { key: 'mad', label: 'मद का नाम' },
+      { key: 'submad', label: 'उप-मद का नाम' },
+      { key: 'ikai', label: 'इकाई' },
+      ...visibleGeo.map((geo, index) => ({ key: `geo_${index}`, label: geo })),
+      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' },
+    ];
+
+    const visible = columns === null ? matrixDefs.map(c => c.key) : columns;
+    const show = key => visible.includes(key);
+
     if (!visibleGeo.length || !visibleItems.length) {
-      return <div className="dynamic-report-empty-box">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</div>;
+      return (
+        <>
+          <ReportColumnSelector
+            columns={matrixDefs}
+            visibleColumns={columns}
+            setVisibleColumns={setColumns}
+            label="प्रगति मैट्रिक्स — इस तालिका के स्तंभ चुनें"
+          />
+          <div className="dynamic-report-empty-box">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</div>
+        </>
+      );
     }
 
     const getCell = (item, geo) => data
@@ -531,111 +847,395 @@ const DynamicReportTabs = ({ sourceData }) => {
     let grandMat = 0;
     let grandVal = 0;
 
-    const subColumns = saleMode
-      ? ['विक्रय दर', 'भौतिक पूर्ति', 'वित्तीय (₹)']
-      : ['भौतिक पूर्ति', 'वित्तीय (₹)'];
-
     const renderCellValues = (cellData, keyPrefix) => {
       const rate = cellData.mat ? cellData.val / cellData.mat : 0;
+
       if (saleMode) {
-        return <React.Fragment key={keyPrefix}>
-          <td>{cellData.mat ? fmtR(rate) : ''}</td>
+        return (
+          <React.Fragment key={keyPrefix}>
+            <td>{cellData.mat ? fmtR(rate) : ''}</td>
+            <td>{cellData.mat ? fmtN(cellData.mat) : ''}</td>
+            <td>{cellData.val ? fmtR(cellData.val) : ''}</td>
+          </React.Fragment>
+        );
+      }
+
+      return (
+        <React.Fragment key={keyPrefix}>
           <td>{cellData.mat ? fmtN(cellData.mat) : ''}</td>
           <td>{cellData.val ? fmtR(cellData.val) : ''}</td>
-        </React.Fragment>;
-      }
-      return <React.Fragment key={keyPrefix}>
-        <td>{cellData.mat ? fmtN(cellData.mat) : ''}</td>
-        <td>{cellData.val ? fmtR(cellData.val) : ''}</td>
-      </React.Fragment>;
+        </React.Fragment>
+      );
     };
 
     const renderTotalValues = (cellData, keyPrefix) => {
       const rate = cellData.mat ? cellData.val / cellData.mat : 0;
+
       if (saleMode) {
-        return <React.Fragment key={keyPrefix}>
-          <td className="tot">{cellData.mat ? fmtR(rate) : ''}</td>
+        return (
+          <React.Fragment key={keyPrefix}>
+            <td className="tot">{cellData.mat ? fmtR(rate) : ''}</td>
+            <td className="tot">{fmtN(cellData.mat)}</td>
+            <td className="tot">{fmtR(cellData.val)}</td>
+          </React.Fragment>
+        );
+      }
+
+      return (
+        <React.Fragment key={keyPrefix}>
           <td className="tot">{fmtN(cellData.mat)}</td>
           <td className="tot">{fmtR(cellData.val)}</td>
-        </React.Fragment>;
-      }
-      return <React.Fragment key={keyPrefix}>
-        <td className="tot">{fmtN(cellData.mat)}</td>
-        <td className="tot">{fmtR(cellData.val)}</td>
-      </React.Fragment>;
+        </React.Fragment>
+      );
     };
 
     const colspan = subColumns.length;
 
-    return <div className="dynamic-report-table-scroll matrix-scroll">
-      <table className="dynamic-report-table matrix-table">
-        <thead>
-          <tr>
-            <th rowSpan="2">क्रम संख्या</th>
-            <th rowSpan="2">{schemeLabel || 'योजना का नाम (अनुदान वहन योजना)'}</th>
-            <th rowSpan="2">मद का नाम</th>
-            <th rowSpan="2">उप-मद का नाम</th>
-            <th rowSpan="2">इकाई</th>
-            {visibleGeo.map(geo => <th colSpan={colspan} key={geo}>{geo}</th>)}
-            <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>
-          </tr>
-          <tr>
-            {visibleGeo.flatMap(geo => subColumns.map(column => <th key={`${geo}-${column}`}>{column}</th>))}
-            {subColumns.map(column => <th key={`total-${column}`}>{column}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {visibleItems.map((item, idx) => {
-            let rowMat = 0;
-            let rowVal = 0;
-            const cells = visibleGeo.map(geo => {
-              const c = getCell(item, geo);
-              geoTotals[geo].mat += c.mat;
-              geoTotals[geo].val += c.val;
-              rowMat += c.mat;
-              rowVal += c.val;
-              return renderCellValues(c, `${item.upnivesh}-${geo}`);
-            });
-            grandMat += rowMat;
-            grandVal += rowVal;
-            const first = data.find(r => r.upnivesh === item.upnivesh);
-            return <tr key={`${item.nivesh}-${item.upnivesh}-${idx}`}>
-              <td>{idx + 1}</td>
-              <td>{schemeLabel || first?.vahan || ''}</td>
-              <td>{item.nivesh}</td>
-              <td>{item.upnivesh}</td>
-              <td>{item.ikai}</td>
-              {cells}
-              {renderTotalValues({ mat: rowMat, val: rowVal }, `row-total-${idx}`)}
-            </tr>;
-          })}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan="5">योग</td>
-            {visibleGeo.flatMap(geo => renderTotalValues(geoTotals[geo], `geo-total-${geo}`))}
-            {renderTotalValues({ mat: grandMat, val: grandVal }, 'grand-total')}
-          </tr>
-        </tfoot>
-      </table>
-    </div>;
+    return (
+      <>
+        <ReportColumnSelector
+          columns={matrixDefs}
+          visibleColumns={columns}
+          setVisibleColumns={setColumns}
+          label="प्रगति मैट्रिक्स — इस तालिका के स्तंभ चुनें"
+        />
+
+        <div className="dynamic-report-table-scroll matrix-scroll">
+          <table className="dynamic-report-table matrix-table">
+            <thead>
+              <tr>
+                {show('sno') && <th rowSpan="2">क्रम संख्या</th>}
+                {show('scheme') && <th rowSpan="2">{schemeLabel || 'योजना का नाम (अनुदान वहन योजना)'}</th>}
+                {show('mad') && <th rowSpan="2">मद का नाम</th>}
+                {show('submad') && <th rowSpan="2">उप-मद का नाम</th>}
+                {show('ikai') && <th rowSpan="2">इकाई</th>}
+
+                {visibleGeo.map((geo, index) =>
+                  show(`geo_${index}`) && (
+                    <th colSpan={colspan} key={geo}>{geo}</th>
+                  )
+                )}
+
+                {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>}
+              </tr>
+
+              <tr>
+                {visibleGeo.flatMap((geo, index) =>
+                  show(`geo_${index}`)
+                    ? subColumns.map(column => <th key={`${geo}-${column}`}>{column}</th>)
+                    : []
+                )}
+                {show('total') && subColumns.map(column => <th key={`total-${column}`}>{column}</th>)}
+              </tr>
+            </thead>
+
+            <tbody>
+              {visibleItems.map((item, idx) => {
+                let rowMat = 0;
+                let rowVal = 0;
+
+                const cells = visibleGeo.flatMap((geo, geoIndex) => {
+                  const c = getCell(item, geo);
+                  geoTotals[geo].mat += c.mat;
+                  geoTotals[geo].val += c.val;
+                  rowMat += c.mat;
+                  rowVal += c.val;
+
+                  return show(`geo_${geoIndex}`)
+                    ? [renderCellValues(c, `${item.upnivesh}-${geo}`)]
+                    : [];
+                });
+
+                grandMat += rowMat;
+                grandVal += rowVal;
+
+                const first = data.find(r => r.upnivesh === item.upnivesh);
+
+                return (
+                  <tr key={`${item.nivesh}-${item.upnivesh}-${idx}`}>
+                    {show('sno') && <td>{idx + 1}</td>}
+                    {show('scheme') && <td>{schemeLabel || first?.vahan || ''}</td>}
+                    {show('mad') && <td>{item.nivesh}</td>}
+                    {show('submad') && <td>{item.upnivesh}</td>}
+                    {show('ikai') && <td>{item.ikai}</td>}
+                    {cells}
+                    {show('total') && renderTotalValues({ mat: rowMat, val: rowVal }, `row-total-${idx}`)}
+                  </tr>
+                );
+              })}
+            </tbody>
+
+            <tfoot>
+              <tr>
+                <td colSpan="100">योग</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </>
+    );
   };
 
-  const mappingRows = useMemo(() => { const map = new Map(); rows.forEach(r => { const key = `${r.kendra}|${r.block}|${r.vidhan}`; if (!map.has(key)) map.set(key, r); }); return [...map.values()].sort((a, b) => a.kendra.localeCompare(b.kendra, 'hi')); }, [rows]);
-  const masterTotals = useMemo(() => ({ qty: masterRows.reduce((s, r) => s + r.matra, 0), farmer: masterRows.reduce((s, r) => s + r.ansh, 0), subsidy: masterRows.reduce((s, r) => s + r.anudan, 0), total: masterRows.reduce((s, r) => s + r.kul, 0) }), [masterRows]);
+  const mappingRows = useMemo(() => {
+    const map = new Map();
+    rows.forEach(r => {
+      const key = `${r.kendra}|${r.block}|${r.vidhan}`;
+      if (!map.has(key)) map.set(key, r);
+    });
+    return [...map.values()].sort((a, b) => a.kendra.localeCompare(b.kendra, 'hi'));
+  }, [rows]);
 
-  return <section className="dynamic-report-section">
-    <div className="dynamic-report-heading"><div><h4><FaTable className="me-2" />विस्तृत रिपोर्ट</h4><p>गतिशील Excel-जैसी रिपोर्ट संरचना — API से आने वाले डेटा के आधार पर स्वतः गणना।</p></div><span className="dynamic-report-record-badge">कुल रिकॉर्ड: {rows.length}</span></div>
-    <div className="dynamic-report-tabs">{[['master','Master'],['saransh','सारांश'],['pragati','योजना प्रगति विवरण'],['vivaran4401','4401 बिक्री हेतु'],['mapping','mapping']].map(([key, label]) => <button type="button" key={key} className={activeTab === key ? 'active' : ''} onClick={() => setActiveTab(key)}>{label}</button>)}</div>
-    <div className="dynamic-report-content">
-      {activeTab === 'master' && <div className="dynamic-report-panel"><h5>Master — मूल डेटा</h5><p className="dynamic-report-note">क्रय योजना, अनुदान वहन योजना, मद, उप-मद और केंद्र के अनुसार डेटा।</p><FilterBar section="master" /><div className="dynamic-report-table-scroll"><table className="dynamic-report-table master-table"><thead><tr><th>क्रम संख्या</th><th>केंद्र का नाम</th><th>क्रय योजना का नाम</th><th>सप्लायर</th><th>मद का नाम</th><th>उप-मद का नाम</th><th>इकाई</th><th>आवंटित मात्रा</th><th>क्रय दर<br/>(प्रति इकाई)</th><th>कृषक विक्रय दर<br/>(प्रति इकाई)</th><th>कृषक अनुदान दर<br/>(प्रति इकाई)</th><th>कृषक अंश<br/>(रु0)</th><th>अनुदान राशि<br/>(रु0)</th><th>कुल राशि<br/>(रु0)</th><th>अनुदान वहन योजना</th><th>रिमार्क</th><th>पंजीकरण तिथि</th></tr></thead><tbody>{masterRows.map((r, i) => <tr key={r.raw.id || `${r.kendra}-${r.upnivesh}-${i}`}><td>{i + 1}</td><td>{r.kendra}</td><td>{r.kraya}</td><td>{r.raw.source_of_receipt || ''}</td><td>{r.nivesh}</td><td>{r.upnivesh}</td><td>{r.ikai}</td><td>{fmtN(r.matra)}</td><td>{fmtR(r.rate)}</td><td>{fmtR(r.vikray)}</td><td>{fmtR(r.anudanRate)}</td><td>{fmtR(r.ansh)}</td><td>{fmtR(r.anudan)}</td><td>{fmtR(r.kul)}</td><td>{r.vahan}</td><td>{r.raw.remark || ''}</td><td>{fmtDate(r.date)}</td></tr>)}</tbody><tfoot><tr><td colSpan="7">योग</td><td>{fmtN(masterTotals.qty)}</td><td colSpan="3"></td><td>{fmtR(masterTotals.farmer)}</td><td>{fmtR(masterTotals.subsidy)}</td><td>{fmtR(masterTotals.total)}</td><td colSpan="3"></td></tr></tfoot></table></div></div>}
-      {activeTab === 'saransh' && <div className="dynamic-report-panel"><h5>सारांश — अनुदान वहन योजना, मद व उप-मद के अनुसार</h5><p className="dynamic-report-note">4401 बिक्री हेतु का अलग हिसाब रखते हुए अनुदान वहन योजना का सारांश।</p><FilterBar section="summary" /><h6 className="dynamic-report-subtitle">1) अनुदान वहन योजना के अनुसार सारांश</h6><SummaryPlanTable /><h6 className="dynamic-report-subtitle">2) मद के नाम अनुसार (योजना के नाम सहित)</h6><SummaryGroupTable data={summaryRows} field="nivesh" label="मद" showRate={false} /><h6 className="dynamic-report-subtitle">3) उप-मद के नाम अनुसार (योजना के नाम सहित)</h6><SummaryGroupTable data={summaryRows} field="upnivesh" label="उप-मद" showRate={true} /></div>}
-      {activeTab === 'pragati' && <div className="dynamic-report-panel"><h5>योजना प्रगति विवरण — अनुदान वहन योजना के अनुसार</h5><p className="dynamic-report-note">केंद्र, ब्लॉक और विधानसभा फ़िल्टर AND के रूप में लागू होते हैं।</p><div className="dynamic-report-view-row"><label>देखने का प्रकार</label><select value={progressView} onChange={e => setProgressView(e.target.value)}><option value="vidhan">विधानसभा-वार</option><option value="block">ब्लॉक-वार</option><option value="kendra">केंद्र-वार</option></select></div><FilterBar section="progress" /><h6 className="dynamic-report-subtitle">प्रगति मैट्रिक्स</h6><MatrixTable data={progressRows} geoField={progressView === 'vidhan' ? 'vidhan' : progressView === 'block' ? 'block' : 'kendra'} geoList={progressView === 'vidhan' ? lists.vidhan : progressView === 'block' ? lists.block : lists.kendra} saleMode={false} /></div>}
-      {activeTab === 'vivaran4401' && <div className="dynamic-report-panel"><h5>{fixedPlan || '4401 बिक्री हेतु'} — क्रय योजना के अनुसार</h5><p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = आवंटित मात्रा और वित्तीय = कृषक अंश।</p><div className="dynamic-report-view-row"><label>देखने का प्रकार</label><select value={saleView} onChange={e => setSaleView(e.target.value)}><option value="vidhan">विधानसभा-वार</option><option value="block">ब्लॉक-वार</option><option value="kendra">केंद्र-वार</option></select></div><FilterBar section="sale" /><h6 className="dynamic-report-subtitle">4401 प्रगति मैट्रिक्स — विक्रय दर व कृषक अंश</h6><MatrixTable data={saleRows} geoField={saleView === 'vidhan' ? 'vidhan' : saleView === 'block' ? 'block' : 'kendra'} geoList={saleView === 'vidhan' ? lists.vidhan : saleView === 'block' ? lists.block : lists.kendra} saleMode={true} schemeLabel={fixedPlan || '—'} /></div>}
-      {activeTab === 'mapping' && <div className="dynamic-report-panel"><h5>mapping — केंद्र, ब्लॉक व विधानसभा की सूची</h5><p className="dynamic-report-note">केंद्र → ब्लॉक → विधानसभा की गतिशील सूची।</p><div className="dynamic-report-table-scroll"><table className="dynamic-report-table"><thead><tr><th>क्रम संख्या</th><th>केंद्र का नाम</th><th>विकास खंड</th><th>विधानसभा</th></tr></thead><tbody>{mappingRows.map((r, i) => <tr key={`${r.kendra}-${r.block}-${r.vidhan}`}><td>{i + 1}</td><td>{r.kendra}</td><td>{r.block}</td><td>{r.vidhan}</td></tr>)}</tbody></table></div></div>}
-    </div>
-  </section>;
+  const masterTotals = useMemo(() => ({
+    qty: masterRows.reduce((s, r) => s + r.matra, 0),
+    farmer: masterRows.reduce((s, r) => s + r.ansh, 0),
+    subsidy: masterRows.reduce((s, r) => s + r.anudan, 0),
+    total: masterRows.reduce((s, r) => s + r.kul, 0)
+  }), [masterRows]);
+
+  const masterVisible = masterColumns === null ? masterColumnDefs.map(c => c.key) : masterColumns;
+  const masterShow = key => masterVisible.includes(key);
+
+  return (
+    <section className="dynamic-report-section">
+      <div className="dynamic-report-heading">
+        <div>
+          <h4><FaTable className="me-2" />विस्तृत रिपोर्ट</h4>
+          <p>गतिशील Excel-जैसी रिपोर्ट संरचना — API से आने वाले डेटा के आधार पर स्वतः गणना।</p>
+        </div>
+        <span className="dynamic-report-record-badge">कुल रिकॉर्ड: {rows.length}</span>
+      </div>
+
+      <div className="dynamic-report-tabs">
+        {[['master','Master'],['saransh','सारांश'],['pragati','योजना प्रगति विवरण'],['vivaran4401','4401 बिक्री हेतु'],['mapping','mapping']]
+          .map(([key, label]) => (
+            <button
+              type="button"
+              key={key}
+              className={activeTab === key ? 'active' : ''}
+              onClick={() => setActiveTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+      </div>
+
+      <div className="dynamic-report-content">
+        {activeTab === 'master' && (
+          <div className="dynamic-report-panel">
+            <h5>Master — मूल डेटा</h5>
+            <p className="dynamic-report-note">क्रय योजना, अनुदान वहन योजना, मद, उप-मद और केंद्र के अनुसार डेटा।</p>
+            <FilterBar section="master" />
+
+            <ReportColumnSelector
+              columns={masterColumnDefs}
+              visibleColumns={masterColumns}
+              setVisibleColumns={setMasterColumns}
+              label="Master — इस तालिका के स्तंभ चुनें"
+            />
+
+            <div className="dynamic-report-table-scroll">
+              <table className="dynamic-report-table master-table">
+                <thead><tr>
+                  {masterShow('sno') && <th>क्रम संख्या</th>}
+                  {masterShow('kendra') && <th>केंद्र का नाम</th>}
+                  {masterShow('kraya') && <th>क्रय योजना का नाम</th>}
+                  {masterShow('supplier') && <th>सप्लायर</th>}
+                  {masterShow('nivesh') && <th>मद का नाम</th>}
+                  {masterShow('upnivesh') && <th>उप-मद का नाम</th>}
+                  {masterShow('ikai') && <th>इकाई</th>}
+                  {masterShow('matra') && <th>आवंटित मात्रा</th>}
+                  {masterShow('rate') && <th>क्रय दर<br/>(प्रति इकाई)</th>}
+                  {masterShow('vikray') && <th>कृषक विक्रय दर<br/>(प्रति इकाई)</th>}
+                  {masterShow('anudanRate') && <th>कृषक अनुदान दर<br/>(प्रति इकाई)</th>}
+                  {masterShow('ansh') && <th>कृषक अंश<br/>(रु0)</th>}
+                  {masterShow('anudan') && <th>अनुदान राशि<br/>(रु0)</th>}
+                  {masterShow('kul') && <th>कुल राशि<br/>(रु0)</th>}
+                  {masterShow('vahan') && <th>अनुदान वहन योजना</th>}
+                  {masterShow('remark') && <th>रिमार्क</th>}
+                  {masterShow('date') && <th>पंजीकरण तिथि</th>}
+                </tr></thead>
+
+                <tbody>
+                  {masterRows.map((r, i) => (
+                    <tr key={r.raw.id || `${r.kendra}-${r.upnivesh}-${i}`}>
+                      {masterShow('sno') && <td>{i + 1}</td>}
+                      {masterShow('kendra') && <td>{r.kendra}</td>}
+                      {masterShow('kraya') && <td>{r.kraya}</td>}
+                      {masterShow('supplier') && <td>{r.raw.source_of_receipt || 'अन्य'}</td>}
+                      {masterShow('nivesh') && <td>{r.nivesh}</td>}
+                      {masterShow('upnivesh') && <td>{r.upnivesh}</td>}
+                      {masterShow('ikai') && <td>{r.ikai}</td>}
+                      {masterShow('matra') && <td>{fmtN(r.matra)}</td>}
+                      {masterShow('rate') && <td>{fmtR(r.rate)}</td>}
+                      {masterShow('vikray') && <td>{fmtR(r.vikray)}</td>}
+                      {masterShow('anudanRate') && <td>{fmtR(r.anudanRate)}</td>}
+                      {masterShow('ansh') && <td>{fmtR(r.ansh)}</td>}
+                      {masterShow('anudan') && <td>{fmtR(r.anudan)}</td>}
+                      {masterShow('kul') && <td>{fmtR(r.kul)}</td>}
+                      {masterShow('vahan') && <td>{r.vahan}</td>}
+                      {masterShow('remark') && <td>{r.raw.remark || 'अन्य'}</td>}
+                      {masterShow('date') && <td>{fmtDate(r.date)}</td>}
+                    </tr>
+                  ))}
+                </tbody>
+
+                <tfoot>
+                  <tr>
+                    <td colSpan="100">योग</td>
+                  </tr>
+                  <tr className="report-total-values-row">
+                    {masterShow('sno') && <td></td>}
+                    {masterShow('kendra') && <td></td>}
+                    {masterShow('kraya') && <td></td>}
+                    {masterShow('supplier') && <td></td>}
+                    {masterShow('nivesh') && <td></td>}
+                    {masterShow('upnivesh') && <td></td>}
+                    {masterShow('ikai') && <td></td>}
+                    {masterShow('matra') && <td>{fmtN(masterTotals.qty)}</td>}
+                    {masterShow('rate') && <td></td>}
+                    {masterShow('vikray') && <td></td>}
+                    {masterShow('anudanRate') && <td></td>}
+                    {masterShow('ansh') && <td>{fmtR(masterTotals.farmer)}</td>}
+                    {masterShow('anudan') && <td>{fmtR(masterTotals.subsidy)}</td>}
+                    {masterShow('kul') && <td>{fmtR(masterTotals.total)}</td>}
+                    {masterShow('vahan') && <td></td>}
+                    {masterShow('remark') && <td></td>}
+                    {masterShow('date') && <td></td>}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'saransh' && (
+          <div className="dynamic-report-panel">
+            <h5>सारांश — अनुदान वहन योजना, मद व उप-मद के अनुसार</h5>
+            <p className="dynamic-report-note">4401 बिक्री हेतु का अलग हिसाब रखते हुए अनुदान वहन योजना का सारांश।</p>
+            <FilterBar section="summary" />
+
+            <h6 className="dynamic-report-subtitle">1) अनुदान वहन योजना के अनुसार सारांश</h6>
+            <SummaryPlanTable />
+
+            <h6 className="dynamic-report-subtitle">2) मद के नाम अनुसार (योजना के नाम सहित)</h6>
+            <SummaryGroupTable
+              data={summaryRows}
+              field="nivesh"
+              label="मद"
+              showRate={false}
+              columns={summaryMadColumns}
+              setColumns={setSummaryMadColumns}
+            />
+
+            <h6 className="dynamic-report-subtitle">3) उप-मद के नाम अनुसार (योजना के नाम सहित)</h6>
+            <SummaryGroupTable
+              data={summaryRows}
+              field="upnivesh"
+              label="उप-मद"
+              showRate={true}
+              columns={summarySubMadColumns}
+              setColumns={setSummarySubMadColumns}
+            />
+          </div>
+        )}
+
+        {activeTab === 'pragati' && (
+          <div className="dynamic-report-panel">
+            <h5>योजना प्रगति विवरण — अनुदान वहन योजना के अनुसार</h5>
+            <p className="dynamic-report-note">केंद्र, ब्लॉक और विधानसभा फ़िल्टर AND के रूप में लागू होते हैं।</p>
+
+            <div className="dynamic-report-view-row">
+              <label>देखने का प्रकार</label>
+              <select value={progressView} onChange={e => setProgressView(e.target.value)}>
+                <option value="vidhan">विधानसभा-वार</option>
+                <option value="block">ब्लॉक-वार</option>
+                <option value="kendra">केंद्र-वार</option>
+              </select>
+            </div>
+
+            <FilterBar section="progress" />
+            <h6 className="dynamic-report-subtitle">प्रगति मैट्रिक्स</h6>
+
+            <MatrixTable
+              data={progressRows}
+              geoField={progressView === 'vidhan' ? 'vidhan' : progressView === 'block' ? 'block' : 'kendra'}
+              geoList={progressView === 'vidhan' ? lists.vidhan : progressView === 'block' ? lists.block : lists.kendra}
+              saleMode={false}
+              columns={progressColumns}
+              setColumns={setProgressColumns}
+            />
+          </div>
+        )}
+
+        {activeTab === 'vivaran4401' && (
+          <div className="dynamic-report-panel">
+            <h5>{fixedPlan || '4401 बिक्री हेतु'} — क्रय योजना के अनुसार</h5>
+            <p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = आवंटित मात्रा और वित्तीय = कृषक अंश।</p>
+
+            <div className="dynamic-report-view-row">
+              <label>देखने का प्रकार</label>
+              <select value={saleView} onChange={e => setSaleView(e.target.value)}>
+                <option value="vidhan">विधानसभा-वार</option>
+                <option value="block">ब्लॉक-वार</option>
+                <option value="kendra">केंद्र-वार</option>
+              </select>
+            </div>
+
+            <FilterBar section="sale" />
+            <h6 className="dynamic-report-subtitle">4401 प्रगति मैट्रिक्स — विक्रय दर व कृषक अंश</h6>
+
+            <MatrixTable
+              data={saleRows}
+              geoField={saleView === 'vidhan' ? 'vidhan' : saleView === 'block' ? 'block' : 'kendra'}
+              geoList={saleView === 'vidhan' ? lists.vidhan : saleView === 'block' ? lists.block : lists.kendra}
+              saleMode={true}
+              schemeLabel={fixedPlan || '—'}
+              columns={saleColumns}
+              setColumns={setSaleColumns}
+            />
+          </div>
+        )}
+
+        {activeTab === 'mapping' && (
+          <div className="dynamic-report-panel">
+            <h5>mapping — केंद्र, ब्लॉक व विधानसभा की सूची</h5>
+            <p className="dynamic-report-note">केंद्र → ब्लॉक → विधानसभा की गतिशील सूची।</p>
+
+            <ReportColumnSelector
+              columns={mappingDefs}
+              visibleColumns={mappingColumns}
+              setVisibleColumns={setMappingColumns}
+              label="Mapping — इस तालिका के स्तंभ चुनें"
+            />
+
+            <div className="dynamic-report-table-scroll">
+              <table className="dynamic-report-table">
+                <thead><tr>
+                  {mappingColumns === null || mappingColumns.includes('sno') ? <th>क्रम संख्या</th> : null}
+                  {mappingColumns === null || mappingColumns.includes('kendra') ? <th>केंद्र का नाम</th> : null}
+                  {mappingColumns === null || mappingColumns.includes('block') ? <th>विकास खंड</th> : null}
+                  {mappingColumns === null || mappingColumns.includes('vidhan') ? <th>विधानसभा</th> : null}
+                </tr></thead>
+
+                <tbody>
+                  {mappingRows.map((r, i) => (
+                    <tr key={`${r.kendra}-${r.block}-${r.vidhan}`}>
+                      {mappingColumns === null || mappingColumns.includes('sno') ? <td>{i + 1}</td> : null}
+                      {mappingColumns === null || mappingColumns.includes('kendra') ? <td>{r.kendra}</td> : null}
+                      {mappingColumns === null || mappingColumns.includes('block') ? <td>{r.block}</td> : null}
+                      {mappingColumns === null || mappingColumns.includes('vidhan') ? <td>{r.vidhan}</td> : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 };
+
 
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);

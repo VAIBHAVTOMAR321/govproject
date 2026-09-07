@@ -1929,3 +1929,95 @@ font-size: 14px;
 .content-wrapper {
   overflow: visible !important;
 }
+
+
+/* ============================================================================
+   Registration-style column selector above EVERY dashboard report table
+   ============================================================================ */
+.report-column-selector {
+  position: relative;
+  z-index: 30;
+  width: 100%;
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid #d5dde7;
+  border-radius: 7px;
+  background: #f7f9fc;
+  box-sizing: border-box;
+}
+
+.report-column-selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.report-column-selector-title {
+  color: #194e8b;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+.report-column-select-all-btn {
+  border: 1px solid #c5d2e1;
+  background: #fff;
+  color: #194e8b;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.report-column-select-all-btn:hover {
+  background: #eaf2fb;
+  border-color: #194e8b;
+}
+
+.report-column-selector-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 9px;
+}
+
+.report-column-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 4px 7px;
+  border: 1px solid #e0e6ed;
+  border-radius: 4px;
+  background: #fff;
+  color: #25364a;
+  font-size: 0.76rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.report-column-option:hover {
+  background: #eef5fc;
+  border-color: #b9cbe0;
+}
+
+.report-column-option input {
+  margin: 0;
+  accent-color: #194e8b;
+}
+
+.report-total-values-row td {
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .report-column-selector-options {
+    gap: 5px 6px;
+  }
+
+  .report-column-option {
+    font-size: 0.71rem;
+    padding: 4px 5px;
+  }
+}
