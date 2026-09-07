@@ -293,7 +293,7 @@ function AppContent() {
         </Routes>
       </main>
 
-      <Footer />
+      {location.pathname !== "/KisanAavedanPortal" && <Footer />}
     </div>
   );
 }
