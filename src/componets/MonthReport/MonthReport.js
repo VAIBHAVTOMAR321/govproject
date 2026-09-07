@@ -5,20 +5,33 @@ import "./MonthReport.css";
 const API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/";
 
-const months = [
-  { value: "1", label: "January" },
-  { value: "2", label: "February" },
-  { value: "3", label: "March" },
-  { value: "4", label: "April" },
-  { value: "5", label: "May" },
-  { value: "6", label: "June" },
-  { value: "7", label: "July" },
-  { value: "8", label: "August" },
-  { value: "9", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
+  const currentYear = new Date().getFullYear();
+
+  const startYear = 2001;
+
+  const financialYearMap = {};
+
+  for (let year = startYear; year <= currentYear + 3; year++) {
+    const nextYear = year + 1;
+    const shortKey = `${String(year).slice(-2)}-${String(nextYear).slice(-2)}`;
+    const fullValue = `${year}-${nextYear}`;
+    financialYearMap[shortKey] = fullValue;
+  }
+
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
 
 const MonthReport = () => {
   const [reports, setReports] = useState([]);
@@ -30,6 +43,12 @@ const MonthReport = () => {
   });
 
   const [monthYear, setMonthYear] = useState("");
+
+  const [showYearPicker, setShowYearPicker] = useState(false);
+
+  const [selectedYear, setSelectedYear] = useState("");
+
+  const [selectedMonth, setSelectedMonth] = useState("");
 
   const [editingId, setEditingId] = useState(null);
 
@@ -96,7 +115,8 @@ const MonthReport = () => {
     setMonthYear(value);
 
     const [monthName, ...yearParts] = value.split("-");
-    const financial_year = yearParts.join("-");
+    const shortYear = yearParts.join("-");
+    const fullFinancialYear = financialYearMap[shortYear] || shortYear;
 
     const monthObj = months.find(
       (m) => m.label.toLowerCase() === monthName.trim().toLowerCase()
@@ -105,8 +125,33 @@ const MonthReport = () => {
     setFormData((prev) => ({
       ...prev,
       month: monthObj ? monthObj.value : "",
-      financial_year: financial_year || "",
+      financial_year: fullFinancialYear || "",
     }));
+  };
+
+  const handleYearSelect = (shortYear) => {
+    setSelectedYear(shortYear);
+  };
+
+  const handleMonthSelect = (monthValue) => {
+    setSelectedMonth(monthValue);
+
+    const monthObj = months.find((m) => m.value === monthValue);
+    const monthName = monthObj ? monthObj.label : "";
+    const combined = `${monthName}-${selectedYear}`;
+    setMonthYear(combined);
+
+    const fullFinancialYear = financialYearMap[selectedYear] || `${currentYear}-${currentYear + 1}`;
+
+    setFormData((prev) => ({
+      ...prev,
+      month: monthValue || "",
+      financial_year: fullFinancialYear || "",
+    }));
+
+    setShowYearPicker(false);
+    setSelectedYear("");
+    setSelectedMonth("");
   };
 
   // =====================================================
@@ -156,6 +201,9 @@ const MonthReport = () => {
     });
 
     setMonthYear("");
+    setShowYearPicker(false);
+    setSelectedYear("");
+    setSelectedMonth("");
 
     setError("");
     setSuccess("");
@@ -184,7 +232,11 @@ const MonthReport = () => {
       });
 
       const monthName = getMonthName(report.month || "");
-      setMonthYear(`${monthName}-${report.financial_year || ""}`);
+      const fullFinancialYear = report.financial_year || "";
+      const shortYear = Object.keys(financialYearMap).find(
+        (short) => financialYearMap[short] === fullFinancialYear
+      ) || fullFinancialYear;
+      setMonthYear(`${monthName}-${shortYear}`);
 
       setShowModal(true);
     } catch (err) {
@@ -277,6 +329,9 @@ const MonthReport = () => {
       });
 
       setMonthYear("");
+      setShowYearPicker(false);
+      setSelectedYear("");
+      setSelectedMonth("");
 
       setEditingId(null);
 
@@ -377,6 +432,9 @@ const MonthReport = () => {
     });
 
     setMonthYear("");
+    setShowYearPicker(false);
+    setSelectedYear("");
+    setSelectedMonth("");
 
     setError("");
   };
@@ -609,37 +667,120 @@ const MonthReport = () => {
                     Month / Financial Year <span>*</span>
                   </label>
 
-                  <input
-                    type="text"
-                    name="monthYear"
-                    value={monthYear}
-                    onChange={handleMonthYearChange}
-                    placeholder="Example: January-2026-27"
-                    list="month-year-list"
-                  />
+                  <div className="mpr-input-with-icon">
+
+                    <input
+                      type="text"
+                      name="monthYear"
+                      value={monthYear}
+                      onChange={handleMonthYearChange}
+                      placeholder="Example: January-2026-27"
+                      list="month-year-list"
+                    />
+
+                    <button
+                      type="button"
+                      className="mpr-calendar-icon"
+                      onClick={() => setShowYearPicker(true)}
+                    >
+                      📅
+                    </button>
+
+                  </div>
 
                   <datalist id="month-year-list">
-                    {months.map((month) => (
-                      <option
-                        key={month.value}
-                        value={`${month.label}-2025-26`}
-                      />
-                    ))}
-                    {months.map((month) => (
-                      <option
-                        key={`fy2-${month.value}`}
-                        value={`${month.label}-2026-27`}
-                      />
-                    ))}
-                    {months.map((month) => (
-                      <option
-                        key={`fy3-${month.value}`}
-                        value={`${month.label}-2027-28`}
-                      />
-                    ))}
+                    {Object.keys(financialYearMap).map((shortYear) =>
+                      months.map((month) => (
+                        <option
+                          key={`${shortYear}-${month.value}`}
+                          value={`${month.label}-${shortYear}`}
+                        />
+                      ))
+                    )}
                   </datalist>
 
                 </div>
+
+                {showYearPicker && (
+                  <div className="mpr-picker-overlay">
+
+                    <div className="mpr-picker-card">
+
+                      <div className="mpr-picker-header">
+
+                        <h4>Select Financial Year</h4>
+
+                        <button
+                          type="button"
+                          className="mpr-picker-close"
+                          onClick={() => {
+                            setShowYearPicker(false);
+                            setSelectedYear("");
+                            setSelectedMonth("");
+                          }}
+                        >
+                          ×
+                        </button>
+
+                      </div>
+
+                      <div className="mpr-picker-body">
+
+                        {!selectedYear ? (
+                          <div className="mpr-year-grid">
+
+                            {Object.keys(financialYearMap)
+                              .sort((a, b) => {
+                                const fullA = financialYearMap[a];
+                                const fullB = financialYearMap[b];
+                                return fullB.localeCompare(fullA);
+                              })
+                              .map((shortYear) => (
+                                <button
+                                  key={shortYear}
+                                  type="button"
+                                  className="mpr-year-btn"
+                                  onClick={() => handleYearSelect(shortYear)}
+                                >
+                                  {shortYear}
+                                </button>
+                              ))}
+
+                          </div>
+                        ) : (
+                          <div className="mpr-month-grid">
+
+                            {months.map((month) => (
+                              <button
+                                key={month.value}
+                                type="button"
+                                className={`mpr-month-btn ${selectedMonth === month.value ? "selected" : ""}`}
+                                onClick={() => handleMonthSelect(month.value)}
+                              >
+                                {month.label}
+                              </button>
+                            ))}
+
+                            <button
+                              type="button"
+                              className="mpr-month-btn mpr-month-back"
+                              onClick={() => {
+                                setSelectedYear("");
+                                setSelectedMonth("");
+                              }}
+                            >
+                              ← Back to Year
+                            </button>
+
+                          </div>
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                )}
 
                 {/* PDF */}
 

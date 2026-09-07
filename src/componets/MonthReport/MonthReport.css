@@ -622,6 +622,152 @@
   box-shadow: 0 0 0 3px rgba(11, 92, 171, 0.1);
 }
 
+.mpr-input-with-icon {
+  position: relative;
+}
+
+.mpr-input-with-icon input[type="text"] {
+  padding-right: 44px;
+}
+
+.mpr-calendar-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.mpr-calendar-icon:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.mpr-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.mpr-picker-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  animation: mprModalOpen 0.2s ease;
+  overflow: hidden;
+}
+
+.mpr-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mpr-picker-header h4 {
+  margin: 0;
+  color: #172b4d;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.mpr-picker-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #374151;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.mpr-picker-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.mpr-picker-body {
+  padding: 14px 16px 18px;
+}
+
+.mpr-year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mpr-year-btn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mpr-year-btn:hover {
+  border-color: #0b5cab;
+  color: #0b5cab;
+  background: #f8fbff;
+}
+
+.mpr-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mpr-month-btn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  padding: 9px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mpr-month-btn:hover {
+  border-color: #0b5cab;
+  color: #0b5cab;
+  background: #f8fbff;
+}
+
+.mpr-month-btn.selected {
+  background: #0b5cab;
+  color: #ffffff;
+  border-color: #0b5cab;
+}
+
+.mpr-month-back {
+  grid-column: 1 / -1;
+  background: #f3f4f6;
+  color: #374151;
+  border-style: dashed;
+}
+
 
 /* =========================================
    FILE INPUT
