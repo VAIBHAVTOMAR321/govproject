@@ -567,7 +567,7 @@ const DemandView = () => {
         exportData.push({
           'S.No.': index === 0 ? sNo++ : '',
           'सेंटर नाम': index === 0 ? item.center_name : '',
-          'उप-निवेश नाम': item?.demand?.sub_investment_name || '',
+          'उप-मद का नाम': item?.demand?.sub_investment_name || '',
           'योजना का नाम': item?.demand?.scheme_name || '',
           'इकाई': item?.demand?.unit || '',
           'मांगी गई मात्रा': item.demanded_quantity,
@@ -581,7 +581,7 @@ const DemandView = () => {
     exportData.push({
       'S.No.': '',
       'सेंटर नाम': 'कुल',
-      'उप-निवेश नाम': '',
+      'उप-मद का नाम': '',
       'योजना का नाम': '',
       'इकाई': '',
       'मांगी गई मात्रा': filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2),
@@ -715,7 +715,7 @@ const DemandView = () => {
     const headerRow = document.createElement('tr');
     
     // Add headers
-    const headers = ['S.No.', 'सेंटर नाम', 'उप-निवेश नाम', 'योजना का नाम', 'इकाई', 'मांगी गई मात्रा', 'कृषक विक्रय दर / अनुदान दर', 'कुल राशि'];
+    const headers = ['S.No.', 'सेंटर नाम', 'उप-मद का नाम', 'योजना का नाम', 'इकाई', 'मांगी गई मात्रा', 'कृषक विक्रय दर / अनुदान दर', 'कुल राशि'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
       th.textContent = headerText;
@@ -1067,7 +1067,7 @@ const DemandView = () => {
                         <tr>
                           <th>S.No.</th>
                           <th>सेंटर नाम</th>
-                          <th>उप-निवेश नाम</th>
+                          <th>उप-मद का नाम</th>
                           <th>इकाई</th>
                           <th>मांगी गई मात्रा</th>
                           <th>कृषक विक्रय दर / अनुदान दर</th>
@@ -1196,7 +1196,7 @@ const DemandView = () => {
           {error && <Alert variant="danger">{error}</Alert>}
           <Form onSubmit={(e) => { e.preventDefault(); }}>
             <Form.Group className="mb-3">
-              <Form.Label>उप-निवेश नाम <span className="text-danger">*</span></Form.Label>
+              <Form.Label>उप-मद का नाम <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="text"
                 name="sub_investment_name"
@@ -1281,7 +1281,7 @@ const DemandView = () => {
           {error && <Alert variant="danger">{error}</Alert>}
           <Form onSubmit={(e) => { e.preventDefault(); }}>
             <Form.Group className="mb-3">
-              <Form.Label>उप-निवेश नाम <span className="text-danger">*</span></Form.Label>
+              <Form.Label>उप-मद का नाम <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="text"
                 name="sub_investment_name"
@@ -1367,7 +1367,7 @@ const DemandView = () => {
             <div>
               <Row className="mb-3">
                 <Col md={6}>
-                  <strong>उप-निवेश नाम:</strong> {currentDemand.sub_investment_name}
+                  <strong>उप-मद का नाम:</strong> {currentDemand.sub_investment_name}
                 </Col>
                 <Col md={6}>
                   <strong>योजना का नाम:</strong> {currentDemand.scheme_name}
@@ -1409,7 +1409,7 @@ const DemandView = () => {
           <p>क्या आप वाकई इस डिमांड को हटाना चाहते हैं?</p>
           {currentDemand && (
             <div className="border rounded p-3 bg-light">
-              <p><strong>उप-निवेश नाम:</strong> {currentDemand.sub_investment_name}</p>
+              <p><strong>उप-मद का नाम:</strong> {currentDemand.sub_investment_name}</p>
               <p><strong>योजना का नाम:</strong> {currentDemand.scheme_name}</p>
               <p><strong>DHO, कोटद्वार का कुल लक्ष्य:</strong> {currentDemand.allocated_quantity}</p>
               <p><strong>इकाई:</strong> {currentDemand.unit}</p>
@@ -1453,7 +1453,7 @@ const DemandView = () => {
           {centerDemandToDelete && (
             <div className="border rounded p-3 bg-light">
               <p><strong>सेंटर नाम:</strong> {centerDemandToDelete.center_name}</p>
-              <p><strong>उप-निवेश नाम:</strong> {centerDemandToDelete?.demand?.sub_investment_name}</p>
+              <p><strong>उप-मद का नाम:</strong> {centerDemandToDelete?.demand?.sub_investment_name}</p>
               <p><strong>मांगी गई मात्रा:</strong> {centerDemandToDelete.demanded_quantity}</p>
               <p><strong>कुल राशि:</strong> ₹{(centerDemandToDelete.demanded_quantity * (centerDemandToDelete?.demand?.rate || 0)).toFixed(2)}</p>
             </div>
