@@ -1055,12 +1055,14 @@ export default function KishanBeej() {
   }
 
   function printHtml(html, title) {
-    const css = new URL("./KishanBeej.css", import.meta.url).href;
+    const css = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map((link) => link.href)
+      .find((href) => href.includes("KishanBeej"));
     const win = window.open("", "_blank", "width=1200,height=800");
     if (!win) return;
     win.document.write(`
       <!doctype html><html lang="hi"><head><meta charset="utf-8"><title>${title}</title>
-      <link rel="stylesheet" href="${css}"></head>
+      ${css ? `<link rel="stylesheet" href="${css}">` : ""}</head>
       <body><div id="printarea">${html}</div>
       <script>window.onload = () => setTimeout(() => window.print(), 250);<\/script>
       </body></html>
