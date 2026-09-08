@@ -1640,32 +1640,151 @@ const AllBills = () => {
       </div>
 
       {/* ─── View Pages Modal ─── */}
-      <Modal show={showPageModal} onHide={() => setShowPageModal(false)} centered>
+      <style>{`
+        .page-details-modal .modal-content {
+          border: none;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+          background: #ffffff;
+        }
+
+        .page-details-modal .modal-header {
+          background: #0b3d62;
+          color: #ffffff;
+          border-bottom: 0;
+          padding: 12px 18px;
+        }
+
+        .page-details-modal .modal-title {
+          color: #ffffff !important;
+          font-weight: 600;
+          font-size: 16px;
+          line-height: 1.4;
+        }
+
+        .page-details-modal .btn-close {
+          filter: invert(1) grayscale(100%) brightness(200%);
+          opacity: 1;
+          width: 14px;
+          height: 14px;
+        }
+
+        .page-details-modal .modal-body {
+          background: #ffffff;
+          padding: 18px !important;
+          overflow: visible !important;
+          max-height: none !important;
+        }
+
+        .page-details-modal .page-details-table {
+          width: 100%;
+          margin: 0;
+          border-collapse: separate;
+          border-spacing: 0;
+          table-layout: fixed;
+          overflow: visible;
+        }
+
+        .page-details-modal .page-details-table thead th {
+          background: #0b3d62 !important;
+          color: #ffffff !important;
+          border-color: #0b3d62 !important;
+          font-weight: 600;
+          padding: 10px 12px;
+          vertical-align: middle;
+        }
+
+        .page-details-modal .page-details-table tbody td {
+          background: #ffffff;
+          color: #1f2937;
+          border-color: #d7dee7;
+          padding: 9px 12px;
+          vertical-align: middle;
+        }
+
+        .page-details-modal .page-details-table tbody tr:nth-child(even) td {
+          background: #f5f8fb;
+        }
+
+        .page-details-modal .page-details-table tbody td.page-number-cell {
+          color: #0b3d62;
+          font-weight: 700;
+          font-size: 15px;
+        }
+
+        .page-details-modal .modal-footer {
+          background: #f3f6f9;
+          border-top: 1px solid #d7dee7;
+          padding: 10px 18px;
+        }
+
+        .page-details-modal .modal-footer .btn-secondary {
+          background: #0b3d62;
+          border-color: #0b3d62;
+          color: #ffffff;
+          font-weight: 500;
+        }
+
+        .page-details-modal .modal-footer .btn-secondary:hover {
+          background: #082f4c;
+          border-color: #082f4c;
+        }
+      `}</style>
+
+      <Modal
+        show={showPageModal}
+        onHide={() => setShowPageModal(false)}
+        centered
+        size="lg"
+        dialogClassName="page-details-modal"
+        backdrop="static"
+      >
         <Modal.Header closeButton>
           <Modal.Title className="small-fonts">{translations.pageDetails}</Modal.Title>
         </Modal.Header>
+
         <Modal.Body>
           {currentPageData.length === 0 ? (
-            <p className="text-center small-fonts">{translations.noPageData}</p>
+            <p className="text-center small-fonts mb-0">{translations.noPageData}</p>
           ) : (
-            <Table striped bordered hover size="sm" className="small-fonts mb-0">
+            <Table
+              striped
+              bordered
+              hover
+              size="sm"
+              className="small-fonts page-details-table"
+            >
               <thead>
                 <tr>
-                  <th>{translations.subniveshName}</th>
-                  <th className="text-center">{translations.pageNo}</th>
+                  <th style={{ width: "70%" }}>{translations.subniveshName}</th>
+                  <th
+                    className="text-center"
+                    style={{ width: "30%", whiteSpace: "nowrap" }}
+                  >
+                    {translations.pageNo}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {currentPageData.map((entry, index) => (
                   <tr key={index}>
-                    <td>{entry.names.join(", ")}</td>
-                    <td className="text-center"><strong>{entry.pageNo}</strong></td>
+                    <td style={{ wordBreak: "break-word", whiteSpace: "normal" }}>
+                      {entry.names.join(", ")}
+                    </td>
+                    <td
+                      className="text-center page-number-cell"
+                      style={{ whiteSpace: "nowrap" }}
+                    >
+                      {entry.pageNo}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </Table>
           )}
         </Modal.Body>
+
         <Modal.Footer>
           <Button variant="secondary" size="sm" onClick={() => setShowPageModal(false)}>
             {translations.closeBtn}
