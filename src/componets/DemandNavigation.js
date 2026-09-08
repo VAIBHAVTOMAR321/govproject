@@ -71,6 +71,16 @@ const DemandNavigation = () => {
             >
               किसान आवेदन पोर्टल
             </Nav.Link> */}
+
+             <Nav.Link
+              active={isActive('/GetViewLibrary')}
+              onClick={() => navigate('/GetViewLibrary')}
+              style={{ 
+                fontWeight: isActive('/GetViewLibrary') ? 'bold' : 'normal'
+              }}
+            >
+             Library
+            </Nav.Link>
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
