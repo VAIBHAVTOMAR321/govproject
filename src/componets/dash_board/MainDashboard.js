@@ -265,6 +265,9 @@ const MainDashboard = () => {
     vidhan_sabha_name: [],
     unit: [],
     anudan_name: [],
+    farmer_selling_rate: [],
+    farmer_subsidy_rate: [],
+    remark: [],
   });
 
   // State for date range filter
@@ -298,6 +301,9 @@ const MainDashboard = () => {
     vidhan_sabha_name: [],
     unit: [],
     anudan_name: [],
+    farmer_selling_rate: [],
+    farmer_subsidy_rate: [],
+    remark: [],
   });
 
   // State for detailed view
@@ -2150,6 +2156,9 @@ const MainDashboard = () => {
       vidhan_sabha_name: [],
       unit: [],
       anudan_name: [],
+      farmer_selling_rate: [],
+      farmer_subsidy_rate: [],
+      remark: [],
     };
     setFilters(clearedFilters);
     setDateFilter({ start, end });
@@ -2195,7 +2204,7 @@ const MainDashboard = () => {
   // Check if filters are applied from top filtering
   const checkIfTopFiltersApplied = () => {
     const hasFilters = Object.values(filters).some(
-      (filter) => filter.length > 0,
+      (filter) => Array.isArray(filter) && filter.length > 0,
     );
     setIsFilterApplied(hasFilters);
   };
@@ -2512,31 +2521,34 @@ const MainDashboard = () => {
   const applyFilters = () => {
     setIsApplyingFilters(true);
     let filteredData = tableData.filter((item) => {
+      const selected = (key) =>
+        Array.isArray(filters[key]) ? filters[key] : [];
+
       return (
-        (filters.center_name.length === 0 ||
-          filters.center_name.includes(item.center_name)) &&
-        (filters.vikas_khand_name.length === 0 ||
-          filters.vikas_khand_name.includes(item.vikas_khand_name)) &&
-        (filters.vidhan_sabha_name.length === 0 ||
-          filters.vidhan_sabha_name.includes(item.vidhan_sabha_name)) &&
-        (filters.investment_name.length === 0 ||
-          filters.investment_name.includes(item.investment_name)) &&
-        (filters.sub_investment_name.length === 0 ||
-          filters.sub_investment_name.includes(item.sub_investment_name)) &&
-        (filters.source_of_receipt.length === 0 ||
-          filters.source_of_receipt.includes(item.source_of_receipt)) &&
-        (filters.scheme_name.length === 0 ||
-          filters.scheme_name.includes(item.scheme_name)) &&
-        (filters.unit.length === 0 ||
-          filters.unit.includes(item.unit)) &&
-        (filters.farmer_selling_rate.length === 0 ||
-          filters.farmer_selling_rate.map(String).includes(String(item.farmer_selling_rate))) &&
-        (filters.farmer_subsidy_rate.length === 0 ||
-          filters.farmer_subsidy_rate.map(String).includes(String(item.farmer_subsidy_rate))) &&
-        (filters.anudan_name.length === 0 ||
-          filters.anudan_name.includes(item.anudan_name)) &&
-        (filters.remark.length === 0 ||
-          filters.remark.includes(item.remark))
+        (selected("center_name").length === 0 ||
+          selected("center_name").includes(item.center_name)) &&
+        (selected("vikas_khand_name").length === 0 ||
+          selected("vikas_khand_name").includes(item.vikas_khand_name)) &&
+        (selected("vidhan_sabha_name").length === 0 ||
+          selected("vidhan_sabha_name").includes(item.vidhan_sabha_name)) &&
+        (selected("investment_name").length === 0 ||
+          selected("investment_name").includes(item.investment_name)) &&
+        (selected("sub_investment_name").length === 0 ||
+          selected("sub_investment_name").includes(item.sub_investment_name)) &&
+        (selected("source_of_receipt").length === 0 ||
+          selected("source_of_receipt").includes(item.source_of_receipt)) &&
+        (selected("scheme_name").length === 0 ||
+          selected("scheme_name").includes(item.scheme_name)) &&
+        (selected("unit").length === 0 ||
+          selected("unit").includes(item.unit)) &&
+        (selected("farmer_selling_rate").length === 0 ||
+          selected("farmer_selling_rate").map(String).includes(String(item.farmer_selling_rate))) &&
+        (selected("farmer_subsidy_rate").length === 0 ||
+          selected("farmer_subsidy_rate").map(String).includes(String(item.farmer_subsidy_rate))) &&
+        (selected("anudan_name").length === 0 ||
+          selected("anudan_name").includes(item.anudan_name)) &&
+        (selected("remark").length === 0 ||
+          selected("remark").includes(item.remark))
       );
     });
 
