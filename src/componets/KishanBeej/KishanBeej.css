@@ -215,7 +215,6 @@ label .r{
 input,
 select,
 textarea{
-  /* width:100%; */
   padding:8px;
   font-size:14.5px;
   font-family:var(--f);
@@ -597,10 +596,6 @@ footer{
   display:none;
 }
 
-/* =========================================
-   RESPONSIVE
-========================================= */
-
 @media(max-width:820px){
 
   .g3,
@@ -643,10 +638,6 @@ footer{
     width:auto;
   }
 }
-
-/* =========================================
-   PRINT
-========================================= */
 
 @media print{
 
