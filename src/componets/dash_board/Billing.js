@@ -130,7 +130,17 @@ const translations = {
   error: "त्रुटि",
   noItemsUpdated: "कोई आइटम अपडेट नहीं की गई।",
   cannotCutMore: "आइटम के लिए उपलब्ध मात्रा से अधिक नहीं काटा जा सकता",
-  // New translations for the modified columns
+  // Dashboard fields — keep these headings exactly aligned with Dashboard
+  farmerSellingRate: "कृषक विक्रय दर (प्रति इकाई)",
+  farmerSubsidyRate: "कृषक अनुदान दर (प्रति इकाई)",
+  farmerShareAmount: "कृषक अंश (रु0)",
+  subsidyAmount: "अनुदान राशि (रु0)",
+  totalAmount: "कुल राशि (रु0)",
+  anudanName: "अनुदान वहन योजना",
+  remark: "रिमार्क",
+  billDate: "पंजीकरण तिथि",
+
+  // Billing-specific fields
   soldRashi: "बेची राशि",
   allotedRashi: "आवंटित राशि",
   totalBill: "कुल बिल", // New translation for total bill column
@@ -144,6 +154,233 @@ const translations = {
   pleaseSelectDateRange: "कृपया तारीख की सीमा चुनें ताकि डेटा दिखाई दे",
 };
 
+
+const billingTableCss = `
+  .billing-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 300px);
+    min-height: 320px;
+    border: 1px solid #d9dee5;
+    border-radius: 7px;
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .billing-data-table {
+    width: max-content !important;
+    min-width: 2100px !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    margin: 0 !important;
+    background: #fff;
+  }
+
+  .billing-data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    height: 58px;
+    padding: 6px 5px !important;
+    background: #238dce !important;
+    color: #fff !important;
+    border-right: 1px solid rgba(255,255,255,.35) !important;
+    border-bottom: 2px solid #176fa7 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.12 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+  }
+
+  .billing-data-table tbody td {
+    height: 43px;
+    padding: 5px 5px !important;
+    border-right: 1px solid #e2e6ea !important;
+    border-bottom: 1px solid #e2e6ea !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+    color: #252b33;
+    background: #fff;
+  }
+
+  .billing-data-table tbody tr:nth-child(even) td {
+    background: #fafbfd;
+  }
+
+  .billing-data-table tbody tr:hover td {
+    background: #eef7ff;
+  }
+
+  .billing-data-table td:nth-child(3),
+  .billing-data-table td:nth-child(4),
+  .billing-data-table td:nth-child(5),
+  .billing-data-table td:nth-child(6),
+  .billing-data-table td:nth-child(15),
+  .billing-data-table td:nth-child(16) {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  /* Compact column widths: enough room for actual values without oversized empty space */
+  .billing-data-table th:nth-child(1),
+  .billing-data-table td:nth-child(1) { width: 45px; min-width: 45px; }
+
+  .billing-data-table th:nth-child(2),
+  .billing-data-table td:nth-child(2) { width: 95px; min-width: 95px; }
+
+  .billing-data-table th:nth-child(3),
+  .billing-data-table td:nth-child(3) { width: 125px; min-width: 125px; }
+
+  .billing-data-table th:nth-child(4),
+  .billing-data-table td:nth-child(4) { width: 105px; min-width: 105px; }
+
+  .billing-data-table th:nth-child(5),
+  .billing-data-table td:nth-child(5) { width: 145px; min-width: 145px; }
+
+  .billing-data-table th:nth-child(6),
+  .billing-data-table td:nth-child(6) { width: 105px; min-width: 105px; }
+
+  .billing-data-table th:nth-child(7),
+  .billing-data-table td:nth-child(7) { width: 55px; min-width: 55px; }
+
+  .billing-data-table th:nth-child(8),
+  .billing-data-table td:nth-child(8) { width: 85px; min-width: 85px; }
+
+  .billing-data-table th:nth-child(9),
+  .billing-data-table td:nth-child(9),
+  .billing-data-table th:nth-child(10),
+  .billing-data-table td:nth-child(10),
+  .billing-data-table th:nth-child(11),
+  .billing-data-table td:nth-child(11) {
+    width: 105px;
+    min-width: 105px;
+  }
+
+  .billing-data-table th:nth-child(12),
+  .billing-data-table td:nth-child(12),
+  .billing-data-table th:nth-child(13),
+  .billing-data-table td:nth-child(13),
+  .billing-data-table th:nth-child(14),
+  .billing-data-table td:nth-child(14) {
+    width: 105px;
+    min-width: 105px;
+  }
+
+  .billing-data-table th:nth-child(15),
+  .billing-data-table td:nth-child(15) { width: 120px; min-width: 120px; }
+
+  .billing-data-table th:nth-child(16),
+  .billing-data-table td:nth-child(16) { width: 125px; min-width: 125px; }
+
+  .billing-data-table th:nth-child(17),
+  .billing-data-table td:nth-child(17),
+  .billing-data-table th:nth-child(18),
+  .billing-data-table td:nth-child(18),
+  .billing-data-table th:nth-child(19),
+  .billing-data-table td:nth-child(19) {
+    width: 95px;
+    min-width: 95px;
+  }
+
+  .billing-data-table th:nth-child(20),
+  .billing-data-table td:nth-child(20) { width: 105px; min-width: 105px; }
+
+  .billing-data-table th:nth-child(21),
+  .billing-data-table td:nth-child(21) { width: 95px; min-width: 95px; }
+
+  .billing-data-table th:nth-child(22),
+  .billing-data-table td:nth-child(22) { width: 105px; min-width: 105px; }
+
+  .billing-data-table th:nth-child(23),
+  .billing-data-table td:nth-child(23) { width: 105px; min-width: 105px; }
+
+  .billing-data-table th:nth-child(24),
+  .billing-data-table td:nth-child(24) { width: 110px; min-width: 110px; }
+
+  .billing-data-table th:nth-child(25),
+  .billing-data-table td:nth-child(25) { width: 120px; min-width: 120px; }
+
+  .billing-data-table input,
+  .billing-data-table select {
+    width: 100%;
+    min-width: 0 !important;
+    height: 31px;
+    padding: 3px 5px !important;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 11px !important;
+    line-height: 1.1;
+  }
+
+  .billing-data-table td:nth-child(24) input {
+    min-width: 75px !important;
+  }
+
+  .billing-data-table td:nth-child(25) input[type="date"] {
+    min-width: 105px !important;
+  }
+
+  .billing-data-table td:nth-child(24) .btn,
+  .billing-data-table td:nth-child(25) .btn {
+    padding: 3px 6px !important;
+    font-size: 10px !important;
+  }
+
+  .billing-table-scroll::-webkit-scrollbar {
+    width: 7px;
+    height: 8px;
+  }
+
+  .billing-table-scroll::-webkit-scrollbar-track {
+    background: #eef1f4;
+  }
+
+  .billing-table-scroll::-webkit-scrollbar-thumb {
+    background: #9aa7b4;
+    border-radius: 8px;
+  }
+
+  @media (max-width: 768px) {
+    .billing-table-scroll {
+      max-height: 55vh;
+      min-height: 280px;
+    }
+
+    .billing-data-table {
+      min-width: 1900px !important;
+    }
+
+    .billing-data-table thead th {
+      height: 55px;
+      font-size: 9px !important;
+      padding: 5px 4px !important;
+    }
+
+    .billing-data-table tbody td {
+      height: 40px;
+      font-size: 10px !important;
+      padding: 4px !important;
+    }
+
+    .billing-data-table input,
+    .billing-data-table select {
+      height: 29px;
+      font-size: 10px !important;
+    }
+  }
+`;
+
 // Available columns for download
 const availableColumns = [
   { key: "sno", label: "क्र.सं." },
@@ -154,13 +391,22 @@ const availableColumns = [
   { key: "scheme_name", label: translations.schemeName },
   { key: "unit", label: translations.unit },
   { key: "allocated_quantity", label: translations.allocatedQuantity },
+  { key: "rate", label: "क्रय दर (प्रति इकाई)" },
+  { key: "farmer_selling_rate", label: translations.farmerSellingRate },
+  { key: "farmer_subsidy_rate", label: translations.farmerSubsidyRate },
+  { key: "amount_of_farmer_share", label: translations.farmerShareAmount },
+  { key: "amount_of_subsidy", label: translations.subsidyAmount },
+  { key: "total_amount", label: translations.totalAmount },
+  { key: "anudan_name", label: translations.anudanName },
+  { key: "remark", label: translations.remark },
+  { key: "bill_date", label: translations.billDate },
   { key: "updated_quantity", label: translations.updatedQuantity },
   { key: "quantity_left", label: translations.quantityLeft },
   { key: "alloted_rashi", label: translations.allotedRashi },
   { key: "sold_rashi", label: translations.soldRashi },
   { key: "cut_quantity", label: translations.cutQuantity },
-  { key: "rate", label: translations.rate },
   { key: "total_bill", label: translations.totalBill },
+  { key: "bill_id", label: translations.billId },
   { key: "billing_date", label: translations.billingDate },
 ];
 
@@ -212,72 +458,114 @@ const Billing = () => {
 
   // Column mapping for data access
   const columnMapping = {
-    sno: {
-      header: "क्र.सं.",
-      accessor: (item, index, currentPage, itemsPerPage) =>
-        (currentPage - 1) * itemsPerPage + index + 1,
-    },
-    center_name: {
-      header: translations.centerName,
-      accessor: (item) => item.center_name,
-    },
-    source_of_receipt: {
-      header: translations.sourceOfReceipt,
-      accessor: (item) => item.source_of_receipt,
-    },
-    nivesh: {
-      header: translations.nivesh,
-      accessor: (item) => item.investment_name, // Using investment_name from API
-    },
-    subnivesh_name: {
-      header: translations.subniveshName,
-      accessor: (item) => item.sub_investment_name, // Using sub_investment_name from API
-    },
-    scheme_name: {
-      header: translations.schemeName,
-      accessor: (item) => item.scheme_name,
-    },
-    unit: { header: translations.unit, accessor: (item) => item.unit },
-    allocated_quantity: {
-      header: translations.allocatedQuantity,
-      accessor: (item) => item.allocated_quantity,
-    },
-    updated_quantity: {
-      header: translations.updatedQuantity,
-      accessor: (item) => item.updated_quantity,
-    },
-    quantity_left: {
-      header: translations.quantityLeft,
-      accessor: (item) =>
-        calculateQuantityLeft(
-          item.allocated_quantity,
-          item.updated_quantity,
-          item.cut_quantity,
-        ),
-    },
-    alloted_rashi: {
-      header: translations.allotedRashi,
-      accessor: (item) =>
-        calculateAllocatedAmount(item.allocated_quantity, item.rate),
-    },
-    sold_rashi: {
-      header: translations.soldRashi,
-      accessor: (item) => calculateAmount(item.updated_quantity, item.rate),
-    },
-    cut_quantity: {
-      header: translations.cutQuantity,
-      accessor: (item) => item.cut_quantity,
-    },
-    rate: { header: translations.rate, accessor: (item) => item.rate },
-    total_bill: {
-      header: translations.totalBill,
-      accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate),
-    },
-    billing_date: {
-      header: translations.billingDate,
-      accessor: (item) => item.billing_date,
-    },
-  };
+  sno: {
+    header: "क्र.सं.",
+    accessor: (item, index, currentPage, itemsPerPage) =>
+      (currentPage - 1) * itemsPerPage + index + 1,
+  },
+  center_name: {
+    header: translations.centerName,
+    accessor: (item) => item.center_name,
+  },
+  source_of_receipt: {
+    header: translations.sourceOfReceipt,
+    accessor: (item) => item.source_of_receipt,
+  },
+  nivesh: {
+    header: translations.nivesh,
+    accessor: (item) => item.investment_name,
+  },
+  subnivesh_name: {
+    header: translations.subniveshName,
+    accessor: (item) => item.sub_investment_name,
+  },
+  scheme_name: {
+    header: translations.schemeName,
+    accessor: (item) => item.scheme_name,
+  },
+  unit: {
+    header: translations.unit,
+    accessor: (item) => item.unit,
+  },
+  allocated_quantity: {
+    header: translations.allocatedQuantity,
+    accessor: (item) => item.allocated_quantity,
+  },
+  rate: {
+    header: "क्रय दर (प्रति इकाई)",
+    accessor: (item) => item.rate,
+  },
+  farmer_selling_rate: {
+    header: translations.farmerSellingRate,
+    accessor: (item) => item.farmer_selling_rate,
+  },
+  farmer_subsidy_rate: {
+    header: translations.farmerSubsidyRate,
+    accessor: (item) => item.farmer_subsidy_rate,
+  },
+  amount_of_farmer_share: {
+    header: translations.farmerShareAmount,
+    accessor: (item) => item.amount_of_farmer_share,
+  },
+  amount_of_subsidy: {
+    header: translations.subsidyAmount,
+    accessor: (item) => item.amount_of_subsidy,
+  },
+  total_amount: {
+    header: translations.totalAmount,
+    accessor: (item) => item.total_amount,
+  },
+  anudan_name: {
+    header: translations.anudanName,
+    accessor: (item) => item.anudan_name,
+  },
+  remark: {
+    header: translations.remark,
+    accessor: (item) => item.remark,
+  },
+  bill_date: {
+    header: translations.billDate,
+    accessor: (item) => item.bill_date,
+  },
+  updated_quantity: {
+    header: translations.updatedQuantity,
+    accessor: (item) => item.updated_quantity,
+  },
+  quantity_left: {
+    header: translations.quantityLeft,
+    accessor: (item) =>
+      calculateQuantityLeft(
+        item.allocated_quantity,
+        item.updated_quantity,
+        item.cut_quantity,
+      ),
+  },
+  alloted_rashi: {
+    header: translations.allotedRashi,
+    accessor: (item) =>
+      calculateAllocatedAmount(item.allocated_quantity, item.rate),
+  },
+  sold_rashi: {
+    header: translations.soldRashi,
+    accessor: (item) => calculateAmount(item.updated_quantity, item.rate),
+  },
+  cut_quantity: {
+    header: translations.cutQuantity,
+    accessor: (item) => item.cut_quantity,
+  },
+  total_bill: {
+    header: translations.totalBill,
+    accessor: (item) => calculateTotalBill(item.cut_quantity, item.rate),
+  },
+  bill_id: {
+    header: translations.billId,
+    accessor: (item) => item.bill_report_id,
+  },
+  billing_date: {
+    header: translations.billingDate,
+    accessor: (item) => item.billing_date,
+  },
+};
 
   // useEffect for fetching data from the API
   useEffect(() => {
@@ -975,6 +1263,7 @@ const Billing = () => {
 
   return (
     <>
+      <style>{billingTableCss}</style>
       <div>
         <Container fluid className="p-4">
           <Row>
@@ -1299,7 +1588,8 @@ const Billing = () => {
                                   </Row>
                                 </div>
 
-                                <table className="responsive-table small-fonts">
+                                <div className="billing-table-scroll">
+                                  <table className="responsive-table small-fonts billing-data-table">
                                   <thead>
                                     <tr>
                                       <th>{translations.sno}</th>
@@ -1310,12 +1600,20 @@ const Billing = () => {
                                       <th>{translations.schemeName}</th>
                                       <th>{translations.unit}</th>
                                       <th>{translations.allocatedQuantity}</th>
+                                      <th>क्रय दर<br />(प्रति इकाई)</th>
+                                      <th>{translations.farmerSellingRate}</th>
+                                      <th>{translations.farmerSubsidyRate}</th>
+                                      <th>{translations.farmerShareAmount}</th>
+                                      <th>{translations.subsidyAmount}</th>
+                                      <th>{translations.totalAmount}</th>
+                                      <th>{translations.anudanName}</th>
+                                      <th>{translations.remark}</th>
+                                      <th>{translations.billDate}</th>
                                       <th>{translations.updatedQuantity}</th>
                                       <th>{translations.quantityLeft}</th>
                                       <th>{translations.allotedRashi}</th>
                                       <th>{translations.soldRashi}</th>
                                       <th>{translations.cutQuantity}</th>
-                                      <th>{translations.rate}</th>
                                       <th>{translations.totalBill}</th>
                                       <th>{translations.billId}</th>
                                       <th>{translations.billingDate}</th>
@@ -1390,6 +1688,43 @@ const Billing = () => {
                                           >
                                             {item.allocated_quantity}
                                           </td>
+                                          <td data-label="क्रय दर (प्रति इकाई)">
+                                            {item.rate}
+                                          </td>
+                                          <td
+                                            data-label={translations.farmerSellingRate}
+                                          >
+                                            {item.farmer_selling_rate}
+                                          </td>
+                                          <td
+                                            data-label={translations.farmerSubsidyRate}
+                                          >
+                                            {item.farmer_subsidy_rate}
+                                          </td>
+                                          <td
+                                            data-label={translations.farmerShareAmount}
+                                          >
+                                            {item.amount_of_farmer_share}
+                                          </td>
+                                          <td
+                                            data-label={translations.subsidyAmount}
+                                          >
+                                            {item.amount_of_subsidy}
+                                          </td>
+                                          <td
+                                            data-label={translations.totalAmount}
+                                          >
+                                            {item.total_amount}
+                                          </td>
+                                          <td data-label={translations.anudanName}>
+                                            {item.anudan_name}
+                                          </td>
+                                          <td data-label={translations.remark}>
+                                            {item.remark}
+                                          </td>
+                                          <td data-label={translations.billDate}>
+                                            {item.bill_date}
+                                          </td>
                                           <td
                                             data-label={
                                               translations.updatedQuantity
@@ -1439,9 +1774,6 @@ const Billing = () => {
                                                   : ""
                                               }`}
                                             />
-                                          </td>
-                                          <td data-label={translations.rate}>
-                                            {item.rate}
                                           </td>
                                           <td
                                             data-label={translations.totalBill}
@@ -1507,7 +1839,8 @@ const Billing = () => {
                                       );
                                     })}
                                   </tbody>
-                                </table>
+                                  </table>
+                                </div>
 
                                 {totalPages > 1 && (
                                   <div className="mt-2">
