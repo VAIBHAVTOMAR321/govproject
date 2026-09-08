@@ -59,12 +59,12 @@ function DashBoardHeader() {
               <NavDropdown.Item as={Link} to="/NurseryPhysicalEntry" active={location.pathname === '/NurseryPhysicalEntry'}>
                 नर्सरी भौतिक प्रविष्टि
               </NavDropdown.Item>
-               <NavDropdown.Item as={Link} to="/UdyanBill" active={location.pathname === '/UdyanBill'}>
+               {/* <NavDropdown.Item as={Link} to="/UdyanBill" active={location.pathname === '/UdyanBill'}>
                 उद्यान बिल
               </NavDropdown.Item>
                <NavDropdown.Item as={Link} to="/KishanBeej" active={location.pathname === '/KishanBeej'}>
                 किशन बीज
-              </NavDropdown.Item>
+              </NavDropdown.Item> */}
              
               
             </NavDropdown>
@@ -92,11 +92,11 @@ function DashBoardHeader() {
               </NavDropdown.Item>
             </NavDropdown>
 
-            <Nav.Link as={Link} to="/MonthReport" active={location.pathname === '/MonthReport'}>MPR रिपोर्ट</Nav.Link>
+            {/* <Nav.Link as={Link} to="/MonthReport" active={location.pathname === '/MonthReport'}>MPR रिपोर्ट</Nav.Link> */}
           </Nav>
-           <Nav className="ms-auto">
+           {/* <Nav className="ms-auto">
             <Nav.Link as={Link} to="/LibrarySystem" active={location.pathname === '/LibrarySystem'}>लाइब्रेरी सिस्टम</Nav.Link>
-          </Nav>
+          </Nav> */}
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
               <NavDropdown.Item onClick={handleKendraPasswordReset}>
