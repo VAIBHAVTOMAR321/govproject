@@ -29,6 +29,7 @@ const DemandView = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [currentDemand, setCurrentDemand] = useState(null);
+  const [showRemainingCentersModal, setShowRemainingCentersModal] = useState(false); // State for Remaining Centers Modal
   
   // State for forms
   const [formData, setFormData] = useState({
@@ -69,9 +70,7 @@ const DemandView = () => {
     setCenterError('');
 
     try {
-      const response = await fetch(
-        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/'
-      );
+      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/');
 
       if (!response.ok) {
         throw new Error('Failed to fetch center demands');
@@ -100,7 +99,7 @@ const DemandView = () => {
     }
   }, [searchTerm, demands]);
 
-  // Get unique centers and sub-investments for filters
+  // Get unique centers and sub-investments for filters (This acts as the Master List of available centers)
   const uniqueCenters = Array.from(new Set(centerDemands.map(item => item.center_name))).filter(Boolean);
   const uniqueSubInvestments = Array.from(new Set(centerDemands.map(item => item?.demand?.sub_investment_name))).filter(Boolean);
 
@@ -110,6 +109,14 @@ const DemandView = () => {
     const matchesSubInvestment = selectedSubInvestments.length === 0 || selectedSubInvestments.includes(item?.demand?.sub_investment_name);
     return matchesCenter && matchesSubInvestment;
   });
+
+  // Identify centers currently displayed in the filtered table
+  const filteredUniqueCenters = Array.from(new Set(filteredCenterDemands.map(item => item.center_name))).filter(Boolean);
+  
+  // Identify centers from the dropdown (केंद्र फ़िल्टर) that are NOT in the currently filtered table
+  const remainingCenters = uniqueCenters.filter(
+    centerName => !filteredUniqueCenters.includes(centerName)
+  );
   
   // GET: Fetch all demands
   const fetchDemands = async () => {
@@ -118,11 +125,9 @@ const DemandView = () => {
     
     try {
       const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/');
-      
       if (!response.ok) {
         throw new Error('Failed to fetch demands');
       }
-      
       const data = await response.json();
       setDemands(data);
       setFilteredDemands(data);
@@ -139,15 +144,12 @@ const DemandView = () => {
     setIsSubmitting(true);
     setError('');
     setSuccess('');
-    
     try {
-      // Validate form data
       if (!formData.sub_investment_name || !formData.allocated_quantity || !formData.rate) {
         setError('सभी फ़ील्ड भरना अनिवार्य है');
         setIsSubmitting(false);
         return;
       }
-      
       const payload = {
         sub_investment_name: formData.sub_investment_name,
         scheme_name: formData.scheme_name,
@@ -155,35 +157,19 @@ const DemandView = () => {
         rate: parseFloat(formData.rate),
         unit: formData.unit
       };
-      
       const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create demand');
       }
-      
-      // Reset form and close modal
-      setFormData({
-        sub_investment_name: '',
-        scheme_name: '',
-        allocated_quantity: '',
-        rate: '',
-        unit: ''
-      });
+      setFormData({ sub_investment_name: '', scheme_name: '', allocated_quantity: '', rate: '', unit: '' });
       setShowAddModal(false);
       setSuccess('डिमांड सफलतापूर्वक बनाई गई!');
-      
-      // Refresh data
       await fetchDemands();
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error creating demand:', err);
@@ -196,58 +182,37 @@ const DemandView = () => {
   // PUT: Update existing demand
   const handleUpdateDemand = async () => {
     if (!currentDemand) return;
-    
     setIsSubmitting(true);
     setError('');
     setSuccess('');
-    
     try {
-      // Validate form data
       if (!formData.sub_investment_name || !formData.allocated_quantity || !formData.rate) {
         setError('सभी फ़ील्ड भरना अनिवार्य है');
         setIsSubmitting(false);
         return;
       }
-      
       const payload = {
-        demand_id: currentDemand.demand_id, // Add demand_id from currentDemand
+        demand_id: currentDemand.demand_id,
         sub_investment_name: formData.sub_investment_name,
         scheme_name: formData.scheme_name,
         allocated_quantity: parseFloat(formData.allocated_quantity),
         rate: parseFloat(formData.rate),
         unit: formData.unit 
       };
-      
-      // Update URL to include the demand ID in the path
       const response = await fetch(`https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update demand');
       }
-      
-      // Reset form and close modal
-      setFormData({
-        sub_investment_name: '',
-        scheme_name: '',
-        allocated_quantity: '',
-        rate: '',
-        unit: ''
-      });
+      setFormData({ sub_investment_name: '', scheme_name: '', allocated_quantity: '', rate: '', unit: '' });
       setShowEditModal(false);
       setCurrentDemand(null);
       setSuccess('डिमांड सफलतापूर्वक अपडेट की गई!');
-      
-      // Refresh data
       await fetchDemands();
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error updating demand:', err);
@@ -260,36 +225,23 @@ const DemandView = () => {
   // DELETE: Remove demand
   const handleDeleteDemand = async () => {
     if (!currentDemand) return;
-
     setIsSubmitting(true);
     setError('');
     setSuccess('');
-
     try {
-      const response = await fetch(
-        `https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            demand_id: currentDemand.demand_id, // IMPORTANT
-          }),
-        }
-      );
-
+      const response = await fetch(`https://mahadevaaya.com/govbillingsystem/backend/api/demand-generation/`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ demand_id: currentDemand.demand_id }),
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete demand');
       }
-
       setShowDeleteModal(false);
       setCurrentDemand(null);
       setSuccess('डिमांड सफलतापूर्वक हटा दी गई!');
-
       await fetchDemands();
-
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error deleting demand:', err);
@@ -299,7 +251,6 @@ const DemandView = () => {
     }
   };
   
-  // Open edit modal with current demand data
   const openEditModal = (demand) => {
     setCurrentDemand(demand);
     setFormData({
@@ -312,63 +263,44 @@ const DemandView = () => {
     setShowEditModal(true);
   };
   
-  // Open view modal
   const openViewModal = (demand) => {
     setCurrentDemand(demand);
     setShowViewModal(true);
   };
   
-  // Open delete confirmation modal
   const openDeleteModal = (demand) => {
     setCurrentDemand(demand);
     setShowDeleteModal(true);
   };
 
-  // PUT: Edit existing center demand
   const handleEditCenterDemand = async (recordId, allocatedQuantity) => {
     if (editingQuantity === '' || editingQuantity === null) {
       setEditValidationError('कृपया मात्रा दर्ज करें');
       return;
     }
-
     if (parseFloat(editingQuantity) > parseFloat(allocatedQuantity)) {
       setEditValidationError(`मांगी गई मात्रा DHO, कोटद्वार का कुल लक्ष्य (${allocatedQuantity}) से कम होनी चाहिए`);
       return;
     }
-
     setIsSubmitting(true);
     setError('');
     setSuccess('');
     setEditValidationError('');
-
-    const payload = {
-      id: recordId,
-      demanded_quantity: parseFloat(editingQuantity)
-    };
-
+    const payload = { id: recordId, demanded_quantity: parseFloat(editingQuantity) };
     try {
-      const response = await fetch(
-        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/',
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
+      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'डिमांड अपडेट करने में विफल');
       }
-
       setSuccess('डिमांड सफलतापूर्वक अपडेट की गई!');
       setEditingCenterDemandId(null);
       setEditingQuantity('');
-
       await fetchDemandByCenter();
-
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error editing center demand:', err);
@@ -378,53 +310,37 @@ const DemandView = () => {
     }
   };
 
-  // Start editing a center demand
   const startEditingCenterDemand = (record) => {
     setEditingCenterDemandId(record.id);
     setEditingQuantity(record.demanded_quantity);
     setEditValidationError('');
   };
 
-  // Cancel editing center demand
   const cancelEditingCenterDemand = () => {
     setEditingCenterDemandId(null);
     setEditingQuantity('');
     setEditValidationError('');
   };
 
-  // DELETE: Remove center demand
   const handleDeleteCenterDemand = async () => {
     if (!centerDemandToDelete) return;
-
     setIsSubmitting(true);
     setError('');
     setSuccess('');
-
     try {
-      const response = await fetch(
-        'https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/',
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: centerDemandToDelete.id,
-          }),
-        }
-      );
-
+      const response = await fetch('https://mahadevaaya.com/govbillingsystem/backend/api/demand-by-center/', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: centerDemandToDelete.id }),
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'सेंटर डिमांड हटाने में विफल');
       }
-
       setShowDeleteCenterDemandModal(false);
       setCenterDemandToDelete(null);
       setSuccess('सेंटर डिमांड सफलतापूर्वक हटा दी गई!');
-
       await fetchDemandByCenter();
-
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error deleting center demand:', err);
@@ -434,89 +350,48 @@ const DemandView = () => {
     }
   };
 
-  // Open delete confirmation modal for center demand
   const openDeleteCenterDemandModal = (record) => {
     setCenterDemandToDelete(record);
     setShowDeleteCenterDemandModal(true);
   };
 
-  // Handle edit quantity change with validation
   const handleEditQuantityChange = (e, maxQuantity) => {
     const value = parseFloat(e.target.value) || 0;
     const maxQty = parseFloat(maxQuantity) || 0;
-
-    // Allow 0 values, but validate if it's greater than allocated
     if (value < 0) {
       setEditValidationError('मात्रा ऋणात्मक नहीं हो सकती');
       return;
     }
-
     if (value > maxQty) {
       setEditValidationError(`मांगी गई मात्रा (${value}) DHO, कोटद्वार का कुल लक्ष्य (${maxQty}) से अधिक नहीं हो सकती`);
       return;
     }
-
     setEditValidationError('');
     setEditingQuantity(e.target.value);
   };
   
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  // Reset form when modal is closed
   const handleCloseModal = (modalType) => {
-    if (modalType === 'add') {
-      setShowAddModal(false);
-    } else if (modalType === 'edit') {
-      setShowEditModal(false);
-      setCurrentDemand(null);
-    } else if (modalType === 'delete') {
-      setShowDeleteModal(false);
-      setCurrentDemand(null);
-    } else if (modalType === 'view') {
-      setShowViewModal(false);
-      setCurrentDemand(null);
-    }
+    if (modalType === 'add') setShowAddModal(false);
+    else if (modalType === 'edit') { setShowEditModal(false); setCurrentDemand(null); }
+    else if (modalType === 'delete') { setShowDeleteModal(false); setCurrentDemand(null); }
+    else if (modalType === 'view') { setShowViewModal(false); setCurrentDemand(null); }
     
-    setFormData({
-      sub_investment_name: '',
-      scheme_name: '',
-      allocated_quantity: '',
-      rate: '',
-      unit: ''
-    });
+    setFormData({ sub_investment_name: '', scheme_name: '', allocated_quantity: '', rate: '', unit: '' });
     setError('');
   };
   
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('hi-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-  
-  // Handle logout
   const handleLogout = () => {
     clearCenter();
     logout();
     navigate('/', { replace: true });
   };
   
-  // Export demands table to Excel
   const exportDemandsToExcel = () => {
-    // Create a new array with the exact structure as displayed in the table
     const exportData = filteredDemands.map((demand, index) => ({
       'S.No.': index + 1,
       'उप-मद का नाम': demand.sub_investment_name,
@@ -525,18 +400,11 @@ const DemandView = () => {
       'इकाई': demand.unit,
       'कृषक विक्रय दर / अनुदान दर': demand.rate
     }));
-    
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "डिमांड रिकॉर्ड्स");
-    
-    // Generate buffer
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    
-    // Create a blob
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    
-    // Create download link
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -547,21 +415,14 @@ const DemandView = () => {
     URL.revokeObjectURL(url);
   };
   
-  // Export center demands table to Excel
   const exportCenterDemandsToExcel = () => {
-    // Group demands by center
     const groupedByCenter = {};
     filteredCenterDemands.forEach(item => {
-      if (!groupedByCenter[item.center_name]) {
-        groupedByCenter[item.center_name] = [];
-      }
+      if (!groupedByCenter[item.center_name]) groupedByCenter[item.center_name] = [];
       groupedByCenter[item.center_name].push(item);
     });
-
-    // Create a new array with the exact structure as displayed in the table
     const exportData = [];
     let sNo = 1;
-
     Object.keys(groupedByCenter).forEach(centerName => {
       groupedByCenter[centerName].forEach((item, index) => {
         exportData.push({
@@ -576,30 +437,17 @@ const DemandView = () => {
         });
       });
     });
-
-    // Add total row
     exportData.push({
-      'S.No.': '',
-      'सेंटर नाम': 'कुल',
-      'उप-मद का नाम': '',
-      'योजना का नाम': '',
-      'इकाई': '',
+      'S.No.': '', 'सेंटर नाम': 'कुल', 'उप-मद का नाम': '', 'योजना का नाम': '', 'इकाई': '',
       'मांगी गई मात्रा': filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2),
       'कृषक विक्रय दर / अनुदान दर': '',
       'कुल राशि': filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0).toFixed(2)
     });
-    
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "सेंटर अनुसार डिमांड");
-    
-    // Generate buffer
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    
-    // Create a blob
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    
-    // Create download link
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -610,30 +458,21 @@ const DemandView = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Export demands table to PDF
   const exportDemandsToPDF = () => {
-    // Create a wrapper element with proper table styling for PDF
     const wrapper = document.createElement('div');
     wrapper.style.padding = '20px';
     wrapper.style.fontFamily = 'Arial, sans-serif';
-    
-    // Add table title
     const title = document.createElement('h3');
     title.textContent = 'डिमांड रिकॉर्ड्स';
     title.style.textAlign = 'center';
     title.style.marginBottom = '20px';
     wrapper.appendChild(title);
 
-    // Create a new table without the action column
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
-    
-    // Create table header
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    
-    // Add headers
     const headers = ['S.No.', 'उप-मद का नाम', 'योजना का नाम', 'DHO, कोटद्वार का कुल लक्ष्य', 'इकाई', 'कृषक विक्रय दर / अनुदान दर'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
@@ -645,26 +484,13 @@ const DemandView = () => {
       th.style.textAlign = 'center';
       headerRow.appendChild(th);
     });
-    
     thead.appendChild(headerRow);
     table.appendChild(thead);
-    
-    // Create table body
     const tbody = document.createElement('tbody');
     
     filteredDemands.forEach((demand, index) => {
       const row = document.createElement('tr');
-      
-      // Add cells
-      const cellData = [
-        index + 1,
-        demand.sub_investment_name,
-        demand.scheme_name,
-        demand.allocated_quantity,
-        demand.unit,
-        demand.rate
-      ];
-      
+      const cellData = [index + 1, demand.sub_investment_name, demand.scheme_name, demand.allocated_quantity, demand.unit, demand.rate];
       cellData.forEach(cellText => {
         const td = document.createElement('td');
         td.textContent = cellText;
@@ -673,10 +499,8 @@ const DemandView = () => {
         td.style.textAlign = 'left';
         row.appendChild(td);
       });
-      
       tbody.appendChild(row);
     });
-    
     table.appendChild(tbody);
     wrapper.appendChild(table);
 
@@ -687,34 +511,24 @@ const DemandView = () => {
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-
     html2pdf().set(opt).from(wrapper).save();
   };
 
-  // Export center demands table to PDF
   const exportCenterDemandsToPDF = () => {
-    // Create a wrapper element with proper table styling for PDF
     const wrapper = document.createElement('div');
     wrapper.style.padding = '20px';
     wrapper.style.fontFamily = 'Arial, sans-serif';
-    
-    // Add table title
     const title = document.createElement('h3');
     title.textContent = 'सेंटर अनुसार डिमांड';
     title.style.textAlign = 'center';
     title.style.marginBottom = '20px';
     wrapper.appendChild(title);
 
-    // Create a new table
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
-    
-    // Create table header
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    
-    // Add headers
     const headers = ['S.No.', 'सेंटर नाम', 'उप-मद का नाम', 'योजना का नाम', 'इकाई', 'मांगी गई मात्रा', 'कृषक विक्रय दर / अनुदान दर', 'कुल राशि'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
@@ -726,73 +540,51 @@ const DemandView = () => {
       th.style.textAlign = 'center';
       headerRow.appendChild(th);
     });
-    
     thead.appendChild(headerRow);
     table.appendChild(thead);
-    
-    // Create table body
     const tbody = document.createElement('tbody');
     
-    // Group demands by center
     const groupedByCenter = {};
     filteredCenterDemands.forEach(item => {
-      if (!groupedByCenter[item.center_name]) {
-        groupedByCenter[item.center_name] = [];
-      }
+      if (!groupedByCenter[item.center_name]) groupedByCenter[item.center_name] = [];
       groupedByCenter[item.center_name].push(item);
     });
 
     let sNo = 1;
-    
     Object.keys(groupedByCenter).forEach(centerName => {
       groupedByCenter[centerName].forEach((item, index) => {
         const row = document.createElement('tr');
-        
-        // S.No. - only for first row of each center
         const sNoCell = document.createElement('td');
         sNoCell.textContent = index === 0 ? sNo++ : '';
         sNoCell.style.border = '1px solid #000';
         sNoCell.style.padding = '8px';
-        sNoCell.style.textAlign = 'left';
         row.appendChild(sNoCell);
         
-        // Center name - only for first row of each center
         const centerCell = document.createElement('td');
         centerCell.textContent = index === 0 ? item.center_name : '';
         centerCell.style.border = '1px solid #000';
         centerCell.style.padding = '8px';
-        centerCell.style.textAlign = 'left';
         row.appendChild(centerCell);
         
-        // Other cells
         const cellData = [
-          item?.demand?.sub_investment_name || '',
-          item?.demand?.scheme_name || '',
-          item?.demand?.unit || '',
-          item.demanded_quantity,
-          item?.demand?.rate || 0,
+          item?.demand?.sub_investment_name || '', item?.demand?.scheme_name || '', item?.demand?.unit || '',
+          item.demanded_quantity, item?.demand?.rate || 0,
           (item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)
         ];
-        
         cellData.forEach(cellText => {
           const td = document.createElement('td');
           td.textContent = cellText;
           td.style.border = '1px solid #000';
           td.style.padding = '8px';
-          td.style.textAlign = 'left';
           row.appendChild(td);
         });
-        
         tbody.appendChild(row);
       });
     });
-    
-    // Add total row
+
     const totalRow = document.createElement('tr');
     totalRow.style.fontWeight = 'bold';
     totalRow.style.backgroundColor = '#f8f9fa';
-    
-    // Empty cells for first 5 columns
     for (let i = 0; i < 5; i++) {
       const td = document.createElement('td');
       td.textContent = i === 0 ? 'कुल' : '';
@@ -800,22 +592,18 @@ const DemandView = () => {
       td.style.padding = '8px';
       totalRow.appendChild(td);
     }
-    
-    // Total quantity
     const totalQuantityCell = document.createElement('td');
     totalQuantityCell.textContent = filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2);
     totalQuantityCell.style.border = '1px solid #000';
     totalQuantityCell.style.padding = '8px';
     totalRow.appendChild(totalQuantityCell);
     
-    // Empty cell for rate
     const emptyRateCell = document.createElement('td');
     emptyRateCell.textContent = '';
     emptyRateCell.style.border = '1px solid #000';
     emptyRateCell.style.padding = '8px';
     totalRow.appendChild(emptyRateCell);
     
-    // Total amount
     const totalAmountCell = document.createElement('td');
     totalAmountCell.textContent = filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0).toFixed(2);
     totalAmountCell.style.border = '1px solid #000';
@@ -833,7 +621,6 @@ const DemandView = () => {
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-
     html2pdf().set(opt).from(wrapper).save();
   };
   
@@ -855,7 +642,6 @@ const DemandView = () => {
           </Col>
         </Row>
         
-        {/* Success and Error Messages */}
         {success && <Alert variant="success" className="mb-3">{success}</Alert>}
         {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
         
@@ -866,21 +652,16 @@ const DemandView = () => {
                 <h5 className="mb-0">डिमांड रिकॉर्ड्स</h5>
                 <div className="d-flex gap-2">
                   <InputGroup style={{ width: '500px' }}>
-                    <InputGroup.Text>
-                      <RiSearchLine />
-                    </InputGroup.Text>
+                    <InputGroup.Text><RiSearchLine /></InputGroup.Text>
                     <Form.Control
                       type="text"
                       placeholder="उप-निवेश खोजें..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Button style={{marginLeft: '10px', fontSize: '10px'}}
-                    variant="primary"
-                    onClick={() => setShowAddModal(true)}
-                  >
-                    <RiAddLine /> नई डिमांड जोड़ें
-                  </Button>
+                    <Button style={{marginLeft: '10px', fontSize: '10px'}} variant="primary" onClick={() => setShowAddModal(true)}>
+                      <RiAddLine /> नई डिमांड जोड़ें
+                    </Button>
                   </InputGroup>
                   <Button variant="outline-success" style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px'}} onClick={exportDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
@@ -924,28 +705,13 @@ const DemandView = () => {
                                  <td>{demand.rate}</td>
                                 <td>
                                   <div className="d-flex gap-1">
-                                    <Button 
-                                      variant="outline-info" 
-                                      size="sm" 
-                                      onClick={() => openViewModal(demand)}
-                                      title="देखें"
-                                    >
+                                    <Button variant="outline-info" size="sm" onClick={() => openViewModal(demand)} title="देखें">
                                       <RiEyeLine />
                                     </Button>
-                                    <Button 
-                                      variant="outline-primary" 
-                                      size="sm" 
-                                      onClick={() => openEditModal(demand)}
-                                      title="संपादित करें"
-                                    >
+                                    <Button variant="outline-primary" size="sm" onClick={() => openEditModal(demand)} title="संपादित करें">
                                       <RiEditLine />
                                     </Button>
-                                    <Button 
-                                      variant="outline-danger" 
-                                      size="sm" 
-                                      onClick={() => openDeleteModal(demand)}
-                                      title="हटाएं"
-                                    >
+                                    <Button variant="outline-danger" size="sm" onClick={() => openDeleteModal(demand)} title="हटाएं">
                                       <RiDeleteBinLine />
                                     </Button>
                                   </div>
@@ -956,9 +722,7 @@ const DemandView = () => {
                         </Table>
                       </div>
                     ) : (
-                      <div className="text-center py-4">
-                        <p>कोई डिमांड रिकॉर्ड नहीं मिला</p>
-                      </div>
+                      <div className="text-center py-4"><p>कोई डिमांड रिकॉर्ड नहीं मिला</p></div>
                     )}
                   </>
                 )}
@@ -973,7 +737,6 @@ const DemandView = () => {
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">सेंटर अनुसार डिमांड</h5>
                 <div className="d-flex gap-2">
-  
                   <Button variant="outline-success"style={{backgroundColor: '#28a745', color: 'white', fontSize: '10px' }} onClick={exportCenterDemandsToExcel}>
                     <RiFileExcel2Line /> Excel निर्यात करें
                   </Button>
@@ -996,19 +759,13 @@ const DemandView = () => {
                             onMouseDown={(e) => {
                               e.preventDefault();
                               const value = e.target.value;
-
                               setSelectedCenters((prev) =>
-                                prev.includes(value)
-                                  ? prev.filter((v) => v !== value) // unselect
-                                  : [...prev, value]               // select
+                                prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
                               );
                             }}
                           >
-
                           {uniqueCenters.map(center => (
-                            <option key={center} value={center}>
-                              {center}
-                            </option>
+                            <option key={center} value={center}>{center}</option>
                           ))}
                         </Form.Select>
                       </Form.Group>
@@ -1017,47 +774,46 @@ const DemandView = () => {
                       <Form.Group controlId="subInvestmentFilter">
                         <Form.Label>उप-मद का नाम फ़िल्टर</Form.Label>
                         <Form.Select
-  multiple
-  value={selectedSubInvestments}
-  style={{ height: '120px', cursor: 'pointer', fontSize: '12px'  }}
-  onMouseDown={(e) => {
-    e.preventDefault();
-    const value = e.target.value;
-
-    setSelectedSubInvestments((prev) =>
-      prev.includes(value)
-        ? prev.filter((v) => v !== value)
-        : [...prev, value]
-    );
-  }}
->
+                          multiple
+                          value={selectedSubInvestments}
+                          style={{ height: '120px', cursor: 'pointer', fontSize: '12px'  }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const value = e.target.value;
+                            setSelectedSubInvestments((prev) =>
+                              prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+                            );
+                          }}
+                        >
                           {uniqueSubInvestments.map(subInvestment => (
-                            <option key={subInvestment} value={subInvestment}>
-                              {subInvestment}
-                            </option>
+                            <option key={subInvestment} value={subInvestment}>{subInvestment}</option>
                           ))}
                         </Form.Select>
                       </Form.Group>
                     </Col>
                   </Row>
-                  {/* Clear Filters Button */}
-                  <div className="mt-3 text-center">
+                  
+                  {/* Buttons */}
+                  <div className="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <Button
                       variant=" clear-btn-primary"
-                      onClick={() => {
-                        setSelectedCenters([]);
-                        setSelectedSubInvestments([]);
-                      }}
+                      onClick={() => { setSelectedCenters([]); setSelectedSubInvestments([]); }}
                     >
                       फ़िल्टर साफ़ करें
+                    </Button>
+
+                    <Button 
+                      variant="warning" 
+                      onClick={() => setShowRemainingCentersModal(true)}
+                      disabled={selectedCenters.length > 0 || remainingCenters.length === 0}
+                    >
+                      शेष/मेल न खाने वाले सेंटर दिखाएं
                     </Button>
                   </div>
                 </div>
 
                 {centerLoading ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" />
-                  </div>
+                  <div className="text-center py-4"><Spinner animation="border" /></div>
                 ) : centerError ? (
                   <Alert variant="danger">{centerError}</Alert>
                 ) : filteredCenterDemands?.length > 0 ? (
@@ -1072,114 +828,95 @@ const DemandView = () => {
                           <th>मांगी गई मात्रा</th>
                           <th>कृषक विक्रय दर / अनुदान दर</th>
                           <th>कुल राशि</th>
+                          <th>कार्यवाही</th>
                         </tr>
                       </thead>
                       <tbody>
-  {(() => {
-    let serial = 1; // global serial number per center
-    return Object.values(
-      filteredCenterDemands.reduce((acc, item) => {
-        if (!acc[item.center_name]) acc[item.center_name] = [];
-        acc[item.center_name].push(item);
-        return acc;
-      }, {})
-    ).map((centerItems) =>
-      centerItems.map((item, idx) => (
-        <tr key={item.id}>
-          {/* S.No only for the first row of the center */}
-          {idx === 0 && (
-            <td rowSpan={centerItems.length}>{serial++}</td>
-          )}
+                        {(() => {
+                          let serial = 1; 
+                          return Object.values(
+                            filteredCenterDemands.reduce((acc, item) => {
+                              if (!acc[item.center_name]) acc[item.center_name] = [];
+                              acc[item.center_name].push(item);
+                              return acc;
+                            }, {})
+                          ).map((centerItems) =>
+                            centerItems.map((item, idx) => (
+                              <tr key={item.id}>
+                                {idx === 0 && (
+                                  <td rowSpan={centerItems.length}>{serial++}</td>
+                                )}
+                                {idx === 0 && (
+                                  <td rowSpan={centerItems.length}>{item.center_name || '-'}</td>
+                                )}
+                                <td>{item?.demand?.sub_investment_name || '-'}</td>
+                                <td>{item?.demand?.unit || '-'}</td>
+                                <td>
+                                  {editingCenterDemandId === item.id ? (
+                                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                                      <Form.Control
+                                        type="number"
+                                        step="0.01"
+                                        value={editingQuantity}
+                                        onChange={(e) => handleEditQuantityChange(e, item?.demand?.allocated_quantity || 0)}
+                                        placeholder="मात्रा दर्ज करें"
+                                        isInvalid={!!editValidationError}
+                                        style={{ width: '120px' }}
+                                      />
+                                      <Button variant="success" size="sm" onClick={() => handleEditCenterDemand(item.id, item?.demand?.allocated_quantity || 0)} disabled={isSubmitting || !!editValidationError}>
+                                        {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
+                                      </Button>
+                                      <Button variant="secondary" size="sm" onClick={cancelEditingCenterDemand}>✕</Button>
+                                      {editValidationError && (
+                                        <Form.Control.Feedback type="invalid" className="d-block w-100">
+                                          {editValidationError}
+                                        </Form.Control.Feedback>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="d-flex align-items-center gap-2">
+                                      <span>{item.demanded_quantity ?? '-'}</span>
+                                      <Button variant="outline-primary" size="sm" onClick={() => startEditingCenterDemand(item)} title="संपादित करें">✎</Button>
+                                    </div>
+                                  )}
+                                </td>
+                                <td>{item?.demand?.rate ?? '-'}</td>
+                                <td>
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <span>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</span>
+                                    <Button variant="outline-danger" size="sm" onClick={() => openDeleteCenterDemandModal(item)} title="हटाएं">
+                                      <RiDeleteBinLine />
+                                    </Button>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="d-flex gap-1">
+                                    <Button variant="outline-info" size="sm" onClick={() => openViewModal(item?.demand)} title="देखें" disabled={!item?.demand}>
+                                      <RiEyeLine />
+                                    </Button>
+                                    <Button variant="outline-primary" size="sm" onClick={() => openEditModal(item?.demand)} title="संपादित करें" disabled={!item?.demand}>
+                                      <RiEditLine />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          );
+                        })()}
 
-          {/* Center name with rowSpan */}
-          {idx === 0 && (
-            <td rowSpan={centerItems.length}>
-              {item.center_name || '-'}
-            </td>
-          )}
-
-          <td>{item?.demand?.sub_investment_name || '-'}</td>
-          <td>{item?.demand?.unit || '-'}</td>
-          <td>
-            {editingCenterDemandId === item.id ? (
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  value={editingQuantity}
-                  onChange={(e) => handleEditQuantityChange(e, item?.demand?.allocated_quantity || 0)}
-                  placeholder="मात्रा दर्ज करें"
-                  isInvalid={!!editValidationError}
-                  style={{ width: '120px' }}
-                />
-                <Button
-                  variant="success"
-                  size="sm"
-                  onClick={() => handleEditCenterDemand(item.id, item?.demand?.allocated_quantity || 0)}
-                  disabled={isSubmitting || !!editValidationError}
-                >
-                  {isSubmitting ? <Spinner animation="border" size="sm" /> : '✓'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={cancelEditingCenterDemand}
-                >
-                  ✕
-                </Button>
-                {editValidationError && (
-                  <Form.Control.Feedback type="invalid" className="d-block w-100">
-                    {editValidationError}
-                  </Form.Control.Feedback>
-                )}
-              </div>
-            ) : (
-              <div className="d-flex align-items-center gap-2">
-                <span>{item.demanded_quantity ?? '-'}</span>
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={() => startEditingCenterDemand(item)}
-                  title="संपादित करें"
-                >
-                  ✎
-                </Button>
-              </div>
-            )}
-          </td>
-          <td>{item?.demand?.rate ?? '-'}</td>
-          <td>
-            <div className="d-flex justify-content-between align-items-center">
-              <span>{(item.demanded_quantity * (item?.demand?.rate || 0)).toFixed(2)}</span>
-              <Button
-                variant="outline-danger"
-                size="sm"
-                onClick={() => openDeleteCenterDemandModal(item)}
-                title="हटाएं"
-              >
-                <RiDeleteBinLine />
-              </Button>
-            </div>
-          </td>
-        </tr>
-      ))
-    );
-  })()}
-
-  {/* Total Row */}
-  <tr style={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}>
-    <td colSpan={4}>कुल</td>
-    <td>{(filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0)).toFixed(2)}</td>
-    <td></td>
-    <td>{(filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0)).toFixed(2)}</td>
-  </tr>
-</tbody>
+                        {/* Total Row */}
+                        <tr style={{ fontWeight: 'bold', backgroundColor: '#f8f9fa' }}>
+                          <td colSpan={4}>कुल</td>
+                          <td>{(filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0)).toFixed(2)}</td>
+                          <td></td>
+                          <td>{(filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0)).toFixed(2)}</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
                     </Table>
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <p>कोई रिकॉर्ड उपलब्ध नहीं</p>
-                  </div>
+                  <div className="text-center py-4"><p>कोई रिकॉर्ड उपलब्ध नहीं</p></div>
                 )}
               </Card.Body>
             </Card>
@@ -1197,76 +934,33 @@ const DemandView = () => {
           <Form onSubmit={(e) => { e.preventDefault(); }}>
             <Form.Group className="mb-3">
               <Form.Label>उप-मद का नाम <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="text"
-                name="sub_investment_name"
-                value={formData.sub_investment_name}
-                onChange={handleInputChange}
-                placeholder="जैसे: आलू-1, सोलर पैनल स्थापना"
-                required
-              />
+              <Form.Control type="text" name="sub_investment_name" value={formData.sub_investment_name} onChange={handleInputChange} placeholder="जैसे: आलू-1, सोलर पैनल स्थापना" required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>योजना का नाम</Form.Label>
-              <Form.Control
-                type="text"
-                name="scheme_name"
-                value={formData.scheme_name}
-                onChange={handleInputChange}
-                placeholder="जैसे: PM-KUSUM Scheme"
-              />
+              <Form.Control type="text" name="scheme_name" value={formData.scheme_name} onChange={handleInputChange} placeholder="जैसे: PM-KUSUM Scheme" />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>इकाई <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="text"
-                name="unit"
-                value={formData.unit}
-                onChange={handleInputChange}
-                placeholder="Kg / Quintal / Nos"
-                required
-              />
+              <Form.Control type="text" name="unit" value={formData.unit} onChange={handleInputChange} placeholder="Kg / Quintal / Nos" required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>DHO, कोटद्वार का कुल लक्ष्य <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="allocated_quantity"
-                value={formData.allocated_quantity}
-                onChange={handleInputChange}
-                placeholder="जैसे: 120.50"
-                required
-              />
+              <Form.Control type="number" step="0.01" name="allocated_quantity" value={formData.allocated_quantity} onChange={handleInputChange} placeholder="जैसे: 120.50" required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>कृषक विक्रय दर / अनुदान दर <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="rate"
-                value={formData.rate}
-                onChange={handleInputChange}
-                placeholder="जैसे: 45000.00"
-                required
-              />
+              <Form.Control type="number" step="0.01" name="rate" value={formData.rate} onChange={handleInputChange} placeholder="जैसे: 45000.00" required />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button type="button" variant="secondary" onClick={() => handleCloseModal('add')}>
-            रद्द करें
-          </Button>
+          <Button type="button" variant="secondary" onClick={() => handleCloseModal('add')}>रद्द करें</Button>
           <Button type="button" variant="primary" onClick={handleAddDemand} disabled={isSubmitting}>
             {isSubmitting ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" />
-                <span className="ms-2">जोड़ा जा रहा है...</span>
-              </>
+              <><Spinner as="span" animation="border" size="sm" /><span className="ms-2">जोड़ा जा रहा है...</span></>
             ) : (
-              <>
-                <RiSaveLine /> जोड़ें
-              </>
+              <><RiSaveLine /> जोड़ें</>
             )}
           </Button>
         </Modal.Footer>
@@ -1282,76 +976,33 @@ const DemandView = () => {
           <Form onSubmit={(e) => { e.preventDefault(); }}>
             <Form.Group className="mb-3">
               <Form.Label>उप-मद का नाम <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="text"
-                name="sub_investment_name"
-                value={formData.sub_investment_name}
-                onChange={handleInputChange}
-                placeholder="जैसे: आलू-1, सोलर पैनल स्थापना"
-                required
-              />
+              <Form.Control type="text" name="sub_investment_name" value={formData.sub_investment_name} onChange={handleInputChange} placeholder="जैसे: आलू-1, सोलर पैनल स्थापना" required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>योजना का नाम</Form.Label>
-              <Form.Control
-                type="text"
-                name="scheme_name"
-                value={formData.scheme_name}
-                onChange={handleInputChange}
-                placeholder="जैसे: PM-KUSUM Scheme"
-              />
+              <Form.Control type="text" name="scheme_name" value={formData.scheme_name} onChange={handleInputChange} placeholder="जैसे: PM-KUSUM Scheme" />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>इकाई <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="text"
-                name="unit"
-                value={formData.unit}
-                onChange={handleInputChange}
-                placeholder="Kg / Quintal / Nos"
-                required
-              />
+              <Form.Control type="text" name="unit" value={formData.unit} onChange={handleInputChange} placeholder="Kg / Quintal / Nos" required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>DHO, कोटद्वार का कुल लक्ष्य <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="allocated_quantity"
-                value={formData.allocated_quantity}
-                onChange={handleInputChange}
-                placeholder="जैसे: 120.50"
-                required
-              />
+              <Form.Control type="number" step="0.01" name="allocated_quantity" value={formData.allocated_quantity} onChange={handleInputChange} placeholder="जैसे: 120.50" required />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>कृषक विक्रय दर / अनुदान दर <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                name="rate"
-                value={formData.rate}
-                onChange={handleInputChange}
-                placeholder="जैसे: 45000.00"
-                required
-              />
+              <Form.Control type="number" step="0.01" name="rate" value={formData.rate} onChange={handleInputChange} placeholder="जैसे: 45000.00" required />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button type="button" variant="secondary" onClick={() => handleCloseModal('edit')}>
-            रद्द करें
-          </Button>
+          <Button type="button" variant="secondary" onClick={() => handleCloseModal('edit')}>रद्द करें</Button>
           <Button type="button" variant="primary" onClick={handleUpdateDemand} disabled={isSubmitting}>
             {isSubmitting ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" />
-                <span className="ms-2">अपडेट हो रहा है...</span>
-              </>
+              <><Spinner as="span" animation="border" size="sm" /><span className="ms-2">अपडेट हो रहा है...</span></>
             ) : (
-              <>
-                <RiSaveLine /> अपडेट करें
-              </>
+              <><RiSaveLine /> अपडेट करें</>
             )}
           </Button>
         </Modal.Footer>
@@ -1366,36 +1017,22 @@ const DemandView = () => {
           {currentDemand && (
             <div>
               <Row className="mb-3">
-                <Col md={6}>
-                  <strong>उप-मद का नाम:</strong> {currentDemand.sub_investment_name}
-                </Col>
-                <Col md={6}>
-                  <strong>योजना का नाम:</strong> {currentDemand.scheme_name}
-                </Col>
+                <Col md={6}><strong>उप-मद का नाम:</strong> {currentDemand.sub_investment_name}</Col>
+                <Col md={6}><strong>योजना का नाम:</strong> {currentDemand.scheme_name}</Col>
               </Row>
               <Row className="mb-3">
-                <Col md={6}>
-                  <strong>DHO, कोटद्वार का कुल लक्ष्य:</strong> {currentDemand.allocated_quantity}
-                </Col>
-                <Col md={6}>
-                  <strong>इकाई:</strong> {currentDemand.unit}
-                </Col>
+                <Col md={6}><strong>DHO, कोटद्वार का कुल लक्ष्य:</strong> {currentDemand.allocated_quantity}</Col>
+                <Col md={6}><strong>इकाई:</strong> {currentDemand.unit}</Col>
               </Row>
               <Row className="mb-3">
-                <Col md={6}>
-                  <strong>कृषक विक्रय दर / अनुदान दर:</strong> {currentDemand.rate}
-                </Col>
-                <Col md={6}>
-                  <strong>कुल राशि:</strong> {currentDemand.amount?.toLocaleString('hi-IN') || 0}
-                </Col>
+                <Col md={6}><strong>कृषक विक्रय दर / अनुदान दर:</strong> {currentDemand.rate}</Col>
+                <Col md={6}><strong>कुल राशि:</strong> {currentDemand.amount?.toLocaleString('hi-IN') || 0}</Col>
               </Row>
             </div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => handleCloseModal('view')}>
-            बंद करें
-          </Button>
+          <Button variant="secondary" onClick={() => handleCloseModal('view')}>बंद करें</Button>
         </Modal.Footer>
       </Modal>
       
@@ -1416,34 +1053,22 @@ const DemandView = () => {
               <p><strong>कृषक विक्रय दर / अनुदान दर:</strong> {currentDemand.rate}</p>
             </div>
           )}
-          <p className="text-danger mt-3">
-            <strong>चेतावनी:</strong> यह कार्रवाई पूर्ववत नहीं की जा सकती है।
-          </p>
+          <p className="text-danger mt-3"><strong>चेतावनी:</strong> यह कार्रवाई पूर्ववत नहीं की जा सकती है।</p>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => handleCloseModal('delete')}>
-            रद्द करें
-          </Button>
+          <Button variant="secondary" onClick={() => handleCloseModal('delete')}>रद्द करें</Button>
           <Button variant="danger" onClick={handleDeleteDemand} disabled={isSubmitting}>
             {isSubmitting ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" />
-                <span className="ms-2">हटाया जा रहा है...</span>
-              </>
+              <><Spinner as="span" animation="border" size="sm" /><span className="ms-2">हटाया जा रहा है...</span></>
             ) : (
-              <>
-                <RiDeleteBinLine /> हटाएं
-              </>
+              <><RiDeleteBinLine /> हटाएं</>
             )}
           </Button>
         </Modal.Footer>
       </Modal>
 
       {/* Delete Center Demand Modal */}
-      <Modal show={showDeleteCenterDemandModal} onHide={() => {
-        setShowDeleteCenterDemandModal(false);
-        setCenterDemandToDelete(null);
-      }}>
+      <Modal show={showDeleteCenterDemandModal} onHide={() => { setShowDeleteCenterDemandModal(false); setCenterDemandToDelete(null); }}>
         <Modal.Header closeButton>
           <Modal.Title>सेंटर डिमांड हटाने की पुष्टि</Modal.Title>
         </Modal.Header>
@@ -1458,31 +1083,56 @@ const DemandView = () => {
               <p><strong>कुल राशि:</strong> ₹{(centerDemandToDelete.demanded_quantity * (centerDemandToDelete?.demand?.rate || 0)).toFixed(2)}</p>
             </div>
           )}
-          <p className="text-danger mt-3">
-            <strong>चेतावनी:</strong> यह कार्रवाई पूर्ववत नहीं की जा सकती है।
-          </p>
+          <p className="text-danger mt-3"><strong>चेतावनी:</strong> यह कार्रवाई पूर्ववत नहीं की जा सकती है।</p>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => {
-            setShowDeleteCenterDemandModal(false);
-            setCenterDemandToDelete(null);
-          }}>
-            रद्द करें
-          </Button>
+          <Button variant="secondary" onClick={() => { setShowDeleteCenterDemandModal(false); setCenterDemandToDelete(null); }}>रद्द करें</Button>
           <Button variant="danger" onClick={handleDeleteCenterDemand} disabled={isSubmitting}>
             {isSubmitting ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" />
-                <span className="ms-2">हटाया जा रहा है...</span>
-              </>
+              <><Spinner as="span" animation="border" size="sm" /><span className="ms-2">हटाया जा रहा है...</span></>
             ) : (
-              <>
-                <RiDeleteBinLine /> हटाएं
-              </>
+              <><RiDeleteBinLine /> हटाएं</>
             )}
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Remaining Centers Modal */}
+      <Modal show={showRemainingCentersModal} onHide={() => setShowRemainingCentersModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>शेष/मेल न खाने वाले सेंटर (Remaining Centers)</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {remainingCenters.length > 0 ? (
+            <Table striped bordered hover responsive>
+              <thead>
+                <tr>
+                  <th>S.No.</th>
+                  <th>सेंटर नाम (Center Name)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {remainingCenters.map((center, index) => (
+                  <tr key={index}>
+                    <td>{index + 1}</td>
+                    <td><strong>{center}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          ) : (
+            <Alert variant="info" className="mb-0 text-center">
+              केंद्र फ़िल्टर के सभी सेंटर वर्तमान में टेबल में मौजूद हैं। (All centers from the filter are currently present in the table.)
+            </Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowRemainingCentersModal(false)}>
+            बंद करें (Close)
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
     </>
   );
 };
