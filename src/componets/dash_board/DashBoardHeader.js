@@ -94,9 +94,9 @@ function DashBoardHeader() {
 
             {/* <Nav.Link as={Link} to="/MonthReport" active={location.pathname === '/MonthReport'}>MPR रिपोर्ट</Nav.Link> */}
           </Nav>
-           {/* <Nav className="ms-auto">
+           <Nav className="ms-auto">
             <Nav.Link as={Link} to="/LibrarySystem" active={location.pathname === '/LibrarySystem'}>लाइब्रेरी सिस्टम</Nav.Link>
-          </Nav> */}
+          </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
               <NavDropdown.Item onClick={handleKendraPasswordReset}>
