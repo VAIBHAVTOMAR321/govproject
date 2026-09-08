@@ -2538,6 +2538,8 @@ const Registration = () => {
       newErrors.center_name = `${translations.centerName} ${translations.required}`;
     if (!formData.investment_name.trim())
       newErrors.investment_name = `${translations.investmentName} ${translations.required}`;
+    if (!formData.sub_investment_name.trim())
+      newErrors.sub_investment_name = `${translations.subInvestmentName} ${translations.required}`;
     if (!formData.unit.trim())
       newErrors.unit = `${translations.unit} ${translations.required}`;
     if (!formData.allocated_quantity.trim())
@@ -2548,6 +2550,22 @@ const Registration = () => {
       newErrors.source_of_receipt = `${translations.sourceOfReceipt} ${translations.required}`;
     if (!formData.scheme_name.trim())
       newErrors.scheme_name = `${translations.schemeName} ${translations.required}`;
+    if (!formData.farmer_selling_rate.toString().trim())
+      newErrors.farmer_selling_rate = `${translations.farmerSellingRate} ${translations.required}`;
+    if (!formData.farmer_subsidy_rate.toString().trim())
+      newErrors.farmer_subsidy_rate = `${translations.farmerSubsidyRate} ${translations.required}`;
+    if (!formData.amount_of_farmer_share.toString().trim())
+      newErrors.amount_of_farmer_share = `${translations.amountOfFarmerShare} ${translations.required}`;
+    if (!formData.amount_of_subsidy.toString().trim())
+      newErrors.amount_of_subsidy = `${translations.amountOfSubsidy} ${translations.required}`;
+    if (!formData.total_amount.toString().trim())
+      newErrors.total_amount = `${translations.totalAmount} ${translations.required}`;
+    if (!formData.anudan_name.trim())
+      newErrors.anudan_name = `${translations.anudanName} ${translations.required}`;
+    if (!formData.remark.trim())
+      newErrors.remark = `${translations.remark} ${translations.required}`;
+    if (!formData.bill_date.trim())
+      newErrors.bill_date = `${translations.billDate} ${translations.required}`;
     if (!formData.vikas_khand_name.trim())
       newErrors.vikas_khand_name = `${translations.vikasKhandName} ${translations.required}`;
     if (!formData.vidhan_sabha_name.trim())
@@ -2750,18 +2768,18 @@ const Registration = () => {
                 <ul className="mb-0">
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
-                    <strong>अनिवार्य फ़ील्ड:</strong> केंद्र का नाम, निवेश का
-                    नाम, उप-निवेश का नाम, इकाई, आवंटित मात्रा, दर, सप्लायर,
-                    योजना का नाम, किसान का हिस्सा, सब्सिडी राशि, कुल राशि,
-                    पंजीकरण तिथि
+                    <strong>अनिवार्य फ़ील्ड:</strong> केंद्र का नाम, क्रय योजना का नाम, सप्लायर,
+                    मद का नाम, उप-मद का नाम, इकाई, आवंटित मात्रा, क्रय दर (प्रति इकाई),
+                    कृषक विक्रय दर (प्रति इकाई), कृषक अनुदान दर (प्रति इकाई), कृषक अंश,
+                    अनुदान राशि, कुल राशि, अनुदान वहन योजना, रिमार्क, पंजीकरण तिथि
                   </li>
                   <li>
                     <strong>स्वचालित:</strong> विकास खंड और विधानसभा स्वचालित
                     रूप से बैकएंड से सेट किए जाते हैं (Excel में शामिल न करें)
                   </li>
                   <li>
-                    आवंटित मात्रा, दर, किसान का हिस्सा, सब्सिडी राशि और कुल राशि
-                    संख्यात्मक होनी चाहिए
+                    आवंटित मात्रा, क्रय दर, कृषक विक्रय दर, कृषक अनुदान दर, कृषक अंश,
+                    अनुदान राशि और कुल राशि संख्यात्मक होनी चाहिए
                   </li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
                 </ul>
@@ -3031,6 +3049,54 @@ const Registration = () => {
                         />
                         <Form.Control.Feedback type="invalid">
                           {errors.rate}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group
+                        className="mb-2"
+                        controlId="farmer_selling_rate"
+                      >
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.farmerSellingRate}
+                        </Form.Label>
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name="farmer_selling_rate"
+                          value={formData.farmer_selling_rate}
+                          onChange={handleChange}
+                          isInvalid={!!errors.farmer_selling_rate}
+                          className="compact-input"
+                          placeholder="कृषक विक्रय दर दर्ज करें"
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.farmer_selling_rate}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group
+                        className="mb-2"
+                        controlId="farmer_subsidy_rate"
+                      >
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.farmerSubsidyRate}
+                        </Form.Label>
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name="farmer_subsidy_rate"
+                          value={formData.farmer_subsidy_rate}
+                          onChange={handleChange}
+                          isInvalid={!!errors.farmer_subsidy_rate}
+                          className="compact-input"
+                          placeholder="कृषक अनुदान दर दर्ज करें"
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.farmer_subsidy_rate}
                         </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
@@ -3310,9 +3376,13 @@ const Registration = () => {
                           name="amount_of_farmer_share"
                           value={formData.amount_of_farmer_share}
                           onChange={handleChange}
+                          isInvalid={!!errors.amount_of_farmer_share}
                           className="compact-input"
-                          placeholder="किसान का हिस्सा दर्ज करें"
+                          placeholder="कृषक अंश दर्ज करें"
                         />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.amount_of_farmer_share}
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
@@ -3329,9 +3399,13 @@ const Registration = () => {
                           name="amount_of_subsidy"
                           value={formData.amount_of_subsidy}
                           onChange={handleChange}
+                          isInvalid={!!errors.amount_of_subsidy}
                           className="compact-input"
-                          placeholder="सब्सिडी राशि दर्ज करें"
+                          placeholder="अनुदान राशि दर्ज करें"
                         />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.amount_of_subsidy}
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                   </Row>
@@ -3347,9 +3421,51 @@ const Registration = () => {
                           name="total_amount"
                           value={formData.total_amount}
                           onChange={handleChange}
+                          isInvalid={!!errors.total_amount}
                           className="compact-input"
                           placeholder="कुल राशि दर्ज करें"
                         />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.total_amount}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group className="mb-2" controlId="anudan_name">
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.anudanName}
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="anudan_name"
+                          value={formData.anudan_name}
+                          onChange={handleChange}
+                          isInvalid={!!errors.anudan_name}
+                          className="compact-input"
+                          placeholder="अनुदान वहन योजना दर्ज करें"
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.anudan_name}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12} sm={6} md={2}>
+                      <Form.Group className="mb-2" controlId="remark">
+                        <Form.Label className="small-fonts fw-bold">
+                          {translations.remark}
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="remark"
+                          value={formData.remark}
+                          onChange={handleChange}
+                          isInvalid={!!errors.remark}
+                          className="compact-input"
+                          placeholder="रिमार्क दर्ज करें"
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.remark}
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                     <Col xs={12} sm={6} md={2}>
@@ -3362,8 +3478,12 @@ const Registration = () => {
                           name="bill_date"
                           value={formData.bill_date}
                           onChange={handleChange}
+                          isInvalid={!!errors.bill_date}
                           className="compact-input"
                         />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.bill_date}
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                     <Col
