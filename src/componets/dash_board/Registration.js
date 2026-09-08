@@ -1908,12 +1908,33 @@ const Registration = () => {
           const dataRows = jsonData.slice(1);
           const headers = jsonData[0];
 
+          // Normalize Excel headers. Excel may store line breaks, non-breaking
+          // spaces, or other Unicode whitespace differently from the template.
+          const normalizeExcelHeader = (header) =>
+            String(header ?? "")
+              .replace(/\r?\n/g, " ")
+              .replace(/[\u00A0\u2000-\u200B]/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+
           const headerMapping = {};
           headers.forEach((header, index) => {
-            if (header) {
-              headerMapping[header.toString().trim().toLowerCase()] = index;
+            const normalizedHeader = normalizeExcelHeader(header);
+            if (normalizedHeader) {
+              headerMapping[normalizedHeader] = index;
             }
           });
+
+          const getExcelCell = (row, ...possibleHeaders) => {
+            for (const header of possibleHeaders) {
+              const index = headerMapping[normalizeExcelHeader(header)];
+              if (typeof index !== "undefined") {
+                return row[index];
+              }
+            }
+            return "";
+          };
 
           // Determine bill_date column index
           const billDateHeaderKeys = [
@@ -2019,43 +2040,63 @@ const Registration = () => {
                 .toString()
                 .trim(),
               allocated_quantity: roundTo2Decimals(
-                row[headerMapping["आवंटित मात्रा"]] ||
-                  row[headerMapping["allocated_quantity"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "आवंटित मात्रा",
+                  "allocated_quantity",
+                ),
               ),
               rate: roundTo2Decimals(
-                row[headerMapping["क्रय दर\n(प्रति इकाई)"]] ||
-                  row[headerMapping["दर"]] ||
-                  row[headerMapping["rate"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "क्रय दर (प्रति इकाई)",
+                  "क्रय दर\n(प्रति इकाई)",
+                  "दर",
+                  "rate",
+                ),
               ),
               farmer_selling_rate: roundTo2Decimals(
-                row[headerMapping["कृषक विक्रय दर\n(प्रति इकाई)"]] ||
-                  row[headerMapping["farmer_selling_rate"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "कृषक विक्रय दर (प्रति इकाई)",
+                  "कृषक विक्रय दर\n(प्रति इकाई)",
+                  "farmer_selling_rate",
+                ),
               ),
               farmer_subsidy_rate: roundTo2Decimals(
-                row[headerMapping["कृषक अनुदान दर\n(प्रति इकाई)"]] ||
-                  row[headerMapping["farmer_subsidy_rate"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "कृषक अनुदान दर (प्रति इकाई)",
+                  "कृषक अनुदान दर\n(प्रति इकाई)",
+                  "farmer_subsidy_rate",
+                ),
               ),
               amount_of_farmer_share: roundTo2Decimals(
-                row[headerMapping["कृषक अंश\n(रु0)"]] ||
-                  row[headerMapping["किसान का हिस्सा"]] ||
-                  row[headerMapping["amount_of_farmer_share"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "कृषक अंश (रु0)",
+                  "कृषक अंश\n(रु0)",
+                  "किसान का हिस्सा",
+                  "amount_of_farmer_share",
+                ),
               ),
               amount_of_subsidy: roundTo2Decimals(
-                row[headerMapping["अनुदान राशि\n(रु0)"]] ||
-                  row[headerMapping["सब्सिडी राशि"]] ||
-                  row[headerMapping["amount_of_subsidy"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "अनुदान राशि (रु0)",
+                  "अनुदान राशि\n(रु0)",
+                  "सब्सिडी राशि",
+                  "amount_of_subsidy",
+                ),
               ),
               total_amount: roundTo2Decimals(
-                row[headerMapping["कुल राशि\n(रु0)"]] ||
-                  row[headerMapping["कुल राशि"]] ||
-                  row[headerMapping["total_amount"]] ||
-                  0,
+                getExcelCell(
+                  row,
+                  "कुल राशि (रु0)",
+                  "कुल राशि\n(रु0)",
+                  "कुल राशि",
+                  "total_amount",
+                ),
               ),
               anudan_name: (
                 row[headerMapping["अनुदान वहन योजना"]] ||
