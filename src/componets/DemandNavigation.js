@@ -62,7 +62,7 @@ const DemandNavigation = () => {
             >
               कृषिवाइज एंट्री
             </Nav.Link>
-            <Nav.Link
+            {/* <Nav.Link
               active={isActive('/KisanAavedanPortal')}
               onClick={() => navigate('/KisanAavedanPortal')}
               style={{ 
@@ -70,7 +70,7 @@ const DemandNavigation = () => {
               }}
             >
               किसान आवेदन पोर्टल
-            </Nav.Link>
+            </Nav.Link> */}
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
