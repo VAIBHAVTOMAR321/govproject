@@ -82,6 +82,54 @@ const DemandNavigation = () => {
              Library
             </Nav.Link>
           </Nav>
+           <Nav className="me-auto">
+            <Nav.Link
+              active={isActive('/DemandGenerate')}
+              onClick={() => navigate('/DemandGenerate')}
+              style={{ 
+                fontWeight: isActive('/DemandGenerate') ? 'bold' : 'normal'
+              }}
+            >
+              डिमांड जनरेशन
+            </Nav.Link>
+            <Nav.Link
+              active={isActive('/DemandGenerate/CenterwiseEntry')}
+              onClick={() => navigate('/DemandGenerate/CenterwiseEntry')}
+              style={{ 
+                fontWeight: isActive('/DemandGenerate/CenterwiseEntry') ? 'bold' : 'normal'
+              }}
+            >
+              सेंटरवाइज एंट्री
+            </Nav.Link>
+            <Nav.Link
+              active={isActive('/DemandGenerate/KrishiwiseEntry')}
+              onClick={() => navigate('/DemandGenerate/KrishiwiseEntry')}
+              style={{ 
+                fontWeight: isActive('/DemandGenerate/KrishiwiseEntry') ? 'bold' : 'normal'
+              }}
+            >
+              कृषिवाइज एंट्री
+            </Nav.Link>
+            {/* <Nav.Link
+              active={isActive('/KisanAavedanPortal')}
+              onClick={() => navigate('/KisanAavedanPortal')}
+              style={{ 
+                fontWeight: isActive('/KisanAavedanPortal') ? 'bold' : 'normal'
+              }}
+            >
+              किसान आवेदन पोर्टल
+            </Nav.Link> */}
+
+             <Nav.Link
+              active={isActive('/GetViewLibrary')}
+              onClick={() => navigate('/KisanAavedanPortal')}
+              style={{ 
+                fontWeight: isActive('/KisanAavedanPortal') ? 'bold' : 'normal'
+              }}
+            >
+             Kisan Aavedan Portal
+            </Nav.Link>
+          </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
               <NavDropdown.Divider />
