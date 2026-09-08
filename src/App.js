@@ -40,6 +40,7 @@ import DashBoardHeader from "./componets/dash_board/DashBoardHeader";
 import LibrarySystem from "./componets/Library/LibrarySystem";
 import MonthReport from "./componets/MonthReport/MonthReport";
 import KisanAavedanPortal from "./componets/kishanavedan/KisanAavedanPortal";
+import GetViewLibrary from "./componets/GetViewLibrary";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -72,8 +73,9 @@ function NavbarWrapper() {
     "/NurseryPhysicalEntry",
     "/UdyanBill",
     "/KishanBeej",
-    "/KisanAavedanPortal"
-   
+    "/KisanAavedanPortal",
+    "/GetViewLibrary"
+    
   ]);
 
   if (dashboardHeaderPaths.has(location.pathname) && user) {
@@ -271,6 +273,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <DemandView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/GetViewLibrary"
+            element={
+              <ProtectedRoute allowedLoginTypes={["admin", "demand"]}>
+                <GetViewLibrary />
               </ProtectedRoute>
             }
           />
