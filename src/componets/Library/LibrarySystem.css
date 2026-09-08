@@ -508,7 +508,36 @@
 /* =========================================
    MODAL FOOTER
 ========================================= */
+/* Status Badge next to Title */
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.status-badge.active {
+  background-color: #d4edda;
+  color: #28a745;
+}
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #dc3545;
+}
 
+/* Toggle Button Colors */
+.library-icon-btn.status.active {
+  color: #28a745; /* Green */
+}
+.library-icon-btn.status.inactive {
+  color: #dc3545; /* Red */
+}
+
+/* Visually fade inactive cards */
+.library-document-card.inactive-card {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+}
 .library-modal-footer {
   display: flex;
   align-items: center;
