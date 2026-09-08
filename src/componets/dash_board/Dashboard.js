@@ -275,8 +275,8 @@ const normalizeBillingRow = (item) => ({
   center_name: cleanApiText(item.center_name ?? item.kendra),
   kraya: cleanApiText(item.scheme_name ?? item.kraya),
   scheme_name: cleanApiText(item.scheme_name ?? item.kraya),
-  vahan: cleanApiText(item.anudan_name ?? item.vahan),
-  anudan_name: cleanApiText(item.anudan_name ?? item.vahan),
+  vahan: (item.anudan_name ?? item.vahan) == null ? '' : String(item.anudan_name ?? item.vahan).trim(),
+  anudan_name: (item.anudan_name ?? item.vahan) == null ? '' : String(item.anudan_name ?? item.vahan).trim(),
   nivesh: cleanApiText(item.investment_name ?? item.nivesh),
   investment_name: cleanApiText(item.investment_name ?? item.nivesh),
   upnivesh: cleanApiText(item.sub_investment_name ?? item.upnivesh),
@@ -357,7 +357,7 @@ const DynamicReportTabs = ({ sourceData }) => {
 
   // Independent filters for each report tab.
   const [masterFilters, setMasterFilters] = useState({
-    kraya: null, otherKraya: null, vahan: null, nivesh: null, upnivesh: null, kendra: null
+    kraya: null, otherKraya: null, vahan: null, nivesh: null, upnivesh: null, kendra: null, block: null, vidhan: null
   });
   const [summaryFilters, setSummaryFilters] = useState({
     otherKraya: null, vahan: null, kendra: null, nivesh: null, upnivesh: null
@@ -366,7 +366,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     otherKraya: null, vahan: null, kendra: null, block: null, vidhan: null
   });
   const [saleFilters, setSaleFilters] = useState({
-    kendra: null, block: null, vidhan: null
+    kendra: null, block: null, vidhan: null, nivesh: null, upnivesh: null
   });
 
   // Independent column visibility for EVERY TABLE.
@@ -374,6 +374,13 @@ const DynamicReportTabs = ({ sourceData }) => {
   const [summaryPlanColumns, setSummaryPlanColumns] = useState(null);
   const [summaryMadColumns, setSummaryMadColumns] = useState(null);
   const [summarySubMadColumns, setSummarySubMadColumns] = useState(null);
+  // Independent row filters for each summary table.
+  // null = all unique grant-bearing plans, [] = no plans.
+  const [summaryPlanRowFilter, setSummaryPlanRowFilter] = useState(null);
+  const [summaryMadRowFilter, setSummaryMadRowFilter] = useState(null);
+  const [summaryMadNameFilter, setSummaryMadNameFilter] = useState(null);
+  const [summarySubMadRowFilter, setSummarySubMadRowFilter] = useState(null);
+  const [summarySubMadNameFilter, setSummarySubMadNameFilter] = useState(null);
   const [progressColumns, setProgressColumns] = useState(null);
   const [saleColumns, setSaleColumns] = useState(null);
   const [mappingColumns, setMappingColumns] = useState(null);
@@ -384,7 +391,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     raw: item,
     kendra: item.center_name?.trim() || 'अन्य',
     kraya: item.scheme_name?.trim() || 'अन्य',
-    vahan: item.anudan_name?.trim() || 'अन्य',
+    vahan: item.anudan_name?.trim() || '',
     nivesh: item.investment_name?.trim() || 'अन्य',
     upnivesh: item.sub_investment_name?.trim() || 'अन्य',
     ikai: item.unit?.trim() || 'अन्य',
@@ -437,8 +444,135 @@ const DynamicReportTabs = ({ sourceData }) => {
           ? [progressFilters, setProgressFilters]
           : [saleFilters, setSaleFilters];
 
+  // Master geographic filters are connected bidirectionally:
+  // विधानसभा ↔ विकास खंड ↔ केंद्र. Changing any one of these filters
+  // automatically recalculates the other two from the actual API rows.
+  const masterGeoFields = ['vidhan', 'block', 'kendra'];
+
+  const getMasterGeoRelatedValues = (baseField, selectedValues, targetField) => {
+    if (!Array.isArray(selectedValues) || selectedValues.length === 0) return [];
+
+    return uniq(
+      rows
+        .filter(row => selectedValues.includes(row[baseField]))
+        .map(row => row[targetField])
+    );
+  };
+
+  const setMasterGeoSelection = (field, selectedValues, options) => {
+    setMasterFilters(prev => {
+      // null represents ALL for this filter. If ALL is selected, all three
+      // connected geographic filters must also show ALL.
+      if (selectedValues === null) {
+        return {
+          ...prev,
+          vidhan: null,
+          block: null,
+          kendra: null,
+        };
+      }
+
+      const normalized = [...new Set(selectedValues)];
+
+      // No selected value means no geographic rows. Keep all three connected.
+      if (normalized.length === 0) {
+        return {
+          ...prev,
+          vidhan: [],
+          block: [],
+          kendra: [],
+        };
+      }
+
+      // Selecting every option means ALL, not an explicit full list.
+      if (options.length > 0 && normalized.length === options.length) {
+        return {
+          ...prev,
+          vidhan: null,
+          block: null,
+          kendra: null,
+        };
+      }
+
+      const next = { ...prev, [field]: normalized };
+
+      // Build the connected hierarchy from the selected field. This works
+      // in every direction, so selecting a विधानसभा selects its blocks and
+      // centres, selecting a block selects its विधानसभा and centres, and
+      // selecting a centre selects its block(s) and विधानसभा(s).
+      if (field === 'vidhan') {
+        next.block = getMasterGeoRelatedValues('vidhan', normalized, 'block');
+        next.kendra = getMasterGeoRelatedValues('vidhan', normalized, 'kendra');
+      } else if (field === 'block') {
+        next.vidhan = getMasterGeoRelatedValues('block', normalized, 'vidhan');
+        next.kendra = getMasterGeoRelatedValues('block', normalized, 'kendra');
+      } else if (field === 'kendra') {
+        next.block = getMasterGeoRelatedValues('kendra', normalized, 'block');
+        next.vidhan = getMasterGeoRelatedValues('kendra', normalized, 'vidhan');
+      }
+
+      // Convert any connected selection that happens to contain all its
+      // available values back to null so the badge remains e.g. 10/10.
+      masterGeoFields.forEach(geoField => {
+        const geoOptions = getOptions('master', geoField);
+        if (geoOptions.length > 0 && Array.isArray(next[geoField]) && next[geoField].length === geoOptions.length) {
+          next[geoField] = null;
+        }
+      });
+
+      return next;
+    });
+  };
+
   const toggleFilter = (section, field, value) => {
     const [, setter] = getFilterState(section);
+
+    // Only the Master table's geographic filters are hierarchy-connected.
+    if (section === 'master' && masterGeoFields.includes(field)) {
+      const options = getOptions(section, field);
+      setter(prev => {
+        const current = prev[field] === null || prev[field] === undefined
+          ? []
+          : [...prev[field]];
+
+        // When ALL is currently active, clicking one value means "only this
+        // value". This makes the connected hierarchy behave naturally.
+        const next = current.includes(value)
+          ? current.filter(v => v !== value)
+          : [...current, value];
+
+        // Re-use the same synchronization logic without a second state update.
+        if (next.length === 0) {
+          return { ...prev, vidhan: [], block: [], kendra: [] };
+        }
+
+        if (next.length === options.length) {
+          return { ...prev, vidhan: null, block: null, kendra: null };
+        }
+
+        const synced = { ...prev, [field]: next };
+        if (field === 'vidhan') {
+          synced.block = getMasterGeoRelatedValues('vidhan', next, 'block');
+          synced.kendra = getMasterGeoRelatedValues('vidhan', next, 'kendra');
+        } else if (field === 'block') {
+          synced.vidhan = getMasterGeoRelatedValues('block', next, 'vidhan');
+          synced.kendra = getMasterGeoRelatedValues('block', next, 'kendra');
+        } else if (field === 'kendra') {
+          synced.block = getMasterGeoRelatedValues('kendra', next, 'block');
+          synced.vidhan = getMasterGeoRelatedValues('kendra', next, 'vidhan');
+        }
+
+        masterGeoFields.forEach(geoField => {
+          const geoOptions = getOptions('master', geoField);
+          if (geoOptions.length > 0 && Array.isArray(synced[geoField]) && synced[geoField].length === geoOptions.length) {
+            synced[geoField] = null;
+          }
+        });
+
+        return synced;
+      });
+      return;
+    }
 
     setter(prev => {
       const options = getOptions(section, field);
@@ -488,8 +622,18 @@ const DynamicReportTabs = ({ sourceData }) => {
         {open && (
           <div className="dynamic-report-filter-menu">
             <div className="dynamic-report-filter-actions">
-              <button type="button" onClick={() => setter(prev => ({ ...prev, [field]: null }))}>सभी चुनें</button>
-              <button type="button" onClick={() => setter(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
+              <button
+                type="button"
+                onClick={() => (section === 'master' && masterGeoFields.includes(field)
+                  ? setMasterGeoSelection(field, null, options)
+                  : setter(prev => ({ ...prev, [field]: null })))}
+              >सभी चुनें</button>
+              <button
+                type="button"
+                onClick={() => (section === 'master' && masterGeoFields.includes(field)
+                  ? setMasterGeoSelection(field, [], options)
+                  : setter(prev => ({ ...prev, [field]: [] })))}
+              >कोई नहीं</button>
             </div>
 
             <div className="dynamic-report-filter-list">
@@ -532,6 +676,8 @@ const DynamicReportTabs = ({ sourceData }) => {
       ['vahan', 'अनुदान वहन योजना'],
       ['nivesh', 'मद का नाम'],
       ['upnivesh', 'उप-मद का नाम'],
+      ['vidhan', 'विधानसभा'],
+      ['block', 'विकास खंड'],
       ['kendra', 'केंद्र']
     ],
     summary: [
@@ -551,7 +697,9 @@ const DynamicReportTabs = ({ sourceData }) => {
     sale: [
       ['kendra', 'केंद्र'],
       ['block', 'ब्लॉक'],
-      ['vidhan', 'विधानसभा']
+      ['vidhan', 'विधानसभा'],
+      ['nivesh', 'मद का नाम'],
+      ['upnivesh', 'उप-मद का नाम']
     ]
   };
 
@@ -563,7 +711,7 @@ const DynamicReportTabs = ({ sourceData }) => {
   );
 
   const masterRows = useMemo(() => {
-    let data = applyFilters(rows, masterFilters, ['kraya', 'vahan', 'nivesh', 'upnivesh', 'kendra']);
+    let data = applyFilters(rows, masterFilters, ['kraya', 'vahan', 'nivesh', 'upnivesh', 'kendra', 'block', 'vidhan']);
     if (masterFilters.otherKraya !== null && masterFilters.otherKraya !== undefined) {
       data = data.filter(r => masterFilters.otherKraya.includes(r.kraya));
     }
@@ -590,7 +738,7 @@ const DynamicReportTabs = ({ sourceData }) => {
 
   const saleRows = useMemo(() => (
     fixedPlan
-      ? applyFilters(rows.filter(r => r.kraya === fixedPlan), saleFilters, ['kendra', 'block', 'vidhan'])
+      ? applyFilters(rows.filter(r => r.kraya === fixedPlan), saleFilters, ['kendra', 'block', 'vidhan', 'nivesh', 'upnivesh'])
       : []
   ), [rows, saleFilters, fixedPlan]);
 
@@ -651,6 +799,66 @@ const DynamicReportTabs = ({ sourceData }) => {
     { key: 'vidhan', label: 'विधानसभा' },
   ];
 
+  // Checkbox dropdown for selecting which unique "अनुदान वहन योजना"
+  // rows/groups should remain visible in each summary table.
+  const SummaryGrantPlanSelector = ({ value, setValue, options, filterId, label = 'योजना का नाम (अनुदान वहन योजना)' }) => {
+    const safeOptions = options || [];
+    const selected = value === null || value === undefined ? safeOptions : value;
+    const allSelected = value === null || value === undefined || selected.length === safeOptions.length;
+
+    const toggle = (plan) => {
+      const current = value === null || value === undefined ? [...safeOptions] : [...value];
+      const next = current.includes(plan)
+        ? current.filter(v => v !== plan)
+        : [...current, plan];
+      setValue(next.length === safeOptions.length ? null : next);
+    };
+
+    return (
+      <div className="dynamic-report-filter-wrap summary-grant-plan-selector">
+        <button
+          type="button"
+          className={`dynamic-report-filter-btn ${!allSelected ? 'filtered' : ''}`}
+          onClick={() => setOpenFilter(prev => prev === filterId ? null : filterId)}
+        >
+          <span>{label}</span>
+          <span className="dynamic-report-badge">{selected.length}/{safeOptions.length}</span>
+          <span>{openFilter === filterId ? '▲' : '▼'}</span>
+        </button>
+
+        {openFilter === filterId && (
+          <div className="dynamic-report-filter-menu">
+            <div className="dynamic-report-filter-actions">
+              <button type="button" onClick={() => setValue(null)}>सभी चुनें</button>
+              <button type="button" onClick={() => setValue([])}>कोई नहीं</button>
+            </div>
+            <div className="dynamic-report-filter-list">
+              {safeOptions.length === 0 ? (
+                <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
+              ) : safeOptions.map(plan => (
+                <label key={plan} className="dynamic-report-filter-option">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(plan)}
+                    onChange={() => toggle(plan)}
+                  />
+                  <span>{plan}</span>
+                </label>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="dynamic-report-filter-close"
+              onClick={() => setOpenFilter(null)}
+            >
+              बंद करें
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const SummaryPlanTable = () => {
     const map = new Map();
     summaryRows.forEach(r => {
@@ -661,7 +869,8 @@ const DynamicReportTabs = ({ sourceData }) => {
     });
 
     const groups = [...map.entries()]
-      .filter(([, g]) => g.matra > 0 && g.anudan > 0)
+      .filter(([name, g]) => g.matra > 0 && g.anudan > 0
+        && (summaryPlanRowFilter === null || summaryPlanRowFilter === undefined || summaryPlanRowFilter.includes(name)))
       .sort((a, b) => b[1].anudan - a[1].anudan);
 
     const visible = summaryPlanColumns === null
@@ -674,6 +883,13 @@ const DynamicReportTabs = ({ sourceData }) => {
 
     return (
       <>
+        <SummaryGrantPlanSelector
+          value={summaryPlanRowFilter}
+          setValue={setSummaryPlanRowFilter}
+          options={lists.vahan}
+          filterId="summary-plan-grant-plan"
+          label="योजना का नाम (अनुदान वहन योजना)"
+        />
         <ReportColumnSelector
           columns={summaryPlanDefs}
           visibleColumns={summaryPlanColumns}
@@ -701,11 +917,21 @@ const DynamicReportTabs = ({ sourceData }) => {
               )}
             </tbody>
             {groups.length > 0 && (
-              <tfoot><tr>
-                <td colSpan={Math.max(1, visible.length - (show('matra') ? 1 : 0) - (show('anudan') ? 1 : 0))}>योग</td>
-                {show('matra') && <td>{fmtN(totalMatra)}</td>}
-                {show('anudan') && <td>{fmtR(totalAnudan)}</td>}
-              </tr></tfoot>
+              <tfoot>
+                <tr className="report-total-values-row">
+                  {visible.map((key, index) => {
+                    const value = key === 'matra' ? fmtN(totalMatra)
+                      : key === 'anudan' ? fmtR(totalAnudan)
+                      : null;
+                    const isFirst = index === 0;
+                    return (
+                      <td key={`summary-plan-total-${key}`} className={value !== null ? 'tot' : ''}>
+                        {isFirst && value !== null ? `योग: ${value}` : isFirst ? 'योग' : value}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
             )}
           </table>
         </div>
@@ -713,9 +939,27 @@ const DynamicReportTabs = ({ sourceData }) => {
     );
   };
 
-  const SummaryGroupTable = ({ data, field, label, showRate, columns, setColumns }) => {
+  const SummaryGroupTable = ({
+    data,
+    field,
+    label,
+    showRate,
+    columns,
+    setColumns,
+    rowPlanFilter,
+    setRowPlanFilter,
+    rowNameFilter,
+    setRowNameFilter
+  }) => {
     const map = new Map();
-    data.forEach(r => {
+    let filteredData = rowPlanFilter === null || rowPlanFilter === undefined
+      ? data
+      : data.filter(r => rowPlanFilter.includes(r.vahan));
+
+    if (rowNameFilter !== null && rowNameFilter !== undefined) {
+      filteredData = filteredData.filter(r => rowNameFilter.includes(r[field] || 'अन्य'));
+    }
+    filteredData.forEach(r => {
       const key = r[field] || 'अन्य';
       if (!map.has(key)) map.set(key, { matra: 0, anudan: 0, vahan: new Set(), ikai: new Set() });
       const g = map.get(key);
@@ -738,6 +982,22 @@ const DynamicReportTabs = ({ sourceData }) => {
 
     return (
       <>
+        <div className="summary-row-filter-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'flex-end', marginBottom: '10px' }}>
+          <SummaryGrantPlanSelector
+            value={rowPlanFilter}
+            setValue={setRowPlanFilter}
+            options={lists.vahan}
+            filterId={`${field}-summary-grant-plan`}
+            label="योजना का नाम (अनुदान वहन योजना)"
+          />
+          <SummaryGrantPlanSelector
+            value={rowNameFilter}
+            setValue={setRowNameFilter}
+            options={uniq(data.map(r => r[field] || 'अन्य'))}
+            filterId={`${field}-summary-name`}
+            label={field === 'nivesh' ? 'मद का नाम' : 'उप-मद का नाम'}
+          />
+        </div>
         <ReportColumnSelector
           columns={defs}
           visibleColumns={columns}
@@ -771,12 +1031,22 @@ const DynamicReportTabs = ({ sourceData }) => {
               )}
             </tbody>
             {groups.length > 0 && (
-              <tfoot><tr>
-                <td colSpan={Math.max(1, visible.length - (show('matra') ? 1 : 0) - (show('anudan') ? 1 : 0) - (show('dar') && showRate ? 1 : 0))}>योग</td>
-                {show('matra') && <td>{fmtN(totalMatra)}</td>}
-                {show('dar') && showRate && <td>{fmtR(totalMatra ? totalAnudan / totalMatra : 0)}</td>}
-                {show('anudan') && <td>{fmtR(totalAnudan)}</td>}
-              </tr></tfoot>
+              <tfoot>
+                <tr className="report-total-values-row">
+                  {visible.map((key, index) => {
+                    const value = key === 'matra' ? fmtN(totalMatra)
+                      : key === 'dar' && showRate ? fmtR(totalMatra ? totalAnudan / totalMatra : 0)
+                      : key === 'anudan' ? fmtR(totalAnudan)
+                      : null;
+                    const isFirst = index === 0;
+                    return (
+                      <td key={`summary-group-total-${key}`} className={value !== null ? 'tot' : ''}>
+                        {isFirst && value !== null ? `योग: ${value}` : isFirst ? 'योग' : value}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
             )}
           </table>
         </div>
@@ -966,8 +1236,25 @@ const DynamicReportTabs = ({ sourceData }) => {
             </tbody>
 
             <tfoot>
-              <tr>
-                <td colSpan="100">योग</td>
+              <tr className="report-total-values-row">
+                {(() => {
+                  const metaKeys = ['sno', 'scheme', 'mad', 'submad', 'ikai'];
+                  const visibleMetaCount = metaKeys.filter(key => show(key)).length;
+                  const labelCell = visibleMetaCount > 0
+                    ? <td colSpan={visibleMetaCount}>योग</td>
+                    : null;
+                  return (
+                    <>
+                      {labelCell}
+                      {visibleGeo.map((geo, geoIndex) => (
+                        show(`geo_${geoIndex}`)
+                          ? renderTotalValues(geoTotals[geo], `footer-${geo}`)
+                          : null
+                      ))}
+                      {show('total') && renderTotalValues({ mat: grandMat, val: grandVal }, 'footer-grand-total')}
+                    </>
+                  );
+                })()}
               </tr>
             </tfoot>
           </table>
@@ -987,6 +1274,9 @@ const DynamicReportTabs = ({ sourceData }) => {
 
   const masterTotals = useMemo(() => ({
     qty: masterRows.reduce((s, r) => s + r.matra, 0),
+    rate: masterRows.reduce((s, r) => s + r.rate, 0),
+    vikray: masterRows.reduce((s, r) => s + r.vikray, 0),
+    anudanRate: masterRows.reduce((s, r) => s + r.anudanRate, 0),
     farmer: masterRows.reduce((s, r) => s + r.ansh, 0),
     subsidy: masterRows.reduce((s, r) => s + r.anudan, 0),
     total: masterRows.reduce((s, r) => s + r.kul, 0)
@@ -1073,34 +1363,31 @@ const DynamicReportTabs = ({ sourceData }) => {
                       {masterShow('anudan') && <td>{fmtR(r.anudan)}</td>}
                       {masterShow('kul') && <td>{fmtR(r.kul)}</td>}
                       {masterShow('vahan') && <td>{r.vahan}</td>}
-                      {masterShow('remark') && <td>{r.raw.remark || 'अन्य'}</td>}
+                      {masterShow('remark') && <td>{r.raw.remark?.trim?.() || ''}</td>}
                       {masterShow('date') && <td>{fmtDate(r.date)}</td>}
                     </tr>
                   ))}
                 </tbody>
 
                 <tfoot>
-                  <tr>
-                    <td colSpan="100">योग</td>
-                  </tr>
                   <tr className="report-total-values-row">
-                    {masterShow('sno') && <td></td>}
-                    {masterShow('kendra') && <td></td>}
-                    {masterShow('kraya') && <td></td>}
-                    {masterShow('supplier') && <td></td>}
-                    {masterShow('nivesh') && <td></td>}
-                    {masterShow('upnivesh') && <td></td>}
-                    {masterShow('ikai') && <td></td>}
-                    {masterShow('matra') && <td>{fmtN(masterTotals.qty)}</td>}
-                    {masterShow('rate') && <td></td>}
-                    {masterShow('vikray') && <td></td>}
-                    {masterShow('anudanRate') && <td></td>}
-                    {masterShow('ansh') && <td>{fmtR(masterTotals.farmer)}</td>}
-                    {masterShow('anudan') && <td>{fmtR(masterTotals.subsidy)}</td>}
-                    {masterShow('kul') && <td>{fmtR(masterTotals.total)}</td>}
-                    {masterShow('vahan') && <td></td>}
-                    {masterShow('remark') && <td></td>}
-                    {masterShow('date') && <td></td>}
+                    {masterVisible.map((key, index) => {
+                      const value = key === 'matra' ? fmtN(masterTotals.qty)
+                        : key === 'rate' ? fmtR(masterTotals.rate)
+                        : key === 'vikray' ? fmtR(masterTotals.vikray)
+                        : key === 'anudanRate' ? fmtR(masterTotals.anudanRate)
+                        : key === 'ansh' ? fmtR(masterTotals.farmer)
+                        : key === 'anudan' ? fmtR(masterTotals.subsidy)
+                        : key === 'kul' ? fmtR(masterTotals.total)
+                        : null;
+                      const firstVisibleKey = masterVisible[0];
+                      const isFirst = key === firstVisibleKey;
+                      return (
+                        <td key={`master-total-${key}`} className={value !== null ? 'tot' : ''}>
+                          {isFirst && value !== null ? `योग: ${value}` : isFirst ? 'योग' : value}
+                        </td>
+                      );
+                    })}
                   </tr>
                 </tfoot>
               </table>
@@ -1125,6 +1412,10 @@ const DynamicReportTabs = ({ sourceData }) => {
               showRate={false}
               columns={summaryMadColumns}
               setColumns={setSummaryMadColumns}
+              rowPlanFilter={summaryMadRowFilter}
+              setRowPlanFilter={setSummaryMadRowFilter}
+              rowNameFilter={summaryMadNameFilter}
+              setRowNameFilter={setSummaryMadNameFilter}
             />
 
             <h6 className="dynamic-report-subtitle">3) उप-मद के नाम अनुसार (योजना के नाम सहित)</h6>
@@ -1135,6 +1426,10 @@ const DynamicReportTabs = ({ sourceData }) => {
               showRate={true}
               columns={summarySubMadColumns}
               setColumns={setSummarySubMadColumns}
+              rowPlanFilter={summarySubMadRowFilter}
+              setRowPlanFilter={setSummarySubMadRowFilter}
+              rowNameFilter={summarySubMadNameFilter}
+              setRowNameFilter={setSummarySubMadNameFilter}
             />
           </div>
         )}
@@ -1227,6 +1522,11 @@ const DynamicReportTabs = ({ sourceData }) => {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="report-total-values-row">
+                    <td colSpan={Math.max(1, mappingColumns === null ? mappingDefs.length : mappingColumns.length)}>योग — कुल {mappingRows.length} मैपिंग</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
