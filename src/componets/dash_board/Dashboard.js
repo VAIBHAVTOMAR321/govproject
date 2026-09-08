@@ -598,7 +598,7 @@ const DynamicReportTabs = ({ sourceData }) => {
   };
 
   const FilterBar = ({ section }) => (
-    <div className="dynamic-report-filterbar">
+    <div className="dynamic-report-filterbar professional-filterbar">
       {filterDefinitions[section].map(([field, label]) => (
         <FilterButton key={field} section={section} field={field} label={label} />
       ))}
@@ -1238,7 +1238,7 @@ const DynamicReportTabs = ({ sourceData }) => {
         </h4>
       </div>
 
-      <div className="dynamic-report-tabs">
+      <div className="dynamic-report-tabs professional-report-tabs">
         {[['saransh','सारांश'],['pragati','योजना प्रगति विवरण'],['vivaran4401','4401 बिक्री हेतु']]
           .map(([key, label]) => (
             <button
@@ -1252,7 +1252,7 @@ const DynamicReportTabs = ({ sourceData }) => {
           ))}
       </div>
 
-      <div className="dynamic-report-content">
+      <div className="dynamic-report-content professional-report-content">
 
         {activeTab === 'saransh' && (
           <div className="dynamic-report-panel">
@@ -1296,7 +1296,7 @@ const DynamicReportTabs = ({ sourceData }) => {
           <div className="dynamic-report-panel">
             <h5 style={{ marginBottom: "6px" }}>योजना प्रगति विवरण — अनुदान वहन योजना के अनुसार</h5>
 
-            <div className="dynamic-report-view-row">
+            <div className="dynamic-report-view-row professional-view-row">
               <label>देखने का प्रकार</label>
               <select value={progressView} onChange={e => setProgressView(e.target.value)}>
                 <option value="vidhan">विधानसभा-वार</option>
@@ -1322,7 +1322,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 एक ब्लॉक चुनें — उसके केंद्रों का विवरण
                 यह मुख्य progress filters से स्वतंत्र है.
                ================================================================ */}
-            <div className="dynamic-report-subsection" style={{ marginTop: "30px" }}>
+            <div className="dynamic-report-subsection professional-report-subsection" style={{ marginTop: "30px" }}>
               <h6 className="dynamic-report-subtitle">
                 4) एक ब्लॉक चुनें — उसके केंद्रों का विवरण (मूल प्रारूप जैसा)
               </h6>
@@ -1331,7 +1331,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 उसके अंदर आने वाले केंद्र अपने आप कॉलम बनेंगे।
               </p>
 
-              <div className="dynamic-report-view-row">
+              <div className="dynamic-report-view-row professional-view-row">
                 <label>ब्लॉक चुनें</label>
                 <select
                   value={progressBlock}
@@ -1366,7 +1366,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 एक विधानसभा चुनें — उसके केंद्रों का विवरण
                 यह मुख्य progress filters से स्वतंत्र है.
                ================================================================ */}
-            <div className="dynamic-report-subsection" style={{ marginTop: "26px" }}>
+            <div className="dynamic-report-subsection professional-report-subsection" style={{ marginTop: "26px" }}>
               <h6 className="dynamic-report-subtitle">
                 विधानसभा के अनुसार केंद्रों का विवरण
               </h6>
@@ -1375,7 +1375,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 चुनें, उसके अंदर आने वाले केंद्र अपने आप कॉलम बनेंगे।
               </p>
 
-              <div className="dynamic-report-view-row">
+              <div className="dynamic-report-view-row professional-view-row">
                 <label>विधानसभा चुनें</label>
                 <select
                   value={progressVidhan}
@@ -1412,7 +1412,7 @@ const DynamicReportTabs = ({ sourceData }) => {
             <h5>{fixedPlan || '4401 बिक्री हेतु'} — क्रय योजना के अनुसार</h5>
             <p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = आवंटित मात्रा और वित्तीय = कृषक अंश।</p>
 
-            <div className="dynamic-report-view-row">
+            <div className="dynamic-report-view-row professional-view-row">
               <label>देखने का प्रकार</label>
               <select value={saleView} onChange={e => setSaleView(e.target.value)}>
                 <option value="vidhan">विधानसभा-वार</option>
@@ -3865,7 +3865,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="dashboard-container">
+      <div className="dashboard-container professional-dashboard">
         {/* Left Sidebar */}
         <LeftNav
           sidebarOpen={sidebarOpen}
@@ -3875,19 +3875,19 @@ const Dashboard = () => {
         />
 
         {/* Main Content */}
-        <div className="main-content">
+        <div className="main-content professional-main-content">
           <DashBoardHeader sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-          <Container fluid className="dashboard-body bg-home">
+          <Container fluid className="dashboard-body bg-home professional-dashboard-body">
             {/* Welcome Section */}
-            <div className="home-welcome-section d-flex justify-content-between text-center mb-4">
+            <div className="home-welcome-section professional-welcome d-flex justify-content-between text-center mb-4">
               <h1 className="home-title">{translations.home}</h1>
               <p className="home-subtitle">{translations.welcomeMessage}</p>
             </div>
 
             {/* Report Export Buttons */}
             {!loading && !error && (
-              <Card className="report-export-card mb-4">
+              <Card className="report-export-card professional-export-card mb-4">
                 <Card.Body className="py-2">
                   <Row className="align-items-center">
                     <Col md={6} className="mb-2 mb-md-0">
@@ -3991,7 +3991,7 @@ const Dashboard = () => {
             ) : (
               <>
                 {/* Filter Section */}
-                <Card className="filter-card mb-4">
+                <Card className="filter-card professional-filter-card mb-4">
                   <Card.Header className="filter-card-header">
                     <h5 className="mb-0">
                       <FaClipboardList className="me-2" />
@@ -4116,7 +4116,7 @@ const Dashboard = () => {
 
 
                 {/* Summary Table */}
-                <Card className="summary-table-card mb-4">
+                <Card className="summary-table-card professional-summary-card mb-4">
                   <Card.Header className="summary-card-header">
                     <h5 className="mb-0">विस्तृत सारांश</h5>
                   </Card.Header>
