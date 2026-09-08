@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Container,
@@ -16,11 +15,12 @@ import {
   Pagination,
   ProgressBar,
   Modal,
+  Table,
 } from "react-bootstrap";
 import Select from "react-select";
 import * as XLSX from "xlsx";
 import html2pdf from "html2pdf.js";
-import { FaDownload } from "react-icons/fa";
+import { FaDownload, FaEye } from "react-icons/fa";
 import "../../assets/css/dashboard.css";
 import "../../assets/css/table.css";
 import DashBoardHeader from "./DashBoardHeader";
@@ -155,6 +155,11 @@ const translations = {
   bills: "बिल",
   openedInTabs: "ब्राउज़र टैब में खोले गए (ब्राउज़र ने ऑटो-डाउनलोड ब्लॉक किया हो सकता है)",
   componentPageno: "उप-निवेश पेज नंबर",
+  viewPagesBtn: "पेज देखें",
+  pageDetails: "पेज नंबर विवरण",
+  noPageData: "कोई पेज नंबर उपलब्ध नहीं है।",
+  closeBtn: "बंद करें",
+  pageNo: "पेज नंबर",
 };
 
 // Available columns for component download
@@ -238,9 +243,7 @@ const calculateReportSoldAmount = (item) => {
 };
 
 const downloadFilteredBillsPdf = (data, currentFilters) => {
-  if (!data || data.length === 0) {
-    return;
-  }
+  if (!data || data.length === 0) return;
 
   const formatStatus = (status) =>
     status === "accepted"
@@ -252,15 +255,15 @@ const downloadFilteredBillsPdf = (data, currentFilters) => {
   const filterSummary = [];
   if (currentFilters.center_name.length > 0)
     filterSummary.push(
-      `केंद्र: ${currentFilters.center_name.map((c) => c.label).join(", ")}`,
+      `केंद्र: ${currentFilters.center_name.map((c) => c.label).join(", ")}`
     );
   if (currentFilters.bill_id.length > 0)
     filterSummary.push(
-      `बिल संख्या: ${currentFilters.bill_id.map((b) => b.label).join(", ")}`,
+      `बिल संख्या: ${currentFilters.bill_id.map((b) => b.label).join(", ")}`
     );
   if (currentFilters.status.length > 0)
     filterSummary.push(
-      `स्थिति: ${currentFilters.status.map((s) => s.label).join(", ")}`,
+      `स्थिति: ${currentFilters.status.map((s) => s.label).join(", ")}`
     );
   if (currentFilters.dateFrom) filterSummary.push(`From: ${currentFilters.dateFrom}`);
   if (currentFilters.dateTo) filterSummary.push(`To: ${currentFilters.dateTo}`);
@@ -277,7 +280,7 @@ const downloadFilteredBillsPdf = (data, currentFilters) => {
           <td style="border:1px solid #444;padding:6px;text-align:right;">${item.component_data?.length || 0}</td>
           <td style="border:1px solid #444;padding:6px;text-align:right;">${calculateReportSoldAmount(item)}</td>
         </tr>
-      `,
+      `
     )
     .join("");
 
@@ -367,9 +370,6 @@ const reportsColumnMapping = {
   },
 };
 
-/**
- * Comprehensive PDF path finder.
- */
 let _debugLogged = false;
 const getBillPdfPath = (item) => {
   if (!item) return null;
@@ -379,40 +379,18 @@ const getBillPdfPath = (item) => {
     console.log(
       "%c[AllBills Debug] First bill item keys:",
       "color: blue; font-weight: bold;",
-      Object.keys(item),
+      Object.keys(item)
     );
   }
 
-  // Exact match based on API response field
   if (item.recipt_file) return item.recipt_file;
 
-  // All possible field names where the PDF path might be stored
   const pathFields = [
-    "receipt_path",
-    "pdf_path",
-    "bill_pdf_path",
-    "file_path",
-    "bill_pdf",
-    "pdf",
-    "receipt",
-    "document_path",
-    "document",
-    "bill_file",
-    "receipt_url",
-    "pdf_url",
-    "download_url",
-    "bill_path",
-    "report_path",
-    "file",
-    "path",
-    "receipt_file", // variant spelling
-    "pdf_file",
-    "bill_document",
-    "generated_pdf",
-    "bill_receipt",
-    "report_pdf",
-    "invoice_path",
-    "invoice_pdf",
+    "receipt_path", "pdf_path", "bill_pdf_path", "file_path", "bill_pdf",
+    "pdf", "receipt", "document_path", "document", "bill_file", "receipt_url",
+    "pdf_url", "download_url", "bill_path", "report_path", "file", "path",
+    "receipt_file", "pdf_file", "bill_document", "generated_pdf",
+    "bill_receipt", "report_pdf", "invoice_path", "invoice_pdf",
   ];
 
   for (const field of pathFields) {
@@ -462,12 +440,8 @@ const getBillPdfPath = (item) => {
 
 const buildBillPdfUrl = (path) => {
   if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (path.startsWith("/")) {
-    return `${BASE_URL}${path}`;
-  }
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  if (path.startsWith("/")) return `${BASE_URL}${path}`;
   return `${BASE_URL}/${path}`;
 };
 
@@ -499,6 +473,10 @@ const AllBills = () => {
 
   const [expandedReports, setExpandedReports] = useState({});
 
+  // Page Details Modal State
+  const [showPageModal, setShowPageModal] = useState(false);
+  const [currentPageData, setCurrentPageData] = useState([]);
+
   const [filters, setFilters] = useState({
     center_name: [],
     bill_id: [],
@@ -511,7 +489,7 @@ const AllBills = () => {
   const [itemsPerPage] = useState(10);
 
   const [selectedComponentColumns, setSelectedComponentColumns] = useState(
-    availableComponentColumns.map((col) => col.key),
+    availableComponentColumns.map((col) => col.key)
   );
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -615,20 +593,20 @@ const AllBills = () => {
 
   const currentPageBillIds = useMemo(
     () => paginatedReportsData.map((item) => item.id),
-    [paginatedReportsData],
+    [paginatedReportsData]
   );
 
   const allCurrentPageSelected = useMemo(
     () =>
       currentPageBillIds.length > 0 &&
       currentPageBillIds.every((id) => selectedBillIds.has(id)),
-    [currentPageBillIds, selectedBillIds],
+    [currentPageBillIds, selectedBillIds]
   );
 
   const someCurrentPageSelected = useMemo(
     () =>
       currentPageBillIds.some((id) => selectedBillIds.has(id)) && !allCurrentPageSelected,
-    [currentPageBillIds, selectedBillIds, allCurrentPageSelected],
+    [currentPageBillIds, selectedBillIds, allCurrentPageSelected]
   );
 
   const totalSelectedCount = selectedBillIds.size;
@@ -684,6 +662,29 @@ const AllBills = () => {
     }));
   };
 
+  // --- New function to handle View Pages modal ---
+  const handleViewPages = (item) => {
+    const pagenoData = item.component_pageno;
+    let parsedData = [];
+
+    if (pagenoData && pagenoData.length > 0) {
+      // Case 1: [["आम कलम", "आम कलम-2"], 19838]
+      if (pagenoData.length === 2 && Array.isArray(pagenoData[0]) && !Array.isArray(pagenoData[1])) {
+        parsedData = [{ names: pagenoData[0], pageNo: pagenoData[1] }];
+      } 
+      // Case 2: [[["आम कलम"], 1], [["लीची"], 2]]
+      else if (pagenoData.every(group => Array.isArray(group) && group.length === 2 && Array.isArray(group[0]))) {
+        parsedData = pagenoData.map(group => ({ names: group[0], pageNo: group[1] }));
+      } else {
+        // Fallback for unexpected structures
+        parsedData = [{ names: [String(pagenoData[0])], pageNo: pagenoData[1] || "N/A" }];
+      }
+    }
+
+    setCurrentPageData(parsedData);
+    setShowPageModal(true);
+  };
+
   const downloadSelectedBills = async () => {
     const selectedItems = reportsData.filter((item) => selectedBillIds.has(item.id));
 
@@ -703,7 +704,7 @@ const AllBills = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        },
+        }
       );
 
       if (!response.ok) {
@@ -774,8 +775,8 @@ const AllBills = () => {
 
       setReportsData((prevData) =>
         prevData.map((item) =>
-          item.id === reportToCancel ? { ...item, status: "cancelled" } : item,
-        ),
+          item.id === reportToCancel ? { ...item, status: "cancelled" } : item
+        )
       );
 
       setStatusUpdateSuccess(true);
@@ -843,7 +844,7 @@ const AllBills = () => {
       multiple_bills: prev.multiple_bills.map((bill) =>
         bill.bill_id === billId
           ? { ...bill, updated_quantity: parseFloat(newQuantity) || 0 }
-          : bill,
+          : bill
       ),
     }));
   };
@@ -906,7 +907,7 @@ const AllBills = () => {
             };
           }
           return item;
-        }),
+        })
       );
 
       setShowSuccessModal(true);
@@ -941,11 +942,11 @@ const AllBills = () => {
             acc.sold += parseFloat(comp.sold_amount) || 0;
           return acc;
         },
-        { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 },
+        { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 }
       );
 
       const hasTotals = selectedComponentColumns.some((col) =>
-        ["allocated_quantity", "rate", "updated_quantity", "buy_amount", "sold_amount"].includes(col),
+        ["allocated_quantity", "rate", "updated_quantity", "buy_amount", "sold_amount"].includes(col)
       );
 
       if (hasTotals) {
@@ -998,12 +999,12 @@ const AllBills = () => {
             acc.sold += parseFloat(comp.sold_amount) || 0;
           return acc;
         },
-        { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 },
+        { allocated: 0, rate: 0, updated: 0, buy: 0, sold: 0 }
       );
 
       let totalRow = "";
       const hasTotals = selectedComponentColumns.some((col) =>
-        ["allocated_quantity", "rate", "updated_quantity", "buy_amount", "sold_amount"].includes(col),
+        ["allocated_quantity", "rate", "updated_quantity", "buy_amount", "sold_amount"].includes(col)
       );
 
       if (hasTotals) {
@@ -1068,7 +1069,7 @@ const AllBills = () => {
     paginationItems.push(
       <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
         1
-      </Pagination.Item>,
+      </Pagination.Item>
     );
     if (startPage > 2) {
       paginationItems.push(<Pagination.Ellipsis key="start-ellipsis" disabled />);
@@ -1079,7 +1080,7 @@ const AllBills = () => {
     paginationItems.push(
       <Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
         {number}
-      </Pagination.Item>,
+      </Pagination.Item>
     );
   }
 
@@ -1090,7 +1091,7 @@ const AllBills = () => {
     paginationItems.push(
       <Pagination.Item key={totalPages} onClick={() => handlePageChange(totalPages)}>
         {totalPages}
-      </Pagination.Item>,
+      </Pagination.Item>
     );
   }
 
@@ -1408,7 +1409,7 @@ const AllBills = () => {
                                     <th>{translations.status}</th>
                                     <th>{translations.totalItems}</th>
                                     <th>{translations.buyAmount}</th>
-                                    <th style={{ minWidth: "200px", textAlign: "center" }}>
+                                    <th style={{ minWidth: "250px", textAlign: "center" }}>
                                       {translations.details} / {translations.download}
                                     </th>
                                   </tr>
@@ -1460,6 +1461,19 @@ const AllBills = () => {
                                               >
                                                 {isExpanded ? "▲" : "▼"}
                                               </Button>
+
+                                              {item.component_pageno && item.component_pageno.length > 0 && (
+                                                <Button
+                                                  variant="outline-secondary"
+                                                  size="sm"
+                                                  onClick={() => handleViewPages(item)}
+                                                  className="small-fonts d-flex align-items-center gap-1"
+                                                  title="उप-निवेश पेज नंबर देखें"
+                                                >
+                                                  <FaEye />
+                                                  {translations.viewPagesBtn}
+                                                </Button>
+                                              )}
 
                                               {pdfPath ? (
                                                 <Button
@@ -1513,19 +1527,6 @@ const AllBills = () => {
                                                     <strong>
                                                       {item.center_name} — {item.bill_report_id}
                                                     </strong>
-                                                    {item.component_pageno && item.component_pageno.length > 0 && (
-                                                      <div className="mt-1">
-                                                        <span className="text-muted">
-                                                          {translations.componentPageno}:{" "}
-                                                        </span>
-                                                        <strong>
-                                                          {Array.isArray(item.component_pageno[0])
-                                                            ? item.component_pageno[0].join(", ")
-                                                            : item.component_pageno[0]}
-                                                          {" "} (पेज: {item.component_pageno[1]})
-                                                        </strong>
-                                                      </div>
-                                                    )}
                                                   </Col>
                                                   <Col md={6} className="text-end">
                                                     <Button
@@ -1536,7 +1537,7 @@ const AllBills = () => {
                                                         downloadExcelComponent(
                                                           item.component_data,
                                                           `${item.bill_report_id}_components`,
-                                                          item.bill_report_id,
+                                                          item.bill_report_id
                                                         )
                                                       }
                                                     >
@@ -1551,7 +1552,7 @@ const AllBills = () => {
                                                           item.component_data,
                                                           `${item.bill_report_id}_components`,
                                                           item.center_name,
-                                                          item.bill_report_id,
+                                                          item.bill_report_id
                                                         )
                                                       }
                                                     >
@@ -1638,6 +1639,41 @@ const AllBills = () => {
         </Container>
       </div>
 
+      {/* ─── View Pages Modal ─── */}
+      <Modal show={showPageModal} onHide={() => setShowPageModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="small-fonts">{translations.pageDetails}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {currentPageData.length === 0 ? (
+            <p className="text-center small-fonts">{translations.noPageData}</p>
+          ) : (
+            <Table striped bordered hover size="sm" className="small-fonts mb-0">
+              <thead>
+                <tr>
+                  <th>{translations.subniveshName}</th>
+                  <th className="text-center">{translations.pageNo}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentPageData.map((entry, index) => (
+                  <tr key={index}>
+                    <td>{entry.names.join(", ")}</td>
+                    <td className="text-center"><strong>{entry.pageNo}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" size="sm" onClick={() => setShowPageModal(false)}>
+            {translations.closeBtn}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ─── Cancel Confirmation Modal ─── */}
       <Modal show={showConfirmDialog} onHide={cancelConfirmation} centered size="sm">
         <Modal.Header closeButton>
           <Modal.Title className="small-fonts">{translations.cancelReport}</Modal.Title>
@@ -1655,6 +1691,7 @@ const AllBills = () => {
         </Modal.Footer>
       </Modal>
 
+      {/* ─── Edit Bill Modal ─── */}
       <Modal show={showEditModal} onHide={closeEditModal} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title className="small-fonts">{translations.editBillDetails}</Modal.Title>
@@ -1766,6 +1803,7 @@ const AllBills = () => {
         </Modal.Footer>
       </Modal>
 
+      {/* ─── Success Modal ─── */}
       <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)} centered size="sm">
         <Modal.Header closeButton>
           <Modal.Title className="small-fonts text-success">
