@@ -117,7 +117,7 @@ const billingTableColumns = [
   { key: "investment_name", label: "मद का नाम" },
   { key: "sub_investment_name", label: "उप-मद का नाम" },
   { key: "unit", label: "इकाई" },
-  { key: "allocated_quantity", label: "आवंटित मात्रा" },
+  { key: "allocated_quantity", label: "भौतिक पूर्ति" },
   { key: "rate", label: "क्रय दर\n(प्रति इकाई)" },
   { key: "farmer_selling_rate", label: "कृषक विक्रय दर\n(प्रति इकाई)" },
   { key: "farmer_subsidy_rate", label: "कृषक अनुदान दर\n(प्रति इकाई)" },
@@ -156,7 +156,7 @@ const billingTableColumnMapping = {
     accessor: (item) => item.unit || "",
   },
   allocated_quantity: {
-    header: "आवंटित मात्रा",
+    header: "भौतिक पूर्ति",
     accessor: (item) => item.allocated_quantity ?? "",
   },
   rate: {
@@ -208,7 +208,7 @@ const translations = {
   investmentName: "मद का नाम",
   subInvestmentName: "उप-मद का नाम",
   unit: "इकाई",
-  allocatedQuantity: "आवंटित मात्रा",
+  allocatedQuantity: "भौतिक पूर्ति",
   rate: "क्रय दर\n(प्रति इकाई)",
   farmerSellingRate: "कृषक विक्रय दर\n(प्रति इकाई)",
   farmerSubsidyRate: "कृषक अनुदान दर\n(प्रति इकाई)",
@@ -1203,7 +1203,7 @@ const Registration = () => {
         "मद का नाम",
         "उप-मद का नाम",
         "इकाई",
-        "आवंटित मात्रा",
+        "भौतिक पूर्ति",
         "क्रय दर\n(प्रति इकाई)",
         "कृषक विक्रय दर\n(प्रति इकाई)",
         "कृषक अनुदान दर\n(प्रति इकाई)",
@@ -1728,9 +1728,9 @@ const Registration = () => {
       rowData.allocated_quantity === null ||
       rowData.allocated_quantity === undefined
     ) {
-      errors.push(`Row ${rowIndex}: आवंटित मात्रा आवश्यक है`);
+      errors.push(`Row ${rowIndex}: भौतिक पूर्ति आवश्यक है`);
     } else if (isNaN(parseInt(rowData.allocated_quantity))) {
-      errors.push(`Row ${rowIndex}: आवंटित मात्रा एक संख्या होनी चाहिए`);
+      errors.push(`Row ${rowIndex}: भौतिक पूर्ति एक संख्या होनी चाहिए`);
     }
     if (
       rowData.rate === "" ||
@@ -2042,7 +2042,7 @@ const Registration = () => {
               allocated_quantity: roundTo2Decimals(
                 getExcelCell(
                   row,
-                  "आवंटित मात्रा",
+                  "भौतिक पूर्ति",
                   "allocated_quantity",
                 ),
               ),
@@ -2810,7 +2810,7 @@ const Registration = () => {
                   <li>कृपया सही फॉर्मेट में Excel फाइल अपलोड करें</li>
                   <li>
                     <strong>अनिवार्य फ़ील्ड:</strong> केंद्र का नाम, क्रय योजना का नाम, सप्लायर,
-                    मद का नाम, उप-मद का नाम, इकाई, आवंटित मात्रा, क्रय दर (प्रति इकाई),
+                    मद का नाम, उप-मद का नाम, इकाई, भौतिक पूर्ति, क्रय दर (प्रति इकाई),
                     कृषक विक्रय दर (प्रति इकाई), कृषक अनुदान दर (प्रति इकाई), कृषक अंश,
                     अनुदान राशि, कुल राशि, अनुदान वहन योजना, रिमार्क, पंजीकरण तिथि
                   </li>
@@ -2819,7 +2819,7 @@ const Registration = () => {
                     रूप से बैकएंड से सेट किए जाते हैं (Excel में शामिल न करें)
                   </li>
                   <li>
-                    आवंटित मात्रा, क्रय दर, कृषक विक्रय दर, कृषक अनुदान दर, कृषक अंश,
+                    भौतिक पूर्ति, क्रय दर, कृषक विक्रय दर, कृषक अनुदान दर, कृषक अंश,
                     अनुदान राशि और कुल राशि संख्यात्मक होनी चाहिए
                   </li>
                   <li>डाउनलोड टेम्पलेट बटन का उपयोग करें सही फॉर्मेट के लिए</li>
@@ -3066,7 +3066,7 @@ const Registration = () => {
                           onChange={handleChange}
                           isInvalid={!!errors.allocated_quantity}
                           className="compact-input"
-                          placeholder="आवंटित मात्रा दर्ज करें"
+                          placeholder="भौतिक पूर्ति दर्ज करें"
                         />
                         <Form.Control.Feedback type="invalid">
                           {errors.allocated_quantity}

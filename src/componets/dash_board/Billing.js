@@ -78,7 +78,7 @@ const translations = {
   subniveshName: "उप-निवेश का नाम",
   unit: "इकाई",
   sourceOfReceipt: "सप्लायर",
-  allocatedQuantity: "आवंटित मात्रा",
+  allocatedQuantity: "भौतिक पूर्ति",
   rate: "दर",
   sno: "क्र.सं.",
   id: "आईडी",

@@ -106,7 +106,7 @@ const translations = {
   nivesh: "निवेश",
   subniveshName: "उप-निवेश का नाम",
   unit: "इकाई",
-  allocatedQuantity: "आवंटित मात्रा",
+  allocatedQuantity: "भौतिक पूर्ति",
   rate: "दर",
   updatedQuantity: "अपडेट की गई मात्रा",
   buyAmount: "कुल राशि",

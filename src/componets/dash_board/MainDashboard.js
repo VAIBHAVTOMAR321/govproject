@@ -51,7 +51,7 @@ const translations = {
   vikasKhandName: "विकास खंड का नाम",
   vidhanSabhaName: "विधानसभा का नाम",
   unit: "इकाई",
-  allocatedQuantity: "आवंटित मात्रा",
+  allocatedQuantity: "भौतिक पूर्ति",
   rate: "क्रय दर (प्रति इकाई)",
   farmerSellingRate: "कृषक विक्रय दर (प्रति इकाई)",
   farmerSubsidyRate: "कृषक अनुदान दर (प्रति इकाई)",
@@ -818,7 +818,7 @@ const MainDashboard = () => {
             )
             .map((key) => columnDefs[key].label),
           "इकाई",
-          "आवंटित मात्रा",
+          "भौतिक पूर्ति",
           "कृषक अंश (रु0)",
           "अनुदान राशि (रु0)",
           "कुल राशि",
@@ -1854,7 +1854,7 @@ const MainDashboard = () => {
             (a, b) => tableColumnOrder.indexOf(a) - tableColumnOrder.indexOf(b),
           )
           .map((key) => columnDefs[key].label),
-        "आवंटित मात्रा",
+        "भौतिक पूर्ति",
         "कृषक अंश (रु0)",
         "अनुदान राशि (रु0)",
         "कुल राशि",
@@ -2727,7 +2727,7 @@ const MainDashboard = () => {
               return [columnDefs[col].label, uniqueValues.join(", ")];
             }),
         ),
-        "आवंटित मात्रा": dataForValue
+        "भौतिक पूर्ति": dataForValue
           .reduce(
             (sum, item) => sum + (parseFloat(item.allocated_quantity) || 0),
             0,
@@ -2757,8 +2757,8 @@ const MainDashboard = () => {
     };
 
     // Add totals for monetary columns
-    totalRow["आवंटित मात्रा"] = summaryData
-      .reduce((sum, row) => sum + (parseFloat(row["आवंटित मात्रा"]) || 0), 0)
+    totalRow["भौतिक पूर्ति"] = summaryData
+      .reduce((sum, row) => sum + (parseFloat(row["भौतिक पूर्ति"]) || 0), 0)
       .toFixed(2);
     totalRow["कृषक अंश (रु0)"] = summaryData
       .reduce((sum, row) => sum + (parseFloat(row["कृषक अंश (रु0)"]) || 0), 0)
@@ -2813,7 +2813,7 @@ const MainDashboard = () => {
     const columns = [
       columnDefs[column]?.label,
       ...filteredVisibleColumns,
-      "आवंटित मात्रा",
+      "भौतिक पूर्ति",
       "कृषक अंश (रु0)",
       "अनुदान राशि (रु0)",
       "कुल राशि",
@@ -2905,7 +2905,7 @@ const MainDashboard = () => {
 
       // Add total columns
       const groupData = data.filter((item) => item[grouping] === group);
-      row["आवंटित मात्रा"] = groupData
+      row["भौतिक पूर्ति"] = groupData
         .reduce(
           (acc, item) => acc + (parseFloat(item.allocated_quantity) || 0),
           0,
@@ -2939,8 +2939,8 @@ const MainDashboard = () => {
         .reduce((sum, row) => sum + (parseFloat(row[`${col}_राशि`]) || 0), 0)
         .toFixed(2);
     });
-    totalRow["आवंटित मात्रा"] = rows
-      .reduce((sum, row) => sum + (parseFloat(row["आवंटित मात्रा"]) || 0), 0)
+    totalRow["भौतिक पूर्ति"] = rows
+      .reduce((sum, row) => sum + (parseFloat(row["भौतिक पूर्ति"]) || 0), 0)
       .toFixed(2);
     totalRow["कृषक अंश (रु0)"] = rows
       .reduce((sum, row) => sum + (parseFloat(row["कृषक अंश (रु0)"]) || 0), 0)
@@ -2957,7 +2957,7 @@ const MainDashboard = () => {
     const columns = [
       groupLabel,
       ...dynamicColumns.flatMap((col) => [`${col}_मात्रा`, `${col}_राशि`]),
-      "आवंटित मात्रा",
+      "भौतिक पूर्ति",
       "कृषक अंश (रु0)",
       "अनुदान राशि (रु0)",
       "कुल राशि",
@@ -3719,7 +3719,7 @@ const MainDashboard = () => {
           ),
         };
 
-        row["आवंटित मात्रा"] = rowTotals.allocated_quantity.toFixed(2);
+        row["भौतिक पूर्ति"] = rowTotals.allocated_quantity.toFixed(2);
         row["कृषक अंश (रु0)"] = rowTotals.amount_of_farmer_share.toFixed(2);
         row["अनुदान राशि (रु0)"] = rowTotals.amount_of_subsidy.toFixed(2);
         row["कुल राशि"] = rowTotals.total_amount.toFixed(2);
@@ -3803,7 +3803,7 @@ const MainDashboard = () => {
       });
 
       // Add monetary columns with grand total only for totals
-      totalRow["आवंटित मात्रा"] = grandTotals.allocated_quantity.toFixed(2);
+      totalRow["भौतिक पूर्ति"] = grandTotals.allocated_quantity.toFixed(2);
       totalRow["कृषक अंश (रु0)"] = grandTotals.amount_of_farmer_share.toFixed(2);
       totalRow["अनुदान राशि (रु0)"] = grandTotals.amount_of_subsidy.toFixed(2);
       totalRow["कुल राशि"] = grandTotals.total_amount.toFixed(2);
@@ -3830,7 +3830,7 @@ const MainDashboard = () => {
                     !columnDefs[col].hidden,
                 )
                 .map((key) => columnDefs[key].label),
-              "आवंटित मात्रा",
+              "भौतिक पूर्ति",
               "कृषक अंश (रु0)",
               "अनुदान राशि (रु0)",
               "कुल राशि",
@@ -4049,12 +4049,12 @@ const MainDashboard = () => {
           // Handle columns that are aggregate totals (start with 'कुल' or new names) separately
           if (
             col.startsWith("कुल") ||
-            col === "आवंटित मात्रा" ||
+            col === "भौतिक पूर्ति" ||
             col === "कृषक अंश (रु0)" ||
             col === "अनुदान राशि (रु0)"
           ) {
-            // Use the explicit total keys placed on the rows: "आवंटित मात्रा", "कृषक अंश (रु0)", "अनुदान राशि (रु0)", "कुल राशि"
-            const matraVal = parseFloat(row["आवंटित मात्रा"] || 0).toFixed(2);
+            // Use the explicit total keys placed on the rows: "भौतिक पूर्ति", "कृषक अंश (रु0)", "अनुदान राशि (रु0)", "कुल राशि"
+            const matraVal = parseFloat(row["भौतिक पूर्ति"] || 0).toFixed(2);
             const darVal = parseFloat(row["कुल राशि"] || 0).toFixed(2);
             if (showMatra && showDar) newRow[col] = `${matraVal} / ${darVal}`;
             else if (showDar) newRow[col] = darVal;
@@ -4130,7 +4130,7 @@ const MainDashboard = () => {
       (c) =>
         c !== table.columns[0] &&
         !c.startsWith("कुल") &&
-        c !== "आवंटित मात्रा" &&
+        c !== "भौतिक पूर्ति" &&
         c !== "कृषक अंश (रु0)" &&
         c !== "अनुदान राशि (रु0)",
     );
@@ -4143,7 +4143,7 @@ const MainDashboard = () => {
           (sum, row) => sum + row["कुल रिकॉर्ड"],
           0,
         );
-      } else if (col === "आवंटित मात्रा") {
+      } else if (col === "भौतिक पूर्ति") {
         if (table.isAllocationTable) {
           const matraTotal = filteredTableData
             .reduce(
@@ -4196,7 +4196,7 @@ const MainDashboard = () => {
         } else {
           totals[col] = filteredTableData
             .reduce(
-              (sum, row) => sum + parseFloat(row["आवंटित मात्रा"] || 0),
+              (sum, row) => sum + parseFloat(row["भौतिक पूर्ति"] || 0),
               0,
             )
             .toFixed(2);
@@ -4382,11 +4382,11 @@ const MainDashboard = () => {
     setTableName(defaultName);
     setExportType(type);
 
-    // When rotated, include summary columns (आवंटित मात्रा, etc.) in visibleClickedCols for export
+    // When rotated, include summary columns (भौतिक पूर्ति, etc.) in visibleClickedCols for export
     const summaryColsForExport = visibleColumns.filter(
       (c) =>
         (c.startsWith("कुल") ||
-          c === "आवंटित मात्रा" ||
+          c === "भौतिक पूर्ति" ||
           c === "कृषक अंश (रु0)" ||
           c === "अनुदान राशि (रु0)") &&
         c !== "कुल रिकॉर्ड",
@@ -4475,7 +4475,7 @@ const MainDashboard = () => {
             .map((row) => row[firstColLabel]);
 
     // Determine which clicked/dynamic columns are visible (these will become rows)
-    // Include summary columns (आवंटित मात्रा, etc.) as rows in transposed view
+    // Include summary columns (भौतिक पूर्ति, etc.) as rows in transposed view
     const allClickedCols =
       table.visibleClickedCols && table.visibleClickedCols.length > 0
         ? table.visibleClickedCols
@@ -4492,14 +4492,14 @@ const MainDashboard = () => {
     const dynamicCols = allClickedCols.filter(
       (col) =>
         !col.startsWith("कुल") &&
-        col !== "आवंटित मात्रा" &&
+        col !== "भौतिक पूर्ति" &&
         col !== "कृषक अंश (रु0)" &&
         col !== "अनुदान राशि (रु0)",
     );
     const summaryColsToInclude = allClickedCols.filter(
       (col) =>
         col.startsWith("कुल") ||
-        col === "आवंटित मात्रा" ||
+        col === "भौतिक पूर्ति" ||
         col === "कृषक अंश (रु0)" ||
         col === "अनुदान राशि (रु0)",
     );
@@ -4589,16 +4589,16 @@ const MainDashboard = () => {
       transposedRows.push(newRow);
     });
 
-    // Add summary columns as rows (आवंटित मात्रा, कृषक धनराशि, सब्सिडी धनराशि, कुल राशि)
+    // Add summary columns as rows (भौतिक पूर्ति, कृषक धनराशि, सब्सिडी धनराशि, कुल राशि)
     if (table.isAllocationTable && summaryColsToInclude.length > 0) {
       summaryColsToInclude.forEach((summaryCol) => {
         // Determine the display label for summary columns based on matra/dar toggle
         let displayLabel = summaryCol;
-        if (summaryCol === "आवंटित मात्रा") {
+        if (summaryCol === "भौतिक पूर्ति") {
           if (table.showMatra && table.showDar)
-            displayLabel = "आवंटित मात्रा/दर";
+            displayLabel = "भौतिक पूर्ति/दर";
           else if (table.showDar) displayLabel = "आवंटित दर";
-          else displayLabel = "आवंटित मात्रा";
+          else displayLabel = "भौतिक पूर्ति";
         }
 
         const newRow = { [firstColLabel]: displayLabel };
@@ -4612,7 +4612,7 @@ const MainDashboard = () => {
           }
 
           // Calculate summary value based on dynamicCols (same logic as display)
-          if (summaryCol === "आवंटित मात्रा") {
+          if (summaryCol === "भौतिक पूर्ति") {
             const matraTotal = dynamicCols
               .reduce(
                 (s, c) => s + parseFloat(resolveCellValue(dataRow, c) || 0),
@@ -4680,7 +4680,7 @@ const MainDashboard = () => {
         });
 
         // Calculate total for summary column (grand total across all rows)
-        if (summaryCol === "आवंटित मात्रा") {
+        if (summaryCol === "भौतिक पूर्ति") {
           const matraTotal = rowHeaders
             .reduce((s, rh) => {
               const r = sourceData.find((rr) => rr[firstColLabel] === rh);
@@ -5504,15 +5504,15 @@ const MainDashboard = () => {
     isAllocationTable,
     showIkai,
   ) => {
-    if (!isAllocationTable || col !== "आवंटित मात्रा") return col;
+    if (!isAllocationTable || col !== "भौतिक पूर्ति") return col;
     // Build header based on which toggles are active
-    if (showMatra && showIkai && showDar) return "आवंटित मात्रा/इकाई/दर";
-    if (showMatra && showIkai) return "आवंटित मात्रा/इकाई";
+    if (showMatra && showIkai && showDar) return "भौतिक पूर्ति/इकाई/दर";
+    if (showMatra && showIkai) return "भौतिक पूर्ति/इकाई";
     if (showIkai && showDar) return "इकाई/दर";
-    if (showMatra && showDar) return "आवंटित मात्रा/दर";
+    if (showMatra && showDar) return "भौतिक पूर्ति/दर";
     if (showIkai) return "इकाई";
     if (showDar) return "आवंटित दर";
-    return "आवंटित मात्रा";
+    return "भौतिक पूर्ति";
   };
 
   // Helper function to calculate column totals (fallback)
@@ -5520,7 +5520,7 @@ const MainDashboard = () => {
     if (column === "कुल रिकॉर्ड") {
       return tableData.reduce((sum, row) => sum + (row[column] || 0), 0);
     } else if (
-      column === "आवंटित मात्रा" ||
+      column === "भौतिक पूर्ति" ||
       column === "कृषक अंश (रु0)" ||
       column === "अनुदान राशि (रु0)" ||
       column === "कुल राशि"
@@ -6563,7 +6563,7 @@ const MainDashboard = () => {
             columnDefs.sub_investment_name.label,
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
-        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showAllocated: tableColumnFilters.summary.includes("भौतिक पूर्ति"),
         showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
         showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
@@ -6578,7 +6578,7 @@ const MainDashboard = () => {
       if (visible.showNivesh) headers.push("मद");
       if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
-      if (visible.showAllocated) headers.push("आवंटित मात्रा");
+      if (visible.showAllocated) headers.push("भौतिक पूर्ति");
       if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
       if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
@@ -6930,7 +6930,7 @@ const MainDashboard = () => {
             columnDefs.sub_investment_name.label,
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
-        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showAllocated: tableColumnFilters.summary.includes("भौतिक पूर्ति"),
         showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
         showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
@@ -6945,7 +6945,7 @@ const MainDashboard = () => {
       if (visible.showNivesh) headers.push("मद");
       if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
-      if (visible.showAllocated) headers.push("आवंटित मात्रा");
+      if (visible.showAllocated) headers.push("भौतिक पूर्ति");
       if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
       if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
@@ -7295,7 +7295,7 @@ const MainDashboard = () => {
             columnDefs.sub_investment_name.label,
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
-        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showAllocated: tableColumnFilters.summary.includes("भौतिक पूर्ति"),
         showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
         showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
@@ -7310,7 +7310,7 @@ const MainDashboard = () => {
       if (visible.showNivesh) headers.push("मद");
       if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
-      if (visible.showAllocated) headers.push("आवंटित मात्रा");
+      if (visible.showAllocated) headers.push("भौतिक पूर्ति");
       if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
       if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
@@ -7525,7 +7525,7 @@ const MainDashboard = () => {
             columnDefs.sub_investment_name.label,
           ),
         showIkai: selIndex <= 5 && tableColumnFilters.summary.includes("इकाई"),
-        showAllocated: tableColumnFilters.summary.includes("आवंटित मात्रा"),
+        showAllocated: tableColumnFilters.summary.includes("भौतिक पूर्ति"),
         showFarmer: tableColumnFilters.summary.includes("कृषक अंश (रु0)"),
         showSubsidy: tableColumnFilters.summary.includes("अनुदान राशि (रु0)"),
         showTotal: tableColumnFilters.summary.includes("कुल राशि"),
@@ -7540,7 +7540,7 @@ const MainDashboard = () => {
       if (visible.showNivesh) headers.push("मद");
       if (visible.showUpNivesh) headers.push("उप-मद");
       if (visible.showIkai) headers.push("इकाई");
-      if (visible.showAllocated) headers.push("आवंटित मात्रा");
+      if (visible.showAllocated) headers.push("भौतिक पूर्ति");
       if (visible.showFarmer) headers.push("कृषक अंश (रु0)");
       if (visible.showSubsidy) headers.push("अनुदान राशि (रु0)");
       if (visible.showTotal) headers.push("कुल राशि");
@@ -8430,8 +8430,8 @@ const MainDashboard = () => {
       });
 
       // Add row totals in requested sequence:
-      // "आवंटित मात्रा", "कृषक अंश (रु0)", "अनुदान राशि (रु0)", "कुल राशि"
-      rowData["आवंटित मात्रा"] = rowTotal.toFixed(2);
+      // "भौतिक पूर्ति", "कृषक अंश (रु0)", "अनुदान राशि (रु0)", "कुल राशि"
+      rowData["भौतिक पूर्ति"] = rowTotal.toFixed(2);
       rowData["कृषक अंश (रु0)"] = rowFarmerTotal.toFixed(2);
       rowData["अनुदान राशि (रु0)"] = rowSubsidyTotal.toFixed(2);
       rowData["कुल राशि"] = rowDarTotal.toFixed(2);
@@ -8458,7 +8458,7 @@ const MainDashboard = () => {
       grandSubsidyTotal += columnSubsidyTotals[clickedColValue] || 0;
     });
 
-    totalRow["आवंटित मात्रा"] = grandTotal.toFixed(2);
+    totalRow["भौतिक पूर्ति"] = grandTotal.toFixed(2);
     totalRow["कृषक अंश (रु0)"] = grandFarmerTotal.toFixed(2);
     totalRow["अनुदान राशि (रु0)"] = grandSubsidyTotal.toFixed(2);
     totalRow["कुल राशि"] = grandDarTotal.toFixed(2);
@@ -8468,7 +8468,7 @@ const MainDashboard = () => {
     const newColumns = [
       columnDefs[firstColumnKey]?.label,
       ...clickedColumnValues,
-      "आवंटित मात्रा",
+      "भौतिक पूर्ति",
       "कृषक अंश (रु0)",
       "अनुदान राशि (रु0)",
       "कुल राशि",
@@ -9790,7 +9790,7 @@ const MainDashboard = () => {
                                               .map(
                                                 (key) => columnDefs[key].label,
                                               ),
-                                            "आवंटित मात्रा",
+                                            "भौतिक पूर्ति",
                                             "कृषक अंश (रु0)",
                                             "अनुदान राशि (रु0)",
                                             "कुल राशि",
@@ -10104,8 +10104,8 @@ const MainDashboard = () => {
                                               "इकाई",
                                             ) && <th>इकाई</th>}
                                             {tableColumnFilters.summary.includes(
-                                              "आवंटित मात्रा",
-                                            ) && <th>आवंटित मात्रा</th>}
+                                              "भौतिक पूर्ति",
+                                            ) && <th>भौतिक पूर्ति</th>}
                                             {tableColumnFilters.summary.includes(
                                               "कृषक अंश (रु0)",
                                             ) && <th>कृषक धनराशि</th>}
@@ -10192,7 +10192,7 @@ const MainDashboard = () => {
                                                   );
                                               const extraCols = [
                                                 "इकाई",
-                                                "आवंटित मात्रा",
+                                                "भौतिक पूर्ति",
                                                 "कृषक अंश (रु0)",
                                                 "अनुदान राशि (रु0)",
                                                 "कुल राशि",
@@ -10314,7 +10314,7 @@ const MainDashboard = () => {
                                                             ),
                                                           showAllocated:
                                                             tableColumnFilters.summary.includes(
-                                                              "आवंटित मात्रा",
+                                                              "भौतिक पूर्ति",
                                                             ),
                                                           showFarmer:
                                                             tableColumnFilters.summary.includes(
@@ -11828,7 +11828,7 @@ const MainDashboard = () => {
                                             )}
 
                                             {tableColumnFilters.summary.includes(
-                                              "आवंटित मात्रा",
+                                              "भौतिक पूर्ति",
                                             ) && (
                                               <td
                                                 style={{
@@ -12413,7 +12413,7 @@ const MainDashboard = () => {
                                                         </th>
                                                         <th>क्रय योजना</th>
                                                         <th className="text-end">
-                                                          आवंटित मात्रा
+                                                          भौतिक पूर्ति
                                                         </th>
                                                         <th className="text-end">
                                                           {rashiOptions.find(
@@ -12645,7 +12645,7 @@ const MainDashboard = () => {
                                                                     "80px",
                                                                 }}
                                                               >
-                                                                आवंटित मात्रा
+                                                                भौतिक पूर्ति
                                                               </th>
                                                               <th
                                                                 key={
@@ -12675,7 +12675,7 @@ const MainDashboard = () => {
                                                             minWidth: "80px",
                                                           }}
                                                         >
-                                                          आवंटित मात्रा
+                                                          भौतिक पूर्ति
                                                         </th>
                                                         <th
                                                           className="text-end"
@@ -13045,7 +13045,7 @@ const MainDashboard = () => {
                                                                     "80px",
                                                                 }}
                                                               >
-                                                                आवंटित मात्रा
+                                                                भौतिक पूर्ति
                                                               </th>
                                                               <th
                                                                 key={
@@ -13075,7 +13075,7 @@ const MainDashboard = () => {
                                                             minWidth: "80px",
                                                           }}
                                                         >
-                                                          आवंटित मात्रा
+                                                          भौतिक पूर्ति
                                                         </th>
                                                         <th
                                                           className="text-end"
@@ -13719,7 +13719,7 @@ const MainDashboard = () => {
                                                     {(() => {
                                                       if (isRotated[index]) {
                                                         // When rotated, list the original column keys (these become rows in rotated view)
-                                                        // Include summary columns like "आवंटित मात्रा", "कृषक अंश (रु0)", etc.
+                                                        // Include summary columns like "भौतिक पूर्ति", "कृषक अंश (रु0)", etc.
                                                         // Only filter out hidden columns like _dar, _farmer, _subsidy
                                                         const values =
                                                           table.columns
@@ -14049,7 +14049,7 @@ const MainDashboard = () => {
                                                           ),
                                                         )}
                                                         <th rowSpan="3">
-                                                          आवंटित मात्रा
+                                                          भौतिक पूर्ति
                                                         </th>
                                                         <th rowSpan="3">
                                                           कृषक धनराशि
@@ -14151,7 +14151,7 @@ const MainDashboard = () => {
                                                           ),
                                                         )}
                                                         <th rowSpan="2">
-                                                          आवंटित मात्रा
+                                                          भौतिक पूर्ति
                                                         </th>
                                                         <th rowSpan="2">
                                                           कृषक धनराशि
@@ -14279,7 +14279,7 @@ const MainDashboard = () => {
                                                                 if (
                                                                   !table.isAllocationTable ||
                                                                   col !==
-                                                                    "आवंटित मात्रा"
+                                                                    "भौतिक पूर्ति"
                                                                 )
                                                                   return col;
                                                                 const darSel =
@@ -14299,12 +14299,12 @@ const MainDashboard = () => {
                                                                   ikaiSel &&
                                                                   darSel
                                                                 )
-                                                                  return "आवंटित मात्रा/इकाई/दर";
+                                                                  return "भौतिक पूर्ति/इकाई/दर";
                                                                 if (
                                                                   matraSel &&
                                                                   ikaiSel
                                                                 )
-                                                                  return "आवंटित मात्रा/इकाई";
+                                                                  return "भौतिक पूर्ति/इकाई";
                                                                 if (
                                                                   ikaiSel &&
                                                                   darSel
@@ -14314,12 +14314,12 @@ const MainDashboard = () => {
                                                                   matraSel &&
                                                                   darSel
                                                                 )
-                                                                  return "आवंटित मात्रा/दर";
+                                                                  return "भौतिक पूर्ति/दर";
                                                                 if (ikaiSel)
                                                                   return "इकाई";
                                                                 if (darSel)
                                                                   return "आवंटित दर";
-                                                                return "आवंटित मात्रा";
+                                                                return "भौतिक पूर्ति";
                                                               })()}
                                                             </th>
                                                           ),
@@ -14338,7 +14338,7 @@ const MainDashboard = () => {
                                                                 if (
                                                                   !table.isAllocationTable ||
                                                                   col !==
-                                                                    "आवंटित मात्रा"
+                                                                    "भौतिक पूर्ति"
                                                                 ) {
                                                                   // For Vidhan Sabha table (non-grouped case), extract display name from column key
                                                                   if (
@@ -14376,12 +14376,12 @@ const MainDashboard = () => {
                                                                   ikaiSel &&
                                                                   darSel
                                                                 )
-                                                                  return "आवंटित मात्रा/इकाई/दर";
+                                                                  return "भौतिक पूर्ति/इकाई/दर";
                                                                 if (
                                                                   matraSel &&
                                                                   ikaiSel
                                                                 )
-                                                                  return "आवंटित मात्रा/इकाई";
+                                                                  return "भौतिक पूर्ति/इकाई";
                                                                 if (
                                                                   ikaiSel &&
                                                                   darSel
@@ -14391,12 +14391,12 @@ const MainDashboard = () => {
                                                                   matraSel &&
                                                                   darSel
                                                                 )
-                                                                  return "आवंटित मात्रा/दर";
+                                                                  return "भौतिक पूर्ति/दर";
                                                                 if (ikaiSel)
                                                                   return "इकाई";
                                                                 if (darSel)
                                                                   return "आवंटित दर";
-                                                                return "आवंटित मात्रा";
+                                                                return "भौतिक पूर्ति";
                                                               })()}
                                                               {!table.isAllocationTable &&
                                                                 table.type !==
@@ -14407,7 +14407,7 @@ const MainDashboard = () => {
                                                                 col !==
                                                                   "कुल रिकॉर्ड" &&
                                                                 col !==
-                                                                  "आवंटित मात्रा" &&
+                                                                  "भौतिक पूर्ति" &&
                                                                 col !==
                                                                   "कृषक अंश (रु0)" &&
                                                                 col !==
@@ -14538,7 +14538,7 @@ const MainDashboard = () => {
                                                           "कुल",
                                                         ) &&
                                                         col !==
-                                                          "आवंटित मात्रा" &&
+                                                          "भौतिक पूर्ति" &&
                                                         col !== "कृषक अंश (रु0)" &&
                                                         col !==
                                                           "अनुदान राशि (रु0)",
@@ -14834,7 +14834,7 @@ const MainDashboard = () => {
                                                               "कुल",
                                                             ) ||
                                                             col ===
-                                                              "आवंटित मात्रा" ||
+                                                              "भौतिक पूर्ति" ||
                                                             col ===
                                                               "कृषक अंश (रु0)" ||
                                                             col ===
@@ -14872,7 +14872,7 @@ const MainDashboard = () => {
                                                                   // Same calculation as in non-rotated table
                                                                   if (
                                                                     col ===
-                                                                    "आवंटित मात्रा"
+                                                                    "भौतिक पूर्ति"
                                                                   ) {
                                                                     const matraTotal =
                                                                       visibleDynamicCols
@@ -15168,7 +15168,7 @@ const MainDashboard = () => {
                                                                 // For summary columns, sum the calculated summary values across all rows
                                                                 if (
                                                                   col ===
-                                                                  "आवंटित मात्रा"
+                                                                  "भौतिक पूर्ति"
                                                                 ) {
                                                                   const matraTotal =
                                                                     filteredData
@@ -15644,7 +15644,7 @@ const MainDashboard = () => {
                                                                   );
                                                                 }
                                                               } else {
-                                                                // Summary rows (आवंटित मात्रा, etc.)
+                                                                // Summary rows (भौतिक पूर्ति, etc.)
                                                                 return (
                                                                   <React.Fragment key="first-cols">
                                                                     <td>
@@ -15710,7 +15710,7 @@ const MainDashboard = () => {
                                                               "कुल",
                                                             ) &&
                                                             c !==
-                                                              "आवंटित मात्रा" &&
+                                                              "भौतिक पूर्ति" &&
                                                             c !==
                                                               "कृषक अंश (रु0)" &&
                                                             c !==
@@ -15725,7 +15725,7 @@ const MainDashboard = () => {
                                                               "कुल",
                                                             ) &&
                                                             c !==
-                                                              "आवंटित मात्रा" &&
+                                                              "भौतिक पूर्ति" &&
                                                             c !==
                                                               "कृषक अंश (रु0)" &&
                                                             c !==
@@ -15895,7 +15895,7 @@ const MainDashboard = () => {
                                                             )}
 
                                                             {visibleColumns.includes(
-                                                              "आवंटित मात्रा",
+                                                              "भौतिक पूर्ति",
                                                             ) && (
                                                               <td>
                                                                 {(() => {
@@ -16123,7 +16123,7 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "कुल रिकॉर्ड" &&
                                                                   col !==
-                                                                    "आवंटित मात्रा" &&
+                                                                    "भौतिक पूर्ति" &&
                                                                   col !==
                                                                     "कृषक अंश (रु0)" &&
                                                                   col !==
@@ -16854,12 +16854,12 @@ const MainDashboard = () => {
                                                                 },
                                                               )}
                                                             {visibleColumns.includes(
-                                                              "आवंटित मात्रा",
+                                                              "भौतिक पूर्ति",
                                                             ) && (
                                                               <td>
                                                                 {
                                                                   row[
-                                                                    "आवंटित मात्रा"
+                                                                    "भौतिक पूर्ति"
                                                                   ]
                                                                 }
                                                               </td>
@@ -16978,7 +16978,7 @@ const MainDashboard = () => {
                                                                     "कुल",
                                                                   ) &&
                                                                   col !==
-                                                                    "आवंटित मात्रा" &&
+                                                                    "भौतिक पूर्ति" &&
                                                                   col !==
                                                                     "कृषक अंश (रु0)" &&
                                                                   col !==
@@ -17083,7 +17083,7 @@ const MainDashboard = () => {
                                                                           "कुल",
                                                                         ) &&
                                                                         c !==
-                                                                          "आवंटित मात्रा" &&
+                                                                          "भौतिक पूर्ति" &&
                                                                         c !==
                                                                           "कृषक अंश (रु0)" &&
                                                                         c !==
@@ -17098,7 +17098,7 @@ const MainDashboard = () => {
                                                                           "कुल",
                                                                         ) &&
                                                                         c !==
-                                                                          "आवंटित मात्रा" &&
+                                                                          "भौतिक पूर्ति" &&
                                                                         c !==
                                                                           "कृषक अंश (रु0)" &&
                                                                         c !==
@@ -17108,7 +17108,7 @@ const MainDashboard = () => {
                                                               return (
                                                                 <>
                                                                   {visibleColumns.includes(
-                                                                    "आवंटित मात्रा",
+                                                                    "भौतिक पूर्ति",
                                                                   ) && (
                                                                     <td>
                                                                       {(() => {
@@ -17326,7 +17326,7 @@ const MainDashboard = () => {
                                                                   col !==
                                                                     "कुल रिकॉर्ड" &&
                                                                   col !==
-                                                                    "आवंटित मात्रा" &&
+                                                                    "भौतिक पूर्ति" &&
                                                                   col !==
                                                                     "कृषक अंश (रु0)" &&
                                                                   col !==
@@ -17949,7 +17949,7 @@ const MainDashboard = () => {
                                                                 },
                                                               )}
                                                             {visibleColumns.includes(
-                                                              "आवंटित मात्रा",
+                                                              "भौतिक पूर्ति",
                                                             ) && (
                                                               <td>
                                                                 {filteredData
@@ -17961,7 +17961,7 @@ const MainDashboard = () => {
                                                                       sum +
                                                                       parseFloat(
                                                                         row[
-                                                                          "आवंटित मात्रा"
+                                                                          "भौतिक पूर्ति"
                                                                         ] || 0,
                                                                       ),
                                                                     0,

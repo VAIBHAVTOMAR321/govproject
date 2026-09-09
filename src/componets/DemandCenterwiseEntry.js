@@ -30,7 +30,7 @@ const billingTableColumns = [
   { key: "investment_name", label: "निवेश का नाम" },
   { key: "sub_investment_name", label: "उप-निवेश का नाम" },
   { key: "unit", label: "इकाई" },
-  { key: "allocated_quantity", label: "आवंटित मात्रा" },
+  { key: "allocated_quantity", label: "भौतिक पूर्ति" },
   { key: "rate", label: "दर" },
   { key: "amount_of_farmer_share", label: "किसान का हिस्सा" },
   { key: "amount_of_subsidy", label: "सब्सिडी राशि" },
@@ -69,7 +69,7 @@ const billingTableColumnMapping = {
   },
   unit: { header: "इकाई", accessor: (item) => item.unit },
   allocated_quantity: {
-    header: "आवंटित मात्रा",
+    header: "भौतिक पूर्ति",
     accessor: (item) => item.allocated_quantity,
   },
   rate: { header: "दर", accessor: (item) => item.rate },
@@ -967,14 +967,14 @@ const DemandCenterwiseEntry = () => {
                             const excelData = filteredData.map(([name, data], idx) => ({
                               'क्र.सं.': idx + 1,
                               'योजना का नाम': name,
-                              'आवंटित मात्रा': data.quantity,
+                              'भौतिक पूर्ति': data.quantity,
                               [rashiLabel]: data[selectedRashi] || 0
                             }));
                             // Add totals row
                             excelData.push({
                               'क्र.सं.': '',
                               'योजना का नाम': 'कुल',
-                              'आवंटित मात्रा': filteredData.reduce((acc, [,d]) => acc + d.quantity, 0),
+                              'भौतिक पूर्ति': filteredData.reduce((acc, [,d]) => acc + d.quantity, 0),
                               [rashiLabel]: filteredData.reduce((acc, [,d]) => acc + (d[selectedRashi] || 0), 0)
                             });
                             const wb = XLSX.utils.book_new();
@@ -988,7 +988,7 @@ const DemandCenterwiseEntry = () => {
                           <Button variant="danger" size="sm" onClick={() => {
                             const filteredData = schemeData.filter(([name]) => selectedSchemeFilters.scheme.length === 0 || selectedSchemeFilters.scheme.some(f => f.value === name));
                             const rashiLabel = rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि';
-                            const headers = '<th>क्र.सं.</th><th>योजना का नाम</th><th>आवंटित मात्रा</th><th>' + rashiLabel + '</th>';
+                            const headers = '<th>क्र.सं.</th><th>योजना का नाम</th><th>भौतिक पूर्ति</th><th>' + rashiLabel + '</th>';
                             const totalQty = filteredData.reduce((acc, [,d]) => acc + d.quantity, 0);
                             const totalRashi = filteredData.reduce((acc, [,d]) => acc + (d[selectedRashi] || 0), 0);
                             const rows = filteredData.map(([name, data], idx) => 
@@ -1010,7 +1010,7 @@ const DemandCenterwiseEntry = () => {
                               <tr>
                                 <th className="text-center" style={{width: '50px'}}>क्र.सं.</th>
                                 <th>योजना का नाम</th>
-                                <th className="text-end">आवंटित मात्रा</th>
+                                <th className="text-end">भौतिक पूर्ति</th>
                                 <th className="text-end">{rashiOptions.find(opt => opt.value === selectedRashi)?.label}</th>
                               </tr>
                             </thead>
