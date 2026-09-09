@@ -120,9 +120,7 @@ const DemandNavigation = () => {
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
-              <NavDropdown.Item onClick={() => navigate("/UdyanBill")}>
-                उद्यान बिल
-              </NavDropdown.Item>
+            
                 
               <NavDropdown.Item onClick={handleLogout}>लॉगआउट</NavDropdown.Item>
             </NavDropdown>
