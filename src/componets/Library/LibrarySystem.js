@@ -33,6 +33,7 @@ const LibrarySystem = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -73,26 +74,93 @@ const LibrarySystem = () => {
   };
 
   // =====================================================
+  // API RESPONSE HELPERS
+  // =====================================================
+  const isApiSuccess = (response) => {
+    return (
+      response?.data?.status === true ||
+      response?.data?.success === true ||
+      response?.data?.status === "success"
+    );
+  };
+
+  const getResponseArray = (response) => {
+    const body = response?.data;
+
+    if (Array.isArray(body)) return body;
+    if (Array.isArray(body?.data)) return body.data;
+    if (Array.isArray(body?.results)) return body.results;
+    if (Array.isArray(body?.data?.results)) return body.data.results;
+
+    return [];
+  };
+
+  const toBoolean = (value) => {
+    if (value === true || value === 1 || value === "1") return true;
+    if (typeof value === "string") return value.toLowerCase() === "true";
+    return Boolean(value);
+  };
+
+  const getCategoryId = (category) => {
+    if (category == null) return null;
+    if (typeof category === "object") {
+      return category.id ?? category.category_id ?? category.pk ?? null;
+    }
+    return category;
+  };
+
+  const getDocumentCategoryId = (document) => {
+    return (
+      getCategoryId(document?.category) ??
+      document?.category_id ??
+      document?.categoryId ??
+      null
+    );
+  };
+
+  const getFileUrl = (file) => {
+    if (!file) return null;
+
+    // Backend may already return an absolute URL.
+    if (/^https?:\/\//i.test(file)) return file;
+
+    const cleanBase = MEDIA_BASE_URL.replace(/\/+$/, "");
+    const cleanFile = String(file).replace(/^\/+/, "");
+
+    return `${cleanBase}/${cleanFile}`;
+  };
+
+  // =====================================================
   // FETCH CATEGORIES
   // =====================================================
   const fetchCategories = async () => {
     try {
       setCategoryLoading(true);
+
       const response = await axios.get(`${API_BASE_URL}/categories/`, {
         headers: getHeaders(),
       });
 
-      if (response.data.status) {
-        const activeCategories = (response.data.data || []).filter(
-          (category) => category.is_active === true
+      const categoryList = getResponseArray(response);
+
+      if (isApiSuccess(response) || categoryList.length > 0) {
+        // Keep active categories for the normal category screen.
+        // Do not mutate the API objects so their IDs remain available.
+        const activeCategories = categoryList.filter((category) =>
+          toBoolean(category?.is_active)
         );
+
         setCategories(activeCategories);
       } else {
         setCategories([]);
       }
     } catch (error) {
       console.error("Category fetch error:", error);
-      alert("Unable to load library categories.");
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          "Unable to load library categories."
+      );
       setCategories([]);
     } finally {
       setCategoryLoading(false);
@@ -100,30 +168,93 @@ const LibrarySystem = () => {
   };
 
   // =====================================================
-  // FETCH DOCUMENTS (ACTIVE & INACTIVE)
+  // FETCH DOCUMENTS / BILLS FOR A CATEGORY
   // =====================================================
   const fetchDocuments = async (categoryId) => {
+    const id = getCategoryId(categoryId);
+
+    if (id === null || id === undefined || id === "") {
+      console.error("Invalid category ID:", categoryId);
+      setDocuments([]);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${API_BASE_URL}/documents/?category=${categoryId}`,
-        { headers: getHeaders() }
-      );
 
-      if (response.data.status) {
-        // We map ALL documents, removing the active filter so both active and inactive show up
-        const allDocs = (response.data.data || []).map((doc) => ({
-          ...doc,
-          file_url: doc.file ? `${MEDIA_BASE_URL}${doc.file}` : null,
-        }));
+      /*
+       * The library API can return documents in different response shapes.
+       * We also request active and inactive records separately and merge them.
+       * This is important because many Django/DRF list APIs return only active
+       * records by default.
+       *
+       * If the backend ignores is_active, the same documents can come back
+       * from both requests; the Map below removes duplicates.
+       */
+      const requests = [
+        axios.get(`${API_BASE_URL}/documents/?category=${encodeURIComponent(id)}`, {
+          headers: getHeaders(),
+        }),
+        axios.get(
+          `${API_BASE_URL}/documents/?category=${encodeURIComponent(
+            id
+          )}&is_active=true`,
+          { headers: getHeaders() }
+        ),
+        axios.get(
+          `${API_BASE_URL}/documents/?category=${encodeURIComponent(
+            id
+          )}&is_active=false`,
+          { headers: getHeaders() }
+        ),
+      ];
 
-        setDocuments(allDocs);
-      } else {
-        setDocuments([]);
-      }
+      const results = await Promise.allSettled(requests);
+
+      const documentMap = new Map();
+
+      results.forEach((result) => {
+        if (result.status !== "fulfilled") return;
+
+        const response = result.value;
+        const list = getResponseArray(response);
+
+        list.forEach((doc) => {
+          if (!doc || doc.id === undefined || doc.id === null) return;
+
+          const normalizedDocument = {
+            ...doc,
+            is_active: toBoolean(doc.is_active),
+            category_id: getDocumentCategoryId(doc) ?? id,
+            file_url: getFileUrl(doc.file_url || doc.file),
+          };
+
+          documentMap.set(String(doc.id), normalizedDocument);
+        });
+      });
+
+      const allDocs = Array.from(documentMap.values());
+
+      /*
+       * Keep only documents belonging to the selected category.
+       * This also handles APIs which return a broader list despite the query.
+       */
+      const categoryDocuments = allDocs.filter((doc) => {
+        const docCategoryId = getDocumentCategoryId(doc);
+        return (
+          docCategoryId === null ||
+          String(docCategoryId) === String(id)
+        );
+      });
+
+      setDocuments(categoryDocuments);
     } catch (error) {
       console.error("Document fetch error:", error);
-      alert("Unable to load documents.");
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          "Unable to load documents/bills."
+      );
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -134,14 +265,25 @@ const LibrarySystem = () => {
   // TOGGLE DOCUMENT STATUS (ACTIVE / INACTIVE)
   // =====================================================
   const handleToggleStatus = async (document) => {
+    if (!document?.id || statusUpdatingId === document.id) return;
+
+    const newStatus = !toBoolean(document.is_active);
+    const categoryId =
+      getDocumentCategoryId(document) ??
+      getCategoryId(selectedCategory);
+
     try {
-      const newStatus = !document.is_active;
+      setStatusUpdatingId(document.id);
+
       const formData = new FormData();
-      
-      formData.append("category", document.category);
-      formData.append("title", document.title);
+
+      if (categoryId !== null && categoryId !== undefined) {
+        formData.append("category", String(categoryId));
+      }
+
+      formData.append("title", document.title || "");
       formData.append("description", document.description || "");
-      formData.append("is_active", newStatus);
+      formData.append("is_active", newStatus ? "true" : "false");
 
       const response = await axios.put(
         `${API_BASE_URL}/documents/${document.id}/`,
@@ -154,14 +296,54 @@ const LibrarySystem = () => {
         }
       );
 
-      if (response.data.status) {
-        alert(`Document status updated to ${newStatus ? "Active" : "Inactive"}.`);
-        fetchDocuments(selectedCategory.id);
-        fetchCategories();
+      if (isApiSuccess(response) || response?.data?.data) {
+        const returnedDocument =
+          response?.data?.data &&
+          !Array.isArray(response.data.data) &&
+          typeof response.data.data === "object"
+            ? response.data.data
+            : null;
+
+        // Update the visible card immediately.
+        setDocuments((current) =>
+          current.map((item) =>
+            item.id === document.id
+              ? {
+                  ...item,
+                  ...(returnedDocument || {}),
+                  is_active: toBoolean(
+                    returnedDocument?.is_active ?? newStatus
+                  ),
+                }
+              : item
+          )
+        );
+
+        alert(
+          `Document status updated to ${
+            newStatus ? "Active" : "Inactive"
+          }.`
+        );
+
+        // Re-fetch so the UI always matches the server.
+        if (selectedCategory) {
+          await fetchDocuments(getCategoryId(selectedCategory));
+        }
+        await fetchCategories();
+      } else {
+        throw new Error(
+          response?.data?.message || "Status update was not successful."
+        );
       }
     } catch (error) {
       console.error("Status toggle error:", error);
-      alert(error.response?.data?.message || "Unable to update document status.");
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          "Unable to update document status."
+      );
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
 
@@ -176,8 +358,17 @@ const LibrarySystem = () => {
   // OPEN CATEGORY
   // =====================================================
   const handleOpenCategory = (category) => {
+    const categoryId = getCategoryId(category);
+
+    if (categoryId === null || categoryId === undefined) {
+      alert("Invalid category selected.");
+      return;
+    }
+
     setSelectedCategory(category);
-    fetchDocuments(category.id);
+    setDocuments([]);
+    setSearchTerm("");
+    fetchDocuments(categoryId);
   };
 
   // =====================================================
@@ -349,7 +540,10 @@ const LibrarySystem = () => {
         formData.append("file", editForm.file);
       }
 
-      formData.append("is_active", "true");
+      formData.append(
+        "is_active",
+        toBoolean(editingDocument.is_active) ? "true" : "false"
+      );
 
       const response = await axios.put(
         `${API_BASE_URL}/documents/${editingDocument.id}/`,
@@ -401,11 +595,15 @@ const LibrarySystem = () => {
   };
 
   const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    String(category?.name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   const filteredDocuments = documents.filter((document) =>
-    document.title.toLowerCase().includes(searchTerm.toLowerCase())
+    String(document?.title || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   // =====================================================
@@ -536,6 +734,8 @@ const LibrarySystem = () => {
                       className={`library-icon-btn status ${document.is_active ? "active" : "inactive"}`}
                       title={document.is_active ? "Set Inactive" : "Set Active"}
                       onClick={() => handleToggleStatus(document)}
+                      disabled={statusUpdatingId === document.id}
+                      aria-busy={statusUpdatingId === document.id}
                     >
                       {document.is_active ? <FaToggleOn /> : <FaToggleOff />}
                     </button>
