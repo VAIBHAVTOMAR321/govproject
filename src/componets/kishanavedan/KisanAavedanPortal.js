@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./kisan-aavedan-portal.css";
 
 const NALI_HA = 0.02;
@@ -608,6 +608,19 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
 }
 
 export default function KisanAavedanPortal() {
+  /*
+   * Remove the legacy draft created by older versions of the portal.
+   * The current application does NOT save form data as a draft.
+   * This cleanup runs only once when the component is mounted.
+   */
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem("udyan-aavedan:draft");
+    } catch (error) {
+      console.warn("Legacy draft cleanup failed:", error);
+    }
+  }, []);
+
   const API_BASE = "https://mahadevaaya.com/govbillingsystem/backend/api";
 
   const [schemeId, setSchemeId] = useState(null);
@@ -618,6 +631,15 @@ export default function KisanAavedanPortal() {
   const [completedSteps, setCompletedSteps] = useState(() => new Set());
   const [apiLoading, setApiLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+
+  // Always return the user to the top when moving between form steps.
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "smooth",
+    });
+  };
 
   const scheme = schemeId ? SCHEMES[schemeId] : null;
   const calc = useMemo(
@@ -653,6 +675,11 @@ export default function KisanAavedanPortal() {
     "Chain Link": "चेन लिंक फेंसिंग",
     "Barbed Wire": "कांटेदार तार की बाड़",
   };
+
+  // Never put the literal text "null" into an input. A null API value means
+  // that the field is empty and therefore the step is NOT complete.
+  const apiText = (value) =>
+    value === null || value === undefined ? "" : String(value);
 
   const genderApi = { पुरुष: "Male", महिला: "Female", अन्य: "Other" };
   const categoryApi = {
@@ -703,21 +730,28 @@ export default function KisanAavedanPortal() {
       ...(personal.post !== undefined ? { post: personal.post } : {}),
       ...(personal.block !== undefined ? { block: personal.block } : {}),
       ...(personal.district !== undefined ? { district: personal.district } : {}),
-      ...(personal.mobile !== undefined ? { mobile: String(personal.mobile) } : {}),
-      ...(personal.aadhaar !== undefined ? { aadhaar: String(personal.aadhaar) } : {}),
+      ...(personal.mobile !== undefined ? { mobile: apiText(personal.mobile) } : {}),
+      ...(personal.aadhaar !== undefined ? { aadhaar: apiText(personal.aadhaar) } : {}),
       ...(personal.category !== undefined ? { category: normalizeCategory[personal.category] || personal.category } : {}),
       ...(personal.photo !== undefined ? { photo: personal.photo || "" } : {}),
 
       // From Plan Technical Bank
-      ...(plan.total_land !== undefined ? { totalLand: String(plan.total_land) } : {}),
-      ...(plan.proposed_area !== undefined ? { propArea_val: String(plan.proposed_area) } : {}),
-      ...(plan.latitude !== undefined ? { lat: String(plan.latitude) } : {}),
-      ...(plan.longitude !== undefined ? { lng: String(plan.longitude) } : {}),
-      ...(plan.bank_name !== undefined ? { bankName: plan.bank_name } : {}),
+      ...(plan.total_land !== undefined ? { totalLand: apiText(plan.total_land) } : {}),
+      ...(plan.proposed_area !== undefined ? { propArea_val: apiText(plan.proposed_area) } : {}),
+      ...(plan.latitude !== undefined ? { lat: apiText(plan.latitude) } : {}),
+      ...(plan.longitude !== undefined ? { lng: apiText(plan.longitude) } : {}),
+      ...(plan.irrigation !== undefined ? { irrigation: normalizeIrrigation[plan.irrigation] || plan.irrigation } : {}),
+      ...(plan.irr_source !== undefined ? { irrSource: Array.isArray(plan.irr_source) ? plan.irr_source : [] } : {}),
+      ...(plan.irr_other !== undefined ? { irrOther: plan.irr_other || "" } : {}),
+      ...(plan.altitude !== undefined ? { altitude: apiText(plan.altitude) } : {}),
+      ...(plan.road_dist !== undefined ? { roadDist: apiText(plan.road_dist) } : {}),
+      ...(plan.slope !== undefined ? { slope: normalizeSlope[plan.slope] || plan.slope } : {}),
+      ...(plan.soil !== undefined ? { soil: plan.soil || "" } : {}),
+      ...(plan.bank_name !== undefined ? { bankName: plan.bank_name || "" } : {}),
       ...(plan.branch !== undefined ? { branch: plan.branch } : {}),
-      ...(plan.account !== undefined ? { account: String(plan.account) } : {}),
+      ...(plan.account !== undefined ? { account: apiText(plan.account) } : {}),
       ...(plan.ifsc !== undefined ? { ifsc: plan.ifsc } : {}),
-      ...(plan.cost_per_ha !== undefined ? { costPerHa: String(plan.cost_per_ha) } : {}),
+      ...(plan.cost_per_ha !== undefined ? { costPerHa: apiText(plan.cost_per_ha) } : {}),
       ...(plan.plan_type !== undefined ? { planType: normalizePlanType[plan.plan_type] || plan.plan_type } : {}),
       ...(plan.group_name !== undefined ? { groupName: plan.group_name || "" } : {}),
       ...(plan.contribution !== undefined ? { contribution: plan.contribution } : {}),
@@ -747,7 +781,7 @@ export default function KisanAavedanPortal() {
     }
 
     setData(nextData);
-    return { item, personal, plan, docs };
+    return { item, personal, plan, docs, nextData };
   };
 
   const getApplication = async (id = formId) => {
@@ -766,6 +800,512 @@ export default function KisanAavedanPortal() {
       );
     return mergeApiResponse(payload);
   };
+
+
+  /*
+   * ============================================================
+   * RESUME EXISTING APPLICATION FROM SERVER
+   * ============================================================
+   *
+   * No draft/localStorage data is used.
+   *
+   * On refresh / re-entry, the frontend asks the API for the
+   * current user's existing application. The backend should
+   * return the current application from:
+   *
+   * GET /kisan-application/
+   *
+   * If the backend requires form_id even for this request, it
+   * must expose a current-user/current-application lookup.
+   */
+  const getCurrentApplicationFromServer = async () => {
+    try {
+      setApiLoading(true);
+      setApiError("");
+
+      const response = await fetch(`${API_BASE}/kisan-application/`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      console.log(
+        `[RESUME] GET /kisan-application/ → ${response.status}`,
+        payload
+      );
+
+      if (response.status === 404 || response.status === 204) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.message ||
+            payload?.error ||
+            payload?.detail ||
+            `Application GET failed (${response.status})`
+        );
+      }
+
+      let candidates = [];
+
+      if (Array.isArray(payload)) {
+        candidates = payload;
+      } else if (Array.isArray(payload?.data)) {
+        candidates = payload.data;
+      } else if (payload?.data && typeof payload.data === "object") {
+        candidates = [payload.data];
+      } else if (payload && typeof payload === "object") {
+        candidates = [payload];
+      }
+
+      const applications = candidates.filter(
+        (item) =>
+          item &&
+          typeof item === "object" &&
+          (
+            item.personal ||
+            item.plan_technical_bank ||
+            item.application_documents ||
+            item.form_id
+          )
+      );
+
+      if (!applications.length) {
+        console.log("[RESUME] No existing application found.");
+        return null;
+      }
+
+      const application = [...applications].sort((a, b) => {
+        const dateA = new Date(
+          a.updated_at ||
+            a.updatedAt ||
+            a.application_documents?.updated_at ||
+            a.plan_technical_bank?.updated_at ||
+            a.personal?.updated_at ||
+            0
+        ).getTime();
+
+        const dateB = new Date(
+          b.updated_at ||
+            b.updatedAt ||
+            b.application_documents?.updated_at ||
+            b.plan_technical_bank?.updated_at ||
+            b.personal?.updated_at ||
+            0
+        ).getTime();
+
+        return dateB - dateA;
+      })[0];
+
+      const existingFormId =
+        application.form_id ||
+        application.formId ||
+        application.id ||
+        "";
+
+      if (!existingFormId) {
+        throw new Error(
+          "सर्वर से आवेदन मिला लेकिन form_id नहीं मिला।"
+        );
+      }
+
+      /*
+       * Now call the exact GET endpoint already used elsewhere:
+       * /kisan-application/?form_id=FORM-XXXXXX
+       */
+      await getApplication(String(existingFormId));
+
+      return application;
+    } catch (error) {
+      console.error("[RESUME] Could not restore application:", error);
+
+      setApiError(
+        error.message ||
+          "सर्वर से पिछला आवेदन प्राप्त नहीं हो सका।"
+      );
+
+      return null;
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  /*
+   * Detect the scheme from the server response.
+   *
+   * Preferred: explicit scheme_id / scheme_code / scheme.
+   * Fallback:
+   *   fencing_type => fencing
+   *   30% contribution => kiwi
+   *   20% contribution => dragon
+   *
+   * The backend should ideally return scheme_id explicitly.
+   */
+  const detectSchemeIdFromApplication = (application) => {
+    if (!application || typeof application !== "object") {
+      return null;
+    }
+
+    const personal = application.personal || {};
+    const plan = application.plan_technical_bank || {};
+
+    const explicitScheme =
+      application.scheme_id ||
+      application.schemeId ||
+      application.scheme_code ||
+      application.schemeCode ||
+      application.scheme ||
+      application.scheme_name ||
+      application.schemeName ||
+      application.application_scheme ||
+      application.applicationScheme ||
+      personal.scheme_id ||
+      personal.scheme_code ||
+      personal.scheme ||
+      plan.scheme_id ||
+      plan.scheme_code ||
+      plan.scheme;
+
+    const explicit = String(explicitScheme || "").trim().toLowerCase();
+
+    if (
+      explicit === "fencing" ||
+      explicit.includes("fencing") ||
+      explicit.includes("फेंसिंग") ||
+      explicit.includes("clf")
+    ) {
+      return "fencing";
+    }
+
+    if (
+      explicit === "kiwi" ||
+      explicit.includes("kiwi") ||
+      explicit.includes("कीवी") ||
+      explicit.includes("kwi")
+    ) {
+      return "kiwi";
+    }
+
+    if (
+      explicit === "dragon" ||
+      explicit.includes("dragon") ||
+      explicit.includes("ड्रैगन") ||
+      explicit.includes("कमलम") ||
+      explicit.includes("drf")
+    ) {
+      return "dragon";
+    }
+
+    if (personal.fencing_type) {
+      return "fencing";
+    }
+
+    const contribution = String(plan.contribution || "").toLowerCase();
+
+    if (contribution.includes("30")) {
+      return "kiwi";
+    }
+
+    if (contribution.includes("20")) {
+      return "dragon";
+    }
+
+    return null;
+  };
+
+  /*
+   * A step is completed ONLY when every required field for that step
+   * has a valid value. Boolean required fields (for example accept/declare)
+   * must specifically be true.
+   */
+  const getCompletedStepsFromData = (schemeKey, serverData) => {
+    const completed = new Set();
+
+    if (!schemeKey || !serverData) return completed;
+
+    // IMPORTANT: API values such as null, "null", undefined and empty strings
+    // must never be treated as filled values.
+    const hasValue = (value) => {
+      if (Array.isArray(value)) return value.length > 0;
+      if (typeof value === "boolean") return value === true;
+      if (value === null || value === undefined) return false;
+
+      const normalized = String(value).trim().toLowerCase();
+      return normalized !== "" && normalized !== "null" && normalized !== "undefined";
+    };
+
+    const isValidFormat = (field) => {
+      const value = String(serverData[field] ?? "").trim();
+      if (!value) return false;
+
+      if (field === "mobile")
+        return /^[6-9]\d{9}$/.test(value.replace(/\D/g, ""));
+      if (field === "aadhaar")
+        return /^\d{12}$/.test(value.replace(/\D/g, ""));
+      if (field === "account")
+        return /^\d{9,18}$/.test(value.replace(/\s/g, ""));
+      if (field === "ifsc")
+        return /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(value);
+
+      return true;
+    };
+
+    const requiredFieldsForStep = (stepName) => {
+      if (schemeKey === "fencing") {
+        if (stepName === "scheme")
+          return ["planScheme", "fencingType", "subsidyRatio", "centerName"];
+
+        if (stepName === "personal")
+          return [
+            "name", "gender", "father", "village", "block", "district",
+            "mobile", "aadhaar", "category",
+          ];
+
+        if (stepName === "land")
+          return ["totalLand", "propArea_val", "lat", "lng"];
+
+        if (stepName === "bank")
+          return ["bankName", "branch", "account", "ifsc"];
+
+        // Keep this exactly aligned with validate(): for fencing,
+        // only Accept is required at the technical step.
+        if (stepName === "technical") return ["accept"];
+
+        // No document checkbox is required by validate(), therefore this
+        // step is complete by default unless required fields are added later.
+        if (stepName === "docs") return [];
+
+        if (stepName === "declaration")
+          return ["place", "date", "declare"];
+      } else {
+        if (stepName === "personal")
+          return [
+            "name", "gender", "father", "village", "block", "district",
+            "mobile", "aadhaar", "category",
+          ];
+
+        if (stepName === "land") {
+          const fields = [
+            "totalLand", "propArea_val", "lat", "lng", "irrigation",
+            "altitude", "roadDist", "slope", "soil",
+          ];
+          if (serverData.irrigation === "हाँ") fields.push("irrSource");
+          return fields;
+        }
+
+        if (stepName === "planbank") {
+          // IMPORTANT: Plan + Bank is one step in the UI, so ALL of these
+          // fields must be present before the step receives a green tick.
+          const fields = [
+            "planScheme", "planType", "contribution",
+            "bankName", "branch", "account", "ifsc",
+          ];
+          if (serverData.planType === "समूह") fields.push("groupName");
+          if (serverData.contribution === "अन्य योजना") fields.push("otherScheme");
+          return fields;
+        }
+
+        if (stepName === "technical") return ["execution", "accept"];
+        if (stepName === "docs") return [];
+        if (stepName === "declaration") return ["place", "date", "declare"];
+      }
+
+      return [];
+    };
+
+    const steps = SCHEMES[schemeKey]?.steps || [];
+
+    steps.forEach((stepName) => {
+      const requiredFields = requiredFieldsForStep(stepName);
+      const isComplete = requiredFields.every(
+        (field) => hasValue(serverData[field]) && isValidFormat(field)
+      );
+
+      if (isComplete) completed.add(stepName);
+    });
+
+    return completed;
+  };
+
+  /*
+   * Populate the form from the server response, mark completed
+   * steps and open the first incomplete step.
+   */
+  const resumeApplication = async () => {
+    const application = await getCurrentApplicationFromServer();
+
+    if (!application) {
+      return false;
+    }
+
+    const detectedScheme = detectSchemeIdFromApplication(application);
+
+    if (!detectedScheme || !SCHEMES[detectedScheme]) {
+      setApiError(
+        "सर्वर से आवेदन मिला है, लेकिन योजना की पहचान नहीं हो सकी। " +
+        "GET response में scheme_id / scheme_code लौटाएँ।"
+      );
+      return false;
+    }
+
+    const personal = application.personal || {};
+    const plan = application.plan_technical_bank || {};
+    const docs = application.application_documents || {};
+
+    const restoredData = {
+      ...initialData,
+
+      centerName: personal.center_name || "",
+
+      planScheme:
+        personal.plan_scheme ||
+        plan.plan_scheme ||
+        "",
+
+      fencingType:
+        normalizeFencing[personal.fencing_type] ||
+        personal.fencing_type ||
+        "",
+
+      subsidyRatio: personal.subsidy_ratio || "",
+
+      name: personal.name || "",
+      gender:
+        normalizeGender[personal.gender] ||
+        personal.gender ||
+        "",
+      father: personal.father || "",
+      udyanCard: personal.udyan_card || "",
+      village: personal.village || "",
+      post: personal.post || "",
+      block: personal.block || "",
+      district: personal.district || "",
+      mobile: apiText(personal.mobile),
+      aadhaar: apiText(personal.aadhaar),
+      category:
+        normalizeCategory[personal.category] ||
+        personal.category ||
+        "",
+      photo: personal.photo || "",
+
+      totalLand: apiText(plan.total_land),
+      propArea_val: apiText(plan.proposed_area),
+      lat: apiText(plan.latitude),
+      lng: apiText(plan.longitude),
+      irrigation: normalizeIrrigation[plan.irrigation] || plan.irrigation || "",
+      irrSource: Array.isArray(plan.irr_source) ? plan.irr_source : [],
+      irrOther: plan.irr_other || "",
+      altitude: apiText(plan.altitude),
+      roadDist: apiText(plan.road_dist),
+      slope: normalizeSlope[plan.slope] || plan.slope || "",
+      soil: plan.soil || "",
+
+      bankName: plan.bank_name || "",
+      branch: plan.branch || "",
+      account: apiText(plan.account),
+      ifsc: plan.ifsc || "",
+
+      costPerHa: apiText(plan.cost_per_ha),
+      planType:
+        normalizePlanType[plan.plan_type] ||
+        plan.plan_type ||
+        "",
+      groupName: plan.group_name || "",
+      contribution: plan.contribution || "",
+      otherScheme: plan.other_scheme || "",
+
+      execution:
+        normalizeExecution[docs.execution] ||
+        docs.execution ||
+        "",
+      firmName: docs.firm_name || "",
+      accept: !!docs.technical_standard_accepted,
+      place: docs.place || "",
+      date: docs.application_date || "",
+      docs: Array.isArray(docs.documents)
+        ? docs.documents
+        : [],
+      declare: !!docs.declaration_accepted,
+    };
+
+    const restoredFormId =
+      application.form_id ||
+      application.formId ||
+      application.id ||
+      "";
+
+    // Existing server data means the application already exists. Keep its
+    // form_id so the first step uses PUT, not another POST.
+    setFormId(restoredFormId ? String(restoredFormId) : "");
+    setSchemeId(detectedScheme);
+    setData(restoredData);
+
+    const completed = getCompletedStepsFromData(
+      detectedScheme,
+      restoredData
+    );
+
+    setCompletedSteps(completed);
+
+    const steps = SCHEMES[detectedScheme].steps;
+    const firstIncompleteIndex = steps.findIndex(
+      (stepName) => !completed.has(stepName)
+    );
+
+    setStep(
+      firstIncompleteIndex === -1
+        ? steps.length
+        : firstIncompleteIndex
+    );
+
+    setErrors({});
+    setApiError("");
+
+    console.log("[RESUME] Scheme:", detectedScheme);
+    console.log(
+      "[RESUME] Form ID:",
+      application.form_id ||
+        application.formId ||
+        application.id ||
+        ""
+    );
+    console.log(
+      "[RESUME] Completed steps:",
+      Array.from(completed)
+    );
+    console.log(
+      "[RESUME] Opening step:",
+      firstIncompleteIndex === -1
+        ? "review"
+        : steps[firstIncompleteIndex]
+    );
+
+    return true;
+  };
+
+  /*
+   * Run resume whenever this component is mounted.
+   * No draft/localStorage data is read.
+   */
+  useEffect(() => {
+    resumeApplication();
+  }, []);
+
+  // Keep the step indicators accurate while the user edits the form.
+  // If even one required field becomes empty/invalid, the green tick is removed
+  // immediately and the step shows ! instead.
+  useEffect(() => {
+    if (!schemeId) {
+      setCompletedSteps(new Set());
+      return;
+    }
+
+    setCompletedSteps(getCompletedStepsFromData(schemeId, data));
+  }, [schemeId, data]);
 
   const apiRequest = async (path, method, body) => {
     setApiLoading(true);
@@ -866,6 +1406,16 @@ export default function KisanAavedanPortal() {
     center_name: data.centerName || "",
   });
 
+  // When an existing fencing application is resumed from GET, step 1 must
+  // be updated with PUT instead of creating another application with POST.
+  const fencingSchemeUpdatePayload = () => ({
+    form_id: formId,
+    plan_scheme: data.planScheme || "",
+    fencing_type: fencingApi[data.fencingType] || data.fencingType || "",
+    subsidy_ratio: data.subsidyRatio || "",
+    center_name: data.centerName || "",
+  });
+
   const personalCreatePayload = () => ({
     name: data.name || "",
     gender: genderApi[data.gender] || data.gender || "",
@@ -940,9 +1490,16 @@ export default function KisanAavedanPortal() {
     setCompletedSteps((prev) => new Set([...prev, type]));
   };
 
-  const syncFromGetAndMark = async (type) => {
+  const syncFromGetAndMark = async () => {
     const result = await getApplication();
-    if (type) markCompleted(type);
+
+    // Never blindly mark a step complete after PUT. Recalculate completion
+    // from the actual server response so a missing required field stays !.
+    const currentData = result?.nextData || data;
+    if (schemeId) {
+      setCompletedSteps(getCompletedStepsFromData(schemeId, currentData));
+    }
+
     return result;
   };
 
@@ -953,89 +1510,318 @@ export default function KisanAavedanPortal() {
     }
 
     try {
-      if (current === "scheme") {
-        if (schemeId === "fencing") {
-          console.log("[Step:Scheme] Fencing → POST fencingCreatePayload");
-          const created = await apiRequest("kisan-application/", "POST", fencingCreatePayload());
+      /*
+       * ============================================================
+       * FIRST STEP - CREATE APPLICATION
+       * ============================================================
+       *
+       * First step of every scheme uses:
+       *
+       * POST /kisan-application/
+       *
+       * Fencing:
+       *   Step 0 = scheme
+       *
+       * Other schemes:
+       *   Step 0 = personal
+       *
+       * This POST is used only once to create the application
+       * and obtain the server-generated form_id.
+       */
+      if (step === 0) {
+        // A brand-new application has no form_id, so POST is used exactly once.
+        // If GET already restored an application and form_id exists, NEVER POST
+        // again. Update the first step with PUT.
+        if (!formId) {
+          if (schemeId === "fencing") {
+            console.log("[STEP 1] New fencing application → POST /kisan-application/");
 
-          const createdItem = mergeApiResponse(created);
+            const created = await apiRequest(
+              "kisan-application/",
+              "POST",
+              fencingCreatePayload()
+            );
 
-          const newId =
-            extractFormId(created) ||
-            createdItem?.item?.form_id ||
-            createdItem?.item?.id ||
-            created?.data?.[0]?.form_id ||
-            created?.data?.[0]?.id ||
-            "";
+            const createdItem = mergeApiResponse(created);
+            const newId =
+              extractFormId(created) ||
+              createdItem?.item?.form_id ||
+              createdItem?.item?.id ||
+              created?.data?.[0]?.form_id ||
+              created?.data?.[0]?.id ||
+              "";
 
-          if (!newId) {
-            console.error("[Step:Scheme] POST successful (201) but form_id missing. Response:", created);
-            throw new Error("POST सफल रहा (201) लेकिन response में form_id नहीं मिला।");
+            if (!newId) throw new Error("POST सफल रहा लेकिन response में form_id नहीं मिला।");
+
+            setFormId(String(newId));
+            await getApplication(String(newId));
+          } else {
+            console.log("[STEP 1] New personal application → POST /kisan-application/");
+
+            const created = await apiRequest(
+              "kisan-application/",
+              "POST",
+              personalCreatePayload()
+            );
+
+            const createdItem = mergeApiResponse(created);
+            const newId =
+              extractFormId(created) ||
+              createdItem?.item?.form_id ||
+              createdItem?.item?.id ||
+              created?.data?.[0]?.form_id ||
+              created?.data?.[0]?.id ||
+              "";
+
+            if (!newId) throw new Error("POST सफल रहा लेकिन response में form_id नहीं मिला।");
+
+            setFormId(String(newId));
+            await getApplication(String(newId));
+          }
+        } else {
+          // Existing/resumed application: first step is editable and PUT is used.
+          if (schemeId === "fencing") {
+            console.log("[STEP 1] Existing fencing application → PUT /kisan-personal-land-update/");
+            await apiRequest(
+              "kisan-personal-land-update/",
+              "PUT",
+              fencingSchemeUpdatePayload()
+            );
+          } else {
+            console.log("[STEP 1] Existing personal application → PUT /kisan-personal-land-update/");
+            await apiRequest(
+              "kisan-personal-land-update/",
+              "PUT",
+              personalPayload()
+            );
           }
 
-          setFormId(newId);
-          markCompleted("scheme");
-          await getApplication(newId);
+          const synced = await syncFromGetAndMark();
+          if (synced?.nextData) {
+            const syncedCompleted = getCompletedStepsFromData(schemeId, synced.nextData);
+            setCompletedSteps(syncedCompleted);
+            if (!syncedCompleted.has(current)) return false;
+          }
         }
+
+        // Only move forward after successful POST/PUT and after the step is
+        // actually complete according to the same required-field rules.
+        const latestCompleted = getCompletedStepsFromData(schemeId, data);
+        if (!latestCompleted.has(current)) return false;
+
+        setCompletedSteps(latestCompleted);
         setStep((s) => s + 1);
+        scrollToTop();
         return true;
       }
 
-      if (current === "personal") {
-        if (!formId) {
-          console.log("[Step:Personal] Non-fencing → POST personalCreatePayload");
-          const created = await apiRequest("kisan-application/", "POST", personalCreatePayload());
-          const createdItem = mergeApiResponse(created);
-          const newId = extractFormId(created) || createdItem?.item?.form_id || created?.data?.[0]?.form_id;
-          if (!newId) throw new Error("POST response में form_id नहीं मिला।");
-          setFormId(newId);
-          await getApplication(newId);
-        } else {
-          console.log("[Step:Personal] → PUT personalPayload");
-          await apiRequest("kisan-personal-land-update/", "PUT", personalPayload());
-          await syncFromGetAndMark("personal");
-        }
-        markCompleted("personal");
-      } else if (current === "land") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        console.log("[Step:Land] → PUT landPayload to kisan-plan-technical-bank-update/");
-        await apiRequest("kisan-plan-technical-bank-update/", "PUT", landPayload());
-        await syncFromGetAndMark("land");
-      } else if (current === "bank") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        console.log("[Step:Bank] → PUT bankPayload to kisan-plan-technical-bank-update/");
-        await apiRequest("kisan-plan-technical-bank-update/", "PUT", bankPayload());
-        await syncFromGetAndMark("bank");
-      } else if (current === "planbank") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        console.log("[Step:PlanBank] → PUT planBankPayload to kisan-plan-technical-bank-update/");
-        await apiRequest("kisan-plan-technical-bank-update/", "PUT", planBankPayload());
-        await syncFromGetAndMark("planbank");
-      } else if (current === "technical") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        console.log("[Step:Technical] → PUT techDocsPayload to kisan-application-documents-update/");
-        await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
-        await syncFromGetAndMark("technical");
-      } else if (current === "docs") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        console.log("[Step:Docs] → PUT techDocsPayload to kisan-application-documents-update/");
-        await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
-        await syncFromGetAndMark("docs");
-      } else if (current === "declaration") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        console.log("[Step:Declaration] → PUT techDocsPayload to kisan-application-documents-update/");
-        await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
-        await syncFromGetAndMark("declaration");
+      /*
+       * ============================================================
+       * STEP 2 ONWARDS
+       * ============================================================
+       *
+       * From this point onward:
+       *
+       * - NO POST
+       * - Existing form_id is mandatory
+       * - All updates use PUT
+       *
+       * If PUT fails, the user remains on the current step.
+       */
+      if (!formId) {
+        throw new Error(
+          "form_id उपलब्ध नहीं है। पहले आवेदन का POST सफल होना आवश्यक है।"
+        );
       }
 
+      /*
+       * ------------------------------------------------------------
+       * PERSONAL
+       * ------------------------------------------------------------
+       */
+      if (current === "personal") {
+        console.log(
+          "[PERSONAL] → PUT /kisan-personal-land-update/"
+        );
+
+        await apiRequest(
+          "kisan-personal-land-update/",
+          "PUT",
+          personalPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * LAND
+       * ------------------------------------------------------------
+       *
+       * PUT /kisan-plan-technical-bank-update/
+       *
+       * Example payload:
+       * {
+       *   form_id: "FORM-000001",
+       *   total_land: "5.5000",
+       *   proposed_area: "2.2500",
+       *   latitude: "30.3165000",
+       *   longitude: "78.0322000"
+       * }
+       */
+      else if (current === "land") {
+        console.log(
+          "[LAND] → PUT /kisan-plan-technical-bank-update/"
+        );
+
+        await apiRequest(
+          "kisan-plan-technical-bank-update/",
+          "PUT",
+          landPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * BANK
+       * ------------------------------------------------------------
+       *
+       * PUT /kisan-plan-technical-bank-update/
+       *
+       * Example payload:
+       * {
+       *   form_id: "FORM-000001",
+       *   bank_name: "State Bank of India",
+       *   branch: "Doiwala",
+       *   account: "123456789012",
+       *   ifsc: "SBIN0001234"
+       * }
+       */
+      else if (current === "bank") {
+        console.log(
+          "[BANK] → PUT /kisan-plan-technical-bank-update/"
+        );
+
+        await apiRequest(
+          "kisan-plan-technical-bank-update/",
+          "PUT",
+          bankPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * PLAN + BANK
+       * ------------------------------------------------------------
+       */
+      else if (current === "planbank") {
+        console.log(
+          "[PLAN BANK] → PUT /kisan-plan-technical-bank-update/"
+        );
+
+        await apiRequest(
+          "kisan-plan-technical-bank-update/",
+          "PUT",
+          planBankPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * TECHNICAL
+       * ------------------------------------------------------------
+       */
+      else if (current === "technical") {
+        console.log(
+          "[TECHNICAL] → PUT /kisan-application-documents-update/"
+        );
+
+        await apiRequest(
+          "kisan-application-documents-update/",
+          "PUT",
+          techDocsPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * DOCUMENTS
+       * ------------------------------------------------------------
+       */
+      else if (current === "docs") {
+        console.log(
+          "[DOCUMENTS] → PUT /kisan-application-documents-update/"
+        );
+
+        await apiRequest(
+          "kisan-application-documents-update/",
+          "PUT",
+          techDocsPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * ------------------------------------------------------------
+       * DECLARATION
+       * ------------------------------------------------------------
+       */
+      else if (current === "declaration") {
+        console.log(
+          "[DECLARATION] → PUT /kisan-application-documents-update/"
+        );
+
+        await apiRequest(
+          "kisan-application-documents-update/",
+          "PUT",
+          techDocsPayload()
+        );
+
+        await syncFromGetAndMark();
+      }
+
+      /*
+       * Move forward only after the API request succeeds AND the server data
+       * confirms that every required field in this step is complete.
+       */
+      const latestCompleted = getCompletedStepsFromData(schemeId, data);
+      if (!latestCompleted.has(current)) {
+        setCompletedSteps(latestCompleted);
+        setApiError("इस चरण की सभी आवश्यक जानकारी भरना अनिवार्य है।");
+        return false;
+      }
+
+      setCompletedSteps(latestCompleted);
       setStep((s) => s + 1);
+      scrollToTop();
+
       return true;
     } catch (error) {
-      console.error("Kisan application API error:", error);
+      console.error(
+        "[KISAN APPLICATION] API submission failed:",
+        error
+      );
+
+      /*
+       * Do not move to the next step if the API request fails.
+       * The user stays on the current step and can retry.
+       */
       return false;
     }
   };
 
+  // Keep input updates simple and synchronous. Do not recreate input components
+  // inside this parent during typing; TextInput is defined at module scope.
+  // This preserves focus so the user can type continuously without re-clicking.
   const set = (k, v) => {
     setData((d) => ({ ...d, [k]: v }));
     setErrors((e) => ({ ...e, [k]: false }));
@@ -1137,7 +1923,11 @@ export default function KisanAavedanPortal() {
     return Object.keys(e).length === 0;
   };
 
-  const next = () => submitCurrentStep();
+  const next = () => {
+    // The only way to move forward is through successful validation + API
+    // save of the current step. This keeps the form strictly serial.
+    return submitCurrentStep();
+  };
   const gps = () => {
     if (!navigator.geolocation)
       return alert("इस ब्राउज़र में GPS उपलब्ध नहीं है।");
@@ -1389,7 +2179,7 @@ export default function KisanAavedanPortal() {
 
   const total = scheme.steps.length;
   const current = scheme.steps[step];
-  const currentLocked = completedSteps.has(current);
+  const currentLocked = false; // Server-completed steps remain editable.
 
   return (
     <>
@@ -1424,6 +2214,67 @@ export default function KisanAavedanPortal() {
               <i style={{ width: `${((step + 1) / total) * 100}%` }} />
             </div>
           </div>
+          {scheme && (
+            <div
+              className="server-step-status"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px",
+                margin: "14px 0 18px",
+              }}
+            >
+              {(() => {
+                const firstIncompleteIndex = scheme.steps.findIndex(
+                  (name) => !completedSteps.has(name)
+                );
+                const maxAccessibleIndex =
+                  firstIncompleteIndex === -1
+                    ? scheme.steps.length
+                    : firstIncompleteIndex;
+
+                return scheme.steps.map((stepName, index) => {
+                  const isCompleted = completedSteps.has(stepName);
+                  const isCurrent = index === step;
+                  const canNavigate = index <= maxAccessibleIndex;
+
+                  return (
+                  <button
+                    key={stepName}
+                    type="button"
+                    disabled={!canNavigate}
+                    onClick={() => {
+                      if (canNavigate) setStep(index);
+                    }}
+                    style={{
+                      border: isCurrent
+                        ? "2px solid #2563eb"
+                        : isCompleted
+                          ? "1px solid #86efac"
+                          : "1px solid #fdba74",
+                      background: isCompleted
+                        ? "#ecfdf5"
+                        : "#fff7ed",
+                      color: isCompleted
+                        ? "#166534"
+                        : "#c2410c",
+                      borderRadius: "999px",
+                      padding: "7px 12px",
+                      cursor: canNavigate ? "pointer" : "not-allowed",
+                      opacity: canNavigate ? 1 : 0.55,
+                      fontSize: "13px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isCompleted ? "✓ " : "! "}
+                    {stepTitles[stepName]}
+                  </button>
+                  );
+                });
+              })()}
+            </div>
+          )}
+
           {step < total ? (
             <section
               className={`form-card ${currentLocked ? "locked-step" : ""}`}
@@ -1441,16 +2292,26 @@ export default function KisanAavedanPortal() {
                 </div>
               </div>
               <fieldset
-                disabled={currentLocked}
                 className="step-fieldset"
                 style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
               >
                 <div className="form-grid">{renderStep(current)}</div>
               </fieldset>
-              {currentLocked && (
-                <div className="locked-note">
-                  यह चरण सर्वर पर पहले ही सुरक्षित हो चुका है और अब केवल पढ़ने
-                  के लिए है।
+              {completedSteps.has(current) && (
+                <div
+                  className="locked-note"
+                  style={{
+                    color: "#166534",
+                    background: "#ecfdf5",
+                    border: "1px solid #bbf7d0",
+                    padding: "9px 12px",
+                    borderRadius: "8px",
+                    marginTop: "12px",
+                  }}
+                >
+                  ✓ यह चरण सर्वर से प्राप्त हुआ है। आप इसकी जानकारी
+                  <b> संपादित</b> कर सकते हैं और "आगे बढ़ें" दबाकर PUT से
+                  अपडेट कर सकते हैं।
                 </div>
               )}
             </section>
@@ -1469,7 +2330,10 @@ export default function KisanAavedanPortal() {
               ) : (
                 <button
                   className="btn ghost"
-                  onClick={() => setStep((s) => s - 1)}
+                  onClick={() => {
+                    setStep((s) => s - 1);
+                    scrollToTop();
+                  }}
                 >
                   पीछे
                 </button>
@@ -1478,7 +2342,7 @@ export default function KisanAavedanPortal() {
                 <button
                   className="btn"
                   onClick={next}
-                  disabled={apiLoading || currentLocked}
+                  disabled={apiLoading}
                 >
                   {apiLoading
                     ? "सहेजा जा रहा है..."
@@ -1753,7 +2617,7 @@ export default function KisanAavedanPortal() {
           </button>
         </>
       );
-    if (type === "bank") return <BankFields />;
+    if (type === "bank") return renderBankFields();
     if (type === "planbank")
       return (
         <>
@@ -1803,7 +2667,7 @@ export default function KisanAavedanPortal() {
               <TextInput data={data} set={set} k="otherScheme" />
             </Field>
           )}
-          <BankFields />
+          {renderBankFields()}
         </>
       );
     if (type === "technical")
@@ -1907,7 +2771,11 @@ export default function KisanAavedanPortal() {
       </>
     );
   }
-  function BankFields() {
+  // Render bank fields as a render function, not a nested React component.
+  // Defining BankFields as a component inside KisanAavedanPortal recreates its
+  // component type on every parent render, which can unmount/remount inputs
+  // and cause focus to be lost after each typed character.
+  function renderBankFields() {
     return (
       <>
         {[["bankName", "बैंक का नाम"], ["branch", "शाखा"]].map(([k, l]) => (
