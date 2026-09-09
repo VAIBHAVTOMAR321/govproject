@@ -431,7 +431,7 @@ const DynamicReportTabs = ({ sourceData }) => {
 
   // Independent filters for each report tab.
   const [summaryFilters, setSummaryFilters] = useState({
-    vahan: null, kendra: null, nivesh: null, upnivesh: null
+    vahan: null, kendra: null
   });
   const [progressFilters, setProgressFilters] = useState({
     vahan: null, kendra: null, block: null, vidhan: null
@@ -440,17 +440,12 @@ const DynamicReportTabs = ({ sourceData }) => {
     kendra: null, block: null, vidhan: null, nivesh: null, upnivesh: null
   });
 
-  // Independent column visibility for EVERY TABLE.
+  // Summary report: one selector controls whether rows are shown Mad-wise or Up-Mad-wise.
+  // Default is Mad-wise, as requested.
+  const [summaryReportView, setSummaryReportView] = useState('mad');
+
+  // Independent column visibility for the remaining report tables.
   const [summaryPlanColumns, setSummaryPlanColumns] = useState(null);
-  const [summaryMadColumns, setSummaryMadColumns] = useState(null);
-  const [summarySubMadColumns, setSummarySubMadColumns] = useState(null);
-  // Independent row filters for each summary table.
-  // null = all unique grant-bearing plans, [] = no plans.
-  const [summaryPlanRowFilter, setSummaryPlanRowFilter] = useState(null);
-  const [summaryMadRowFilter, setSummaryMadRowFilter] = useState(null);
-  const [summaryMadNameFilter, setSummaryMadNameFilter] = useState(null);
-  const [summarySubMadRowFilter, setSummarySubMadRowFilter] = useState(null);
-  const [summarySubMadNameFilter, setSummarySubMadNameFilter] = useState(null);
   const [progressColumns, setProgressColumns] = useState(null);
   const [saleColumns, setSaleColumns] = useState(null);
 
@@ -460,7 +455,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     raw: item,
     kendra: item.center_name?.trim() || 'अन्य',
     kraya: item.scheme_name?.trim() || 'अन्य',
-    vahan: item.anudan_name?.trim() || '',
+    vahan: item.anudan_name?.trim() || 'अन्य',
     nivesh: item.investment_name?.trim() || 'अन्य',
     upnivesh: item.sub_investment_name?.trim() || 'अन्य',
     ikai: item.unit?.trim() || 'अन्य',
@@ -611,9 +606,7 @@ const DynamicReportTabs = ({ sourceData }) => {
   const filterDefinitions = {
     summary: [
       ['vahan', 'अनुदान वहन योजना'],
-      ['kendra', 'केंद्र'],
-      ['nivesh', 'मद'],
-      ['upnivesh', 'उप-मद']
+      ['kendra', 'केंद्र']
     ],
     progress: [
       ['vahan', 'योजना का नाम (अनुदान वहन योजना)'],
@@ -639,7 +632,7 @@ const DynamicReportTabs = ({ sourceData }) => {
 
 
   const summaryRows = useMemo(() => (
-    applyFilters(rows, summaryFilters, ['vahan', 'kendra', 'nivesh', 'upnivesh'])
+    applyFilters(rows, summaryFilters, ['vahan', 'kendra'])
       .filter(r => !fixedPlan || r.kraya !== fixedPlan)
   ), [rows, summaryFilters, fixedPlan]);
 
@@ -730,86 +723,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     { key: 'anudan', label: 'अनुदान राशि (रु0)' },
   ];
 
-  const summaryMadDefs = [
-    { key: 'sno', label: 'क्रम संख्या' },
-    { key: 'mad', label: 'मद' },
-    { key: 'vahan', label: 'योजना का नाम (अनुदान वहन योजना)' },
-    { key: 'ikai', label: 'इकाई' },
-    { key: 'matra', label: 'आवंटित मात्रा' },
-    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
-  ];
-
-  const summarySubMadDefs = [
-    { key: 'sno', label: 'क्रम संख्या' },
-    { key: 'submad', label: 'उप-मद' },
-    { key: 'vahan', label: 'योजना का नाम (अनुदान वहन योजना)' },
-    { key: 'ikai', label: 'इकाई' },
-    { key: 'matra', label: 'आवंटित मात्रा' },
-    { key: 'dar', label: 'कृषक अनुदान दर (भारित औसत)' },
-    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
-  ];
-
-
-  // Checkbox dropdown for selecting which unique "अनुदान वहन योजना"
-  // rows/groups should remain visible in each summary table.
-  const SummaryGrantPlanSelector = ({ value, setValue, options, filterId, label = 'योजना का नाम (अनुदान वहन योजना)' }) => {
-    const safeOptions = options || [];
-    const selected = value === null || value === undefined ? safeOptions : value;
-    const allSelected = value === null || value === undefined || selected.length === safeOptions.length;
-
-    const toggle = (plan) => {
-      const current = value === null || value === undefined ? [...safeOptions] : [...value];
-      const next = current.includes(plan)
-        ? current.filter(v => v !== plan)
-        : [...current, plan];
-      setValue(next.length === safeOptions.length ? null : next);
-    };
-
-    return (
-      <div className="dynamic-report-filter-wrap summary-grant-plan-selector">
-        <button
-          type="button"
-          className={`dynamic-report-filter-btn ${!allSelected ? 'filtered' : ''}`}
-          onClick={() => setOpenFilter(prev => prev === filterId ? null : filterId)}
-        >
-          <span>{label}</span>
-          <span className="dynamic-report-badge">{selected.length}/{safeOptions.length}</span>
-          <span>{openFilter === filterId ? '▲' : '▼'}</span>
-        </button>
-
-        {openFilter === filterId && (
-          <div className="dynamic-report-filter-menu">
-            <div className="dynamic-report-filter-actions">
-              <button type="button" onClick={() => setValue(null)}>सभी चुनें</button>
-              <button type="button" onClick={() => setValue([])}>कोई नहीं</button>
-            </div>
-            <div className="dynamic-report-filter-list">
-              {safeOptions.length === 0 ? (
-                <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
-              ) : safeOptions.map(plan => (
-                <label key={plan} className="dynamic-report-filter-option">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(plan)}
-                    onChange={() => toggle(plan)}
-                  />
-                  <span>{plan}</span>
-                </label>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="dynamic-report-filter-close"
-              onClick={() => setOpenFilter(null)}
-            >
-              बंद करें
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
+  // Existing scheme-wise summary table (kept as the first summary table).
   const SummaryPlanTable = () => {
     const map = new Map();
     summaryRows.forEach(r => {
@@ -820,8 +734,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     });
 
     const groups = [...map.entries()]
-      .filter(([name, g]) => g.matra > 0 && g.anudan > 0
-        && (summaryPlanRowFilter === null || summaryPlanRowFilter === undefined || summaryPlanRowFilter.includes(name)))
+      .filter(([name, g]) => g.matra > 0 && g.anudan > 0)
       .sort((a, b) => b[1].anudan - a[1].anudan);
 
     const visible = summaryPlanColumns === null
@@ -834,13 +747,6 @@ const DynamicReportTabs = ({ sourceData }) => {
 
     return (
       <>
-        <SummaryGrantPlanSelector
-          value={summaryPlanRowFilter}
-          setValue={setSummaryPlanRowFilter}
-          options={lists.vahan}
-          filterId="summary-plan-grant-plan"
-          label="योजना का नाम (अनुदान वहन योजना)"
-        />
         <ReportColumnSelector
           columns={summaryPlanDefs}
           visibleColumns={summaryPlanColumns}
@@ -849,12 +755,14 @@ const DynamicReportTabs = ({ sourceData }) => {
         />
         <div className="dynamic-report-table-scroll">
           <table className="dynamic-report-table">
-            <thead><tr>
-              {show('sno') && <th>#</th>}
-              {show('vahan') && <th>योजना का नाम<br/>(अनुदान वहन योजना)</th>}
-              {show('matra') && <th>आवंटित मात्रा</th>}
-              {show('anudan') && <th>अनुदान राशि (रु0)</th>}
-            </tr></thead>
+            <thead>
+              <tr>
+                {show('sno') && <th>#</th>}
+                {show('vahan') && <th>योजना का नाम<br/>(अनुदान वहन योजना)</th>}
+                {show('matra') && <th>आवंटित मात्रा</th>}
+                {show('anudan') && <th>अनुदान राशि (रु0)</th>}
+              </tr>
+            </thead>
             <tbody>
               {groups.length ? groups.map(([name, g], i) => (
                 <tr key={name}>
@@ -864,7 +772,11 @@ const DynamicReportTabs = ({ sourceData }) => {
                   {show('anudan') && <td>{fmtR(g.anudan)}</td>}
                 </tr>
               )) : (
-                <tr><td colSpan={Math.max(1, visible.length)} className="dynamic-report-empty">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</td></tr>
+                <tr>
+                  <td colSpan={Math.max(1, visible.length)} className="dynamic-report-empty">
+                    कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला
+                  </td>
+                </tr>
               )}
             </tbody>
             {groups.length > 0 && (
@@ -890,118 +802,663 @@ const DynamicReportTabs = ({ sourceData }) => {
     );
   };
 
-  const SummaryGroupTable = ({
-    data,
-    field,
-    label,
-    showRate,
-    columns,
-    setColumns,
-    rowPlanFilter,
-    setRowPlanFilter,
-    rowNameFilter,
-    setRowNameFilter
-  }) => {
-    const map = new Map();
-    let filteredData = rowPlanFilter === null || rowPlanFilter === undefined
-      ? data
-      : data.filter(r => rowPlanFilter.includes(r.vahan));
+  // ============================================================================
+  // Single Mad / Up-Mad summary table
+  // ----------------------------------------------------------------------------
+  // One selector switches the row dimension:
+  //   - मद       => rows grouped by investment_name
+  //   - उप-मद    => rows grouped by sub_investment_name
+  //
+  // Column structure follows the supplied Excel/reference screenshot:
+  //   क्रम संख्या | मद/उप-मद | इकाई |
+  //   योजना 1 -> आवंटित मात्रा | अनुदान राशि (रु0) |
+  //   योजना 2 -> आवंटित मात्रा | अनुदान राशि (रु0) | ...
+  //   लाभार्थी
+  //
+  // Existing API data is used without changing the underlying records.
+  // भौतिक = allocated_quantity
+  // वित्तीय = amount_of_subsidy
+  // लाभार्थी is read from an existing beneficiary field if the API provides
+  // one; otherwise it is shown as "-". No beneficiary value is invented.
+  // ============================================================================
 
-    if (rowNameFilter !== null && rowNameFilter !== undefined) {
-      filteredData = filteredData.filter(r => rowNameFilter.includes(r[field] || 'अन्य'));
-    }
-    filteredData.forEach(r => {
-      const key = r[field] || 'अन्य';
-      if (!map.has(key)) map.set(key, { matra: 0, anudan: 0, vahan: new Set(), ikai: new Set() });
-      const g = map.get(key);
-      g.matra += r.matra;
-      g.anudan += r.anudan;
-      g.vahan.add(r.vahan);
-      if (r.ikai) g.ikai.add(r.ikai);
+  const SummaryMadUpMadTable = () => {
+    const [summaryWiseView, setSummaryWiseView] = useState('mad');
+    const [summaryWiseFilters, setSummaryWiseFilters] = useState({
+      nivesh: null,
+      upnivesh: null,
+      vidhan: null,
+      block: null,
+      kendra: null,
+    });
+    const [openSummaryWiseFilter, setOpenSummaryWiseFilter] = useState(null);
+    const [selectedSummaryPlanFilter, setSelectedSummaryPlanFilter] = useState(null);
+    const [summaryWiseSummaryMode, setSummaryWiseSummaryMode] = useState('financial');
+    // Only these three table columns can be shown/hidden from the column selector.
+    const [summaryWiseVisibleColumns, setSummaryWiseVisibleColumns] = useState(null);
+    const summaryWiseColumnDefs = [
+      { key: 'ikai', label: 'इकाई' },
+      { key: 'matra', label: 'आवंटित मात्रा' },
+      { key: 'anudan', label: 'अनुदान राशि (रु0)' },
+    ];
+    const summaryWiseShowIkai = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('ikai');
+    const summaryWiseShowMatra = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('matra');
+    const summaryWiseShowAnudan = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('anudan');
+    const summaryWisePlanColumnCount = (summaryWiseShowMatra ? 1 : 0) + (summaryWiseShowAnudan ? 1 : 0);
+
+    const viewConfig = {
+      mad: { field: 'nivesh', label: 'मद का नाम' },
+      upmad: { field: 'upnivesh', label: 'उप-मद का नाम' },
+      vidhan: { field: 'vidhan', label: 'विधानसभा का नाम' },
+      block: { field: 'block', label: 'विकासखण्ड का नाम' },
+      kendra: { field: 'kendra', label: 'केंद्र का नाम' },
+    };
+
+    const current = viewConfig[summaryWiseView];
+    const rowField = current.field;
+    const rowLabel = current.label;
+
+    // Five independent filters for this table.
+    // Empty/null selection means ALL values for that filter.
+    const summaryWiseBaseRows = useMemo(
+      () => rows.filter(r => !fixedPlan || r.kraya !== fixedPlan),
+      [rows, fixedPlan]
+    );
+
+    const summaryWiseFilterDefinitions = [
+      ['nivesh', 'मद का नाम'],
+      ['upnivesh', 'उप-मद का नाम'],
+      ['vidhan', 'विधानसभा'],
+      ['block', 'विकासखण्ड'],
+      ['kendra', 'केंद्र'],
+    ];
+
+    const summaryWiseFilterOptions = useMemo(() => ({
+      nivesh: uniq(summaryWiseBaseRows.map(r => r.nivesh)),
+      upnivesh: uniq(summaryWiseBaseRows.map(r => r.upnivesh)),
+      vidhan: uniq(summaryWiseBaseRows.map(r => r.vidhan)),
+      block: uniq(summaryWiseBaseRows.map(r => r.block)),
+      kendra: uniq(summaryWiseBaseRows.map(r => r.kendra)),
+    }), [summaryWiseBaseRows]);
+
+    // Keep selections valid if API data changes.
+    useEffect(() => {
+      setSummaryWiseFilters(prev => {
+        const next = { ...prev };
+        let changed = false;
+
+        summaryWiseFilterDefinitions.forEach(([field]) => {
+          const selected = prev[field];
+          const options = summaryWiseFilterOptions[field] || [];
+          if (selected !== null && selected !== undefined) {
+            const valid = selected.filter(value => options.includes(value));
+            const normalized = valid.length === options.length ? null : valid;
+            if (JSON.stringify(normalized) !== JSON.stringify(selected)) {
+              next[field] = normalized;
+              changed = true;
+            }
+          }
+        });
+
+        return changed ? next : prev;
+      });
+    }, [summaryWiseFilterOptions]);
+
+    const toggleSummaryWiseFilter = (field, value) => {
+      setSummaryWiseFilters(prev => {
+        const options = summaryWiseFilterOptions[field] || [];
+        const currentSelection = prev[field] === null || prev[field] === undefined
+          ? [...options]
+          : [...prev[field]];
+
+        const next = currentSelection.includes(value)
+          ? currentSelection.filter(v => v !== value)
+          : [...currentSelection, value];
+
+        return {
+          ...prev,
+          [field]: next.length === options.length ? null : next,
+        };
+      });
+    };
+
+    const clearSummaryWiseFilters = () => {
+      setSummaryWiseFilters({
+        nivesh: null,
+        upnivesh: null,
+        vidhan: null,
+        block: null,
+        kendra: null,
+      });
+      setOpenSummaryWiseFilter(null);
+    };
+
+    const summaryWiseRows = useMemo(() => (
+      summaryWiseBaseRows.filter(r =>
+        summaryWiseFilterDefinitions.every(([field]) => {
+          const selected = summaryWiseFilters[field];
+          return selected === null || selected === undefined || selected.includes(r[field]);
+        })
+      )
+    ), [summaryWiseBaseRows, summaryWiseFilters]);
+
+    const planList = uniq(summaryWiseRows.map(r => r.vahan).filter(Boolean));
+
+    useEffect(() => {
+      setSelectedSummaryPlanFilter(prev => {
+        if (prev === null || prev === undefined) return null;
+        const valid = prev.filter(value => planList.includes(value));
+        if (valid.length === planList.length) return null;
+        return valid;
+      });
+    }, [planList.join('|')]);
+
+    const selectedPlans = selectedSummaryPlanFilter === null || selectedSummaryPlanFilter === undefined
+      ? planList
+      : planList.filter(plan => selectedSummaryPlanFilter.includes(plan));
+
+    const togglePlanFilter = plan => {
+      setSelectedSummaryPlanFilter(prev => {
+        const currentSelection = prev === null || prev === undefined
+          ? [...planList]
+          : [...prev];
+        const next = currentSelection.includes(plan)
+          ? currentSelection.filter(value => value !== plan)
+          : [...currentSelection, plan];
+        return next.length === planList.length ? null : next;
+      });
+    };
+
+    const groupedRows = useMemo(() => {
+      const map = new Map();
+
+      summaryWiseRows.filter(r => selectedPlans.includes(r.vahan)).forEach(r => {
+        const key = r[rowField] || 'अन्य';
+
+        if (!map.has(key)) {
+          map.set(key, {
+            physical: {},
+            financial: {},
+            units: new Set(),
+          });
+        }
+
+        const group = map.get(key);
+        const plan = r.vahan || 'अन्य';
+
+        group.physical[plan] = (group.physical[plan] || 0) + (Number(r.matra) || 0);
+        group.financial[plan] = (group.financial[plan] || 0) + (Number(r.anudan) || 0);
+
+        if (r.ikai) group.units.add(r.ikai);
+      });
+
+      return [...map.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'hi'));
+    }, [summaryWiseRows, rowField, selectedPlans.join('|')]);
+
+    const preserveScroll = callback => {
+      const scrollY = window.scrollY;
+      callback();
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollY, left: window.scrollX, behavior: 'auto' });
+      });
+    };
+
+    const formatExactNumber = value => {
+      const num = Number(value) || 0;
+      return new Intl.NumberFormat('en-IN', {
+        useGrouping: true,
+        maximumFractionDigits: 20,
+      }).format(num);
+    };
+
+    const formatSummaryInteger = value => {
+      const num = Number(value) || 0;
+      return new Intl.NumberFormat('en-IN', {
+        useGrouping: true,
+        maximumFractionDigits: 0,
+      }).format(Math.round(num));
+    };
+
+    // IMPORTANT: calculate the summary from the SAME filtered/grouped data
+    // that is visible in the table above. Do not divide financial values into
+    // lakhs here, otherwise the total would not match the table.
+    const schemeWiseSummary = selectedPlans.map(plan => {
+      const rawValue = groupedRows.reduce(
+        (sum, [, group]) => sum + (
+          summaryWiseSummaryMode === 'quantity'
+            ? (group.physical[plan] || 0)
+            : (group.financial[plan] || 0)
+        ),
+        0
+      );
+
+      return {
+        plan,
+        rawValue,
+        displayValue: rawValue,
+      };
     });
 
-    const groups = [...map.entries()]
-      .filter(([, g]) => g.matra > 0 && g.anudan > 0)
-      .sort((a, b) => b[1].anudan - a[1].anudan);
-
-    const defs = field === 'nivesh' ? summaryMadDefs : summarySubMadDefs;
-    const visible = columns === null ? defs.map(c => c.key) : columns;
-    const show = key => visible.includes(key);
-
-    const totalMatra = groups.reduce((s, [, g]) => s + g.matra, 0);
-    const totalAnudan = groups.reduce((s, [, g]) => s + g.anudan, 0);
+    const totalSummaryValue = schemeWiseSummary.reduce(
+      (sum, item) => sum + item.displayValue,
+      0
+    );
 
     return (
-      <>
-        <div className="summary-row-filter-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'flex-end', marginBottom: '10px' }}>
-          <SummaryGrantPlanSelector
-            value={rowPlanFilter}
-            setValue={setRowPlanFilter}
-            options={lists.vahan}
-            filterId={`${field}-summary-grant-plan`}
-            label="योजना का नाम (अनुदान वहन योजना)"
-          />
-          <SummaryGrantPlanSelector
-            value={rowNameFilter}
-            setValue={setRowNameFilter}
-            options={uniq(data.map(r => r[field] || 'अन्य'))}
-            filterId={`${field}-summary-name`}
-            label={field === 'nivesh' ? 'मद का नाम' : 'उप-मद का नाम'}
-          />
+      <div className="summary-mad-upmad-report-wrapper">
+        <div
+          className="dynamic-report-view-row professional-view-row"
+          style={{
+            marginBottom: '10px',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <label htmlFor="summary-mad-upmad-view-select">देखने का प्रकार</label>
+          <select
+            id="summary-mad-upmad-view-select"
+            value={summaryWiseView}
+            onChange={e => {
+              const value = e.target.value;
+              preserveScroll(() => setSummaryWiseView(value));
+            }}
+            style={{
+              minWidth: '230px',
+              padding: '7px 10px',
+              borderRadius: '6px',
+              border: '1px solid #d9e1e8',
+              background: '#fff',
+              fontWeight: 600,
+            }}
+          >
+            <option value="mad">मद के अनुसार</option>
+            <option value="upmad">उप-मद के अनुसार</option>
+            <option value="vidhan">विधानसभा के अनुसार</option>
+            <option value="block">विकासखण्ड के अनुसार</option>
+            <option value="kendra">केंद्र के अनुसार</option>
+          </select>
+
+          {summaryWiseFilterDefinitions.map(([field, label]) => {
+            const options = summaryWiseFilterOptions[field] || [];
+            const selected = summaryWiseFilters[field];
+            const selectedValues = selected === null || selected === undefined ? options : selected;
+            const selectedCount = selectedValues.length;
+            const filterId = `summary-mad-upmad-${field}`;
+            const isOpen = openSummaryWiseFilter === filterId;
+            const isFiltered = selected !== null && selected !== undefined && selectedCount !== options.length;
+
+            return (
+              <div key={field} className="dynamic-report-filter-wrap">
+                <button
+                  type="button"
+                  className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`}
+                  onClick={() => setOpenSummaryWiseFilter(isOpen ? null : filterId)}
+                >
+                  <span>{label} फ़िल्टर</span>
+                  <span className="dynamic-report-badge">{selectedCount}/{options.length}</span>
+                  <span>{isOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {isOpen && (
+                  <div className="dynamic-report-filter-menu">
+                    <div className="dynamic-report-filter-actions">
+                      <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: null }))}>सभी चुनें</button>
+                      <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
+                    </div>
+
+                    <div className="dynamic-report-filter-list">
+                      {options.length === 0 ? (
+                        <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
+                      ) : (
+                        options.map(value => (
+                          <label key={value} className="dynamic-report-filter-option">
+                            <input
+                              type="checkbox"
+                              checked={selected === null || selected === undefined ? true : selected.includes(value)}
+                              onChange={() => {
+                                const currentScrollY = window.scrollY;
+                                toggleSummaryWiseFilter(field, value);
+                                requestAnimationFrame(() => {
+                                  window.scrollTo({ top: currentScrollY, left: window.scrollX, behavior: 'auto' });
+                                });
+                              }}
+                            />
+                            <span>{value}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+
+                    <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
+                      बंद करें
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="dynamic-report-filter-wrap">
+            <button
+              type="button"
+              className={`dynamic-report-filter-btn ${selectedSummaryPlanFilter !== null && selectedSummaryPlanFilter !== undefined && selectedSummaryPlanFilter.length !== planList.length ? 'filtered' : ''}`}
+              onClick={() => setOpenSummaryWiseFilter(openSummaryWiseFilter === 'summary-mad-upmad-plan' ? null : 'summary-mad-upmad-plan')}
+            >
+              <span>योजना फ़िल्टर</span>
+              <span className="dynamic-report-badge">{selectedPlans.length}/{planList.length}</span>
+              <span>{openSummaryWiseFilter === 'summary-mad-upmad-plan' ? '▲' : '▼'}</span>
+            </button>
+
+            {openSummaryWiseFilter === 'summary-mad-upmad-plan' && (
+              <div className="dynamic-report-filter-menu">
+                <div className="dynamic-report-filter-actions">
+                  <button type="button" onClick={() => setSelectedSummaryPlanFilter(null)}>सभी चुनें</button>
+                  <button type="button" onClick={() => setSelectedSummaryPlanFilter([])}>कोई नहीं</button>
+                </div>
+                <div className="dynamic-report-filter-list">
+                  {planList.length === 0 ? (
+                    <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
+                  ) : (
+                    planList.map(plan => (
+                      <label key={plan} className="dynamic-report-filter-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedPlans.includes(plan)}
+                          onChange={() => {
+                            const currentScrollY = window.scrollY;
+                            togglePlanFilter(plan);
+                            requestAnimationFrame(() => {
+                              window.scrollTo({ top: currentScrollY, left: window.scrollX, behavior: 'auto' });
+                            });
+                          }}
+                        />
+                        <span>{plan}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
+                  बंद करें
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="dynamic-report-clear-btn"
+            onClick={() => clearSummaryWiseFilters()}
+          >
+            फ़िल्टर हटाएं
+          </button>
         </div>
+
         <ReportColumnSelector
-          columns={defs}
-          visibleColumns={columns}
-          setVisibleColumns={setColumns}
-          label={`${label} — इस तालिका के स्तंभ चुनें`}
+          columns={summaryWiseColumnDefs}
+          visibleColumns={summaryWiseVisibleColumns}
+          setVisibleColumns={setSummaryWiseVisibleColumns}
+          label="इस तालिका के स्तंभ चुनें"
         />
-        <div className="dynamic-report-table-scroll">
-          <table className="dynamic-report-table">
-            <thead><tr>
-              {show('sno') && <th>#</th>}
-              {show(field === 'nivesh' ? 'mad' : 'submad') && <th>{label}</th>}
-              {show('vahan') && <th>योजना का नाम<br/>(अनुदान वहन योजना)</th>}
-              {show('ikai') && <th>इकाई</th>}
-              {show('matra') && <th>आवंटित मात्रा</th>}
-              {show('dar') && showRate && <th>कृषक अनुदान दर (भारित औसत)</th>}
-              {show('anudan') && <th>अनुदान राशि (रु0)</th>}
-            </tr></thead>
+
+        <div className="dynamic-report-table-scroll matrix-scroll">
+          <table
+            className="dynamic-report-table matrix-table summary-mad-upmad-detail-table"
+            style={{ minWidth: '1100px' }}
+          >
+            <thead>
+              <tr>
+                <th rowSpan="2">क्रम संख्या</th>
+                <th rowSpan="2">{rowLabel}</th>
+                {summaryWiseShowIkai ? (
+                  <th rowSpan="2">इकाई</th>
+                ) : null}
+                {summaryWisePlanColumnCount > 0 && selectedPlans.map(plan => (
+                  <th
+                    key={`yw-plan-${plan}`}
+                    colSpan={summaryWisePlanColumnCount}
+                    style={{ textAlign: 'center' }}
+                  >
+                    {plan}
+                  </th>
+                ))}
+              </tr>
+              <tr>
+                {selectedPlans.flatMap(plan => {
+                  const cells = [];
+                  if (summaryWiseShowMatra) {
+                    cells.push(<th key={`yw-physical-${plan}`}>आवंटित मात्रा</th>);
+                  }
+                  if (summaryWiseShowAnudan) {
+                    cells.push(<th key={`yw-financial-${plan}`}>अनुदान राशि (रु0)</th>);
+                  }
+                  return cells;
+                })}
+              </tr>
+            </thead>
+
             <tbody>
-              {groups.length ? groups.map(([name, g], i) => (
-                <tr key={name}>
-                  {show('sno') && <td>{i + 1}</td>}
-                  {show(field === 'nivesh' ? 'mad' : 'submad') && <td>{name}</td>}
-                  {show('vahan') && <td>{[...g.vahan].join(', ')}</td>}
-                  {show('ikai') && <td>{[...g.ikai].join(', ')}</td>}
-                  {show('matra') && <td>{fmtN(g.matra)}</td>}
-                  {show('dar') && showRate && <td>{fmtR(g.matra ? g.anudan / g.matra : 0)}</td>}
-                  {show('anudan') && <td>{fmtR(g.anudan)}</td>}
+              {groupedRows.length ? groupedRows.map(([name, group], index) => (
+                <tr key={`summary-mad-upmad-${summaryWiseView}-${name}`}>
+                  <td>{index + 1}</td>
+                  <td>{name}</td>
+                  {summaryWiseShowIkai ? (
+                    <td>{[...group.units].join(', ') || '-'}</td>
+                  ) : null}
+
+                  {selectedPlans.flatMap(plan => {
+                    const cells = [];
+                    if (summaryWiseShowMatra) {
+                      cells.push(
+                        <td key={`yw-matra-${name}-${plan}`}>
+                          {group.physical[plan] ? formatExactNumber(group.physical[plan]) : ''}
+                        </td>
+                      );
+                    }
+                    if (summaryWiseShowAnudan) {
+                      cells.push(
+                        <td key={`yw-anudan-${name}-${plan}`}>
+                          {group.financial[plan] ? fmtR(group.financial[plan]) : ''}
+                        </td>
+                      );
+                    }
+                    return cells;
+                  })}
                 </tr>
               )) : (
-                <tr><td colSpan={Math.max(1, visible.length)} className="dynamic-report-empty">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</td></tr>
+                <tr>
+                  <td colSpan={2 + (summaryWiseVisibleColumns === null ? 1 : (summaryWiseVisibleColumns.includes('ikai') ? 1 : 0)) + selectedPlans.length * (summaryWiseVisibleColumns === null ? 2 : summaryWiseVisibleColumns.filter(k => k === 'matra' || k === 'anudan').length)} className="dynamic-report-empty">
+                    कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला
+                  </td>
+                </tr>
               )}
             </tbody>
-            {groups.length > 0 && (
+
+            {groupedRows.length > 0 && (
               <tfoot>
                 <tr className="report-total-values-row">
-                  {visible.map((key, index) => {
-                    const value = key === 'matra' ? fmtN(totalMatra)
-                      : key === 'dar' && showRate ? fmtR(totalMatra ? totalAnudan / totalMatra : 0)
-                      : key === 'anudan' ? fmtR(totalAnudan)
-                      : null;
-                    const isFirst = index === 0;
-                    return (
-                      <td key={`summary-group-total-${key}`} className={value !== null ? 'tot' : ''}>
-                        {isFirst && value !== null ? `योग: ${value}` : isFirst ? 'योग' : value}
-                      </td>
+                  <td>योग</td>
+                  <td></td>
+                  {summaryWiseShowIkai ? <td></td> : null}
+                  {selectedPlans.flatMap(plan => {
+                    const physicalTotal = groupedRows.reduce(
+                      (sum, [, group]) => sum + (group.physical[plan] || 0), 0
                     );
+                    const financialTotal = groupedRows.reduce(
+                      (sum, [, group]) => sum + (group.financial[plan] || 0), 0
+                    );
+
+                    const cells = [];
+                    if (summaryWiseShowMatra) {
+                      cells.push(
+                        <td key={`yw-total-matra-${plan}`} className="tot">
+                          {physicalTotal ? formatExactNumber(physicalTotal) : ''}
+                        </td>
+                      );
+                    }
+                    if (summaryWiseShowAnudan) {
+                      cells.push(
+                        <td key={`yw-total-anudan-${plan}`} className="tot">
+                          {financialTotal ? fmtR(financialTotal) : ''}
+                        </td>
+                      );
+                    }
+                    return cells;
                   })}
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
-      </>
+
+        {/* Same scheme-wise summary pattern as the table above, driven by the selected filters. */}
+        <div
+          className="scheme-wise-financial-summary"
+          style={{
+            marginTop: '14px',
+            border: '1px solid #1f5a7a',
+            overflow: 'hidden',
+            background: '#fff'
+          }}
+        >
+          <div
+            className="scheme-summary-mode-filter"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              padding: '8px 10px',
+              background: '#f5f6f8',
+              borderBottom: '1px solid #d9e1e8'
+            }}
+          >
+            <label
+              htmlFor="summary-mad-upmad-summary-mode"
+              style={{
+                margin: 0,
+                color: '#194e8b',
+                fontSize: '12px',
+                fontWeight: 700
+              }}
+            >
+              सारांश देखें:
+            </label>
+
+            <select
+              id="summary-mad-upmad-summary-mode"
+              value={summaryWiseSummaryMode}
+              onChange={e => setSummaryWiseSummaryMode(e.target.value)}
+              style={{
+                minWidth: '190px',
+                padding: '6px 10px',
+                border: '1px solid #bfc5cc',
+                borderRadius: '4px',
+                background: '#fff',
+                color: '#333',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <option value="financial">अनुदान राशि के अनुसार</option>
+              <option value="quantity">आवंटित मात्रा के अनुसार</option>
+            </select>
+          </div>
+
+          <div
+            style={{
+              background: '#1f5a7a',
+              color: '#fff',
+              textAlign: 'center',
+              fontWeight: 700,
+              fontSize: '15px',
+              padding: '5px 8px'
+            }}
+          >
+            ▣ योजना-वार {summaryWiseSummaryMode === 'financial'
+              ? 'वित्तीय सारांश (Scheme-wise Financial Summary — ₹ Lakhs)'
+              : 'आवंटित मात्रा सारांश (Scheme-wise Allocated Quantity Summary)'}
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table
+              style={{
+                width: '100%',
+                minWidth: '700px',
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed'
+              }}
+            >
+              <thead>
+                <tr>
+                  {schemeWiseSummary.map(item => (
+                    <th
+                      key={`yw-summary-head-${item.plan}`}
+                      style={{
+                        background: '#218c4b',
+                        color: '#fff',
+                        borderRight: '1px solid #fff',
+                        padding: '6px 8px',
+                        textAlign: 'center',
+                        fontSize: '13px'
+                      }}
+                    >
+                      {item.plan}
+                    </th>
+                  ))}
+                  <th
+                    style={{
+                      background: '#c8372d',
+                      color: '#fff',
+                      padding: '6px 8px',
+                      textAlign: 'center',
+                      fontSize: '13px'
+                    }}
+                  >
+                    कुल (Total)
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  {schemeWiseSummary.map(item => (
+                    <td
+                      key={`yw-summary-value-${item.plan}`}
+                      style={{
+                        background: '#fff0d5',
+                        color: '#1f4f70',
+                        borderRight: '1px solid #1f5a7a',
+                        borderTop: '1px solid #1f5a7a',
+                        padding: '8px',
+                        textAlign: 'center',
+                        fontWeight: 700,
+                        fontSize: '16px'
+                      }}
+                    >
+                      {summaryWiseSummaryMode === 'financial' ? '₹' : ''}{formatSummaryInteger(item.displayValue)}
+                    </td>
+                  ))}
+                  <td
+                    style={{
+                      background: '#1f5a7a',
+                      color: '#fff',
+                      borderTop: '1px solid #1f5a7a',
+                      padding: '8px',
+                      textAlign: 'center',
+                      fontWeight: 800,
+                      fontSize: '16px'
+                    }}
+                  >
+                    {summaryWiseSummaryMode === 'financial' ? '₹' : ''}{formatSummaryInteger(totalSummaryValue)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -1256,39 +1713,16 @@ const DynamicReportTabs = ({ sourceData }) => {
 
         {activeTab === 'saransh' && (
           <div className="dynamic-report-panel">
-            <h5 style={{ marginBottom: "6px" }}>सारांश — अनुदान वहन योजना, मद व उप-मद के अनुसार</h5>
+            <h5 style={{ marginBottom: "6px" }}>सारांश — योजना-वार मद / उप-मद विवरण</h5>
             <FilterBar section="summary" />
 
             <h6 className="dynamic-report-subtitle">1) अनुदान वहन योजना के अनुसार सारांश</h6>
             <SummaryPlanTable />
 
-            <h6 className="dynamic-report-subtitle">2) मद के नाम अनुसार (योजना के नाम सहित)</h6>
-            <SummaryGroupTable
-              data={summaryRows}
-              field="nivesh"
-              label="मद"
-              showRate={false}
-              columns={summaryMadColumns}
-              setColumns={setSummaryMadColumns}
-              rowPlanFilter={summaryMadRowFilter}
-              setRowPlanFilter={setSummaryMadRowFilter}
-              rowNameFilter={summaryMadNameFilter}
-              setRowNameFilter={setSummaryMadNameFilter}
-            />
-
-            <h6 className="dynamic-report-subtitle">3) उप-मद के नाम अनुसार (योजना के नाम सहित)</h6>
-            <SummaryGroupTable
-              data={summaryRows}
-              field="upnivesh"
-              label="उप-मद"
-              showRate={true}
-              columns={summarySubMadColumns}
-              setColumns={setSummarySubMadColumns}
-              rowPlanFilter={summarySubMadRowFilter}
-              setRowPlanFilter={setSummarySubMadRowFilter}
-              rowNameFilter={summarySubMadNameFilter}
-              setRowNameFilter={setSummarySubMadNameFilter}
-            />
+            <h6 className="dynamic-report-subtitle">
+              2) विधानसभा / विकासखंड / केंद्र / मद / उप-मद  के नाम अनुसार — योजना-वार
+            </h6>
+            <SummaryMadUpMadTable />
           </div>
         )}
 

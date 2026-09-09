@@ -3020,3 +3020,113 @@ font-size: 14px;
     padding: 12px !important;
   }
 }
+
+/* ================================================================
+   SCHEME-WISE FINANCIAL SUMMARY
+   Used below the filtered Mad / Up-Mad table.
+   Values are displayed in ₹ Lakhs.
+   ================================================================ */
+
+.scheme-wise-financial-summary {
+  width: 100%;
+  margin-top: 14px;
+  border: 1px solid #1f5a7a;
+  background: #ffffff;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.scheme-wise-financial-summary .scheme-summary-title {
+  background: #1f5a7a;
+  color: #ffffff;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.3;
+  padding: 6px 8px;
+}
+
+.scheme-wise-financial-summary .scheme-summary-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table th,
+.scheme-wise-financial-summary .scheme-summary-table td {
+  border: 1px solid #1f5a7a;
+  text-align: center;
+  vertical-align: middle;
+  padding: 7px 8px;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table thead th {
+  background: #218c4b;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table thead th.total {
+  background: #c8372d;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table tbody td {
+  background: #fff0d5;
+  color: #1f4f70;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table tbody td.total {
+  background: #1f5a7a;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.scheme-wise-financial-summary .scheme-summary-table .empty-summary {
+  color: #777;
+  font-size: 12px;
+  font-style: italic;
+  padding: 12px;
+}
+
+@media (max-width: 768px) {
+  .scheme-wise-financial-summary {
+    margin-top: 12px;
+  }
+
+  .scheme-wise-financial-summary .scheme-summary-title {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  .scheme-wise-financial-summary .scheme-summary-table {
+    min-width: 600px;
+  }
+
+  .scheme-wise-financial-summary .scheme-summary-table th,
+  .scheme-wise-financial-summary .scheme-summary-table td {
+    padding: 5px 4px;
+  }
+
+  .scheme-wise-financial-summary .scheme-summary-table thead th {
+    font-size: 10px;
+  }
+
+  .scheme-wise-financial-summary .scheme-summary-table tbody td {
+    font-size: 13px;
+  }
+}
+
