@@ -2068,17 +2068,19 @@ font-size: 14px;
 
 /* ---------- Welcome / page identity ---------- */
 
+.professional-welcome h1{
+color:#fff;
+}
 .professional-welcome {
   margin: 0 0 20px !important;
-  min-height: 112px;
-  padding: 22px 28px !important;
+ 
+
   border-radius: 18px;
   align-items: center !important;
   text-align: left !important;
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(120deg, rgba(18,53,91,.98), rgba(29,95,167,.96) 58%, rgba(40,120,199,.90));
+ background-color:#167a8a;
   box-shadow: 0 12px 32px rgba(18,53,91,.18);
 }
 
@@ -2510,7 +2512,7 @@ font-size: 14px;
 }
 
 .professional-report-content .dynamic-report-table thead th {
-  background: linear-gradient(135deg, #163e69, #1d5fa7) !important;
+ background-color:#1d5fa7;
   border-color: rgba(255,255,255,.18) !important;
   font-weight: 700 !important;
   padding: 8px 9px !important;
@@ -2744,8 +2746,7 @@ font-size: 14px;
 }
 
 .professional-welcome {
-  background:
-    linear-gradient(112deg, #12355b 0%, #165f78 62%, #167a8a 100%) !important;
+ background-color:#12355b;
   box-shadow: 0 14px 34px rgba(18, 53, 91, .16) !important;
 }
 
@@ -2766,8 +2767,9 @@ font-size: 14px;
 }
 
 .professional-welcome .home-title {
-  font-size: clamp(1.35rem, 2vw, 1.8rem) !important;
+ font-size: 14px !important;
   font-weight: 750;
+  color:#fff !important;
 }
 
 .professional-welcome .home-subtitle {
@@ -2985,7 +2987,7 @@ font-size: 14px;
 }
 
 .professional-report-content .dynamic-report-table thead th {
-  background: linear-gradient(112deg, #18466e, #167a8a) !important;
+  background-color:#167a8a;
 }
 
 .professional-report-content .dynamic-report-table tbody tr:hover {
