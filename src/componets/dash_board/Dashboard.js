@@ -1368,8 +1368,8 @@ const DynamicReportTabs = ({ sourceData }) => {
 
           <div
             style={{
-              background: '#1f5a7a',
-              color: '#fff',
+              background: '#5fadd9',
+              color: '#000',
               textAlign: 'center',
               fontWeight: 700,
               fontSize: '15px',
@@ -1442,8 +1442,8 @@ const DynamicReportTabs = ({ sourceData }) => {
                   ))}
                   <td
                     style={{
-                      background: '#1f5a7a',
-                      color: '#fff',
+                      background: '#5fadd9',
+                      color: '#000',
                       borderTop: '1px solid #1f5a7a',
                       padding: '8px',
                       textAlign: 'center',
