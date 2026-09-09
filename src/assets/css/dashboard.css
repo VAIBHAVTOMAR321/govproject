@@ -790,7 +790,7 @@ font-size: 14px;
 }
 
 .filter-card-header {
-  background: linear-gradient(135deg, #194e8b 0%, #2d6db5 100%);
+ background-color:#12355b;
   color: #ffffff;
   padding: 15px 20px;
   border-bottom: none;
@@ -1366,7 +1366,7 @@ font-size: 14px;
   justify-content:space-between;
   gap:15px;
   padding:16px 20px;
-  background:linear-gradient(135deg,#194e8b 0%,#2d6db5 100%);
+background-color:#5fadd9;
   color:#fff;
 }
 .dynamic-report-heading h4{margin:0;font-size:1.05rem;font-weight:700;color:#fff;}
@@ -2174,7 +2174,7 @@ color:#fff;
 
 .professional-filter-card .filter-card-header {
   padding: 14px 18px !important;
-  background: linear-gradient(135deg, var(--admin-navy), var(--admin-blue)) !important;
+ background-color: #5fadd9 !important;
 }
 
 .professional-filter-card .filter-card-header h5 {
@@ -2746,7 +2746,8 @@ color:#fff;
 }
 
 .professional-welcome {
- background-color:#12355b;
+ background-color:#5fadd9;
+
   box-shadow: 0 14px 34px rgba(18, 53, 91, .16) !important;
 }
 
@@ -2769,11 +2770,11 @@ color:#fff;
 .professional-welcome .home-title {
  font-size: 14px !important;
   font-weight: 750;
-  color:#fff !important;
+  color:#000 !important;
 }
 
 .professional-welcome .home-subtitle {
-  color: rgba(255, 255, 255, .82);
+  color: #000 !important;
 }
 
 /* ============================================================
@@ -2894,8 +2895,8 @@ color:#fff;
 }
 
 .professional-summary-card .summary-table th {
-  background: #eef5f9;
-  color: var(--dashboard-ink);
+  background: #5fadd9;
+  color: #000000;
   border-color: var(--dashboard-line);
   font-size: .72rem;
   font-weight: 700;
@@ -2922,7 +2923,7 @@ color:#fff;
   min-height: 50px;
 
   border-radius: 17px 17px 0 0;
-  background: linear-gradient(112deg, #12355b, #165f78) !important;
+ background-color:#5fadd9 !important ;
 }
 
 .dynamic-report-heading h4 {
@@ -2967,7 +2968,8 @@ color:#fff;
 }
 
 .professional-report-content .dynamic-report-table thead th {
-  background-color:#12355b;
+  background-color:#5fadd9;
+  color:#000;
 }
 
 .professional-report-content .dynamic-report-table tbody tr:hover {
