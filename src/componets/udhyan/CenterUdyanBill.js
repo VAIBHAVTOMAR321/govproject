@@ -115,27 +115,27 @@ const emptyBill = {
 };
 
 /* =========================================================
-   STABLE INPUT COMPONENTS (READ-ONLY)
+   STABLE INPUT COMPONENTS (TYPEABLE FOR PREVIEW)
    ========================================================= */
 
-const Field = ({ bill, label, field, type = "text", width = "", placeholder = "" }) => (
+const Field = ({ bill, onChange, label, field, type = "text", width = "", placeholder = "" }) => (
     <label className={`live-field ${width}`}>
         <span>{label}</span>
         <input
             type={type}
             value={bill[field] ?? ""}
             placeholder={placeholder}
-            readOnly
+            onChange={(event) => onChange(field, event.target.value)}
         />
     </label>
 );
 
-const DocField = ({ bill, field, className = "" }) => (
+const DocField = ({ bill, onChange, field, className = "" }) => (
     <input
         className={`doc-input ${className}`}
         value={bill[field] ?? ""}
         placeholder="________________"
-        readOnly
+        onChange={(event) => onChange(field, event.target.value)}
     />
 );
 
@@ -155,7 +155,6 @@ export default function CenterUdyanBill() {
     const [includeStandardPrint, setIncludeStandardPrint] = useState(false);
     const [showVoucher2, setShowVoucher2] = useState(false);
     const [message, setMessage] = useState("");
-    const [lastSavedBill, setLastSavedBill] = useState(null);
 
     /* =====================================================
        LOAD STANDARDS
@@ -223,7 +222,7 @@ export default function CenterUdyanBill() {
     }, [activeSection]);
 
     /* =====================================================
-       VIEW UPLOADED BILL (NO EDIT — VIEW ONLY)
+       VIEW UPLOADED BILL (LOADS INTO TYPEABLE FORM)
        ===================================================== */
 
     const viewUploadedBill = (savedBill) => {
@@ -253,10 +252,9 @@ export default function CenterUdyanBill() {
         });
 
         setShowVoucher2(Boolean(savedBill.voucher_2));
-        setLastSavedBill(savedBill);
         setActiveSection("bill");
 
-        setMessage(`बिल #${savedBill.id} देखा जा रहा है (केवल दर्शन).`);
+        setMessage(`बिल #${savedBill.id} देखा जा रहा है (आप इसे संशोधित कर प्रिंट कर सकते हैं, पर सेव नहीं कर सकते)।`);
 
         if (!matchingStandard) {
             setMessage(`बिल #${savedBill.id} खोला गया है। संबंधित मानक उपलब्ध नहीं है।`);
@@ -264,16 +262,12 @@ export default function CenterUdyanBill() {
     };
 
     /* =====================================================
-       SELECTED STANDARD
+       SELECTED STANDARD & CALCULATION
        ===================================================== */
 
     const selectedStandard = useMemo(() => {
         return standards.find((item) => String(item.id) === String(selectedCropId)) || null;
     }, [standards, selectedCropId]);
-
-    /* =====================================================
-       BILL UPDATE (Disabled logically, but kept for safe state setting on view)
-       ===================================================== */
 
     const updateBill = (field, value) => {
         setBill((previous) => ({ ...previous, [field]: value }));
@@ -284,10 +278,6 @@ export default function CenterUdyanBill() {
         setSelectedCropId(id);
         updateBill("crop", id);
     };
-
-    /* =====================================================
-       CALCULATION
-       ===================================================== */
 
     const calculation = useMemo(() => {
         if (!selectedStandard) {
@@ -544,7 +534,7 @@ export default function CenterUdyanBill() {
     );
 
     /* =====================================================
-       DOCUMENT PREVIEW
+       DOCUMENT PREVIEW (TYPEABLE)
        ===================================================== */
 
     const PrintPreview = () => {
@@ -569,21 +559,21 @@ export default function CenterUdyanBill() {
                     <div className="document-center document-title">जिला योजनान्तर्गत उद्यान स्थापना — वर्ष {financialYear} &nbsp;(बिल)</div>
 
                     <div className="document-line">
-                        जाति <DocField bill={bill} field="caste" className="w-160" />
+                        जाति <DocField bill={bill} onChange={updateBill} field="caste" className="w-160" />
                         <span>मद</span>
-                        <DocField bill={bill} field="scheme_name" className="w-210" />
+                        <DocField bill={bill} onChange={updateBill} field="scheme_name" className="w-210" />
                     </div>
                     <div className="document-line">
-                        नाम कृषक <DocField bill={bill} field="farmer_name" className="w-220" />
+                        नाम कृषक <DocField bill={bill} onChange={updateBill} field="farmer_name" className="w-220" />
                         <span>पिता/पति का नाम</span>
-                        <DocField bill={bill} field="father_husband_name" className="w-220" />
+                        <DocField bill={bill} onChange={updateBill} field="father_husband_name" className="w-220" />
                     </div>
                     <div className="document-line">
-                        जन्म तिथि <DocField bill={bill} field="date_of_birth" className="w-110" />
+                        जन्म तिथि <DocField bill={bill} onChange={updateBill} field="date_of_birth" className="w-110" />
                         <span>ग्राम</span>
-                        <DocField bill={bill} field="village" className="w-150" />
+                        <DocField bill={bill} onChange={updateBill} field="village" className="w-150" />
                         <span>उद्यान सचल दल केन्द्र</span>
-                        <DocField bill={bill} field="center" className="w-150" />
+                        <DocField bill={bill} onChange={updateBill} field="center" className="w-150" />
                     </div>
                     <div className="document-line">
                         रोपित पौधों की संख्या <strong>{calculation.plants}</strong>
@@ -594,28 +584,28 @@ export default function CenterUdyanBill() {
                         <span>&nbsp;(दूरी {selectedStandard.spacing})</span>
                     </div>
                     <div className="document-line">
-                        (1) बैंक का नाम व शाखा <DocField bill={bill} field="bank_name_1" className="w-200" />
+                        (1) बैंक का नाम व शाखा <DocField bill={bill} onChange={updateBill} field="bank_name_1" className="w-200" />
                         <span>खाता संख्या</span>
-                        <DocField bill={bill} field="account_number_1" className="w-150" />
+                        <DocField bill={bill} onChange={updateBill} field="account_number_1" className="w-150" />
                     </div>
                     <div className="document-line indent">
-                        आई0एफ0एस0सी0 कोड <DocField bill={bill} field="ifsc_code_1" className="w-150" />
+                        आई0एफ0एस0सी0 कोड <DocField bill={bill} onChange={updateBill} field="ifsc_code_1" className="w-150" />
                     </div>
                     <div className="document-line">
-                        (2) बैंक का नाम व शाखा <DocField bill={bill} field="bank_name_2" className="w-200" />
+                        (2) बैंक का नाम व शाखा <DocField bill={bill} onChange={updateBill} field="bank_name_2" className="w-200" />
                         <span>खाता संख्या</span>
-                        <DocField bill={bill} field="account_number_2" className="w-150" />
+                        <DocField bill={bill} onChange={updateBill} field="account_number_2" className="w-150" />
                     </div>
                     <div className="document-line indent">
-                        आई0एफ0एस0सी0 कोड <DocField bill={bill} field="ifsc_code_2" className="w-150" />
+                        आई0एफ0एस0सी0 कोड <DocField bill={bill} onChange={updateBill} field="ifsc_code_2" className="w-150" />
                     </div>
                     <div className="document-line">
-                        आधार कार्ड सं0 (बारह अंकों का) <DocField bill={bill} field="aadhaar_number" className="w-220" />
+                        आधार कार्ड सं0 (बारह अंकों का) <DocField bill={bill} onChange={updateBill} field="aadhaar_number" className="w-220" />
                     </div>
                     <div className="document-line">
-                        मोबाइल नम्बर <DocField bill={bill} field="mobile_number" className="w-150" />
+                        मोबाइल नम्बर <DocField bill={bill} onChange={updateBill} field="mobile_number" className="w-150" />
                         <span>पैन नम्बर</span>
-                        <DocField bill={bill} field="pan_number" className="w-150" />
+                        <DocField bill={bill} onChange={updateBill} field="pan_number" className="w-150" />
                     </div>
 
                     <table className="document-table bill-table">
@@ -673,10 +663,10 @@ export default function CenterUdyanBill() {
                     </p>
 
                     <div className="signature-block">
-                        हस्ताक्षर कृषक<DocField bill={bill} field="farmer_name" className="signature-input" /><br />
-                        कृषक का नाम<DocField bill={bill} field="farmer_name" className="signature-input" /><br />
-                        पिता/पति का नाम<DocField bill={bill} field="father_husband_name" className="signature-input" /><br />
-                        ग्राम<DocField bill={bill} field="village" className="signature-input" />
+                        हस्ताक्षर कृषक<DocField bill={bill} onChange={updateBill} field="farmer_name" className="signature-input" /><br />
+                        कृषक का नाम<DocField bill={bill} onChange={updateBill} field="farmer_name" className="signature-input" /><br />
+                        पिता/पति का नाम<DocField bill={bill} onChange={updateBill} field="father_husband_name" className="signature-input" /><br />
+                        ग्राम<DocField bill={bill} onChange={updateBill} field="village" className="signature-input" />
                     </div>
 
                     <p className="document-paragraph">
@@ -684,7 +674,7 @@ export default function CenterUdyanBill() {
                     </p>
 
                     <div className="officer-sign">
-                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} field="center" className="officer-input" />
+                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} onChange={updateBill} field="center" className="officer-input" />
                     </div>
                 </div>
 
@@ -697,25 +687,25 @@ export default function CenterUdyanBill() {
                     </div>
 
                     <p className="document-paragraph large-gap">
-                        मु0 रु0 <strong>{formatMoney(calculation.manureTotal, digits)}</strong> ({amountToHindiWords(calculation.manureTotal)}) बावत गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/अन्य पोषक तत्व आदि का भुगतान रु0 <strong>{formatMoney(calculation.manureTotal, digits)}</strong> श्री <DocField bill={bill} field="farmer_name" className="inline-document-input" /> पुत्र श्री <DocField bill={bill} field="father_husband_name" className="inline-document-input" /> ग्राम <DocField bill={bill} field="village" className="inline-document-input" /> से नगद प्राप्त किया।
+                        मु0 रु0 <strong>{formatMoney(calculation.manureTotal, digits)}</strong> ({amountToHindiWords(calculation.manureTotal)}) बावत गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/अन्य पोषक तत्व आदि का भुगतान रु0 <strong>{formatMoney(calculation.manureTotal, digits)}</strong> श्री <DocField bill={bill} onChange={updateBill} field="farmer_name" className="inline-document-input" /> पुत्र श्री <DocField bill={bill} onChange={updateBill} field="father_husband_name" className="inline-document-input" /> ग्राम <DocField bill={bill} onChange={updateBill} field="village" className="inline-document-input" /> से नगद प्राप्त किया।
                     </p>
 
                     <div className="signature-block">
-                        हस्ताक्षर आपूर्ति कर्ता<DocField bill={bill} field="supplier_name" className="signature-input" /><br />
-                        आपूर्ति कर्ता का नाम<DocField bill={bill} field="supplier_name" className="signature-input" /><br />
-                        पिता/पति का नाम<DocField bill={bill} field="supplier_father_name" className="signature-input" /><br />
-                        ग्राम<DocField bill={bill} field="supplier_village" className="signature-input" />
+                        हस्ताक्षर आपूर्ति कर्ता<DocField bill={bill} onChange={updateBill} field="supplier_name" className="signature-input" /><br />
+                        आपूर्ति कर्ता का नाम<DocField bill={bill} onChange={updateBill} field="supplier_name" className="signature-input" /><br />
+                        पिता/पति का नाम<DocField bill={bill} onChange={updateBill} field="supplier_father_name" className="signature-input" /><br />
+                        ग्राम<DocField bill={bill} onChange={updateBill} field="supplier_village" className="signature-input" />
                     </div>
 
                     <p className="document-paragraph large-gap">
-                        प्रमाणित किया जाता है कि मेरे द्वारा श्री <DocField bill={bill} field="supplier_name" className="inline-document-input" /> पुत्र श्री <DocField bill={bill} field="supplier_father_name" className="inline-document-input" /> ग्राम <DocField bill={bill} field="supplier_village" className="inline-document-input" /> को <strong>{num(bill.area).toFixed(2)}</strong> है0 में गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/अन्य पोषक तत्व आदि हेतु मु0 रु0 <strong>{formatMoney(calculation.manureTotal, digits)}</strong> ({amountToHindiWords(calculation.manureTotal)}) का नगद भुगतान किया गया है। अतः राजसहायता का भुगतान रु0 <strong>{formatMoney(calculation.manureSubsidy, digits)}</strong> ({amountToHindiWords(calculation.manureSubsidy)}) मुझे करने की कृपा कीजियेगा।
+                        प्रमाणित किया जाता है कि मेरे द्वारा श्री <DocField bill={bill} onChange={updateBill} field="supplier_name" className="inline-document-input" /> पुत्र श्री <DocField bill={bill} onChange={updateBill} field="supplier_father_name" className="inline-document-input" /> ग्राम <DocField bill={bill} onChange={updateBill} field="supplier_village" className="inline-document-input" /> को <strong>{num(bill.area).toFixed(2)}</strong> है0 में गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/अन्य पोषक तत्व आदि हेतु मु0 रु0 <strong>{formatMoney(calculation.manureTotal, digits)}</strong> ({amountToHindiWords(calculation.manureTotal)}) का नगद भुगतान किया गया है। अतः राजसहायता का भुगतान रु0 <strong>{formatMoney(calculation.manureSubsidy, digits)}</strong> ({amountToHindiWords(calculation.manureSubsidy)}) मुझे करने की कृपा कीजियेगा।
                     </p>
 
                     <div className="signature-block">
-                        हस्ताक्षर कृषक<DocField bill={bill} field="farmer_name" className="signature-input" /><br />
-                        कृषक का नाम<DocField bill={bill} field="farmer_name" className="signature-input" /><br />
-                        पिता/पति का नाम<DocField bill={bill} field="father_husband_name" className="signature-input" /><br />
-                        ग्राम<DocField bill={bill} field="village" className="signature-input" />
+                        हस्ताक्षर कृषक<DocField bill={bill} onChange={updateBill} field="farmer_name" className="signature-input" /><br />
+                        कृषक का नाम<DocField bill={bill} onChange={updateBill} field="farmer_name" className="signature-input" /><br />
+                        पिता/पति का नाम<DocField bill={bill} onChange={updateBill} field="father_husband_name" className="signature-input" /><br />
+                        ग्राम<DocField bill={bill} onChange={updateBill} field="village" className="signature-input" />
                     </div>
 
                     <p className="document-paragraph large-gap">
@@ -723,7 +713,7 @@ export default function CenterUdyanBill() {
                     </p>
 
                     <div className="officer-sign">
-                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} field="center" className="officer-input" />
+                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} onChange={updateBill} field="center" className="officer-input" />
                     </div>
                 </div>
 
@@ -737,14 +727,14 @@ export default function CenterUdyanBill() {
                         </div>
 
                         <p className="document-paragraph large-gap">
-                            मु0 रु0 <strong>{formatMoney(calculation.pitTotal, digits)}</strong> ({amountToHindiWords(calculation.pitTotal)}) बावत गड्ढा खुदान, भरान, पौध रोपण (1×1×1 मी0) का भुगतान रु0 <strong>{formatMoney(calculation.pitTotal, digits)}</strong> श्री <DocField bill={bill} field="farmer_name" className="inline-document-input" /> पुत्र श्री <DocField bill={bill} field="father_husband_name" className="inline-document-input" /> ग्राम <DocField bill={bill} field="village" className="inline-document-input" /> से नगद प्राप्त किया।
+                            मु0 रु0 <strong>{formatMoney(calculation.pitTotal, digits)}</strong> ({amountToHindiWords(calculation.pitTotal)}) बावत गड्ढा खुदान, भरान, पौध रोपण (1×1×1 मी0) का भुगतान रु0 <strong>{formatMoney(calculation.pitTotal, digits)}</strong> श्री <DocField bill={bill} onChange={updateBill} field="farmer_name" className="inline-document-input" /> पुत्र श्री <DocField bill={bill} onChange={updateBill} field="father_husband_name" className="inline-document-input" /> ग्राम <DocField bill={bill} onChange={updateBill} field="village" className="inline-document-input" /> से नगद प्राप्त किया।
                         </p>
 
                         <div className="signature-block">
-                            हस्ताक्षर श्रमिक<DocField bill={bill} field="labour_name" className="signature-input" /><br />
-                            श्रमिक का नाम<DocField bill={bill} field="labour_name" className="signature-input" /><br />
-                            पिता/पति का नाम<DocField bill={bill} field="labour_father_name" className="signature-input" /><br />
-                            ग्राम<DocField bill={bill} field="labour_village" className="signature-input" />
+                            हस्ताक्षर श्रमिक<DocField bill={bill} onChange={updateBill} field="labour_name" className="signature-input" /><br />
+                            श्रमिक का नाम<DocField bill={bill} onChange={updateBill} field="labour_name" className="signature-input" /><br />
+                            पिता/पति का नाम<DocField bill={bill} onChange={updateBill} field="labour_father_name" className="signature-input" /><br />
+                            ग्राम<DocField bill={bill} onChange={updateBill} field="labour_village" className="signature-input" />
                         </div>
 
                         <p className="document-paragraph large-gap">
@@ -752,14 +742,14 @@ export default function CenterUdyanBill() {
                         </p>
 
                         <div className="signature-block">
-                            हस्ताक्षर कृषक<DocField bill={bill} field="farmer_name" className="signature-input" /><br />
-                            कृषक का नाम<DocField bill={bill} field="farmer_name" className="signature-input" /><br />
-                            पिता/पति का नाम<DocField bill={bill} field="father_husband_name" className="signature-input" /><br />
-                            ग्राम<DocField bill={bill} field="village" className="signature-input" />
+                            हस्ताक्षर कृषक<DocField bill={bill} onChange={updateBill} field="farmer_name" className="signature-input" /><br />
+                            कृषक का नाम<DocField bill={bill} onChange={updateBill} field="farmer_name" className="signature-input" /><br />
+                            पिता/पति का नाम<DocField bill={bill} onChange={updateBill} field="father_husband_name" className="signature-input" /><br />
+                            ग्राम<DocField bill={bill} onChange={updateBill} field="village" className="signature-input" />
                         </div>
 
                         <div className="officer-sign">
-                            प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} field="center" className="officer-input" />
+                            प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} onChange={updateBill} field="center" className="officer-input" />
                         </div>
                     </div>
                 )}
@@ -798,7 +788,7 @@ export default function CenterUdyanBill() {
     };
 
     /* =====================================================
-       STANDARDS MANAGER (VIEW ONLY)
+       STANDARDS MANAGER (VIEW ONLY — NO ADD/EDIT)
        ===================================================== */
 
     const StandardsManager = () => {
@@ -891,15 +881,14 @@ export default function CenterUdyanBill() {
                     <div className="standards-toolbar">
                         <div>
                             <h2>मानक तालिका</h2>
-                            <p>फसलवार मानक डेटाबेस से प्राप्त होते हैं।</p>
+                            <p>फसलवार मानक डेटाबेस से प्राप्त।</p>
                         </div>
                     </div>
                     {loadingStandards ? (
                         <div className="loading-box">मानक लोड हो रहे हैं...</div>
                     ) : standards.length === 0 ? (
                         <div className="no-standards">
-                            <div className="no-standard-icon">!</div>
-                            <h3>अभी कोई मानक दर्ज नहीं है</h3>
+                            <h3>अभी कोई मानक उपलब्ध नहीं है</h3>
                         </div>
                     ) : (
                         <div className="standards-scroll">
@@ -947,17 +936,18 @@ export default function CenterUdyanBill() {
                         <div className="year-selector-row">
                             <label>
                                 <span>वर्ष</span>
-                                <input value={financialYear} onChange={(event) => setFinancialYear(event.target.value)} readOnly />
+                                <input value={financialYear} onChange={(event) => setFinancialYear(event.target.value)} />
                             </label>
                         </div>
                         <StandardsManager />
                     </div>
                 ) : (
                     <>
+                        {/* QUICK CONTROLS (TYPEABLE TO ADJUST PRINT PREVIEW) */}
                         <div className="quick-controls">
                             <label className="control-field crop-field">
                                 <span>फल पौध</span>
-                                <select value={selectedCropId} onChange={handleCropChange} disabled>
+                                <select value={selectedCropId} onChange={handleCropChange}>
                                     <option value="">— फल पौध चुनें —</option>
                                     {standards.map((standard) => (
                                         <option key={standard.id} value={standard.id}>{standard.crop_name}</option>
@@ -966,40 +956,40 @@ export default function CenterUdyanBill() {
                             </label>
                             <label className="control-field">
                                 <span>क्षेत्रफल है0</span>
-                                <input value={bill.area} inputMode="decimal" onChange={(event) => updateBill("area", event.target.value)} placeholder="जैसे 0.125" readOnly />
+                                <input value={bill.area} inputMode="decimal" onChange={(event) => updateBill("area", event.target.value)} placeholder="जैसे 0.125" />
                             </label>
                             <label className="control-field">
                                 <span>पौध संख्या</span>
-                                <input type="number" value={bill.calculation_basis === "area" ? calculation.plants : bill.plants} disabled={bill.calculation_basis === "area"} onChange={(event) => updateBill("plants", event.target.value)} readOnly />
+                                <input type="number" value={bill.calculation_basis === "area" ? calculation.plants : bill.plants} disabled={bill.calculation_basis === "area"} onChange={(event) => updateBill("plants", event.target.value)} />
                             </label>
                             <label className="control-field">
                                 <span>गणना का आधार</span>
-                                <select value={bill.calculation_basis} onChange={(event) => updateBill("calculation_basis", event.target.value)} disabled>
+                                <select value={bill.calculation_basis} onChange={(event) => updateBill("calculation_basis", event.target.value)}>
                                     <option value="area">क्षेत्रफल के अनुपात में (मानक)</option>
                                     <option value="plant">वास्तविक पौध संख्या के अनुसार</option>
                                 </select>
                             </label>
                             <label className="control-field">
                                 <span>राशि</span>
-                                <select value={bill.rounding} onChange={(event) => updateBill("rounding", event.target.value)} disabled>
+                                <select value={bill.rounding} onChange={(event) => updateBill("rounding", event.target.value)}>
                                     <option value="2">पैसे सहित (2 दशमलव)</option>
                                     <option value="0">पूर्णांक रुपये में</option>
                                 </select>
                             </label>
                             <label className="control-field">
                                 <span>वर्ष</span>
-                                <input value={financialYear} onChange={(event) => setFinancialYear(event.target.value)} readOnly />
+                                <input value={financialYear} onChange={(event) => setFinancialYear(event.target.value)} />
                             </label>
                             <label className="control-field">
                                 <span>वाउचर सं0-2</span>
-                                <select value={showVoucher2 ? "yes" : "no"} onChange={(event) => setShowVoucher2(event.target.value === "yes")} disabled>
+                                <select value={showVoucher2 ? "yes" : "no"} onChange={(event) => setShowVoucher2(event.target.value === "yes")}>
                                     <option value="no">न दें</option>
                                     <option value="yes">दें</option>
                                 </select>
                             </label>
                         </div>
 
-                        {/* ACTION ROW — ONLY PRINT (NO SAVE / NO RESET / NO DELETE) */}
+                        {/* ACTION ROW — ONLY PRINT (NO SAVE/DELETE) */}
                         <div className="action-row">
                             <button type="button" className="green-button" onClick={printBill}>प्रिंट / PDF</button>
                             <label className="print-check">
