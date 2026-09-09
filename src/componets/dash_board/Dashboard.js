@@ -2032,7 +2032,7 @@ const Dashboard = () => {
     const truncated = labels.map(l => l.length > 20 ? l.substring(0, 18) + '...' : l);
 
     const baseColors = [
-      'rgba(40, 167, 69, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(253, 126, 20, 0.8)',
+      'rgba(40, 167, 69, 0.8)', '#12355b', 'rgba(253, 126, 20, 0.8)',
       'rgba(102, 16, 242, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(32, 201, 151, 0.8)'
     ];
     const colors = labels.map((_, i) => baseColors[i % baseColors.length]);
@@ -2073,7 +2073,7 @@ const Dashboard = () => {
 
     // generate colors
     const baseColors = [
-      'rgba(40, 167, 69, 0.8)', 'rgba(25, 78, 139, 0.8)', 'rgba(253, 126, 20, 0.8)',
+      'rgba(40, 167, 69, 0.8)', '#12355b', 'rgba(253, 126, 20, 0.8)',
       'rgba(102, 16, 242, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(32, 201, 151, 0.8)',
       'rgba(255, 193, 7, 0.8)', 'rgba(23, 162, 184, 0.8)', 'rgba(108, 117, 125, 0.8)'
     ];
@@ -2201,8 +2201,8 @@ const Dashboard = () => {
 
     const labels = Object.keys(schemeData);
     const colors = [
-      'rgba(25, 78, 139, 0.8)', 'rgba(40, 167, 69, 0.8)', 'rgba(255, 193, 7, 0.8)',
-      'rgba(220, 53, 69, 0.8)', 'rgba(23, 162, 184, 0.8)', 'rgba(108, 117, 125, 0.8)',
+      '#12355b', 'rgba(40, 167, 69, 0.8)', 'rgba(255, 193, 7, 0.8)',
+      'rgba(220, 53, 69, 0.8)', '#12355b', 'rgba(108, 117, 125, 0.8)',
       'rgba(102, 16, 242, 0.8)', 'rgba(253, 126, 20, 0.8)', 'rgba(32, 201, 151, 0.8)'
     ];
 
