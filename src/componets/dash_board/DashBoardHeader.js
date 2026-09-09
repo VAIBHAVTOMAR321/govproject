@@ -62,9 +62,9 @@ function DashBoardHeader() {
                <NavDropdown.Item as={Link} to="/UdyanBill" active={location.pathname === '/UdyanBill'}>
                 उद्यान बिल
               </NavDropdown.Item>
-               {/* <NavDropdown.Item as={Link} to="/KishanBeej" active={location.pathname === '/KishanBeej'}>
+               <NavDropdown.Item as={Link} to="/KishanBeej" active={location.pathname === '/KishanBeej'}>
               किसान बीज
-              </NavDropdown.Item> */}
+              </NavDropdown.Item>
              
               
             </NavDropdown>
