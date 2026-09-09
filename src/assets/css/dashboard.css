@@ -2512,7 +2512,7 @@ color:#fff;
 }
 
 .professional-report-content .dynamic-report-table thead th {
- background-color:#1d5fa7;
+ background-color:#12355b;
   border-color: rgba(255,255,255,.18) !important;
   font-weight: 700 !important;
   padding: 8px 9px !important;
@@ -2939,8 +2939,8 @@ color:#fff;
 }
 
 .dynamic-report-heading {
-  min-height: 70px;
-  padding: 17px 21px !important;
+  min-height: 50px;
+
   border-radius: 17px 17px 0 0;
   background: linear-gradient(112deg, #12355b, #165f78) !important;
 }
@@ -2987,7 +2987,7 @@ color:#fff;
 }
 
 .professional-report-content .dynamic-report-table thead th {
-  background-color:#167a8a;
+  background-color:#12355b;
 }
 
 .professional-report-content .dynamic-report-table tbody tr:hover {
