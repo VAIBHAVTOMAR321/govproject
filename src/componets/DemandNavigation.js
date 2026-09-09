@@ -55,17 +55,7 @@ const DemandNavigation = () => {
             >
               सेंटरवाइज एंट्री
             </Nav.Link>
-            <Nav.Link
-              active={isActive("/DemandGenerate/KrishiwiseEntry")}
-              onClick={() => navigate("/DemandGenerate/KrishiwiseEntry")}
-              style={{
-                fontWeight: isActive("/DemandGenerate/KrishiwiseEntry")
-                  ? "bold"
-                  : "normal",
-              }}
-            >
-              कृषिवाइज एंट्री
-            </Nav.Link>
+          
             {/* <Nav.Link
               active={isActive('/KisanAavedanPortal')}
               onClick={() => navigate('/KisanAavedanPortal')}
@@ -87,26 +77,16 @@ const DemandNavigation = () => {
             </Nav.Link>
           </Nav>
           <Nav className="me-auto">
-            <Nav.Link
-              active={isActive("/DemandGenerate")}
-              onClick={() => navigate("/DemandGenerate")}
+           <Nav.Link
+              active={isActive("/CenterUdyanBill")}
+              onClick={() => navigate("/CenterUdyanBill")}
               style={{
-                fontWeight: isActive("/DemandGenerate") ? "bold" : "normal",
+                fontWeight: isActive("/CenterUdyanBill") ? "bold" : "normal",
               }}
             >
-              डिमांड जनरेशन
+           उद्यान बिल
             </Nav.Link>
-            <Nav.Link
-              active={isActive("/DemandGenerate/CenterwiseEntry")}
-              onClick={() => navigate("/DemandGenerate/CenterwiseEntry")}
-              style={{
-                fontWeight: isActive("/DemandGenerate/CenterwiseEntry")
-                  ? "bold"
-                  : "normal",
-              }}
-            >
-              सेंटरवाइज एंट्री
-            </Nav.Link>
+           
             <Nav.Link
               active={isActive("/DemandGenerate/KrishiwiseEntry")}
               onClick={() => navigate("/DemandGenerate/KrishiwiseEntry")}
@@ -135,7 +115,7 @@ const DemandNavigation = () => {
                 fontWeight: isActive("/KisanAavedanPortal") ? "bold" : "normal",
               }}
             >
-              Kisan Aavedan Portal
+             किसान आवेदन पोर्टल
             </Nav.Link>
           </Nav>
           <Nav className="ms-auto">
@@ -143,10 +123,7 @@ const DemandNavigation = () => {
               <NavDropdown.Item onClick={() => navigate("/UdyanBill")}>
                 उद्यान बिल
               </NavDropdown.Item>
-                 <NavDropdown.Item onClick={() => navigate("/CenterUdyanBill")}>
-              Center Udyan Bill
-              </NavDropdown.Item>
-              <NavDropdown.Divider />
+                
               <NavDropdown.Item onClick={handleLogout}>लॉगआउट</NavDropdown.Item>
             </NavDropdown>
           </Nav>
