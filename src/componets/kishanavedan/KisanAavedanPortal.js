@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from "react";
 import "./kisan-aavedan-portal.css";
 
@@ -73,7 +74,7 @@ const SCHEMES = {
       "ट्रेलिस सिस्टम: T-Bar डिज़ाइन — कुल ऊँचाई 2.5m और आर्म चौड़ाई 2.0m।",
       "फेंसिंग: जी.आई. चेन लिंक फेंसिंग, लोहे के खम्भों के साथ।",
       "रोपण सामग्री: 208 पौधे प्रति एकड़ (167 मुख्य + 41 बैकअप), 9 मादा : 1 नर।",
-      "सिंचाई: टपक (Drip) सिंचाई प्रणाली का उपयोग अनिवार्य।",
+      "सिंचाई: टपक सिंचाई प्रणाली का उपयोग अनिवार्य।",
     ],
     steps: ["personal", "land", "planbank", "technical", "docs", "declaration"],
   },
@@ -107,6 +108,7 @@ const SCHEMES = {
 
 const initialData = {
   gender: "",
+  centerName: "",
   docs: [],
   irrSource: [],
   date: new Date().toISOString().slice(0, 10),
@@ -231,7 +233,16 @@ function Field({ label, required, children, hint, error }) {
     </div>
   );
 }
-function TextInput({ data, set, k, type = "text", step, placeholder, disabled = false, inputMode }) {
+function TextInput({
+  data,
+  set,
+  k,
+  type = "text",
+  step,
+  placeholder,
+  disabled = false,
+  inputMode,
+}) {
   return (
     <input
       className="control"
@@ -248,7 +259,13 @@ function TextInput({ data, set, k, type = "text", step, placeholder, disabled = 
 function Radio({ data, set, k, options, disabled = false }) {
   return (
     <div className="opts">
-      {[...new Set(data[k] && !options.includes(data[k]) ? [...options, data[k]] : options)].map((o) => (
+      {[
+        ...new Set(
+          data[k] && !options.includes(data[k])
+            ? [...options, data[k]]
+            : options,
+        ),
+      ].map((o) => (
         <label className="opt" key={o}>
           <input
             type="radio"
@@ -272,7 +289,13 @@ function Select({ data, set, k, options, disabled = false }) {
       onChange={(e) => set(k, e.target.value)}
     >
       <option value="">— चुनें —</option>
-      {[...new Set(data[k] && !options.includes(data[k]) ? [...options, data[k]] : options)].map((o) => (
+      {[
+        ...new Set(
+          data[k] && !options.includes(data[k])
+            ? [...options, data[k]]
+            : options,
+        ),
+      ].map((o) => (
         <option key={o}>{o}</option>
       ))}
     </select>
@@ -347,7 +370,6 @@ function CostBox({ calc, scheme }) {
   );
 }
 
-
 const PRINT_LABELS = {
   planScheme: "योजना का नाम",
   fencingType: "फेंसिंग का प्रकार",
@@ -406,7 +428,8 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
   const excluded = new Set(["photo", "docs", "irrSource", "accept", "declare"]);
   const rows = [];
   Object.entries(data).forEach(([key, value]) => {
-    if (excluded.has(key) || value === "" || value === false || value == null) return;
+    if (excluded.has(key) || value === "" || value === false || value == null)
+      return;
     if (!PRINT_LABELS[key]) return;
     rows.push([PRINT_LABELS[key], printValue(key, value)]);
   });
@@ -425,7 +448,9 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
   const nali = calc?.nali || 0;
 
   return (
-    <div className={`print-document ${preview ? "print-document-preview" : ""}`}>
+    <div
+      className={`print-document ${preview ? "print-document-preview" : ""}`}
+    >
       <div className="print-page">
         <div className="print-top">
           <div className="print-app-no">आवेदन क्रमांक: {appNo}</div>
@@ -433,13 +458,21 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
             {data.photo ? (
               <img src={data.photo} alt="कृषक" />
             ) : (
-              <>फोटो<br />प्रभारी द्वारा<br />सत्यापित</>
+              <>
+                फोटो
+                <br />
+                प्रभारी द्वारा
+                <br />
+                सत्यापित
+              </>
             )}
           </div>
         </div>
 
         <h1 className="print-title">{scheme.full}</h1>
-        <div className="print-department">उद्यान एवं खाद्य प्रसंस्करण विभाग</div>
+        <div className="print-department">
+          उद्यान एवं खाद्य प्रसंस्करण विभाग
+        </div>
 
         <table className="print-table print-details-table">
           <tbody>
@@ -477,14 +510,33 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
             <h2>लागत एवं राजसहायता</h2>
             <table className="print-table">
               <tbody>
-                <tr><td className="print-key">प्रति हेक्टेयर योजना लागत</td><td>{rupees(cost.perHa)}</td></tr>
-                <tr><td className="print-key">प्रस्तावित क्षेत्रफल</td><td>{cost.ha.toFixed(3)} हेक्टेयर</td></tr>
-                <tr><td className="print-key">कुल लागत</td><td>{rupees(cost.total)}</td></tr>
-                <tr><td className="print-key">राजसहायता ({cost.subPct}%)</td><td>{rupees(cost.sub)}</td></tr>
-                <tr><td className="print-key">कृषक अंश ({100 - cost.subPct}%)</td><td>{rupees(cost.farmer)}</td></tr>
+                <tr>
+                  <td className="print-key">प्रति हेक्टेयर योजना लागत</td>
+                  <td>{rupees(cost.perHa)}</td>
+                </tr>
+                <tr>
+                  <td className="print-key">प्रस्तावित क्षेत्रफल</td>
+                  <td>{cost.ha.toFixed(3)} हेक्टेयर</td>
+                </tr>
+                <tr>
+                  <td className="print-key">कुल लागत</td>
+                  <td>{rupees(cost.total)}</td>
+                </tr>
+                <tr>
+                  <td className="print-key">राजसहायता ({cost.subPct}%)</td>
+                  <td>{rupees(cost.sub)}</td>
+                </tr>
+                <tr>
+                  <td className="print-key">कृषक अंश ({100 - cost.subPct}%)</td>
+                  <td>{rupees(cost.farmer)}</td>
+                </tr>
               </tbody>
             </table>
-            <p className="print-note">राजसहायता का निर्धारण प्रति हेक्टेयर लागत पर आनुपातिक (Pro-rata) रूप से किया जाएगा। स्वीकृत मानक से अधिक होने वाला व्यय कृषक द्वारा स्वयं वहन किया जाएगा तथा उस पर अतिरिक्त राजसहायता देय नहीं होगी।</p>
+            <p className="print-note">
+              राजसहायता का निर्धारण प्रति हेक्टेयर लागत पर आनुपातिक (Pro-rata)
+              रूप से किया जाएगा। स्वीकृत मानक से अधिक होने वाला व्यय कृषक द्वारा
+              स्वयं वहन किया जाएगा तथा उस पर अतिरिक्त राजसहायता देय नहीं होगी।
+            </p>
           </section>
         )}
 
@@ -492,9 +544,15 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
           <section className="print-section print-avoid-break">
             <h2>तकनीकी मानकों एवं शर्तों की स्वीकारोक्ति</h2>
             <ul className="print-list">
-              {standards.map((item) => <li key={item}>{item}</li>)}
+              {standards.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
-            <p className="print-note">{data.accept ? "☑ उपरोक्त मानक स्वीकार किए गए।" : "☐ उपरोक्त मानक स्वीकार किए गए।"}</p>
+            <p className="print-note">
+              {data.accept
+                ? "☑ उपरोक्त मानक स्वीकार किए गए।"
+                : "☐ उपरोक्त मानक स्वीकार किए गए।"}
+            </p>
           </section>
         )}
 
@@ -502,26 +560,46 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
           <h2>संलग्न दस्तावेज़ों की सूची</h2>
           <ol className="print-list">
             {scheme.docs.map((doc) => (
-              <li key={doc}>{data.docs?.includes(doc) ? "☑" : "☐"} {doc}</li>
+              <li key={doc}>
+                {data.docs?.includes(doc) ? "☑" : "☐"} {doc}
+              </li>
             ))}
           </ol>
         </section>
 
         <section className="print-section print-avoid-break">
           <h2>घोषणा</h2>
-          <p>मैं प्रमाणित {escName(data.gender)} कि उपरोक्त दी गई सभी जानकारी मेरी जानकारी में पूर्णतः सही है।</p>
-          <p>मैं प्रमाणित {escName(data.gender)} कि कार्य के दौरान उपरोक्त तकनीकी मानकों का पालन अनिवार्यतः करूँगा/करूँगी।</p>
-          <p className="print-check">{data.declare ? "☑" : "☐"} घोषणा स्वीकार की गई।</p>
+          <p>
+            मैं प्रमाणित {escName(data.gender)} कि उपरोक्त दी गई सभी जानकारी
+            मेरी जानकारी में पूर्णतः सही है।
+          </p>
+          <p>
+            मैं प्रमाणित {escName(data.gender)} कि कार्य के दौरान उपरोक्त तकनीकी
+            मानकों का पालन अनिवार्यतः करूँगा/करूँगी।
+          </p>
+          <p className="print-check">
+            {data.declare ? "☑" : "☐"} घोषणा स्वीकार की गई।
+          </p>
         </section>
 
         <div className="print-signatures">
-          <div>दिनांक: {printValue("date", data.date || "—")}<br />स्थान: {data.place || "—"}</div>
-          <div>हस्ताक्षर ({data.gender === "महिला" ? "आवेदिका" : "आवेदक"}): ____________________</div>
+          <div>
+            दिनांक: {printValue("date", data.date || "—")}
+            <br />
+            स्थान: {data.place || "—"}
+          </div>
+          <div>
+            हस्ताक्षर ({data.gender === "महिला" ? "आवेदिका" : "आवेदक"}):
+            ____________________
+          </div>
         </div>
 
         <div className="print-officer">
           <b>प्रभारी की आख्या</b>
-          <p>{scheme.officer || "स्थलीय निरीक्षण एवं विभागीय परीक्षण के उपरांत आख्या अंकित की जाएगी।"}</p>
+          <p>
+            {scheme.officer ||
+              "स्थलीय निरीक्षण एवं विभागीय परीक्षण के उपरांत आख्या अंकित की जाएगी।"}
+          </p>
           <div>हस्ताक्षर प्रभारी: ____________________</div>
         </div>
       </div>
@@ -549,6 +627,59 @@ export default function KisanAavedanPortal() {
   );
   const appNo = formId || (scheme ? "नया आवेदन" : "");
 
+  const normalizeGender = { Male: "पुरुष", Female: "महिला", Other: "अन्य" };
+  const normalizeCategory = {
+    General: "सामान्य",
+    SC: "अनुसूचित",
+    ST: "अनुसूचित",
+    "Small Farmer": "लघु कृषक",
+    "Marginal Farmer": "सीमांत कृषक",
+    Other: "अन्य",
+  };
+  const normalizeIrrigation = { Yes: "हाँ", No: "नहीं" };
+  const normalizeUnit = { Hectare: "हेक्टेयर", Acre: "एकड़", Nali: "नाली" };
+  const normalizeSlope = {
+    Flat: "समतल",
+    Mild: "हल्का ढाल",
+    Moderate: "मध्यम ढाल",
+    Steep: "तीव्र ढाल",
+  };
+  const normalizePlanType = { Individual: "व्यक्तिगत", Group: "समूह" };
+  const normalizeExecution = {
+    Self: "स्वयं कार्य करने पर",
+    Department: "विभागीय पंजीकृत फर्म के माध्यम से",
+  };
+  const normalizeFencing = {
+    "Chain Link": "चेन लिंक फेंसिंग",
+    "Barbed Wire": "कांटेदार तार की बाड़",
+  };
+
+  const genderApi = { पुरुष: "Male", महिला: "Female", अन्य: "Other" };
+  const categoryApi = {
+    सामान्य: "General",
+    अनुसूचित: "SC",
+    "लघु कृषक": "Small Farmer",
+    "सीमांत कृषक": "Marginal Farmer",
+    अन्य: "Other",
+  };
+  const irrigationApi = { हाँ: "Yes", नहीं: "No" };
+  const unitApi = { हेक्टेयर: "Hectare", एकड़: "Acre", नाली: "Nali" };
+  const slopeApi = {
+    समतल: "Flat",
+    "हल्का ढाल": "Mild",
+    "मध्यम ढाल": "Moderate",
+    "तीव्र ढाल": "Steep",
+  };
+  const planTypeApi = { व्यक्तिगत: "Individual", समूह: "Group" };
+  const executionApi = {
+    "स्वयं कार्य करने पर": "Self",
+    "विभागीय पंजीकृत फर्म के माध्यम से": "Department",
+  };
+  const fencingApi = {
+    "चेन लिंक फेंसिंग": "Chain Link",
+    "कांटेदार तार की बाड़": "Barbed Wire",
+  };
+
   const mergeApiResponse = (payload) => {
     const item = payload?.data?.[0] || payload?.data || payload;
     if (!item || typeof item !== "object") return null;
@@ -557,30 +688,13 @@ export default function KisanAavedanPortal() {
     const plan = item.plan_technical_bank || {};
     const docs = item.application_documents || {};
 
-    const normalizeGender = { Male: "पुरुष", Female: "महिला", Other: "अन्य" };
-    const normalizeCategory = {
-      General: "सामान्य",
-      SC: "अनुसूचित",
-      ST: "अनुसूचित",
-      "Small Farmer": "लघु कृषक",
-      "Marginal Farmer": "सीमांत कृषक",
-      Other: "अन्य",
-    };
-    const normalizeIrrigation = { Yes: "हाँ", No: "नहीं" };
-    const normalizeUnit = { Hectare: "हेक्टेयर", Acre: "एकड़", Nali: "नाली" };
-    const normalizeSlope = { Flat: "समतल", Mild: "हल्का ढाल", Moderate: "मध्यम ढाल", Steep: "तीव्र ढाल" };
-    const normalizePlanType = { Individual: "व्यक्तिगत", Group: "समूह" };
-    const normalizeExecution = {
-      Self: "स्वयं कार्य करने पर",
-      Department: "विभागीय पंजीकृत फर्म के माध्यम से",
-    };
-    const normalizeFencing = {
-      "Chain Link": "चेन लिंक फेंसिंग",
-      "Barbed Wire": "कांटेदार तार की बाड़",
-    };
-
     const nextData = {
       ...data,
+      // From Personal
+      ...(personal.center_name !== undefined ? { centerName: personal.center_name } : {}),
+      ...(personal.plan_scheme !== undefined ? { planScheme: personal.plan_scheme } : {}),
+      ...(personal.fencing_type !== undefined ? { fencingType: normalizeFencing[personal.fencing_type] || personal.fencing_type } : {}),
+      ...(personal.subsidy_ratio !== undefined ? { subsidyRatio: personal.subsidy_ratio } : {}),
       ...(personal.name !== undefined ? { name: personal.name } : {}),
       ...(personal.gender !== undefined ? { gender: normalizeGender[personal.gender] || personal.gender } : {}),
       ...(personal.father !== undefined ? { father: personal.father } : {}),
@@ -592,69 +706,101 @@ export default function KisanAavedanPortal() {
       ...(personal.mobile !== undefined ? { mobile: String(personal.mobile) } : {}),
       ...(personal.aadhaar !== undefined ? { aadhaar: String(personal.aadhaar) } : {}),
       ...(personal.category !== undefined ? { category: normalizeCategory[personal.category] || personal.category } : {}),
-      ...(personal.total_land !== undefined ? { totalLand: String(personal.total_land) } : {}),
-      ...(personal.prop_area_val !== undefined ? { propArea_val: String(personal.prop_area_val) } : {}),
-      ...(personal.prop_area_unit !== undefined ? { propArea_unit: normalizeUnit[personal.prop_area_unit] || personal.prop_area_unit } : {}),
-      ...(personal.irrigation !== undefined ? { irrigation: normalizeIrrigation[personal.irrigation] || personal.irrigation } : {}),
-      ...(personal.irrigation_sources !== undefined ? { irrSource: personal.irrigation_sources } : {}),
-      ...(personal.irrigation_other !== undefined ? { irrOther: personal.irrigation_other || "" } : {}),
-      ...(personal.altitude !== undefined ? { altitude: String(personal.altitude) } : {}),
-      ...(personal.road_dist !== undefined ? { roadDist: String(personal.road_dist) } : {}),
-      ...(personal.slope !== undefined ? { slope: normalizeSlope[personal.slope] || personal.slope } : {}),
-      ...(personal.soil !== undefined ? { soil: personal.soil } : {}),
-      ...(personal.latitude !== undefined ? { lat: String(personal.latitude) } : {}),
-      ...(personal.longitude !== undefined ? { lng: String(personal.longitude) } : {}),
-      ...(plan.plan_scheme !== undefined ? { planScheme: plan.plan_scheme } : {}),
+      ...(personal.photo !== undefined ? { photo: personal.photo || "" } : {}),
+
+      // From Plan Technical Bank
+      ...(plan.total_land !== undefined ? { totalLand: String(plan.total_land) } : {}),
+      ...(plan.proposed_area !== undefined ? { propArea_val: String(plan.proposed_area) } : {}),
+      ...(plan.latitude !== undefined ? { lat: String(plan.latitude) } : {}),
+      ...(plan.longitude !== undefined ? { lng: String(plan.longitude) } : {}),
+      ...(plan.bank_name !== undefined ? { bankName: plan.bank_name } : {}),
+      ...(plan.branch !== undefined ? { branch: plan.branch } : {}),
+      ...(plan.account !== undefined ? { account: String(plan.account) } : {}),
+      ...(plan.ifsc !== undefined ? { ifsc: plan.ifsc } : {}),
       ...(plan.cost_per_ha !== undefined ? { costPerHa: String(plan.cost_per_ha) } : {}),
       ...(plan.plan_type !== undefined ? { planType: normalizePlanType[plan.plan_type] || plan.plan_type } : {}),
       ...(plan.group_name !== undefined ? { groupName: plan.group_name || "" } : {}),
       ...(plan.contribution !== undefined ? { contribution: plan.contribution } : {}),
       ...(plan.other_scheme !== undefined ? { otherScheme: plan.other_scheme || "" } : {}),
-      ...(plan.fencing_type !== undefined ? { fencingType: normalizeFencing[plan.fencing_type] || plan.fencing_type } : {}),
-      ...(plan.subsidy_ratio !== undefined ? { subsidyRatio: plan.subsidy_ratio } : {}),
-      ...(plan.execution !== undefined ? { execution: normalizeExecution[plan.execution] || plan.execution } : {}),
-      ...(plan.firm_name !== undefined ? { firmName: plan.firm_name || "" } : {}),
-      ...(plan.technical_standard_accepted !== undefined ? { accept: !!plan.technical_standard_accepted } : {}),
-      ...(plan.bank_name !== undefined ? { bankName: plan.bank_name } : {}),
-      ...(plan.branch !== undefined ? { branch: plan.branch } : {}),
-      ...(plan.account !== undefined ? { account: String(plan.account) } : {}),
-      ...(plan.ifsc !== undefined ? { ifsc: plan.ifsc } : {}),
+
+      // From Application Documents
+      ...(docs.execution !== undefined ? { execution: normalizeExecution[docs.execution] || docs.execution } : {}),
+      ...(docs.firm_name !== undefined ? { firmName: docs.firm_name || "" } : {}),
+      ...(docs.technical_standard_accepted !== undefined ? { accept: !!docs.technical_standard_accepted } : {}),
       ...(docs.place !== undefined ? { place: docs.place } : {}),
       ...(docs.application_date !== undefined ? { date: docs.application_date } : {}),
       ...(docs.documents !== undefined ? { docs: docs.documents } : {}),
-      ...(docs.photo !== undefined ? { photo: docs.photo || "" } : {}),
       ...(docs.declaration_accepted !== undefined ? { declare: !!docs.declaration_accepted } : {}),
     };
 
-    if (item.form_id) setFormId(item.form_id);
+    const detectedId =
+      item.form_id ||
+      item.id ||
+      item.formId ||
+      item.insertId ||
+      (typeof item === "object" && item?.data?.form_id) ||
+      (typeof item === "object" && item?.data?.id) ||
+      "";
+
+    if (detectedId && !formId) {
+      setFormId(String(detectedId));
+    }
+
     setData(nextData);
     return { item, personal, plan, docs };
   };
 
   const getApplication = async (id = formId) => {
     if (!id) return null;
-    const response = await fetch(`${API_BASE}/kisan-application/?form_id=${encodeURIComponent(id)}`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
+    const response = await fetch(
+      `${API_BASE}/kisan-application/?form_id=${encodeURIComponent(id)}`,
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      },
+    );
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload?.message || payload?.error || `GET failed (${response.status})`);
+    if (!response.ok)
+      throw new Error(
+        payload?.message || payload?.error || `GET failed (${response.status})`,
+      );
     return mergeApiResponse(payload);
   };
 
   const apiRequest = async (path, method, body) => {
     setApiLoading(true);
     setApiError("");
+    const url = `${API_BASE}/${path}`;
+    console.log(`%c[API REQUEST] ${method} ${url}`, "color:#2563eb;font-weight:bold");
+    console.log("[API REQUEST] Body:", body);
     try {
-      const response = await fetch(`${API_BASE}/${path}`, {
+      const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(body),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload?.message || payload?.error || `API failed (${response.status})`);
+      console.log(
+        `%c[API RESPONSE] Status: ${response.status}`,
+        `color:${response.ok ? "#16a34a" : "#dc2626"};font-weight:bold`
+      );
+      console.log("[API RESPONSE] Body:", payload);
+      if (!response.ok) {
+        const errMsg =
+          payload?.message ||
+          payload?.error ||
+          payload?.detail ||
+          `API failed (${response.status})`;
+        throw new Error(errMsg);
+      }
       return payload;
     } catch (error) {
+      console.error(`%c[API ERROR] ${method} ${url}`, "color:#dc2626;font-weight:bold");
+      console.error("[API ERROR] Message:", error.message);
+      console.error("[API ERROR] Stack:", error);
       setApiError(error.message || "API request failed");
       throw error;
     } finally {
@@ -662,17 +808,64 @@ export default function KisanAavedanPortal() {
     }
   };
 
-  const genderApi = { "पुरुष": "Male", "महिला": "Female", "अन्य": "Other" };
-  const categoryApi = { "सामान्य": "General", "अनुसूचित": "SC", "लघु कृषक": "Small Farmer", "सीमांत कृषक": "Marginal Farmer", "अन्य": "Other" };
-  const irrigationApi = { "हाँ": "Yes", "नहीं": "No" };
-  const unitApi = { "हेक्टेयर": "Hectare", "एकड़": "Acre", "नाली": "Nali" };
-  const slopeApi = { "समतल": "Flat", "हल्का ढाल": "Mild", "मध्यम ढाल": "Moderate", "तीव्र ढाल": "Steep" };
-  const planTypeApi = { "व्यक्तिगत": "Individual", "समूह": "Group" };
-  const executionApi = { "स्वयं कार्य करने पर": "Self", "विभागीय पंजीकृत फर्म के माध्यम से": "Department" };
-  const fencingApi = { "चेन लिंक फेंसिंग": "Chain Link", "कांटेदार तार की बाड़": "Barbed Wire" };
+  const extractFormId = (payload) => {
+    if (!payload) return "";
 
-  // POST is used only once, when the first API-backed form step is completed.
-  // It sends the values that exist in that step. Remaining fields are sent by PUT.
+    const directKeys = ["form_id", "formId", "id", "insertId", "insert_id", "lastInsertId", "last_insert_id", "record_id", "recordId"];
+    for (const k of directKeys) {
+      if (payload[k] != null && payload[k] !== "") {
+        return String(payload[k]);
+      }
+    }
+
+    const dataObj = payload.data;
+    if (dataObj == null) return "";
+
+    if (typeof dataObj === "string") return dataObj.trim();
+    if (typeof dataObj === "number") return String(dataObj);
+
+    if (Array.isArray(dataObj)) {
+      const first = dataObj[0];
+      if (!first) return "";
+      for (const k of directKeys) {
+        if (first[k] != null && first[k] !== "") {
+          return String(first[k]);
+        }
+      }
+      return "";
+    }
+
+    if (typeof dataObj === "object") {
+      for (const k of directKeys) {
+        if (dataObj[k] != null && dataObj[k] !== "") {
+          return String(dataObj[k]);
+        }
+      }
+      const nestedKeys = ["record", "result", "item", "application"];
+      for (const nk of nestedKeys) {
+        if (dataObj[nk] && typeof dataObj[nk] === "object") {
+          for (const k of directKeys) {
+            if (dataObj[nk][k] != null && dataObj[nk][k] !== "") {
+              return String(dataObj[nk][k]);
+            }
+          }
+        }
+      }
+    }
+
+    console.warn("[extractFormId] Could not find form_id anywhere in payload.", payload);
+    return "";
+  };
+
+  // --- Payload Functions ---
+
+  const fencingCreatePayload = () => ({
+    plan_scheme: data.planScheme || "",
+    fencing_type: fencingApi[data.fencingType] || data.fencingType || "",
+    subsidy_ratio: data.subsidyRatio || "",
+    center_name: data.centerName || "",
+  });
+
   const personalCreatePayload = () => ({
     name: data.name || "",
     gender: genderApi[data.gender] || data.gender || "",
@@ -687,7 +880,7 @@ export default function KisanAavedanPortal() {
     category: categoryApi[data.category] || data.category || "",
   });
 
-  const personalLandPayload = () => ({
+  const personalPayload = () => ({
     form_id: formId,
     name: data.name || "",
     gender: genderApi[data.gender] || data.gender || "",
@@ -700,21 +893,25 @@ export default function KisanAavedanPortal() {
     mobile: data.mobile || "",
     aadhaar: data.aadhaar || "",
     category: categoryApi[data.category] || data.category || "",
+  });
+
+  const landPayload = () => ({
+    form_id: formId,
     total_land: data.totalLand === "" ? null : Number(data.totalLand),
-    prop_area_val: data.propArea_val === "" ? null : Number(data.propArea_val),
-    prop_area_unit: unitApi[data.propArea_unit] || data.propArea_unit || "",
-    irrigation: irrigationApi[data.irrigation] || data.irrigation || null,
-    irrigation_sources: (data.irrSource || []).map((x) => x === "नहर" ? "Canal" : x === "पानी की टंकी" ? "Water Tank" : x === "पाइपलाइन" ? "Pipeline" : x === "बोरिंग" ? "Boring" : "Other"),
-    irrigation_other: data.irrOther || null,
-    altitude: data.altitude === "" ? null : Number(data.altitude),
-    road_dist: data.roadDist === "" ? null : Number(data.roadDist),
-    slope: slopeApi[data.slope] || data.slope || "",
-    soil: data.soil || "",
+    proposed_area: data.propArea_val === "" ? null : Number(data.propArea_val),
     latitude: data.lat === "" ? null : Number(data.lat),
     longitude: data.lng === "" ? null : Number(data.lng),
   });
 
-  const planPayload = () => ({
+  const bankPayload = () => ({
+    form_id: formId,
+    bank_name: data.bankName || "",
+    branch: data.branch || "",
+    account: data.account || "",
+    ifsc: data.ifsc || "",
+  });
+
+  const planBankPayload = () => ({
     form_id: formId,
     plan_scheme: data.planScheme || "",
     cost_per_ha: data.costPerHa === "" ? null : String(data.costPerHa),
@@ -722,23 +919,20 @@ export default function KisanAavedanPortal() {
     group_name: data.groupName || null,
     contribution: data.contribution || "",
     other_scheme: data.otherScheme || null,
-    fencing_type: fencingApi[data.fencingType] || data.fencingType || null,
-    subsidy_ratio: data.subsidyRatio ? String(data.subsidyRatio).split(" ")[0] : null,
-    execution: executionApi[data.execution] || data.execution || null,
-    firm_name: data.firmName || null,
-    technical_standard_accepted: !!data.accept,
     bank_name: data.bankName || "",
     branch: data.branch || "",
     account: data.account || "",
     ifsc: data.ifsc || "",
   });
 
-  const documentsPayload = () => ({
+  const techDocsPayload = () => ({
     form_id: formId,
+    execution: executionApi[data.execution] || data.execution || null,
+    firm_name: data.firmName || null,
+    technical_standard_accepted: !!data.accept,
     place: data.place || "",
     application_date: data.date || new Date().toISOString().slice(0, 10),
     documents: data.docs || [],
-    photo: data.photo || null,
     declaration_accepted: !!data.declare,
   });
 
@@ -753,52 +947,87 @@ export default function KisanAavedanPortal() {
   };
 
   const submitCurrentStep = async () => {
-    if (!validate()) return false;
-    if (current === "scheme") {
-      setStep((s) => s + 1);
-      return true;
+    if (!validate()) {
+      console.log("[Validate] Form validation failed. Errors:", errors);
+      return false;
     }
 
     try {
+      if (current === "scheme") {
+        if (schemeId === "fencing") {
+          console.log("[Step:Scheme] Fencing → POST fencingCreatePayload");
+          const created = await apiRequest("kisan-application/", "POST", fencingCreatePayload());
+
+          const createdItem = mergeApiResponse(created);
+
+          const newId =
+            extractFormId(created) ||
+            createdItem?.item?.form_id ||
+            createdItem?.item?.id ||
+            created?.data?.[0]?.form_id ||
+            created?.data?.[0]?.id ||
+            "";
+
+          if (!newId) {
+            console.error("[Step:Scheme] POST successful (201) but form_id missing. Response:", created);
+            throw new Error("POST सफल रहा (201) लेकिन response में form_id नहीं मिला।");
+          }
+
+          setFormId(newId);
+          markCompleted("scheme");
+          await getApplication(newId);
+        }
+        setStep((s) => s + 1);
+        return true;
+      }
+
       if (current === "personal") {
         if (!formId) {
+          console.log("[Step:Personal] Non-fencing → POST personalCreatePayload");
           const created = await apiRequest("kisan-application/", "POST", personalCreatePayload());
           const createdItem = mergeApiResponse(created);
-          const newId = created?.form_id || createdItem?.item?.form_id || created?.data?.[0]?.form_id;
+          const newId = extractFormId(created) || createdItem?.item?.form_id || created?.data?.[0]?.form_id;
           if (!newId) throw new Error("POST response में form_id नहीं मिला।");
           setFormId(newId);
-          // Always fetch the canonical server representation after POST.
           await getApplication(newId);
         } else {
-          await apiRequest("kisan-personal-land-update/", "PUT", personalLandPayload());
+          console.log("[Step:Personal] → PUT personalPayload");
+          await apiRequest("kisan-personal-land-update/", "PUT", personalPayload());
           await syncFromGetAndMark("personal");
         }
         markCompleted("personal");
       } else if (current === "land") {
-        if (!formId) throw new Error("form_id उपलब्ध नहीं है। पहले कृषक विवरण submit करें।");
-        await apiRequest("kisan-personal-land-update/", "PUT", personalLandPayload());
+        if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
+        console.log("[Step:Land] → PUT landPayload to kisan-plan-technical-bank-update/");
+        await apiRequest("kisan-plan-technical-bank-update/", "PUT", landPayload());
         await syncFromGetAndMark("land");
       } else if (current === "bank") {
         if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        await apiRequest("kisan-plan-technical-bank-update/", "PUT", planPayload());
+        console.log("[Step:Bank] → PUT bankPayload to kisan-plan-technical-bank-update/");
+        await apiRequest("kisan-plan-technical-bank-update/", "PUT", bankPayload());
         await syncFromGetAndMark("bank");
       } else if (current === "planbank") {
         if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        await apiRequest("kisan-plan-technical-bank-update/", "PUT", planPayload());
+        console.log("[Step:PlanBank] → PUT planBankPayload to kisan-plan-technical-bank-update/");
+        await apiRequest("kisan-plan-technical-bank-update/", "PUT", planBankPayload());
         await syncFromGetAndMark("planbank");
       } else if (current === "technical") {
         if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        await apiRequest("kisan-plan-technical-bank-update/", "PUT", planPayload());
+        console.log("[Step:Technical] → PUT techDocsPayload to kisan-application-documents-update/");
+        await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
         await syncFromGetAndMark("technical");
       } else if (current === "docs") {
         if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        await apiRequest("kisan-application-documents-update/", "PUT", documentsPayload());
+        console.log("[Step:Docs] → PUT techDocsPayload to kisan-application-documents-update/");
+        await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
         await syncFromGetAndMark("docs");
       } else if (current === "declaration") {
         if (!formId) throw new Error("form_id उपलब्ध नहीं है।");
-        await apiRequest("kisan-application-documents-update/", "PUT", documentsPayload());
+        console.log("[Step:Declaration] → PUT techDocsPayload to kisan-application-documents-update/");
+        await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
         await syncFromGetAndMark("declaration");
       }
+
       setStep((s) => s + 1);
       return true;
     } catch (error) {
@@ -836,37 +1065,87 @@ export default function KisanAavedanPortal() {
       : f.showIf.any
         ? !!data[f.showIf.k]
         : data[f.showIf.k] === f.showIf.v);
+        
   const validate = () => {
     const required = [];
-    if (step === 0 && schemeId === "fencing") required.push("planScheme", "fencingType", "subsidyRatio");
+    if (step === 0 && schemeId === "fencing")
+      required.push("planScheme", "fencingType", "subsidyRatio", "centerName");
     if (step === 1 || (step === 0 && schemeId !== "fencing"))
-      required.push("name", "gender", "father", "village", "block", "district", "mobile", "aadhaar", "category");
-    const isLandStep = (schemeId === "fencing" && step === 2) || (schemeId !== "fencing" && step === 1);
+      required.push(
+        "name",
+        "gender",
+        "father",
+        "village",
+        "block",
+        "district",
+        "mobile",
+        "aadhaar",
+        "category",
+      );
+    const isLandStep =
+      (schemeId === "fencing" && step === 2) ||
+      (schemeId !== "fencing" && step === 1);
     if (isLandStep) required.push("totalLand", "propArea_val", "lat", "lng");
-    if (schemeId !== "fencing" && isLandStep) required.push("irrigation", "altitude", "roadDist", "slope", "soil");
-    if (isLandStep && schemeId !== "fencing" && data.irrigation === "हाँ" && !(data.irrSource || []).length) required.push("irrSource");
-    if ((schemeId === "fencing" && step === 3) || (schemeId !== "fencing" && step === 2)) required.push("bankName", "branch", "account", "ifsc");
-    if (schemeId !== "fencing" && step === 2) required.push("planScheme", "planType", "contribution");
-    if (schemeId !== "fencing" && step === 2 && data.planType === "समूह") required.push("groupName");
-    if (schemeId !== "fencing" && step === 2 && data.contribution === "अन्य योजना") required.push("otherScheme");
-    if (schemeId !== "fencing" && step === 3) required.push("execution", "accept");
+    if (schemeId !== "fencing" && isLandStep)
+      required.push("irrigation", "altitude", "roadDist", "slope", "soil");
+    if (
+      isLandStep &&
+      schemeId !== "fencing" &&
+      data.irrigation === "हाँ" &&
+      !(data.irrSource || []).length
+    )
+      required.push("irrSource");
+    if (
+      (schemeId === "fencing" && step === 3) ||
+      (schemeId !== "fencing" && step === 2)
+    )
+      required.push("bankName", "branch", "account", "ifsc");
+    if (schemeId !== "fencing" && step === 2)
+      required.push("planScheme", "planType", "contribution");
+    if (schemeId !== "fencing" && step === 2 && data.planType === "समूह")
+      required.push("groupName");
+    if (
+      schemeId !== "fencing" &&
+      step === 2 &&
+      data.contribution === "अन्य योजना"
+    )
+      required.push("otherScheme");
+    if (schemeId !== "fencing" && step === 3)
+      required.push("execution", "accept");
     if (schemeId === "fencing" && step === 4) required.push("accept");
-    if (schemeId === "fencing" && step === 6) required.push("place", "date", "declare");
-    if (schemeId !== "fencing" && step === 5) required.push("place", "date", "declare");
+    if (schemeId === "fencing" && step === 6)
+      required.push("place", "date", "declare");
+    if (schemeId !== "fencing" && step === 5)
+      required.push("place", "date", "declare");
+      
     const e = {};
-    required.forEach((k) => { if (!data[k] || (Array.isArray(data[k]) && !data[k].length)) e[k] = true; });
-    if (data.mobile && !/^[6-9]\d{9}$/.test(String(data.mobile).replace(/\D/g, ""))) e.mobile = true;
-    if (data.aadhaar && !/^\d{12}$/.test(String(data.aadhaar).replace(/\D/g, ""))) e.aadhaar = true;
-    if (data.account && !/^\d{9,18}$/.test(String(data.account).replace(/\s/g, ""))) e.account = true;
-    if (data.ifsc && !/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(String(data.ifsc).trim())) e.ifsc = true;
+    required.forEach((k) => {
+      if (!data[k] || (Array.isArray(data[k]) && !data[k].length)) e[k] = true;
+    });
+    
+    // सुधार: Format जाँच केवल उसी step पर करें जब वह field required हो
+    if (required.includes("mobile") && data.mobile && !/^[6-9]\d{9}$/.test(String(data.mobile).replace(/\D/g, "")))
+      e.mobile = true;
+    if (required.includes("aadhaar") && data.aadhaar && !/^\d{12}$/.test(String(data.aadhaar).replace(/\D/g, "")))
+      e.aadhaar = true;
+    if (required.includes("account") && data.account && !/^\d{9,18}$/.test(String(data.account).replace(/\s/g, "")))
+      e.account = true;
+    if (required.includes("ifsc") && data.ifsc && !/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(String(data.ifsc).trim()))
+      e.ifsc = true;
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
+
   const next = () => submitCurrentStep();
   const gps = () => {
-    if (!navigator.geolocation) return alert("इस ब्राउज़र में GPS उपलब्ध नहीं है।");
+    if (!navigator.geolocation)
+      return alert("इस ब्राउज़र में GPS उपलब्ध नहीं है।");
     navigator.geolocation.getCurrentPosition(
-      (p) => { set("lat", p.coords.latitude.toFixed(6)); set("lng", p.coords.longitude.toFixed(6)); },
+      (p) => {
+        set("lat", p.coords.latitude.toFixed(6));
+        set("lng", p.coords.longitude.toFixed(6));
+      },
       () => alert("लोकेशन नहीं मिली। ब्राउज़र में लोकेशन की अनुमति दें।"),
     );
   };
@@ -880,11 +1159,13 @@ export default function KisanAavedanPortal() {
 
   const print = () => {
     const source = document.querySelector(
-      ".print-document:not(.print-document-preview)"
+      ".print-document:not(.print-document-preview)",
     );
 
     if (!source) {
-      window.alert("प्रिंट के लिए आवेदन तैयार नहीं है। कृपया पुनः प्रयास करें।");
+      window.alert(
+        "प्रिंट के लिए आवेदन तैयार नहीं है। कृपया पुनः प्रयास करें।",
+      );
       return;
     }
 
@@ -911,7 +1192,7 @@ export default function KisanAavedanPortal() {
     }
 
     const styles = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style')
+      document.querySelectorAll('link[rel="stylesheet"], style'),
     )
       .map((node) => {
         if (node.tagName.toLowerCase() === "link") {
@@ -1081,9 +1362,23 @@ export default function KisanAavedanPortal() {
           </div>
           <div className="scheme-grid">
             {Object.entries(SCHEMES).map(([id, s]) => (
-              <button className={`scheme-card s-${id}`} key={id} onClick={() => selectScheme(id)}>
+              <button
+                className={`scheme-card s-${id}`}
+                key={id}
+                onClick={() => selectScheme(id)}
+              >
                 <SchemeIcon type={id} />
-                <div><h3>{s.name}</h3><p>{s.blurb}</p><div className="tags">{s.tags.map((t) => <span className="tag" key={t}>{t}</span>)}</div></div>
+                <div>
+                  <h3>{s.name}</h3>
+                  <p>{s.blurb}</p>
+                  <div className="tags">
+                    {s.tags.map((t) => (
+                      <span className="tag" key={t}>
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 <span className="arrow">→</span>
               </button>
             ))}
@@ -1102,31 +1397,110 @@ export default function KisanAavedanPortal() {
         <Header scheme={scheme} />
         <main className="portal">
           <div className="topline">
-            <div><span className="eyebrow">आवेदन क्रमांक</span><b>{appNo}</b></div>
-            <button className="link-btn" onClick={backToSchemes}>योजना बदलें</button>
+            <div>
+              <span className="eyebrow">आवेदन क्रमांक</span>
+              <b>{appNo}</b>
+            </div>
+            <button className="link-btn" onClick={backToSchemes}>
+              योजना बदलें
+            </button>
           </div>
-          {apiError && <div className="api-error" role="alert">{apiError}</div>}
-          {formId && <div className="api-status">Server Form ID: <b>{formId}</b>{apiLoading ? " — सेव हो रहा है..." : " — सर्वर से synced"}</div>}
-          <div className="progress"><span>चरण {Math.min(step + 1, total)} / {total}</span><div className="progressbar"><i style={{ width: `${((step + 1) / total) * 100}%` }} /></div></div>
+          {apiError && (
+            <div className="api-error" role="alert">
+              {apiError}
+            </div>
+          )}
+          {formId && (
+            <div className="api-status">
+              Server Form ID: <b>{formId}</b>
+              {apiLoading ? " — सेव हो रहा है..." : " — सर्वर से synced"}
+            </div>
+          )}
+          <div className="progress">
+            <span>
+              चरण {Math.min(step + 1, total)} / {total}
+            </span>
+            <div className="progressbar">
+              <i style={{ width: `${((step + 1) / total) * 100}%` }} />
+            </div>
+          </div>
           {step < total ? (
-            <section className={`form-card ${currentLocked ? "locked-step" : ""}`}>
-              <div className="section-head"><div><h2>{stepTitles[current]}</h2><p>{current === "personal" ? "आधार कार्ड में जो नाम है, वही लिखें।" : current === "land" ? "क्षेत्रफल और भौगोलिक विवरण सही भरें।" : "आवश्यक जानकारी भरें और आगे बढ़ें।"}</p></div></div>
-              <fieldset disabled={currentLocked} className="step-fieldset" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <section
+              className={`form-card ${currentLocked ? "locked-step" : ""}`}
+            >
+              <div className="section-head">
+                <div>
+                  <h2>{stepTitles[current]}</h2>
+                  <p>
+                    {current === "personal"
+                      ? "आधार कार्ड में जो नाम है, वही लिखें।"
+                      : current === "land"
+                        ? "क्षेत्रफल और भौगोलिक विवरण सही भरें।"
+                        : "आवश्यक जानकारी भरें और आगे बढ़ें।"}
+                  </p>
+                </div>
+              </div>
+              <fieldset
+                disabled={currentLocked}
+                className="step-fieldset"
+                style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
+              >
                 <div className="form-grid">{renderStep(current)}</div>
               </fieldset>
-              {currentLocked && <div className="locked-note">यह चरण सर्वर पर पहले ही सुरक्षित हो चुका है और अब केवल पढ़ने के लिए है।</div>}
+              {currentLocked && (
+                <div className="locked-note">
+                  यह चरण सर्वर पर पहले ही सुरक्षित हो चुका है और अब केवल पढ़ने
+                  के लिए है।
+                </div>
+              )}
             </section>
-          ) : <Review />}
+          ) : (
+            <Review />
+          )}
           <div className="actions">
-            <div className="save-line">डेटा केवल API सर्वर पर सुरक्षित किया जाता है</div>
+            <div className="save-line">
+              डेटा केवल API सर्वर पर सुरक्षित किया जाता है
+            </div>
             <div className="action-buttons">
-              {step === 0 ? <button className="btn ghost" onClick={backToSchemes}>योजना बदलें</button> : <button className="btn ghost" onClick={() => setStep((s) => s - 1)}>पीछे</button>}
-              {step < total ? <button className="btn" onClick={next} disabled={apiLoading || currentLocked}>{apiLoading ? "सहेजा जा रहा है..." : step === total - 1 ? "आवेदन देखें" : "आगे बढ़ें"}</button> : <button className="btn" onClick={print}>प्रिंट / PDF</button>}
+              {step === 0 ? (
+                <button className="btn ghost" onClick={backToSchemes}>
+                  योजना बदलें
+                </button>
+              ) : (
+                <button
+                  className="btn ghost"
+                  onClick={() => setStep((s) => s - 1)}
+                >
+                  पीछे
+                </button>
+              )}
+              {step < total ? (
+                <button
+                  className="btn"
+                  onClick={next}
+                  disabled={apiLoading || currentLocked}
+                >
+                  {apiLoading
+                    ? "सहेजा जा रहा है..."
+                    : step === total - 1
+                      ? "आवेदन देखें"
+                      : "आगे बढ़ें"}
+                </button>
+              ) : (
+                <button className="btn" onClick={print}>
+                  प्रिंट / PDF
+                </button>
+              )}
             </div>
           </div>
         </main>
       </div>
-      <PrintableApplication scheme={scheme} data={data} calc={calc} appNo={appNo} />
+      <PrintableApplication
+        scheme={scheme}
+        data={data}
+        calc={calc}
+        appNo={appNo}
+      />
     </>
   );
 
@@ -1160,6 +1534,9 @@ export default function KisanAavedanPortal() {
                 "50% राजसहायता : 50% कृषक अंश",
               ]}
             />
+          </Field>
+          <Field label="केंद्र का नाम" required error={errors.centerName}>
+            <TextInput data={data} set={set} k="centerName" />
           </Field>
           <CostBox calc={calc} scheme={scheme} />
         </>
@@ -1533,10 +1910,7 @@ export default function KisanAavedanPortal() {
   function BankFields() {
     return (
       <>
-        {[
-          ["bankName", "बैंक का नाम"],
-          ["branch", "शाखा"],
-        ].map(([k, l]) => (
+        {[["bankName", "बैंक का नाम"], ["branch", "शाखा"]].map(([k, l]) => (
           <Field label={l} required error={errors[k]} key={k}>
             <TextInput data={data} set={set} k={k} />
           </Field>
@@ -1604,7 +1978,6 @@ export default function KisanAavedanPortal() {
     );
   }
 }
-
 
 function Header({ scheme }) {
   return (
