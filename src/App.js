@@ -41,6 +41,7 @@ import LibrarySystem from "./componets/Library/LibrarySystem";
 import MonthReport from "./componets/MonthReport/MonthReport";
 import KisanAavedanPortal from "./componets/kishanavedan/KisanAavedanPortal";
 import GetViewLibrary from "./componets/GetViewLibrary";
+import CenterUdyanBill from "./componets/udhyan/CenterUdyanBill";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -65,6 +66,7 @@ function NavbarWrapper() {
     "/MPR",
     "/AddEditComponent",
     "/DemandGenerate",
+  
     "/DemandGenerate/CenterwiseEntry",
     "/DemandGenerate/KrishiwiseEntry",
     "/KendraPasswordReset",
@@ -74,7 +76,8 @@ function NavbarWrapper() {
     "/UdyanBill",
     "/KishanBeej",
     "/KisanAavedanPortal",
-    "/GetViewLibrary"
+    "/GetViewLibrary",
+    "/CenterUdyanBill"
     
   ]);
 
@@ -241,6 +244,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedLoginTypes={["demand"]}>
                 <DemandGenerate />
+              </ProtectedRoute>
+            }
+          />
+            <Route
+            path="/CenterUdyanBill"
+            element={
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
+                <CenterUdyanBill />
               </ProtectedRoute>
             }
           />
