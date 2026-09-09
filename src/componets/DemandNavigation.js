@@ -73,7 +73,7 @@ const DemandNavigation = () => {
                 fontWeight: isActive("/GetViewLibrary") ? "bold" : "normal",
               }}
             >
-              Library
+              लाइब्रेरी
             </Nav.Link>
           </Nav>
           <Nav className="me-auto">
