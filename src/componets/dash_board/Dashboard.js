@@ -23,7 +23,7 @@ const translations = {
   selectInvestment: "उप-मद चुनें",
   allSchemes: "सभी क्रय योजनाएं",
   allInvestments: "सभी उप-मद",
-  allocatedQuantity: "भौतिक पूर्ति",
+  allocatedQuantity: "भौतिक पूर्ति ",
   farmerShareAmount: "कृषक अंश (रु0)",
   subsidyAmount: "अनुदान राशि (रु0)",
   totalAmount: "कुल राशि (रु0)",
@@ -719,7 +719,7 @@ const DynamicReportTabs = ({ sourceData }) => {
   const summaryPlanDefs = [
     { key: 'sno', label: 'क्रम संख्या' },
     { key: 'vahan', label: 'योजना का नाम (अनुदान वहन योजना)' },
-    { key: 'matra', label: 'भौतिक पूर्ति' },
+    { key: 'matra', label: 'भौतिक पूर्ति ' },
     { key: 'anudan', label: 'अनुदान राशि (रु0)' },
   ];
 
@@ -759,7 +759,7 @@ const DynamicReportTabs = ({ sourceData }) => {
               <tr>
                 {show('sno') && <th>#</th>}
                 {show('vahan') && <th>योजना का नाम<br/>(अनुदान वहन योजना)</th>}
-                {show('matra') && <th>भौतिक पूर्ति</th>}
+                {show('matra') && <th>भौतिक पूर्ति </th>}
                 {show('anudan') && <th>अनुदान राशि (रु0)</th>}
               </tr>
             </thead>
@@ -811,8 +811,8 @@ const DynamicReportTabs = ({ sourceData }) => {
   //
   // Column structure follows the supplied Excel/reference screenshot:
   //   क्रम संख्या | मद/उप-मद | इकाई |
-  //   योजना 1 -> भौतिक पूर्ति | अनुदान राशि (रु0) |
-  //   योजना 2 -> भौतिक पूर्ति | अनुदान राशि (रु0) | ...
+  //   योजना 1 -> भौतिक पूर्ति  | अनुदान राशि (रु0) |
+  //   योजना 2 -> भौतिक पूर्ति  | अनुदान राशि (रु0) | ...
   //   लाभार्थी
   //
   // Existing API data is used without changing the underlying records.
@@ -838,7 +838,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     const [summaryWiseVisibleColumns, setSummaryWiseVisibleColumns] = useState(null);
     const summaryWiseColumnDefs = [
       { key: 'ikai', label: 'इकाई' },
-      { key: 'matra', label: 'भौतिक पूर्ति' },
+      { key: 'matra', label: 'भौतिक पूर्ति ' },
       { key: 'anudan', label: 'अनुदान राशि (रु0)' },
     ];
     const summaryWiseShowIkai = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('ikai');
@@ -1227,7 +1227,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 {selectedPlans.flatMap(plan => {
                   const cells = [];
                   if (summaryWiseShowMatra) {
-                    cells.push(<th key={`yw-physical-${plan}`}>भौतिक पूर्ति</th>);
+                    cells.push(<th key={`yw-physical-${plan}`}>भौतिक पूर्ति </th>);
                   }
                   if (summaryWiseShowAnudan) {
                     cells.push(<th key={`yw-financial-${plan}`}>अनुदान राशि (रु0)</th>);
@@ -1362,7 +1362,7 @@ const DynamicReportTabs = ({ sourceData }) => {
               }}
             >
               <option value="financial">अनुदान राशि के अनुसार</option>
-              <option value="quantity">भौतिक पूर्ति के अनुसार</option>
+              <option value="quantity">भौतिक पूर्ति  के अनुसार</option>
             </select>
           </div>
 
@@ -1378,7 +1378,7 @@ const DynamicReportTabs = ({ sourceData }) => {
           >
             ▣ योजना-वार {summaryWiseSummaryMode === 'financial'
               ? 'वित्तीय सारांश (Scheme-wise Financial Summary — ₹ Lakhs)'
-              : 'भौतिक पूर्ति सारांश (Scheme-wise Allocated Quantity Summary)'}
+              : 'भौतिक पूर्ति  सारांश (Scheme-wise Allocated Quantity Summary)'}
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -1484,8 +1484,8 @@ const DynamicReportTabs = ({ sourceData }) => {
     const visibleItems = items.filter(item => visibleGeo.some(geo => hasData(item, geo)));
 
     const subColumns = saleMode
-      ? ['विक्रय दर', 'भौतिक पूर्ति', 'वित्तीय (₹)']
-      : ['भौतिक पूर्ति', 'वित्तीय (₹)'];
+      ? ['विक्रय दर', 'भौतिक पूर्ति ', 'वित्तीय (₹)']
+      : ['भौतिक पूर्ति ', 'वित्तीय (₹)'];
 
     const matrixDefs = [
       { key: 'sno', label: 'क्रम संख्या' },
@@ -1844,7 +1844,7 @@ const DynamicReportTabs = ({ sourceData }) => {
         {activeTab === 'vivaran4401' && (
           <div className="dynamic-report-panel">
             <h5>{fixedPlan || '4401 बिक्री हेतु'} — क्रय योजना के अनुसार</h5>
-            <p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = भौतिक पूर्ति और वित्तीय = कृषक अंश।</p>
+            <p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = भौतिक पूर्ति  और वित्तीय = कृषक अंश।</p>
 
             <div className="dynamic-report-view-row professional-view-row">
               <label>देखने का प्रकार</label>
@@ -3084,7 +3084,7 @@ const Dashboard = () => {
             <thead>
               <tr>
                 <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">कुल रिकॉर्ड</th>
-                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">भौतिक पूर्ति</th>
+                <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">भौतिक पूर्ति </th>
                 <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">किसान हिस्सेदारी</th>
                 <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">सब्सिडी</th>
                 <th style="border: 1px solid #ddd; padding: 10px; color: #333; text-align: center;">कुल राशि</th>
@@ -3111,7 +3111,7 @@ const Dashboard = () => {
                <tr style=" color:#000;">
                  <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">#</th>
                  <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">योजना</th>
-                 <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">भौतिक पूर्ति</th>
+                 <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">भौतिक पूर्ति </th>
                  <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
                </tr>
              </thead>
@@ -3152,7 +3152,7 @@ const Dashboard = () => {
               <tr style="background: #ffffff; color: #000000;">
                 <th style="border:1px solid #ddd; padding:6px; color: #000000;">#</th>
                 <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:left;">उप-मद</th>
-                <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:right;">भौतिक पूर्ति</th>
+                <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:right;">भौतिक पूर्ति </th>
                 <th style="border:1px solid #ddd; padding:6px; color: #000000; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
               </tr>
             </thead>
@@ -3234,7 +3234,7 @@ const Dashboard = () => {
               <tr style=" color: #000;">
                 <th style="border:1px solid #ddd; padding:6px;">#</th>
                 <th style="border:1px solid #ddd; padding:6px; text-align:left;">केंद्र</th>
-                <th style="border:1px solid #ddd; padding:6px; text-align:right;">भौतिक पूर्ति</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">भौतिक पूर्ति </th>
                 <th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
               </tr>
             </thead>
@@ -3316,7 +3316,7 @@ const Dashboard = () => {
               <tr style="background: linear-gradient(135deg, #194e8b, #2d6cb5); color: white;">
                 <th style="border:1px solid #ddd; padding:6px;">#</th>
                 <th style="border:1px solid #ddd; padding:6px; text-align:left;">विधानसभा</th>
-                <th style="border:1px solid #ddd; padding:6px; text-align:right;">भौतिक पूर्ति</th>
+                <th style="border:1px solid #ddd; padding:6px; text-align:right;">भौतिक पूर्ति </th>
                 <th style="border:1px solid #ddd; padding:6px; text-align:right;">${rashiOptions.find(opt => opt.value === selectedRashi)?.label || 'कुल राशि'}</th>
               </tr>
             </thead>
@@ -3398,7 +3398,7 @@ const Dashboard = () => {
                <tr>
                  <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">#</th>
                  <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: left;">मद नाम</th>
-                 <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: right;">भौतिक पूर्ति</th>
+                 <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: right;">भौतिक पूर्ति </th>
                  <th style="border: 1px solid #ddd; padding: 6px; color: white; text-align: right;">${rashiColumnLabelExcel[selectedRashi]}</th>
                </tr>
              </thead>
@@ -3613,7 +3613,7 @@ const Dashboard = () => {
           [`फ़िल्टर: ${getFilterStatusText()}`],
           [],
           ['सारांश'],
-          ['कुल रिकॉर्ड', 'भौतिक पूर्ति', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
+          ['कुल रिकॉर्ड', 'भौतिक पूर्ति ', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
           [
             aggregatedStats.totalRecords,
             Number(aggregatedStats.allocatedQuantity || 0).toFixed(2),
@@ -3638,7 +3638,7 @@ const Dashboard = () => {
         // Scheme-wise
         if (openCollapses.includes('scheme')) {
           const schemeRaw = schemeChartData?.rawData || {};
-          const schemeHeaders = ['#', 'योजना', 'भौतिक पूर्ति', rashiColumnLabelExcel[selectedRashi]];
+          const schemeHeaders = ['#', 'योजना', 'भौतिक पूर्ति ', rashiColumnLabelExcel[selectedRashi]];
           const schemeRows = Object.entries(schemeRaw)
             .filter(([label]) =>
               selectedTableSchemes.length === 0 ||
@@ -3660,7 +3660,7 @@ const Dashboard = () => {
         // Investment-wise
         if (openCollapses.includes('investment')) {
           const invRaw = investmentChartData?.rawData || {};
-          const headers = ['#', 'उप-मद', 'भौतिक पूर्ति', rashiColumnLabelExcel[selectedRashi]];
+          const headers = ['#', 'उप-मद', 'भौतिक पूर्ति ', rashiColumnLabelExcel[selectedRashi]];
           const rows = Object.entries(invRaw)
             .sort((a, b) => (b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0))
             .map(([name, val], idx) => [
@@ -3728,7 +3728,7 @@ const Dashboard = () => {
         // Main investment subsidy
         if (openCollapses.includes('mainInvestment')) {
           const raw = investmentChartData?.rawData || {};
-          const headers = ['#', 'मद नाम', 'भौतिक पूर्ति', rashiColumnLabelExcel[selectedRashi]];
+          const headers = ['#', 'मद नाम', 'भौतिक पूर्ति ', rashiColumnLabelExcel[selectedRashi]];
           const rows = Object.entries(raw)
             .sort((a, b) => (b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0))
             .map(([name, val], idx) => [
@@ -4103,7 +4103,7 @@ const Dashboard = () => {
       [`फ़िल्टर: ${getFilterStatusText()}`],
       [],
       ['सारांश'],
-      ['कुल रिकॉर्ड', 'भौतिक पूर्ति', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
+      ['कुल रिकॉर्ड', 'भौतिक पूर्ति ', 'किसान हिस्सेदारी', 'सब्सिडी', 'कुल राशि'],
       [
         aggregatedStats.totalRecords,
         aggregatedStats.allocatedQuantity.toFixed(2),
@@ -4125,7 +4125,7 @@ const Dashboard = () => {
     // Scheme-wise Sheet (use UI aggregation order)
     if (openCollapses.includes('scheme')) {
     const schemeData = schemeChartData && schemeChartData.rawData ? schemeChartData.rawData : {};
-    const schemeHeaders = ['#', 'योजना', 'भौतिक पूर्ति', rashiColumnLabelExcel[selectedRashi]];
+    const schemeHeaders = ['#', 'योजना', 'भौतिक पूर्ति ', rashiColumnLabelExcel[selectedRashi]];
     const schemeRows = Object.entries(schemeData)
       .filter(([label]) => selectedTableSchemes.length === 0 || selectedTableSchemes.some(s => s.value === label))
       .sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0)))
@@ -4140,7 +4140,7 @@ const Dashboard = () => {
     // Investment-wise Sheet (from UI aggregation)
     if (openCollapses.includes('investment')) {
     const invData = investmentChartData && investmentChartData.rawData ? investmentChartData.rawData : {};
-    const investmentHeaders = ['#', 'उप-मद', 'भौतिक पूर्ति', rashiColumnLabelExcel[selectedRashi]];
+    const investmentHeaders = ['#', 'उप-मद', 'भौतिक पूर्ति ', rashiColumnLabelExcel[selectedRashi]];
     const investmentRows = Object.entries(invData).sort((a,b)=> ((b[1][selectedRashi]||0)-(a[1][selectedRashi]||0))).map(([name, val], idx) => [
       idx + 1, name, ((val && val.quantity) || 0).toFixed(2), ((val && val[selectedRashi]) || 0).toFixed(2)
     ]);
@@ -4179,7 +4179,7 @@ const Dashboard = () => {
 
     // Main Investment Subsidy Sheet (match UI: name, quantity, subsidy)
     if (openCollapses.includes('mainInvestment')) {
-    const mainInvestmentHeaders = ['#', 'मद नाम', 'भौतिक पूर्ति', rashiColumnLabelExcel[selectedRashi]];
+    const mainInvestmentHeaders = ['#', 'मद नाम', 'भौतिक पूर्ति ', rashiColumnLabelExcel[selectedRashi]];
     const mainInvestmentRows = Object.entries(investmentChartData.rawData)
       .sort((a, b) => ((b[1][selectedRashi] || 0) - (a[1][selectedRashi] || 0)))
       .map(([name, val], idx) => [
