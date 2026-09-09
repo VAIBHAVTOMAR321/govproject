@@ -1431,7 +1431,7 @@ font-size: 14px;
    RESPONSIVE TABLE OVERRIDE
    Tables use the same compact, fluid behaviour as the Registration UI.
    No horizontal table scrolling is used.
-   ================================================================ */
+   =============================================================== */
 .dynamic-report-table-scroll,
 .dynamic-report-table-scroll.matrix-scroll {
   width: 100%;
@@ -2776,123 +2776,103 @@ color:#fff;
   color: rgba(255, 255, 255, .82);
 }
 
-.professional-export-card,
-.professional-filter-card,
-.professional-summary-card,
-.dynamic-report-section {
-  overflow: visible;
-}
+/* ============================================================
+   EXPORT REPORT DROPDOWN FIX
+   Stops the PDF / Excel dropdown from being clipped or hidden
+   behind the filter card, summary card, and stat cards.
+   ============================================================ */
 
+/* 1) Remove the clipping that was hiding the dropdown */
 .professional-export-card {
   border-left: 0 !important;
   position: relative;
-  overflow: hidden;
+  overflow: visible !important;       /* was: overflow: hidden */
 }
 
-.professional-export-card::before {
-  content: "";
-  display: block;
+/* Keep the left accent bar without clipping the dropdown */
+.professional-export-card .card-body {
+  position: relative;
+  overflow: visible;
+  border-left: 4px solid var(--dashboard-accent, #167a8a);
+}
+
+/* 2) Make sure the dropdown group can break out of the card */
+.professional-export-card .d-flex.gap-2 {
+  position: relative;
+  z-index: 60;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+/* 3) Bootstrap ButtonGroup used for PDF / Excel exports */
+.professional-export-card .btn-group {
+  position: relative;
+  z-index: 60;
+}
+
+/* 4) Dropdown menu: high z-index, never clipped, properly aligned */
+.professional-export-card .dropdown-menu {
+  z-index: 1080 !important;
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--dashboard-accent);
+  /* Align to the right edge of the toggle button so it never overflows
+     the viewport when the button is on the right side of the card. */
+  right: 0;
+  left: auto !important;
+  min-width: 200px;
+  border: 1px solid var(--dashboard-line, #dfe8f1) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 18px 42px rgba(18, 53, 91, 0.18) !important;
+  padding: 6px !important;
+  background: #fff !important;
 }
 
-.professional-export-card .report-title {
-  letter-spacing: .01em;
+/* 5) Make the toggle button keep its stacking context stable */
+.professional-export-card .dropdown-toggle {
+  position: relative;
+  z-index: 61;
 }
 
-.professional-export-card .btn {
-  min-height: 34px;
-  padding-inline: 12px;
+/* 6) Dropdown items styling + hover */
+.professional-export-card .dropdown-item {
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  color: #243447;
+  transition: background-color .15s ease;
 }
 
-.professional-filter-card .filter-card-header {
-  background: linear-gradient(112deg, #12355b, #165f78) !important;
+.professional-export-card .dropdown-item:hover,
+.professional-export-card .dropdown-item:focus {
+  background-color: #eef5fc !important;
+  color: #194e8b !important;
 }
 
-.professional-filter-card .filter-card-header h5,
-.professional-summary-card .summary-card-header h5 {
-  letter-spacing: .01em;
+/* 7) Lower z-index of the cards that come AFTER the export card,
+      so the dropdown always paints above them. */
+.professional-filter-card,
+.professional-summary-card,
+.summary-table-card,
+.stats-row,
+.total-amount-card,
+.dynamic-report-section {
+  position: relative;
+  z-index: 1;
 }
 
-.professional-filter-card .filter-divider-sm {
-  border-color: var(--dashboard-line);
-  opacity: 1;
-}
+/* 8) Mobile: when buttons wrap, allow menu to open downward
+      without being cut by the card's bottom padding. */
+@media (max-width: 767px) {
+  .professional-export-card .dropdown-menu {
+    right: auto !important;
+    left: 0 !important;
+    min-width: 180px;
+  }
 
-.dashboard-report-filter-wrap {
-  min-width: 0;
-}
-
-.dashboard-report-filter-button {
-  width: 100%;
-  min-height: 42px;
-  padding: 8px 11px !important;
-  border: 1px solid var(--dashboard-line) !important;
-  border-radius: 9px !important;
-  background: var(--dashboard-surface) !important;
-  color: var(--dashboard-ink) !important;
-  box-shadow: 0 2px 5px rgba(25, 50, 77, .04);
-  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
-}
-
-.dashboard-report-filter-button:hover,
-.dashboard-report-filter-button:focus-visible {
-  border-color: #91b8c6 !important;
-  box-shadow: 0 0 0 3px rgba(22, 122, 138, .10);
-  transform: translateY(-1px);
-}
-
-.dashboard-report-filter-button.filtered {
-  border-color: #82b8c2 !important;
-  background: var(--dashboard-accent-soft) !important;
-  color: #126170 !important;
-}
-
-.dashboard-report-filter-count {
-  margin-left: auto;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #edf3f7;
-  color: var(--dashboard-muted);
-  font-size: .68rem;
-  font-weight: 700;
-}
-
-.dashboard-report-filter-menu {
-  border: 1px solid var(--dashboard-line) !important;
-  border-radius: 11px !important;
-  padding: 9px !important;
-  box-shadow: 0 18px 42px rgba(18, 53, 91, .18) !important;
-}
-
-.dashboard-report-filter-actions {
-  gap: 5px !important;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--dashboard-line);
-}
-
-.dashboard-report-filter-actions button {
-  border-radius: 7px;
-  padding: 5px 7px;
-  color: var(--dashboard-accent);
-  text-decoration: none;
-  background: var(--dashboard-soft);
-}
-
-.dashboard-report-filter-actions button:hover {
-  background: var(--dashboard-accent-soft);
-}
-
-.dashboard-report-filter-option {
-  border-radius: 7px !important;
-  padding: 7px 6px !important;
-  color: var(--dashboard-ink);
-}
-
-.dashboard-report-filter-option input {
-  accent-color: var(--dashboard-accent);
+  .professional-export-card .d-flex.gap-2 {
+    justify-content: flex-start !important;
+  }
 }
 
 .professional-summary-card {
