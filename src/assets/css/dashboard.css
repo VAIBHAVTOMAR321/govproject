@@ -2913,6 +2913,7 @@ color:#fff;
 
 .dynamic-report-section {
   margin: 24px auto 34px;
+  padding: 16px;
   max-width: 1680px;
   border: 1px solid var(--dashboard-line);
   border-radius: 17px;
