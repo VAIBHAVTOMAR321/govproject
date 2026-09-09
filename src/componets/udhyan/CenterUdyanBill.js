@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./UdyanBill.css";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = "https://mahadevaaya.com/govbillingsystem/backend/api/udyan";
 
@@ -143,9 +144,109 @@ const DocField = ({ bill, onChange, field, className = "" }) => (
    COMPONENT
    ========================================================= */
 
+const getCenterNameFromAuthUser = (authUser) => {
+    if (!authUser) return "";
+
+    // Handle both direct and nested values used by different login responses.
+    const directCandidates = [
+        authUser.center_name,
+        authUser.centerName,
+        authUser.centre_name,
+        authUser.centreName,
+        authUser.center?.center_name,
+        authUser.center?.centerName,
+        authUser.center?.name,
+        authUser.centre?.center_name,
+        authUser.centre?.centerName,
+        authUser.centre?.name,
+        authUser.udyan_center,
+        authUser.udyan_center_name,
+        authUser.udyanCenter,
+        authUser.udyanCenterName,
+        authUser.profile?.center_name,
+        authUser.profile?.centerName,
+        authUser.profile?.centre_name,
+        authUser.profile?.centreName,
+        authUser.profile?.center?.name,
+        authUser.profile?.centre?.name,
+        authUser.data?.center_name,
+        authUser.data?.centerName,
+        authUser.data?.centre_name,
+        authUser.data?.centreName,
+        authUser.data?.center?.name,
+        authUser.data?.centre?.name,
+    ];
+
+    const direct = directCandidates.find(
+        (value) => value !== null && value !== undefined && String(value).trim() !== ""
+    );
+
+    if (direct) return String(direct).trim();
+
+    // Last-resort recursive lookup for a differently named center field.
+    const visited = new Set();
+    const findCenter = (value) => {
+        if (!value || typeof value !== "object" || visited.has(value)) return "";
+        visited.add(value);
+
+        for (const [key, child] of Object.entries(value)) {
+            const normalizedKey = String(key).toLowerCase().replace(/[-_\s]/g, "");
+            const isCenterKey =
+                normalizedKey.includes("center") ||
+                normalizedKey.includes("centre") ||
+                normalizedKey.includes("udyancenter") ||
+                normalizedKey.includes("udyancentre");
+
+            if (isCenterKey && typeof child === "string" && child.trim()) {
+                return child.trim();
+            }
+
+            if (isCenterKey && child && typeof child === "object") {
+                const nestedName =
+                    child.name || child.center_name || child.centerName ||
+                    child.centre_name || child.centreName;
+                if (nestedName !== null && nestedName !== undefined && String(nestedName).trim()) {
+                    return String(nestedName).trim();
+                }
+            }
+
+            const nested = findCenter(child);
+            if (nested) return nested;
+        }
+
+        return "";
+    };
+
+    return findCenter(authUser);
+};
+
+const getCenterNameFromStorage = () => {
+    try {
+        const storedCenterData = localStorage.getItem("centerData");
+        if (!storedCenterData) return "";
+
+        const centerData = JSON.parse(storedCenterData);
+        return String(centerData?.centerName || "").trim();
+    } catch (error) {
+        console.error("Failed to read centerData:", error);
+        return "";
+    }
+};
+
 export default function CenterUdyanBill() {
+    const { user } = useAuth();
+
+    // The logged-in center is stored separately as centerData:
+    // { centerId: "CENT-015", centerName: "सतपुली", isLoggedIn: true }
+    // Use centerData first, then fall back to AuthContext if needed.
+    const authCenterName = useMemo(() => {
+        const storedCenterName = getCenterNameFromStorage();
+        if (storedCenterName) return storedCenterName;
+        return getCenterNameFromAuthUser(user);
+    }, [user]);
+
     const [financialYear, setFinancialYear] = useState("2026-27");
-    const [bill, setBill] = useState(emptyBill);
+    const [bill, setBill] = useState(() => ({ ...emptyBill, center: authCenterName }));
     const [standards, setStandards] = useState([]);
     const [uploadedBills, setUploadedBills] = useState([]);
     const [loadingBills, setLoadingBills] = useState(false);
@@ -155,6 +256,11 @@ export default function CenterUdyanBill() {
     const [includeStandardPrint, setIncludeStandardPrint] = useState(false);
     const [showVoucher2, setShowVoucher2] = useState(false);
     const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        if (!authCenterName) return;
+        setBill((previous) => ({ ...previous, center: authCenterName }));
+    }, [authCenterName]);
 
     /* =====================================================
        LOAD STANDARDS
@@ -249,6 +355,7 @@ export default function CenterUdyanBill() {
             mobile_number: savedBill.mobile ?? savedBill.mobile_number ?? "",
             pan_number: savedBill.pan ?? savedBill.pan_number ?? "",
             voucher_2: Boolean(savedBill.voucher_2),
+            center: authCenterName,
         });
 
         setShowVoucher2(Boolean(savedBill.voucher_2));
@@ -270,6 +377,7 @@ export default function CenterUdyanBill() {
     }, [standards, selectedCropId]);
 
     const updateBill = (field, value) => {
+        if (field === "center") return;
         setBill((previous) => ({ ...previous, [field]: value }));
     };
 
@@ -278,6 +386,11 @@ export default function CenterUdyanBill() {
         setSelectedCropId(id);
         updateBill("crop", id);
     };
+
+    const displayBill = useMemo(
+        () => ({ ...bill, center: authCenterName || bill.center || "" }),
+        [bill, authCenterName]
+    );
 
     const calculation = useMemo(() => {
         if (!selectedStandard) {
@@ -573,7 +686,7 @@ export default function CenterUdyanBill() {
                         <span>ग्राम</span>
                         <DocField bill={bill} onChange={updateBill} field="village" className="w-150" />
                         <span>उद्यान सचल दल केन्द्र</span>
-                        <DocField bill={bill} onChange={updateBill} field="center" className="w-150" />
+                        <DocField bill={displayBill} onChange={updateBill} field="center" className="w-150" disabled />
                     </div>
                     <div className="document-line">
                         रोपित पौधों की संख्या <strong>{calculation.plants}</strong>
@@ -674,7 +787,7 @@ export default function CenterUdyanBill() {
                     </p>
 
                     <div className="officer-sign">
-                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} onChange={updateBill} field="center" className="officer-input" />
+                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={displayBill} onChange={updateBill} field="center" className="officer-input" disabled />
                     </div>
                 </div>
 
@@ -713,7 +826,7 @@ export default function CenterUdyanBill() {
                     </p>
 
                     <div className="officer-sign">
-                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} onChange={updateBill} field="center" className="officer-input" />
+                        प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={displayBill} onChange={updateBill} field="center" className="officer-input" disabled />
                     </div>
                 </div>
 
@@ -749,7 +862,7 @@ export default function CenterUdyanBill() {
                         </div>
 
                         <div className="officer-sign">
-                            प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={bill} onChange={updateBill} field="center" className="officer-input" />
+                            प्रभारी<br />उद्यान सचल दल<br />केन्द्र <DocField bill={displayBill} onChange={updateBill} field="center" className="officer-input" disabled />
                         </div>
                     </div>
                 )}
