@@ -2180,6 +2180,7 @@ color:#fff;
 .professional-filter-card .filter-card-header h5 {
   font-size: .95rem !important;
   letter-spacing: .1px;
+  color:#000;
 }
 
 .professional-filter-card .card-body {
@@ -2929,6 +2930,7 @@ color:#fff;
 .dynamic-report-heading h4 {
   font-size: 1rem !important;
   letter-spacing: .01em;
+  color:#000;
 }
 
 .professional-report-tabs {
