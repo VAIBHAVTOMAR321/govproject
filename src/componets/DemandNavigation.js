@@ -1,13 +1,13 @@
-import React from 'react';
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown';
-import UKSasan from "../assets/images/UkSasan.png"
-import "../assets/css/topnavbar.css"
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useCenter } from './all_login/CenterContext';
+import React from "react";
+import Container from "react-bootstrap/Container";
+import Nav from "react-bootstrap/Nav";
+import Navbar from "react-bootstrap/Navbar";
+import NavDropdown from "react-bootstrap/NavDropdown";
+import UKSasan from "../assets/images/UkSasan.png";
+import "../assets/css/topnavbar.css";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useCenter } from "./all_login/CenterContext";
 
 const DemandNavigation = () => {
   const navigate = useNavigate();
@@ -18,17 +18,17 @@ const DemandNavigation = () => {
   const handleLogout = () => {
     clearCenter();
     logout();
-    navigate('/', { replace: true });
+    navigate("/", { replace: true });
   };
 
   const isActive = (path) => location.pathname === path;
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top">
-      <Container fluid className=''>
+      <Container fluid className="">
         <Navbar.Brand href="#home">
-          <div className='dash-img d-flex justify-content-between mx-2'>
-            <img src={UKSasan} className='img-fluid'></img>
+          <div className="dash-img d-flex justify-content-between mx-2">
+            <img src={UKSasan} className="img-fluid"></img>
             <p>CENTER PANEL</p>
           </div>
         </Navbar.Brand>
@@ -36,28 +36,32 @@ const DemandNavigation = () => {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link
-              active={isActive('/DemandGenerate')}
-              onClick={() => navigate('/DemandGenerate')}
-              style={{ 
-                fontWeight: isActive('/DemandGenerate') ? 'bold' : 'normal'
+              active={isActive("/DemandGenerate")}
+              onClick={() => navigate("/DemandGenerate")}
+              style={{
+                fontWeight: isActive("/DemandGenerate") ? "bold" : "normal",
               }}
             >
               डिमांड जनरेशन
             </Nav.Link>
             <Nav.Link
-              active={isActive('/DemandGenerate/CenterwiseEntry')}
-              onClick={() => navigate('/DemandGenerate/CenterwiseEntry')}
-              style={{ 
-                fontWeight: isActive('/DemandGenerate/CenterwiseEntry') ? 'bold' : 'normal'
+              active={isActive("/DemandGenerate/CenterwiseEntry")}
+              onClick={() => navigate("/DemandGenerate/CenterwiseEntry")}
+              style={{
+                fontWeight: isActive("/DemandGenerate/CenterwiseEntry")
+                  ? "bold"
+                  : "normal",
               }}
             >
               सेंटरवाइज एंट्री
             </Nav.Link>
             <Nav.Link
-              active={isActive('/DemandGenerate/KrishiwiseEntry')}
-              onClick={() => navigate('/DemandGenerate/KrishiwiseEntry')}
-              style={{ 
-                fontWeight: isActive('/DemandGenerate/KrishiwiseEntry') ? 'bold' : 'normal'
+              active={isActive("/DemandGenerate/KrishiwiseEntry")}
+              onClick={() => navigate("/DemandGenerate/KrishiwiseEntry")}
+              style={{
+                fontWeight: isActive("/DemandGenerate/KrishiwiseEntry")
+                  ? "bold"
+                  : "normal",
               }}
             >
               कृषिवाइज एंट्री
@@ -72,40 +76,44 @@ const DemandNavigation = () => {
               किसान आवेदन पोर्टल
             </Nav.Link> */}
 
-             <Nav.Link
-              active={isActive('/GetViewLibrary')}
-              onClick={() => navigate('/GetViewLibrary')}
-              style={{ 
-                fontWeight: isActive('/GetViewLibrary') ? 'bold' : 'normal'
+            <Nav.Link
+              active={isActive("/GetViewLibrary")}
+              onClick={() => navigate("/GetViewLibrary")}
+              style={{
+                fontWeight: isActive("/GetViewLibrary") ? "bold" : "normal",
               }}
             >
-             Library
+              Library
             </Nav.Link>
           </Nav>
-           <Nav className="me-auto">
+          <Nav className="me-auto">
             <Nav.Link
-              active={isActive('/DemandGenerate')}
-              onClick={() => navigate('/DemandGenerate')}
-              style={{ 
-                fontWeight: isActive('/DemandGenerate') ? 'bold' : 'normal'
+              active={isActive("/DemandGenerate")}
+              onClick={() => navigate("/DemandGenerate")}
+              style={{
+                fontWeight: isActive("/DemandGenerate") ? "bold" : "normal",
               }}
             >
               डिमांड जनरेशन
             </Nav.Link>
             <Nav.Link
-              active={isActive('/DemandGenerate/CenterwiseEntry')}
-              onClick={() => navigate('/DemandGenerate/CenterwiseEntry')}
-              style={{ 
-                fontWeight: isActive('/DemandGenerate/CenterwiseEntry') ? 'bold' : 'normal'
+              active={isActive("/DemandGenerate/CenterwiseEntry")}
+              onClick={() => navigate("/DemandGenerate/CenterwiseEntry")}
+              style={{
+                fontWeight: isActive("/DemandGenerate/CenterwiseEntry")
+                  ? "bold"
+                  : "normal",
               }}
             >
               सेंटरवाइज एंट्री
             </Nav.Link>
             <Nav.Link
-              active={isActive('/DemandGenerate/KrishiwiseEntry')}
-              onClick={() => navigate('/DemandGenerate/KrishiwiseEntry')}
-              style={{ 
-                fontWeight: isActive('/DemandGenerate/KrishiwiseEntry') ? 'bold' : 'normal'
+              active={isActive("/DemandGenerate/KrishiwiseEntry")}
+              onClick={() => navigate("/DemandGenerate/KrishiwiseEntry")}
+              style={{
+                fontWeight: isActive("/DemandGenerate/KrishiwiseEntry")
+                  ? "bold"
+                  : "normal",
               }}
             >
               कृषिवाइज एंट्री
@@ -120,22 +128,26 @@ const DemandNavigation = () => {
               किसान आवेदन पोर्टल
             </Nav.Link> */}
 
-             <Nav.Link
-              active={isActive('/GetViewLibrary')}
-              onClick={() => navigate('/KisanAavedanPortal')}
-              style={{ 
-                fontWeight: isActive('/KisanAavedanPortal') ? 'bold' : 'normal'
+            <Nav.Link
+              active={isActive("/GetViewLibrary")}
+              onClick={() => navigate("/KisanAavedanPortal")}
+              style={{
+                fontWeight: isActive("/KisanAavedanPortal") ? "bold" : "normal",
               }}
             >
-             Kisan Aavedan Portal
+              Kisan Aavedan Portal
             </Nav.Link>
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
-              <NavDropdown.Divider />
-              <NavDropdown.Item onClick={handleLogout}>
-                लॉगआउट
+              <NavDropdown.Item onClick={() => navigate("/UdyanBill")}>
+                उद्यान बिल
               </NavDropdown.Item>
+                 <NavDropdown.Item onClick={() => navigate("/CenterUdyanBill")}>
+              Center Udyan Bill
+              </NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item onClick={handleLogout}>लॉगआउट</NavDropdown.Item>
             </NavDropdown>
           </Nav>
         </Navbar.Collapse>
