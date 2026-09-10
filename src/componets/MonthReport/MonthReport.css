@@ -1,26 +1,21 @@
-/* =========================================
+/* =========================================================
    MONTH REPORT PAGE
-========================================= */
+   ========================================================= */
 
 .month-report-page {
   width: 100%;
   min-height: 100vh;
-  background: #f5f7fb;
-  margin-top:38px;
+  margin-top: 38px;
   padding: 30px;
   box-sizing: border-box;
+  background: #f5f7fb;
 }
 
 .month-report-container {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1500px;
   margin: 0 auto;
 }
-
-
-/* =========================================
-   HEADER
-========================================= */
 
 .month-report-header {
   display: flex;
@@ -35,7 +30,6 @@
   color: #1f2937;
   font-size: 28px;
   font-weight: 700;
-  line-height: 1.3;
 }
 
 .month-report-header p {
@@ -44,48 +38,29 @@
   font-size: 14px;
 }
 
-
-/* =========================================
-   ADD BUTTON
-========================================= */
-
 .mpr-add-btn {
-  border: none;
-  outline: none;
-  background: #0b5cab;
-  color: #ffffff;
+  border: 0;
   padding: 11px 20px;
   border-radius: 6px;
+  background: #0b5cab;
+  color: #fff;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
 }
 
 .mpr-add-btn:hover {
   background: #084b8a;
-  transform: translateY(-1px);
 }
 
-.mpr-add-btn:active {
-  transform: translateY(0);
-}
-
-
-/* =========================================
-   ALERT
-========================================= */
+/* Alerts */
 
 .mpr-alert {
   position: relative;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 13px 45px 13px 16px;
   margin-bottom: 20px;
+  padding: 13px 45px 13px 16px;
   border-radius: 6px;
   font-size: 14px;
-  line-height: 1.5;
 }
 
 .mpr-alert button {
@@ -93,203 +68,148 @@
   top: 50%;
   right: 12px;
   transform: translateY(-50%);
-  border: none;
+  border: 0;
   background: transparent;
   font-size: 20px;
-  line-height: 1;
   cursor: pointer;
-  padding: 2px 5px;
 }
 
 .mpr-success {
-  color: #166534;
-  background: #ecfdf3;
   border: 1px solid #bbf7d0;
-}
-
-.mpr-success button {
+  background: #ecfdf3;
   color: #166534;
 }
 
 .mpr-error {
-  color: #b91c1c;
-  background: #fef2f2;
   border: 1px solid #fecaca;
-}
-
-.mpr-error button {
+  background: #fef2f2;
   color: #b91c1c;
 }
 
-
-/* =========================================
-   TABLE CARD
-========================================= */
+/* Main card */
 
 .mpr-table-card {
   width: 100%;
-  background: #ffffff;
+  overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  overflow: hidden;
+  background: #fff;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
-
-/* =========================================
-   TABLE HEADER
-========================================= */
-
 .mpr-table-header {
+  min-height: 76px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  padding: 18px 20px;
+  padding: 17px 20px;
+  box-sizing: border-box;
   border-bottom: 1px solid #e5e7eb;
-  background: #ffffff;
 }
 
 .mpr-table-header h3 {
   margin: 0;
-  color: #1f2937;
+  color: #172b4d;
   font-size: 18px;
-  font-weight: 700;
 }
 
-
-/* =========================================
-   REFRESH BUTTON
-========================================= */
-
-.mpr-refresh-btn {
-  border: 1px solid #d1d5db;
-  outline: none;
-  background: #ffffff;
-  color: #374151;
-  padding: 8px 14px;
-  border-radius: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.mpr-table-header p {
+  margin: 4px 0 0;
+  color: #7b8794;
+  font-size: 12px;
 }
 
-.mpr-refresh-btn:hover {
-  background: #f8fafc;
-  border-color: #0b5cab;
-  color: #0b5cab;
+.mpr-static-badge {
+  padding: 7px 11px;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
 }
 
-.mpr-refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-
-/* =========================================
-   TABLE WRAPPER
-========================================= */
+/* Main table */
 
 .mpr-table-wrapper {
   width: 100%;
   overflow-x: auto;
 }
 
-
-/* =========================================
-   TABLE
-========================================= */
-
 .mpr-table {
   width: 100%;
-  min-width: 750px;
+  min-width: 1000px;
   border-collapse: collapse;
-  border-spacing: 0;
-}
-
-.mpr-table thead {
-  background: #f8fafc;
 }
 
 .mpr-table th {
-  padding: 14px 18px;
-  text-align: left;
-
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
+  padding: 13px 14px;
   border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #374151;
+  text-align: left;
+  font-size: 13px;
 }
 
 .mpr-table td {
-  padding: 15px 18px;
-  color: #374151;
-  font-size: 14px;
+  padding: 13px 14px;
+  border-bottom: 1px solid #eef2f7;
+  color: #4b5563;
+  font-size: 13px;
   vertical-align: middle;
-  border-bottom: 1px solid #edf0f3;
-}
-
-.mpr-table tbody tr {
-  transition: background 0.2s ease;
 }
 
 .mpr-table tbody tr:hover {
   background: #fafcff;
 }
 
-.mpr-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-
-/* =========================================
-   MONTH BADGE
-========================================= */
-
-.mpr-month {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 85px;
-  padding: 5px 11px;
-  border-radius: 20px;
-  background: #eaf3ff;
+.mpr-month-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: #eff6ff;
   color: #0b5cab;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-
-/* =========================================
-   PDF LINK
-========================================= */
-
-.mpr-pdf-link {
-  display: inline-flex;
+.mpr-file-cell {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  color: #0b5cab;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s ease;
+  gap: 10px;
 }
 
-.mpr-pdf-link:hover {
-  color: #084b8a;
-  text-decoration: underline;
+.mpr-file-cell strong {
+  display: block;
+  max-width: 390px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
 }
 
-.mpr-no-file {
+.mpr-file-cell small {
+  display: block;
+  margin-top: 3px;
   color: #9ca3af;
-  font-size: 13px;
+  font-size: 11px;
 }
 
-
-/* =========================================
-   ACTION BUTTONS
-========================================= */
+.mpr-file-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #e9f8ef;
+  color: #16803c;
+  font-size: 13px;
+  font-weight: 800;
+}
 
 .mpr-actions {
   display: flex;
@@ -297,765 +217,854 @@
   gap: 8px;
 }
 
-.mpr-edit-btn,
+.mpr-view-btn,
 .mpr-delete-btn {
-  border: none;
-  outline: none;
-  padding: 7px 13px;
+  border: 0;
+  padding: 8px 11px;
   border-radius: 5px;
+  cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.mpr-edit-btn {
-  background: #eaf3ff;
-  color: #0b5cab;
+.mpr-view-btn {
+  background: #0b5cab;
+  color: #fff;
 }
 
-.mpr-edit-btn:hover {
-  background: #dbeafe;
+.mpr-view-btn:hover {
+  background: #084b8a;
 }
 
 .mpr-delete-btn {
   background: #fff1f2;
-  color: #dc2626;
+  color: #be123c;
 }
 
 .mpr-delete-btn:hover {
   background: #ffe4e6;
 }
 
-
-/* =========================================
-   LOADING
-========================================= */
-
-.mpr-loading {
-  min-height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  font-size: 14px;
-}
-
-
-/* =========================================
-   EMPTY STATE
-========================================= */
+/* Empty */
 
 .mpr-empty {
-  min-height: 330px;
-  padding: 35px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  padding: 65px 20px;
   text-align: center;
-  box-sizing: border-box;
 }
 
 .mpr-empty-icon {
-  width: 65px;
-  height: 65px;
-  margin-bottom: 16px;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #eef5ff;
-  font-size: 28px;
+  background: #eff6ff;
+  font-size: 27px;
 }
 
 .mpr-empty h4 {
-  margin: 0 0 8px;
+  margin: 0;
   color: #374151;
   font-size: 17px;
-  font-weight: 600;
 }
 
 .mpr-empty p {
-  margin: 0 0 20px;
-  color: #9ca3af;
+  max-width: 600px;
+  margin: 8px auto 20px;
+  color: #7b8794;
   font-size: 13px;
+  line-height: 1.6;
 }
 
 .mpr-empty-btn {
-  border: none;
-  outline: none;
+  border: 0;
+  padding: 10px 17px;
+  border-radius: 6px;
   background: #0b5cab;
-  color: #ffffff;
-  padding: 10px 18px;
-  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
 }
 
-.mpr-empty-btn:hover {
-  background: #084b8a;
+.mpr-loading-small {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 12px;
+  border: 3px solid #dbeafe;
+  border-top-color: #0b5cab;
+  border-radius: 50%;
+  animation: mpr-loading-spin 0.8s linear infinite;
 }
 
+@keyframes mpr-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-/* =========================================
-   MODAL OVERLAY
-========================================= */
+/* Upload modal */
 
 .mpr-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
-
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 20px;
-  box-sizing: border-box;
-
   background: rgba(15, 23, 42, 0.58);
 }
 
-
-/* =========================================
-   MODAL
-========================================= */
-
 .mpr-modal {
   width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-
-  background: #ffffff;
-  border-radius: 10px;
-  overflow: hidden;
-
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
-
-  animation: mprModalOpen 0.2s ease;
+  max-width: 650px;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.25);
 }
-
-@keyframes mprModalOpen {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-
-/* =========================================
-   MODAL HEADER
-========================================= */
 
 .mpr-modal-header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
   gap: 15px;
-
-  padding: 20px 22px;
-
+  padding: 19px 21px;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .mpr-modal-header h3 {
   margin: 0;
   color: #172b4d;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 18px;
 }
 
 .mpr-modal-header p {
   margin: 5px 0 0;
-  color: #6b7280;
+  color: #7b8794;
   font-size: 12px;
 }
-
-
-/* =========================================
-   CLOSE BUTTON
-========================================= */
 
 .mpr-close-btn {
   width: 32px;
   height: 32px;
-
-  flex-shrink: 0;
-
-  border: none;
-  outline: none;
-  border-radius: 50%;
-
-  background: #f3f4f6;
-  color: #374151;
-
-  font-size: 21px;
-  line-height: 1;
-
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #475569;
+  font-size: 23px;
   cursor: pointer;
-
-  transition: all 0.2s ease;
 }
 
 .mpr-close-btn:hover {
-  background: #e5e7eb;
-  color: #111827;
+  background: #f1f5f9;
 }
-
-
-/* =========================================
-   MODAL BODY
-========================================= */
 
 .mpr-modal-body {
-  padding: 22px;
-  max-height: 60vh;
-  overflow-y: auto;
+  padding: 21px;
 }
-
-
-/* =========================================
-   FORM GROUP
-========================================= */
 
 .mpr-form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-.mpr-form-group:last-child {
-  margin-bottom: 0;
-}
-
-.mpr-form-group label {
+.mpr-form-group > label {
   display: block;
   margin-bottom: 7px;
-
   color: #374151;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .mpr-form-group label span {
   color: #dc2626;
-  margin-left: 2px;
 }
-
-.mpr-form-group label small {
-  color: #9ca3af;
-  font-size: 11px;
-  font-weight: 400;
-}
-
-
-/* =========================================
-   SELECT
-========================================= */
 
 .mpr-form-group select {
   width: 100%;
   height: 42px;
-
-  box-sizing: border-box;
-
   padding: 0 12px;
-
+  box-sizing: border-box;
   border: 1px solid #d1d5db;
-  border-radius: 5px;
-
-  outline: none;
-
-  background: #ffffff;
+  border-radius: 6px;
+  outline: 0;
+  background: #fff;
   color: #374151;
-
-  font-size: 14px;
-
-  cursor: pointer;
-
-  transition: all 0.2s ease;
+  font-size: 13px;
 }
 
 .mpr-form-group select:focus {
   border-color: #0b5cab;
-  box-shadow: 0 0 0 3px rgba(11, 92, 171, 0.1);
 }
 
+.mpr-upload-box {
+  padding: 30px 20px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 9px;
+  background: #f8fafc;
+  text-align: center;
+}
 
-/* =========================================
-   TEXT INPUT
-========================================= */
+.mpr-upload-icon {
+  margin-bottom: 8px;
+  font-size: 32px;
+}
 
-.mpr-form-group input[type="text"] {
-  width: 100%;
-  height: 42px;
-
-  box-sizing: border-box;
-
-  padding: 0 12px;
-
-  border: 1px solid #d1d5db;
-  border-radius: 5px;
-
-  outline: none;
-
-  background: #ffffff;
+.mpr-upload-box h4 {
+  margin: 0;
   color: #374151;
-
   font-size: 14px;
-
-  transition: all 0.2s ease;
 }
 
-.mpr-form-group input[type="text"]::placeholder {
-  color: #9ca3af;
+.mpr-upload-box p {
+  margin: 7px 0 15px;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
-.mpr-form-group input[type="text"]:focus {
-  border-color: #0b5cab;
-  box-shadow: 0 0 0 3px rgba(11, 92, 171, 0.1);
-}
-
-.mpr-input-with-icon {
-  position: relative;
-}
-
-.mpr-input-with-icon input[type="text"] {
-  padding-right: 44px;
-}
-
-.mpr-calendar-icon {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  font-size: 18px;
+.mpr-browse-btn {
+  display: inline-block;
+  padding: 9px 15px;
+  border-radius: 6px;
+  background: #0b5cab;
+  color: #fff !important;
   cursor: pointer;
-  padding: 4px;
-  line-height: 1;
-  transition: transform 0.2s ease;
+  font-size: 12px !important;
+  font-weight: 600 !important;
 }
 
-.mpr-calendar-icon:hover {
-  transform: translateY(-50%) scale(1.1);
-}
-
-.mpr-picker-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.55);
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.mpr-picker-card {
-  width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
-  animation: mprModalOpen 0.2s ease;
-  overflow: hidden;
-}
-
-.mpr-picker-header {
+.mpr-selected-file {
+  margin-top: 10px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 16px 18px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.mpr-picker-header h4 {
-  margin: 0;
-  color: #172b4d;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.mpr-picker-close {
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  color: #374151;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.mpr-picker-close:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.mpr-picker-body {
-  padding: 14px 16px 18px;
-}
-
-.mpr-year-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.mpr-year-btn {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #374151;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.mpr-year-btn:hover {
-  border-color: #0b5cab;
-  color: #0b5cab;
+  border: 1px solid #dbeafe;
+  border-radius: 7px;
   background: #f8fbff;
 }
 
-.mpr-month-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+.mpr-selected-file-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
-.mpr-month-btn {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #374151;
-  padding: 9px 6px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.mpr-month-btn:hover {
-  border-color: #0b5cab;
-  color: #0b5cab;
-  background: #f8fbff;
-}
-
-.mpr-month-btn.selected {
-  background: #0b5cab;
-  color: #ffffff;
-  border-color: #0b5cab;
-}
-
-.mpr-month-back {
-  grid-column: 1 / -1;
-  background: #f3f4f6;
-  color: #374151;
-  border-style: dashed;
-}
-
-
-/* =========================================
-   FILE INPUT
-========================================= */
-
-.mpr-form-group input[type="file"] {
-  width: 100%;
-  box-sizing: border-box;
-
-  padding: 10px;
-
-  border: 1px dashed #cbd5e1;
-  border-radius: 6px;
-
-  background: #f8fafc;
-
-  color: #475569;
-
-  font-size: 13px;
-
-  cursor: pointer;
-}
-
-.mpr-form-group input[type="file"]:hover {
-  border-color: #0b5cab;
-  background: #f8fbff;
-}
-
-.mpr-form-group input[type="file"]::file-selector-button {
-  margin-right: 10px;
-
-  padding: 7px 12px;
-
-  border: none;
-  border-radius: 5px;
-
-  background: #eaf3ff;
-  color: #0b5cab;
-
-  font-size: 12px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-
-/* =========================================
-   FILE HELP TEXT
-========================================= */
-
-.mpr-help {
+.mpr-selected-file strong {
   display: block;
-
-  margin-top: 6px;
-
-  color: #9ca3af;
-  font-size: 11px;
-  line-height: 1.5;
+  max-width: 430px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+  font-size: 12px;
 }
 
+.mpr-selected-file small {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 10px;
+}
 
-/* =========================================
-   MODAL FOOTER
-========================================= */
+.mpr-selected-file > button {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.mpr-modal-error {
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12px;
+}
 
 .mpr-modal-footer {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
   gap: 10px;
-
-  padding: 16px 22px;
-
+  padding: 15px 21px;
   border-top: 1px solid #e5e7eb;
-
-  background: #fafafa;
 }
 
-
-/* =========================================
-   CANCEL BUTTON
-========================================= */
+.mpr-cancel-btn,
+.mpr-submit-btn {
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
 
 .mpr-cancel-btn {
-  border: 1px solid #d1d5db;
-  outline: none;
-
-  background: #ffffff;
-  color: #374151;
-
-  padding: 10px 18px;
-
-  border-radius: 5px;
-
-  font-size: 13px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: all 0.2s ease;
+  background: #f1f5f9;
+  color: #475569;
 }
-
-.mpr-cancel-btn:hover {
-  background: #f3f4f6;
-}
-
-
-/* =========================================
-   SUBMIT BUTTON
-========================================= */
 
 .mpr-submit-btn {
-  border: none;
-  outline: none;
-
   background: #0b5cab;
-  color: #ffffff;
+  color: #fff;
+}
 
-  padding: 10px 20px;
+/* =========================================================
+   EXCEL EDITOR
+   ========================================================= */
 
-  border-radius: 5px;
+.excel-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: #d9d9d9;
+}
 
-  font-size: 13px;
-  font-weight: 600;
+.excel-editor-window {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  font-family: Calibri, Arial, sans-serif;
+}
 
+/* Excel title bar */
+
+.excel-top-header {
+  min-height: 54px;
+  flex: 0 0 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 6px 12px;
+  box-sizing: border-box;
+  background: #217346;
+  color: #fff;
+}
+
+.excel-title-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.excel-logo {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: #fff;
+  color: #217346;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.excel-document-name {
+  min-width: 0;
+}
+
+.excel-document-name strong {
+  display: block;
+  max-width: 650px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.excel-document-name span {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 10px;
+}
+
+.excel-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.excel-save-button,
+.excel-download-button,
+.excel-close-button {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 8px 11px;
+  border-radius: 4px;
   cursor: pointer;
-
-  transition: all 0.2s ease;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.mpr-submit-btn:hover {
-  background: #084b8a;
+.excel-save-button {
+  background: #185c37;
 }
 
-.mpr-submit-btn:disabled {
-  opacity: 0.6;
+.excel-save-button:hover:not(:disabled) {
+  background: #0e4b2b;
+}
+
+.excel-save-button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.mpr-cancel-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.excel-download-button {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-
-/* =========================================
-   SCROLLBAR
-========================================= */
-
-.mpr-modal-body::-webkit-scrollbar,
-.mpr-table-wrapper::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.excel-close-button {
+  background: #a61b1b;
+  border-color: #a61b1b;
+  font-size: 15px;
 }
 
-.mpr-modal-body::-webkit-scrollbar-track,
-.mpr-table-wrapper::-webkit-scrollbar-track {
-  background: #f1f5f9;
+/* Ribbon */
+
+.excel-ribbon {
+  min-height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 10px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #d0d7de;
+  background: #f3f3f3;
+  color: #404040;
 }
 
-.mpr-modal-body::-webkit-scrollbar-thumb,
-.mpr-table-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+.excel-ribbon-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.excel-ribbon-group button {
+  width: 32px;
+  height: 30px;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+  background: #fff;
+  color: #217346;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.excel-ribbon-label {
+  font-size: 11px;
+}
+
+.excel-ribbon-divider {
+  width: 1px;
+  height: 27px;
+  background: #d0d7de;
+}
+
+.excel-ribbon-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.excel-ribbon-info span {
+  padding: 5px 9px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  font-size: 11px;
+}
+
+.excel-ribbon-status {
+  margin-left: auto;
+  color: #777;
+  font-size: 11px;
+}
+
+/* Formula bar */
+
+.excel-formula-row {
+  min-height: 38px;
+  flex: 0 0 38px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #c9c9c9;
+  background: #fff;
+}
+
+.excel-name-box {
+  width: 82px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #bdbdbd;
+  border-radius: 2px;
+  background: #fff;
+  color: #404040;
+  font-size: 11px;
+}
+
+.excel-formula-label {
+  width: 27px;
+  color: #555;
+  text-align: center;
+  font-family: Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+}
+
+.excel-formula-input {
+  flex: 1;
+  min-width: 0;
+  height: 27px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid #bdbdbd;
+  outline: 0;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.excel-formula-input:focus {
+  border-color: #217346;
+}
+
+/* Error */
+
+.excel-editor-error {
+  min-height: 34px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  box-sizing: border-box;
+  background: #fff1f2;
+  border-bottom: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.excel-editor-error button {
+  border: 0;
+  background: transparent;
+  color: #991b1b;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Spreadsheet */
+
+.excel-workspace {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.excel-grid-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.excel-edit-grid {
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  background: #fff;
+}
+
+.excel-edit-grid thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.excel-edit-grid td {
+  min-width: 35px;
+  box-sizing: border-box;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.2;
+  cursor: cell;
+  overflow: hidden;
+}
+
+.excel-edit-cell {
+  position: relative;
+}
+
+.excel-edit-cell:hover {
+  outline: 1px solid #75aadb !important;
+  outline-offset: -1px;
+}
+
+.excel-edit-cell.selected {
+  z-index: 5;
+}
+
+.excel-edit-cell:focus {
+  outline: 2px solid #217346 !important;
+  outline-offset: -2px;
+  background-clip: padding-box;
+}
+
+/* Excel row/column headers */
+
+.excel-row-number-column {
+  width: 42px !important;
+}
+
+.excel-corner-cell {
+  position: sticky;
+  left: 0;
+  z-index: 30;
+  width: 42px;
+  min-width: 42px;
+  height: 22px;
+  border: 1px solid #b7b7b7;
+  background: #e7e6e6;
+}
+
+.excel-column-header {
+  height: 22px;
+  min-width: 35px;
+  padding: 2px 4px;
+  box-sizing: border-box;
+  border: 1px solid #b7b7b7;
+  background: #e7e6e6;
+  color: #404040;
+  text-align: center;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.excel-row-header {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+  width: 42px;
+  min-width: 42px;
+  padding: 2px 5px;
+  box-sizing: border-box;
+  border: 1px solid #b7b7b7;
+  background: #e7e6e6;
+  color: #404040;
+  text-align: center;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  user-select: none;
+}
+
+/* Bottom Excel sheet bar */
+
+.excel-bottom-bar {
+  min-height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid #b7b7b7;
+  background: #f3f3f3;
+}
+
+.excel-sheet-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-right: 1px solid #c7c7c7;
+}
+
+.excel-sheet-controls button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.excel-sheet-controls button:hover {
+  background: #ddd;
+}
+
+.excel-sheet-tabs {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+}
+
+.excel-sheet-tab {
+  flex: 0 0 auto;
+  min-width: 105px;
+  padding: 0 14px;
+  border: 0;
+  border-right: 1px solid #d0d0d0;
+  background: #e7e6e6;
+  color: #404040;
+  cursor: pointer;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 11px;
+}
+
+.excel-sheet-tab:hover {
+  background: #ddd;
+}
+
+.excel-sheet-tab.active {
+  position: relative;
+  background: #fff;
+  color: #217346;
+  font-weight: 700;
+}
+
+.excel-sheet-tab.active::before {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  content: "";
+  background: #217346;
+}
+
+.excel-zoom {
+  min-width: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #d0d0d0;
+  color: #555;
+  font-size: 10px;
+}
+
+/* Loading */
+
+.excel-editor-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.excel-editor-loading h3 {
+  margin: 12px 0 5px;
+  color: #374151;
+  font-size: 17px;
+}
+
+.excel-editor-loading p {
+  margin: 0;
+  color: #7b8794;
+  font-size: 12px;
+}
+
+.excel-spinner {
+  width: 35px;
+  height: 35px;
+  border: 4px solid #d9eadf;
+  border-top-color: #217346;
+  border-radius: 50%;
+  animation: excel-spin 0.8s linear infinite;
+}
+
+@keyframes excel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbars */
+
+.excel-grid-scroll::-webkit-scrollbar,
+.excel-sheet-tabs::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.excel-grid-scroll::-webkit-scrollbar-track,
+.excel-sheet-tabs::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.excel-grid-scroll::-webkit-scrollbar-thumb,
+.excel-sheet-tabs::-webkit-scrollbar-thumb {
+  border: 3px solid #f1f1f1;
   border-radius: 10px;
+  background: #a6a6a6;
 }
 
-.mpr-modal-body::-webkit-scrollbar-thumb:hover,
-.mpr-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.excel-grid-scroll::-webkit-scrollbar-thumb:hover,
+.excel-sheet-tabs::-webkit-scrollbar-thumb:hover {
+  background: #7d7d7d;
 }
 
-
-/* =========================================
-   RESPONSIVE - TABLET
-========================================= */
-
-@media (max-width: 992px) {
-  .month-report-page {
-    padding: 20px;
-  }
-
-  .month-report-header h2 {
-    font-size: 24px;
-  }
-}
-
-
-/* =========================================
-   RESPONSIVE - MOBILE
-========================================= */
+/* Responsive */
 
 @media (max-width: 768px) {
   .month-report-page {
-    padding: 15px;
+    padding: 18px 12px;
   }
 
   .month-report-header {
-    flex-direction: column;
     align-items: flex-start;
-  }
-
-  .month-report-header h2 {
-    font-size: 22px;
+    flex-direction: column;
   }
 
   .mpr-add-btn {
     width: 100%;
   }
 
-  .mpr-table-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .excel-document-name strong {
+    max-width: 210px;
   }
 
-  .mpr-refresh-btn {
-    width: 100%;
+  .excel-download-button {
+    display: none;
   }
 
-  .mpr-actions {
-    flex-direction: column;
-    align-items: stretch;
+  .excel-ribbon-info {
+    display: none;
   }
 
-  .mpr-edit-btn,
-  .mpr-delete-btn {
-    width: 100%;
-  }
-
-  .mpr-modal-overlay {
-    padding: 12px;
-  }
-
-  .mpr-modal {
-    max-height: 95vh;
-  }
-
-  .mpr-modal-header {
-    padding: 16px;
-  }
-
-  .mpr-modal-body {
-    padding: 16px;
-    max-height: 65vh;
-  }
-
-  .mpr-modal-footer {
-    flex-direction: column-reverse;
-    padding: 14px 16px;
-  }
-
-  .mpr-cancel-btn,
-  .mpr-submit-btn {
-    width: 100%;
-  }
-}
-
-
-/* =========================================
-   SMALL MOBILE
-========================================= */
-
-@media (max-width: 480px) {
-  .month-report-page {
-    padding: 10px;
-  }
-
-  .month-report-header h2 {
-    font-size: 20px;
-  }
-
-  .month-report-header p {
-    font-size: 12px;
-  }
-
-  .mpr-table-header {
-    padding: 15px;
-  }
-
-  .mpr-table th,
-  .mpr-table td {
-    padding: 12px;
-  }
-
-  .mpr-modal-header h3 {
-    font-size: 17px;
-  }
-
-  .mpr-form-group {
-    margin-bottom: 16px;
+  .excel-ribbon-status {
+    display: none;
   }
 }
