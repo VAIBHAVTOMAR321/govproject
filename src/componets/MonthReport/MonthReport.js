@@ -19,10 +19,12 @@ import "./MonthReport.css";
 */
 
 const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/";
-const MEDIA_BASE_URL = "https://mahadevaaya.com/govbillingsystem/backend";
+const MEDIA_BASE_URL ="https://mahadevaaya.com/govbillingsystem/backend";
+
+
 // The API endpoint below should return the actual Excel file through Django.
 // This avoids the CORS problem caused by directly fetching /media/... from React.
-const REPORT_FILE_API = (id) => `${API_URL}${id}/file/`;
+
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 const months = [
@@ -626,8 +628,16 @@ const apiFetch = async (url, options = {}) => {
 
 const getMediaUrl = (path) => {
   if (!path) return "";
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${MEDIA_BASE_URL}${String(path).startsWith("/") ? "" : "/"}${path}`;
+
+  // Already a complete URL
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  // Relative media path
+  return `${MEDIA_BASE_URL}${
+    path.startsWith("/") ? "" : "/"
+  }${path}`;
 };
 
 const normalizeApiReport = (item) => ({
@@ -656,58 +666,19 @@ const getReportsFromResponse = (data) => {
 };
 
 const fetchReportFile = async (report) => {
-  if (!report?.id) {
-    throw new Error("Report ID is missing from the API response.");
+  if (!report?.monthReport) {
+    throw new Error("Report file path is missing.");
   }
 
-  // IMPORTANT:
-  // Do not fetch report.monthReport (/media/...) directly here.
-  // Your /media/ URL is being served without the CORS header, which causes
-  // the browser to block the Excel file. The Django API should expose the
-  // file through: GET /api/month-reports/<id>/file/
-  const url = REPORT_FILE_API(report.id);
+  const fileUrl = getMediaUrl(report.monthReport);
 
-  const response = await fetch(url, {
-    method: "GET",
-    // credentials: "include",
-    headers: {
-      Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream, application/json",
-    },
-  });
+  console.log("Opening Excel file:", fileUrl);
 
-  if (!response.ok) {
-    let detail = `Unable to open Excel file (${response.status}).`;
+  // Browser cannot fetch this XLSX through JS because of CORS.
+  // Open the file directly instead.
+  window.open(fileUrl, "_blank");
 
-    try {
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        detail = data?.detail || data?.error || data?.message || detail;
-      }
-    } catch {
-      // Keep the HTTP status message.
-    }
-
-    if (response.status === 404) {
-      detail =
-        "Excel file endpoint not found. Add GET /api/month-reports/<id>/file/ in Django to serve the XLSX through the API. Direct /media/ access is blocked by CORS.";
-    }
-
-    throw new Error(detail);
-  }
-
-  const blob = await response.blob();
-
-  if (!blob.size) {
-    throw new Error("The server returned an empty Excel file.");
-  }
-
-  const fileName = report.fileName || "MPR.xlsx";
-
-  return new File([blob], fileName, {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    lastModified: Date.now(),
-  });
+  return null;
 };
 
 const uploadReport = async ({ month, financialYear, file }) => {
@@ -1556,6 +1527,10 @@ const MonthReport = () => {
       // Fetch the real workbook through the Django API before opening the
       // ExcelJS editor. This avoids directly reading /media/... from the browser.
       const file = await fetchReportFile(report);
+
+      // The file is opened directly in a new browser tab. There is no local
+      // File object to pass to ExcelJS in this mode.
+      if (!file) return;
 
       setEditingReport({
         ...report,
