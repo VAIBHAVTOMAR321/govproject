@@ -307,7 +307,8 @@ export default function CenterUdyanBill() {
     const loadUploadedBills = async () => {
         setLoadingBills(true);
         try {
-            const response = await apiFetch(`${API_BASE}/bills/`);
+            const centerParam = authCenterName ? `?center=${encodeURIComponent(authCenterName)}` : "";
+            const response = await apiFetch(`${API_BASE}/bills/${centerParam}`);
             const data = await readJsonResponse(response);
             if (!response.ok) {
                 throw new Error(data?.detail || data?.error || "बिल सूची प्राप्त नहीं हो सकी।");
@@ -325,7 +326,7 @@ export default function CenterUdyanBill() {
         if (activeSection === "bills") {
             loadUploadedBills();
         }
-    }, [activeSection]);
+    }, [activeSection, authCenterName]);
 
     /* =====================================================
        VIEW UPLOADED BILL (LOADS INTO TYPEABLE FORM)
@@ -671,7 +672,7 @@ export default function CenterUdyanBill() {
                     <div className="treasury-copy">कोषागार प्रति</div>
                     <div className="document-center document-title-small">कार्यालय उद्यान विशेषज्ञ, कोटद्वार गढ़वाल</div>
                     <div className="document-center document-title">
-                        {bill.heading || bill.heading || "जिला योजनान्तर्गत उद्यान स्थापना"} — वर्ष{" "}
+                        {bill.heading || bill.scheme_name || "जिला योजनान्तर्गत उद्यान स्थापना"} — वर्ष{" "}
                         {financialYear} &nbsp;(बिल)
                     </div>
 
