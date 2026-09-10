@@ -2073,14 +2073,7 @@ export default function UdyanBill() {
                             className="w-160"
                         />
 
-                        <span>मद</span>
-
-                        <DocField
-                            bill={bill}
-                            onChange={updateBill}
-                            field="scheme_name"
-                            className="w-210"
-                        />
+                       
                     </div>
 
                     <div className="document-line">
@@ -2200,36 +2193,7 @@ export default function UdyanBill() {
                         />
                     </div>
 
-                    <div className="document-line">
-                        (2) बैंक का नाम व शाखा{" "}
-                        <DocField
-                            bill={bill}
-                            onChange={updateBill}
-                            field="bank_name_2"
-                            className="w-200"
-                        />
-
-                        <span>
-                            खाता संख्या
-                        </span>
-
-                        <DocField
-                            bill={bill}
-                            onChange={updateBill}
-                            field="account_number_2"
-                            className="w-150"
-                        />
-                    </div>
-
-                    <div className="document-line indent">
-                        आई0एफ0एस0सी0 कोड{" "}
-                        <DocField
-                            bill={bill}
-                            onChange={updateBill}
-                            field="ifsc_code_2"
-                            className="w-150"
-                        />
-                    </div>
+                  
 
                     <div className="document-line">
                         आधार कार्ड सं0 (बारह अंकों का){" "}

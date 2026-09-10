@@ -112,7 +112,7 @@ const emptyBill = {
     aadhaar_number: "", mobile_number: "", pan_number: "",
     supplier_name: "", supplier_father_name: "", supplier_village: "",
     labour_name: "", labour_father_name: "", labour_village: "",
-    voucher_2: false,
+    voucher_2: true,
 };
 
 /* =========================================================
@@ -254,7 +254,7 @@ export default function CenterUdyanBill() {
     const [loadingStandards, setLoadingStandards] = useState(false);
     const [activeSection, setActiveSection] = useState("bill");
     const [includeStandardPrint, setIncludeStandardPrint] = useState(false);
-    const [showVoucher2, setShowVoucher2] = useState(false);
+    const [showVoucher2, setShowVoucher2] = useState(true);
     const [message, setMessage] = useState("");
 
     useEffect(() => {
@@ -673,8 +673,7 @@ export default function CenterUdyanBill() {
 
                     <div className="document-line">
                         जाति <DocField bill={bill} onChange={updateBill} field="caste" className="w-160" />
-                        <span>मद</span>
-                        <DocField bill={bill} onChange={updateBill} field="scheme_name" className="w-210" />
+                        
                     </div>
                     <div className="document-line">
                         नाम कृषक <DocField bill={bill} onChange={updateBill} field="farmer_name" className="w-220" />
@@ -704,14 +703,7 @@ export default function CenterUdyanBill() {
                     <div className="document-line indent">
                         आई0एफ0एस0सी0 कोड <DocField bill={bill} onChange={updateBill} field="ifsc_code_1" className="w-150" />
                     </div>
-                    <div className="document-line">
-                        (2) बैंक का नाम व शाखा <DocField bill={bill} onChange={updateBill} field="bank_name_2" className="w-200" />
-                        <span>खाता संख्या</span>
-                        <DocField bill={bill} onChange={updateBill} field="account_number_2" className="w-150" />
-                    </div>
-                    <div className="document-line indent">
-                        आई0एफ0एस0सी0 कोड <DocField bill={bill} onChange={updateBill} field="ifsc_code_2" className="w-150" />
-                    </div>
+                  
                     <div className="document-line">
                         आधार कार्ड सं0 (बारह अंकों का) <DocField bill={bill} onChange={updateBill} field="aadhaar_number" className="w-220" />
                     </div>
@@ -900,120 +892,7 @@ export default function CenterUdyanBill() {
         );
     };
 
-    /* =====================================================
-       STANDARDS MANAGER (VIEW ONLY — NO ADD/EDIT)
-       ===================================================== */
 
-    const StandardsManager = () => {
-        const StandardViewerCard = ({ standard, index }) => {
-            const calculated = useMemo(() => {
-                const plants = Math.max(0, Math.round(num(standard.plants_per_hectare)));
-                const pRate = num(standard.plant_rate);
-                const pitRate = num(standard.pit_rate);
-                const manRate = num(standard.manure_rate);
-                const stdTotal = num(standard.standard_total);
-                const stdSub = num(standard.standard_subsidy);
-                const plantTotal = plants * pRate;
-                const pitTotal = plants * pitRate;
-                const manureTotal = Math.max(0, stdTotal - plantTotal - pitTotal);
-                const manureQty = manRate > 0 ? manureTotal / manRate : 0;
-                const plantSubsidy = Math.min(plantTotal, stdSub);
-                const manureSubsidy = Math.min(manureTotal, Math.max(0, stdSub - plantSubsidy));
-                const manureFarmer = Math.max(0, manureTotal - manureSubsidy);
-                const pitFarmer = pitTotal;
-                const total = plantTotal + pitTotal + manureTotal;
-                const subsidy = plantSubsidy + manureSubsidy;
-                const farmer = pitFarmer + manureFarmer;
-                return { plants, plantTotal, plantSubsidy, pitTotal, pitFarmer, manureQty, manureTotal, manureSubsidy, manureFarmer, total, subsidy, farmer };
-            }, [standard]);
-
-            return (
-                <div className="standard-card">
-                    <div className="standard-card-header">
-                        <div className="standard-title">
-                            <span>{index + 1}.</span>
-                            <strong>{standard.crop_name}</strong>
-                            <span className="standard-inline-label">दूरी</span>
-                            <span className="standard-top-input spacing-input">{standard.spacing || "—"}</span>
-                            <span className="standard-inline-label">मानक महायोग</span>
-                            <span className="standard-top-input money-input">₹{formatMoney(standard.standard_total, 2)}</span>
-                            <span className="standard-inline-label">देय राजसहायता</span>
-                            <span className="standard-top-input money-input">₹{formatMoney(standard.standard_subsidy, 2)}</span>
-                        </div>
-                    </div>
-                    <div className="standard-table-wrapper">
-                        <table className="standard-calc-table">
-                            <thead>
-                                <tr><th>क्र0</th><th>कार्य/मद विवरण</th><th>मात्रा</th><th>दर प्रति</th><th>कुल व्यय</th><th>देय राजसहायता</th><th>कृषक अंश</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td className="center">1</td>
-                                    <td>फल पौध की लागत ({standard.spacing || "—"})</td>
-                                    <td className="center">{standard.plants_per_hectare}</td>
-                                    <td className="center">{standard.plant_rate}</td>
-                                    <td className="money">{formatMoney(calculated.plantTotal, 2)}</td>
-                                    <td className="money">{formatMoney(calculated.plantSubsidy, 2)}</td>
-                                    <td className="money">0.00</td>
-                                </tr>
-                                <tr>
-                                    <td className="center">2</td>
-                                    <td>गड्ढा खुदान, भरान, पौध रोपण (1×1×1 मी0)</td>
-                                    <td className="center">{calculated.plants}</td>
-                                    <td className="center">{standard.pit_rate}</td>
-                                    <td className="money">{formatMoney(calculated.pitTotal, 2)}</td>
-                                    <td className="money">0.00</td>
-                                    <td className="money">{formatMoney(calculated.pitFarmer, 2)}</td>
-                                </tr>
-                                <tr>
-                                    <td className="center">3</td>
-                                    <td>गोबर खाद/जैविक एवं वर्मी कम्पोस्ट/पोषक तत्व/पौध सुरक्षा/रोपण सिंचाई</td>
-                                    <td className="center">{formatMoney(calculated.manureQty, 2)}</td>
-                                    <td className="center">{standard.manure_rate}</td>
-                                    <td className="money">{formatMoney(calculated.manureTotal, 2)}</td>
-                                    <td className="money">{formatMoney(calculated.manureSubsidy, 2)}</td>
-                                    <td className="money">{formatMoney(calculated.manureFarmer, 2)}</td>
-                                </tr>
-                                <tr className="standard-sum-row">
-                                    <td colSpan="4" className="right">योग :-</td>
-                                    <td className="money">{formatMoney(calculated.total, 2)}</td>
-                                    <td className="money">{formatMoney(calculated.subsidy, 2)}</td>
-                                    <td className="money">{formatMoney(calculated.farmer, 2)}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            );
-        };
-
-        return (
-            <details className="standards-section" open>
-                <summary>मानक तालिका — फसलवार (केवल दर्शन)</summary>
-                <div className="standards-manager">
-                    <div className="standards-toolbar">
-                        <div>
-                            <h2>मानक तालिका</h2>
-                            <p>फसलवार मानक डेटाबेस से प्राप्त।</p>
-                        </div>
-                    </div>
-                    {loadingStandards ? (
-                        <div className="loading-box">मानक लोड हो रहे हैं...</div>
-                    ) : standards.length === 0 ? (
-                        <div className="no-standards">
-                            <h3>अभी कोई मानक उपलब्ध नहीं है</h3>
-                        </div>
-                    ) : (
-                        <div className="standards-scroll">
-                            {standards.map((standard, index) => (
-                                <StandardViewerCard key={standard.id} standard={standard} index={index} />
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </details>
-        );
-    };
 
     /* =====================================================
        RENDER
@@ -1036,23 +915,12 @@ export default function CenterUdyanBill() {
 
                 <div className="control-tabs">
                     <button type="button" className={activeSection === "bill" ? "active" : ""} onClick={() => setActiveSection("bill")}>बिल प्रपत्र</button>
-                    <button type="button" className={activeSection === "standards" ? "active" : ""} onClick={() => setActiveSection("standards")}>मानक तालिका</button>
                     <button type="button" className={activeSection === "bills" ? "active" : ""} onClick={() => setActiveSection("bills")}>अपलोड किए गए बिल</button>
                 </div>
 
                 {activeSection === "bills" ? (
                     <div className="panel-content">
                         <UploadedBillsManager />
-                    </div>
-                ) : activeSection === "standards" ? (
-                    <div className="panel-content">
-                        <div className="year-selector-row">
-                            <label>
-                                <span>वर्ष</span>
-                                <input value={financialYear} onChange={(event) => setFinancialYear(event.target.value)} />
-                            </label>
-                        </div>
-                        <StandardsManager />
                     </div>
                 ) : (
                     <>
@@ -1077,25 +945,22 @@ export default function CenterUdyanBill() {
                             </label>
                             <label className="control-field">
                                 <span>गणना का आधार</span>
-                                <select value={bill.calculation_basis} onChange={(event) => updateBill("calculation_basis", event.target.value)}>
+                                <select value={bill.calculation_basis} onChange={(event) => updateBill("calculation_basis", event.target.value)} disabled>
                                     <option value="area">क्षेत्रफल के अनुपात में (मानक)</option>
                                     <option value="plant">वास्तविक पौध संख्या के अनुसार</option>
                                 </select>
                             </label>
                             <label className="control-field">
                                 <span>राशि</span>
-                                <select value={bill.rounding} onChange={(event) => updateBill("rounding", event.target.value)}>
+                                <select value={bill.rounding}  onChange={(event) => updateBill("rounding", event.target.value)} disabled>
                                     <option value="2">पैसे सहित (2 दशमलव)</option>
                                     <option value="0">पूर्णांक रुपये में</option>
                                 </select>
                             </label>
-                            <label className="control-field">
-                                <span>वर्ष</span>
-                                <input value={financialYear} onChange={(event) => setFinancialYear(event.target.value)} />
-                            </label>
+                           
                             <label className="control-field">
                                 <span>वाउचर सं0-2</span>
-                                <select value={showVoucher2 ? "yes" : "no"} onChange={(event) => setShowVoucher2(event.target.value === "yes")}>
+                                <select value={showVoucher2 ? "yes" : "no"} onChange={(event) => setShowVoucher2(event.target.value === "yes")} disabled>
                                     <option value="no">न दें</option>
                                     <option value="yes">दें</option>
                                 </select>
@@ -1120,7 +985,7 @@ export default function CenterUdyanBill() {
                             </div>
                         )}
 
-                        <StandardsManager />
+
                     </>
                 )}
             </div>
