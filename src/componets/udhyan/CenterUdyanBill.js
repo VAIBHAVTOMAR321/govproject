@@ -104,7 +104,7 @@ const emptyBill = {
     financial_year: "2026-27",
     crop: "", area: "1.00", plants: "",
     calculation_basis: "area", rounding: "2",
-    caste: "", scheme_name: "",
+    caste: "", scheme_name: "", heading: "",
     farmer_name: "", father_husband_name: "", date_of_birth: "",
     village: "", center: "",
     bank_name_1: "", account_number_1: "", ifsc_code_1: "",
@@ -349,6 +349,7 @@ export default function CenterUdyanBill() {
             financial_year: savedBill.year || savedBill.financial_year || "2026-27",
             crop: selectedId,
             scheme_name: savedBill.scheme ?? savedBill.scheme_name ?? "",
+            heading: savedBill.heading ?? "",
             ifsc_code_1: savedBill.ifsc_1 ?? savedBill.ifsc_code_1 ?? "",
             ifsc_code_2: savedBill.ifsc_2 ?? savedBill.ifsc_code_2 ?? "",
             aadhaar_number: savedBill.aadhaar ?? savedBill.aadhaar_number ?? "",
@@ -669,7 +670,10 @@ export default function CenterUdyanBill() {
                 <div className="a4-page">
                     <div className="treasury-copy">कोषागार प्रति</div>
                     <div className="document-center document-title-small">कार्यालय उद्यान विशेषज्ञ, कोटद्वार गढ़वाल</div>
-                    <div className="document-center document-title">जिला योजनान्तर्गत उद्यान स्थापना — वर्ष {financialYear} &nbsp;(बिल)</div>
+                    <div className="document-center document-title">
+                        {bill.heading || bill.heading || "जिला योजनान्तर्गत उद्यान स्थापना"} — वर्ष{" "}
+                        {financialYear} &nbsp;(बिल)
+                    </div>
 
                     <div className="document-line">
                         जाति <DocField bill={bill} onChange={updateBill} field="caste" className="w-160" />
