@@ -72,6 +72,8 @@ const LibrarySystem = () => {
   const [editingRequirement, setEditingRequirement] = useState(null);
   const [requirementDeletingId, setRequirementDeletingId] = useState(null);
   const [shareRequirement, setShareRequirement] = useState(null);
+  const [requirementDetails, setRequirementDetails] = useState([]);
+  const [requirementDetailsLoading, setRequirementDetailsLoading] = useState(false);
 
   const [requirementForm, setRequirementForm] = useState({
     center_names: [],
@@ -428,7 +430,13 @@ const LibrarySystem = () => {
       requirement?.center_names ||
       requirement?.selected_kendra_names;
 
-    if (Array.isArray(value)) return value.join(", ");
+    if (Array.isArray(value)) {
+      return value
+        .map((name) => String(name ?? "").trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+
     if (value) return String(value);
 
     return getRequirementCenters(requirement)
@@ -772,33 +780,146 @@ const LibrarySystem = () => {
 
   const openRequirementView = async (requirement) => {
     try {
-      if (!requirement?.id) {
-        setSelectedRequirement(requirement);
-        setShowRequirementView(true);
-        return;
-      }
+      setSelectedRequirement(requirement);
+      setRequirementDetails([]);
+      setRequirementDetailsLoading(true);
+      setShowRequirementView(true);
 
-      const response = await axios.get(
-        `${CENTER_LINKS_API_URL}/${requirement.id}/`,
-        {
-          headers: getHeaders(),
-        }
+      const centerNames = Array.isArray(requirement?.center_names)
+        ? requirement.center_names
+        : [];
+
+      /*
+       * IMPORTANT:
+       * A requirement can be assigned to multiple Kendras. The
+       * center-link-details-bycenter API is center-specific, so requesting
+       * only the first Kendra would miss files uploaded by the other Kendras.
+       *
+       * Fetch the API once for EVERY Kendra assigned to this requirement,
+       * combine all returned details, remove duplicates, and then keep only
+       * details belonging to the clicked requirement ID.
+       */
+      const detailApiUrl =
+        "https://mahadevaaya.com/govbillingsystem/backend/api/center-link-details-bycenter";
+
+      const uniqueCenterNames = Array.from(
+        new Set(
+          centerNames
+            .map((name) => String(name ?? "").trim())
+            .filter(Boolean)
+        )
       );
 
-      const data = response?.data?.data || response?.data || requirement;
-      setSelectedRequirement(data);
-      setShowRequirementView(true);
+      const responses = await Promise.allSettled(
+        uniqueCenterNames.map((centerName) =>
+          axios.get(
+            `${detailApiUrl}/?center_name=${encodeURIComponent(centerName)}`,
+            {
+              headers: getHeaders(),
+            }
+          )
+        )
+      );
+
+      const allDetails = [];
+      const returnedCenterNames = [];
+
+      responses.forEach((result) => {
+        if (result.status !== "fulfilled") return;
+
+        const body = result.value?.data || {};
+
+        if (
+          body?.center_link &&
+          typeof body.center_link === "object" &&
+          Array.isArray(body.center_link.center_names)
+        ) {
+          returnedCenterNames.push(...body.center_link.center_names);
+        }
+
+        if (Array.isArray(body?.details)) {
+          allDetails.push(...body.details);
+        }
+      });
+
+      /*
+       * Keep only uploaded files for THIS requirement.
+       * The same detail can appear in more than one center API response,
+       * therefore de-duplicate by detail ID.
+       */
+      const matchedDetailsMap = new Map();
+
+      allDetails.forEach((detail) => {
+        if (
+          String(detail?.center_link ?? "") !==
+          String(requirement?.id ?? "")
+        ) {
+          return;
+        }
+
+        const detailKey =
+          detail?.id !== undefined && detail?.id !== null
+            ? String(detail.id)
+            : `${detail?.center_name || ""}-${detail?.img || ""}-${detail?.remark || ""}`;
+
+        if (!matchedDetailsMap.has(detailKey)) {
+          matchedDetailsMap.set(detailKey, detail);
+        }
+      });
+
+      const matchedDetails = Array.from(matchedDetailsMap.values());
+
+      setRequirementDetails(matchedDetails);
+
+      /*
+       * Preserve ALL Kendras from the main requirement table and merge any
+       * names returned by the detail API. This prevents the detail response
+       * from replacing a 3-Kendra requirement with only 1 or 2 names.
+       */
+      const mergedCenterNames = Array.from(
+        new Set(
+          [...centerNames, ...returnedCenterNames]
+            .map((name) => String(name ?? "").trim())
+            .filter(Boolean)
+        )
+      );
+
+      setSelectedRequirement({
+        ...requirement,
+        center_names: mergedCenterNames,
+      });
+
+      /*
+       * If every center request failed, show a useful error instead of
+       * silently displaying an empty document table.
+       */
+      const failedRequests = responses.filter(
+        (result) => result.status === "rejected"
+      ).length;
+
+      if (
+        uniqueCenterNames.length > 0 &&
+        failedRequests === uniqueCenterNames.length
+      ) {
+        throw new Error("Unable to fetch uploaded documents for the assigned Kendras.");
+      }
     } catch (error) {
-      console.error("Center link detail fetch error:", error);
-      // If detail GET fails, still allow the user to view the data already
-      // available in the list response.
-      setSelectedRequirement(requirement);
-      setShowRequirementView(true);
+      console.error("Center link details fetch error:", error);
+      setRequirementDetails([]);
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          "Unable to load uploaded files for this requirement."
+      );
+    } finally {
+      setRequirementDetailsLoading(false);
     }
   };
 
   const closeRequirementView = () => {
     setSelectedRequirement(null);
+    setRequirementDetails([]);
+    setRequirementDetailsLoading(false);
     setShowRequirementView(false);
   };
 
@@ -1891,29 +2012,30 @@ const LibrarySystem = () => {
 
       {/* KENDRA REQUIREMENT VIEW */}
       {showRequirementView && selectedRequirement && activeTab === "requirements" && (
-        <div className="library-modal-overlay">
-          <div className="library-preview-modal library-requirement-view-modal">
-            <div className="library-modal-header">
+        <div className="requirement-detail-overlay">
+          <div className="requirement-detail-modal">
+            <div className="requirement-detail-header">
               <div>
-                <h2>Center Link Details</h2>
+                <h2>Center Requirement Details</h2>
                 <p>
                   Kendra: {getRequirementCenterNames(selectedRequirement) || "—"}
                 </p>
               </div>
+
               <button type="button" onClick={closeRequirementView}>
                 <FaTimes />
               </button>
             </div>
 
-            <div className="library-requirement-view-content">
-              <div className="library-requirement-detail-card">
+            <div className="requirement-detail-content">
+              <div className="requirement-detail-card">
                 <span>Kendra Name</span>
                 <strong>
                   {getRequirementCenterNames(selectedRequirement) || "—"}
                 </strong>
               </div>
 
-              <div className="library-requirement-detail-card">
+              <div className="requirement-detail-card">
                 <span>Link</span>
                 {selectedRequirement.link ? (
                   <a
@@ -1929,10 +2051,131 @@ const LibrarySystem = () => {
                 )}
               </div>
 
-              <div className="library-requirement-detail-card">
+              <div className="requirement-detail-card requirement-detail-description-card">
                 <span>Description</span>
                 <strong>{selectedRequirement.description || "—"}</strong>
               </div>
+
+              <div className="requirement-documents-section">
+                <div className="requirement-documents-heading">
+                  <div>
+                    <h3>Uploaded Documents</h3>
+                    <p>
+                      इस requirement के लिए केंद्र द्वारा upload की गई files यहाँ दिखाई जाएँगी।
+                    </p>
+                  </div>
+                  {!requirementDetailsLoading && (
+                    <span className="requirement-file-count-badge">
+                      {requirementDetails.length} File
+                      {requirementDetails.length === 1 ? "" : "s"}
+                    </span>
+                  )}
+                </div>
+
+                {requirementDetailsLoading ? (
+                  <div className="requirement-documents-loading">
+                    <span className="requirement-mini-spinner" />
+                    <span>Uploaded documents loading...</span>
+                  </div>
+                ) : requirementDetails.length === 0 ? (
+                  <div className="requirement-documents-empty">
+                    <FaFileAlt />
+                    <strong>No document uploaded</strong>
+                    <span>
+                      इस requirement के लिए अभी कोई file upload नहीं की गई है।
+                    </span>
+                  </div>
+                ) : (
+                  <div className="requirement-documents-table-wrap">
+                    <table className="requirement-documents-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Kendra Name</th>
+                          <th>Document</th>
+                          <th>Remark</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {requirementDetails.map((detail, index) => {
+                          const fileUrl = getRequirementFileUrl(detail?.img);
+                          const fileName = getRequirementFileName(detail?.img);
+
+                          return (
+                            <tr key={detail?.id ?? `uploaded-file-${index}`}>
+                              <td>{index + 1}</td>
+                              <td>
+                                <span className="requirement-center-name">
+                                  {detail?.center_name || "—"}
+                                </span>
+                              </td>
+                              <td>
+                                {fileUrl ? (
+                                  <div className="requirement-file-cell">
+                                    <span className="requirement-file-icon">
+                                      {getFileIcon(fileUrl)}
+                                    </span>
+                                    <span
+                                      className="requirement-file-name"
+                                      title={fileName}
+                                    >
+                                      {fileName}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="requirement-no-file">
+                                    No file
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                <span className="requirement-remark">
+                                  {detail?.remark || "—"}
+                                </span>
+                              </td>
+                              <td>
+                                {fileUrl ? (
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="requirement-view-file-btn"
+                                    title="View document"
+                                  >
+                                    <FaEye />
+                                    <span>View</span>
+                                  </a>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="requirement-view-file-btn disabled"
+                                    disabled
+                                    title="No document available"
+                                  >
+                                    <FaEye />
+                                    <span>View</span>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="requirement-detail-footer">
+              <button
+                type="button"
+                className="requirement-detail-close-btn"
+                onClick={closeRequirementView}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

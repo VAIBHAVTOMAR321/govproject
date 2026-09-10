@@ -1240,3 +1240,722 @@
   }
 
 }
+
+
+/* =========================================================
+   REQUIREMENT DOCUMENT VIEW - TABLE UI
+   Added without changing the existing LibrarySystem styling
+========================================================= */
+
+.library-requirement-view-modal {
+  width: min(1000px, 96vw);
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.library-requirement-view-content {
+  padding: 22px;
+  overflow-y: auto;
+  max-height: calc(90vh - 145px);
+  box-sizing: border-box;
+}
+
+/* Requirement information cards */
+.library-requirement-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 15px;
+  margin-bottom: 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  background: #fafcff;
+}
+
+.library-requirement-detail-card span {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.library-requirement-detail-card strong {
+  color: #172033;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Uploaded documents section */
+.library-uploaded-files-section {
+  margin-top: 22px;
+}
+
+.library-uploaded-files-section h3 {
+  margin: 0 0 12px;
+  color: #172033;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* Document table wrapper */
+.library-uploaded-files-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.04);
+}
+
+/* Uploaded documents table */
+.library-uploaded-files-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.library-uploaded-files-table th {
+  padding: 13px 14px;
+  background: #f2f6fc;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 1px solid #dfe5ec;
+  white-space: nowrap;
+}
+
+.library-uploaded-files-table td {
+  padding: 13px 14px;
+  color: #475467;
+  vertical-align: middle;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.library-uploaded-files-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.library-uploaded-files-table tbody tr:hover {
+  background: #fafcff;
+}
+
+/* File name inside table */
+.library-uploaded-file-name {
+  min-width: 220px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.library-uploaded-file-name svg {
+  flex: 0 0 auto;
+  color: #155eef;
+  font-size: 17px;
+}
+
+.library-uploaded-file-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* View document button */
+.library-uploaded-file-view-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #c9d7ee;
+  border-radius: 7px;
+  background: #f8faff;
+  color: #155eef;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.library-uploaded-file-view-btn:hover {
+  background: #eef4ff;
+  border-color: #155eef;
+  color: #0f4fd6;
+  transform: translateY(-1px);
+}
+
+.library-uploaded-file-view-btn svg {
+  font-size: 14px;
+}
+
+/* No uploaded document */
+.library-no-uploaded-files {
+  padding: 20px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 9px;
+  background: #fafbfc;
+  color: #667085;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Loading state for requirement documents */
+.library-requirement-files-loading {
+  padding: 20px;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  background: #fafcff;
+  color: #667085;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Error state */
+.library-requirement-files-error {
+  padding: 14px 16px;
+  border: 1px solid #fecdca;
+  border-radius: 9px;
+  background: #fef3f2;
+  color: #b42318;
+  font-size: 13px;
+}
+
+/* Responsive requirement document modal */
+@media (max-width: 768px) {
+  .library-requirement-view-modal {
+    width: calc(100vw - 24px);
+    max-height: 94vh;
+  }
+
+  .library-requirement-view-content {
+    padding: 16px;
+    max-height: calc(94vh - 135px);
+  }
+
+  .library-uploaded-files-table {
+    min-width: 650px;
+  }
+}
+
+@media (max-width: 480px) {
+  .library-requirement-view-modal {
+    width: calc(100vw - 16px);
+  }
+
+  .library-requirement-view-content {
+    padding: 12px;
+  }
+
+  .library-uploaded-files-table th,
+  .library-uploaded-files-table td {
+    padding: 10px;
+  }
+
+  .library-uploaded-file-view-btn {
+    min-height: 34px;
+    padding: 0 10px;
+  }
+}
+
+/* =========================================================
+   PROFESSIONAL CENTER REQUIREMENT DETAILS MODAL
+   Unique classes - isolated from existing LibrarySystem UI
+========================================================= */
+
+.requirement-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(3px);
+  box-sizing: border-box;
+}
+
+.requirement-detail-modal {
+  width: min(1120px, 96vw);
+  max-height: 92vh;
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(16, 24, 40, 0.24);
+  display: flex;
+  flex-direction: column;
+  animation: requirementDetailModalIn 0.18s ease-out;
+}
+
+@keyframes requirementDetailModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.requirement-detail-header {
+  min-height: 82px;
+  padding: 20px 28px;
+  border-bottom: 1px solid #eaecf0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.requirement-detail-header h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.requirement-detail-header p {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.requirement-detail-header > button {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 1px solid #e4e7ec;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #667085;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.requirement-detail-header > button:hover {
+  background: #f8fafc;
+  border-color: #cfd6e2;
+  color: #344054;
+}
+
+.requirement-detail-content {
+  padding: 24px 28px;
+  overflow-y: auto;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.requirement-detail-card {
+  padding: 15px 17px;
+  margin-bottom: 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.requirement-detail-card > span {
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.requirement-detail-card > strong,
+.requirement-detail-card > a {
+  color: #172033;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.requirement-detail-card > a {
+  color: #155eef;
+  text-decoration: none;
+}
+
+.requirement-detail-card > a:hover {
+  text-decoration: underline;
+}
+
+.requirement-documents-section {
+  margin-top: 24px;
+}
+
+.requirement-documents-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 13px;
+}
+
+.requirement-documents-heading h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.requirement-documents-heading p {
+  margin: 5px 0 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.requirement-file-count-badge {
+  flex: 0 0 auto;
+  padding: 6px 11px;
+  border: 1px solid #d7e3f5;
+  border-radius: 999px;
+  background: #f2f6fc;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.requirement-documents-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #dfe5ec;
+  border-radius: 11px;
+  background: #ffffff;
+  box-shadow: 0 2px 7px rgba(16, 24, 40, 0.04);
+}
+
+/* Explicit !important prevents any global table/th rule from making
+   the heading text white/invisible. */
+.requirement-documents-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.requirement-documents-table th {
+  padding: 13px 14px !important;
+  background: #eef3f9 !important;
+  color: #253858 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  text-transform: none;
+  border: 0 !important;
+  border-bottom: 1px solid #d9e1ea !important;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.requirement-documents-table th:first-child {
+  width: 55px;
+  text-align: center !important;
+}
+
+.requirement-documents-table th:nth-child(2) {
+  width: 170px;
+}
+
+.requirement-documents-table th:nth-child(3) {
+  width: 34%;
+}
+
+.requirement-documents-table th:nth-child(4) {
+  width: 24%;
+}
+
+.requirement-documents-table th:last-child {
+  width: 110px;
+  text-align: center !important;
+}
+
+.requirement-documents-table td {
+  padding: 14px !important;
+  background: #ffffff !important;
+  color: #475467 !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  border: 0 !important;
+  border-bottom: 1px solid #eef0f3 !important;
+  vertical-align: middle !important;
+}
+
+.requirement-documents-table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.requirement-documents-table tbody tr:hover td {
+  background: #fafcff !important;
+}
+
+.requirement-documents-table td:first-child {
+  color: #667085 !important;
+  text-align: center;
+  font-weight: 600;
+}
+
+.requirement-center-name {
+  display: inline-block;
+  color: #344054;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.requirement-file-cell {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.requirement-file-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 1px solid #dbe5f3;
+  border-radius: 7px;
+  background: #f4f7fb;
+  color: #155eef;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.requirement-file-icon svg {
+  font-size: 15px;
+}
+
+.requirement-file-name {
+  min-width: 0;
+  display: block;
+  color: #344054;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.requirement-remark {
+  color: #475467;
+  word-break: break-word;
+}
+
+.requirement-no-file {
+  color: #98a2b3;
+  font-style: italic;
+}
+
+.requirement-view-file-btn {
+  min-width: 78px;
+  min-height: 35px;
+  padding: 0 11px;
+  border: 1px solid #c9d7ee;
+  border-radius: 7px;
+  background: #f8faff;
+  color: #155eef;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.requirement-view-file-btn:hover {
+  background: #eef4ff;
+  border-color: #a9c2e8;
+  color: #0f4fd6;
+  transform: translateY(-1px);
+}
+
+.requirement-view-file-btn svg {
+  font-size: 13px;
+}
+
+.requirement-view-file-btn.disabled,
+.requirement-view-file-btn:disabled {
+  color: #98a2b3;
+  background: #f8fafc;
+  border-color: #e4e7ec;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.requirement-documents-loading,
+.requirement-documents-empty {
+  min-height: 120px;
+  padding: 24px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 10px;
+  background: #fafbfc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #667085;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.requirement-documents-empty svg {
+  margin-bottom: 3px;
+  color: #98a2b3;
+  font-size: 28px;
+}
+
+.requirement-documents-empty strong {
+  color: #344054;
+  font-size: 14px;
+}
+
+.requirement-documents-empty span {
+  font-size: 12px;
+}
+
+.requirement-mini-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #dbe5f3;
+  border-top-color: #155eef;
+  border-radius: 50%;
+  animation: requirementSpinner 0.75s linear infinite;
+}
+
+@keyframes requirementSpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.requirement-detail-footer {
+  min-height: 70px;
+  padding: 14px 28px;
+  border-top: 1px solid #eaecf0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.requirement-detail-close-btn {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.requirement-detail-close-btn:hover {
+  background: #f8fafc;
+  border-color: #b8c1ce;
+}
+
+@media (max-width: 768px) {
+  .requirement-detail-overlay {
+    padding: 12px;
+  }
+
+  .requirement-detail-modal {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 13px;
+  }
+
+  .requirement-detail-header {
+    padding: 17px 18px;
+  }
+
+  .requirement-detail-header h2 {
+    font-size: 19px;
+  }
+
+  .requirement-detail-content {
+    padding: 18px;
+  }
+
+  .requirement-documents-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .requirement-detail-footer {
+    padding: 12px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .requirement-detail-overlay {
+    padding: 8px;
+  }
+
+  .requirement-detail-header {
+    min-height: 70px;
+    padding: 14px;
+  }
+
+  .requirement-detail-header h2 {
+    font-size: 17px;
+  }
+
+  .requirement-detail-header p {
+    font-size: 12px;
+  }
+
+  .requirement-detail-content {
+    padding: 14px;
+  }
+
+  .requirement-detail-card {
+    padding: 12px 13px;
+  }
+
+  .requirement-documents-table {
+    min-width: 700px;
+  }
+
+  .requirement-detail-footer {
+    padding: 10px 14px;
+  }
+
+  .requirement-detail-close-btn {
+    width: 100%;
+  }
+}
