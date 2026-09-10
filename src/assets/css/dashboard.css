@@ -1319,6 +1319,120 @@ f.modal-title {
   }
 }
 
+
+/* ==================== INDEPENDENT REPORT TAB DATE FILTER ==================== */
+.report-tab-date-filter {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--admin-border, #d9e2eb);
+  border-radius: 11px;
+  background: #f8fafc;
+}
+
+.report-tab-date-filter-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 9px;
+  color: var(--admin-navy, #12355b);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.report-tab-date-filter .btn-filter-submit,
+.report-tab-date-filter .clear-btn-primary {
+  min-height: 34px;
+}
+
+.report-top-summary {
+  margin: 0 0 18px !important;
+}
+
+.report-top-summary .scheme-summary-mode-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: #f5f6f8;
+  border-bottom: 1px solid #d9e1e8;
+}
+
+.report-top-summary .scheme-summary-mode-filter select {
+  min-width: 190px;
+  padding: 6px 10px;
+  border: 1px solid #bfc5cc;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.report-top-summary-title {
+  background: #5fadd9;
+  color: #000;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 5px 8px;
+}
+
+.report-top-summary-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.report-top-summary-table th {
+  background: #218c4b;
+  color: #fff;
+  border-right: 1px solid #fff;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.report-top-summary-table th:last-child {
+  background: #c8372d;
+  border-right: 0;
+}
+
+.report-top-summary-table td {
+  background: #fff0d5;
+  color: #1f4f70;
+  border-right: 1px solid #1f5a7a;
+  border-top: 1px solid #1f5a7a;
+  padding: 8px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.report-top-summary-table td.report-top-summary-total {
+  background: #5fadd9;
+  color: #000;
+  border-right: 0;
+  font-weight: 800;
+}
+
+@media (max-width: 768px) {
+  .report-tab-date-filter {
+    padding: 10px;
+  }
+
+  .report-top-summary-table {
+    min-width: 520px;
+  }
+
+  .report-top-summary-table th,
+  .report-top-summary-table td {
+    font-size: 10px;
+    padding: 5px 4px;
+  }
+}
+
 /* ==================== REPORT EXPORT CARD STYLES ==================== */
 
 .report-export-card {
@@ -2541,7 +2655,7 @@ f.modal-title {
 
 .professional-dashboard {
   background: var(--admin-bg);
-  min-height: 100vh;
+  /* min-height: 100vh; */
 }
 
 .professional-main-content {
@@ -2552,8 +2666,8 @@ f.modal-title {
 
 .professional-dashboard-body {
   background: transparent !important;
-  padding: 22px 28px 36px !important;
-  min-height: calc(100vh - 70px);
+  padding: 14px 16px 8px !important;
+  /* min-height: calc(100vh - 70px); */
 }
 
 /* ---------- Welcome / page identity ---------- */
@@ -3607,4 +3721,116 @@ f.modal-title {
   .scheme-wise-financial-summary .scheme-summary-table tbody td {
     font-size: 13px;
   }
+}
+
+/* Final spacing cleanup: detailed reports follow the existing dashboard content directly. */
+.dynamic-report-section {
+  margin-top: 0 !important;
+}
+
+/* Keep the tab date filter compact and prevent artificial vertical whitespace. */
+.report-tab-date-filter {
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+}
+
+
+/* ============================================================
+   योजना प्रगति विवरण - independent Mad / Up-Mad filters
+   Each MatrixTable instance has its own filter state.
+   ============================================================ */
+.progress-hierarchy-filterbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  background: #f8fbff;
+  border: 1px solid #dce8f5;
+  border-radius: 8px;
+}
+
+.progress-hierarchy-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 280px;
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.progress-hierarchy-filter-group > div {
+  width: 100%;
+}
+
+.progress-hierarchy-filter-group .select-all-action-note {
+  font-size: 0.72rem;
+  color: #6c757d;
+  margin-top: 3px;
+}
+
+.progress-hierarchy-filter-group label {
+  margin: 0;
+  color: #194e8b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.progress-hierarchy-filter-group select {
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid #d5dee8;
+  border-radius: 5px;
+  background: #fff;
+  color: #333;
+  font-size: 12px;
+  outline: none;
+}
+
+.progress-hierarchy-filter-group select:focus {
+  border-color: #194e8b;
+  box-shadow: 0 0 0 2px rgba(25, 78, 139, 0.12);
+}
+
+.progress-hierarchy-clear-btn {
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 1px solid #e74c3c;
+  border-radius: 5px;
+  background: #fff;
+  color: #c0392b;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.progress-hierarchy-clear-btn:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .progress-hierarchy-filterbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .progress-hierarchy-filter-group {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .progress-hierarchy-clear-btn {
+    width: fit-content;
+  }
+}
+
+
+.progress-hierarchy-mode-group {
+  min-width: 190px;
+}
+
+.progress-hierarchy-mode-group .css-13cymwt-control,
+.progress-hierarchy-mode-group .css-t3ipsp-control {
+  min-height: 36px;
 }

@@ -38,8 +38,6 @@ const translations = {
   dataError: "डेटा प्रोसेस करने में त्रुटि।",
   retry: "पुनः प्रयास करें",
   overviewTitle: "समग्र डेटा अवलोकन",
-  filterByScheme: "क्रय योजना के अनुसार फ़िल्टर करें (एक या अधिक चुनें)",
-  filterByInvestment: "उप-मद के अनुसार फ़िल्टर करें (एक या अधिक चुनें)",
   totalRecords: "कुल रिकॉर्ड",
   selectSchemeFirst: "पहले क्रय योजना चुनें",
   selectPlaceholder: "चुनें...",
@@ -523,11 +521,281 @@ const ReportColumnSelector = ({ columns, visibleColumns, setVisibleColumns, labe
   );
 };
 
+
+// ============================================================================
+// Independent date filter for each detailed-report tab.
+// Every tab starts with the current financial year and keeps its own state.
+// ============================================================================
+const ReportTabDateFilter = ({
+  startDate,
+  endDate,
+  setStartDate,
+  setEndDate,
+  appliedStartDate,
+  appliedEndDate,
+  onApply,
+  onClear,
+}) => (
+  <div className="report-tab-date-filter">
+    <div className="report-tab-date-filter-title">
+      <FaCalendarAlt className="me-1" />
+      तिथि के अनुसार फ़िल्टर
+    </div>
+
+    <Row className="align-items-end g-2">
+      <Col lg={3} md={4} sm={6} className="mb-2">
+        <Form.Group>
+          <Form.Label className="filter-label-sm">प्रारंभ तिथि</Form.Label>
+          <Form.Control
+            type="date"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+            className="date-input-sm"
+            size="sm"
+          />
+        </Form.Group>
+      </Col>
+
+      <Col lg={3} md={4} sm={6} className="mb-2">
+        <Form.Group>
+          <Form.Label className="filter-label-sm">समाप्ति तिथि</Form.Label>
+          <Form.Control
+            type="date"
+            value={endDate}
+            min={startDate || undefined}
+            onChange={e => setEndDate(e.target.value)}
+            className="date-input-sm"
+            size="sm"
+          />
+        </Form.Group>
+      </Col>
+
+      <Col lg={6} md={4} sm={12} className="mb-2">
+        <div className="d-flex gap-2 flex-wrap align-items-center">
+          <Button
+            type="button"
+            size="sm"
+            className="btn-filter-submit"
+            onClick={onApply}
+            disabled={!startDate && !endDate}
+          >
+            <FaFilter className="me-1" />
+            फ़िल्टर लागू करें
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            className="clear-btn-primary"
+            onClick={onClear}
+          >
+            फ़िल्टर हटाएं
+          </Button>
+
+          {(appliedStartDate || appliedEndDate) && (
+            <span
+              className="badge bg-success d-flex align-items-center"
+              style={{ fontSize: '0.7rem' }}
+            >
+              <FaCalendarAlt className="me-1" />
+              {appliedStartDate || 'N/A'} - {appliedEndDate || 'N/A'}
+            </span>
+          )}
+        </div>
+      </Col>
+    </Row>
+  </div>
+);
+
+// This is the "सारांश देखें:" table moved to the top of the सारांश tab.
+// It uses the currently filtered summary rows, so the selected tab date
+// range and the सारांश tab filters are both reflected here.
+const SummaryFilteredTable = ({ data }) => {
+  const [summaryMode, setSummaryMode] = useState('financial');
+
+  const summary = useMemo(() => {
+    const map = new Map();
+
+    data.forEach(row => {
+      const plan = row.vahan || 'अन्य';
+      if (!map.has(plan)) {
+        map.set(plan, { quantity: 0, financial: 0 });
+      }
+
+      const item = map.get(plan);
+      item.quantity += Number(row.matra) || 0;
+      item.financial += Number(row.anudan) || 0;
+    });
+
+    return [...map.entries()]
+      .filter(([, value]) => value.quantity > 0 || value.financial > 0)
+      .sort((a, b) => b[1].financial - a[1].financial);
+  }, [data]);
+
+  const total = summary.reduce(
+    (sum, [, value]) =>
+      sum + (summaryMode === 'financial' ? value.financial : value.quantity),
+    0
+  );
+
+  const formatInteger = value =>
+    new Intl.NumberFormat('en-IN', {
+      maximumFractionDigits: 0,
+    }).format(Math.round(Number(value) || 0));
+
+  return (
+    <div className="scheme-wise-financial-summary report-top-summary">
+      <div className="scheme-summary-mode-filter">
+        <label
+          htmlFor="top-summary-mode"
+          style={{
+            margin: 0,
+            color: '#194e8b',
+            fontSize: '12px',
+            fontWeight: 700,
+          }}
+        >
+          सारांश देखें:
+        </label>
+
+        <select
+          id="top-summary-mode"
+          value={summaryMode}
+          onChange={e => setSummaryMode(e.target.value)}
+        >
+          <option value="financial">अनुदान राशि के अनुसार</option>
+          <option value="quantity">भौतिक पूर्ति के अनुसार</option>
+        </select>
+      </div>
+
+      <div className="report-top-summary-title">
+        ▣ योजना-वार {summaryMode === 'financial'
+          ? 'वित्तीय सारांश'
+          : 'भौतिक पूर्ति सारांश'}
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table className="report-top-summary-table">
+          <thead>
+            <tr>
+              {summary.map(([plan]) => (
+                <th key={`top-summary-head-${plan}`}>{plan}</th>
+              ))}
+              <th>कुल (Total)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {summary.map(([plan, value]) => {
+                const displayValue =
+                  summaryMode === 'financial'
+                    ? value.financial
+                    : value.quantity;
+
+                return (
+                  <td key={`top-summary-value-${plan}`}>
+                    {summaryMode === 'financial' ? '₹' : ''}
+                    {formatInteger(displayValue)}
+                  </td>
+                );
+              })}
+
+              <td className="report-top-summary-total">
+                {summaryMode === 'financial' ? '₹' : ''}
+                {formatInteger(total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const DynamicReportTabs = ({ sourceData }) => {
   const [activeTab, setActiveTab] = useState('saransh');
   const [openFilter, setOpenFilter] = useState(null);
   const [progressView, setProgressView] = useState('vidhan');
   const [saleView, setSaleView] = useState('vidhan');
+
+  // Each report tab has an independent financial-year date filter.
+  const {
+    startDate: summaryInitialStartDate,
+    endDate: summaryInitialEndDate,
+  } = getFinancialYearDates();
+
+  const [summaryStartDate, setSummaryStartDate] = useState(summaryInitialStartDate);
+  const [summaryEndDate, setSummaryEndDate] = useState(summaryInitialEndDate);
+  const [summaryAppliedStartDate, setSummaryAppliedStartDate] = useState(summaryInitialStartDate);
+  const [summaryAppliedEndDate, setSummaryAppliedEndDate] = useState(summaryInitialEndDate);
+
+  const [progressStartDate, setProgressStartDate] = useState(summaryInitialStartDate);
+  const [progressEndDate, setProgressEndDate] = useState(summaryInitialEndDate);
+  const [progressAppliedStartDate, setProgressAppliedStartDate] = useState(summaryInitialStartDate);
+  const [progressAppliedEndDate, setProgressAppliedEndDate] = useState(summaryInitialEndDate);
+
+  const [saleStartDate, setSaleStartDate] = useState(summaryInitialStartDate);
+  const [saleEndDate, setSaleEndDate] = useState(summaryInitialEndDate);
+  const [saleAppliedStartDate, setSaleAppliedStartDate] = useState(summaryInitialStartDate);
+  const [saleAppliedEndDate, setSaleAppliedEndDate] = useState(summaryInitialEndDate);
+
+  const filterRowsByDate = (data, startDate, endDate) => {
+    return data.filter(row => {
+      const itemDate = row.date ? new Date(row.date) : null;
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      if (!itemDate || Number.isNaN(itemDate.getTime())) return false;
+
+      if (start) start.setHours(0, 0, 0, 0);
+      if (end) end.setHours(23, 59, 59, 999);
+
+      if (start && itemDate < start) return false;
+      if (end && itemDate > end) return false;
+
+      return true;
+    });
+  };
+
+  const applySummaryDateFilter = () => {
+    setSummaryAppliedStartDate(summaryStartDate);
+    setSummaryAppliedEndDate(summaryEndDate);
+  };
+
+  const clearSummaryDateFilter = () => {
+    const { startDate, endDate } = getFinancialYearDates();
+    setSummaryStartDate(startDate);
+    setSummaryEndDate(endDate);
+    setSummaryAppliedStartDate(startDate);
+    setSummaryAppliedEndDate(endDate);
+  };
+
+  const applyProgressDateFilter = () => {
+    setProgressAppliedStartDate(progressStartDate);
+    setProgressAppliedEndDate(progressEndDate);
+  };
+
+  const clearProgressDateFilter = () => {
+    const { startDate, endDate } = getFinancialYearDates();
+    setProgressStartDate(startDate);
+    setProgressEndDate(endDate);
+    setProgressAppliedStartDate(startDate);
+    setProgressAppliedEndDate(endDate);
+  };
+
+  const applySaleDateFilter = () => {
+    setSaleAppliedStartDate(saleStartDate);
+    setSaleAppliedEndDate(saleEndDate);
+  };
+
+  const clearSaleDateFilter = () => {
+    const { startDate, endDate } = getFinancialYearDates();
+    setSaleStartDate(startDate);
+    setSaleEndDate(endDate);
+    setSaleAppliedStartDate(startDate);
+    setSaleAppliedEndDate(endDate);
+  };
+
 
   // Independent selectors/column visibility for the two additional
   // "योजना प्रगति विवरण" tables. These tables are intentionally
@@ -578,6 +846,22 @@ const DynamicReportTabs = ({ sourceData }) => {
     kul: Number(item.total_amount) || 0,
     date: item.bill_date || '',
   })), [sourceData]);
+
+  // Apply each tab's own date range only after rows has been initialized.
+  const summaryDateRows = useMemo(
+    () => filterRowsByDate(rows, summaryAppliedStartDate, summaryAppliedEndDate),
+    [rows, summaryAppliedStartDate, summaryAppliedEndDate]
+  );
+
+  const progressDateRows = useMemo(
+    () => filterRowsByDate(rows, progressAppliedStartDate, progressAppliedEndDate),
+    [rows, progressAppliedStartDate, progressAppliedEndDate]
+  );
+
+  const saleDateRows = useMemo(
+    () => filterRowsByDate(rows, saleAppliedStartDate, saleAppliedEndDate),
+    [rows, saleAppliedStartDate, saleAppliedEndDate]
+  );
 
   const uniq = values => [...new Set(values.filter(v => v !== null && v !== undefined && String(v).trim() !== ''))]
     .sort((a, b) => String(a).localeCompare(String(b), 'hi'));
@@ -740,20 +1024,20 @@ const DynamicReportTabs = ({ sourceData }) => {
 
 
   const summaryRows = useMemo(() => (
-    applyFilters(rows, summaryFilters, ['vahan', 'kendra'])
+    applyFilters(summaryDateRows, summaryFilters, ['vahan', 'kendra'])
       .filter(r => !fixedPlan || r.kraya !== fixedPlan)
-  ), [rows, summaryFilters, fixedPlan]);
+  ), [summaryDateRows, summaryFilters, fixedPlan]);
 
   const progressRows = useMemo(() => (
-    applyFilters(rows, progressFilters, ['vahan', 'kendra', 'block', 'vidhan'])
+    applyFilters(progressDateRows, progressFilters, ['vahan', 'kendra', 'block', 'vidhan'])
       .filter(r => !fixedPlan || r.kraya !== fixedPlan)
-  ), [rows, progressFilters, fixedPlan]);
+  ), [progressDateRows, progressFilters, fixedPlan]);
 
   const saleRows = useMemo(() => (
     fixedPlan
-      ? applyFilters(rows.filter(r => r.kraya === fixedPlan), saleFilters, ['kendra', 'block', 'vidhan', 'nivesh', 'upnivesh'])
+      ? applyFilters(saleDateRows.filter(r => r.kraya === fixedPlan), saleFilters, ['kendra', 'block', 'vidhan', 'nivesh', 'upnivesh'])
       : []
-  ), [rows, saleFilters, fixedPlan]);
+  ), [saleDateRows, saleFilters, fixedPlan]);
 
   // ---------------------------------------------------------------------------
   // Two additional tables required inside "योजना प्रगति विवरण".
@@ -764,8 +1048,8 @@ const DynamicReportTabs = ({ sourceData }) => {
   // Both tables use grant-bearing data only (4401 is excluded).
   // ---------------------------------------------------------------------------
   const grantRows = useMemo(
-    () => rows.filter(r => !fixedPlan || r.kraya !== fixedPlan),
-    [rows, fixedPlan]
+    () => progressDateRows.filter(r => !fixedPlan || r.kraya !== fixedPlan),
+    [progressDateRows, fixedPlan]
   );
 
   const progressBlockOptions = useMemo(
@@ -930,7 +1214,7 @@ const DynamicReportTabs = ({ sourceData }) => {
   // one; otherwise it is shown as "-". No beneficiary value is invented.
   // ============================================================================
 
-  const SummaryMadUpMadTable = () => {
+  const SummaryMadUpMadTable = ({ data }) => {
     const [summaryWiseView, setSummaryWiseView] = useState('mad');
     const [summaryWiseFilters, setSummaryWiseFilters] = useState({
       nivesh: null,
@@ -969,8 +1253,8 @@ const DynamicReportTabs = ({ sourceData }) => {
     // Five independent filters for this table.
     // Empty/null selection means ALL values for that filter.
     const summaryWiseBaseRows = useMemo(
-      () => rows.filter(r => !fixedPlan || r.kraya !== fixedPlan),
-      [rows, fixedPlan]
+      () => (Array.isArray(data) ? data : []).filter(r => !fixedPlan || r.kraya !== fixedPlan),
+      [data, fixedPlan]
     );
 
     const summaryWiseFilterDefinitions = [
@@ -1418,212 +1702,163 @@ const DynamicReportTabs = ({ sourceData }) => {
             )}
           </table>
         </div>
-
-        {/* Same scheme-wise summary pattern as the table above, driven by the selected filters. */}
-        <div
-          className="scheme-wise-financial-summary"
-          style={{
-            marginTop: '14px',
-            border: '1px solid #1f5a7a',
-            overflow: 'hidden',
-            background: '#fff'
-          }}
-        >
-          <div
-            className="scheme-summary-mode-filter"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              padding: '8px 10px',
-              background: '#f5f6f8',
-              borderBottom: '1px solid #d9e1e8'
-            }}
-          >
-            <label
-              htmlFor="summary-mad-upmad-summary-mode"
-              style={{
-                margin: 0,
-                color: '#194e8b',
-                fontSize: '12px',
-                fontWeight: 700
-              }}
-            >
-              सारांश देखें:
-            </label>
-
-            <select
-              id="summary-mad-upmad-summary-mode"
-              value={summaryWiseSummaryMode}
-              onChange={e => setSummaryWiseSummaryMode(e.target.value)}
-              style={{
-                minWidth: '190px',
-                padding: '6px 10px',
-                border: '1px solid #bfc5cc',
-                borderRadius: '4px',
-                background: '#fff',
-                color: '#333',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              <option value="financial">अनुदान राशि के अनुसार</option>
-              <option value="quantity">भौतिक पूर्ति  के अनुसार</option>
-            </select>
-          </div>
-
-          <div
-            style={{
-              background: '#5fadd9',
-              color: '#000',
-              textAlign: 'center',
-              fontWeight: 700,
-              fontSize: '15px',
-              padding: '5px 8px'
-            }}
-          >
-            ▣ योजना-वार {summaryWiseSummaryMode === 'financial'
-              ? 'वित्तीय सारांश (Scheme-wise Financial Summary — ₹ Lakhs)'
-              : 'भौतिक पूर्ति  सारांश (Scheme-wise Allocated Quantity Summary)'}
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table
-              style={{
-                width: '100%',
-                minWidth: '700px',
-                borderCollapse: 'collapse',
-                tableLayout: 'fixed'
-              }}
-            >
-              <thead>
-                <tr>
-                  {schemeWiseSummary.map(item => (
-                    <th
-                      key={`yw-summary-head-${item.plan}`}
-                      style={{
-                        background: '#218c4b',
-                        color: '#fff',
-                        borderRight: '1px solid #fff',
-                        padding: '6px 8px',
-                        textAlign: 'center',
-                        fontSize: '13px'
-                      }}
-                    >
-                      {item.plan}
-                    </th>
-                  ))}
-                  <th
-                    style={{
-                      background: '#c8372d',
-                      color: '#fff',
-                      padding: '6px 8px',
-                      textAlign: 'center',
-                      fontSize: '13px'
-                    }}
-                  >
-                    कुल (Total)
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr>
-                  {schemeWiseSummary.map(item => (
-                    <td
-                      key={`yw-summary-value-${item.plan}`}
-                      style={{
-                        background: '#fff0d5',
-                        color: '#1f4f70',
-                        borderRight: '1px solid #1f5a7a',
-                        borderTop: '1px solid #1f5a7a',
-                        padding: '8px',
-                        textAlign: 'center',
-                        fontWeight: 700,
-                        fontSize: '16px'
-                      }}
-                    >
-                      {summaryWiseSummaryMode === 'financial' ? '₹' : ''}{formatSummaryInteger(item.displayValue)}
-                    </td>
-                  ))}
-                  <td
-                    style={{
-                      background: '#5fadd9',
-                      color: '#000',
-                      borderTop: '1px solid #1f5a7a',
-                      padding: '8px',
-                      textAlign: 'center',
-                      fontWeight: 800,
-                      fontSize: '16px'
-                    }}
-                  >
-                    {summaryWiseSummaryMode === 'financial' ? '₹' : ''}{formatSummaryInteger(totalSummaryValue)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     );
   };
 
-  const MatrixTable = ({ data, geoField, geoList, saleMode, schemeLabel, columns, setColumns }) => {
-    const items = [];
-    const seen = new Set();
+  const MatrixTable = ({
+    data,
+    geoField,
+    geoList,
+    saleMode,
+    schemeLabel,
+    columns,
+    setColumns,
+    enableHierarchyFilters = false
+  }) => {
+    const [selectedMad, setSelectedMad] = useState([]);
+    const [selectedUpmad, setSelectedUpmad] = useState([]);
+    const [groupBy, setGroupBy] = useState('mad');
 
-    data.forEach(r => {
-      const key = `${r.nivesh}|${r.upnivesh}|${r.ikai}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        items.push({ nivesh: r.nivesh, upnivesh: r.upnivesh, ikai: r.ikai });
-      }
-    });
+    const safeData = Array.isArray(data) ? data : [];
 
-    const hasData = (item, geo) => data.some(r =>
+    const uniqValues = (values) => [...new Set(
+      values.map(value => String(value ?? '').trim()).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, 'hi'));
+
+    const madOptions = useMemo(() => {
+      const source = selectedUpmad.length
+        ? safeData.filter(row => selectedUpmad.includes(String(row.upnivesh ?? '').trim()))
+        : safeData;
+      return uniqValues(source.map(row => row.nivesh)).map(value => ({ value, label: value }));
+    }, [safeData, selectedUpmad]);
+
+    const upmadOptions = useMemo(() => {
+      const source = selectedMad.length
+        ? safeData.filter(row => selectedMad.includes(String(row.nivesh ?? '').trim()))
+        : safeData;
+      return uniqValues(source.map(row => row.upnivesh)).map(value => ({ value, label: value }));
+    }, [safeData, selectedMad]);
+
+    useEffect(() => {
+      if (!enableHierarchyFilters) return;
+      const available = new Set(madOptions.map(option => option.value));
+      setSelectedMad(prev => prev.filter(value => available.has(value)));
+    }, [enableHierarchyFilters, madOptions]);
+
+    useEffect(() => {
+      if (!enableHierarchyFilters) return;
+      const available = new Set(upmadOptions.map(option => option.value));
+      setSelectedUpmad(prev => prev.filter(value => available.has(value)));
+    }, [enableHierarchyFilters, upmadOptions]);
+
+    const filteredData = useMemo(() => {
+      if (!enableHierarchyFilters) return safeData;
+      return safeData.filter(row => {
+        const mad = String(row.nivesh ?? '').trim();
+        const upmad = String(row.upnivesh ?? '').trim();
+        if (selectedMad.length && !selectedMad.includes(mad)) return false;
+        if (selectedUpmad.length && !selectedUpmad.includes(upmad)) return false;
+        return true;
+      });
+    }, [safeData, enableHierarchyFilters, selectedMad, selectedUpmad]);
+
+    // Decide which hierarchy should be unique in the first column.
+    // This is independent for every table because MatrixTable owns its own state.
+    const madMode = enableHierarchyFilters && groupBy === 'mad';
+    const upmadMode = enableHierarchyFilters && groupBy === 'upmad';
+
+    const groupedItems = useMemo(() => {
+      const groups = new Map();
+
+      filteredData.forEach(row => {
+        const mad = String(row.nivesh ?? '').trim();
+        const upmad = String(row.upnivesh ?? '').trim();
+        const yojna = String(row.vahan ?? '').trim();
+        const ikai = String(row.ikai ?? '').trim();
+
+        let key;
+        if (upmadMode) {
+          key = `upmad|${upmad}`;
+        } else if (madMode) {
+          key = `mad|${mad}`;
+        } else {
+          key = `normal|${mad}|${upmad}|${yojna}|${ikai}`;
+        }
+
+        if (!groups.has(key)) {
+          groups.set(key, {
+            key,
+            niveshValues: new Set(),
+            upniveshValues: new Set(),
+            vahanValues: new Set(),
+            ikaiValues: new Set(),
+            rows: []
+          });
+        }
+
+        const group = groups.get(key);
+        if (mad) group.niveshValues.add(mad);
+        if (upmad) group.upniveshValues.add(upmad);
+        if (yojna) group.vahanValues.add(yojna);
+        if (ikai) group.ikaiValues.add(ikai);
+        group.rows.push(row);
+      });
+
+      return [...groups.values()].map(group => ({
+        ...group,
+        nivesh: [...group.niveshValues].join(', '),
+        upnivesh: [...group.upniveshValues].join(', '),
+        vahan: [...group.vahanValues].join(', '),
+        ikai: [...group.ikaiValues].join(', ')
+      }));
+    }, [filteredData, madMode, upmadMode]);
+
+    const hasData = (item, geo) => item.rows.some(r =>
       r[geoField] === geo &&
-      r.upnivesh === item.upnivesh &&
-      (saleMode ? r.matra > 0 && r.ansh > 0 : r.matra > 0 || r.anudan > 0)
+      (saleMode
+        ? r.matra > 0 && r.ansh > 0
+        : r.matra > 0 || r.anudan > 0)
     );
 
-    const visibleGeo = geoList.filter(geo => items.some(item => hasData(item, geo)));
-    const visibleItems = items.filter(item => visibleGeo.some(geo => hasData(item, geo)));
+    const visibleGeo = geoList.filter(geo => groupedItems.some(item => hasData(item, geo)));
+    const visibleItems = groupedItems.filter(item => visibleGeo.some(geo => hasData(item, geo)));
 
     const subColumns = saleMode
       ? ['विक्रय दर', 'भौतिक पूर्ति ', 'वित्तीय (₹)']
       : ['भौतिक पूर्ति ', 'वित्तीय (₹)'];
 
+    const hierarchyDefs = enableHierarchyFilters
+      ? (upmadMode
+          ? [
+              { key: 'submad', label: 'उप-मद का नाम' },
+              { key: 'mad', label: 'मद का नाम' },
+              { key: 'scheme', label: 'योजना का नाम' }
+            ]
+          : [
+              { key: 'mad', label: 'मद का नाम' },
+              { key: 'submad', label: 'उप-मद का नाम' },
+              { key: 'scheme', label: 'योजना का नाम' }
+            ])
+      : [
+          { key: 'scheme', label: 'योजना का नाम' },
+          { key: 'mad', label: 'मद का नाम' },
+          { key: 'submad', label: 'उप-मद का नाम' }
+        ];
+
     const matrixDefs = [
       { key: 'sno', label: 'क्रम संख्या' },
-      { key: 'scheme', label: 'योजना का नाम' },
-      { key: 'mad', label: 'मद का नाम' },
-      { key: 'submad', label: 'उप-मद का नाम' },
+      ...hierarchyDefs,
       { key: 'ikai', label: 'इकाई' },
       ...visibleGeo.map((geo, index) => ({ key: `geo_${index}`, label: geo })),
-      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' },
+      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' }
     ];
 
     const visible = columns === null ? matrixDefs.map(c => c.key) : columns;
     const show = key => visible.includes(key);
 
-    if (!visibleGeo.length || !visibleItems.length) {
-      return (
-        <>
-          <ReportColumnSelector
-            columns={matrixDefs}
-            visibleColumns={columns}
-            setVisibleColumns={setColumns}
-            label="प्रगति मैट्रिक्स — इस तालिका के स्तंभ चुनें"
-          />
-          <div className="dynamic-report-empty-box">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</div>
-        </>
-      );
-    }
-
-    const getCell = (item, geo) => data
-      .filter(r => r[geoField] === geo && r.upnivesh === item.upnivesh)
+    const getCell = (item, geo) => item.rows
+      .filter(r => r[geoField] === geo)
       .reduce((a, r) => ({
         mat: a.mat + r.matra,
         val: a.val + (saleMode ? r.ansh : r.anudan)
@@ -1635,7 +1870,6 @@ const DynamicReportTabs = ({ sourceData }) => {
 
     const renderCellValues = (cellData, keyPrefix) => {
       const rate = cellData.mat ? cellData.val / cellData.mat : 0;
-
       if (saleMode) {
         return (
           <React.Fragment key={keyPrefix}>
@@ -1645,7 +1879,6 @@ const DynamicReportTabs = ({ sourceData }) => {
           </React.Fragment>
         );
       }
-
       return (
         <React.Fragment key={keyPrefix}>
           <td>{cellData.mat ? fmtN(cellData.mat) : ''}</td>
@@ -1656,7 +1889,6 @@ const DynamicReportTabs = ({ sourceData }) => {
 
     const renderTotalValues = (cellData, keyPrefix) => {
       const rate = cellData.mat ? cellData.val / cellData.mat : 0;
-
       if (saleMode) {
         return (
           <React.Fragment key={keyPrefix}>
@@ -1666,7 +1898,6 @@ const DynamicReportTabs = ({ sourceData }) => {
           </React.Fragment>
         );
       }
-
       return (
         <React.Fragment key={keyPrefix}>
           <td className="tot">{fmtN(cellData.mat)}</td>
@@ -1676,9 +1907,118 @@ const DynamicReportTabs = ({ sourceData }) => {
     };
 
     const colspan = subColumns.length;
+    const selectedMadOptions = selectedMad.map(value => ({ value, label: value }));
+    const selectedUpmadOptions = selectedUpmad.map(value => ({ value, label: value }));
+
+    // Special actions for both multi-select filters.
+    // These are handled without ever becoming actual selected filter values.
+    const madFilterOptions = [
+      { value: '__SELECT_ALL_MAD__', label: 'सभी चुनें' },
+      { value: '__CLEAR_ALL_MAD__', label: 'सभी हटाएं' },
+      ...madOptions
+    ];
+    const upmadFilterOptions = [
+      { value: '__SELECT_ALL_UPMAD__', label: 'सभी चुनें' },
+      { value: '__CLEAR_ALL_UPMAD__', label: 'सभी हटाएं' },
+      ...upmadOptions
+    ];
+
+    const handleMadFilterChange = options => {
+      const values = options || [];
+      if (values.some(option => option.value === '__SELECT_ALL_MAD__')) {
+        setSelectedMad(madOptions.map(option => option.value));
+        return;
+      }
+      if (values.some(option => option.value === '__CLEAR_ALL_MAD__')) {
+        setSelectedMad([]);
+        return;
+      }
+      setSelectedMad(values.map(option => option.value));
+    };
+
+    const handleUpmadFilterChange = options => {
+      const values = options || [];
+      if (values.some(option => option.value === '__SELECT_ALL_UPMAD__')) {
+        setSelectedUpmad(upmadOptions.map(option => option.value));
+        return;
+      }
+      if (values.some(option => option.value === '__CLEAR_ALL_UPMAD__')) {
+        setSelectedUpmad([]);
+        return;
+      }
+      setSelectedUpmad(values.map(option => option.value));
+    };
 
     return (
       <>
+        {enableHierarchyFilters && (
+          <div className="progress-hierarchy-filterbar">
+            <div className="progress-hierarchy-filter-group progress-hierarchy-mode-group">
+              <label>तालिका किसके अनुसार दिखाएं</label>
+              <Select
+                isSearchable={false}
+                options={[
+                  { value: 'mad', label: 'मद के अनुसार' },
+                  { value: 'upmad', label: 'उप-मद के अनुसार' }
+                ]}
+                value={groupBy === 'upmad'
+                  ? { value: 'upmad', label: 'उप-मद के अनुसार' }
+                  : { value: 'mad', label: 'मद के अनुसार' }}
+                onChange={option => setGroupBy(option?.value || 'mad')}
+                styles={customSelectStyles}
+                menuPortalTarget={document.body}
+              />
+            </div>
+
+            <div className="progress-hierarchy-filter-group">
+              <label>मद के अनुसार फ़िल्टर</label>
+              <Select
+                isMulti
+                isSearchable
+                closeMenuOnSelect={false}
+                hideSelectedOptions={false}
+                options={madFilterOptions}
+                value={selectedMadOptions}
+                onChange={handleMadFilterChange}
+                placeholder="एक या अधिक मद चुनें..."
+                noOptionsMessage={() => 'कोई मद उपलब्ध नहीं'}
+                styles={customSelectStyles}
+                menuPortalTarget={document.body}
+              />
+            </div>
+
+            <div className="progress-hierarchy-filter-group">
+              <label>उप-मद के अनुसार फ़िल्टर</label>
+              <Select
+                isMulti
+                isSearchable
+                closeMenuOnSelect={false}
+                hideSelectedOptions={false}
+                options={upmadFilterOptions}
+                value={selectedUpmadOptions}
+                onChange={handleUpmadFilterChange}
+                placeholder="एक या अधिक उप-मद चुनें..."
+                noOptionsMessage={() => 'कोई उप-मद उपलब्ध नहीं'}
+                styles={customSelectStyles}
+                menuPortalTarget={document.body}
+              />
+            </div>
+
+            {(selectedMad.length || selectedUpmad.length) ? (
+              <button
+                type="button"
+                className="progress-hierarchy-clear-btn"
+                onClick={() => {
+                  setSelectedMad([]);
+                  setSelectedUpmad([]);
+                }}
+              >
+                फ़िल्टर हटाएं
+              </button>
+            ) : null}
+          </div>
+        )}
+
         <ReportColumnSelector
           columns={matrixDefs}
           visibleColumns={columns}
@@ -1686,100 +2026,112 @@ const DynamicReportTabs = ({ sourceData }) => {
           label="प्रगति मैट्रिक्स — इस तालिका के स्तंभ चुनें"
         />
 
-        <div className="dynamic-report-table-scroll matrix-scroll">
-          <table className="dynamic-report-table matrix-table">
-            <thead>
-              <tr>
-                {show('sno') && <th rowSpan="2">क्रम संख्या</th>}
-                {show('scheme') && <th rowSpan="2">{schemeLabel || 'योजना का नाम (अनुदान वहन योजना)'}</th>}
-                {show('mad') && <th rowSpan="2">मद का नाम</th>}
-                {show('submad') && <th rowSpan="2">उप-मद का नाम</th>}
-                {show('ikai') && <th rowSpan="2">इकाई</th>}
-
-                {visibleGeo.map((geo, index) =>
-                  show(`geo_${index}`) && (
-                    <th colSpan={colspan} key={geo}>{geo}</th>
-                  )
-                )}
-
-                {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>}
-              </tr>
-
-              <tr>
-                {visibleGeo.flatMap((geo, index) =>
-                  show(`geo_${index}`)
-                    ? subColumns.map(column => <th key={`${geo}-${column}`}>{column}</th>)
-                    : []
-                )}
-                {show('total') && subColumns.map(column => <th key={`total-${column}`}>{column}</th>)}
-              </tr>
-            </thead>
-
-            <tbody>
-              {visibleItems.map((item, idx) => {
-                let rowMat = 0;
-                let rowVal = 0;
-
-                const cells = visibleGeo.flatMap((geo, geoIndex) => {
-                  const c = getCell(item, geo);
-                  geoTotals[geo].mat += c.mat;
-                  geoTotals[geo].val += c.val;
-                  rowMat += c.mat;
-                  rowVal += c.val;
-
-                  return show(`geo_${geoIndex}`)
-                    ? [renderCellValues(c, `${item.upnivesh}-${geo}`)]
-                    : [];
-                });
-
-                grandMat += rowMat;
-                grandVal += rowVal;
-
-                const first = data.find(r => r.upnivesh === item.upnivesh);
-
-                return (
-                  <tr key={`${item.nivesh}-${item.upnivesh}-${idx}`}>
-                    {show('sno') && <td>{idx + 1}</td>}
-                    {show('scheme') && <td>{schemeLabel || first?.vahan || ''}</td>}
-                    {show('mad') && <td>{item.nivesh}</td>}
-                    {show('submad') && <td>{item.upnivesh}</td>}
-                    {show('ikai') && <td>{item.ikai}</td>}
-                    {cells}
-                    {show('total') && renderTotalValues({ mat: rowMat, val: rowVal }, `row-total-${idx}`)}
-                  </tr>
-                );
-              })}
-            </tbody>
-
-            <tfoot>
-              <tr className="report-total-values-row">
-                {(() => {
-                  const metaKeys = ['sno', 'scheme', 'mad', 'submad', 'ikai'];
-                  const visibleMetaCount = metaKeys.filter(key => show(key)).length;
-                  const labelCell = visibleMetaCount > 0
-                    ? <td colSpan={visibleMetaCount}>योग</td>
-                    : null;
-                  return (
+        {!visibleGeo.length || !visibleItems.length ? (
+          <div className="dynamic-report-empty-box">कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला</div>
+        ) : (
+          <div className="dynamic-report-table-scroll matrix-scroll">
+            <table className="dynamic-report-table matrix-table">
+              <thead>
+                <tr>
+                  {show('sno') && <th rowSpan="2">क्रम संख्या</th>}
+                  {upmadMode ? (
                     <>
-                      {labelCell}
-                      {visibleGeo.map((geo, geoIndex) => (
-                        show(`geo_${geoIndex}`)
-                          ? renderTotalValues(geoTotals[geo], `footer-${geo}`)
-                          : null
-                      ))}
-                      {show('total') && renderTotalValues({ mat: grandMat, val: grandVal }, 'footer-grand-total')}
+                      {show('submad') && <th rowSpan="2">उप-मद का नाम</th>}
+                      {show('mad') && <th rowSpan="2">मद का नाम</th>}
+                      {show('scheme') && <th rowSpan="2">{schemeLabel || 'योजना का नाम'}</th>}
                     </>
+                  ) : (
+                    <>
+                      {show('mad') && <th rowSpan="2">मद का नाम</th>}
+                      {show('submad') && <th rowSpan="2">उप-मद का नाम</th>}
+                      {show('scheme') && <th rowSpan="2">{schemeLabel || 'योजना का नाम'}</th>}
+                    </>
+                  )}
+                  {show('ikai') && <th rowSpan="2">इकाई</th>}
+                  {visibleGeo.map((geo, index) =>
+                    show(`geo_${index}`) && <th colSpan={colspan} key={geo}>{geo}</th>
+                  )}
+                  {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>}
+                </tr>
+                <tr>
+                  {visibleGeo.flatMap((geo, index) =>
+                    show(`geo_${index}`)
+                      ? subColumns.map(column => <th key={`${geo}-${column}`}>{column}</th>)
+                      : []
+                  )}
+                  {show('total') && subColumns.map(column => <th key={`total-${column}`}>{column}</th>)}
+                </tr>
+              </thead>
+
+              <tbody>
+                {visibleItems.map((item, idx) => {
+                  let rowMat = 0;
+                  let rowVal = 0;
+
+                  const cells = visibleGeo.flatMap((geo, geoIndex) => {
+                    const c = getCell(item, geo);
+                    geoTotals[geo].mat += c.mat;
+                    geoTotals[geo].val += c.val;
+                    rowMat += c.mat;
+                    rowVal += c.val;
+                    return show(`geo_${geoIndex}`)
+                      ? [renderCellValues(c, `${item.key}-${geo}`)]
+                      : [];
+                  });
+
+                  grandMat += rowMat;
+                  grandVal += rowVal;
+
+                  return (
+                    <tr key={`${item.key}-${idx}`}>
+                      {show('sno') && <td>{idx + 1}</td>}
+                      {upmadMode ? (
+                        <>
+                          {show('submad') && <td>{item.upnivesh}</td>}
+                          {show('mad') && <td>{item.nivesh}</td>}
+                          {show('scheme') && <td>{schemeLabel || item.vahan}</td>}
+                        </>
+                      ) : (
+                        <>
+                          {show('mad') && <td>{item.nivesh}</td>}
+                          {show('submad') && <td>{item.upnivesh}</td>}
+                          {show('scheme') && <td>{schemeLabel || item.vahan}</td>}
+                        </>
+                      )}
+                      {show('ikai') && <td>{item.ikai}</td>}
+                      {cells}
+                      {show('total') && renderTotalValues({ mat: rowMat, val: rowVal }, `row-total-${idx}`)}
+                    </tr>
                   );
-                })()}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+                })}
+              </tbody>
+
+              <tfoot>
+                <tr className="report-total-values-row">
+                  {(() => {
+                    const metaKeys = ['sno', 'mad', 'submad', 'scheme', 'ikai'];
+                    const visibleMetaCount = metaKeys.filter(key => show(key)).length;
+                    const labelCell = visibleMetaCount > 0 ? <td colSpan={visibleMetaCount}>योग</td> : null;
+                    return (
+                      <>
+                        {labelCell}
+                        {visibleGeo.map((geo, geoIndex) =>
+                          show(`geo_${geoIndex}`)
+                            ? renderTotalValues(geoTotals[geo], `footer-${geo}`)
+                            : null
+                        )}
+                        {show('total') && renderTotalValues({ mat: grandMat, val: grandVal }, 'footer-grand-total')}
+                      </>
+                    );
+                  })()}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
       </>
     );
   };
-
-
 
   return (
     <section
@@ -1822,6 +2174,23 @@ const DynamicReportTabs = ({ sourceData }) => {
         {activeTab === 'saransh' && (
           <div className="dynamic-report-panel">
             <h5 style={{ marginBottom: "6px" }}>सारांश — योजना-वार मद / उप-मद विवरण</h5>
+
+            {/* सारांश देखें + योजना-वार वित्तीय/भौतिक सारांश
+                must appear immediately below the main सारांश heading,
+                before the date filter. */}
+            <SummaryFilteredTable data={summaryRows} />
+
+            <ReportTabDateFilter
+              startDate={summaryStartDate}
+              endDate={summaryEndDate}
+              setStartDate={setSummaryStartDate}
+              setEndDate={setSummaryEndDate}
+              appliedStartDate={summaryAppliedStartDate}
+              appliedEndDate={summaryAppliedEndDate}
+              onApply={applySummaryDateFilter}
+              onClear={clearSummaryDateFilter}
+            />
+
             <FilterBar section="summary" />
 
             <h6 className="dynamic-report-subtitle">1) अनुदान वहन योजना के अनुसार सारांश</h6>
@@ -1830,13 +2199,24 @@ const DynamicReportTabs = ({ sourceData }) => {
             <h6 className="dynamic-report-subtitle">
               2) विधानसभा / विकासखंड / केंद्र / मद / उप-मद  के नाम अनुसार — योजना-वार
             </h6>
-            <SummaryMadUpMadTable />
+            <SummaryMadUpMadTable data={summaryRows} />
           </div>
         )}
 
         {activeTab === 'pragati' && (
           <div className="dynamic-report-panel">
             <h5 style={{ marginBottom: "6px" }}>योजना प्रगति विवरण — अनुदान वहन योजना के अनुसार</h5>
+
+            <ReportTabDateFilter
+              startDate={progressStartDate}
+              endDate={progressEndDate}
+              setStartDate={setProgressStartDate}
+              setEndDate={setProgressEndDate}
+              appliedStartDate={progressAppliedStartDate}
+              appliedEndDate={progressAppliedEndDate}
+              onApply={applyProgressDateFilter}
+              onClear={clearProgressDateFilter}
+            />
 
             <div className="dynamic-report-view-row professional-view-row">
               <label>देखने का प्रकार</label>
@@ -1851,6 +2231,7 @@ const DynamicReportTabs = ({ sourceData }) => {
             <h6 className="dynamic-report-subtitle">प्रगति मैट्रिक्स</h6>
 
             <MatrixTable
+              enableHierarchyFilters={true}
               data={progressRows}
               geoField={progressView === 'vidhan' ? 'vidhan' : progressView === 'block' ? 'block' : 'kendra'}
               geoList={progressView === 'vidhan' ? lists.vidhan : progressView === 'block' ? lists.block : lists.kendra}
@@ -1894,6 +2275,7 @@ const DynamicReportTabs = ({ sourceData }) => {
               </p>
 
               <MatrixTable
+                enableHierarchyFilters={true}
                 data={progressBlockRows}
                 geoField="kendra"
                 geoList={progressBlockCentres}
@@ -1938,6 +2320,7 @@ const DynamicReportTabs = ({ sourceData }) => {
               </p>
 
               <MatrixTable
+                enableHierarchyFilters={true}
                 data={progressVidhanRows}
                 geoField="kendra"
                 geoList={progressVidhanCentres}
@@ -1953,6 +2336,17 @@ const DynamicReportTabs = ({ sourceData }) => {
           <div className="dynamic-report-panel">
             <h5>{fixedPlan || '4401 बिक्री हेतु'} — क्रय योजना के अनुसार</h5>
             <p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = भौतिक पूर्ति  और वित्तीय = कृषक अंश।</p>
+
+            <ReportTabDateFilter
+              startDate={saleStartDate}
+              endDate={saleEndDate}
+              setStartDate={setSaleStartDate}
+              setEndDate={setSaleEndDate}
+              appliedStartDate={saleAppliedStartDate}
+              appliedEndDate={saleAppliedEndDate}
+              onApply={applySaleDateFilter}
+              onClear={clearSaleDateFilter}
+            />
 
             <div className="dynamic-report-view-row professional-view-row">
               <label>देखने का प्रकार</label>
@@ -4530,179 +4924,14 @@ const Dashboard = () => {
                   </button>
                 </div>
               </Alert>
-            ) : (
-              <>
-                {/* Filter Section */}
-                <Card className="filter-card professional-filter-card mb-4">
-                  <Card.Header className="filter-card-header">
-                    <h5 className="mb-0">
-                      <FaClipboardList className="me-2" />
-                      {translations.overviewTitle}
-                    </h5>
-                  </Card.Header>
-                  <Card.Body>
-                    {/* Date Filter Section */}
-                    <div className="date-filter-section-compact mb-3">
-                      <h6 className="filter-section-title-sm mb-2">
-                        <FaCalendarAlt className="me-1" />
-                        {translations.dateFilter}
-                      </h6>
-                      <Row className="align-items-end g-2">
-                        <Col lg={3} md={4} sm={6} className="mb-2">
-                          <Form.Group controlId="startDate">
-                            <Form.Label className="filter-label-sm">
-                              {translations.startDate}
-                            </Form.Label>
-                            <Form.Control
-                              type="date"
-                              value={startDate}
-                              onChange={(e) => setStartDate(e.target.value)}
-                              className="date-input-sm"
-                              size="sm"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col lg={3} md={4} sm={6} className="mb-2">
-                          <Form.Group controlId="endDate">
-                            <Form.Label className="filter-label-sm">
-                              {translations.endDate}
-                            </Form.Label>
-                            <Form.Control
-                              type="date"
-                              value={endDate}
-                              onChange={(e) => setEndDate(e.target.value)}
-                              className="date-input-sm"
-                              size="sm"
-                              min={startDate}
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col lg={6} md={4} sm={12} className="mb-2">
-                          <div className="d-flex gap-2 flex-wrap">
-                            <Button 
-                             
-                             
-                              onClick={handleApplyDateFilter}
-                              disabled={!startDate && !endDate}
-                              className="btn-filter-submit"
-                            >
-                              <FaFilter className="me-1" />
-                              {translations.applyFilter}
-                            </Button>
-                            <Button 
-                            
-                              onClick={handleClearDateFilter}
-                              disabled={!isDateFilterApplied && !startDate && !endDate}
-                              className="clear-btn-primary"
-                            >
-                              {translations.clearFilter}
-                            </Button>
-                            {/* Applied Date Filter Display */}
-                            {isDateFilterApplied && (appliedStartDate || appliedEndDate) && (
-                              <span className="badge bg-success d-flex align-items-center" style={{fontSize: '0.7rem'}}>
-                                <FaCalendarAlt className="me-1" />
-                                {formatDate(appliedStartDate)} - {formatDate(appliedEndDate)}
-                              </span>
-                            )}
-                          </div>
-                        </Col>
-                      </Row>
-                    </div>
-
-                    <hr className="filter-divider-sm" />
-
-                    {/* Scheme and Investment Filters
-                        Same checkbox/multi-select behavior as "विस्तृत रिपोर्ट". */}
-                    <Row>
-                      <Col md={6} className="mb-2">
-                        <DashboardReportFilter
-                          label={translations.filterByScheme}
-                          options={schemeOptions}
-                          value={selectedSchemes.map(item => item.value)}
-                          onChange={(values) =>
-                            setSelectedSchemes(
-                              values
-                                .filter(value => value !== "__NONE__")
-                                .map(value => ({ value, label: value }))
-                            )
-                          }
-                        />
-                      </Col>
-
-                      <Col md={6} className="mb-2">
-                        <DashboardReportFilter
-                          label={translations.filterByInvestment}
-                          options={investmentOptions}
-                          value={selectedInvestments.map(item => item.value)}
-                          onChange={(values) =>
-                            setSelectedInvestments(
-                              values
-                                .filter(value => value !== "__NONE__")
-                                .map(value => ({ value, label: value }))
-                            )
-                          }
-                        />
-                      </Col>
-                    </Row>
-
-                    {/* Selected Filters Display */}
-                    {(selectedSchemes.length > 0 || selectedInvestments.length > 0) && (
-                      <div className="selected-filters-display mt-2">
-                        <small className="text-muted" style={{fontSize: '0.75rem'}}>
-                          चयनित: {selectedSchemes.length} योजना, {selectedInvestments.length} उप-मद
-                        </small>
-                      </div>
-                    )}
-                  </Card.Body>
-                </Card>
-
-
-                {/* Summary Table */}
-                <Card className="summary-table-card professional-summary-card mb-4">
-                  <Card.Header className="summary-card-header">
-                    <h5 className="mb-0">विस्तृत सारांश</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <div className="table-responsive">
-                      <table className="table table-bordered summary-table">
-                        <thead>
-                          <tr>
-                            <th>{translations.allocatedQuantity}</th>
-                            <th>{translations.farmerShareAmount}</th>
-                            <th>{translations.subsidyAmount}</th>
-                            <th>{translations.totalAmount}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="text-center">
-                              <strong>{formatNumber(aggregatedStats.allocatedQuantity.toFixed(2))}</strong>
-                            </td>
-                            <td className="text-center text-warning">
-                              <strong>{formatCurrency(aggregatedStats.farmerShareAmount)}</strong>
-                            </td>
-                            <td className="text-center text-info">
-                              <strong>{formatCurrency(aggregatedStats.subsidyAmount)}</strong>
-                            </td>
-                            <td className="text-center text-success">
-                              <strong>{formatCurrency(aggregatedStats.totalAmount)}</strong>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card.Body>
-                </Card>
-
-              </>
-            )}
+            ) : null}
           </Container>
         </div>
       </div>
       <Footer />
 
                 {/* ==================== DYNAMIC EXCEL-STYLE REPORT TABS ==================== */}
-                {filteredData.length > 0 && <DynamicReportTabs sourceData={filteredData} />}
+                {reportApiData.length > 0 && <DynamicReportTabs sourceData={reportApiData} />}
 
       {/* Excel Preview Modal */}
       <Modal show={showExcelPreview} onHide={() => setShowExcelPreview(false)} size="lg" scrollable>
