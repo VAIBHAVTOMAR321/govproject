@@ -130,14 +130,11 @@ const customSelectStyles = {
 // ============================================================================
 const DashboardReportFilter = ({ label, options, value, onChange }) => {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
 
-  // IMPORTANT:
-  // null/undefined/[] = ALL only when there is no explicit NONE marker.
-  // ["__NONE__"] = NONE.
-  //
-  // The old code removed "__NONE__" before checking allSelected, so
-  // "कोई नहीं" became indistinguishable from "सभी चुनें". As a result,
-  // selecting one option after "कोई नहीं" selected the wrong set.
+  // ---- Selection state logic (unchanged) ----
   const rawSelected = Array.isArray(value) ? value : [];
   const noneSelected = rawSelected.includes("__NONE__");
   const selected = rawSelected.filter(v => v !== "__NONE__");
@@ -153,54 +150,88 @@ const DashboardReportFilter = ({ label, options, value, onChange }) => {
       : selected.length;
 
   const toggleValue = (option) => {
-    // If "कोई नहीं" is active, the first option clicked must become
-    // the ONLY selected option — never "all except this option".
-    if (noneSelected) {
-      onChange([option]);
-      return;
-    }
-
-    // ALL is active: clicking one option means ONLY that option is selected.
-    if (allSelected) {
-      onChange([option]);
-      return;
-    }
-
+    if (noneSelected) { onChange([option]); return; }
+    if (allSelected) { onChange([option]); return; }
     if (selected.includes(option)) {
       const next = selected.filter(v => v !== option);
-
-      // No values selected = explicit NONE, not ALL.
       onChange(next.length === 0 ? ["__NONE__"] : next);
       return;
     }
-
     const next = [...selected, option];
-
-    // Selecting every option returns the filter to ALL.
     onChange(next.length === options.length ? [] : next);
   };
 
-  const selectAll = () => {
-    // Empty array is the canonical ALL state.
-    onChange([]);
+  const selectAll = () => onChange([]);
+  const selectNone = () => onChange(["__NONE__"]);
+
+  // ---- Compute menu position relative to button ----
+  const updateMenuPosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+      width: Math.max(rect.width, 260), // never narrower than 260px
+    });
   };
 
-  const selectNone = () => {
-    // Explicit NONE state.
-    onChange(["__NONE__"]);
-  };
+  // Recompute on open
+  useEffect(() => {
+    if (open) {
+      updateMenuPosition();
+    }
+  }, [open]);
+
+  // Track scroll / resize while open so the menu stays glued to the button
+  useEffect(() => {
+    if (!open) return;
+
+    const handleOutsideClick = (e) => {
+      if (
+        buttonRef.current && !buttonRef.current.contains(e.target) &&
+        menuRef.current && !menuRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleScrollOrResize = () => updateMenuPosition();
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [open]);
 
   return (
-    <div className="dashboard-report-filter-wrap">
+    <div
+      className="dashboard-report-filter-wrap"
+      style={{ position: 'relative' }}
+    >
       <label className="filter-label-sm">{label}</label>
 
       <button
+        ref={buttonRef}
         type="button"
         className={`dashboard-report-filter-button ${
           noneSelected || !allSelected ? "filtered" : ""
         }`}
         onClick={() => setOpen(prev => !prev)}
         aria-expanded={open}
+        aria-haspopup="true"
       >
         <span className="dashboard-report-filter-button-text">
           {noneSelected
@@ -219,25 +250,91 @@ const DashboardReportFilter = ({ label, options, value, onChange }) => {
         </span>
       </button>
 
-      {open && (
-        <div className="dashboard-report-filter-menu">
-          <div className="dashboard-report-filter-actions">
-            <button type="button" onClick={selectAll}>
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          className="dashboard-report-filter-menu dashboard-report-filter-menu-portal"
+          style={{
+            position: 'absolute',
+            top: `${menuPos.top}px`,
+            left: `${menuPos.left}px`,
+            width: `${menuPos.width}px`,
+            zIndex: 99999,
+            maxHeight: '320px',
+            overflowY: 'auto',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e0e0e0',
+            borderRadius: '6px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+            padding: '8px',
+          }}
+        >
+          <div
+            className="dashboard-report-filter-actions"
+            style={{
+              display: 'flex',
+              gap: '6px',
+              marginBottom: '8px',
+              flexWrap: 'wrap',
+              borderBottom: '1px solid #f0f0f0',
+              paddingBottom: '8px',
+            }}
+          >
+            <button
+              type="button"
+              onClick={selectAll}
+              style={{
+                flex: 1,
+                padding: '5px 8px',
+                border: '1px solid #194e8b',
+                background: '#194e8b',
+                color: '#fff',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
               सभी चुनें
             </button>
-
-            <button type="button" onClick={selectNone}>
+            <button
+              type="button"
+              onClick={selectNone}
+              style={{
+                flex: 1,
+                padding: '5px 8px',
+                border: '1px solid #c8372d',
+                background: '#fff',
+                color: '#c8372d',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
               कोई नहीं
             </button>
-
-            <button type="button" onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              style={{
+                padding: '5px 10px',
+                border: '1px solid #ccc',
+                background: '#f8f9fa',
+                color: '#333',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
               बंद करें
             </button>
           </div>
 
           <div className="dashboard-report-filter-list">
             {options.length === 0 ? (
-              <div className="dashboard-report-filter-empty">
+              <div
+                className="dashboard-report-filter-empty"
+                style={{ padding: '10px', textAlign: 'center', color: '#888', fontSize: '0.8rem' }}
+              >
                 कोई विकल्प उपलब्ध नहीं
               </div>
             ) : (
@@ -245,6 +342,16 @@ const DashboardReportFilter = ({ label, options, value, onChange }) => {
                 <label
                   key={option}
                   className="dashboard-report-filter-option"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    borderBottom: '1px solid #f5f5f5',
+                  }}
                 >
                   <input
                     type="checkbox"
@@ -253,18 +360,19 @@ const DashboardReportFilter = ({ label, options, value, onChange }) => {
                       (allSelected || selected.includes(option))
                     }
                     onChange={() => toggleValue(option)}
+                    style={{ cursor: 'pointer' }}
                   />
-                  <span>{option}</span>
+                  <span style={{ flex: 1 }}>{option}</span>
                 </label>
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 };
-
 // Top-level: label map for all views
 const rashiColumnLabelExcel = {
   farmerShare: 'कृषक अंश (रु0)',
