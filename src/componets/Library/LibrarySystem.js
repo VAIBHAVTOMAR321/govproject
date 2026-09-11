@@ -1278,6 +1278,24 @@ const LibrarySystem = () => {
     return <FaFileAlt />;
   };
 
+  const getColorClass = (id) => {
+    const colors = [
+      "blue",
+      "green",
+      "purple",
+      "orange",
+      "teal",
+      "pink",
+      "indigo",
+      "cyan",
+    ];
+    if (id === undefined || id === null) return colors[0];
+    const index = String(id)
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[index % colors.length];
+  };
+
   const formatDate = (date) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString("en-IN", {
@@ -1369,16 +1387,8 @@ const LibrarySystem = () => {
       {/* TAB 1 — ADMIN UPLOADED CATEGORIES */}
       {activeTab === "categories" && (
         <>
-          {/* SEARCH */}
-          <div className="library-search-wrapper">
-            <FaSearch />
-            <input
-              type="text"
-              placeholder={selectedCategory ? "Search documents..." : "Search categories..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+       
+         
 
           {/* CATEGORY VIEW */}
           {!selectedCategory && (
@@ -1395,7 +1405,7 @@ const LibrarySystem = () => {
                 <div className="library-category-grid">
                   {filteredCategories.map((category) => (
                     <div
-                      className="library-category-card"
+                      className={`library-category-card library-category-card--${getColorClass(category.id)}`}
                       key={category.id}
                       onClick={() => handleOpenCategory(category)}
                     >
@@ -1438,7 +1448,7 @@ const LibrarySystem = () => {
                 <div className="library-document-list">
                   {filteredDocuments.map((document) => (
                     <div
-                      className={`library-document-card ${!document.is_active ? "inactive-card" : ""}`}
+                      className={`library-document-card library-document-card--${getColorClass(document.id)} ${!document.is_active ? "inactive-card" : ""}`}
                       key={document.id}
                     >
                       <div className="library-document-icon">
