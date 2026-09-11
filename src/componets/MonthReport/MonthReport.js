@@ -463,6 +463,39 @@ const evaluateFunction = (workbook, activeWorksheet, name, args, visited) => {
     );
   }
 
+  if (fn === "SUBTOTAL") {
+    const functionNumber = Math.trunc(
+      toFormulaNumber(
+        evaluateFormulaValue(workbook, activeWorksheet, args[0] || "9", visited)
+      )
+    );
+    const values = [];
+
+    for (const arg of args.slice(1)) {
+      const rangeValues = getRangeValues(workbook, activeWorksheet, arg, visited);
+      values.push(
+        ...(rangeValues || [
+          evaluateFormulaValue(workbook, activeWorksheet, arg, visited),
+        ])
+      );
+    }
+
+    // MPR workbooks commonly use SUBTOTAL(9, range) for total rows.
+    if ([1, 101].includes(functionNumber)) {
+      const numbers = values.map(toFormulaNumber);
+      return numbers.length
+        ? numbers.reduce((sum, value) => sum + value, 0) / numbers.length
+        : 0;
+    }
+    if ([2, 102].includes(functionNumber)) {
+      return values.filter((value) => Number.isFinite(Number(value))).length;
+    }
+    if ([3, 103].includes(functionNumber)) {
+      return values.filter((value) => !formulaValueIsBlank(value)).length;
+    }
+    return values.reduce((sum, value) => sum + toFormulaNumber(value), 0);
+  }
+
   if (fn === "SUMIF" || fn === "SUMIFS") {
     // Supports the common MPR pattern where a criteria/range is used to
     // select rows and a sum range contains the amount.
@@ -658,6 +691,126 @@ const evaluateCellValue = (workbook, worksheet, cell, visited = new Set()) => {
   return getPrimitiveCellValue(cell);
 };
 
+const setCalculatedCellValue = (cell, result) => {
+  const current = cell?.value;
+
+  if (current && typeof current === "object" && current.formula !== undefined) {
+    cell.value = { formula: current.formula, result };
+  } else {
+    cell.value = result;
+  }
+};
+
+const findMprWorksheet = (workbook) =>
+  workbook?.getWorksheet("📊 MPR REPORT") ||
+  workbook?.worksheets?.find((ws) =>
+    String(ws.name || "").toLowerCase().includes("mpr report")
+  ) ||
+  null;
+
+const findRowContaining = (worksheet, matcher, startRow = 1) => {
+  for (let rowNumber = startRow; rowNumber <= worksheet.rowCount; rowNumber += 1) {
+    for (let colNumber = 1; colNumber <= worksheet.columnCount; colNumber += 1) {
+      const value = normalizeFormulaText(
+        excelValueToText(worksheet.getCell(rowNumber, colNumber).value)
+      ).toLowerCase();
+
+      if (matcher(value)) return rowNumber;
+    }
+  }
+
+  return 0;
+};
+
+const refreshMprStructuredTotals = (workbook) => {
+  const worksheet = findMprWorksheet(workbook);
+  if (!worksheet) return;
+
+  const headerRow = findRowContaining(
+    worksheet,
+    (value) => value.includes("मद का नाम") || value === "item" || value.includes("item name")
+  );
+  const totalRow = findRowContaining(
+    worksheet,
+    (value) => value.includes("ग्रैण्ड योग") || value.includes("grand total")
+  );
+
+  if (!headerRow || !totalRow || totalRow <= headerRow + 1) return;
+
+  const dataStartRow = headerRow + 2;
+  const totalValues = [];
+
+  for (let colNumber = 1; colNumber <= worksheet.columnCount; colNumber += 1) {
+    if (colNumber <= 3) {
+      totalValues[colNumber] = null;
+      continue;
+    }
+
+    let total = 0;
+    for (let rowNumber = dataStartRow; rowNumber < totalRow; rowNumber += 1) {
+      total += toFormulaNumber(
+        evaluateCellValue(workbook, worksheet, worksheet.getCell(rowNumber, colNumber))
+      );
+    }
+
+    totalValues[colNumber] = total;
+    setCalculatedCellValue(worksheet.getCell(totalRow, colNumber), total);
+  }
+
+  const summaryTitleRow = findRowContaining(
+    worksheet,
+    (value) => value.includes("योजना-वार वित्तीय सारांश") || value.includes("scheme-wise financial summary"),
+    totalRow + 1
+  );
+  if (!summaryTitleRow) return;
+
+  const summaryHeaderRow = summaryTitleRow + 1;
+  const summaryValueRow = summaryHeaderRow + 1;
+  const groupHeaderRow = headerRow;
+  const subHeaderRow = headerRow + 1;
+  let currentGroup = "";
+  const financialColumns = new Map();
+
+  for (let colNumber = 4; colNumber <= worksheet.columnCount; colNumber += 1) {
+    const groupText = normalizeFormulaText(
+      excelValueToText(worksheet.getCell(groupHeaderRow, colNumber).value)
+    ).toLowerCase();
+    if (groupText) currentGroup = groupText;
+
+    const subHeaderText = normalizeFormulaText(
+      excelValueToText(worksheet.getCell(subHeaderRow, colNumber).value)
+    ).toLowerCase();
+    if (currentGroup && subHeaderText.includes("वित्तीय")) {
+      financialColumns.set(currentGroup, colNumber);
+    }
+  }
+
+  for (let colNumber = 1; colNumber <= worksheet.columnCount; colNumber += 1) {
+    const summaryName = normalizeFormulaText(
+      excelValueToText(worksheet.getCell(summaryHeaderRow, colNumber).value)
+    ).toLowerCase();
+    if (!summaryName) continue;
+
+    const matchingGroup = [...financialColumns.keys()].find(
+      (group) =>
+        summaryName.includes(group) ||
+        group.includes(summaryName.replace(/\(total\)/g, "").trim())
+    );
+    const financialColumn = matchingGroup
+      ? financialColumns.get(matchingGroup)
+      : summaryName.includes("कुल") || summaryName.includes("total")
+      ? worksheet.columnCount
+      : null;
+
+    if (financialColumn && totalValues[financialColumn] !== null) {
+      setCalculatedCellValue(
+        worksheet.getCell(summaryValueRow, colNumber),
+        totalValues[financialColumn]
+      );
+    }
+  }
+};
+
 const recalculateWorkbookFormulas = (workbook) => {
   if (!workbook) return;
 
@@ -682,6 +835,8 @@ const recalculateWorkbookFormulas = (workbook) => {
       });
     });
   }
+
+  refreshMprStructuredTotals(workbook);
 };
 
 const cellToText = (cell, workbook = null, worksheet = null) => {
