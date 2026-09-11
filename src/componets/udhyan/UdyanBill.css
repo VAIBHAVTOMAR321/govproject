@@ -351,6 +351,172 @@ body {
 
 
 /* =========================================================
+   CENTER SELECTION
+   ========================================================= */
+
+.center-selection-section {
+    max-width: 1450px;
+
+    margin: 14px auto 0;
+
+    background: #fff;
+
+    border: 1px solid #d4d0c7;
+
+    border-radius: 6px;
+
+    padding: 14px 16px;
+}
+
+.center-selection-header {
+    margin-bottom: 12px;
+}
+
+.center-selection-header .section-kicker {
+    display: block;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    color: var(--accent);
+
+    letter-spacing: 1.2px;
+
+    margin-bottom: 3px;
+}
+
+.center-selection-header h3 {
+    margin: 0;
+
+    font-size: 15px;
+
+    color: #1a1a1a;
+
+    font-weight: 700;
+}
+
+.center-selection-header p {
+    margin: 4px 0 0;
+
+    font-size: 11.5px;
+
+    color: #666;
+}
+
+.centers-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fill, minmax(180px, 1fr));
+
+    gap: 10px;
+}
+
+.center-card {
+    display: flex;
+
+    align-items: stretch;
+
+    border: 1px solid #d4d0c7;
+
+    border-radius: 6px;
+
+    background: #fff;
+
+    cursor: pointer;
+
+    overflow: hidden;
+
+    transition: all 0.2s ease;
+}
+
+.center-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.08);
+
+    border-color: #b0a898;
+}
+
+.center-card--selected {
+    border-color: var(--accent);
+
+    box-shadow:
+        0 0 0 2px rgba(43, 92, 63, 0.15);
+}
+
+.center-card-color {
+    width: 5px;
+
+    flex: 0 0 5px;
+}
+
+.center-card--blue .center-card-color { background-color: #155eef; }
+.center-card--green .center-card-color { background-color: #039855; }
+.center-card--purple .center-card-color { background-color: #7c3aed; }
+.center-card--orange .center-card-color { background-color: #f59e0b; }
+.center-card--teal .center-card-color { background-color: #0d9488; }
+.center-card--pink .center-card-color { background-color: #db2777; }
+.center-card--indigo .center-card-color { background-color: #4f46e5; }
+.center-card--cyan .center-card-color { background-color: #0891b2; }
+
+.center-card-body {
+    padding: 10px 12px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    min-width: 0;
+}
+
+.center-card-body strong {
+    font-size: 13px;
+
+    color: #1a1a1a;
+
+    font-weight: 650;
+
+    line-height: 1.3;
+
+    word-break: break-word;
+}
+
+.center-card-body span {
+    font-size: 10.5px;
+
+    color: #888;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+    .centers-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .centers-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* =========================================================
    LIVE TALLY
    ========================================================= */
 
@@ -1040,6 +1206,7 @@ body {
     font-size: 8pt !important;
     line-height: 1.15 !important;
     padding: 3px 2px !important;
+    color:#000 !important;
 }
 
 .bill-table td {

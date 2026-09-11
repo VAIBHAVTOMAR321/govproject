@@ -517,6 +517,76 @@ const DocField = ({
     );
 };
 
+const getColorClass = (id) => {
+    const colors = [
+        "blue",
+        "green",
+        "purple",
+        "orange",
+        "teal",
+        "pink",
+        "indigo",
+        "cyan",
+    ];
+
+    if (id === undefined || id === null) {
+        return colors[0];
+    }
+
+    const index = String(id)
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    return colors[index % colors.length];
+};
+
+const CenterSelect = ({
+    bill,
+    onChange,
+    centers,
+    loading,
+    className = "",
+}) => {
+    const selectedCenter = centers.find(
+        (center) =>
+            String(center.name) ===
+            String(bill.center ?? "")
+    );
+
+    return (
+        <select
+            className={`doc-input ${className}`}
+            value={selectedCenter?.id ?? ""}
+            onChange={(event) => {
+                const selected = centers.find(
+                    (center) =>
+                        String(center.id) ===
+                        String(event.target.value)
+                );
+
+                onChange(
+                    "center",
+                    selected?.name ?? ""
+                );
+            }}
+            disabled={loading}
+        >
+            <option value="">
+                — केन्द्र चुनें —
+            </option>
+
+            {centers.map((center) => (
+                <option
+                    key={center.id}
+                    value={center.id}
+                >
+                    {center.name}
+                </option>
+            ))}
+        </select>
+    );
+};
+
 /* =========================================================
    COMPONENT
    ========================================================= */
@@ -541,6 +611,12 @@ export default function UdyanBill() {
         useState("");
 
     const [loadingStandards, setLoadingStandards] =
+        useState(false);
+
+    const [centers, setCenters] =
+        useState([]);
+
+    const [loadingCenters, setLoadingCenters] =
         useState(false);
 
     const [activeSection, setActiveSection] =
@@ -666,8 +742,56 @@ export default function UdyanBill() {
         }
     };
 
+    const loadCenters = async () => {
+        setLoadingCenters(true);
+
+        try {
+            const response = await apiFetch(
+                "https://mahadevaaya.com/govbillingsystem/backend/api/centres/"
+            );
+
+            const data =
+                await readJsonResponse(response);
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.detail ||
+                        data?.error ||
+                        "केंद्र सूची प्राप्त नहीं हो सकी।"
+                );
+            }
+
+            const list = Array.isArray(data)
+                ? data
+                : Array.isArray(data?.results)
+                ? data.results
+                : [];
+
+            const activeList =
+                list.filter(
+                    (center) =>
+                        center.is_active !== false
+                );
+
+            setCenters(activeList);
+        } catch (error) {
+            console.error(
+                "loadCenters:",
+                error
+            );
+
+            setMessage(
+                error.message ||
+                    "केंद्र सूची प्राप्त नहीं हो सकी।"
+            );
+        } finally {
+            setLoadingCenters(false);
+        }
+    };
+
     useEffect(() => {
         loadStandards();
+        loadCenters();
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [financialYear]);
@@ -2119,10 +2243,11 @@ export default function UdyanBill() {
                             उद्यान सचल दल केन्द्र
                         </span>
 
-                        <DocField
+                        <CenterSelect
                             bill={bill}
                             onChange={updateBill}
-                            field="center"
+                            centers={centers}
+                            loading={loadingCenters}
                             className="w-150"
                         />
                     </div>
@@ -2612,10 +2737,11 @@ export default function UdyanBill() {
                         उद्यान सचल दल
                         <br />
                         केन्द्र{" "}
-                        <DocField
+                        <CenterSelect
                             bill={bill}
                             onChange={updateBill}
-                            field="center"
+                            centers={centers}
+                            loading={loadingCenters}
                             className="officer-input"
                         />
                     </div>
@@ -2903,10 +3029,11 @@ export default function UdyanBill() {
                         उद्यान सचल दल
                         <br />
                         केन्द्र{" "}
-                        <DocField
+                        <CenterSelect
                             bill={bill}
                             onChange={updateBill}
-                            field="center"
+                            centers={centers}
+                            loading={loadingCenters}
                             className="officer-input"
                         />
                     </div>
@@ -3124,19 +3251,20 @@ export default function UdyanBill() {
                             />
                         </div>
 
-                        <div className="officer-sign">
-                            प्रभारी
-                            <br />
-                            उद्यान सचल दल
-                            <br />
-                            केन्द्र{" "}
-                            <DocField
-                                bill={bill}
-                                onChange={updateBill}
-                                field="center"
-                                className="officer-input"
-                            />
-                        </div>
+                    <div className="officer-sign">
+                        प्रभारी
+                        <br />
+                        उद्यान सचल दल
+                        <br />
+                        केन्द्र{" "}
+                        <CenterSelect
+                            bill={bill}
+                            onChange={updateBill}
+                            centers={centers}
+                            loading={loadingCenters}
+                            className="officer-input"
+                        />
+                    </div>
                     </div>
                 )}
 
@@ -3923,6 +4051,8 @@ export default function UdyanBill() {
                                 </select>
                             </label>
                         </div>
+
+                        
 
                         {/* =================================================
                             ACTIONS
