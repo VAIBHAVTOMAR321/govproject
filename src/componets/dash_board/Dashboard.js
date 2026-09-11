@@ -712,6 +712,528 @@ const SummaryFilteredTable = ({ data }) => {
   );
 };
 
+const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
+  const summaryWiseUniq = values => [...new Set(
+    values.filter(v => v !== null && v !== undefined && String(v).trim() !== '')
+  )].sort((a, b) => String(a).localeCompare(String(b), 'hi'));
+
+  const summaryWiseFmtR = value => new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
+  const summaryWiseFormatExactNumber = value => {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat('en-IN', {
+      useGrouping: true,
+      maximumFractionDigits: 20,
+    }).format(num);
+  };
+
+  const [summaryWiseView, setSummaryWiseView] = useState('mad');
+  const [summaryWiseFilters, setSummaryWiseFilters] = useState({
+    nivesh: null,
+    upnivesh: null,
+    vidhan: null,
+    block: null,
+    kendra: null,
+  });
+  const [openSummaryWiseFilter, setOpenSummaryWiseFilter] = useState(null);
+  const [selectedSummaryPlanFilter, setSelectedSummaryPlanFilter] = useState(null);
+  const [summaryWiseSummaryMode, setSummaryWiseSummaryMode] = useState('financial');
+  // Only these three table columns can be shown/hidden from the column selector.
+  const [summaryWiseVisibleColumns, setSummaryWiseVisibleColumns] = useState(null);
+  const summaryWiseColumnDefs = [
+    { key: 'ikai', label: 'इकाई' },
+    { key: 'matra', label: 'भौतिक पूर्ति ' },
+    { key: 'anudan', label: 'अनुदान राशि (रु0)' },
+  ];
+  const summaryWiseShowIkai = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('ikai');
+  const summaryWiseShowMatra = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('matra');
+  const summaryWiseShowAnudan = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('anudan');
+  const summaryWisePlanColumnCount = (summaryWiseShowMatra ? 1 : 0) + (summaryWiseShowAnudan ? 1 : 0);
+
+  const viewConfig = {
+    mad: { field: 'nivesh', label: 'मद का नाम' },
+    upmad: { field: 'upnivesh', label: 'उप-मद का नाम' },
+    vidhan: { field: 'vidhan', label: 'विधानसभा का नाम' },
+    block: { field: 'block', label: 'विकासखण्ड का नाम' },
+    kendra: { field: 'kendra', label: 'केंद्र का नाम' },
+  };
+
+  const current = viewConfig[summaryWiseView];
+  const rowField = current.field;
+  const rowLabel = current.label;
+
+  // Five independent filters for this table.
+  // Empty/null selection means ALL values for that filter.
+  const summaryWiseBaseRows = useMemo(
+    () => (Array.isArray(data) ? data : []).filter(r => !fixedPlan || r.kraya !== fixedPlan),
+    [data, fixedPlan]
+  );
+
+  const summaryWiseFilterDefinitions = [
+    ['nivesh', 'मद का नाम'],
+    ['upnivesh', 'उप-मद का नाम'],
+    ['vidhan', 'विधानसभा'],
+    ['block', 'विकासखण्ड'],
+    ['kendra', 'केंद्र'],
+  ];
+
+  const summaryWiseFilterOptions = useMemo(() => ({
+    nivesh: summaryWiseUniq(summaryWiseBaseRows.map(r => r.nivesh)),
+    upnivesh: summaryWiseUniq(summaryWiseBaseRows.map(r => r.upnivesh)),
+    vidhan: summaryWiseUniq(summaryWiseBaseRows.map(r => r.vidhan)),
+    block: summaryWiseUniq(summaryWiseBaseRows.map(r => r.block)),
+    kendra: summaryWiseUniq(summaryWiseBaseRows.map(r => r.kendra)),
+  }), [summaryWiseBaseRows]);
+
+  // Keep selections valid if API data changes.
+  useEffect(() => {
+    setSummaryWiseFilters(prev => {
+      const next = { ...prev };
+      let changed = false;
+
+      summaryWiseFilterDefinitions.forEach(([field]) => {
+        const selected = prev[field];
+        const options = summaryWiseFilterOptions[field] || [];
+        if (selected !== null && selected !== undefined) {
+          const valid = selected.filter(value => options.includes(value));
+          const normalized = valid.length === options.length ? null : valid;
+          if (JSON.stringify(normalized) !== JSON.stringify(selected)) {
+            next[field] = normalized;
+            changed = true;
+          }
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [summaryWiseFilterOptions]);
+
+  const toggleSummaryWiseFilter = (field, value) => {
+    setSummaryWiseFilters(prev => {
+      const options = summaryWiseFilterOptions[field] || [];
+      const currentSelection = prev[field] === null || prev[field] === undefined
+        ? [...options]
+        : [...prev[field]];
+
+      const next = currentSelection.includes(value)
+        ? currentSelection.filter(v => v !== value)
+        : [...currentSelection, value];
+
+      return {
+        ...prev,
+        [field]: next.length === options.length ? null : next,
+      };
+    });
+  };
+
+  const clearSummaryWiseFilters = () => {
+    setSummaryWiseFilters({
+      nivesh: null,
+      upnivesh: null,
+      vidhan: null,
+      block: null,
+      kendra: null,
+    });
+    setOpenSummaryWiseFilter(null);
+  };
+
+  const summaryWiseRows = useMemo(() => (
+    summaryWiseBaseRows.filter(r =>
+      summaryWiseFilterDefinitions.every(([field]) => {
+        const selected = summaryWiseFilters[field];
+        return selected === null || selected === undefined || selected.includes(r[field]);
+      })
+    )
+  ), [summaryWiseBaseRows, summaryWiseFilters]);
+
+  // Keep this helper local to SummaryMadUpMadTable.
+  // The parent component's `uniq` is intentionally not used here because
+  // SummaryMadUpMadTable is now a top-level component.
+  const summaryWisePlanList = [
+    ...new Set(
+      summaryWiseRows
+        .map(r => r.vahan)
+        .filter(v => v !== null && v !== undefined && String(v).trim() !== '')
+    ),
+  ].sort((a, b) => String(a).localeCompare(String(b), 'hi'));
+
+  const planList = summaryWisePlanList;
+
+  useEffect(() => {
+    setSelectedSummaryPlanFilter(prev => {
+      if (prev === null || prev === undefined) return null;
+      const valid = prev.filter(value => planList.includes(value));
+      if (valid.length === planList.length) return null;
+      return valid;
+    });
+  }, [planList.join('|')]);
+
+  const selectedPlans = selectedSummaryPlanFilter === null || selectedSummaryPlanFilter === undefined
+    ? planList
+    : planList.filter(plan => selectedSummaryPlanFilter.includes(plan));
+
+  const togglePlanFilter = plan => {
+    setSelectedSummaryPlanFilter(prev => {
+      const currentSelection = prev === null || prev === undefined
+        ? [...planList]
+        : [...prev];
+      const next = currentSelection.includes(plan)
+        ? currentSelection.filter(value => value !== plan)
+        : [...currentSelection, plan];
+      return next.length === planList.length ? null : next;
+    });
+  };
+
+  const groupedRows = useMemo(() => {
+    const map = new Map();
+
+    summaryWiseRows.filter(r => selectedPlans.includes(r.vahan)).forEach(r => {
+      const key = r[rowField] || 'अन्य';
+
+      if (!map.has(key)) {
+        map.set(key, {
+          physical: {},
+          financial: {},
+          units: new Set(),
+        });
+      }
+
+      const group = map.get(key);
+      const plan = r.vahan || 'अन्य';
+
+      group.physical[plan] = (group.physical[plan] || 0) + (Number(r.matra) || 0);
+      group.financial[plan] = (group.financial[plan] || 0) + (Number(r.anudan) || 0);
+
+      if (r.ikai) group.units.add(r.ikai);
+    });
+
+    return [...map.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'hi'));
+  }, [summaryWiseRows, rowField, selectedPlans.join('|')]);
+
+  const preserveScroll = callback => {
+    const scrollY = window.scrollY;
+    callback();
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, left: window.scrollX, behavior: 'auto' });
+    });
+  };
+
+  const formatExactNumber = value => {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat('en-IN', {
+      useGrouping: true,
+      maximumFractionDigits: 20,
+    }).format(num);
+  };
+
+  const formatSummaryInteger = value => {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat('en-IN', {
+      useGrouping: true,
+      maximumFractionDigits: 0,
+    }).format(Math.round(num));
+  };
+
+  // IMPORTANT: calculate the summary from the SAME filtered/grouped data
+  // that is visible in the table above. Do not divide financial values into
+  // lakhs here, otherwise the total would not match the table.
+  const schemeWiseSummary = selectedPlans.map(plan => {
+    const rawValue = groupedRows.reduce(
+      (sum, [, group]) => sum + (
+        summaryWiseSummaryMode === 'quantity'
+          ? (group.physical[plan] || 0)
+          : (group.financial[plan] || 0)
+      ),
+      0
+    );
+
+    return {
+      plan,
+      rawValue,
+      displayValue: rawValue,
+    };
+  });
+
+  const totalSummaryValue = schemeWiseSummary.reduce(
+    (sum, item) => sum + item.displayValue,
+    0
+  );
+
+  return (
+    <div className="summary-mad-upmad-report-wrapper">
+      <div
+        className="dynamic-report-view-row professional-view-row"
+        style={{
+          marginBottom: '10px',
+          alignItems: 'center',
+          gap: '10px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <label htmlFor="summary-mad-upmad-view-select">देखने का प्रकार</label>
+        <select
+          id="summary-mad-upmad-view-select"
+          value={summaryWiseView}
+          onChange={e => {
+            const value = e.target.value;
+            preserveScroll(() => setSummaryWiseView(value));
+          }}
+          style={{
+            minWidth: '230px',
+            padding: '7px 10px',
+            borderRadius: '6px',
+            border: '1px solid #d9e1e8',
+            background: '#fff',
+            fontWeight: 600,
+          }}
+        >
+          <option value="mad">मद के अनुसार</option>
+          <option value="upmad">उप-मद के अनुसार</option>
+          <option value="vidhan">विधानसभा के अनुसार</option>
+          <option value="block">विकासखण्ड के अनुसार</option>
+          <option value="kendra">केंद्र के अनुसार</option>
+        </select>
+
+        {summaryWiseFilterDefinitions.map(([field, label]) => {
+          const options = summaryWiseFilterOptions[field] || [];
+          const selected = summaryWiseFilters[field];
+          const selectedValues = selected === null || selected === undefined ? options : selected;
+          const selectedCount = selectedValues.length;
+          const filterId = `summary-mad-upmad-${field}`;
+          const isOpen = openSummaryWiseFilter === filterId;
+          const isFiltered = selected !== null && selected !== undefined && selectedCount !== options.length;
+
+          return (
+            <div key={field} className="dynamic-report-filter-wrap">
+              <button
+                type="button"
+                className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`}
+                onClick={() => setOpenSummaryWiseFilter(isOpen ? null : filterId)}
+              >
+                <span>{label} फ़िल्टर</span>
+                <span className="dynamic-report-badge">{selectedCount}/{options.length}</span>
+                <span>{isOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {isOpen && (
+                <div className="dynamic-report-filter-menu">
+                  <div className="dynamic-report-filter-actions">
+                    <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: null }))}>सभी चुनें</button>
+                    <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
+                  </div>
+
+                  <div className="dynamic-report-filter-list">
+                    {options.length === 0 ? (
+                      <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
+                    ) : (
+                      options.map(value => (
+                        <label key={value} className="dynamic-report-filter-option">
+                          <input
+                            type="checkbox"
+                            checked={selected === null || selected === undefined ? true : selected.includes(value)}
+                            onChange={() => {
+                              const currentScrollY = window.scrollY;
+                              toggleSummaryWiseFilter(field, value);
+                              requestAnimationFrame(() => {
+                                window.scrollTo({ top: currentScrollY, left: window.scrollX, behavior: 'auto' });
+                              });
+                            }}
+                          />
+                          <span>{value}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+
+                  <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
+                    बंद करें
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="dynamic-report-filter-wrap">
+          <button
+            type="button"
+            className={`dynamic-report-filter-btn ${selectedSummaryPlanFilter !== null && selectedSummaryPlanFilter !== undefined && selectedSummaryPlanFilter.length !== planList.length ? 'filtered' : ''}`}
+            onClick={() => setOpenSummaryWiseFilter(openSummaryWiseFilter === 'summary-mad-upmad-plan' ? null : 'summary-mad-upmad-plan')}
+          >
+            <span>योजना फ़िल्टर</span>
+            <span className="dynamic-report-badge">{selectedPlans.length}/{planList.length}</span>
+            <span>{openSummaryWiseFilter === 'summary-mad-upmad-plan' ? '▲' : '▼'}</span>
+          </button>
+
+          {openSummaryWiseFilter === 'summary-mad-upmad-plan' && (
+            <div className="dynamic-report-filter-menu">
+              <div className="dynamic-report-filter-actions">
+                <button type="button" onClick={() => setSelectedSummaryPlanFilter(null)}>सभी चुनें</button>
+                <button type="button" onClick={() => setSelectedSummaryPlanFilter([])}>कोई नहीं</button>
+              </div>
+              <div className="dynamic-report-filter-list">
+                {planList.length === 0 ? (
+                  <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
+                ) : (
+                  planList.map(plan => (
+                    <label key={plan} className="dynamic-report-filter-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlans.includes(plan)}
+                        onChange={() => {
+                          const currentScrollY = window.scrollY;
+                          togglePlanFilter(plan);
+                          requestAnimationFrame(() => {
+                            window.scrollTo({ top: currentScrollY, left: window.scrollX, behavior: 'auto' });
+                          });
+                        }}
+                      />
+                      <span>{plan}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
+                बंद करें
+              </button>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="dynamic-report-clear-btn"
+          onClick={() => clearSummaryWiseFilters()}
+        >
+          फ़िल्टर हटाएं
+        </button>
+      </div>
+
+      <ReportColumnSelector
+        columns={summaryWiseColumnDefs}
+        visibleColumns={summaryWiseVisibleColumns}
+        setVisibleColumns={setSummaryWiseVisibleColumns}
+        label="इस तालिका के स्तंभ चुनें"
+      />
+
+      <div className="dynamic-report-table-scroll matrix-scroll">
+        <table
+          className="dynamic-report-table matrix-table summary-mad-upmad-detail-table"
+          style={{ minWidth: '1100px' }}
+        >
+          <thead>
+            <tr>
+              <th rowSpan="2">क्रम संख्या</th>
+              <th rowSpan="2">{rowLabel}</th>
+              {summaryWiseShowIkai ? (
+                <th rowSpan="2">इकाई</th>
+              ) : null}
+              {summaryWisePlanColumnCount > 0 && selectedPlans.map(plan => (
+                <th
+                  key={`yw-plan-${plan}`}
+                  colSpan={summaryWisePlanColumnCount}
+                  style={{ textAlign: 'center' }}
+                >
+                  {plan}
+                </th>
+              ))}
+            </tr>
+            <tr>
+              {selectedPlans.flatMap(plan => {
+                const cells = [];
+                if (summaryWiseShowMatra) {
+                  cells.push(<th key={`yw-physical-${plan}`}>भौतिक पूर्ति </th>);
+                }
+                if (summaryWiseShowAnudan) {
+                  cells.push(<th key={`yw-financial-${plan}`}>अनुदान राशि (रु0)</th>);
+                }
+                return cells;
+              })}
+            </tr>
+          </thead>
+
+          <tbody>
+            {groupedRows.length ? groupedRows.map(([name, group], index) => (
+              <tr key={`summary-mad-upmad-${summaryWiseView}-${name}`}>
+                <td>{index + 1}</td>
+                <td>{name}</td>
+                {summaryWiseShowIkai ? (
+                  <td>{[...group.units].join(', ') || '-'}</td>
+                ) : null}
+
+                {selectedPlans.flatMap(plan => {
+                  const cells = [];
+                  if (summaryWiseShowMatra) {
+                    cells.push(
+                      <td key={`yw-matra-${name}-${plan}`}>
+                        {group.physical[plan] ? summaryWiseFormatExactNumber(group.physical[plan]) : ''}
+                      </td>
+                    );
+                  }
+                  if (summaryWiseShowAnudan) {
+                    cells.push(
+                      <td key={`yw-anudan-${name}-${plan}`}>
+                        {group.financial[plan] ? summaryWiseFmtR(group.financial[plan]) : ''}
+                      </td>
+                    );
+                  }
+                  return cells;
+                })}
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={2 + (summaryWiseVisibleColumns === null ? 1 : (summaryWiseVisibleColumns.includes('ikai') ? 1 : 0)) + selectedPlans.length * (summaryWiseVisibleColumns === null ? 2 : summaryWiseVisibleColumns.filter(k => k === 'matra' || k === 'anudan').length)} className="dynamic-report-empty">
+                  कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला
+                </td>
+              </tr>
+            )}
+          </tbody>
+
+          {groupedRows.length > 0 && (
+            <tfoot>
+              <tr className="report-total-values-row">
+                <td>योग</td>
+                <td></td>
+                {summaryWiseShowIkai ? <td></td> : null}
+                {selectedPlans.flatMap(plan => {
+                  const physicalTotal = groupedRows.reduce(
+                    (sum, [, group]) => sum + (group.physical[plan] || 0), 0
+                  );
+                  const financialTotal = groupedRows.reduce(
+                    (sum, [, group]) => sum + (group.financial[plan] || 0), 0
+                  );
+
+                  const cells = [];
+                  if (summaryWiseShowMatra) {
+                    cells.push(
+                      <td key={`yw-total-matra-${plan}`} className="tot">
+                        {physicalTotal ? summaryWiseFormatExactNumber(physicalTotal) : ''}
+                      </td>
+                    );
+                  }
+                  if (summaryWiseShowAnudan) {
+                    cells.push(
+                      <td key={`yw-total-anudan-${plan}`} className="tot">
+                        {financialTotal ? summaryWiseFmtR(financialTotal) : ''}
+                      </td>
+                    );
+                  }
+                  return cells;
+                })}
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const DynamicReportTabs = ({ sourceData }) => {
   const [activeTab, setActiveTab] = useState('saransh');
   const [openFilter, setOpenFilter] = useState(null);
@@ -1214,497 +1736,6 @@ const DynamicReportTabs = ({ sourceData }) => {
   // one; otherwise it is shown as "-". No beneficiary value is invented.
   // ============================================================================
 
-  const SummaryMadUpMadTable = ({ data }) => {
-    const [summaryWiseView, setSummaryWiseView] = useState('mad');
-    const [summaryWiseFilters, setSummaryWiseFilters] = useState({
-      nivesh: null,
-      upnivesh: null,
-      vidhan: null,
-      block: null,
-      kendra: null,
-    });
-    const [openSummaryWiseFilter, setOpenSummaryWiseFilter] = useState(null);
-    const [selectedSummaryPlanFilter, setSelectedSummaryPlanFilter] = useState(null);
-    const [summaryWiseSummaryMode, setSummaryWiseSummaryMode] = useState('financial');
-    // Only these three table columns can be shown/hidden from the column selector.
-    const [summaryWiseVisibleColumns, setSummaryWiseVisibleColumns] = useState(null);
-    const summaryWiseColumnDefs = [
-      { key: 'ikai', label: 'इकाई' },
-      { key: 'matra', label: 'भौतिक पूर्ति ' },
-      { key: 'anudan', label: 'अनुदान राशि (रु0)' },
-    ];
-    const summaryWiseShowIkai = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('ikai');
-    const summaryWiseShowMatra = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('matra');
-    const summaryWiseShowAnudan = summaryWiseVisibleColumns === null || summaryWiseVisibleColumns.includes('anudan');
-    const summaryWisePlanColumnCount = (summaryWiseShowMatra ? 1 : 0) + (summaryWiseShowAnudan ? 1 : 0);
-
-    const viewConfig = {
-      mad: { field: 'nivesh', label: 'मद का नाम' },
-      upmad: { field: 'upnivesh', label: 'उप-मद का नाम' },
-      vidhan: { field: 'vidhan', label: 'विधानसभा का नाम' },
-      block: { field: 'block', label: 'विकासखण्ड का नाम' },
-      kendra: { field: 'kendra', label: 'केंद्र का नाम' },
-    };
-
-    const current = viewConfig[summaryWiseView];
-    const rowField = current.field;
-    const rowLabel = current.label;
-
-    // Five independent filters for this table.
-    // Empty/null selection means ALL values for that filter.
-    const summaryWiseBaseRows = useMemo(
-      () => (Array.isArray(data) ? data : []).filter(r => !fixedPlan || r.kraya !== fixedPlan),
-      [data, fixedPlan]
-    );
-
-    const summaryWiseFilterDefinitions = [
-      ['nivesh', 'मद का नाम'],
-      ['upnivesh', 'उप-मद का नाम'],
-      ['vidhan', 'विधानसभा'],
-      ['block', 'विकासखण्ड'],
-      ['kendra', 'केंद्र'],
-    ];
-
-    const summaryWiseFilterOptions = useMemo(() => ({
-      nivesh: uniq(summaryWiseBaseRows.map(r => r.nivesh)),
-      upnivesh: uniq(summaryWiseBaseRows.map(r => r.upnivesh)),
-      vidhan: uniq(summaryWiseBaseRows.map(r => r.vidhan)),
-      block: uniq(summaryWiseBaseRows.map(r => r.block)),
-      kendra: uniq(summaryWiseBaseRows.map(r => r.kendra)),
-    }), [summaryWiseBaseRows]);
-
-    // Keep selections valid if API data changes.
-    useEffect(() => {
-      setSummaryWiseFilters(prev => {
-        const next = { ...prev };
-        let changed = false;
-
-        summaryWiseFilterDefinitions.forEach(([field]) => {
-          const selected = prev[field];
-          const options = summaryWiseFilterOptions[field] || [];
-          if (selected !== null && selected !== undefined) {
-            const valid = selected.filter(value => options.includes(value));
-            const normalized = valid.length === options.length ? null : valid;
-            if (JSON.stringify(normalized) !== JSON.stringify(selected)) {
-              next[field] = normalized;
-              changed = true;
-            }
-          }
-        });
-
-        return changed ? next : prev;
-      });
-    }, [summaryWiseFilterOptions]);
-
-    const toggleSummaryWiseFilter = (field, value) => {
-      setSummaryWiseFilters(prev => {
-        const options = summaryWiseFilterOptions[field] || [];
-        const currentSelection = prev[field] === null || prev[field] === undefined
-          ? [...options]
-          : [...prev[field]];
-
-        const next = currentSelection.includes(value)
-          ? currentSelection.filter(v => v !== value)
-          : [...currentSelection, value];
-
-        return {
-          ...prev,
-          [field]: next.length === options.length ? null : next,
-        };
-      });
-    };
-
-    const clearSummaryWiseFilters = () => {
-      setSummaryWiseFilters({
-        nivesh: null,
-        upnivesh: null,
-        vidhan: null,
-        block: null,
-        kendra: null,
-      });
-      setOpenSummaryWiseFilter(null);
-    };
-
-    const summaryWiseRows = useMemo(() => (
-      summaryWiseBaseRows.filter(r =>
-        summaryWiseFilterDefinitions.every(([field]) => {
-          const selected = summaryWiseFilters[field];
-          return selected === null || selected === undefined || selected.includes(r[field]);
-        })
-      )
-    ), [summaryWiseBaseRows, summaryWiseFilters]);
-
-    const planList = uniq(summaryWiseRows.map(r => r.vahan).filter(Boolean));
-
-    useEffect(() => {
-      setSelectedSummaryPlanFilter(prev => {
-        if (prev === null || prev === undefined) return null;
-        const valid = prev.filter(value => planList.includes(value));
-        if (valid.length === planList.length) return null;
-        return valid;
-      });
-    }, [planList.join('|')]);
-
-    const selectedPlans = selectedSummaryPlanFilter === null || selectedSummaryPlanFilter === undefined
-      ? planList
-      : planList.filter(plan => selectedSummaryPlanFilter.includes(plan));
-
-    const togglePlanFilter = plan => {
-      setSelectedSummaryPlanFilter(prev => {
-        const currentSelection = prev === null || prev === undefined
-          ? [...planList]
-          : [...prev];
-        const next = currentSelection.includes(plan)
-          ? currentSelection.filter(value => value !== plan)
-          : [...currentSelection, plan];
-        return next.length === planList.length ? null : next;
-      });
-    };
-
-    const groupedRows = useMemo(() => {
-      const map = new Map();
-
-      summaryWiseRows.filter(r => selectedPlans.includes(r.vahan)).forEach(r => {
-        const key = r[rowField] || 'अन्य';
-
-        if (!map.has(key)) {
-          map.set(key, {
-            physical: {},
-            financial: {},
-            units: new Set(),
-          });
-        }
-
-        const group = map.get(key);
-        const plan = r.vahan || 'अन्य';
-
-        group.physical[plan] = (group.physical[plan] || 0) + (Number(r.matra) || 0);
-        group.financial[plan] = (group.financial[plan] || 0) + (Number(r.anudan) || 0);
-
-        if (r.ikai) group.units.add(r.ikai);
-      });
-
-      return [...map.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'hi'));
-    }, [summaryWiseRows, rowField, selectedPlans.join('|')]);
-
-    const preserveScroll = callback => {
-      const scrollY = window.scrollY;
-      callback();
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: scrollY, left: window.scrollX, behavior: 'auto' });
-      });
-    };
-
-    const formatExactNumber = value => {
-      const num = Number(value) || 0;
-      return new Intl.NumberFormat('en-IN', {
-        useGrouping: true,
-        maximumFractionDigits: 20,
-      }).format(num);
-    };
-
-    const formatSummaryInteger = value => {
-      const num = Number(value) || 0;
-      return new Intl.NumberFormat('en-IN', {
-        useGrouping: true,
-        maximumFractionDigits: 0,
-      }).format(Math.round(num));
-    };
-
-    // IMPORTANT: calculate the summary from the SAME filtered/grouped data
-    // that is visible in the table above. Do not divide financial values into
-    // lakhs here, otherwise the total would not match the table.
-    const schemeWiseSummary = selectedPlans.map(plan => {
-      const rawValue = groupedRows.reduce(
-        (sum, [, group]) => sum + (
-          summaryWiseSummaryMode === 'quantity'
-            ? (group.physical[plan] || 0)
-            : (group.financial[plan] || 0)
-        ),
-        0
-      );
-
-      return {
-        plan,
-        rawValue,
-        displayValue: rawValue,
-      };
-    });
-
-    const totalSummaryValue = schemeWiseSummary.reduce(
-      (sum, item) => sum + item.displayValue,
-      0
-    );
-
-    return (
-      <div className="summary-mad-upmad-report-wrapper">
-        <div
-          className="dynamic-report-view-row professional-view-row"
-          style={{
-            marginBottom: '10px',
-            alignItems: 'center',
-            gap: '10px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <label htmlFor="summary-mad-upmad-view-select">देखने का प्रकार</label>
-          <select
-            id="summary-mad-upmad-view-select"
-            value={summaryWiseView}
-            onChange={e => {
-              const value = e.target.value;
-              preserveScroll(() => setSummaryWiseView(value));
-            }}
-            style={{
-              minWidth: '230px',
-              padding: '7px 10px',
-              borderRadius: '6px',
-              border: '1px solid #d9e1e8',
-              background: '#fff',
-              fontWeight: 600,
-            }}
-          >
-            <option value="mad">मद के अनुसार</option>
-            <option value="upmad">उप-मद के अनुसार</option>
-            <option value="vidhan">विधानसभा के अनुसार</option>
-            <option value="block">विकासखण्ड के अनुसार</option>
-            <option value="kendra">केंद्र के अनुसार</option>
-          </select>
-
-          {summaryWiseFilterDefinitions.map(([field, label]) => {
-            const options = summaryWiseFilterOptions[field] || [];
-            const selected = summaryWiseFilters[field];
-            const selectedValues = selected === null || selected === undefined ? options : selected;
-            const selectedCount = selectedValues.length;
-            const filterId = `summary-mad-upmad-${field}`;
-            const isOpen = openSummaryWiseFilter === filterId;
-            const isFiltered = selected !== null && selected !== undefined && selectedCount !== options.length;
-
-            return (
-              <div key={field} className="dynamic-report-filter-wrap">
-                <button
-                  type="button"
-                  className={`dynamic-report-filter-btn ${isFiltered ? 'filtered' : ''}`}
-                  onClick={() => setOpenSummaryWiseFilter(isOpen ? null : filterId)}
-                >
-                  <span>{label} फ़िल्टर</span>
-                  <span className="dynamic-report-badge">{selectedCount}/{options.length}</span>
-                  <span>{isOpen ? '▲' : '▼'}</span>
-                </button>
-
-                {isOpen && (
-                  <div className="dynamic-report-filter-menu">
-                    <div className="dynamic-report-filter-actions">
-                      <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: null }))}>सभी चुनें</button>
-                      <button type="button" onClick={() => setSummaryWiseFilters(prev => ({ ...prev, [field]: [] }))}>कोई नहीं</button>
-                    </div>
-
-                    <div className="dynamic-report-filter-list">
-                      {options.length === 0 ? (
-                        <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
-                      ) : (
-                        options.map(value => (
-                          <label key={value} className="dynamic-report-filter-option">
-                            <input
-                              type="checkbox"
-                              checked={selected === null || selected === undefined ? true : selected.includes(value)}
-                              onChange={() => {
-                                const currentScrollY = window.scrollY;
-                                toggleSummaryWiseFilter(field, value);
-                                requestAnimationFrame(() => {
-                                  window.scrollTo({ top: currentScrollY, left: window.scrollX, behavior: 'auto' });
-                                });
-                              }}
-                            />
-                            <span>{value}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-
-                    <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
-                      बंद करें
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          <div className="dynamic-report-filter-wrap">
-            <button
-              type="button"
-              className={`dynamic-report-filter-btn ${selectedSummaryPlanFilter !== null && selectedSummaryPlanFilter !== undefined && selectedSummaryPlanFilter.length !== planList.length ? 'filtered' : ''}`}
-              onClick={() => setOpenSummaryWiseFilter(openSummaryWiseFilter === 'summary-mad-upmad-plan' ? null : 'summary-mad-upmad-plan')}
-            >
-              <span>योजना फ़िल्टर</span>
-              <span className="dynamic-report-badge">{selectedPlans.length}/{planList.length}</span>
-              <span>{openSummaryWiseFilter === 'summary-mad-upmad-plan' ? '▲' : '▼'}</span>
-            </button>
-
-            {openSummaryWiseFilter === 'summary-mad-upmad-plan' && (
-              <div className="dynamic-report-filter-menu">
-                <div className="dynamic-report-filter-actions">
-                  <button type="button" onClick={() => setSelectedSummaryPlanFilter(null)}>सभी चुनें</button>
-                  <button type="button" onClick={() => setSelectedSummaryPlanFilter([])}>कोई नहीं</button>
-                </div>
-                <div className="dynamic-report-filter-list">
-                  {planList.length === 0 ? (
-                    <div className="dynamic-report-filter-empty">कोई विकल्प उपलब्ध नहीं</div>
-                  ) : (
-                    planList.map(plan => (
-                      <label key={plan} className="dynamic-report-filter-option">
-                        <input
-                          type="checkbox"
-                          checked={selectedPlans.includes(plan)}
-                          onChange={() => {
-                            const currentScrollY = window.scrollY;
-                            togglePlanFilter(plan);
-                            requestAnimationFrame(() => {
-                              window.scrollTo({ top: currentScrollY, left: window.scrollX, behavior: 'auto' });
-                            });
-                          }}
-                        />
-                        <span>{plan}</span>
-                      </label>
-                    ))
-                  )}
-                </div>
-                <button type="button" className="dynamic-report-filter-close" onClick={() => setOpenSummaryWiseFilter(null)}>
-                  बंद करें
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            className="dynamic-report-clear-btn"
-            onClick={() => clearSummaryWiseFilters()}
-          >
-            फ़िल्टर हटाएं
-          </button>
-        </div>
-
-        <ReportColumnSelector
-          columns={summaryWiseColumnDefs}
-          visibleColumns={summaryWiseVisibleColumns}
-          setVisibleColumns={setSummaryWiseVisibleColumns}
-          label="इस तालिका के स्तंभ चुनें"
-        />
-
-        <div className="dynamic-report-table-scroll matrix-scroll">
-          <table
-            className="dynamic-report-table matrix-table summary-mad-upmad-detail-table"
-            style={{ minWidth: '1100px' }}
-          >
-            <thead>
-              <tr>
-                <th rowSpan="2">क्रम संख्या</th>
-                <th rowSpan="2">{rowLabel}</th>
-                {summaryWiseShowIkai ? (
-                  <th rowSpan="2">इकाई</th>
-                ) : null}
-                {summaryWisePlanColumnCount > 0 && selectedPlans.map(plan => (
-                  <th
-                    key={`yw-plan-${plan}`}
-                    colSpan={summaryWisePlanColumnCount}
-                    style={{ textAlign: 'center' }}
-                  >
-                    {plan}
-                  </th>
-                ))}
-              </tr>
-              <tr>
-                {selectedPlans.flatMap(plan => {
-                  const cells = [];
-                  if (summaryWiseShowMatra) {
-                    cells.push(<th key={`yw-physical-${plan}`}>भौतिक पूर्ति </th>);
-                  }
-                  if (summaryWiseShowAnudan) {
-                    cells.push(<th key={`yw-financial-${plan}`}>अनुदान राशि (रु0)</th>);
-                  }
-                  return cells;
-                })}
-              </tr>
-            </thead>
-
-            <tbody>
-              {groupedRows.length ? groupedRows.map(([name, group], index) => (
-                <tr key={`summary-mad-upmad-${summaryWiseView}-${name}`}>
-                  <td>{index + 1}</td>
-                  <td>{name}</td>
-                  {summaryWiseShowIkai ? (
-                    <td>{[...group.units].join(', ') || '-'}</td>
-                  ) : null}
-
-                  {selectedPlans.flatMap(plan => {
-                    const cells = [];
-                    if (summaryWiseShowMatra) {
-                      cells.push(
-                        <td key={`yw-matra-${name}-${plan}`}>
-                          {group.physical[plan] ? formatExactNumber(group.physical[plan]) : ''}
-                        </td>
-                      );
-                    }
-                    if (summaryWiseShowAnudan) {
-                      cells.push(
-                        <td key={`yw-anudan-${name}-${plan}`}>
-                          {group.financial[plan] ? fmtR(group.financial[plan]) : ''}
-                        </td>
-                      );
-                    }
-                    return cells;
-                  })}
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={2 + (summaryWiseVisibleColumns === null ? 1 : (summaryWiseVisibleColumns.includes('ikai') ? 1 : 0)) + selectedPlans.length * (summaryWiseVisibleColumns === null ? 2 : summaryWiseVisibleColumns.filter(k => k === 'matra' || k === 'anudan').length)} className="dynamic-report-empty">
-                    कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला
-                  </td>
-                </tr>
-              )}
-            </tbody>
-
-            {groupedRows.length > 0 && (
-              <tfoot>
-                <tr className="report-total-values-row">
-                  <td>योग</td>
-                  <td></td>
-                  {summaryWiseShowIkai ? <td></td> : null}
-                  {selectedPlans.flatMap(plan => {
-                    const physicalTotal = groupedRows.reduce(
-                      (sum, [, group]) => sum + (group.physical[plan] || 0), 0
-                    );
-                    const financialTotal = groupedRows.reduce(
-                      (sum, [, group]) => sum + (group.financial[plan] || 0), 0
-                    );
-
-                    const cells = [];
-                    if (summaryWiseShowMatra) {
-                      cells.push(
-                        <td key={`yw-total-matra-${plan}`} className="tot">
-                          {physicalTotal ? formatExactNumber(physicalTotal) : ''}
-                        </td>
-                      );
-                    }
-                    if (summaryWiseShowAnudan) {
-                      cells.push(
-                        <td key={`yw-total-anudan-${plan}`} className="tot">
-                          {financialTotal ? fmtR(financialTotal) : ''}
-                        </td>
-                      );
-                    }
-                    return cells;
-                  })}
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
-      </div>
-    );
-  };
 
   const MatrixTable = ({
     data,
@@ -2199,7 +2230,7 @@ const DynamicReportTabs = ({ sourceData }) => {
             <h6 className="dynamic-report-subtitle">
               2) विधानसभा / विकासखंड / केंद्र / मद / उप-मद  के नाम अनुसार — योजना-वार
             </h6>
-            <SummaryMadUpMadTable data={summaryRows} />
+            <SummaryMadUpMadTable data={summaryRows} fixedPlan={fixedPlan} />
           </div>
         )}
 
