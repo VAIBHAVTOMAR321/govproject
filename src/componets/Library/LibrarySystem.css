@@ -797,7 +797,7 @@
 }
 
 .library-kendra-names {
-  max-width: 300px;
+ overflow: hidden;
   line-height: 1.5;
 }
 

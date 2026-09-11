@@ -490,7 +490,7 @@
 .dynamic-report-table thead tr:nth-child(2) th {
   top: 30px;
   background: #e9eef6;
-  color: #194e8b;
+  color: #000 !important;
 }
 .dynamic-report-table tbody tr:nth-child(even) td {
   background: #fafbfd;

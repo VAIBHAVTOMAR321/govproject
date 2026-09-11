@@ -131,11 +131,13 @@ label.reset-label{
   background-color: #fff;
   padding: 20px 0;
   text-align: center;
+  position: fixed;
 }
 
 .copyright-footer p {
   color: #000;
   font-size: 0.8rem;
+ 
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
