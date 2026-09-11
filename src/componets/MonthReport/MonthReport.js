@@ -1,8 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ExcelJS from "exceljs";
 import "./MonthReport.css";
-const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/";
-const REPORT_FILE_BASE_URL = "https://mahadevaaya.com/govbillingsystem/backend/media/month_reports/";
+const API_URL =
+  "https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/";
+
+/*
+  Excel file is intentionally NOT fetched from /media directly.
+  React uses the Django file API:
+    GET /api/month-reports/{id}/file/
+
+  Example:
+    /api/month-reports/8/file/
+*/
 const MEDIA_BASE_URL ="https://mahadevaaya.com/govbillingsystem/backend";
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
@@ -105,32 +114,89 @@ const getBorderStyle = (side) => {
 const getBorderColor = (side) =>
   normalizeColor(side?.color) || "#b7b7b7";
 
-const getPrimitiveCellValue = (cell) => {
-  if (!cell) return "";
-
-  const value = cell.value;
-
-  if (value === null || value === undefined) return "";
+const excelValueToText = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
 
   if (value instanceof Date) {
     return value.toLocaleDateString("en-IN");
   }
 
-  if (typeof value === "object") {
-    if (value.richText) {
-      return value.richText.map((x) => x.text || "").join("");
-    }
-
-    if (value.text !== undefined) return String(value.text);
-
-    if (value.result !== undefined && value.result !== null) {
-      return value.result;
-    }
-
-    return "";
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
   }
 
-  return value;
+  if (typeof value === "object") {
+    // ExcelJS rich text:
+    // { richText: [{ text: "Hello" }, { text: "World" }] }
+    if (Array.isArray(value.richText)) {
+      return value.richText
+        .map((item) => excelValueToText(item?.text))
+        .join("");
+    }
+
+    // ExcelJS hyperlink:
+    // { text: "Google", hyperlink: "https://..." }
+    if (value.text !== undefined) {
+      return excelValueToText(value.text);
+    }
+
+    // ExcelJS formula result.
+    if (value.result !== undefined && value.result !== null) {
+      return excelValueToText(value.result);
+    }
+
+    // ExcelJS error value:
+    // { error: "#VALUE!" }
+    if (value.error !== undefined) {
+      return String(value.error);
+    }
+
+    // Some workbook values can contain nested objects.
+    // Never allow React to render the object itself.
+    try {
+      const json = JSON.stringify(value);
+
+      if (json && json !== "{}") {
+        return json;
+      }
+    } catch {
+      // Ignore conversion failure.
+    }
+  }
+
+  return "";
+};
+
+const getPrimitiveCellValue = (cell) => {
+  if (!cell) return "";
+
+  const value = cell.value;
+
+  return excelValueToText(value);
+};
+
+const getCellDisplayText = (cell) => {
+  if (!cell) return "";
+
+  /*
+    ExcelJS provides `cell.text`, which is usually the best display
+    representation for dates, formulas, rich text and normal cells.
+  */
+  try {
+    if (typeof cell.text === "string" && cell.text.length > 0) {
+      return cell.text;
+    }
+  } catch {
+    // Fall back to value conversion.
+  }
+
+  return excelValueToText(cell.value);
 };
 
 const splitFormulaParts = (formula, operator) => {
@@ -413,27 +479,48 @@ const evaluateCellValue = (workbook, worksheet, cell, visited = new Set()) => {
 const cellToText = (cell, workbook = null, worksheet = null) => {
   if (!cell) return "";
 
-  if (workbook && worksheet) {
-    const value = evaluateCellValue(workbook, worksheet, cell);
-    if (value instanceof Date) return value.toLocaleDateString("en-IN");
-    return value === null || value === undefined ? "" : String(value);
+  /*
+    Prefer ExcelJS's formatted display text.
+    This prevents [object Object] for rich text, hyperlinks,
+    formula results and other ExcelJS value objects.
+  */
+  const displayText = getCellDisplayText(cell);
+
+  if (displayText !== null && displayText !== undefined) {
+    return String(displayText);
   }
 
-  return String(getPrimitiveCellValue(cell) ?? "");
+  if (workbook && worksheet) {
+    const value = evaluateCellValue(
+      workbook,
+      worksheet,
+      cell
+    );
+
+    return excelValueToText(value);
+  }
+
+  return excelValueToText(cell.value);
 };
 
 const cellToRawValue = (cell) => {
   if (!cell) return "";
 
+  const value = cell.value;
+
   if (
-    cell.value &&
-    typeof cell.value === "object" &&
-    cell.value.formula !== undefined
+    value &&
+    typeof value === "object" &&
+    value.formula !== undefined
   ) {
-    return `=${cell.value.formula}`;
+    return `=${value.formula}`;
   }
 
-  return cell.value ?? "";
+  /*
+    For rich text/hyperlinks/etc. use the visible text in the
+    formula bar instead of rendering the JavaScript object.
+  */
+  return excelValueToText(value);
 };
 
 const getCellStyle = (cell, isSelected = false) => {
@@ -466,7 +553,7 @@ const getCellStyle = (cell, isSelected = false) => {
         : alignment.vertical === "bottom"
         ? "bottom"
         : "middle",
-    whiteSpace: alignment.wrapText ? "pre-wrap" : "pre-wrap",
+    whiteSpace: "pre-wrap",
     borderTop: `${getBorderStyle(cell.border?.top)} ${getBorderColor(
       cell.border?.top
     )}`,
@@ -604,18 +691,16 @@ const apiFetch = async (url, options = {}) => {
   return response;
 };
 
-/*
-  This helper is retained for displaying/keeping the API file path.
-  View/Edit does NOT fetch this media URL directly.
-*/
 const getMediaUrl = (path) => {
   if (!path) return "";
 
+  // Already a complete URL
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
 
-  return `${window.location.origin}${
+  // Relative media path
+  return `${MEDIA_BASE_URL}${
     path.startsWith("/") ? "" : "/"
   }${path}`;
 };
@@ -625,13 +710,10 @@ const normalizeApiReport = (item) => ({
   month: String(item.month ?? ""),
   financialYear: item.financial_year ?? "",
   monthReport: item.month_report ?? "",
-  fileName:
-    String(item.month_report || "").split("/").pop() ||
-    "MPR.xlsx",
+  fileName: String(item.month_report || "").split("/").pop() || "MPR.xlsx",
   fileSize: Number(item.file_size || item.size || 0),
   createdAt: item.created_at || "",
-  updatedAt:
-    item.updated_at || item.created_at || "",
+  updatedAt: item.updated_at || item.created_at || "",
   file: null,
   apiData: item,
 });
@@ -648,28 +730,25 @@ const getReportsFromResponse = (data) => {
   return list.map(normalizeApiReport);
 };
 
-/*
-  Load the XLSX through Django's API instead of directly from /media/.
-
-  For report ID 8:
-    GET https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/8/file/
-
-  This avoids the CORS error caused by:
-    https://mahadevaaya.com/govbillingsystem/backend/media/...
-*/
 const fetchReportFile = async (report) => {
   if (!report?.id) {
-    throw new Error(
-      "Report ID is missing. The Excel file cannot be opened."
-    );
+    throw new Error("Report ID is missing.");
   }
 
+  /*
+    IMPORTANT:
+    Never fetch /media/month_reports/... directly from localhost.
+    That causes the CORS error shown in the browser.
+
+    Django must expose:
+      GET /api/month-reports/{id}/file/
+
+    Example:
+      https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/8/file/
+  */
   const fileUrl = `${API_URL}${report.id}/`;
 
-  console.log(
-    "Fetching Excel workbook through Django:",
-    fileUrl
-  );
+  console.log("Fetching Excel through Django:", fileUrl);
 
   const response = await fetch(fileUrl, {
     method: "GET",
@@ -680,55 +759,54 @@ const fetchReportFile = async (report) => {
   });
 
   if (!response.ok) {
-    let message =
-      `Unable to load Excel file (${response.status} ${response.statusText}).`;
+    let message = `Unable to load Excel file (${response.status})`;
 
     try {
       const data = await response.json();
-
       message =
         data?.error ||
         data?.detail ||
         data?.message ||
         message;
     } catch {
-      // Backend response was not JSON.
+      // Server did not return JSON.
     }
 
     throw new Error(message);
   }
 
-  const contentType =
-    response.headers.get("content-type") || "";
-
   const blob = await response.blob();
 
   if (!blob || blob.size === 0) {
     throw new Error(
-      "The backend returned an empty Excel file (0 KB). Please verify the physical XLSX file on the Django server."
+      "The Django file API returned an empty Excel file (0 KB). Check the actual file on the server."
     );
   }
+
+  const contentType =
+    response.headers.get("content-type") || "";
 
   if (
     contentType.includes("text/html") ||
     contentType.includes("application/json")
   ) {
+    const text = await blob.text();
+
     throw new Error(
-      "The file endpoint did not return an Excel workbook. Check the Django /file/ endpoint."
+      text ||
+        "The Django file API did not return an Excel workbook."
     );
   }
 
-  const fileName =
-    report.fileName &&
-    report.fileName.toLowerCase().endsWith(".xlsx")
-      ? report.fileName
-      : "MPR.xlsx";
-
-  return new File([blob], fileName, {
-    type:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    lastModified: Date.now(),
-  });
+  return new File(
+    [blob],
+    report.fileName || "MPR.xlsx",
+    {
+      type:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      lastModified: Date.now(),
+    }
+  );
 };
 
 const uploadReport = async ({ month, financialYear, file }) => {
@@ -743,12 +821,7 @@ const uploadReport = async ({ month, financialYear, file }) => {
   });
 };
 
-const updateReportFile = async ({
-  id,
-  month,
-  financialYear,
-  file,
-}) => {
+const updateReportFile = async ({ id, month, financialYear, file }) => {
   if (!id) {
     throw new Error("Month report ID is missing.");
   }
@@ -758,32 +831,25 @@ const updateReportFile = async ({
   }
 
   /*
-    Exact backend endpoint:
-
-    PUT
+    PUT endpoint:
     https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/{id}/
 
-    Example:
+    Example for report ID 8:
     https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/8/
+
+    Do not manually set Content-Type. The browser creates the
+    multipart/form-data boundary automatically.
   */
   const formData = new FormData();
 
   formData.append("month", String(month ?? ""));
-  formData.append(
-    "financial_year",
-    String(financialYear ?? "")
-  );
-
+  formData.append("financial_year", String(financialYear ?? ""));
   formData.append(
     "month_report",
     file,
     file.name || "MPR.xlsx"
   );
 
-  /*
-    Do not set Content-Type manually.
-    The browser creates the multipart boundary.
-  */
   return apiFetch(`${API_URL}${id}/`, {
     method: "PUT",
     body: formData,
@@ -798,12 +864,12 @@ const deleteReportFromApi = async (id) => {
 
 const workbookFromFile = async (file) => {
   if (!file) {
-    throw new Error("No Excel file was received.");
+    throw new Error("No Excel file was supplied.");
   }
 
   if (!file.size) {
     throw new Error(
-      "The Excel file is empty (0 KB). Check the Django media file."
+      "The Excel file is empty (0 bytes). Check the file stored on the Django server."
     );
   }
 
@@ -813,7 +879,7 @@ const workbookFromFile = async (file) => {
   try {
     await workbook.xlsx.load(buffer);
   } catch (error) {
-    console.error("ExcelJS load error:", error);
+    console.error("ExcelJS workbook load error:", error);
 
     throw new Error(
       "The server returned a file, but it is not a valid .xlsx workbook."
@@ -821,9 +887,7 @@ const workbookFromFile = async (file) => {
   }
 
   if (!workbook.worksheets.length) {
-    throw new Error(
-      "The Excel workbook contains no worksheets."
-    );
+    throw new Error("The Excel workbook contains no worksheets.");
   }
 
   return workbook;
@@ -844,8 +908,7 @@ const downloadBlob = (blob, filename) => {
 
 const ExcelEditor = ({ report, onClose, onSaved }) => {
   const [workbook, setWorkbook] = useState(null);
-  const [sheets, setSheets] = useState([]);
-  const [activeSheetIndex, setActiveSheetIndex] = useState(0);
+  const [worksheet, setWorksheet] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [formulaText, setFormulaText] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -853,71 +916,16 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
-
   const formulaRef = useRef(null);
 
-  const currentWorksheet = workbook?.worksheets?.[activeSheetIndex];
-
-  const rebuildSheetView = (book = workbook) => {
-    if (!book) return;
-
-    setSheets(
-      book.worksheets.map((worksheet) => {
-        const mergeMap = createMergeMap(worksheet);
-        const rowCount = Math.max(worksheet.rowCount || 1, 1);
-        const colCount = Math.max(worksheet.columnCount || 1, 1);
-
-        const columns = Array.from({ length: colCount }, (_, i) => {
-          const column = worksheet.getColumn(i + 1);
-
-          return {
-            number: i + 1,
-            letter: columnLetter(i + 1),
-            width: Number(column.width) || 10,
-            hidden: Boolean(column.hidden),
-          };
-        });
-
-        const rows = Array.from({ length: rowCount }, (_, i) => {
-          const rowNumber = i + 1;
-          const row = worksheet.getRow(rowNumber);
-
-          return {
-            number: rowNumber,
-            height: Number(row.height) || 18,
-            hidden: Boolean(row.hidden),
-            cells: Array.from({ length: colCount }, (_, j) => {
-              const colNumber = j + 1;
-              const cell = worksheet.getCell(
-                rowNumber,
-                colNumber
-              );
-              const merge = mergeMap.get(
-                `${rowNumber}:${colNumber}`
-              );
-
-              return {
-                row: rowNumber,
-                col: colNumber,
-                value: cellToText(cell, book, worksheet),
-                style: getCellStyle(
-                  cell,
-                  selectedCell?.row === rowNumber &&
-                    selectedCell?.col === colNumber
-                ),
-                merge,
-              };
-            }),
-          };
-        });
-
-        return {
-          name: worksheet.name,
-          rows,
-          columns,
-        };
-      })
-    );
+  const rebuildWorksheet = (book) => {
+    if (!book) return null;
+    const mpr =
+      book.getWorksheet("📊 MPR REPORT") ||
+      book.worksheets.find((ws) =>
+        String(ws.name || "").toLowerCase().includes("mpr report")
+      );
+    return mpr || null;
   };
 
   useEffect(() => {
@@ -927,20 +935,22 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
       try {
         setLoading(true);
         setError("");
-
         const book = await workbookFromFile(report.file);
+        const mpr = rebuildWorksheet(book);
 
-        if (cancelled) return;
-
-        setWorkbook(book);
-        setActiveSheetIndex(0);
-      } catch (err) {
-        console.error(err);
+        if (!mpr) {
+          throw new Error("The selected Excel file does not contain an MPR REPORT worksheet.");
+        }
 
         if (!cancelled) {
-          setError(
-            err?.message || "Excel file could not be opened."
-          );
+          setWorkbook(book);
+          setWorksheet(mpr);
+          setStatus(`Editing ${report.fileName}`);
+        }
+      } catch (err) {
+        console.error("Excel editor load error:", err);
+        if (!cancelled) {
+          setError(err?.message || "Excel file could not be opened.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -948,103 +958,43 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
     };
 
     load();
-
     return () => {
       cancelled = true;
     };
-  }, [report.file]);
+  }, [report.file, report.fileName]);
 
-  useEffect(() => {
-    if (workbook) rebuildSheetView(workbook);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workbook, activeSheetIndex, selectedCell]);
+  const rowCount = Math.max(worksheet?.rowCount || 1, 1);
+  const colCount = Math.max(worksheet?.columnCount || 1, 1);
+  const mergeMap = useMemo(
+    () => (worksheet ? createMergeMap(worksheet) : new Map()),
+    [worksheet]
+  );
 
   const selectCell = (row, col) => {
-    if (!currentWorksheet) return;
-
-    const cell = currentWorksheet.getCell(row, col);
-    const value = cellToRawValue(cell);
-
+    if (!worksheet) return;
+    const cell = worksheet.getCell(row, col);
     setSelectedCell({ row, col });
-    setFormulaText(value === null || value === undefined ? "" : String(value));
-    setStatus(
-      `${columnLetter(col)}${row} selected`
-    );
+    setFormulaText(String(cellToRawValue(cell) ?? ""));
+    setStatus(`${columnLetter(col)}${row} selected`);
+  };
+
+  const commitValue = (row, col, value) => {
+    if (!worksheet) return;
+    const cell = worksheet.getCell(row, col);
+
+    if (typeof value === "string" && value.trim().startsWith("=")) {
+      cell.value = { formula: value.trim().slice(1) };
+    } else {
+      cell.value = value;
+    }
+
+    setDirty(true);
+    setStatus("Cell updated");
   };
 
   const commitFormulaBar = () => {
-    if (!currentWorksheet || !selectedCell) return;
-
-    const cell = currentWorksheet.getCell(
-      selectedCell.row,
-      selectedCell.col
-    );
-
-    const value = formulaText;
-
-    /*
-      ExcelJS formula values need an object.
-      This stores formulas so Excel can calculate them when
-      the edited workbook is opened in Excel.
-    */
-    if (value.trim().startsWith("=")) {
-      cell.value = {
-        formula: value.trim().slice(1),
-      };
-    } else {
-      cell.value = value;
-    }
-
-    setDirty(true);
-    setStatus("Cell updated");
-    rebuildSheetView(workbook);
-  };
-
-  const commitCell = (row, col, value) => {
-    if (!currentWorksheet) return;
-
-    const cell = currentWorksheet.getCell(row, col);
-
-    if (typeof value === "string" && value.trim().startsWith("=")) {
-      cell.value = {
-        formula: value.trim().slice(1),
-      };
-    } else {
-      cell.value = value;
-    }
-
-    setDirty(true);
-    setStatus("Cell updated");
-    rebuildSheetView(workbook);
-  };
-
-  const handleCellKeyDown = (event, row, col) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-
-      commitCell(row, col, event.currentTarget.textContent || "");
-
-      const nextRow = row + 1;
-      if (nextRow <= (currentWorksheet?.rowCount || nextRow)) {
-        setTimeout(() => selectCell(nextRow, col), 0);
-      }
-
-      return;
-    }
-
-    if (event.key === "Tab") {
-      event.preventDefault();
-
-      commitCell(row, col, event.currentTarget.textContent || "");
-
-      setTimeout(() => selectCell(row, col + 1), 0);
-    }
-
-    if (event.key === "Escape") {
-      event.currentTarget.textContent =
-        cellToText(currentWorksheet?.getCell(row, col), workbook, currentWorksheet);
-      event.currentTarget.blur();
-    }
+    if (!selectedCell) return;
+    commitValue(selectedCell.row, selectedCell.col, formulaText);
   };
 
   const saveChanges = async () => {
@@ -1056,13 +1006,12 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
       setStatus("Preparing Excel file...");
 
       const buffer = await workbook.xlsx.writeBuffer();
-
       const newFile = new File([buffer], report.fileName, {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         lastModified: Date.now(),
       });
 
-      setStatus("Uploading edited Excel file to server...");
+      setStatus("Uploading edited Excel file...");
 
       const responseData = await updateReportFile({
         id: report.id,
@@ -1089,14 +1038,11 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
       };
 
       setDirty(false);
-      setStatus("Changes saved successfully. Server file replaced.");
-
+      setStatus("Changes saved successfully.");
       onSaved(updatedReport);
     } catch (err) {
       console.error("Save Excel error:", err);
-      setError(
-        err?.message || "Unable to upload the edited Excel file to the server."
-      );
+      setError(err?.message || "Unable to save the edited Excel file.");
     } finally {
       setSaving(false);
     }
@@ -1104,10 +1050,8 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
 
   const downloadCurrent = async () => {
     if (!workbook) return;
-
     try {
       const buffer = await workbook.xlsx.writeBuffer();
-
       downloadBlob(
         new Blob([buffer], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1115,27 +1059,19 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
         report.fileName
       );
     } catch (err) {
-      setError("Unable to download the edited Excel file.");
+      setError("Unable to download the Excel file.");
     }
   };
-
-  const currentView = sheets[activeSheetIndex];
 
   return (
     <div className="excel-editor-overlay">
       <div className="excel-editor-window">
-        {/* Excel title/ribbon header */}
         <div className="excel-top-header">
           <div className="excel-title-left">
             <div className="excel-logo">X</div>
-
             <div className="excel-document-name">
               <strong>{report.fileName}</strong>
-              <span>
-                {dirty
-                  ? "Unsaved changes"
-                  : "Editing in browser"}
-              </span>
+              <span>{dirty ? "Unsaved changes" : "Editing MPR Report in browser"}</span>
             </div>
           </div>
 
@@ -1148,7 +1084,6 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
             >
               {saving ? "Saving..." : "💾 Save Changes"}
             </button>
-
             <button
               type="button"
               className="excel-download-button"
@@ -1157,20 +1092,11 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
             >
               ⬇ Download
             </button>
-
             <button
               type="button"
               className="excel-close-button"
               onClick={() => {
-                if (
-                  dirty &&
-                  !window.confirm(
-                    "You have unsaved changes. Close without saving?"
-                  )
-                ) {
-                  return;
-                }
-
+                if (dirty && !window.confirm("You have unsaved changes. Close without saving?")) return;
                 onClose();
               }}
             >
@@ -1179,48 +1105,26 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
           </div>
         </div>
 
-        {/* Excel-like ribbon */}
         <div className="excel-ribbon">
           <div className="excel-ribbon-group">
-            <button
-              type="button"
-              onClick={() => formulaRef.current?.focus()}
-            >
-              fx
-            </button>
-
+            <button type="button" onClick={() => formulaRef.current?.focus()}>fx</button>
             <span className="excel-ribbon-label">Formula</span>
           </div>
-
           <div className="excel-ribbon-divider" />
-
           <div className="excel-ribbon-info">
             <span>
-              {selectedCell
-                ? `${columnLetter(selectedCell.col)}${selectedCell.row}`
-                : "Select a cell"}
+              {selectedCell ? `${columnLetter(selectedCell.col)}${selectedCell.row}` : "Select a cell"}
             </span>
-
-            <span>
-              {currentWorksheet?.name || ""}
-            </span>
+            <span>📊 MPR REPORT</span>
           </div>
-
-          <div className="excel-ribbon-status">
-            {status || "Ready"}
-          </div>
+          <div className="excel-ribbon-status">{status || "Ready"}</div>
         </div>
 
-        {/* Formula bar */}
         <div className="excel-formula-row">
           <div className="excel-name-box">
-            {selectedCell
-              ? `${columnLetter(selectedCell.col)}${selectedCell.row}`
-              : ""}
+            {selectedCell ? `${columnLetter(selectedCell.col)}${selectedCell.row}` : ""}
           </div>
-
           <div className="excel-formula-label">fx</div>
-
           <input
             ref={formulaRef}
             className="excel-formula-input"
@@ -1239,241 +1143,657 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
         {error && (
           <div className="excel-editor-error">
             <span>{error}</span>
-            <button
-              type="button"
-              onClick={() => setError("")}
-            >
-              ×
-            </button>
+            <button type="button" onClick={() => setError("")}>×</button>
           </div>
         )}
 
         {loading ? (
           <div className="excel-editor-loading">
             <div className="excel-spinner" />
-            <h3>Opening Excel workbook...</h3>
-            <p>Loading sheets, merged cells and formatting.</p>
+            <h3>Opening MPR Report...</h3>
+            <p>Loading the selected Excel file inside the browser.</p>
           </div>
         ) : (
-          <>
-            {/* Worksheet */}
-            <div className="excel-workspace">
-              <div className="excel-grid-scroll">
-                {currentView && (
-                  <table className="excel-edit-grid">
-                    <colgroup>
-                      <col className="excel-row-number-column" />
+          <div className="excel-workspace">
+            <div className="excel-grid-scroll">
+              <table className="excel-edit-grid">
+                <colgroup>
+                  <col className="excel-row-number-column" />
+                  {Array.from({ length: colCount }, (_, i) => (
+                    <col
+                      key={i + 1}
+                      style={{
+                        width: `${Math.max(35, (worksheet.getColumn(i + 1).width || 10) * 7)}px`,
+                      }}
+                    />
+                  ))}
+                </colgroup>
 
-                      {currentView.columns.map((column) => (
-                        <col
-                          key={column.number}
-                          style={{
-                            width: `${Math.max(
-                              35,
-                              column.width * 7
-                            )}px`,
-                          }}
-                        />
-                      ))}
-                    </colgroup>
-
-                    <thead>
-                      <tr>
-                        <th className="excel-corner-cell" />
-
-                        {currentView.columns.map((column) => (
-                          <th
-                            key={column.number}
-                            className="excel-column-header"
-                            style={{
-                              display: column.hidden
-                                ? "none"
-                                : "table-cell",
-                            }}
-                          >
-                            {column.letter}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {currentView.rows.map((row) => (
-                        <tr
-                          key={row.number}
-                          style={{
-                            height: `${Math.max(
-                              18,
-                              row.height
-                            )}px`,
-                            display: row.hidden
-                              ? "none"
-                              : "table-row",
-                          }}
+                <thead>
+                  <tr>
+                    <th className="excel-corner-cell" />
+                    {Array.from({ length: colCount }, (_, i) => {
+                      const column = worksheet.getColumn(i + 1);
+                      return (
+                        <th
+                          key={i + 1}
+                          className="excel-column-header"
+                          style={{ display: column.hidden ? "none" : "table-cell" }}
                         >
-                          <th className="excel-row-header">
-                            {row.number}
-                          </th>
+                          {columnLetter(i + 1)}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
 
-                          {row.cells.map((cell) => {
-                            if (
-                              cell.merge &&
-                              !cell.merge.isMaster
-                            ) {
-                              return null;
-                            }
+                <tbody>
+                  {Array.from({ length: rowCount }, (_, r) => {
+                    const rowNumber = r + 1;
+                    const row = worksheet.getRow(rowNumber);
 
-                            const isSelected =
-                              selectedCell?.row === cell.row &&
-                              selectedCell?.col === cell.col;
+                    return (
+                      <tr
+                        key={rowNumber}
+                        style={{
+                          height: `${Math.max(18, row.height || 18)}px`,
+                          display: row.hidden ? "none" : "table-row",
+                        }}
+                      >
+                        <th className="excel-row-header">{rowNumber}</th>
 
-                            return (
-                              <td
-                                key={`${cell.row}-${cell.col}`}
-                                rowSpan={
-                                  cell.merge?.rowSpan || 1
+                        {Array.from({ length: colCount }, (_, c) => {
+                          const colNumber = c + 1;
+                          const cell = worksheet.getCell(rowNumber, colNumber);
+                          const merge = mergeMap.get(`${rowNumber}:${colNumber}`);
+
+                          if (merge && !merge.isMaster) return null;
+
+                          const selected =
+                            selectedCell?.row === rowNumber &&
+                            selectedCell?.col === colNumber;
+
+                          return (
+                            <td
+                              key={`${rowNumber}-${colNumber}`}
+                              rowSpan={merge?.rowSpan || 1}
+                              colSpan={merge?.colSpan || 1}
+                              style={getCellStyle(cell, selected)}
+                              className={selected ? "excel-edit-cell selected" : "excel-edit-cell"}
+                              onClick={() => selectCell(rowNumber, colNumber)}
+                              contentEditable
+                              suppressContentEditableWarning
+                              spellCheck={false}
+                              onFocus={() => selectCell(rowNumber, colNumber)}
+                              onBlur={(event) =>
+                                commitValue(rowNumber, colNumber, event.currentTarget.textContent || "")
+                              }
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  event.currentTarget.blur();
+                                  setTimeout(() => selectCell(rowNumber + 1, colNumber), 0);
                                 }
-                                colSpan={
-                                  cell.merge?.colSpan || 1
+                                if (event.key === "Tab") {
+                                  event.preventDefault();
+                                  event.currentTarget.blur();
+                                  setTimeout(() => selectCell(rowNumber, colNumber + 1), 0);
                                 }
-                                style={getCellStyle(
-                                  currentWorksheet.getCell(
-                                    cell.row,
-                                    cell.col
-                                  ),
-                                  isSelected
-                                )}
-                                className={
-                                  isSelected
-                                    ? "excel-edit-cell selected"
-                                    : "excel-edit-cell"
-                                }
-                                onClick={() =>
-                                  selectCell(
-                                    cell.row,
-                                    cell.col
-                                  )
-                                }
-                                onDoubleClick={(event) => {
-                                  event.currentTarget.focus();
-                                }}
-                                contentEditable
-                                suppressContentEditableWarning
-                                spellCheck={false}
-                                onFocus={() =>
-                                  selectCell(
-                                    cell.row,
-                                    cell.col
-                                  )
-                                }
-                                onBlur={(event) => {
-                                  commitCell(
-                                    cell.row,
-                                    cell.col,
-                                    event.currentTarget.textContent ||
-                                      ""
-                                  );
-                                }}
-                                onKeyDown={(event) =>
-                                  handleCellKeyDown(
-                                    event,
-                                    cell.row,
-                                    cell.col
-                                  )
-                                }
-                              >
-                                {cell.value}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+                              }}
+                            >
+                              {cellToText(cell, workbook, worksheet)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
-            {/* Sheet tabs */}
             <div className="excel-bottom-bar">
-              <div className="excel-sheet-controls">
-                <button
-                  type="button"
-                  title="First sheet"
-                  onClick={() => setActiveSheetIndex(0)}
-                >
-                  ◀
-                </button>
-
-                <button
-                  type="button"
-                  title="Previous sheet"
-                  onClick={() =>
-                    setActiveSheetIndex((i) =>
-                      Math.max(0, i - 1)
-                    )
-                  }
-                >
-                  ‹
-                </button>
-
-                <button
-                  type="button"
-                  title="Next sheet"
-                  onClick={() =>
-                    setActiveSheetIndex((i) =>
-                      Math.min(sheets.length - 1, i + 1)
-                    )
-                  }
-                >
-                  ›
-                </button>
-
-                <button
-                  type="button"
-                  title="Last sheet"
-                  onClick={() =>
-                    setActiveSheetIndex(
-                      Math.max(0, sheets.length - 1)
-                    )
-                  }
-                >
-                  ▶
-                </button>
-              </div>
-
+              <div className="excel-sheet-controls" />
               <div className="excel-sheet-tabs">
-                {sheets.map((sheet, index) => (
-                  <button
-                    type="button"
-                    key={`${sheet.name}-${index}`}
-                    className={
-                      index === activeSheetIndex
-                        ? "excel-sheet-tab active"
-                        : "excel-sheet-tab"
-                    }
-                    onClick={() =>
-                      setActiveSheetIndex(index)
-                    }
-                  >
-                    {sheet.name}
-                  </button>
-                ))}
+                <button type="button" className="excel-sheet-tab active">
+                  📊 MPR REPORT
+                </button>
               </div>
-
-              <div className="excel-zoom">
-                100%
-              </div>
+              <div className="excel-zoom">100%</div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
+const DashboardTab = ({
+  report,
+  workbook,
+  reports = [],
+  aggregateAll = false,
+}) => {
+  const [dashboard, setDashboard] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const findSheet = (book, names, containsText) => {
+      if (!book) return null;
+      for (const name of names) {
+        const exact = book.getWorksheet(name);
+        if (exact) return exact;
+      }
+      return (
+        book.worksheets.find((ws) =>
+          String(ws.name || "").toLowerCase().includes(containsText)
+        ) || null
+      );
+    };
+
+    const unwrapExcelValue = (value) => {
+      if (value && typeof value === "object") {
+        if (Object.prototype.hasOwnProperty.call(value, "result")) {
+          return unwrapExcelValue(value.result);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, "text")) {
+          return value.text;
+        }
+        if (
+          Object.prototype.hasOwnProperty.call(value, "richText") &&
+          Array.isArray(value.richText)
+        ) {
+          return value.richText.map((item) => item?.text || "").join("");
+        }
+      }
+      return value;
+    };
+
+    const text = (value) =>
+      String(unwrapExcelValue(value) ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const normalized = (value) => text(value).toLowerCase();
+
+    const safeNumber = (value) => {
+      const raw = unwrapExcelValue(value);
+      if (raw === null || raw === undefined || raw === "") return 0;
+      if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
+
+      const cleaned = String(raw)
+        .replace(/₹/g, "")
+        .replace(/,/g, "")
+        .replace(/%/g, "")
+        .replace(/[()]/g, "")
+        .trim();
+      const number = Number(cleaned);
+      return Number.isFinite(number) ? number : 0;
+    };
+
+    const isTotalName = (name) => {
+      const value = normalized(name);
+      return (
+        !value ||
+        value === "कुल" ||
+        value.includes("कुल योग") ||
+        value.includes("ग्रैण्ड योग") ||
+        value.includes("grand total") ||
+        value === "total" ||
+        value.includes("total")
+      );
+    };
+
+    const findHeaderInfo = (sheet) => {
+      if (!sheet) return null;
+
+      let groupRow = 0;
+      let subHeaderRow = 0;
+      let dataStartRow = 0;
+
+      for (let row = 1; row <= Math.min(sheet.rowCount, 20); row += 1) {
+        const rowText = [];
+        for (let col = 1; col <= Math.min(sheet.columnCount, 30); col += 1) {
+          rowText.push(normalized(sheet.getCell(row, col).value));
+        }
+        const hasItemHeader = rowText.some(
+          (value) =>
+            value.includes("मद का नाम") ||
+            value === "item" ||
+            value.includes("item name") ||
+            value.includes("activity")
+        );
+
+        if (hasItemHeader) {
+          groupRow = row;
+          subHeaderRow = row + 1;
+          dataStartRow = row + 2;
+          break;
+        }
+      }
+
+      if (!groupRow) return null;
+
+      const groups = [];
+      let currentGroup = "";
+
+      for (let col = 4; col <= sheet.columnCount; col += 1) {
+        const groupCell = text(sheet.getCell(groupRow, col).value);
+        if (groupCell) currentGroup = groupCell;
+
+        const subHeader = text(sheet.getCell(subHeaderRow, col).value);
+        const sub = normalized(subHeader);
+        const group = currentGroup;
+
+        if (!group) continue;
+
+        const isFinancial =
+          sub.includes("वित्तीय") ||
+          sub.includes("financial") ||
+          sub.includes("finance");
+
+        if (isFinancial) {
+          groups.push({
+            name: group,
+            financialCol: col,
+            total: isTotalName(group),
+          });
+        }
+      }
+
+      // Remove duplicate columns created by unusual merged/header layouts.
+      const uniqueGroups = [];
+      const seen = new Set();
+      for (const item of groups) {
+        const key = normalized(item.name);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        uniqueGroups.push(item);
+      }
+
+      return {
+        groupRow,
+        subHeaderRow,
+        dataStartRow,
+        groups: uniqueGroups,
+      };
+    };
+
+    const parseWorkbook = (book, sourceReport) => {
+      const mprSheet = findSheet(
+        book,
+        ["📊 MPR REPORT", "MPR REPORT"],
+        "mpr report"
+      );
+      const dataSheet = findSheet(
+        book,
+        ["📝 DATA ENTRY", "DATA ENTRY"],
+        "data entry"
+      );
+
+      const sheet = mprSheet || dataSheet;
+      if (!sheet) {
+        return {
+          schemes: [],
+          total: 0,
+          beneficiaries: 0,
+          hasBeneficiaries: false,
+          fileName: sourceReport?.fileName || "MPR.xlsx",
+        };
+      }
+
+      const header = findHeaderInfo(sheet);
+      const schemes = [];
+      let total = 0;
+      let totalFound = false;
+      let beneficiaries = 0;
+      let hasBeneficiaries = false;
+      let beneficiaryColumnUsed = null;
+
+      if (header) {
+        const itemColumn = 2;
+        const serialColumn = 1;
+
+        // Detect beneficiary column without assuming a fixed position.
+        for (let row = 1; row <= Math.min(sheet.rowCount, 15); row += 1) {
+          for (let col = 1; col <= sheet.columnCount; col += 1) {
+            const cellText = normalized(sheet.getCell(row, col).value);
+            if (
+              cellText.includes("लाभार्थी") ||
+              cellText.includes("beneficiar")
+            ) {
+              hasBeneficiaries = true;
+              break;
+            }
+          }
+          if (hasBeneficiaries) break;
+        }
+
+        const beneficiaryCol = hasBeneficiaries
+          ? (() => {
+              for (let col = 1; col <= sheet.columnCount; col += 1) {
+                for (let row = 1; row <= Math.min(sheet.rowCount, 15); row += 1) {
+                  const cellText = normalized(sheet.getCell(row, col).value);
+                  if (
+                    cellText.includes("लाभार्थी") ||
+                    cellText.includes("beneficiar")
+                  ) {
+                    return col;
+                  }
+                }
+              }
+              return null;
+            })()
+          : null;
+
+        beneficiaryColumnUsed = beneficiaryCol;
+
+        const schemeGroups = header.groups.filter((group) => !group.total);
+        const totalsGroup = header.groups.find((group) => group.total);
+
+        const schemeMap = new Map();
+        for (const group of schemeGroups) {
+          schemeMap.set(normalized(group.name), {
+            name: group.name,
+            value: 0,
+          });
+        }
+
+        for (
+          let row = header.dataStartRow;
+          row <= sheet.rowCount;
+          row += 1
+        ) {
+          const serialText = normalized(sheet.getCell(row, serialColumn).value);
+          const itemText = normalized(sheet.getCell(row, itemColumn).value);
+
+          if (
+            serialText === "कुल" ||
+            itemText === "कुल" ||
+            itemText.includes("ग्रैण्ड योग") ||
+            itemText.includes("grand total")
+          ) {
+            break;
+          }
+
+          const itemName = text(sheet.getCell(row, itemColumn).value);
+          const hasRowData = Array.from(
+            { length: sheet.columnCount },
+            (_, index) => text(sheet.getCell(row, index + 1).value)
+          ).some(Boolean);
+
+          if (!hasRowData || !itemName) continue;
+
+          for (const group of schemeGroups) {
+            const key = normalized(group.name);
+            const entry = schemeMap.get(key);
+            if (entry) {
+              entry.value += safeNumber(
+                sheet.getCell(row, group.financialCol).value
+              );
+            }
+          }
+
+          if (totalsGroup) {
+            const cellValue = sheet.getCell(row, totalsGroup.financialCol).value;
+            total += safeNumber(cellValue);
+          }
+
+          if (beneficiaryCol) {
+            beneficiaries += safeNumber(
+              sheet.getCell(row, beneficiaryCol).value
+            );
+          }
+        }
+
+        totalFound = Boolean(totalsGroup);
+
+        // If there is no explicit total column, calculate the total from the
+        // financial columns actually present in this workbook.
+        if (!totalFound) {
+          total = [...schemeMap.values()].reduce(
+            (sum, item) => sum + item.value,
+            0
+          );
+        }
+
+        schemes.push(
+          ...[...schemeMap.values()].map((item) => ({
+            ...item,
+            sourceFile: sourceReport?.fileName || "",
+          }))
+        );
+      }
+
+      return {
+        schemes,
+        total,
+        beneficiaries,
+        hasBeneficiaries: Boolean(beneficiaryColumnUsed || hasBeneficiaries),
+        fileName: sourceReport?.fileName || "MPR.xlsx",
+      };
+    };
+
+    const buildDashboard = async () => {
+      try {
+        setError("");
+        setDashboard(null);
+
+        let parsedReports = [];
+
+        if (aggregateAll) {
+          if (!reports.length) {
+            throw new Error("No MPR Excel reports are available for the overall dashboard.");
+          }
+
+          const results = await Promise.all(
+            reports.map(async (item) => {
+              const file = await fetchReportFile(item);
+              const book = await workbookFromFile(file);
+              return parseWorkbook(book, item);
+            })
+          );
+          parsedReports = results;
+        } else if (workbook && report) {
+          parsedReports = [parseWorkbook(workbook, report)];
+        } else {
+          return;
+        }
+
+        if (cancelled) return;
+
+        const schemeMap = new Map();
+        let total = 0;
+        let beneficiaries = 0;
+        let hasBeneficiaries = false;
+
+        for (const parsed of parsedReports) {
+          total += safeNumber(parsed.total);
+          beneficiaries += safeNumber(parsed.beneficiaries);
+          hasBeneficiaries = hasBeneficiaries || parsed.hasBeneficiaries;
+
+          for (const scheme of parsed.schemes) {
+            const key = normalized(scheme.name);
+            if (!key) continue;
+            const existing = schemeMap.get(key);
+            if (existing) {
+              existing.value += safeNumber(scheme.value);
+            } else {
+              schemeMap.set(key, {
+                name: scheme.name,
+                value: safeNumber(scheme.value),
+              });
+            }
+          }
+        }
+
+        const schemes = [...schemeMap.values()];
+
+        setDashboard({
+          source: aggregateAll ? "ALL_REPORTS" : "SELECTED_REPORT",
+          values: {
+            total,
+            beneficiaries,
+          },
+          schemes,
+          reportCount: parsedReports.length,
+          title: "📈 MPR DASHBOARD — Auto-Updated Summary",
+          subtitle: aggregateAll
+            ? `Overall Summary | ${parsedReports.length} MPR Reports`
+            : `${getMonthName(report?.month)} | वर्ष ${report?.financialYear || ""}`.trim(),
+        });
+      } catch (err) {
+        console.error("Dashboard build error:", err);
+        if (!cancelled) {
+          setError(err?.message || "Unable to create dashboard from the selected Excel report(s).");
+          setDashboard(null);
+        }
+      }
+    };
+
+    buildDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [aggregateAll, report, reports, workbook]);
+
+  if (error) {
+    return <div className="mpr-dashboard-error">{error}</div>;
+  }
+
+  if (!dashboard) {
+    return (
+      <div className="mpr-dashboard-loading">
+        <div className="mpr-loading-small" />
+        <p>
+          {aggregateAll
+            ? "Reading all MPR Excel reports and creating overall dashboard..."
+            : "Reading selected Excel report and creating dashboard..."}
+        </p>
+      </div>
+    );
+  }
+
+  const formatValue = (value) =>
+    Number(value || 0).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const cards = [
+    ["कुल वित्तीय उपलब्धि", dashboard.values.total, "₹ लाखों में", true],
+    ...dashboard.schemes.map((scheme) => [
+      scheme.name,
+      scheme.value,
+      "₹ लाखों में",
+      false,
+    ]),
+  ];
+
+  if (dashboard.values && dashboard.values.beneficiaries > 0) {
+    cards.push([
+      "कुल लाभार्थी",
+      dashboard.values.beneficiaries,
+      "लाभार्थी संख्या",
+      false,
+    ]);
+  }
+
+  return (
+    <div className="mpr-dashboard-page">
+      <div className="mpr-dashboard-title">
+        <div>{dashboard.title}</div>
+        <span>{dashboard.subtitle}</span>
+      </div>
+
+      <div className="mpr-dashboard-source">
+        <span>
+          {dashboard.source === "ALL_REPORTS"
+            ? `Overall dashboard generated from ${dashboard.reportCount} selected reports:`
+            : "Dashboard generated from selected Excel:"}
+        </span>
+        <strong>
+          {dashboard.source === "ALL_REPORTS"
+            ? "All matching MPR Excel Reports"
+            : report?.fileName || "Selected MPR Report"}
+        </strong>
+        <span className="mpr-dashboard-source-type">
+          {dashboard.source === "ALL_REPORTS" ? "OVERALL" : "SELECTED REPORT"}
+        </span>
+      </div>
+
+      {dashboard.schemes.length === 0 ? (
+        <div className="mpr-dashboard-error">
+          No scheme/yojna financial columns were found in this Excel report.
+        </div>
+      ) : (
+        <>
+          <div
+            className="mpr-dashboard-summary-grid"
+            style={{
+              "--mpr-card-columns": Math.min(Math.max(cards.length, 1), 7),
+            }}
+          >
+            {cards.map(([label, value, unit, isTotal], index) => (
+              <div
+                key={`${label}-${index}`}
+                className={`mpr-dashboard-summary-card ${
+                  isTotal ? "main-total" : ""
+                }`}
+              >
+                <div className="mpr-dashboard-card-label">{label}</div>
+                <div className="mpr-dashboard-card-value">
+                  {formatValue(value)}
+                </div>
+                <div className="mpr-dashboard-card-unit">{unit}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mpr-dashboard-table-card">
+            <div className="mpr-dashboard-table-title">
+              योजना-वार वित्तीय उपलब्धि
+            </div>
+            <div className="mpr-dashboard-table-wrap">
+              <table className="mpr-dashboard-table">
+                <thead>
+                  <tr>
+                    <th>योजना</th>
+                    <th>वित्तीय उपलब्धि</th>
+                    <th>इकाई</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboard.schemes.map((scheme, index) => (
+                    <tr key={`${scheme.name}-${index}`}>
+                      <td>{scheme.name}</td>
+                      <td>{formatValue(scheme.value)}</td>
+                      <td>₹ लाखों में</td>
+                    </tr>
+                  ))}
+                  <tr className="mpr-dashboard-total-row">
+                    <td>कुल वित्तीय उपलब्धि</td>
+                    <td>{formatValue(dashboard.values.total)}</td>
+                    <td>₹ लाखों में</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const MonthReport = () => {
   const [reports, setReports] = useState([]);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedWorkbook, setSelectedWorkbook] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingReport, setEditingReport] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -1482,9 +1802,12 @@ const MonthReport = () => {
   const [financialYear, setFinancialYear] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
 
+  const [monthFilter, setMonthFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -1492,11 +1815,13 @@ const MonthReport = () => {
     try {
       setLoading(true);
       setError("");
-
       const data = await apiFetch(API_URL);
       const apiReports = getReportsFromResponse(data);
-
       setReports(apiReports);
+
+      // Keep the file selection empty initially. With both filters set to
+      // "All", the Dashboard must show the overall of every uploaded report.
+      setSelectedReport(null);
     } catch (err) {
       console.error("Load MPR reports error:", err);
       setError(err?.message || "Unable to load MPR reports from the server.");
@@ -1509,20 +1834,103 @@ const MonthReport = () => {
     loadReports();
   }, []);
 
-  const currentMonthYear = useMemo(() => {
-    if (!month || !financialYear) return "";
-    return `${getMonthName(month)}-${financialYear}`;
-  }, [month, financialYear]);
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSelectedDashboardWorkbook = async () => {
+      // In All Months + All Financial Years mode, DashboardTab reads all
+      // reports itself and builds the overall dashboard.
+      if (!selectedReport) {
+        setSelectedWorkbook(null);
+        setDashboardLoading(false);
+        return;
+      }
+
+      try {
+        setDashboardLoading(true);
+        setError("");
+        const file = await fetchReportFile(selectedReport);
+        const workbook = await workbookFromFile(file);
+        if (!cancelled) setSelectedWorkbook(workbook);
+      } catch (err) {
+        console.error("Dashboard workbook load error:", err);
+        if (!cancelled) {
+          setSelectedWorkbook(null);
+          setError(
+            err?.message ||
+              "Unable to read the selected Excel file for Dashboard."
+          );
+        }
+      } finally {
+        if (!cancelled) setDashboardLoading(false);
+      }
+    };
+
+    loadSelectedDashboardWorkbook();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReport?.id]);
+
+  const filteredReports = useMemo(
+    () =>
+      reports.filter(
+        (item) =>
+          (!monthFilter || String(item.month) === String(monthFilter)) &&
+          (!yearFilter || String(item.financialYear) === String(yearFilter))
+      ),
+    [reports, monthFilter, yearFilter]
+  );
+
+  const uniqueYears = useMemo(
+    () => [...new Set(reports.map((item) => item.financialYear).filter(Boolean))],
+    [reports]
+  );
+
+  useEffect(() => {
+    // Explicit requirement: All Months + All Financial Years means the
+    // overall dashboard of every uploaded report.
+    if (!monthFilter && !yearFilter) {
+      setSelectedReport(null);
+      return;
+    }
+
+    if (!filteredReports.length) {
+      setSelectedReport(null);
+      return;
+    }
+
+    const stillVisible = filteredReports.some(
+      (item) => String(item.id) === String(selectedReport?.id)
+    );
+
+    if (!stillVisible) {
+      setSelectedReport(filteredReports[0]);
+    }
+  }, [filteredReports, monthFilter, yearFilter]);
+
+  const selectReport = (event) => {
+    const id = event.target.value;
+
+    if (!id) {
+      // Blank selection in All/All mode means overall dashboard.
+      setSelectedReport(null);
+      setActiveTab("dashboard");
+      return;
+    }
+
+    const report = reports.find((item) => String(item.id) === String(id));
+    if (!report) return;
+
+    setSelectedReport(report);
+    setActiveTab("dashboard");
+  };
 
   const resetForm = () => {
     setMonth("");
     setFinancialYear("");
     setSelectedFile(null);
-    setEditingReport(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const openAdd = () => {
@@ -1543,38 +1951,28 @@ const MonthReport = () => {
       setError("Please select an Excel file.");
       return false;
     }
-
     const extension = file.name.toLowerCase().split(".").pop();
-
     if (extension !== "xlsx") {
-      setError(
-        "Only .xlsx Excel files are supported for editing."
-      );
+      setError("Only .xlsx Excel files are supported.");
       return false;
     }
-
     if (file.size > MAX_FILE_SIZE) {
       setError("Maximum Excel file size is 25 MB.");
       return false;
     }
-
     return true;
   };
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0] || null;
-
     setError("");
     setSuccess("");
-
     if (!file) {
       setSelectedFile(null);
       return;
     }
-
-    if (validateFile(file)) {
-      setSelectedFile(file);
-    } else {
+    if (validateFile(file)) setSelectedFile(file);
+    else {
       event.target.value = "";
       setSelectedFile(null);
     }
@@ -1582,51 +1980,34 @@ const MonthReport = () => {
 
   const saveNewReport = async (event) => {
     event.preventDefault();
-
     setError("");
     setSuccess("");
 
-    if (!month) {
-      setError("Please select Month.");
-      return;
-    }
-
-    if (!financialYear) {
-      setError("Please select Financial Year.");
-      return;
-    }
-
+    if (!month) return setError("Please select Month.");
+    if (!financialYear) return setError("Please select Financial Year.");
     if (!validateFile(selectedFile)) return;
 
     try {
       await workbookFromFile(selectedFile);
-
       setLoading(true);
-
       const responseData = await uploadReport({
         month,
         financialYear,
         file: selectedFile,
       });
-
       const uploaded = getReportsFromResponse(responseData)[0];
-
       if (uploaded) {
         setReports((previous) => [uploaded, ...previous]);
+        setSelectedReport(uploaded);
       } else {
-        // Some APIs return 201 with no useful object. Refresh the list so
-        // the server remains the source of truth.
         await loadReports();
       }
-
       setSuccess("MPR Excel report uploaded successfully to the server.");
       setShowModal(false);
       resetForm();
     } catch (err) {
       console.error("Upload MPR error:", err);
-      setError(
-        err?.message || "The selected Excel file could not be uploaded."
-      );
+      setError(err?.message || "The selected Excel file could not be uploaded.");
     } finally {
       setLoading(false);
     }
@@ -1636,61 +2017,44 @@ const MonthReport = () => {
     try {
       setError("");
       setSuccess("");
-
-      /*
-        Fetch the workbook from Django and pass the bytes to ExcelJS.
-        Nothing is opened in Microsoft Excel and nothing is downloaded
-        when the user clicks View / Edit.
-      */
       const file = await fetchReportFile(report);
-
-      setEditingReport({
-        ...report,
-        file,
-        fileSize: file.size,
-      });
-
+      setEditingReport({ ...report, file, fileSize: file.size });
       setShowEditor(true);
     } catch (err) {
       console.error("Open MPR error:", err);
-
-      setError(
-        err?.message ||
-          "Unable to open the Excel report in the browser."
-      );
+      setError(err?.message || "Unable to open the Excel report.");
     }
   };
 
-  const handleEditorSaved = (updatedReport) => {
+  const handleEditorSaved = async (updatedReport) => {
     setReports((previous) =>
       previous.map((item) =>
-        item.id === updatedReport.id
-          ? updatedReport
-          : item
+        item.id === updatedReport.id ? updatedReport : item
       )
     );
+    setSelectedReport(updatedReport);
+    setSuccess(`${updatedReport.fileName} was replaced with the edited Excel file.`);
 
-    setEditingReport(updatedReport);
-    setSuccess(
-      `${updatedReport.fileName} was replaced with the edited Excel file.`
-    );
+    try {
+      const file = updatedReport.file || (await fetchReportFile(updatedReport));
+      const workbook = await workbookFromFile(file);
+      setSelectedWorkbook(workbook);
+    } catch (err) {
+      console.error("Refresh dashboard after save error:", err);
+    }
   };
 
   const deleteReport = async (id) => {
-    const confirmed = window.confirm(
-      "क्या आप इस MPR Excel report को delete करना चाहते हैं?"
-    );
-
-    if (!confirmed) return;
+    if (!window.confirm("क्या आप इस MPR Excel report को delete करना चाहते हैं?")) return;
 
     try {
       setError("");
       await deleteReportFromApi(id);
-
-      setReports((previous) =>
-        previous.filter((item) => item.id !== id)
-      );
-
+      setReports((previous) => previous.filter((item) => item.id !== id));
+      if (selectedReport?.id === id) {
+        setSelectedReport(null);
+        setSelectedWorkbook(null);
+      }
       setSuccess("MPR Excel report deleted successfully from the server.");
     } catch (err) {
       console.error("Delete MPR error:", err);
@@ -1700,21 +2064,98 @@ const MonthReport = () => {
 
   return (
     <div className="month-report-page">
+      <style>{`
+        .mpr-module-card {
+          background: #fff;
+          border: 1px solid #dfe5ea;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 10px rgba(0,0,0,.05);
+        }
+        .mpr-module-toolbar {
+          display:flex; justify-content:space-between; align-items:center; gap:16px;
+          flex-wrap:wrap; padding:10px 14px; background:#f7f9fb; border-bottom:1px solid #dfe5ea;
+        }
+        .mpr-main-tabs { display:flex; gap:0; }
+        .mpr-main-tab {
+          border:1px solid #cfd8df; border-bottom:3px solid transparent; background:#edf1f4;
+          color:#23415f; padding:10px 20px; cursor:pointer; font-weight:700; font-size:14px;
+        }
+        .mpr-main-tab:first-child { border-radius:5px 0 0 5px; }
+        .mpr-main-tab:last-child { border-radius:0 5px 5px 0; }
+        .mpr-main-tab.active { background:#1a5276; color:#fff; border-color:#1a5276; }
+        .mpr-file-filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .mpr-file-filters select {
+          min-width:145px; height:36px; padding:0 9px; border:1px solid #c9d3dc; border-radius:5px;
+          background:#fff; color:#243b53; font-size:13px; outline:none;
+        }
+        .mpr-file-filters select:last-child { min-width:330px; }
+        .mpr-file-filters select:focus { border-color:#1a5276; box-shadow:0 0 0 2px rgba(26,82,118,.1); }
+        .mpr-selected-file-bar {
+          display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+          padding:8px 14px; background:#ebf5fb; border-bottom:1px solid #d5e6f0; color:#1b2631; font-size:13px;
+        }
+        .mpr-selected-file-bar span { color:#1a5276; font-weight:700; }
+        .mpr-dashboard-wrapper { background:#fff; }
+        .mpr-dashboard-page { width:100%; padding:0; background:#fff; color:#1b2631; font-family:Arial,sans-serif; }
+        .mpr-dashboard-title { background:#1a5276; color:#fff; text-align:center; padding:11px 14px 8px; border-bottom:1px solid #154360; font-weight:700; font-size:18px; }
+        .mpr-dashboard-source {
+          display:flex;
+          align-items:center;
+          gap:8px;
+          flex-wrap:wrap;
+          margin:0 0 14px 0;
+          padding:9px 12px;
+          background:#f7f9fb;
+          border:1px solid #dfe5ea;
+          border-radius:6px;
+          color:#60758a;
+          font-size:12px;
+        }
+        .mpr-dashboard-source strong {
+          color:#173b63;
+          font-weight:700;
+          word-break:break-word;
+        }
+        .mpr-dashboard-source-type {
+          margin-left:auto;
+          padding:3px 8px;
+          border-radius:12px;
+          background:#e8f2fb;
+          color:#1a5276;
+          font-weight:700;
+        }
+
+        .mpr-dashboard-title span { display:block; margin-top:4px; font-size:12px; font-weight:600; color:#eaf5fb; }
+        .mpr-dashboard-summary-grid { display:grid; grid-template-columns:repeat(var(--mpr-card-columns, 7),minmax(0,1fr)); gap:0; border-bottom:1px solid #cbd5dc; }
+        .mpr-dashboard-summary-card { min-width:0; }
+        .mpr-dashboard-summary-card { min-height:102px; padding:13px 8px 10px; text-align:center; background:#f8f9fa; border-right:1px solid #cbd5dc; }
+        .mpr-dashboard-summary-card:last-child { border-right:0; }
+        .mpr-dashboard-summary-card.main-total { background:#d5f5e3; }
+        .mpr-dashboard-card-label { color:#1a5276; font-size:12px; font-weight:700; min-height:32px; display:flex; align-items:center; justify-content:center; }
+        .mpr-dashboard-card-value { margin-top:6px; font-size:20px; font-weight:800; color:#1b2631; }
+        .mpr-dashboard-summary-card.main-total .mpr-dashboard-card-value { color:#1e8449; }
+        .mpr-dashboard-card-unit { margin-top:4px; font-size:10px; color:#596a79; }
+        .mpr-dashboard-table-card { margin:16px; border:1px solid #d7dee4; }
+        .mpr-dashboard-table-title { background:#1a5276; color:#fff; padding:8px 12px; font-size:13px; font-weight:700; }
+        .mpr-dashboard-table-scroll { overflow-x:auto; }
+        .mpr-dashboard-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .mpr-dashboard-table th { background:#154360; color:#fff; padding:8px 10px; text-align:left; border:1px solid #fff; }
+        .mpr-dashboard-table td { padding:8px 10px; border:1px solid #d7dee4; }
+        .mpr-dashboard-table td:last-child { text-align:right; font-weight:700; }
+        .mpr-dashboard-table tbody tr:nth-child(even) { background:#f8f9fa; }
+        .mpr-dashboard-loading { padding:70px 20px; text-align:center; color:#5d7083; }
+        .mpr-dashboard-error { padding:45px 20px; text-align:center; color:#b42318; background:#fff5f5; }
+        @media (max-width:1100px) { .mpr-dashboard-summary-grid { --mpr-card-columns:4; } .mpr-dashboard-summary-card { border-bottom:1px solid #cbd5dc; } .mpr-file-filters select:last-child { min-width:260px; } }
+        @media (max-width:700px) { .mpr-dashboard-summary-grid { --mpr-card-columns:2; } .mpr-main-tabs { width:100%; } .mpr-main-tab { flex:1; padding:9px 10px; } .mpr-file-filters { width:100%; } .mpr-file-filters select, .mpr-file-filters select:last-child { min-width:100%; width:100%; } .mpr-dashboard-card-value { font-size:17px; } .mpr-dashboard-table-card { margin:10px; } }
+      `}</style>
       <div className="month-report-container">
         <div className="month-report-header">
           <div>
             <h2>Monthly Progress Report</h2>
-            <p>
-              Upload, view and edit your Excel MPR directly in the
-              browser.
-            </p>
+            <p>Upload, view and edit your Excel MPR directly in the browser.</p>
           </div>
-
-          <button
-            type="button"
-            className="mpr-add-btn"
-            onClick={openAdd}
-          >
+          <button type="button" className="mpr-add-btn" onClick={openAdd}>
             + Add MPR Report
           </button>
         </div>
@@ -1722,142 +2163,163 @@ const MonthReport = () => {
         {success && (
           <div className="mpr-alert mpr-success">
             {success}
-
-            <button
-              type="button"
-              onClick={() => setSuccess("")}
-            >
-              ×
-            </button>
+            <button type="button" onClick={() => setSuccess("")}>×</button>
           </div>
         )}
 
-        {error && !showModal && (
+        {error && !showModal && !showEditor && (
           <div className="mpr-alert mpr-error">
             {error}
-
-            <button
-              type="button"
-              onClick={() => setError("")}
-            >
-              ×
-            </button>
+            <button type="button" onClick={() => setError("")}>×</button>
           </div>
         )}
 
-        <div className="mpr-table-card">
-          <div className="mpr-table-header">
-            <div>
-              <h3>MPR Reports</h3>
-              <p>
-                Reports are loaded and stored through the Month Reports API.
-              </p>
+        <div className="mpr-module-card">
+          <div className="mpr-module-toolbar">
+            <div className="mpr-main-tabs">
+              <button
+                type="button"
+                className={activeTab === "dashboard" ? "mpr-main-tab active" : "mpr-main-tab"}
+                onClick={() => setActiveTab("dashboard")}
+              >
+                📈 Dashboard
+              </button>
+              <button
+                type="button"
+                className={activeTab === "mpr" ? "mpr-main-tab active" : "mpr-main-tab"}
+                onClick={() => setActiveTab("mpr")}
+              >
+                📊 MPR Report
+              </button>
             </div>
 
-            <div className="mpr-static-badge">
-              LIVE API + EXCEL EDITOR
+            <div className="mpr-file-filters">
+              <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
+                <option value="">All Months</option>
+                {months.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+
+              <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
+                <option value="">All Financial Years</option>
+                {uniqueYears.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedReport?.id || ""}
+                onChange={selectReport}
+                disabled={!filteredReports.length}
+              >
+                <option value="">
+                  {(!monthFilter && !yearFilter)
+                    ? "Overall — All MPR Reports"
+                    : "Select MPR Excel File"}
+                </option>
+                {filteredReports.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {getMonthName(item.month)} — {item.financialYear} — {item.fileName}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {loading ? (
-            <div className="mpr-empty">
-              <div className="mpr-loading-small" />
-              <p>Loading MPR reports from server...</p>
-            </div>
-          ) : reports.length === 0 ? (
-            <div className="mpr-empty">
-              <div className="mpr-empty-icon">📊</div>
+          {activeTab === "dashboard" ? (
+            <div className="mpr-dashboard-wrapper">
+              <div className="mpr-selected-file-bar">
+                <div>
+                  <strong>Dashboard for:</strong>{" "}
+                  {selectedReport?.fileName || "Overall — All MPR Reports"}
+                </div>
+                <span>
+                  {selectedReport
+                    ? `${getMonthName(selectedReport.month)} · ${selectedReport.financialYear}`
+                    : "All Months · All Financial Years"}
+                </span>
+              </div>
 
-              <h4>No MPR Reports Uploaded</h4>
-
-              <p>
-                Upload an .xlsx workbook. It will be stored on the server,
-                then you can open it, edit cells and save the edited workbook.
-              </p>
-
-              <button
-                type="button"
-                className="mpr-empty-btn"
-                onClick={openAdd}
-              >
-                + Upload Excel Report
-              </button>
+              {dashboardLoading ? (
+                <div className="mpr-dashboard-loading">
+                  <div className="mpr-loading-small" />
+                  <p>Reading Excel data and creating dashboard...</p>
+                </div>
+              ) : !selectedReport && (monthFilter || yearFilter) ? (
+                <div className="mpr-empty">
+                  <div className="mpr-empty-icon">📈</div>
+                  <h4>No MPR Report Found</h4>
+                  <p>No Excel report matches the selected Month / Financial Year filters.</p>
+                </div>
+              ) : (
+                <DashboardTab
+                  report={selectedReport}
+                  workbook={selectedWorkbook}
+                  reports={monthFilter || yearFilter ? filteredReports : reports}
+                  aggregateAll={!selectedReport && !monthFilter && !yearFilter}
+                />
+              )}
             </div>
           ) : (
             <div className="mpr-table-wrapper">
-              <table className="mpr-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Month</th>
-                    <th>Financial Year</th>
-                    <th>MPR Excel File</th>
-                    <th>Last Updated</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {reports.map((report, index) => (
-                    <tr key={report.id}>
-                      <td>{index + 1}</td>
-
-                      <td>
-                        <span className="mpr-month-badge">
-                          {getMonthName(report.month)}
-                        </span>
-                      </td>
-
-                      <td>{report.financialYear}</td>
-
-                      <td>
-                        <div className="mpr-file-cell">
-                          <div className="mpr-file-icon">X</div>
-
-                          <div>
-                            <strong>{report.fileName}</strong>
-
-                            <small>
-                              {formatSize(report.fileSize)}
-                            </small>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>
-                        {new Date(
-                          report.updatedAt ||
-                            report.createdAt
-                        ).toLocaleString("en-IN")}
-                      </td>
-
-                      <td>
-                        <div className="mpr-actions">
-                          <button
-                            type="button"
-                            className="mpr-view-btn"
-                            onClick={() =>
-                              openReport(report)
-                            }
-                          >
-                            👁 View / Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            className="mpr-delete-btn"
-                            onClick={() =>
-                              deleteReport(report.id)
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
+              {loading ? (
+                <div className="mpr-empty">
+                  <div className="mpr-loading-small" />
+                  <p>Loading MPR reports from server...</p>
+                </div>
+              ) : reports.length === 0 ? (
+                <div className="mpr-empty">
+                  <div className="mpr-empty-icon">📊</div>
+                  <h4>No MPR Reports Uploaded</h4>
+                  <p>Upload an .xlsx workbook to create the MPR report.</p>
+                  <button type="button" className="mpr-empty-btn" onClick={openAdd}>
+                    + Upload Excel Report
+                  </button>
+                </div>
+              ) : (
+                <table className="mpr-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Month</th>
+                      <th>Financial Year</th>
+                      <th>MPR Excel File</th>
+                      <th>Last Updated</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredReports.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td><span className="mpr-month-badge">{getMonthName(item.month)}</span></td>
+                        <td>{item.financialYear}</td>
+                        <td>
+                          <div className="mpr-file-cell">
+                            <div className="mpr-file-icon">X</div>
+                            <div>
+                              <strong>{item.fileName}</strong>
+                              <small>{formatSize(item.fileSize)}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{new Date(item.updatedAt || item.createdAt).toLocaleString("en-IN")}</td>
+                        <td>
+                          <div className="mpr-actions">
+                            <button type="button" className="mpr-view-btn" onClick={() => openReport(item)}>
+                              👁 View / Edit
+                            </button>
+                            <button type="button" className="mpr-delete-btn" onClick={() => deleteReport(item.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </div>
@@ -1869,156 +2331,41 @@ const MonthReport = () => {
             <div className="mpr-modal-header">
               <div>
                 <h3>Add MPR Report</h3>
-                <p>
-                  Select the month, financial year and Excel file.
-                </p>
+                <p>Select the month, financial year and Excel file.</p>
               </div>
-
-              <button
-                type="button"
-                className="mpr-close-btn"
-                onClick={closeModal}
-              >
-                ×
-              </button>
+              <button type="button" className="mpr-close-btn" onClick={closeModal}>×</button>
             </div>
 
             <form onSubmit={saveNewReport}>
               <div className="mpr-modal-body">
                 <div className="mpr-form-group">
-                  <label>
-                    Month <span>*</span>
-                  </label>
-
-                  <select
-                    value={month}
-                    onChange={(e) =>
-                      setMonth(e.target.value)
-                    }
-                  >
-                    <option value="">
-                      Select Month
-                    </option>
-
-                    {months.map((item) => (
-                      <option
-                        key={item.value}
-                        value={item.value}
-                      >
-                        {item.label}
-                      </option>
-                    ))}
+                  <label>Month <span>*</span></label>
+                  <select value={month} onChange={(e) => setMonth(e.target.value)}>
+                    <option value="">Select Month</option>
+                    {months.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
                 </div>
 
                 <div className="mpr-form-group">
-                  <label>
-                    Financial Year <span>*</span>
-                  </label>
-
-                  <select
-                    value={financialYear}
-                    onChange={(e) =>
-                      setFinancialYear(e.target.value)
-                    }
-                  >
-                    <option value="">
-                      Select Financial Year
-                    </option>
-
-                    {financialYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
+                  <label>Financial Year <span>*</span></label>
+                  <select value={financialYear} onChange={(e) => setFinancialYear(e.target.value)}>
+                    <option value="">Select Financial Year</option>
+                    {financialYears.map((year) => <option key={year} value={year}>{year}</option>)}
                   </select>
                 </div>
 
                 <div className="mpr-form-group">
-                  <label>
-                    MPR Excel Report <span>*</span>
-                  </label>
-
-                  <div className="mpr-upload-box">
-                    <div className="mpr-upload-icon">
-                      📊
-                    </div>
-
-                    <h4>
-                      Select Excel workbook
-                    </h4>
-
-                    <p>
-                      .xlsx files only • Maximum 25 MB
-                    </p>
-
-                    <label className="mpr-browse-btn">
-                      Browse Excel File
-
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        onChange={handleFileChange}
-                        hidden
-                      />
-                    </label>
-                  </div>
-
-                  {selectedFile && (
-                    <div className="mpr-selected-file">
-                      <div className="mpr-selected-file-left">
-                        <div className="mpr-file-icon">
-                          X
-                        </div>
-
-                        <div>
-                          <strong>
-                            {selectedFile.name}
-                          </strong>
-
-                          <small>
-                            {formatSize(
-                              selectedFile.size
-                            )}
-                          </small>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedFile(null)
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
+                  <label>Excel File <span>*</span></label>
+                  <input ref={fileInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleFileChange} />
+                  {selectedFile && <small>{selectedFile.name} · {formatSize(selectedFile.size)}</small>}
                 </div>
 
-                {error && (
-                  <div className="mpr-modal-error">
-                    {error}
-                  </div>
-                )}
+                {error && <div className="mpr-modal-error">{error}</div>}
               </div>
 
               <div className="mpr-modal-footer">
-                <button
-                  type="button"
-                  className="mpr-cancel-btn"
-                  onClick={closeModal}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="mpr-submit-btn"
-                >
-                  Upload & Save
-                </button>
+                <button type="button" className="mpr-cancel-btn" onClick={closeModal}>Cancel</button>
+                <button type="submit" className="mpr-submit-btn">Upload & Save</button>
               </div>
             </form>
           </div>
@@ -2032,7 +2379,11 @@ const MonthReport = () => {
             setShowEditor(false);
             setEditingReport(null);
           }}
-          onSaved={handleEditorSaved}
+          onSaved={async (updated) => {
+            await handleEditorSaved(updated);
+            setShowEditor(false);
+            setEditingReport(null);
+          }}
         />
       )}
     </div>
