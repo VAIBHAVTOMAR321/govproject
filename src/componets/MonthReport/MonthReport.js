@@ -181,13 +181,20 @@ const getPrimitiveCellValue = (cell) => {
   return excelValueToText(value);
 };
 
-const getCellDisplayText = (cell) => {
+const getCellDisplayText = (cell, workbook = null, worksheet = null) => {
   if (!cell) return "";
 
-  /*
-    ExcelJS provides `cell.text`, which is usually the best display
-    representation for dates, formulas, rich text and normal cells.
-  */
+  // IMPORTANT: Formula cells must be evaluated from the current workbook
+  // before reading ExcelJS's cached `cell.text`. ExcelJS does not calculate
+  // formulas in the browser, so cached values can otherwise stay stale after
+  // an input cell is edited.
+  if (workbook && worksheet) {
+    const value = evaluateCellValue(workbook, worksheet, cell);
+    if (value !== undefined && value !== null && value !== "") {
+      return excelValueToText(value);
+    }
+  }
+
   try {
     if (typeof cell.text === "string" && cell.text.length > 0) {
       return cell.text;
@@ -232,14 +239,18 @@ const splitFormulaParts = (formula, operator) => {
   return parts;
 };
 
-const parseSheetCellReference = (token, activeWorksheet) => {
-  const trimmed = token.trim();
+const normalizeFormulaText = (value) =>
+  String(value ?? "")
+    .replace(/[\u00A0\u202F]/g, " ")
+    .trim();
 
-  // Sheet-qualified reference, e.g. '📝 DATA ENTRY'!F8
+const parseSheetCellReference = (token, activeWorksheet) => {
+  const trimmed = normalizeFormulaText(token).replace(/^=/, "");
+
+  // Quoted sheet-qualified reference: '📝 DATA ENTRY'!F8
   const qualified = trimmed.match(
     /^'(.*?)'!\$?([A-Z]{1,3})\$?(\d+)$/i
   );
-
   if (qualified) {
     return {
       worksheetName: qualified[1],
@@ -247,11 +258,10 @@ const parseSheetCellReference = (token, activeWorksheet) => {
     };
   }
 
-  // Unquoted sheet-qualified reference.
+  // Unquoted sheet-qualified reference: DATA ENTRY!F8
   const qualifiedPlain = trimmed.match(
     /^([^!]+)!\$?([A-Z]{1,3})\$?(\d+)$/i
   );
-
   if (qualifiedPlain) {
     return {
       worksheetName: qualifiedPlain[1],
@@ -259,9 +269,8 @@ const parseSheetCellReference = (token, activeWorksheet) => {
     };
   }
 
-  // Local worksheet reference, e.g. D43.
+  // Local worksheet reference: D43
   const local = trimmed.match(/^\$?([A-Z]{1,3})\$?(\d+)$/i);
-
   if (local) {
     return {
       worksheetName: activeWorksheet?.name,
@@ -272,88 +281,281 @@ const parseSheetCellReference = (token, activeWorksheet) => {
   return null;
 };
 
+const parseFormulaRange = (token, activeWorksheet) => {
+  const trimmed = normalizeFormulaText(token).replace(/^=/, "");
+  const match = trimmed.match(
+    /^(?:'(.*?)'|([^!]+))?!?\$?([A-Z]{1,3})\$?(\d+):\$?([A-Z]{1,3})\$?(\d+)$/i
+  );
+
+  if (!match) return null;
+
+  const worksheetName = match[1] || match[2] || activeWorksheet?.name;
+  const target = activeWorksheet?.workbook?.getWorksheet?.(worksheetName);
+
+  return {
+    worksheetName,
+    startCol: columnNumber(match[3]),
+    startRow: Number(match[4]),
+    endCol: columnNumber(match[5]),
+    endRow: Number(match[6]),
+    target,
+  };
+};
+
+const toFormulaNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (value === null || value === undefined || value === "") return 0;
+
+  const cleaned = String(value)
+    .replace(/₹/g, "")
+    .replace(/,/g, "")
+    .replace(/%/g, "")
+    .trim();
+
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const formulaValueIsBlank = (value) =>
+  value === null || value === undefined || String(value).trim() === "";
+
+const compareFormulaValues = (left, right, operator) => {
+  const ln = Number(left);
+  const rn = Number(right);
+  const bothNumbers =
+    left !== "" && right !== "" && Number.isFinite(ln) && Number.isFinite(rn);
+
+  const a = bothNumbers ? ln : String(left ?? "").toLowerCase();
+  const b = bothNumbers ? rn : String(right ?? "").toLowerCase();
+
+  if (operator === "=") return a === b;
+  if (operator === "<>") return a !== b;
+  if (operator === ">") return a > b;
+  if (operator === "<") return a < b;
+  if (operator === ">=") return a >= b;
+  if (operator === "<=") return a <= b;
+  return false;
+};
+
+const splitComparison = (expression) => {
+  let quoted = false;
+  let depth = 0;
+
+  for (let i = 0; i < expression.length; i += 1) {
+    const ch = expression[i];
+    if (ch === '"') quoted = !quoted;
+    if (quoted) continue;
+    if (ch === "(") depth += 1;
+    if (ch === ")") depth -= 1;
+    if (depth !== 0) continue;
+
+    const two = expression.slice(i, i + 2);
+    if ([">=", "<=", "<>"] .includes(two)) {
+      return [expression.slice(0, i).trim(), two, expression.slice(i + 2).trim()];
+    }
+    if (["=", ">", "<"].includes(ch)) {
+      return [expression.slice(0, i).trim(), ch, expression.slice(i + 1).trim()];
+    }
+  }
+  return null;
+};
+
+const getRangeValues = (workbook, activeWorksheet, token, visited = new Set()) => {
+  const range = parseFormulaRange(token, activeWorksheet);
+  if (!range) return null;
+
+  const target = workbook.getWorksheet(range.worksheetName);
+  if (!target) return null;
+
+  const values = [];
+  const minRow = Math.min(range.startRow, range.endRow);
+  const maxRow = Math.max(range.startRow, range.endRow);
+  const minCol = Math.min(range.startCol, range.endCol);
+  const maxCol = Math.max(range.startCol, range.endCol);
+
+  for (let r = minRow; r <= maxRow; r += 1) {
+    for (let c = minCol; c <= maxCol; c += 1) {
+      values.push(
+        evaluateCellValue(workbook, target, target.getCell(r, c), visited)
+      );
+    }
+  }
+
+  return values;
+};
+
+const evaluateFunction = (workbook, activeWorksheet, name, args, visited) => {
+  const fn = String(name).toUpperCase();
+
+  if (fn === "IF") {
+    const condition = evaluateFormulaValue(workbook, activeWorksheet, args[0] || "", visited);
+    const result = condition ? args[1] : args[2];
+    return result === undefined
+      ? ""
+      : evaluateFormulaValue(workbook, activeWorksheet, result, visited);
+  }
+
+  if (["SUM", "AVERAGE", "MIN", "MAX", "COUNT", "COUNTA"].includes(fn)) {
+    const values = [];
+
+    for (const arg of args) {
+      const rangeValues = getRangeValues(workbook, activeWorksheet, arg, visited);
+      if (rangeValues) {
+        values.push(...rangeValues);
+      } else {
+        values.push(
+          evaluateFormulaValue(workbook, activeWorksheet, arg, visited)
+        );
+      }
+    }
+
+    if (fn === "COUNTA") return values.filter((v) => !formulaValueIsBlank(v)).length;
+    if (fn === "COUNT") return values.filter((v) => Number.isFinite(Number(v))).length;
+
+    const numbers = values
+      .map(toFormulaNumber)
+      .filter((v) => Number.isFinite(v));
+
+    if (fn === "SUM") return numbers.reduce((a, b) => a + b, 0);
+    if (fn === "AVERAGE") return numbers.length ? numbers.reduce((a, b) => a + b, 0) / numbers.length : 0;
+    if (fn === "MIN") return numbers.length ? Math.min(...numbers) : 0;
+    if (fn === "MAX") return numbers.length ? Math.max(...numbers) : 0;
+  }
+
+  if (fn === "ROUND" || fn === "ROUNDUP" || fn === "ROUNDDOWN") {
+    const number = toFormulaNumber(
+      evaluateFormulaValue(workbook, activeWorksheet, args[0] || "0", visited)
+    );
+    const digits = Math.trunc(
+      toFormulaNumber(
+        evaluateFormulaValue(workbook, activeWorksheet, args[1] || "0", visited)
+      )
+    );
+    const factor = Math.pow(10, digits);
+
+    if (fn === "ROUND") return Math.round(number * factor) / factor;
+    if (fn === "ROUNDUP") return Math.sign(number) * Math.ceil(Math.abs(number) * factor) / factor;
+    return Math.sign(number) * Math.floor(Math.abs(number) * factor) / factor;
+  }
+
+  if (fn === "ABS") {
+    return Math.abs(
+      toFormulaNumber(evaluateFormulaValue(workbook, activeWorksheet, args[0] || "0", visited))
+    );
+  }
+
+  if (fn === "AND") {
+    return args.every((arg) =>
+      Boolean(evaluateFormulaValue(workbook, activeWorksheet, arg, visited))
+    );
+  }
+
+  if (fn === "OR") {
+    return args.some((arg) =>
+      Boolean(evaluateFormulaValue(workbook, activeWorksheet, arg, visited))
+    );
+  }
+
+  if (fn === "NOT") {
+    return !Boolean(
+      evaluateFormulaValue(workbook, activeWorksheet, args[0] || "", visited)
+    );
+  }
+
+  if (fn === "SUMIF" || fn === "SUMIFS") {
+    // Supports the common MPR pattern where a criteria/range is used to
+    // select rows and a sum range contains the amount.
+    if (fn === "SUMIF") {
+      const criteriaValues = getRangeValues(workbook, activeWorksheet, args[0], visited) || [];
+      const criteria = evaluateFormulaValue(workbook, activeWorksheet, args[1] || "", visited);
+      const sumValues = getRangeValues(workbook, activeWorksheet, args[2] || args[0], visited) || [];
+      let total = 0;
+      criteriaValues.forEach((value, index) => {
+        if (compareFormulaValues(value, criteria, "=")) total += toFormulaNumber(sumValues[index]);
+      });
+      return total;
+    }
+
+    const sumValues = getRangeValues(workbook, activeWorksheet, args[args.length - 1], visited) || [];
+    let total = 0;
+    const pairs = Math.floor((args.length - 1) / 2);
+    const criteriaRanges = [];
+    for (let i = 0; i < pairs; i += 1) {
+      criteriaRanges.push({
+        values: getRangeValues(workbook, activeWorksheet, args[i * 2], visited) || [],
+        criteria: evaluateFormulaValue(workbook, activeWorksheet, args[i * 2 + 1], visited),
+      });
+    }
+    for (let index = 0; index < sumValues.length; index += 1) {
+      if (criteriaRanges.every((pair) => compareFormulaValues(pair.values[index], pair.criteria, "="))) {
+        total += toFormulaNumber(sumValues[index]);
+      }
+    }
+    return total;
+  }
+
+  return undefined;
+};
+
 const evaluateFormulaValue = (
   workbook,
   activeWorksheet,
   formula,
   visited = new Set()
 ) => {
-  if (!workbook || !activeWorksheet || typeof formula !== "string") {
-    return undefined;
-  }
+  if (!workbook || !activeWorksheet || typeof formula !== "string") return undefined;
 
-  let expression = formula.trim();
+  let expression = normalizeFormulaText(formula);
   if (expression.startsWith("=")) expression = expression.slice(1).trim();
+  if (!expression) return "";
 
   // Excel string literal.
-  if (
-    expression.length >= 2 &&
-    expression.startsWith('"') &&
-    expression.endsWith('"')
-  ) {
+  if (expression.length >= 2 && expression.startsWith('"') && expression.endsWith('"')) {
     return expression.slice(1, -1).replace(/""/g, '"');
   }
 
-  // Handle Excel's concatenation operator first. This is used by the
-  // workbook for headings such as D3 & " | ...".
-  const concatParts = splitFormulaParts(expression, "&");
-  if (concatParts.length > 1) {
-    const values = concatParts.map((part) =>
-      evaluateFormulaValue(workbook, activeWorksheet, part, visited)
-    );
+  // Boolean constants.
+  if (/^TRUE$/i.test(expression)) return true;
+  if (/^FALSE$/i.test(expression)) return false;
 
-    if (values.some((value) => value === undefined)) return undefined;
-    return values.map((value) => String(value ?? "")).join("");
+  // Percent constants, e.g. 5%.
+  if (/^-?(?:\d+(?:\.\d*)?|\.\d+)%$/.test(expression)) {
+    return Number(expression.slice(0, -1)) / 100;
   }
 
-  // SUM(range) and SUM(a,b,c) - enough for the workbook's total rows.
-  const sumMatch = expression.match(/^SUM\((.*)\)$/i);
-  if (sumMatch) {
-    const args = splitFormulaParts(sumMatch[1], ",");
-    let total = 0;
+  // Comparisons are evaluated before arithmetic/function output.
+  const comparison = splitComparison(expression);
+  if (comparison) {
+    const left = evaluateFormulaValue(workbook, activeWorksheet, comparison[0], visited);
+    const right = evaluateFormulaValue(workbook, activeWorksheet, comparison[2], visited);
+    return compareFormulaValues(left, right, comparison[1]);
+  }
 
-    for (const arg of args) {
-      const range = arg.match(
-        /^(?:(?:'(.*?)')|([^!]+))?!?\$?([A-Z]{1,3})\$?(\d+):\$?([A-Z]{1,3})\$?(\d+)$/i
-      );
+  // Excel concatenation operator.
+  const concatParts = splitFormulaParts(expression, "&");
+  if (concatParts.length > 1) {
+    return concatParts
+      .map((part) => evaluateFormulaValue(workbook, activeWorksheet, part, visited))
+      .map((value) => String(value ?? ""))
+      .join("");
+  }
 
-      if (range) {
-        const sheetName = range[1] || range[2] || activeWorksheet.name;
-        const target = workbook.getWorksheet(sheetName);
-        if (!target) return undefined;
+  // Function call.
+  const fnMatch = expression.match(/^([A-Z_][A-Z0-9_.]*)\((.*)\)$/i);
+  if (fnMatch) {
+    const args = splitFormulaParts(fnMatch[2], ",");
+    return evaluateFunction(workbook, activeWorksheet, fnMatch[1], args, visited);
+  }
 
-        const startRow = Number(range[4]);
-        const endRow = Number(range[6]);
-        const startCol = target.getColumn(range[3]).number;
-        const endCol = target.getColumn(range[5]).number;
-
-        for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r += 1) {
-          for (let c = Math.min(startCol, endCol); c <= Math.max(startCol, endCol); c += 1) {
-            const value = evaluateCellValue(
-              workbook,
-              target,
-              target.getCell(r, c),
-              visited
-            );
-            if (typeof value === "number" && Number.isFinite(value)) {
-              total += value;
-            }
-          }
-        }
-      } else {
-        const value = evaluateFormulaValue(
-          workbook,
-          activeWorksheet,
-          arg,
-          visited
-        );
-        if (typeof value === "number" && Number.isFinite(value)) {
-          total += value;
-        }
-      }
-    }
-
-    return total;
+  // Parenthesized expression.
+  if (expression.startsWith("(") && expression.endsWith(")")) {
+    return evaluateFormulaValue(
+      workbook,
+      activeWorksheet,
+      expression.slice(1, -1),
+      visited
+    );
   }
 
   // Direct cell reference.
@@ -361,7 +563,6 @@ const evaluateFormulaValue = (
   if (reference) {
     const target = workbook.getWorksheet(reference.worksheetName);
     if (!target) return undefined;
-
     return evaluateCellValue(
       workbook,
       target,
@@ -370,9 +571,10 @@ const evaluateFormulaValue = (
     );
   }
 
-  // Simple arithmetic expressions used by the workbook, e.g.
-  // D43+G43+I43+K43+M43 or D8+F8+H8+J8+L8.
-  const arithmeticParts = [];
+  // Basic arithmetic with normal Excel precedence: multiplication/division
+  // before addition/subtraction. This covers formulas commonly used in MPR
+  // report totals such as D43+G43+I43+K43+M43 and D8+F8+H8+J8+L8.
+  const arithmeticTokens = [];
   let current = "";
   let depth = 0;
   let quoted = false;
@@ -380,69 +582,49 @@ const evaluateFormulaValue = (
   for (let i = 0; i < expression.length; i += 1) {
     const ch = expression[i];
     if (ch === '"') quoted = !quoted;
-
     if (!quoted) {
       if (ch === "(") depth += 1;
       if (ch === ")") depth -= 1;
-
-      if ((ch === "+" || ch === "-" || ch === "*" || ch === "/") && depth === 0) {
-        arithmeticParts.push(current.trim());
-        arithmeticParts.push(ch);
+      if (depth === 0 && ["+", "-", "*", "/"].includes(ch) && i > 0) {
+        arithmeticTokens.push(current.trim(), ch);
         current = "";
         continue;
       }
     }
-
     current += ch;
   }
-  arithmeticParts.push(current.trim());
+  arithmeticTokens.push(current.trim());
 
-  if (arithmeticParts.length > 1) {
+  if (arithmeticTokens.length > 1) {
     const values = [];
-
-    for (const part of arithmeticParts) {
-      if (["+", "-", "*", "/"].includes(part)) {
-        values.push(part);
+    for (const token of arithmeticTokens) {
+      if (["+", "-", "*", "/"].includes(token)) {
+        values.push(token);
         continue;
       }
-
-      const numericReference = parseSheetCellReference(part, activeWorksheet);
-      if (numericReference) {
-        const target = workbook.getWorksheet(numericReference.worksheetName);
-        if (!target) return undefined;
-        const value = evaluateCellValue(
-          workbook,
-          target,
-          target.getCell(numericReference.address),
-          visited
-        );
-        if (typeof value !== "number") return undefined;
-        values.push(value);
-        continue;
-      }
-
-      const numberValue = Number(part);
-      if (!Number.isNaN(numberValue)) {
-        values.push(numberValue);
-        continue;
-      }
-
-      return undefined;
+      values.push(evaluateFormulaValue(workbook, activeWorksheet, token, visited));
     }
 
-    let result = values[0];
+    // Multiplication/division first.
+    for (let i = 1; i < values.length - 1; i += 2) {
+      if (values[i] === "*" || values[i] === "/") {
+        const left = toFormulaNumber(values[i - 1]);
+        const right = toFormulaNumber(values[i + 1]);
+        values.splice(i - 1, 3, values[i] === "*" ? left * right : right === 0 ? 0 : left / right);
+        i -= 2;
+      }
+    }
+
+    let result = toFormulaNumber(values[0]);
     for (let i = 1; i < values.length; i += 2) {
-      const operator = values[i];
-      const right = values[i + 1];
-      if (operator === "+") result += right;
-      if (operator === "-") result -= right;
-      if (operator === "*") result *= right;
-      if (operator === "/") result /= right;
+      const right = toFormulaNumber(values[i + 1]);
+      if (values[i] === "+") result += right;
+      if (values[i] === "-") result -= right;
     }
     return result;
   }
 
-  const numeric = Number(expression);
+  const numeric = Number(expression.replace(/,/g, ""));
   if (!Number.isNaN(numeric)) return numeric;
 
   return undefined;
@@ -476,6 +658,32 @@ const evaluateCellValue = (workbook, worksheet, cell, visited = new Set()) => {
   return getPrimitiveCellValue(cell);
 };
 
+const recalculateWorkbookFormulas = (workbook) => {
+  if (!workbook) return;
+
+  // Run multiple passes because a formula can depend on another formula
+  // located later in the sheet. The evaluator itself follows dependencies,
+  // so the passes mainly refresh ExcelJS cached `result` values for saving.
+  for (let pass = 0; pass < 4; pass += 1) {
+    workbook.worksheets.forEach((ws) => {
+      ws.eachRow((row) => {
+        row.eachCell((cell) => {
+          const value = cell.value;
+          if (value && typeof value === "object" && value.formula !== undefined) {
+            const result = evaluateCellValue(workbook, ws, cell);
+            if (result !== undefined) {
+              cell.value = {
+                formula: value.formula,
+                result,
+              };
+            }
+          }
+        });
+      });
+    });
+  }
+};
+
 const cellToText = (cell, workbook = null, worksheet = null) => {
   if (!cell) return "";
 
@@ -484,7 +692,7 @@ const cellToText = (cell, workbook = null, worksheet = null) => {
     This prevents [object Object] for rich text, hyperlinks,
     formula results and other ExcelJS value objects.
   */
-  const displayText = getCellDisplayText(cell);
+  const displayText = getCellDisplayText(cell, workbook, worksheet);
 
   if (displayText !== null && displayText !== undefined) {
     return String(displayText);
@@ -916,16 +1124,51 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [activeSheetName, setActiveSheetName] = useState("");
   const formulaRef = useRef(null);
+  const editingOriginalRef = useRef("");
 
-  const rebuildWorksheet = (book) => {
+  const getInitialWorksheet = (book) => {
     if (!book) return null;
-    const mpr =
+
+    /*
+      The supplied workbook has a dependency chain:
+        📝 DATA ENTRY -> 📊 MPR REPORT -> 📈 DASHBOARD
+
+      Therefore DATA ENTRY is the first sheet shown in the editor. The
+      user edits the yellow input cells there, exactly like in Excel.
+    */
+    return (
+      book.getWorksheet("📝 DATA ENTRY") ||
+      book.worksheets.find((ws) =>
+        String(ws.name || "").toLowerCase().includes("data entry")
+      ) ||
       book.getWorksheet("📊 MPR REPORT") ||
       book.worksheets.find((ws) =>
         String(ws.name || "").toLowerCase().includes("mpr report")
-      );
-    return mpr || null;
+      ) ||
+      book.worksheets[0] ||
+      null
+    );
+  };
+
+  const selectWorksheet = (sheetName) => {
+    if (!workbook || !sheetName) return;
+
+    const nextWorksheet = workbook.getWorksheet(sheetName);
+    if (!nextWorksheet) return;
+
+    /*
+      Recalculate before changing sheets so the newly opened sheet always
+      displays values produced from the latest DATA ENTRY edits.
+    */
+    recalculateWorkbookFormulas(workbook);
+
+    setWorksheet(nextWorksheet);
+    setActiveSheetName(nextWorksheet.name);
+    setSelectedCell(null);
+    setFormulaText("");
+    setStatus(`Viewing ${nextWorksheet.name} — formulas are up to date`);
   };
 
   useEffect(() => {
@@ -935,20 +1178,40 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
       try {
         setLoading(true);
         setError("");
-        const book = await workbookFromFile(report.file);
-        const mpr = rebuildWorksheet(book);
 
-        if (!mpr) {
-          throw new Error("The selected Excel file does not contain an MPR REPORT worksheet.");
+        const book = await workbookFromFile(report.file);
+
+        /*
+          Initial calculation of the complete workbook.
+        */
+        recalculateWorkbookFormulas(book);
+
+        /*
+          Keep Excel's own calculation engine enabled when this file is later
+          opened/downloaded in Microsoft Excel.
+        */
+        if (book.calculation) {
+          book.calculation.fullCalcOnLoad = true;
+          book.calculation.forceFullCalc = true;
+          book.calculation.calcOnSave = true;
+          book.calculation.calcMode = "auto";
+        }
+
+        const initialWorksheet = getInitialWorksheet(book);
+
+        if (!initialWorksheet) {
+          throw new Error("The selected Excel file does not contain any worksheet.");
         }
 
         if (!cancelled) {
           setWorkbook(book);
-          setWorksheet(mpr);
-          setStatus(`Editing ${report.fileName}`);
+          setWorksheet(initialWorksheet);
+          setActiveSheetName(initialWorksheet.name);
+          setStatus(`Editing ${report.fileName} — ${initialWorksheet.name}`);
         }
       } catch (err) {
         console.error("Excel editor load error:", err);
+
         if (!cancelled) {
           setError(err?.message || "Excel file could not be opened.");
         }
@@ -958,6 +1221,7 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
     };
 
     load();
+
     return () => {
       cancelled = true;
     };
@@ -974,22 +1238,76 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
     if (!worksheet) return;
     const cell = worksheet.getCell(row, col);
     setSelectedCell({ row, col });
-    setFormulaText(String(cellToRawValue(cell) ?? ""));
+    const rawValue = String(cellToRawValue(cell) ?? "");
+    editingOriginalRef.current = rawValue;
+    setFormulaText(rawValue);
     setStatus(`${columnLetter(col)}${row} selected`);
   };
 
   const commitValue = (row, col, value) => {
-    if (!worksheet) return;
-    const cell = worksheet.getCell(row, col);
+    if (!workbook || !worksheet) return;
 
-    if (typeof value === "string" && value.trim().startsWith("=")) {
-      cell.value = { formula: value.trim().slice(1) };
+    const cell = worksheet.getCell(row, col);
+    const nextValue = String(value ?? "");
+    const isFormulaCell =
+      cell.value &&
+      typeof cell.value === "object" &&
+      cell.value.formula !== undefined;
+
+    /*
+      A formula cell is an output. Never replace it with its displayed result.
+      Formula editing is done through the formula bar.
+    */
+    if (isFormulaCell) {
+      const typed = nextValue.trim();
+      const currentFormula = `=${cell.value.formula}`.trim();
+
+      if (typed === currentFormula) return;
+
+      return;
+    }
+
+    const trimmed = nextValue.trim();
+
+    /*
+      Convert numeric input back to a JavaScript number. If we leave it as a
+      string, SUM()/arithmetic formulas may not behave like Excel.
+    */
+    if (trimmed === "") {
+      cell.value = null;
+    } else if (trimmed.startsWith("=")) {
+      cell.value = { formula: trimmed.slice(1) };
+    } else if (
+      /^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(trimmed.replace(/,/g, ""))
+    ) {
+      cell.value = Number(trimmed.replace(/,/g, ""));
     } else {
-      cell.value = value;
+      cell.value = nextValue;
+    }
+
+    /*
+      CRITICAL:
+      DATA ENTRY edit
+          ↓
+      recalculate dependency chain
+          ↓
+      MPR REPORT formulas update
+          ↓
+      DASHBOARD formulas update
+    */
+    recalculateWorkbookFormulas(workbook);
+
+    if (workbook.calculation) {
+      workbook.calculation.fullCalcOnLoad = true;
+      workbook.calculation.forceFullCalc = true;
+      workbook.calculation.calcOnSave = true;
+      workbook.calculation.calcMode = "auto";
     }
 
     setDirty(true);
-    setStatus("Cell updated");
+    setStatus(
+      `${columnLetter(col)}${row} updated — all dependent formulas recalculated`
+    );
   };
 
   const commitFormulaBar = () => {
@@ -1003,7 +1321,16 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
     try {
       setSaving(true);
       setError("");
-      setStatus("Preparing Excel file...");
+      setStatus("Recalculating formulas before save...");
+
+      recalculateWorkbookFormulas(workbook);
+
+      if (workbook.calculation) {
+        workbook.calculation.fullCalcOnLoad = true;
+        workbook.calculation.forceFullCalc = true;
+        workbook.calculation.calcOnSave = true;
+        workbook.calculation.calcMode = "auto";
+      }
 
       const buffer = await workbook.xlsx.writeBuffer();
       const newFile = new File([buffer], report.fileName, {
@@ -1071,7 +1398,7 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
             <div className="excel-logo">X</div>
             <div className="excel-document-name">
               <strong>{report.fileName}</strong>
-              <span>{dirty ? "Unsaved changes" : "Editing MPR Report in browser"}</span>
+              <span>{dirty ? "Unsaved changes" : `Excel workbook — ${activeSheetName || "Ready"}`}</span>
             </div>
           </div>
 
@@ -1115,7 +1442,7 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
             <span>
               {selectedCell ? `${columnLetter(selectedCell.col)}${selectedCell.row}` : "Select a cell"}
             </span>
-            <span>📊 MPR REPORT</span>
+            <span>📄 {activeSheetName || worksheet?.name || "Sheet"}</span>
           </div>
           <div className="excel-ribbon-status">{status || "Ready"}</div>
         </div>
@@ -1150,8 +1477,8 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
         {loading ? (
           <div className="excel-editor-loading">
             <div className="excel-spinner" />
-            <h3>Opening MPR Report...</h3>
-            <p>Loading the selected Excel file inside the browser.</p>
+            <h3>Opening Excel Workbook...</h3>
+            <p>Loading DATA ENTRY, formulas, MPR REPORT and dashboard sheets.</p>
           </div>
         ) : (
           <div className="excel-workspace">
@@ -1221,13 +1548,24 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
                               style={getCellStyle(cell, selected)}
                               className={selected ? "excel-edit-cell selected" : "excel-edit-cell"}
                               onClick={() => selectCell(rowNumber, colNumber)}
-                              contentEditable
+                              contentEditable={!(typeof cell.value === "object" && cell.value?.formula !== undefined)}
                               suppressContentEditableWarning
                               spellCheck={false}
                               onFocus={() => selectCell(rowNumber, colNumber)}
-                              onBlur={(event) =>
-                                commitValue(rowNumber, colNumber, event.currentTarget.textContent || "")
-                              }
+                              onBlur={(event) => {
+                                const isFormulaCell =
+                                  cell.value &&
+                                  typeof cell.value === "object" &&
+                                  cell.value.formula !== undefined;
+
+                                if (!isFormulaCell) {
+                                  commitValue(
+                                    rowNumber,
+                                    colNumber,
+                                    event.currentTarget.textContent || ""
+                                  );
+                                }
+                              }}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter") {
                                   event.preventDefault();
@@ -1254,11 +1592,31 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
 
             <div className="excel-bottom-bar">
               <div className="excel-sheet-controls" />
+
               <div className="excel-sheet-tabs">
-                <button type="button" className="excel-sheet-tab active">
-                  📊 MPR REPORT
-                </button>
+                {workbook?.worksheets?.map((sheet) => {
+                  const isActive = sheet.name === activeSheetName;
+
+                  return (
+                    <button
+                      key={sheet.name}
+                      type="button"
+                      className={`excel-sheet-tab ${isActive ? "active" : ""}`}
+                      onClick={() => selectWorksheet(sheet.name)}
+                      title={`Open ${sheet.name}`}
+                    >
+                      {String(sheet.name).includes("DATA ENTRY")
+                        ? "📝 DATA ENTRY"
+                        : String(sheet.name).includes("MPR REPORT")
+                        ? "📊 MPR REPORT"
+                        : String(sheet.name).includes("DASHBOARD")
+                        ? "📈 DASHBOARD"
+                        : sheet.name}
+                    </button>
+                  );
+                })}
               </div>
+
               <div className="excel-zoom">100%</div>
             </div>
           </div>
