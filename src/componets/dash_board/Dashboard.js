@@ -2302,7 +2302,7 @@ const DynamicReportTabs = ({ sourceData }) => {
             <SummaryPlanTable />
 
             <h6 className="dynamic-report-subtitle">
-              2) विधानसभा / विकासखंड / केंद्र / मद / उप-मद  के नाम अनुसार — योजना-वार
+              2) मद / उप-मद  के नाम अनुसार — योजना-वार
             </h6>
             <SummaryMadUpMadTable data={summaryRows} fixedPlan={fixedPlan} />
           </div>
@@ -2527,6 +2527,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                 schemeLabel={fixedPlan || '—'}
                 columns={saleSecondColumns}
                 setColumns={setSaleSecondColumns}
+                hideSchemeColumn={true}
               />
             </div>
           </div>
