@@ -8784,7 +8784,7 @@ const MainDashboard = () => {
           <Col lg={12} md={12} sm={12}>
             <Container fluid className="dashboard-body-main">
               {/* Report Generation Section */}
-              {view === "main" && (
+              {/* {view === "main" && (
                 <div className="report-generation-section mb-3 p-3 border rounded  dash-board">
                   <h6 className="fw-bold">रिपोर्ट जनरेट करें</h6>
                   <Row>
@@ -8838,7 +8838,7 @@ const MainDashboard = () => {
                     </Col>
                   </Row>
                 </div>
-              )}
+              )} */}
 
               {/* Date Range Filter Section (above main table) */}
               {view === "main" && (
