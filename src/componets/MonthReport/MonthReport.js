@@ -2276,21 +2276,20 @@ const DashboardTab = ({
                   <tr>
                     <th>योजना</th>
                     <th>वित्तीय उपलब्धि</th>
-                    <th>इकाई</th>
+                    
                   </tr>
                 </thead>
                 <tbody>
                   {dashboard.schemes.map((scheme, index) => (
                     <tr key={`${scheme.name}-${index}`}>
                       <td>{scheme.name}</td>
-                      <td>{formatValue(scheme.value)}</td>
-                      <td>₹ लाखों में</td>
+                      <td>₹ {formatValue(scheme.value)} </td>
                     </tr>
                   ))}
                   <tr className="mpr-dashboard-total-row">
                     <td>कुल वित्तीय उपलब्धि</td>
-                    <td>{formatValue(dashboard.values.total)}</td>
-                    <td>₹ लाखों में</td>
+                    <td>₹{formatValue(dashboard.values.total)}</td>
+                    
                   </tr>
                 </tbody>
               </table>
