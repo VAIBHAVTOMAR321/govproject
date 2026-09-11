@@ -1,30 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ExcelJS from "exceljs";
 import "./MonthReport.css";
-
-/*
-  MONTH REPORT - DYNAMIC EXCEL EDITOR
-
-  API flow:
-    GET  /api/month-reports/              -> load reports
-    POST /api/month-reports/              -> upload a new .xlsx
-    PUT  /api/month-reports/{id}/         -> replace an edited .xlsx
-    DELETE /api/month-reports/{id}/       -> delete a report
-
-  The Excel workbook itself is opened and edited in the browser with ExcelJS.
-  Report metadata/files are stored on the backend through the API.
-
-  Required:
-      npm install exceljs
-*/
-
 const API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/";
+const REPORT_FILE_BASE_URL = "https://mahadevaaya.com/govbillingsystem/backend/media/month_reports/";
 const MEDIA_BASE_URL ="https://mahadevaaya.com/govbillingsystem/backend";
-
-
-// The API endpoint below should return the actual Excel file through Django.
-// This avoids the CORS problem caused by directly fetching /media/... from React.
-
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 const months = [
@@ -590,17 +569,16 @@ const apiFetch = async (url, options = {}) => {
   const method = String(options.method || "GET").toUpperCase();
   const headers = new Headers(options.headers || {});
 
-  // Use the existing cookie based authentication setup.
-  const csrfToken = getCookie("csrftoken");
-  if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && csrfToken) {
-    headers.set("X-CSRFToken", csrfToken);
-  }
-
+  /*
+    No credentials: "include"
+    No withCredentials
+    No Authorization header
+    No automatic CSRF header
+  */
   const response = await fetch(url, {
     ...options,
     method,
     headers,
-    // credentials: "include",
   });
 
   if (!response.ok) {
@@ -626,16 +604,18 @@ const apiFetch = async (url, options = {}) => {
   return response;
 };
 
+/*
+  This helper is retained for displaying/keeping the API file path.
+  View/Edit does NOT fetch this media URL directly.
+*/
 const getMediaUrl = (path) => {
   if (!path) return "";
 
-  // Already a complete URL
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
 
-  // Relative media path
-  return `${MEDIA_BASE_URL}${
+  return `${window.location.origin}${
     path.startsWith("/") ? "" : "/"
   }${path}`;
 };
@@ -645,10 +625,13 @@ const normalizeApiReport = (item) => ({
   month: String(item.month ?? ""),
   financialYear: item.financial_year ?? "",
   monthReport: item.month_report ?? "",
-  fileName: String(item.month_report || "").split("/").pop() || "MPR.xlsx",
+  fileName:
+    String(item.month_report || "").split("/").pop() ||
+    "MPR.xlsx",
   fileSize: Number(item.file_size || item.size || 0),
   createdAt: item.created_at || "",
-  updatedAt: item.updated_at || item.created_at || "",
+  updatedAt:
+    item.updated_at || item.created_at || "",
   file: null,
   apiData: item,
 });
@@ -665,20 +648,87 @@ const getReportsFromResponse = (data) => {
   return list.map(normalizeApiReport);
 };
 
+/*
+  Load the XLSX through Django's API instead of directly from /media/.
+
+  For report ID 8:
+    GET https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/8/file/
+
+  This avoids the CORS error caused by:
+    https://mahadevaaya.com/govbillingsystem/backend/media/...
+*/
 const fetchReportFile = async (report) => {
-  if (!report?.monthReport) {
-    throw new Error("Report file path is missing.");
+  if (!report?.id) {
+    throw new Error(
+      "Report ID is missing. The Excel file cannot be opened."
+    );
   }
 
-  const fileUrl = getMediaUrl(report.monthReport);
+  const fileUrl = `${API_URL}${report.id}/`;
 
-  console.log("Opening Excel file:", fileUrl);
+  console.log(
+    "Fetching Excel workbook through Django:",
+    fileUrl
+  );
 
-  // Browser cannot fetch this XLSX through JS because of CORS.
-  // Open the file directly instead.
-  window.open(fileUrl, "_blank");
+  const response = await fetch(fileUrl, {
+    method: "GET",
+    headers: {
+      Accept:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream,*/*",
+    },
+  });
 
-  return null;
+  if (!response.ok) {
+    let message =
+      `Unable to load Excel file (${response.status} ${response.statusText}).`;
+
+    try {
+      const data = await response.json();
+
+      message =
+        data?.error ||
+        data?.detail ||
+        data?.message ||
+        message;
+    } catch {
+      // Backend response was not JSON.
+    }
+
+    throw new Error(message);
+  }
+
+  const contentType =
+    response.headers.get("content-type") || "";
+
+  const blob = await response.blob();
+
+  if (!blob || blob.size === 0) {
+    throw new Error(
+      "The backend returned an empty Excel file (0 KB). Please verify the physical XLSX file on the Django server."
+    );
+  }
+
+  if (
+    contentType.includes("text/html") ||
+    contentType.includes("application/json")
+  ) {
+    throw new Error(
+      "The file endpoint did not return an Excel workbook. Check the Django /file/ endpoint."
+    );
+  }
+
+  const fileName =
+    report.fileName &&
+    report.fileName.toLowerCase().endsWith(".xlsx")
+      ? report.fileName
+      : "MPR.xlsx";
+
+  return new File([blob], fileName, {
+    type:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    lastModified: Date.now(),
+  });
 };
 
 const uploadReport = async ({ month, financialYear, file }) => {
@@ -693,12 +743,47 @@ const uploadReport = async ({ month, financialYear, file }) => {
   });
 };
 
-const updateReportFile = async ({ id, month, financialYear, file }) => {
-  const formData = new FormData();
-  formData.append("month", String(month));
-  formData.append("financial_year", String(financialYear));
-  formData.append("month_report", file);
+const updateReportFile = async ({
+  id,
+  month,
+  financialYear,
+  file,
+}) => {
+  if (!id) {
+    throw new Error("Month report ID is missing.");
+  }
 
+  if (!file || !file.size) {
+    throw new Error("The edited Excel file is empty.");
+  }
+
+  /*
+    Exact backend endpoint:
+
+    PUT
+    https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/{id}/
+
+    Example:
+    https://mahadevaaya.com/govbillingsystem/backend/api/month-reports/8/
+  */
+  const formData = new FormData();
+
+  formData.append("month", String(month ?? ""));
+  formData.append(
+    "financial_year",
+    String(financialYear ?? "")
+  );
+
+  formData.append(
+    "month_report",
+    file,
+    file.name || "MPR.xlsx"
+  );
+
+  /*
+    Do not set Content-Type manually.
+    The browser creates the multipart boundary.
+  */
   return apiFetch(`${API_URL}${id}/`, {
     method: "PUT",
     body: formData,
@@ -712,9 +797,35 @@ const deleteReportFromApi = async (id) => {
 };
 
 const workbookFromFile = async (file) => {
+  if (!file) {
+    throw new Error("No Excel file was received.");
+  }
+
+  if (!file.size) {
+    throw new Error(
+      "The Excel file is empty (0 KB). Check the Django media file."
+    );
+  }
+
   const workbook = new ExcelJS.Workbook();
   const buffer = await file.arrayBuffer();
-  await workbook.xlsx.load(buffer);
+
+  try {
+    await workbook.xlsx.load(buffer);
+  } catch (error) {
+    console.error("ExcelJS load error:", error);
+
+    throw new Error(
+      "The server returned a file, but it is not a valid .xlsx workbook."
+    );
+  }
+
+  if (!workbook.worksheets.length) {
+    throw new Error(
+      "The Excel workbook contains no worksheets."
+    );
+  }
+
   return workbook;
 };
 
@@ -1021,7 +1132,9 @@ const ExcelEditor = ({ report, onClose, onSaved }) => {
             <div className="excel-document-name">
               <strong>{report.fileName}</strong>
               <span>
-                {dirty ? "Unsaved changes" : "Saved"}
+                {dirty
+                  ? "Unsaved changes"
+                  : "Editing in browser"}
               </span>
             </div>
           </div>
@@ -1524,23 +1637,27 @@ const MonthReport = () => {
       setError("");
       setSuccess("");
 
-      // Fetch the real workbook through the Django API before opening the
-      // ExcelJS editor. This avoids directly reading /media/... from the browser.
+      /*
+        Fetch the workbook from Django and pass the bytes to ExcelJS.
+        Nothing is opened in Microsoft Excel and nothing is downloaded
+        when the user clicks View / Edit.
+      */
       const file = await fetchReportFile(report);
-
-      // The file is opened directly in a new browser tab. There is no local
-      // File object to pass to ExcelJS in this mode.
-      if (!file) return;
 
       setEditingReport({
         ...report,
         file,
         fileSize: file.size,
       });
+
       setShowEditor(true);
     } catch (err) {
       console.error("Open MPR error:", err);
-      setError(err?.message || "Unable to open the Excel report.");
+
+      setError(
+        err?.message ||
+          "Unable to open the Excel report in the browser."
+      );
     }
   };
 
