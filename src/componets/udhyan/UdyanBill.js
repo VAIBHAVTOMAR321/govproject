@@ -587,6 +587,19 @@ const CenterSelect = ({
     );
 };
 
+const CenterAutoFill = ({
+    bill,
+    className = "",
+}) => {
+    return (
+        <input
+            className={`doc-input ${className}`}
+            value={bill.center ?? ""}
+            readOnly
+        />
+    );
+};
+
 /* =========================================================
    COMPONENT
    ========================================================= */
@@ -2737,11 +2750,8 @@ export default function UdyanBill() {
                         उद्यान सचल दल
                         <br />
                         केन्द्र{" "}
-                        <CenterSelect
+                        <CenterAutoFill
                             bill={bill}
-                            onChange={updateBill}
-                            centers={centers}
-                            loading={loadingCenters}
                             className="officer-input"
                         />
                     </div>
@@ -3029,11 +3039,8 @@ export default function UdyanBill() {
                         उद्यान सचल दल
                         <br />
                         केन्द्र{" "}
-                        <CenterSelect
+                        <CenterAutoFill
                             bill={bill}
-                            onChange={updateBill}
-                            centers={centers}
-                            loading={loadingCenters}
                             className="officer-input"
                         />
                     </div>
@@ -3257,11 +3264,8 @@ export default function UdyanBill() {
                         उद्यान सचल दल
                         <br />
                         केन्द्र{" "}
-                        <CenterSelect
+                        <CenterAutoFill
                             bill={bill}
-                            onChange={updateBill}
-                            centers={centers}
-                            loading={loadingCenters}
                             className="officer-input"
                         />
                     </div>
