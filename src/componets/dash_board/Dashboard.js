@@ -7,6 +7,12 @@ import { Bar, Pie, Doughnut } from 'react-chartjs-2';
 import html2pdf from 'html2pdf.js';
 import * as XLSX from 'xlsx';
 import "../../assets/css/dashboard.css";
+
+/*
+ * Summary tab table overflow fix:
+ * Keep the complete last column visible. The wrapper scrolls horizontally
+ * instead of clipping the right edge of the table.
+ */
 import DashBoardHeader from "./DashBoardHeader";
 import LeftNav from "./LeftNav";
 import Footer from "../footer/Footer";
@@ -994,9 +1000,6 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
         >
           <option value="mad">मद के अनुसार</option>
           <option value="upmad">उप-मद के अनुसार</option>
-          <option value="vidhan">विधानसभा के अनुसार</option>
-          <option value="block">विकासखण्ड के अनुसार</option>
-          <option value="kendra">केंद्र के अनुसार</option>
         </select>
 
         {summaryWiseFilterDefinitions.map(([field, label]) => {
@@ -1121,10 +1124,22 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
         label="इस तालिका के स्तंभ चुनें"
       />
 
-      <div className="dynamic-report-table-scroll matrix-scroll">
+      <div
+        className="dynamic-report-table-scroll matrix-scroll"
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          overflowY: 'visible',
+        }}
+      >
         <table
           className="dynamic-report-table matrix-table summary-mad-upmad-detail-table"
-          style={{ minWidth: '1100px' }}
+          style={{
+            width: 'max-content',
+            minWidth: '1100px',
+            tableLayout: 'auto',
+          }}
         >
           <thead>
             <tr>
@@ -1142,6 +1157,7 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
                   {plan}
                 </th>
               ))}
+              <th colSpan="2" style={{ textAlign: 'center' }}>कुल योग</th>
             </tr>
             <tr>
               {selectedPlans.flatMap(plan => {
@@ -1154,6 +1170,8 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
                 }
                 return cells;
               })}
+              <th>भौतिक पूर्ति</th>
+              <th>वित्तीय (₹)</th>
             </tr>
           </thead>
 
@@ -1184,10 +1202,22 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
                   }
                   return cells;
                 })}
+
+                {/* Row-wise total across all currently selected योजनाएं */}
+                <td className="tot">
+                  {summaryWiseFormatExactNumber(
+                    selectedPlans.reduce((sum, plan) => sum + (group.physical[plan] || 0), 0)
+                  )}
+                </td>
+                <td className="tot">
+                  {summaryWiseFmtR(
+                    selectedPlans.reduce((sum, plan) => sum + (group.financial[plan] || 0), 0)
+                  )}
+                </td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={2 + (summaryWiseVisibleColumns === null ? 1 : (summaryWiseVisibleColumns.includes('ikai') ? 1 : 0)) + selectedPlans.length * (summaryWiseVisibleColumns === null ? 2 : summaryWiseVisibleColumns.filter(k => k === 'matra' || k === 'anudan').length)} className="dynamic-report-empty">
+                <td colSpan={2 + (summaryWiseVisibleColumns === null ? 1 : (summaryWiseVisibleColumns.includes('ikai') ? 1 : 0)) + selectedPlans.length * (summaryWiseVisibleColumns === null ? 2 : summaryWiseVisibleColumns.filter(k => k === 'matra' || k === 'anudan').length) + 2} className="dynamic-report-empty">
                   कोई डेटा नहीं — चुने फ़िल्टर पर कुछ नहीं मिला
                 </td>
               </tr>
@@ -1225,6 +1255,30 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
                   }
                   return cells;
                 })}
+
+                {/* Grand row-wise total across all selected योजनाएं */}
+                <td className="tot">
+                  {summaryWiseFormatExactNumber(
+                    groupedRows.reduce(
+                      (sum, [, group]) =>
+                        sum + selectedPlans.reduce(
+                          (inner, plan) => inner + (group.physical[plan] || 0), 0
+                        ),
+                      0
+                    )
+                  )}
+                </td>
+                <td className="tot">
+                  {summaryWiseFmtR(
+                    groupedRows.reduce(
+                      (sum, [, group]) =>
+                        sum + selectedPlans.reduce(
+                          (inner, plan) => inner + (group.financial[plan] || 0), 0
+                        ),
+                      0
+                    )
+                  )}
+                </td>
               </tr>
             </tfoot>
           )}
@@ -1667,8 +1721,11 @@ const DynamicReportTabs = ({ sourceData }) => {
           setVisibleColumns={setSummaryPlanColumns}
           label="इस तालिका के स्तंभ चुनें"
         />
-        <div className="dynamic-report-table-scroll">
-          <table className="dynamic-report-table">
+        <div className="dynamic-report-table-scroll" style={{ width: '100%', overflowX: 'auto' }}>
+          <table
+            className="dynamic-report-table"
+            style={{ width: '100%', minWidth: '760px', tableLayout: 'auto' }}
+          >
             <thead>
               <tr>
                 {show('sno') && <th>#</th>}
@@ -1862,14 +1919,13 @@ const DynamicReportTabs = ({ sourceData }) => {
     const hierarchyDefs = enableHierarchyFilters
       ? (upmadMode
           ? [
-              { key: 'submad', label: 'उप-मद का नाम' },
-              { key: 'mad', label: 'मद का नाम' },
-              { key: 'scheme', label: 'योजना का नाम' }
+              { key: 'scheme', label: 'योजना का नाम' },
+              { key: 'submad', label: 'उप-मद का नाम' }
             ]
           : [
+              { key: 'scheme', label: 'योजना का नाम' },
               { key: 'mad', label: 'मद का नाम' },
-              { key: 'submad', label: 'उप-मद का नाम' },
-              { key: 'scheme', label: 'योजना का नाम' }
+              { key: 'submad', label: 'उप-मद का नाम' }
             ])
       : [
           { key: 'scheme', label: 'योजना का नाम' },
@@ -1882,11 +1938,15 @@ const DynamicReportTabs = ({ sourceData }) => {
       ...hierarchyDefs,
       { key: 'ikai', label: 'इकाई' },
       ...visibleGeo.map((geo, index) => ({ key: `geo_${index}`, label: geo })),
-      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' }
+      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' },
+      { key: 'yojanaRow', label: 'योजना का नाम' }
     ];
 
     const visible = columns === null ? matrixDefs.map(c => c.key) : columns;
-    const show = key => visible.includes(key);
+    const show = key => {
+      if (enableHierarchyFilters && upmadMode && key === 'mad') return false;
+      return visible.includes(key);
+    };
 
     const getCell = (item, geo) => item.rows
       .filter(r => r[geoField] === geo)
@@ -1995,28 +2055,36 @@ const DynamicReportTabs = ({ sourceData }) => {
                 value={groupBy === 'upmad'
                   ? { value: 'upmad', label: 'उप-मद के अनुसार' }
                   : { value: 'mad', label: 'मद के अनुसार' }}
-                onChange={option => setGroupBy(option?.value || 'mad')}
+                onChange={option => {
+                  const nextValue = option?.value || 'mad';
+                  if (nextValue === 'upmad') {
+                    setSelectedMad([]);
+                  }
+                  setGroupBy(nextValue);
+                }}
                 styles={customSelectStyles}
                 menuPortalTarget={document.body}
               />
             </div>
 
-            <div className="progress-hierarchy-filter-group">
-              <label>मद के अनुसार फ़िल्टर</label>
-              <Select
-                isMulti
-                isSearchable
-                closeMenuOnSelect={false}
-                hideSelectedOptions={false}
-                options={madFilterOptions}
-                value={selectedMadOptions}
-                onChange={handleMadFilterChange}
-                placeholder="एक या अधिक मद चुनें..."
-                noOptionsMessage={() => 'कोई मद उपलब्ध नहीं'}
-                styles={customSelectStyles}
-                menuPortalTarget={document.body}
-              />
-            </div>
+            {groupBy !== 'upmad' && (
+              <div className="progress-hierarchy-filter-group">
+                <label>मद के अनुसार फ़िल्टर</label>
+                <Select
+                  isMulti
+                  isSearchable
+                  closeMenuOnSelect={false}
+                  hideSelectedOptions={false}
+                  options={madFilterOptions}
+                  value={selectedMadOptions}
+                  onChange={handleMadFilterChange}
+                  placeholder="एक या अधिक मद चुनें..."
+                  noOptionsMessage={() => 'कोई मद उपलब्ध नहीं'}
+                  styles={customSelectStyles}
+                  menuPortalTarget={document.body}
+                />
+              </div>
+            )}
 
             <div className="progress-hierarchy-filter-group">
               <label>उप-मद के अनुसार फ़िल्टर</label>
@@ -2065,17 +2133,17 @@ const DynamicReportTabs = ({ sourceData }) => {
               <thead>
                 <tr>
                   {show('sno') && <th rowSpan="2">क्रम संख्या</th>}
+                  {show('scheme') && (
+                    <th rowSpan="2">{schemeLabel || 'योजना का नाम'}</th>
+                  )}
                   {upmadMode ? (
                     <>
                       {show('submad') && <th rowSpan="2">उप-मद का नाम</th>}
-                      {show('mad') && <th rowSpan="2">मद का नाम</th>}
-                      {show('scheme') && <th rowSpan="2">{schemeLabel || 'योजना का नाम'}</th>}
                     </>
                   ) : (
                     <>
                       {show('mad') && <th rowSpan="2">मद का नाम</th>}
                       {show('submad') && <th rowSpan="2">उप-मद का नाम</th>}
-                      {show('scheme') && <th rowSpan="2">{schemeLabel || 'योजना का नाम'}</th>}
                     </>
                   )}
                   {show('ikai') && <th rowSpan="2">इकाई</th>}
@@ -2083,6 +2151,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                     show(`geo_${index}`) && <th colSpan={colspan} key={geo}>{geo}</th>
                   )}
                   {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>}
+                  {show('yojanaRow') && <th rowSpan="2">योजना का नाम</th>}
                 </tr>
                 <tr>
                   {visibleGeo.flatMap((geo, index) =>
@@ -2116,22 +2185,23 @@ const DynamicReportTabs = ({ sourceData }) => {
                   return (
                     <tr key={`${item.key}-${idx}`}>
                       {show('sno') && <td>{idx + 1}</td>}
+                      {show('scheme') && (
+                        <td>{schemeLabel || item.vahan}</td>
+                      )}
                       {upmadMode ? (
                         <>
                           {show('submad') && <td>{item.upnivesh}</td>}
-                          {show('mad') && <td>{item.nivesh}</td>}
-                          {show('scheme') && <td>{schemeLabel || item.vahan}</td>}
                         </>
                       ) : (
                         <>
                           {show('mad') && <td>{item.nivesh}</td>}
                           {show('submad') && <td>{item.upnivesh}</td>}
-                          {show('scheme') && <td>{schemeLabel || item.vahan}</td>}
                         </>
                       )}
                       {show('ikai') && <td>{item.ikai}</td>}
                       {cells}
                       {show('total') && renderTotalValues({ mat: rowMat, val: rowVal }, `row-total-${idx}`)}
+                      {show('yojanaRow') && <td>{item.vahan || '-'}</td>}
                     </tr>
                   );
                 })}
@@ -2152,6 +2222,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                             : null
                         )}
                         {show('total') && renderTotalValues({ mat: grandMat, val: grandVal }, 'footer-grand-total')}
+                        {show('yojanaRow') && <td></td>}
                       </>
                     );
                   })()}
@@ -2206,10 +2277,11 @@ const DynamicReportTabs = ({ sourceData }) => {
           <div className="dynamic-report-panel">
             <h5 style={{ marginBottom: "6px" }}>सारांश — योजना-वार मद / उप-मद विवरण</h5>
 
-            {/* सारांश देखें + योजना-वार वित्तीय/भौतिक सारांश
-                must appear immediately below the main सारांश heading,
-                before the date filter. */}
-            <SummaryFilteredTable data={summaryRows} />
+            {/* तिथि के अनुसार फ़िल्टर सबसे ऊपर रहेगा,
+                सारांश देखें सेक्शन से पहले।
+
+                Summary tab में अनुदान वहन योजना और केंद्र वाले
+                अतिरिक्त filters नहीं दिखाए जाएंगे। */}
 
             <ReportTabDateFilter
               startDate={summaryStartDate}
@@ -2222,7 +2294,8 @@ const DynamicReportTabs = ({ sourceData }) => {
               onClear={clearSummaryDateFilter}
             />
 
-            <FilterBar section="summary" />
+            {/* सारांश देखें + योजना-वार वित्तीय/भौतिक सारांश */}
+            <SummaryFilteredTable data={summaryRows} />
 
             <h6 className="dynamic-report-subtitle">1) अनुदान वहन योजना के अनुसार सारांश</h6>
             <SummaryPlanTable />
