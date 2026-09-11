@@ -1401,6 +1401,10 @@ const DynamicReportTabs = ({ sourceData }) => {
   const [progressColumns, setProgressColumns] = useState(null);
   const [saleColumns, setSaleColumns] = useState(null);
 
+  // Independent view/column state for the second 4401 hierarchy table.
+  const [saleSecondView, setSaleSecondView] = useState('vidhan');
+  const [saleSecondColumns, setSaleSecondColumns] = useState(null);
+
   const rows = useMemo(() => (
     Array.isArray(sourceData) ? sourceData : []
   ).map(item => ({
@@ -1802,7 +1806,8 @@ const DynamicReportTabs = ({ sourceData }) => {
     schemeLabel,
     columns,
     setColumns,
-    enableHierarchyFilters = false
+    enableHierarchyFilters = false,
+    hideSchemeColumn = false
   }) => {
     const [selectedMad, setSelectedMad] = useState([]);
     const [selectedUpmad, setSelectedUpmad] = useState([]);
@@ -1928,7 +1933,7 @@ const DynamicReportTabs = ({ sourceData }) => {
               { key: 'submad', label: 'उप-मद का नाम' }
             ])
       : [
-          { key: 'scheme', label: 'योजना का नाम' },
+          ...(!hideSchemeColumn ? [{ key: 'scheme', label: 'योजना का नाम' }] : []),
           { key: 'mad', label: 'मद का नाम' },
           { key: 'submad', label: 'उप-मद का नाम' }
         ];
@@ -1938,8 +1943,7 @@ const DynamicReportTabs = ({ sourceData }) => {
       ...hierarchyDefs,
       { key: 'ikai', label: 'इकाई' },
       ...visibleGeo.map((geo, index) => ({ key: `geo_${index}`, label: geo })),
-      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' },
-      { key: 'yojanaRow', label: 'योजना का नाम' }
+      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' }
     ];
 
     const visible = columns === null ? matrixDefs.map(c => c.key) : columns;
@@ -2151,7 +2155,6 @@ const DynamicReportTabs = ({ sourceData }) => {
                     show(`geo_${index}`) && <th colSpan={colspan} key={geo}>{geo}</th>
                   )}
                   {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>}
-                  {show('yojanaRow') && <th rowSpan="2">योजना का नाम</th>}
                 </tr>
                 <tr>
                   {visibleGeo.flatMap((geo, index) =>
@@ -2201,7 +2204,6 @@ const DynamicReportTabs = ({ sourceData }) => {
                       {show('ikai') && <td>{item.ikai}</td>}
                       {cells}
                       {show('total') && renderTotalValues({ mat: rowMat, val: rowVal }, `row-total-${idx}`)}
-                      {show('yojanaRow') && <td>{item.vahan || '-'}</td>}
                     </tr>
                   );
                 })}
@@ -2222,7 +2224,6 @@ const DynamicReportTabs = ({ sourceData }) => {
                             : null
                         )}
                         {show('total') && renderTotalValues({ mat: grandMat, val: grandVal }, 'footer-grand-total')}
-                        {show('yojanaRow') && <td></td>}
                       </>
                     );
                   })()}
@@ -2464,6 +2465,8 @@ const DynamicReportTabs = ({ sourceData }) => {
             <FilterBar section="sale" />
             <h6 className="dynamic-report-subtitle">4401 प्रगति मैट्रिक्स — विक्रय दर व कृषक अंश</h6>
 
+            {/* पहला 4401 table:
+                योजना का नाम column intentionally removed. */}
             <MatrixTable
               data={saleRows}
               geoField={saleView === 'vidhan' ? 'vidhan' : saleView === 'block' ? 'block' : 'kendra'}
@@ -2472,7 +2475,60 @@ const DynamicReportTabs = ({ sourceData }) => {
               schemeLabel={fixedPlan || '—'}
               columns={saleColumns}
               setColumns={setSaleColumns}
+              hideSchemeColumn={true}
             />
+
+            {/* दूसरा 4401 table:
+                योजना प्रगति विवरण जैसी Mad/Up-Mad functionality.
+                इसका view और column selection पहले 4401 table से स्वतंत्र है। */}
+            <div
+              className="dynamic-report-subsection professional-report-subsection"
+              style={{ marginTop: "26px" }}
+            >
+              <h6 className="dynamic-report-subtitle">
+                4401 प्रगति मैट्रिक्स — मद / उप-मद के अनुसार
+              </h6>
+
+              <p className="dynamic-report-note">
+                इस तालिका में योजना प्रगति विवरण की तरह मद / उप-मद के अनुसार
+                तालिका बदलने और संबंधित फ़िल्टर चुनने की सुविधा है।
+              </p>
+
+              <div className="dynamic-report-view-row professional-view-row">
+                <label>देखने का प्रकार</label>
+                <select
+                  value={saleSecondView}
+                  onChange={e => setSaleSecondView(e.target.value)}
+                >
+                  <option value="vidhan">विधानसभा-वार</option>
+                  <option value="block">ब्लॉक-वार</option>
+                  <option value="kendra">केंद्र-वार</option>
+                </select>
+              </div>
+
+              <MatrixTable
+                enableHierarchyFilters={true}
+                data={saleRows}
+                geoField={
+                  saleSecondView === 'vidhan'
+                    ? 'vidhan'
+                    : saleSecondView === 'block'
+                      ? 'block'
+                      : 'kendra'
+                }
+                geoList={
+                  saleSecondView === 'vidhan'
+                    ? lists.vidhan
+                    : saleSecondView === 'block'
+                      ? lists.block
+                      : lists.kendra
+                }
+                saleMode={true}
+                schemeLabel={fixedPlan || '—'}
+                columns={saleSecondColumns}
+                setColumns={setSaleSecondColumns}
+              />
+            </div>
           </div>
         )}
 
