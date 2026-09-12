@@ -1871,6 +1871,7 @@ const DashboardTab = ({
         for (let col = 1; col <= Math.min(sheet.columnCount, 30); col += 1) {
           rowText.push(normalized(sheet.getCell(row, col).value));
         }
+
         const hasItemHeader = rowText.some(
           (value) =>
             value.includes("मद का नाम") ||
@@ -1898,9 +1899,8 @@ const DashboardTab = ({
 
         const subHeader = text(sheet.getCell(subHeaderRow, col).value);
         const sub = normalized(subHeader);
-        const group = currentGroup;
 
-        if (!group) continue;
+        if (!currentGroup) continue;
 
         const isFinancial =
           sub.includes("वित्तीय") ||
@@ -1909,16 +1909,16 @@ const DashboardTab = ({
 
         if (isFinancial) {
           groups.push({
-            name: group,
+            name: currentGroup,
             financialCol: col,
-            total: isTotalName(group),
+            total: isTotalName(currentGroup),
           });
         }
       }
 
-      // Remove duplicate columns created by unusual merged/header layouts.
       const uniqueGroups = [];
       const seen = new Set();
+
       for (const item of groups) {
         const key = normalized(item.name);
         if (!key || seen.has(key)) continue;
@@ -1934,12 +1934,13 @@ const DashboardTab = ({
       };
     };
 
-    const parseWorkbook = (book, sourceReport) => {
+    const parseWorkbook = async (book, sourceReport) => {
       const mprSheet = findSheet(
         book,
         ["📊 MPR REPORT", "MPR REPORT"],
         "mpr report"
       );
+
       const dataSheet = findSheet(
         book,
         ["📝 DATA ENTRY", "DATA ENTRY"],
@@ -1947,6 +1948,7 @@ const DashboardTab = ({
       );
 
       const sheet = mprSheet || dataSheet;
+
       if (!sheet) {
         return {
           schemes: [],
@@ -1969,7 +1971,6 @@ const DashboardTab = ({
         const itemColumn = 2;
         const serialColumn = 1;
 
-        // Detect beneficiary column without assuming a fixed position.
         for (let row = 1; row <= Math.min(sheet.rowCount, 15); row += 1) {
           for (let col = 1; col <= sheet.columnCount; col += 1) {
             const cellText = normalized(sheet.getCell(row, col).value);
@@ -2007,6 +2008,7 @@ const DashboardTab = ({
         const totalsGroup = header.groups.find((group) => group.total);
 
         const schemeMap = new Map();
+
         for (const group of schemeGroups) {
           schemeMap.set(normalized(group.name), {
             name: group.name,
@@ -2042,6 +2044,7 @@ const DashboardTab = ({
           for (const group of schemeGroups) {
             const key = normalized(group.name);
             const entry = schemeMap.get(key);
+
             if (entry) {
               entry.value += safeNumber(
                 sheet.getCell(row, group.financialCol).value
@@ -2050,8 +2053,9 @@ const DashboardTab = ({
           }
 
           if (totalsGroup) {
-            const cellValue = sheet.getCell(row, totalsGroup.financialCol).value;
-            total += safeNumber(cellValue);
+            total += safeNumber(
+              sheet.getCell(row, totalsGroup.financialCol).value
+            );
           }
 
           if (beneficiaryCol) {
@@ -2063,8 +2067,6 @@ const DashboardTab = ({
 
         totalFound = Boolean(totalsGroup);
 
-        // If there is no explicit total column, calculate the total from the
-        // financial columns actually present in this workbook.
         if (!totalFound) {
           total = [...schemeMap.values()].reduce(
             (sum, item) => sum + item.value,
@@ -2098,7 +2100,9 @@ const DashboardTab = ({
 
         if (aggregateAll) {
           if (!reports.length) {
-            throw new Error("No MPR Excel reports are available for the overall dashboard.");
+            throw new Error(
+              "No MPR Excel reports are available for the overall dashboard."
+            );
           }
 
           const results = await Promise.all(
@@ -2108,9 +2112,10 @@ const DashboardTab = ({
               return parseWorkbook(book, item);
             })
           );
+
           parsedReports = results;
         } else if (workbook && report) {
-          parsedReports = [parseWorkbook(workbook, report)];
+          parsedReports = [await parseWorkbook(workbook, report)];
         } else {
           return;
         }
@@ -2130,7 +2135,9 @@ const DashboardTab = ({
           for (const scheme of parsed.schemes) {
             const key = normalized(scheme.name);
             if (!key) continue;
+
             const existing = schemeMap.get(key);
+
             if (existing) {
               existing.value += safeNumber(scheme.value);
             } else {
@@ -2142,7 +2149,9 @@ const DashboardTab = ({
           }
         }
 
-        const schemes = [...schemeMap.values()];
+        const schemes = [...schemeMap.values()]
+          .filter((item) => Number(item.value) > 0)
+          .sort((a, b) => b.value - a.value);
 
         setDashboard({
           source: aggregateAll ? "ALL_REPORTS" : "SELECTED_REPORT",
@@ -2152,15 +2161,19 @@ const DashboardTab = ({
           },
           schemes,
           reportCount: parsedReports.length,
-          title: "📈 MPR DASHBOARD — Auto-Updated Summary",
+          title: "MPR Dashboard",
           subtitle: aggregateAll
-            ? `Overall Summary | ${parsedReports.length} MPR Reports`
-            : `${getMonthName(report?.month)} | वर्ष ${report?.financialYear || ""}`.trim(),
+            ? `Overall Summary • ${parsedReports.length} MPR Reports`
+            : `${getMonthName(report?.month)} • FY ${report?.financialYear || ""}`.trim(),
         });
       } catch (err) {
         console.error("Dashboard build error:", err);
+
         if (!cancelled) {
-          setError(err?.message || "Unable to create dashboard from the selected Excel report(s).");
+          setError(
+            err?.message ||
+              "Unable to create dashboard from the selected Excel report(s)."
+          );
           setDashboard(null);
         }
       }
@@ -2196,12 +2209,30 @@ const DashboardTab = ({
       maximumFractionDigits: 2,
     });
 
+  const formatCompact = (value) => {
+    const number = Number(value || 0);
+
+    if (Math.abs(number) >= 10000000) {
+      return `${(number / 10000000).toFixed(1)}Cr`;
+    }
+
+    if (Math.abs(number) >= 100000) {
+      return `${(number / 100000).toFixed(1)}L`;
+    }
+
+    if (Math.abs(number) >= 1000) {
+      return `${(number / 1000).toFixed(1)}K`;
+    }
+
+    return number.toFixed(0);
+  };
+
   const cards = [
-    ["कुल वित्तीय उपलब्धि", dashboard.values.total, "₹ लाखों में", true],
+    ["कुल वित्तीय उपलब्धि", dashboard.values.total, "₹", true],
     ...dashboard.schemes.map((scheme) => [
       scheme.name,
       scheme.value,
-      "₹ लाखों में",
+      "₹",
       false,
     ]),
   ];
@@ -2215,24 +2246,89 @@ const DashboardTab = ({
     ]);
   }
 
+  const chartSchemes = dashboard.schemes.filter((item) => item.value > 0);
+  const maxSchemeValue = Math.max(
+    ...chartSchemes.map((item) => Number(item.value || 0)),
+    1
+  );
+
+  // SVG pie chart geometry. No chart package is required, so existing dependencies
+  // and the rest of the application remain untouched.
+  const pieTotal = chartSchemes.reduce(
+    (sum, item) => sum + Number(item.value || 0),
+    0
+  );
+
+  const pieColors = [
+    "#2563eb",
+    "#0f766e",
+    "#7c3aed",
+    "#ea580c",
+    "#0891b2",
+    "#4f46e5",
+    "#16a34a",
+    "#c026d3",
+    "#ca8a04",
+    "#475569",
+  ];
+
+  const polarToCartesian = (cx, cy, radius, angle) => {
+    const radians = ((angle - 90) * Math.PI) / 180;
+    return {
+      x: cx + radius * Math.cos(radians),
+      y: cy + radius * Math.sin(radians),
+    };
+  };
+
+  const describeArc = (cx, cy, radius, startAngle, endAngle) => {
+    const start = polarToCartesian(cx, cy, radius, endAngle);
+    const end = polarToCartesian(cx, cy, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+
+    return [
+      `M ${cx} ${cy}`,
+      `L ${start.x} ${start.y}`,
+      `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
+      "Z",
+    ].join(" ");
+  };
+
+  let pieAngle = 0;
+
+  const pieSlices = chartSchemes.map((scheme, index) => {
+    const share = pieTotal ? Number(scheme.value || 0) / pieTotal : 0;
+    const startAngle = pieAngle;
+    const endAngle = pieAngle + share * 360;
+    pieAngle = endAngle;
+
+    return {
+      ...scheme,
+      share,
+      startAngle,
+      endAngle,
+      color: pieColors[index % pieColors.length],
+    };
+  });
+
   return (
     <div className="mpr-dashboard-page">
       <div className="mpr-dashboard-title">
-        <div>{dashboard.title}</div>
+        <div>
+          <span className="mpr-dashboard-title-icon">▦</span>
+          {dashboard.title}
+        </div>
         <span>{dashboard.subtitle}</span>
       </div>
 
       <div className="mpr-dashboard-source">
-        <span>
-          {dashboard.source === "ALL_REPORTS"
-            ? `Overall dashboard generated from ${dashboard.reportCount} selected reports:`
-            : "Dashboard generated from selected Excel:"}
-        </span>
-        <strong>
-          {dashboard.source === "ALL_REPORTS"
-            ? "All matching MPR Excel Reports"
-            : report?.fileName || "Selected MPR Report"}
-        </strong>
+        <div>
+          <span className="mpr-dashboard-source-label">Data source</span>
+          <strong>
+            {dashboard.source === "ALL_REPORTS"
+              ? `All matching MPR Excel Reports (${dashboard.reportCount})`
+              : report?.fileName || "Selected MPR Report"}
+          </strong>
+        </div>
         <span className="mpr-dashboard-source-type">
           {dashboard.source === "ALL_REPORTS" ? "OVERALL" : "SELECTED REPORT"}
         </span>
@@ -2257,7 +2353,10 @@ const DashboardTab = ({
                   isTotal ? "main-total" : ""
                 }`}
               >
-                <div className="mpr-dashboard-card-label">{label}</div>
+                <div className="mpr-dashboard-card-top">
+                  <span className="mpr-dashboard-card-dot" />
+                  <span className="mpr-dashboard-card-label">{label}</span>
+                </div>
                 <div className="mpr-dashboard-card-value">
                   {formatValue(value)}
                 </div>
@@ -2266,34 +2365,207 @@ const DashboardTab = ({
             ))}
           </div>
 
+          {/* Professional chart row: exactly 6/6 on desktop. */}
+       
+
           <div className="mpr-dashboard-table-card">
             <div className="mpr-dashboard-table-title">
-              योजना-वार वित्तीय उपलब्धि
+              <div>
+                <span className="mpr-dashboard-section-icon">▤</span>
+                योजना-वार वित्तीय उपलब्धि
+              </div>
+              <span>{chartSchemes.length} योजनाएँ</span>
             </div>
+
             <div className="mpr-dashboard-table-wrap">
               <table className="mpr-dashboard-table">
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>योजना</th>
                     <th>वित्तीय उपलब्धि</th>
-                    
+                    <th>कुल %</th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {dashboard.schemes.map((scheme, index) => (
-                    <tr key={`${scheme.name}-${index}`}>
-                      <td>{scheme.name}</td>
-                      <td>₹ {formatValue(scheme.value)} </td>
-                    </tr>
-                  ))}
+                  {dashboard.schemes.map((scheme, index) => {
+                    const share = dashboard.values.total
+                      ? (Number(scheme.value || 0) /
+                          Number(dashboard.values.total)) *
+                        100
+                      : 0;
+
+                    return (
+                      <tr key={`${scheme.name}-${index}`}>
+                        <td>
+                          <span className="mpr-dashboard-rank">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                        </td>
+                        <td>{scheme.name}</td>
+                        <td>₹ {formatValue(scheme.value)}</td>
+                        <td>
+                          <div className="mpr-dashboard-share-cell">
+                            <span>{share.toFixed(1)}%</span>
+                            <div className="mpr-dashboard-share-track">
+                              <div
+                                className="mpr-dashboard-share-fill"
+                                style={{ width: `${Math.min(share, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
                   <tr className="mpr-dashboard-total-row">
+                    <td />
                     <td>कुल वित्तीय उपलब्धि</td>
-                    <td>₹{formatValue(dashboard.values.total)}</td>
-                    
+                    <td>₹ {formatValue(dashboard.values.total)}</td>
+                    <td>100.0%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </div>
+             <div className="mpr-dashboard-chart-grid">
+            <section className="mpr-dashboard-chart-card">
+              <div className="mpr-dashboard-chart-header">
+                <div>
+                  <h3>योजना-वार वित्तीय वितरण</h3>
+                  <p>Scheme-wise share of total financial achievement</p>
+                </div>
+                <span className="mpr-dashboard-chart-badge">
+                  {chartSchemes.length} योजनाएँ
+                </span>
+              </div>
+
+              <div className="mpr-dashboard-pie-layout">
+                <div className="mpr-dashboard-pie-wrap">
+                  <svg
+                    className="mpr-dashboard-pie"
+                    viewBox="0 0 220 220"
+                    role="img"
+                    aria-label="Scheme-wise financial distribution pie chart"
+                  >
+                    <circle
+                      cx="110"
+                      cy="110"
+                      r="84"
+                      fill="#f8fafc"
+                    />
+
+                    {pieSlices.map((slice, index) => (
+                      <path
+                        key={`${slice.name}-${index}`}
+                        d={describeArc(
+                          110,
+                          110,
+                          84,
+                          slice.startAngle,
+                          slice.endAngle
+                        )}
+                        fill={slice.color}
+                        stroke="#ffffff"
+                        strokeWidth="3"
+                      />
+                    ))}
+
+                    <circle
+                      cx="110"
+                      cy="110"
+                      r="53"
+                      fill="#ffffff"
+                    />
+
+                    <text
+                      x="110"
+                      y="104"
+                      textAnchor="middle"
+                      className="mpr-dashboard-pie-total"
+                    >
+                      {formatCompact(pieTotal)}
+                    </text>
+
+                    <text
+                      x="110"
+                      y="122"
+                      textAnchor="middle"
+                      className="mpr-dashboard-pie-label"
+                    >
+                      ₹ 
+                    </text>
+                  </svg>
+                </div>
+
+                <div className="mpr-dashboard-legend">
+                  {pieSlices.map((slice, index) => (
+                    <div
+                      className="mpr-dashboard-legend-item"
+                      key={`${slice.name}-legend-${index}`}
+                    >
+                      <span
+                        className="mpr-dashboard-legend-dot"
+                        style={{ background: slice.color }}
+                      />
+                      <span className="mpr-dashboard-legend-name">
+                        {slice.name}
+                      </span>
+                      <strong>
+                        {(slice.share * 100).toFixed(1)}%
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="mpr-dashboard-chart-card">
+              <div className="mpr-dashboard-chart-header">
+                <div>
+                  <h3>योजना-वार वित्तीय उपलब्धि</h3>
+                  <p>Direct comparison of financial achievement</p>
+                </div>
+                <span className="mpr-dashboard-chart-badge">₹ </span>
+              </div>
+
+              <div className="mpr-dashboard-bar-chart">
+                {chartSchemes.map((scheme, index) => {
+                  const value = Number(scheme.value || 0);
+                  const width = Math.max(
+                    value > 0 ? (value / maxSchemeValue) * 100 : 0,
+                    value > 0 ? 3 : 0
+                  );
+
+                  return (
+                    <div
+                      className="mpr-dashboard-bar-row"
+                      key={`${scheme.name}-bar-${index}`}
+                    >
+                      <div className="mpr-dashboard-bar-label" title={scheme.name}>
+                        {scheme.name}
+                      </div>
+
+                      <div className="mpr-dashboard-bar-track">
+                        <div
+                          className="mpr-dashboard-bar-fill"
+                          style={{
+                            width: `${width}%`,
+                            "--bar-delay": `${index * 45}ms`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="mpr-dashboard-bar-value">
+                        {formatValue(value)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           </div>
         </>
       )}
@@ -2417,35 +2689,39 @@ const MonthReport = () => {
   }, [reports, filteredReports, monthFilter, yearFilter]);
 
   useEffect(() => {
+    // Only perform the initial/default dashboard selection while the
+    // Dashboard tab is active. IMPORTANT: once the user manually selects
+    // an MPR file, do not replace that selection just because the file
+    // belongs to a month different from the default/current month.
+    if (activeTab !== "dashboard") return;
+
+    // A manual selection always has priority over the automatic
+    // current-month selection.
+    if (selectedReport) return;
+
     if (!dashboardReports.length) {
       setSelectedReport(null);
       return;
     }
 
-    const stillVisible = dashboardReports.some(
-      (item) => String(item.id) === String(selectedReport?.id)
-    );
-
-    if (!stillVisible) {
-      // Preserve API order: first matching report is selected.
-      setSelectedReport(dashboardReports[0]);
-    }
-  }, [dashboardReports, selectedReport?.id]);
+    // Preserve API order for the automatic default selection only.
+    setSelectedReport(dashboardReports[0]);
+  }, [activeTab, dashboardReports, selectedReport?.id]);
 
   const selectReport = (event) => {
     const id = event.target.value;
 
     if (!id) {
       setSelectedReport(null);
-      setActiveTab("dashboard");
       return;
     }
 
     const report = reports.find((item) => String(item.id) === String(id));
     if (!report) return;
 
+    // Keep the current tab. Selecting an MPR file must not unexpectedly
+    // navigate the user to the Dashboard tab.
     setSelectedReport(report);
-    setActiveTab("dashboard");
   };
 
   const resetForm = () => {
