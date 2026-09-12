@@ -2352,7 +2352,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                ================================================================ */}
             <div className="dynamic-report-subsection professional-report-subsection" style={{ marginTop: "30px" }}>
               <h6 className="dynamic-report-subtitle">
-                4) एक ब्लॉक चुनें — उसके केंद्रों का विवरण (मूल प्रारूप जैसा)
+               एक ब्लॉक चुनें — उसके केंद्रों का विवरण (मूल प्रारूप जैसा)
               </h6>
               <p className="dynamic-report-note">
                 यह तालिका ऊपर के फ़िल्टरों से स्वतंत्र है। नीचे एक ब्लॉक चुनें,
