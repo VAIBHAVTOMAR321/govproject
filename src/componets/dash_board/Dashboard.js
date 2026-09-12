@@ -1840,13 +1840,19 @@ const DynamicReportTabs = ({ sourceData }) => {
     useEffect(() => {
       if (!enableHierarchyFilters) return;
       const available = new Set(madOptions.map(option => option.value));
-      setSelectedMad(prev => prev.filter(value => available.has(value)));
+      setSelectedMad(prev => {
+        const next = prev.filter(value => available.has(value));
+        return next.length === prev.length && next.every((v, i) => v === prev[i]) ? prev : next;
+      });
     }, [enableHierarchyFilters, madOptions]);
-
+  
     useEffect(() => {
       if (!enableHierarchyFilters) return;
       const available = new Set(upmadOptions.map(option => option.value));
-      setSelectedUpmad(prev => prev.filter(value => available.has(value)));
+      setSelectedUpmad(prev => {
+        const next = prev.filter(value => available.has(value));
+        return next.length === prev.length && next.every((v, i) => v === prev[i]) ? prev : next;
+      });
     }, [enableHierarchyFilters, upmadOptions]);
 
     const filteredData = useMemo(() => {
