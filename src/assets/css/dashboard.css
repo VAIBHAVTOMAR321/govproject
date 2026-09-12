@@ -3588,6 +3588,7 @@ f.modal-title {
 @media (max-width: 767px) {
   .professional-dashboard-body {
     padding-inline: 10px !important;
+    margin-top:54px !important;
   }
 
   .professional-export-card .card-body,
