@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./KishanBeej.css";
 
-const API = "https://mahadevaaya.com/govbillingsystem/backend/api";
+const API = "https://mahadevaaya.com/govbillingsystem/backend/api/kishanbeej";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -32,10 +32,10 @@ const DEFAULT_CONFIG = {
       "जिला कार्ययोजना {{year}} · {{scheme}} · क्रय → आवंटन → वितरण, सब स्वतः जुड़ा",
     nav: [
       ["home", "🏠", "होम"],
-      ["entry", "✍️", "वितरण"],
-      ["stock", "📦", "स्टॉक"],
-      ["manak", "⚙️", "मानक"],
-      ["report", "📊", "रिपोर्ट"],
+      ["manak", "1️⃣", "Step 1 · मानक"],
+      ["stock", "2️⃣", "Step 2 · स्टॉक"],
+      ["entry", "3️⃣", "Step 3 · वितरण"],
+      ["report", "4️⃣", "Step 4 · रिपोर्ट"],
     ],
     workflow: [
       { n: 1, label: "मानक टैब", desc: "हर किस्म के मद यहाँ जोड़ें/संपादित करें। राजसहायता व कृषक अंश का मानक स्वतः बनेगा।" },
@@ -274,11 +274,19 @@ export default function KishanBeej() {
     return [];
   };
 
+  /* =========================================================
+     API LIFECYCLE: data loading follows strict dependency order.
+     1. Bootstrap config
+     2. Master settings + reference data (centres, varieties)
+     3. Standards (depends on varieties)
+     4. Transactions (purchases, allocations, distributions)
+     ========================================================= */
   async function load() {
     setLoading(true);
     setError("");
     try {
       const bootstrap = await apiFetch("/bootstrap/");
+
       const [
         masterResult,
         centresResult,
@@ -314,8 +322,6 @@ export default function KishanBeej() {
       setMeta(mergedMeta);
       setMasterDraft(result.master || mergedMeta.masterDefaults);
 
-      // Pre-group standards so other tabs (distribution, stock, report) work without
-      // requiring the user to expand each variety first.
       const grouped = groupByVariety(result.standards);
       setVarietyItems(grouped);
     } catch (e) {
@@ -328,6 +334,77 @@ export default function KishanBeej() {
   useEffect(() => {
     load();
   }, []);
+
+  /* =========================================================
+     API LIFECYCLE
+     1. Bootstrap  ->  /bootstrap/
+     2. Master     ->  /master/
+     3. Reference  ->  /centres/, /varieties/
+     4. Standards  ->  /standards/
+     5. Transactions -> /purchases/, /allocations/, /distributions/
+
+     The load() function follows this exact sequence. Write
+     operations below are grouped in the same lifecycle order.
+     ========================================================= */
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const bootstrap = await apiFetch("/bootstrap/");
+
+      const [
+        masterResult,
+        centresResult,
+        varietiesResult,
+        standardsResult,
+        purchasesResult,
+        allocationsResult,
+        distributionsResult,
+      ] = await Promise.all([
+        apiFetch("/master/"),
+        apiFetch("/centres/"),
+        apiFetch("/varieties/"),
+        apiFetch("/standards/"),
+        apiFetch("/purchases/"),
+        apiFetch("/allocations/"),
+        apiFetch("/distributions/"),
+      ]);
+
+      const result = {
+        master: masterResult || bootstrap.master || null,
+        meta: (bootstrap && bootstrap.meta) || null,
+        centres: asList(centresResult).length ? asList(centresResult) : asList(bootstrap.centres),
+        varieties: asList(varietiesResult).length ? asList(varietiesResult) : asList(bootstrap.varieties),
+        standards: asList(standardsResult).length ? asList(standardsResult) : asList(bootstrap.standards),
+        purchases: asList(purchasesResult).length ? asList(purchasesResult) : asList(bootstrap.purchases),
+        allocations: asList(allocationsResult).length ? asList(allocationsResult) : asList(bootstrap.allocations),
+        entries: asList(distributionsResult).length ? asList(distributionsResult) : asList(bootstrap.entries),
+      };
+
+      const mergedMeta = { ...DEFAULT_CONFIG.meta, ...(result.meta || {}) };
+
+      setData(result);
+      setMeta(mergedMeta);
+      setMasterDraft(result.master || mergedMeta.masterDefaults);
+
+      const grouped = groupByVariety(result.standards);
+      setVarietyItems(grouped);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  /* =========================================================
+     PHASE 4: STANDARDS (lazy per-variety fetches)
+     /standards/?variety={id}
+     ========================================================= */
 
   /* === Standards API per variety === */
   async function fetchVarietyStandards(varietyId) {
@@ -354,7 +431,6 @@ export default function KishanBeej() {
       const result = await apiFetch(`/standards/?variety=${varietyId}`);
       const rows = asList(result);
       setDistCurrentStandards(rows);
-      // Seed items from the variety's standards
       setDistItems(
         rows.map((s) => ({
           standard: s.id,
@@ -374,56 +450,112 @@ export default function KishanBeej() {
     }
   }
 
-  function setItemField(idx, key, value) {
-    setDistItems((prev) => {
-      const next = [...prev];
-      next[idx] = { ...next[idx], [key]: value };
-      return next;
-    });
-  }
+  /* =========================================================
+     PHASE 2: MASTER CONFIG
+     /master/  (GET in load, PUT below)
+     ========================================================= */
 
-  function clearDistributionEdit() {
-    setEditingDistId(null);
-    setForm(emptyForm());
-    setDistItems([]);
-    setDistCurrentStandards([]);
-  }
-
-  function startEditDistribution(entry) {
-    setEditingDistId(entry.id);
-    setForm({
-      date: entry.date || today(),
-      centre: String(entry.centre || ""),
-      variety: String(entry.variety || ""),
-      area: String(entry.area || ""),
-      name: entry.name || "",
-      father: entry.father || "",
-      village: entry.village || "",
-      mobile: entry.mobile || "",
-      sign1: entry.sign1 || "नहीं",
-      sign2: entry.sign2 || "नहीं",
-      note: entry.note || "",
-    });
-    // Pre-fill items from existing entry items
-    const existing = (entry.items || []).map((it) => ({
-      standard: it.standard,
-      label: it.label || it.standard_label || "",
-      unit: it.unit || it.standard_unit || "",
-      standard_qty: Number(it.qty || 0),
-      qty: String(it.qty || ""),
-      rate: String(it.rate || ""),
-    }));
-    setDistItems(existing);
-    // Fetch standards for this variety (in background, won't overwrite items)
-    if (entry.variety) {
-      apiFetch(`/standards/?variety=${entry.variety}`)
-        .then((rows) => setDistCurrentStandards(asList(rows)))
-        .catch(() => {});
+  async function saveMaster() {
+    try {
+      const result = await apiFetch("/master/", {
+        method: "PUT",
+        body: JSON.stringify({
+          purchase_limit: Number(masterDraft.purchase_limit),
+          project_cost: Number(masterDraft.project_cost),
+          max_subsidy: Number(masterDraft.max_subsidy),
+          farmer_share: Number(masterDraft.farmer_share),
+        }),
+      });
+      setData((p) => ({ ...p, master: result }));
+      setMasterDraft(result);
+      setMessage("✓ सुरक्षित।");
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
     }
-    setTab("entry");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setMessage(`✎ संपादन — मद बदलने हेतु तैयार। अन्य फ़ील्ड भी बदल सकते हैं।`);
   }
+
+  async function resetMaster() {
+    if (!window.confirm("मूल मूल्यों पर लौटाएँ?")) return;
+    try {
+      const result = await apiFetch("/master/", {
+        method: "PUT",
+        body: JSON.stringify({
+          purchase_limit: Number(meta.masterDefaults.purchase_limit),
+          project_cost: Number(meta.masterDefaults.project_cost),
+          max_subsidy: Number(meta.masterDefaults.max_subsidy),
+          farmer_share: Number(meta.masterDefaults.farmer_share),
+        }),
+      });
+      setData((p) => ({ ...p, master: result }));
+      setMasterDraft(result);
+      setMessage("✓ मूल मूल्य सुरक्षित हो गए।");
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  /* =========================================================
+     PHASE 3: VARIETIES
+     /varieties/  (POST, GET in load, PUT, DELETE)
+     ========================================================= */
+
+  function startEditVariety(v) {
+    setEditingVarietyId(v.id);
+    setVarietyForm({
+      name: v.name || "",
+      jati: v.jati || "",
+      default_rate: v.default_rate != null ? String(v.default_rate) : "",
+      is_active: v.is_active !== false,
+    });
+  }
+
+  function cancelEditVariety() {
+    setEditingVarietyId(null);
+    setVarietyForm(emptyVariety());
+  }
+
+  async function saveVariety() {
+    if (!varietyForm.name.trim()) {
+      setMessage("किस्म का नाम भरना ज़रूरी है।");
+      return;
+    }
+    const body = {
+      name: varietyForm.name.trim(),
+      jati: varietyForm.jati.trim(),
+      default_rate: varietyForm.default_rate === "" ? 0 : Number(varietyForm.default_rate),
+      is_active: !!varietyForm.is_active,
+    };
+    try {
+      if (editingVarietyId) {
+        await apiFetch(`/varieties/${editingVarietyId}/`, { method: "PUT", body: JSON.stringify(body) });
+        setMessage(`✓ किस्म अद्यतन — ${body.name}।`);
+      } else {
+        await apiFetch("/varieties/", { method: "POST", body: JSON.stringify(body) });
+        setMessage(`✓ नई किस्म जुड़ी — ${body.name}।`);
+      }
+      cancelEditVariety();
+      await load();
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  async function deleteVariety(v) {
+    if (!window.confirm(`क्या "${v.name}" किस्म हटानी है? मौजूदा मानक/क्रय/आवंटन/वितरण पर असर पड़ सकता है।`)) return;
+    try {
+      await apiFetch(`/varieties/${v.id}/`, { method: "DELETE" });
+      if (editingVarietyId === v.id) cancelEditVariety();
+      await load();
+      setMessage(`✓ "${v.name}" किस्म हटाई गई।`);
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  /* =========================================================
+     PHASE 4: STANDARD ITEMS
+     /standards/  (POST, PUT, DELETE)
+     ========================================================= */
 
   async function addStandardItem(varietyId) {
     const f = newItemForms[varietyId] || {};
@@ -444,7 +576,7 @@ export default function KishanBeej() {
       });
       setNewItemForms((p) => ({ ...p, [varietyId]: {} }));
       await fetchVarietyStandards(varietyId);
-      await load(); // refresh grouped data for other tabs
+      await load();
       setMessage("✓ मद जोड़ा गया।");
     } catch (e) {
       setMessage(`✘ ${e.message}`);
@@ -508,7 +640,305 @@ export default function KishanBeej() {
     }
   }
 
-  /* ===== derived ===== */
+  /* =========================================================
+     PHASE 5: PURCHASES
+     /purchases/  (POST in addPurchase)
+     ========================================================= */
+
+  async function addPurchase() {
+    const qty = Number(purchaseForm.qty);
+    const rate = Number(purchaseForm.rate);
+    if (!purchaseForm.date || !purchaseForm.variety || !qty || !rate) {
+      setMessage("दिनांक, किस्म, मात्रा व दर भरें।");
+      return;
+    }
+    try {
+      const body = JSON.stringify({
+        date: purchaseForm.date,
+        variety: Number(purchaseForm.variety),
+        qty_kg: qty,
+        rate,
+        supplier: purchaseForm.supplier.trim(),
+        ref: purchaseForm.ref.trim(),
+      });
+      const result = editingPurchaseId
+        ? await apiFetch(`/purchases/${editingPurchaseId}`, { method: "POST", body })
+        : await apiFetch("/purchases/", { method: "POST", body });
+      await load();
+      setPurchaseForm(emptyPurchase());
+      setEditingPurchaseId(null);
+      setMessage(
+        editingPurchaseId
+          ? `✓ क्रय अद्यतन — ${result.variety_name}, ${n(result.qty_kg, 3)} किग्रा0 = ${money(result.amount)}।`
+          : `✓ क्रय जुड़ा — ${result.variety_name}, ${n(result.qty_kg, 3)} किग्रा0 = ${money(result.amount)}।`
+      );
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  function startEditPurchase(p) {
+    setEditingPurchaseId(p.id);
+    setPurchaseForm({
+      date: p.date || today(),
+      variety: String(p.variety),
+      qty: String(p.qty_kg ?? ""),
+      rate: String(p.rate ?? ""),
+      supplier: p.supplier || "",
+      ref: p.ref || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEditPurchase() {
+    setEditingPurchaseId(null);
+    setPurchaseForm(emptyPurchase());
+  }
+
+  /* =========================================================
+     PHASE 5: ALLOCATIONS
+     /allocations/  (POST in addAllocation)
+     ========================================================= */
+
+  async function addAllocation() {
+    if (!allotForm.date || !allotForm.centre || !allotForm.variety || !Number(allotForm.qty)) {
+      setMessage("दिनांक, केन्द्र, किस्म व मात्रा भरें।");
+      return;
+    }
+    const varietyId = Number(allotForm.variety);
+    const qtyGm = Number(allotForm.qty);
+    const available = centralLeft(varietyId);
+    if (qtyGm > available + 0.01) {
+      const vName = varietyById[varietyId]?.name || "";
+      setMessage(
+        `✘ आवंटन संभव नहीं — ${vName} का केन्द्रीय शेष केवल ${gm(available)} ग्राम है, आप ${gm(qtyGm)} ग्राम आवंटित करना चाहते हैं। पहले स्टॉक टैब से बीज-क्रय करें।`
+      );
+      return;
+    }
+    try {
+      const result = await apiFetch("/allocations/", {
+        method: "POST",
+        body: JSON.stringify({
+          date: allotForm.date,
+          centre: Number(allotForm.centre),
+          variety: Number(allotForm.variety),
+          qty_gm: Number(allotForm.qty),
+          source: allotForm.source.trim(),
+        }),
+      });
+      await load();
+      setAllotForm(emptyAllot());
+      setMessage(`✓ ${result.centre_name} को ${result.variety_name} की ${gm(result.qty_gm)} ग्राम आवंटित।`);
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  /* =========================================================
+     PHASE 6: DISTRIBUTIONS
+     /distributions/  (POST in addEntry, PUT in updateDistributionItems)
+     ========================================================= */
+
+  function setFormValue(key, value) {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "centre") {
+        const allowed = centreVarieties(Number(value));
+        const cur = varietyById[Number(prev.variety)]?.name;
+        if (prev.variety && !allowed.includes(cur)) next.variety = "";
+      }
+      return next;
+    });
+    if (key === "variety") {
+      loadStandardsForForm(value);
+    }
+  }
+
+  function setItemField(idx, key, value) {
+    setDistItems((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [key]: value };
+      return next;
+    });
+  }
+
+  function clearDistributionEdit() {
+    setEditingDistId(null);
+    setForm(emptyForm());
+    setDistItems([]);
+    setDistCurrentStandards([]);
+  }
+
+  function startEditDistribution(entry) {
+    setEditingDistId(entry.id);
+    setForm({
+      date: entry.date || today(),
+      centre: String(entry.centre || ""),
+      variety: String(entry.variety || ""),
+      area: String(entry.area || ""),
+      name: entry.name || "",
+      father: entry.father || "",
+      village: entry.village || "",
+      mobile: entry.mobile || "",
+      sign1: entry.sign1 || "नहीं",
+      sign2: entry.sign2 || "नहीं",
+      note: entry.note || "",
+    });
+    const existing = (entry.items || []).map((it) => ({
+      standard: it.standard,
+      label: it.label || it.standard_label || "",
+      unit: it.unit || it.standard_unit || "",
+      standard_qty: Number(it.qty || 0),
+      qty: String(it.qty || ""),
+      rate: String(it.rate || ""),
+    }));
+    setDistItems(existing);
+    if (entry.variety) {
+      apiFetch(`/standards/?variety=${entry.variety}`)
+        .then((rows) => setDistCurrentStandards(asList(rows)))
+        .catch(() => {});
+    }
+    setTab("entry");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setMessage(`✎ संपादन — मद बदलने हेतु तैयार। अन्य फ़ील्ड भी बदल सकते हैं।`);
+  }
+
+  async function addEntry() {
+    if (!form.date || !form.centre || !form.variety || !form.area || !form.name.trim()) {
+      setMessage("दिनांक, केन्द्र, किस्म, कृषक का नाम एवं क्षेत्रफल — पाँचों भरना ज़रूरी है।");
+      return;
+    }
+    if (!distItems.length) {
+      setMessage("✘ पहले किस्म का मानक लोड होने दें, फिर मद जोड़ें।");
+      return;
+    }
+    const centreId = Number(form.centre);
+    const varietyId = Number(form.variety);
+    const area = Number(form.area);
+    const t = totalsFor(varietyId);
+    if (!t || t.gmha <= 0) {
+      setMessage("✘ पहले मानक टैब में इस किस्म का बीज मद (राजसहायता, इकाई किग्रा0) जोड़ें।");
+      return;
+    }
+    const requiredSeedGm = area * t.gmha;
+    const available = opening(centreId, varietyId) - issued(centreId, varietyId);
+    if (requiredSeedGm > available + 0.01) {
+      const centreName = centres.find((c) => Number(c.id) === centreId)?.name || "";
+      const varietyName = varietyById[varietyId]?.name || "";
+      setMessage(
+        `✘ वितरण संभव नहीं — ${centreName} में ${varietyName} का शेष ${gm(available)} ग्राम है, जबकि ${area} है0 के लिए ${gm(requiredSeedGm)} ग्राम चाहिए। पहले स्टॉक टैब से केन्द्र को आवंटित करें।`
+      );
+      return;
+    }
+    try {
+      const itemsPayload = distItems
+        .filter((it) => it.standard && (Number(it.qty) > 0 || Number(it.rate) > 0))
+        .map((it) => ({
+          standard: Number(it.standard),
+          qty: Number(it.qty || 0),
+          rate: Number(it.rate || 0),
+        }));
+      if (!itemsPayload.length) {
+        setMessage("✘ कम से कम एक मद में मात्रा/दर भरें।");
+        return;
+      }
+      const result = await apiFetch("/distributions/", {
+        method: "POST",
+        body: JSON.stringify({
+          date: form.date,
+          centre: Number(form.centre),
+          variety: Number(form.variety),
+          area: Number(form.area),
+          name: form.name.trim(),
+          father: form.father.trim(),
+          village: form.village.trim(),
+          mobile: form.mobile.trim(),
+          sign1: form.sign1,
+          sign2: form.sign2,
+          note: form.note.trim(),
+          items: itemsPayload,
+        }),
+      });
+      await load();
+      setForm(emptyForm());
+      setDistItems([]);
+      setDistCurrentStandards([]);
+      setMessage(
+        `✓ जुड़ गया — ${result.name}, ${result.centre_name}, ${result.variety_name}, ${gm(result.seed_gm)} ग्राम, कुल ${money(result.total)}।`
+      );
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  /* Update an existing distribution — only items can change */
+  async function updateDistributionItems() {
+    if (!editingDistId) return;
+    if (!distItems.length) {
+      setMessage("✘ मद सूची खाली नहीं हो सकती।");
+      return;
+    }
+    const itemsPayload = distItems
+      .filter((it) => it.standard && (Number(it.qty) > 0 || Number(it.rate) > 0))
+      .map((it) => ({
+        standard: Number(it.standard),
+        qty: Number(it.qty || 0),
+        rate: Number(it.rate || 0),
+      }));
+    if (!itemsPayload.length) {
+      setMessage("✘ कम से कम एक मद में मात्रा/दर भरें।");
+      return;
+    }
+    try {
+      const result = await apiFetch(`/distributions/${editingDistId}/`, {
+        method: "PUT",
+        body: JSON.stringify({
+          date: form.date,
+          centre: Number(form.centre),
+          variety: Number(form.variety),
+          area: Number(form.area),
+          name: form.name.trim(),
+          father: form.father.trim(),
+          village: form.village.trim(),
+          mobile: form.mobile.trim(),
+          sign1: form.sign1,
+          sign2: form.sign2,
+          note: form.note.trim(),
+          items: itemsPayload,
+        }),
+      });
+      await load();
+      clearDistributionEdit();
+      setMessage(`✓ अद्यतन — ${result.name}, कुल ${money(result.total)}।`);
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  /* =========================================================
+     SHARED DELETE HELPER
+     /purchases/{id} POST _method=delete
+     /{type}/{id}/ DELETE
+     ========================================================= */
+
+  async function deleteItem(type, id, label) {
+    if (!window.confirm(`क्या ${label} हटाना है? यह वापस नहीं आएगा।`)) return;
+    try {
+      if (type === "purchases") {
+        await apiFetch(`/purchases/${id}`, { method: "POST", body: JSON.stringify({ _method: "delete" }) });
+      } else {
+        await apiFetch(`/${type}/${id}/`, { method: "DELETE" });
+      }
+      await load();
+    } catch (e) {
+      setMessage(`✘ ${e.message}`);
+    }
+  }
+
+  // Ref to know editing state from inside async setters (kept for future use)
+  const editingDistIdRef = React.useRef(null);
+  React.useEffect(() => { editingDistIdRef.current = editingDistId; }, [editingDistId]);
+
   const centres = data.centres || [];
   const varieties = data.varieties || [];
   const purchases = data.purchases || [];
@@ -714,326 +1144,6 @@ export default function KishanBeej() {
       purchaseGm: purchGm(v.id),
     };
   });
-
-  function setFormValue(key, value) {
-    setForm((prev) => {
-      const next = { ...prev, [key]: value };
-      if (key === "centre") {
-        const allowed = centreVarieties(Number(value));
-        const cur = varietyById[Number(prev.variety)]?.name;
-        if (prev.variety && !allowed.includes(cur)) next.variety = "";
-      }
-      return next;
-    });
-    // Whenever variety changes (in new or edit mode), reload that variety's standards
-    if (key === "variety") {
-      loadStandardsForForm(value);
-    }
-  }
-
-  // Ref to know editing state from inside async setters (kept for future use)
-  const editingDistIdRef = React.useRef(null);
-  React.useEffect(() => { editingDistIdRef.current = editingDistId; }, [editingDistId]);
-
-  async function addEntry() {
-    if (!form.date || !form.centre || !form.variety || !form.area || !form.name.trim()) {
-      setMessage("दिनांक, केन्द्र, किस्म, कृषक का नाम एवं क्षेत्रफल — पाँचों भरना ज़रूरी है।");
-      return;
-    }
-    if (!distItems.length) {
-      setMessage("✘ पहले किस्म का मानक लोड होने दें, फिर मद जोड़ें।");
-      return;
-    }
-    const centreId = Number(form.centre);
-    const varietyId = Number(form.variety);
-    const area = Number(form.area);
-    const t = totalsFor(varietyId);
-    if (!t || t.gmha <= 0) {
-      setMessage("✘ पहले मानक टैब में इस किस्म का बीज मद (राजसहायता, इकाई किग्रा0) जोड़ें।");
-      return;
-    }
-    const requiredSeedGm = area * t.gmha;
-    const available = opening(centreId, varietyId) - issued(centreId, varietyId);
-    if (requiredSeedGm > available + 0.01) {
-      const centreName = centres.find((c) => Number(c.id) === centreId)?.name || "";
-      const varietyName = varietyById[varietyId]?.name || "";
-      setMessage(
-        `✘ वितरण संभव नहीं — ${centreName} में ${varietyName} का शेष ${gm(available)} ग्राम है, जबकि ${area} है0 के लिए ${gm(requiredSeedGm)} ग्राम चाहिए। पहले स्टॉक टैब से केन्द्र को आवंटित करें।`
-      );
-      return;
-    }
-    try {
-      const itemsPayload = distItems
-        .filter((it) => it.standard && (Number(it.qty) > 0 || Number(it.rate) > 0))
-        .map((it) => ({
-          standard: Number(it.standard),
-          qty: Number(it.qty || 0),
-          rate: Number(it.rate || 0),
-        }));
-      if (!itemsPayload.length) {
-        setMessage("✘ कम से कम एक मद में मात्रा/दर भरें।");
-        return;
-      }
-      const result = await apiFetch("/distributions/", {
-        method: "POST",
-        body: JSON.stringify({
-          date: form.date,
-          centre: Number(form.centre),
-          variety: Number(form.variety),
-          area: Number(form.area),
-          name: form.name.trim(),
-          father: form.father.trim(),
-          village: form.village.trim(),
-          mobile: form.mobile.trim(),
-          sign1: form.sign1,
-          sign2: form.sign2,
-          note: form.note.trim(),
-          items: itemsPayload,
-        }),
-      });
-      await load();
-      setForm(emptyForm());
-      setDistItems([]);
-      setDistCurrentStandards([]);
-      setMessage(
-        `✓ जुड़ गया — ${result.name}, ${result.centre_name}, ${result.variety_name}, ${gm(result.seed_gm)} ग्राम, कुल ${money(result.total)}।`
-      );
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  /* Update an existing distribution — only items can change */
-  async function updateDistributionItems() {
-    if (!editingDistId) return;
-    if (!distItems.length) {
-      setMessage("✘ मद सूची खाली नहीं हो सकती।");
-      return;
-    }
-    const itemsPayload = distItems
-      .filter((it) => it.standard && (Number(it.qty) > 0 || Number(it.rate) > 0))
-      .map((it) => ({
-        standard: Number(it.standard),
-        qty: Number(it.qty || 0),
-        rate: Number(it.rate || 0),
-      }));
-    if (!itemsPayload.length) {
-      setMessage("✘ कम से कम एक मद में मात्रा/दर भरें।");
-      return;
-    }
-    try {
-      const result = await apiFetch(`/distributions/${editingDistId}/`, {
-        method: "PUT",
-        body: JSON.stringify({
-          date: form.date,
-          centre: Number(form.centre),
-          variety: Number(form.variety),
-          area: Number(form.area),
-          name: form.name.trim(),
-          father: form.father.trim(),
-          village: form.village.trim(),
-          mobile: form.mobile.trim(),
-          sign1: form.sign1,
-          sign2: form.sign2,
-          note: form.note.trim(),
-          items: itemsPayload,
-        }),
-      });
-      await load();
-      clearDistributionEdit();
-      setMessage(`✓ अद्यतन — ${result.name}, कुल ${money(result.total)}।`);
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  async function addPurchase() {
-    const qty = Number(purchaseForm.qty);
-    const rate = Number(purchaseForm.rate);
-    if (!purchaseForm.date || !purchaseForm.variety || !qty || !rate) {
-      setMessage("दिनांक, किस्म, मात्रा व दर भरें।");
-      return;
-    }
-    try {
-      const body = JSON.stringify({
-        date: purchaseForm.date,
-        variety: Number(purchaseForm.variety),
-        qty_kg: qty,
-        rate,
-        supplier: purchaseForm.supplier.trim(),
-        ref: purchaseForm.ref.trim(),
-      });
-      const result = editingPurchaseId
-        ? await apiFetch(`/purchases/${editingPurchaseId}`, { method: "POST", body })
-        : await apiFetch("/purchases/", { method: "POST", body });
-      await load();
-      setPurchaseForm(emptyPurchase());
-      setEditingPurchaseId(null);
-      setMessage(
-        editingPurchaseId
-          ? `✓ क्रय अद्यतन — ${result.variety_name}, ${n(result.qty_kg, 3)} किग्रा0 = ${money(result.amount)}।`
-          : `✓ क्रय जुड़ा — ${result.variety_name}, ${n(result.qty_kg, 3)} किग्रा0 = ${money(result.amount)}।`
-      );
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  function startEditPurchase(p) {
-    setEditingPurchaseId(p.id);
-    setPurchaseForm({
-      date: p.date || today(),
-      variety: String(p.variety),
-      qty: String(p.qty_kg ?? ""),
-      rate: String(p.rate ?? ""),
-      supplier: p.supplier || "",
-      ref: p.ref || "",
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function cancelEditPurchase() {
-    setEditingPurchaseId(null);
-    setPurchaseForm(emptyPurchase());
-  }
-
-  async function addAllocation() {
-    if (!allotForm.date || !allotForm.centre || !allotForm.variety || !Number(allotForm.qty)) {
-      setMessage("दिनांक, केन्द्र, किस्म व मात्रा भरें।");
-      return;
-    }
-    const varietyId = Number(allotForm.variety);
-    const qtyGm = Number(allotForm.qty);
-    const available = centralLeft(varietyId);
-    if (qtyGm > available + 0.01) {
-      const vName = varietyById[varietyId]?.name || "";
-      setMessage(
-        `✘ आवंटन संभव नहीं — ${vName} का केन्द्रीय शेष केवल ${gm(available)} ग्राम है, आप ${gm(qtyGm)} ग्राम आवंटित करना चाहते हैं। पहले स्टॉक टैब से बीज-क्रय करें।`
-      );
-      return;
-    }
-    try {
-      const result = await apiFetch("/allocations/", {
-        method: "POST",
-        body: JSON.stringify({
-          date: allotForm.date,
-          centre: Number(allotForm.centre),
-          variety: Number(allotForm.variety),
-          qty_gm: Number(allotForm.qty),
-          source: allotForm.source.trim(),
-        }),
-      });
-      await load();
-      setAllotForm(emptyAllot());
-      setMessage(`✓ ${result.centre_name} को ${result.variety_name} की ${gm(result.qty_gm)} ग्राम आवंटित।`);
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  async function deleteItem(type, id, label) {
-    if (!window.confirm(`क्या ${label} हटाना है? यह वापस नहीं आएगा।`)) return;
-    try {
-      if (type === "purchases") {
-        await apiFetch(`/purchases/${id}`, { method: "POST", body: JSON.stringify({ _method: "delete" }) });
-      } else {
-        await apiFetch(`/${type}/${id}/`, { method: "DELETE" });
-      }
-      await load();
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  async function saveMaster() {
-    try {
-      const result = await apiFetch("/master/", {
-        method: "PUT",
-        body: JSON.stringify({
-          purchase_limit: Number(masterDraft.purchase_limit),
-          project_cost: Number(masterDraft.project_cost),
-          max_subsidy: Number(masterDraft.max_subsidy),
-          farmer_share: Number(masterDraft.farmer_share),
-        }),
-      });
-      setData((p) => ({ ...p, master: result }));
-      setMasterDraft(result);
-      setMessage("✓ सुरक्षित।");
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  async function resetMaster() {
-    if (!window.confirm("मूल मूल्यों पर लौटाएँ?")) return;
-    try {
-      const result = await apiFetch("/master/", {
-        method: "PUT",
-        body: JSON.stringify({
-          purchase_limit: Number(meta.masterDefaults.purchase_limit),
-          project_cost: Number(meta.masterDefaults.project_cost),
-          max_subsidy: Number(meta.masterDefaults.max_subsidy),
-          farmer_share: Number(meta.masterDefaults.farmer_share),
-        }),
-      });
-      setData((p) => ({ ...p, master: result }));
-      setMasterDraft(result);
-      setMessage("✓ मूल मूल्य सुरक्षित हो गए।");
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-
-  /* === variety CRUD === */
-  function startEditVariety(v) {
-    setEditingVarietyId(v.id);
-    setVarietyForm({
-      name: v.name || "",
-      jati: v.jati || "",
-      default_rate: v.default_rate != null ? String(v.default_rate) : "",
-      is_active: v.is_active !== false,
-    });
-  }
-  function cancelEditVariety() {
-    setEditingVarietyId(null);
-    setVarietyForm(emptyVariety());
-  }
-  async function saveVariety() {
-    if (!varietyForm.name.trim()) {
-      setMessage("किस्म का नाम भरना ज़रूरी है।");
-      return;
-    }
-    const body = {
-      name: varietyForm.name.trim(),
-      jati: varietyForm.jati.trim(),
-      default_rate: varietyForm.default_rate === "" ? 0 : Number(varietyForm.default_rate),
-      is_active: !!varietyForm.is_active,
-    };
-    try {
-      if (editingVarietyId) {
-        await apiFetch(`/varieties/${editingVarietyId}/`, { method: "PUT", body: JSON.stringify(body) });
-        setMessage(`✓ किस्म अद्यतन — ${body.name}।`);
-      } else {
-        await apiFetch("/varieties/", { method: "POST", body: JSON.stringify(body) });
-        setMessage(`✓ नई किस्म जुड़ी — ${body.name}।`);
-      }
-      cancelEditVariety();
-      await load();
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
-  async function deleteVariety(v) {
-    if (!window.confirm(`क्या "${v.name}" किस्म हटानी है? मौजूदा मानक/क्रय/आवंटन/वितरण पर असर पड़ सकता है।`)) return;
-    try {
-      await apiFetch(`/varieties/${v.id}/`, { method: "DELETE" });
-      if (editingVarietyId === v.id) cancelEditVariety();
-      await load();
-      setMessage(`✓ "${v.name}" किस्म हटाई गई।`);
-    } catch (e) {
-      setMessage(`✘ ${e.message}`);
-    }
-  }
 
   function downloadCsv(filename, headers, rows) {
     const content =

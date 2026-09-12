@@ -462,6 +462,8 @@ const DemandView = () => {
     const wrapper = document.createElement('div');
     wrapper.style.padding = '20px';
     wrapper.style.fontFamily = 'Arial, sans-serif';
+    wrapper.style.maxWidth = '100%';
+    wrapper.style.overflow = 'hidden';
     const title = document.createElement('h3');
     title.textContent = 'डिमांड रिकॉर्ड्स';
     title.style.textAlign = 'center';
@@ -471,6 +473,7 @@ const DemandView = () => {
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
+    table.style.tableLayout = 'fixed';
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     const headers = ['S.No.', 'उप-मद का नाम', 'योजना का नाम', 'DHO, कोटद्वार का कुल लक्ष्य', 'इकाई', 'कृषक विक्रय दर / अनुदान दर'];
@@ -479,9 +482,12 @@ const DemandView = () => {
       th.textContent = headerText;
       th.style.border = '1px solid #000';
       th.style.padding = '8px';
-      th.style.backgroundColor = '#f0f0f0';
+      th.style.backgroundColor = 'blue';
       th.style.fontWeight = 'bold';
       th.style.textAlign = 'center';
+      th.style.color = '#000000';
+      th.style.whiteSpace = 'normal';
+      th.style.wordBreak = 'break-word';
       headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
@@ -497,6 +503,9 @@ const DemandView = () => {
         td.style.border = '1px solid #000';
         td.style.padding = '8px';
         td.style.textAlign = 'left';
+        td.style.color = '#000000';
+        td.style.whiteSpace = 'normal';
+        td.style.wordBreak = 'break-word';
         row.appendChild(td);
       });
       tbody.appendChild(row);
@@ -518,6 +527,8 @@ const DemandView = () => {
     const wrapper = document.createElement('div');
     wrapper.style.padding = '20px';
     wrapper.style.fontFamily = 'Arial, sans-serif';
+    wrapper.style.maxWidth = '100%';
+    wrapper.style.overflow = 'hidden';
     const title = document.createElement('h3');
     title.textContent = 'सेंटर अनुसार डिमांड';
     title.style.textAlign = 'center';
@@ -527,6 +538,7 @@ const DemandView = () => {
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
+    table.style.tableLayout = 'fixed';
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     const headers = ['S.No.', 'सेंटर नाम', 'उप-मद का नाम', 'योजना का नाम', 'इकाई', 'मांगी गई मात्रा', 'कृषक विक्रय दर / अनुदान दर', 'कुल राशि'];
@@ -535,9 +547,12 @@ const DemandView = () => {
       th.textContent = headerText;
       th.style.border = '1px solid #000';
       th.style.padding = '8px';
-      th.style.backgroundColor = '#f0f0f0';
+      th.style.backgroundColor = '#0B488F';
       th.style.fontWeight = 'bold';
       th.style.textAlign = 'center';
+      th.style.color = '#000000';
+      th.style.whiteSpace = 'normal';
+      th.style.wordBreak = 'break-word';
       headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
@@ -558,12 +573,14 @@ const DemandView = () => {
         sNoCell.textContent = index === 0 ? sNo++ : '';
         sNoCell.style.border = '1px solid #000';
         sNoCell.style.padding = '8px';
+        sNoCell.style.color = '#000000';
         row.appendChild(sNoCell);
         
         const centerCell = document.createElement('td');
         centerCell.textContent = index === 0 ? item.center_name : '';
         centerCell.style.border = '1px solid #000';
         centerCell.style.padding = '8px';
+        centerCell.style.color = '#000000';
         row.appendChild(centerCell);
         
         const cellData = [
@@ -576,6 +593,9 @@ const DemandView = () => {
           td.textContent = cellText;
           td.style.border = '1px solid #000';
           td.style.padding = '8px';
+          td.style.color = '#000000';
+          td.style.whiteSpace = 'normal';
+          td.style.wordBreak = 'break-word';
           row.appendChild(td);
         });
         tbody.appendChild(row);
@@ -590,24 +610,28 @@ const DemandView = () => {
       td.textContent = i === 0 ? 'कुल' : '';
       td.style.border = '1px solid #000';
       td.style.padding = '8px';
+      td.style.color = '#000000';
       totalRow.appendChild(td);
     }
     const totalQuantityCell = document.createElement('td');
     totalQuantityCell.textContent = filteredCenterDemands.reduce((sum, item) => sum + parseFloat(item.demanded_quantity || 0), 0).toFixed(2);
     totalQuantityCell.style.border = '1px solid #000';
     totalQuantityCell.style.padding = '8px';
+    totalQuantityCell.style.color = '#000000';
     totalRow.appendChild(totalQuantityCell);
     
     const emptyRateCell = document.createElement('td');
     emptyRateCell.textContent = '';
     emptyRateCell.style.border = '1px solid #000';
     emptyRateCell.style.padding = '8px';
+    emptyRateCell.style.color = '#000000';
     totalRow.appendChild(emptyRateCell);
     
     const totalAmountCell = document.createElement('td');
     totalAmountCell.textContent = filteredCenterDemands.reduce((sum, item) => sum + (parseFloat(item.demanded_quantity || 0) * parseFloat(item?.demand?.rate || 0)), 0).toFixed(2);
     totalAmountCell.style.border = '1px solid #000';
     totalAmountCell.style.padding = '8px';
+    totalAmountCell.style.color = '#000000';
     totalRow.appendChild(totalAmountCell);
     
     tbody.appendChild(totalRow);

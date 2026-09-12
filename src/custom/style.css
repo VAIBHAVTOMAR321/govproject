@@ -147,16 +147,22 @@ label.reset-label{
   padding: 6px;
 }
 
-@media only screen and (max-width: 568px) {
-  .br-login {
-    margin: var(--gov-space-200) var(--gov-space-0) var(--gov-space-0) var(--gov-space-0) !important;
+ @media only screen and (max-width: 568px) {
+   .br-login {
+     margin: var(--gov-space-200) var(--gov-space-0) var(--gov-space-0) var(--gov-space-0) !important;
+   }
+
+   .govt-text {
+     font-weight: 400 !important;
+     font-size: 8px !important;
+     line-height: 12px !important;
+
+   }
+    .awc-mob-responsive{
+   display:none !important;
   }
-
-  .govt-text {
-    font-weight: 400 !important;
-    font-size: 8px !important;
-    line-height: 12px !important;
-
+  .login-page .awc-mob-responsive {
+    display: block !important;
   }
 }
 
@@ -300,7 +306,7 @@ label.reset-label{
 
 .table-thead th {
   background-color: #0B488F !important;
-  color: #fff !important;
+  color: #000 !important;
   font-size: 12px;
 }
 
