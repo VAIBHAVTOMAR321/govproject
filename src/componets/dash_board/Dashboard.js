@@ -1855,6 +1855,7 @@ const DynamicReportTabs = ({ sourceData }) => {
       });
     }, [enableHierarchyFilters, upmadOptions]);
 
+
     const filteredData = useMemo(() => {
       if (!enableHierarchyFilters) return safeData;
       return safeData.filter(row => {
@@ -1874,6 +1875,7 @@ const DynamicReportTabs = ({ sourceData }) => {
     const groupedItems = useMemo(() => {
       const groups = new Map();
 
+      
       filteredData.forEach(row => {
         const mad = String(row.nivesh ?? '').trim();
         const upmad = String(row.upnivesh ?? '').trim();
