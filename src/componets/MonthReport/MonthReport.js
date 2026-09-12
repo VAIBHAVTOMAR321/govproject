@@ -2314,6 +2314,8 @@ const MonthReport = () => {
   const [financialYear, setFinancialYear] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // Default Dashboard/MPR view to the current calendar month.
+  // Blank year means no financial-year restriction until the user selects one.
   const [monthFilter, setMonthFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const [error, setError] = useState("");
@@ -2331,8 +2333,9 @@ const MonthReport = () => {
       const apiReports = getReportsFromResponse(data);
       setReports(apiReports);
 
-      // Keep the file selection empty initially. With both filters set to
-      // "All", the Dashboard must show the overall of every uploaded report.
+      // IMPORTANT: Keep the reports EXACTLY in the sequence returned by the API.
+      // The MPR Report tab displays this same sequence. Filters only create a
+      // derived view and never reorder the original API response.
       setSelectedReport(null);
     } catch (err) {
       console.error("Load MPR reports error:", err);
@@ -2350,8 +2353,7 @@ const MonthReport = () => {
     let cancelled = false;
 
     const loadSelectedDashboardWorkbook = async () => {
-      // In All Months + All Financial Years mode, DashboardTab reads all
-      // reports itself and builds the overall dashboard.
+      // Dashboard is based on the currently selected report.
       if (!selectedReport) {
         setSelectedWorkbook(null);
         setDashboardLoading(false);
@@ -2399,33 +2401,41 @@ const MonthReport = () => {
     [reports]
   );
 
+  // The MPR Report tab must show ALL uploaded reports in exactly the same
+  // sequence in which the API returns them. Filtering is applied only to the
+  // derived `filteredReports` array and never changes `reports` ordering.
+
+  // Dashboard default: when the user has not selected filters, use the
+  // current calendar month for the dashboard only. The MPR Report tab still
+  // shows every uploaded report. Once a filter is selected, that filter is
+  // used normally for both the dashboard selection and report dropdown.
+  const dashboardReports = useMemo(() => {
+    if (monthFilter || yearFilter) return filteredReports;
+
+    const currentMonth = String(new Date().getMonth() + 1);
+    return reports.filter((item) => String(item.month) === currentMonth);
+  }, [reports, filteredReports, monthFilter, yearFilter]);
+
   useEffect(() => {
-    // Explicit requirement: All Months + All Financial Years means the
-    // overall dashboard of every uploaded report.
-    if (!monthFilter && !yearFilter) {
+    if (!dashboardReports.length) {
       setSelectedReport(null);
       return;
     }
 
-    if (!filteredReports.length) {
-      setSelectedReport(null);
-      return;
-    }
-
-    const stillVisible = filteredReports.some(
+    const stillVisible = dashboardReports.some(
       (item) => String(item.id) === String(selectedReport?.id)
     );
 
     if (!stillVisible) {
-      setSelectedReport(filteredReports[0]);
+      // Preserve API order: first matching report is selected.
+      setSelectedReport(dashboardReports[0]);
     }
-  }, [filteredReports, monthFilter, yearFilter]);
+  }, [dashboardReports, selectedReport?.id]);
 
   const selectReport = (event) => {
     const id = event.target.value;
 
     if (!id) {
-      // Blank selection in All/All mode means overall dashboard.
       setSelectedReport(null);
       setActiveTab("dashboard");
       return;
@@ -2507,13 +2517,10 @@ const MonthReport = () => {
         financialYear,
         file: selectedFile,
       });
-      const uploaded = getReportsFromResponse(responseData)[0];
-      if (uploaded) {
-        setReports((previous) => [uploaded, ...previous]);
-        setSelectedReport(uploaded);
-      } else {
-        await loadReports();
-      }
+      // Reload the complete API response after upload instead of prepending
+      // the uploaded item. This guarantees that the MPR Report tab always
+      // follows the exact server response sequence.
+      await loadReports();
       setSuccess("MPR Excel report uploaded successfully to the server.");
       setShowModal(false);
       resetForm();
@@ -2707,14 +2714,14 @@ const MonthReport = () => {
 
             <div className="mpr-file-filters">
               <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
-                <option value="">All Months</option>
+                <option value="">Select Month</option>
                 {months.map((item) => (
                   <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
 
               <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
-                <option value="">All Financial Years</option>
+                <option value="">Select Financial Year</option>
                 {uniqueYears.map((year) => (
                   <option key={year} value={year}>{year}</option>
                 ))}
@@ -2725,11 +2732,7 @@ const MonthReport = () => {
                 onChange={selectReport}
                 disabled={!filteredReports.length}
               >
-                <option value="">
-                  {(!monthFilter && !yearFilter)
-                    ? "Overall — All MPR Reports"
-                    : "Select MPR Excel File"}
-                </option>
+                <option value="">Select MPR Excel File</option>
                 {filteredReports.map((item) => (
                   <option key={item.id} value={item.id}>
                     {getMonthName(item.month)} — {item.financialYear} — {item.fileName}
@@ -2744,12 +2747,12 @@ const MonthReport = () => {
               <div className="mpr-selected-file-bar">
                 <div>
                   <strong>Dashboard for:</strong>{" "}
-                  {selectedReport?.fileName || "Overall — All MPR Reports"}
+                  {selectedReport?.fileName || "No MPR Report Selected"}
                 </div>
                 <span>
                   {selectedReport
                     ? `${getMonthName(selectedReport.month)} · ${selectedReport.financialYear}`
-                    : "All Months · All Financial Years"}
+                    : "No report available for the selected month / year"}
                 </span>
               </div>
 
@@ -2758,18 +2761,18 @@ const MonthReport = () => {
                   <div className="mpr-loading-small" />
                   <p>Reading Excel data and creating dashboard...</p>
                 </div>
-              ) : !selectedReport && (monthFilter || yearFilter) ? (
+              ) : !selectedReport ? (
                 <div className="mpr-empty">
                   <div className="mpr-empty-icon">📈</div>
                   <h4>No MPR Report Found</h4>
-                  <p>No Excel report matches the selected Month / Financial Year filters.</p>
+                  <p>No Excel report matches the selected Month / Financial Year.</p>
                 </div>
               ) : (
                 <DashboardTab
                   report={selectedReport}
                   workbook={selectedWorkbook}
-                  reports={monthFilter || yearFilter ? filteredReports : reports}
-                  aggregateAll={!selectedReport && !monthFilter && !yearFilter}
+                  reports={dashboardReports}
+                  aggregateAll={false}
                 />
               )}
             </div>

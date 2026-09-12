@@ -80,7 +80,7 @@ export default function Login() {
           navigate('/NurseryPhysicalEntry', { replace: true });
         } else {
           // Default to Dashboard for admin users
-          navigate('/Dashboard', { replace: true });
+          navigate('/MonthReport', { replace: true });
         }
       }, 1500); // 1.5 second delay
 

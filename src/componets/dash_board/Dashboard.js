@@ -23,7 +23,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 // Hindi translations
 const translations = {
-  home: "Home",
+  home: "MIS रिपोर्ट ",
   welcomeMessage: "DHO कोटद्वार उद्यान विभाग डिजिटल प्लेटफॉर्म में आपका स्वागत है",
   selectScheme: "क्रय योजना चुनें",
   selectInvestment: "उप-मद चुनें",
@@ -1943,7 +1943,7 @@ const DynamicReportTabs = ({ sourceData }) => {
       ...hierarchyDefs,
       { key: 'ikai', label: 'इकाई' },
       ...visibleGeo.map((geo, index) => ({ key: `geo_${index}`, label: geo })),
-      { key: 'total', label: saleMode ? 'कुल — कृषक अंश' : 'कुल योग' }
+      { key: 'total', label: saleMode ? 'कुल' : 'कुल योग' }
     ];
 
     const visible = columns === null ? matrixDefs.map(c => c.key) : columns;
@@ -2154,7 +2154,7 @@ const DynamicReportTabs = ({ sourceData }) => {
                   {visibleGeo.map((geo, index) =>
                     show(`geo_${index}`) && <th colSpan={colspan} key={geo}>{geo}</th>
                   )}
-                  {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल — कृषक अंश' : 'कुल योग'}</th>}
+                  {show('total') && <th colSpan={colspan}>{saleMode ? 'कुल' : 'कुल योग'}</th>}
                 </tr>
                 <tr>
                   {visibleGeo.flatMap((geo, index) =>
@@ -2440,7 +2440,6 @@ const DynamicReportTabs = ({ sourceData }) => {
         {activeTab === 'vivaran4401' && (
           <div className="dynamic-report-panel">
             <h5>{fixedPlan || '4401 बिक्री हेतु'} — क्रय योजना के अनुसार</h5>
-            <p className="dynamic-report-note">यह शीट केवल 4401 बिक्री हेतु की पंक्तियाँ दिखाती है। भौतिक = भौतिक पूर्ति  और वित्तीय = कृषक अंश।</p>
 
             <ReportTabDateFilter
               startDate={saleStartDate}

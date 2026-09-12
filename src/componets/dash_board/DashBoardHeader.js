@@ -1,11 +1,11 @@
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown';
-import UKSasan from "../../assets/images/UkSasan.png"
-import "../../assets/css/topnavbar.css"
-import { Link, useNavigate, useLocation } from 'react-router-dom'; // 1. Import useLocation
-import { useAuth } from '../../context/AuthContext';
+import Container from "react-bootstrap/Container";
+import Nav from "react-bootstrap/Nav";
+import Navbar from "react-bootstrap/Navbar";
+import NavDropdown from "react-bootstrap/NavDropdown";
+import UKSasan from "../../assets/images/UkSasan.png";
+import "../../assets/css/topnavbar.css";
+import { Link, useNavigate, useLocation } from "react-router-dom"; // 1. Import useLocation
+import { useAuth } from "../../context/AuthContext";
 
 function DashBoardHeader() {
   const navigate = useNavigate();
@@ -14,23 +14,25 @@ function DashBoardHeader() {
 
   const handleLogout = () => {
     logout();
-    navigate('/', { replace: true });
+    navigate("/", { replace: true });
   };
 
   const handleKendraPasswordReset = () => {
-    navigate('/KendraPasswordReset');
+    navigate("/KendraPasswordReset");
   };
 
   const handleDemandView = () => {
-    navigate('/DemandView', { replace: true });
+    navigate("/DemandView", { replace: true });
   };
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary Dash-header" fixed="top">
-      <Container fluid className=''>
+      <Container fluid className="">
         <Navbar.Brand href="#home">
-          <div className='dash-img d-flex justify-content-between mx-2'>
-            <Link to="/Dashboard" ><img src={UKSasan} className='img-fluid'></img></Link>
+          <div className="dash-img d-flex justify-content-between mx-2">
+            <Link to="/Dashboard">
+              <img src={UKSasan} className="img-fluid"></img>
+            </Link>
             <p>DHO Kotdwar</p>
           </div>
         </Navbar.Brand>
@@ -38,64 +40,130 @@ function DashBoardHeader() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             {/* 3. Add the 'active' prop */}
-            <Nav.Link as={Link} to="/Dashboard" active={location.pathname === '/Dashboard'}>होम</Nav.Link>
-            <Nav.Link as={Link} to="/MainDashboard" active={location.pathname === '/MainDashboard'}>डैशबोर्ड</Nav.Link>
-            
+            <Nav.Link
+              as={Link}
+              to="/MonthReport"
+              active={location.pathname === "/MonthReport"}
+            >
+              MPR रिपोर्ट
+            </Nav.Link>
+
+            <Nav.Link
+              as={Link}
+              to="/Dashboard"
+              active={location.pathname === "/Dashboard"}
+            >
+              MIS रिपोर्ट
+            </Nav.Link>
+            <Nav.Link
+              as={Link}
+              to="/MainDashboard"
+              active={location.pathname === "/MainDashboard"}
+            >
+              डैशबोर्ड
+            </Nav.Link>
+
             {/* 4. For dropdowns, check if the current path is one of its children */}
             <NavDropdown
               title="डेटा एंट्री"
               id="basic-nav-dropdown"
-              active={location.pathname === '/Registration' || location.pathname === '/KrishiRegistration' || location.pathname === '/NurseryFinancialEntry' || location.pathname === '/NurseryPhysicalEntry'}
+              active={
+                location.pathname === "/Registration" ||
+                location.pathname === "/KrishiRegistration" ||
+                location.pathname === "/NurseryFinancialEntry" ||
+                location.pathname === "/NurseryPhysicalEntry"
+              }
             >
-              <NavDropdown.Item as={Link} to="/Registration" active={location.pathname === '/Registration'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/Registration"
+                active={location.pathname === "/Registration"}
+              >
                 केंद्रवार एंट्री
               </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/KrishiRegistration" active={location.pathname === '/KrishiRegistration'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/KrishiRegistration"
+                active={location.pathname === "/KrishiRegistration"}
+              >
                 कृषक डेटा एंट्री
               </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/NurseryFinancialEntry" active={location.pathname === '/NurseryFinancialEntry'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/NurseryFinancialEntry"
+                active={location.pathname === "/NurseryFinancialEntry"}
+              >
                 नर्सरी वित्तीय प्रविष्टि
               </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/NurseryPhysicalEntry" active={location.pathname === '/NurseryPhysicalEntry'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/NurseryPhysicalEntry"
+                active={location.pathname === "/NurseryPhysicalEntry"}
+              >
                 नर्सरी भौतिक प्रविष्टि
               </NavDropdown.Item>
-               <NavDropdown.Item as={Link} to="/UdyanBill" active={location.pathname === '/UdyanBill'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/UdyanBill"
+                active={location.pathname === "/UdyanBill"}
+              >
                 उद्यान बिल
               </NavDropdown.Item>
-               <NavDropdown.Item as={Link} to="/KishanBeej" active={location.pathname === '/KishanBeej'}>
-              किसान बीज
+              <NavDropdown.Item
+                as={Link}
+                to="/KishanBeej"
+                active={location.pathname === "/KishanBeej"}
+              >
+                किसान बीज
               </NavDropdown.Item>
-             
-              
             </NavDropdown>
 
-            <NavDropdown 
-              title="बिल" 
+            <NavDropdown
+              title="बिल"
               id="bill-nav-dropdown"
-              active={location.pathname === '/Billing' || location.pathname === '/AllBills'}
+              active={
+                location.pathname === "/Billing" ||
+                location.pathname === "/AllBills"
+              }
             >
-              <NavDropdown.Item as={Link} to="/Billing" active={location.pathname === '/Billing'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/Billing"
+                active={location.pathname === "/Billing"}
+              >
                 Billing
               </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/AllBills" active={location.pathname === '/AllBills'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/AllBills"
+                active={location.pathname === "/AllBills"}
+              >
                 AllBills
               </NavDropdown.Item>
             </NavDropdown>
 
-            <NavDropdown 
-              title="डिमांड" 
+            <NavDropdown
+              title="डिमांड"
               id="demand-nav-dropdown"
-              active={location.pathname === '/DemandView'}
+              active={location.pathname === "/DemandView"}
             >
-              <NavDropdown.Item as={Link} to="/DemandView" active={location.pathname === '/DemandView'}>
+              <NavDropdown.Item
+                as={Link}
+                to="/DemandView"
+                active={location.pathname === "/DemandView"}
+              >
                 डिमांड देखें
               </NavDropdown.Item>
             </NavDropdown>
-
-            <Nav.Link as={Link} to="/MonthReport" active={location.pathname === '/MonthReport'}>MPR रिपोर्ट</Nav.Link>
           </Nav>
-           <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/LibrarySystem" active={location.pathname === '/LibrarySystem'}>लाइब्रेरी सिस्टम</Nav.Link>
+          <Nav className="ms-auto">
+            <Nav.Link
+              as={Link}
+              to="/LibrarySystem"
+              active={location.pathname === "/LibrarySystem"}
+            >
+              लाइब्रेरी सिस्टम
+            </Nav.Link>
           </Nav>
           <Nav className="ms-auto">
             <NavDropdown title="खाता" id="account-nav-dropdown" align="end">
@@ -103,16 +171,9 @@ function DashBoardHeader() {
                 केंद्र पासवर्ड रीसेट
               </NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item onClick={handleLogout}>
-                लॉगआउट
-              </NavDropdown.Item>
+              <NavDropdown.Item onClick={handleLogout}>लॉगआउट</NavDropdown.Item>
             </NavDropdown>
           </Nav>
-        
-          
-         
-          
-          
         </Navbar.Collapse>
       </Container>
     </Navbar>
