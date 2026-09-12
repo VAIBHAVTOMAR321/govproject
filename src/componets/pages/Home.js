@@ -13,7 +13,7 @@ function Home() {
       if (user && user.loginType === 'demand') {
         navigate('/DemandGenerate/CenterwiseEntry', { replace: true });
       } else {
-        navigate('/Dashboard', { replace: true });
+        navigate('/MonthReport', { replace: true });
       }
     }
   }, [isAuthenticated, isLoading, navigate, user]);
