@@ -730,11 +730,15 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
     maximumFractionDigits: 2,
   }).format(Number(value) || 0);
 
+  // Format physical quantity values with exactly 2 decimal places.
+  // This prevents floating-point artifacts such as 7.00000000000001
+  // and keeps values consistent as 23.01, 23.00, etc.
   const summaryWiseFormatExactNumber = value => {
     const num = Number(value) || 0;
     return new Intl.NumberFormat('en-IN', {
       useGrouping: true,
-      maximumFractionDigits: 20,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(num);
   };
 
