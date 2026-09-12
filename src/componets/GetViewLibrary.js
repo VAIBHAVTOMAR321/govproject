@@ -3,12 +3,13 @@ import axios from "axios";
 import {
   FaFileAlt, FaFilePdf, FaFileImage, FaFileWord, FaFileExcel,
   FaDownload, FaExternalLinkAlt, FaSearch, FaTimes, FaEdit,
-  FaTrash, FaPlus, FaUpload, FaLink, FaClipboardList
+  FaTrash, FaPlus, FaUpload, FaLink, FaClipboardList, FaFolder, FaArrowLeft
 } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import "./GetViewLibrary.css";
 
 const LIBRARY_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/library";
+const LIBRARY_CATEGORIES_API_URL = `${LIBRARY_API_URL}/categories`;
 const CENTER_LINKS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/center-links";
 const DETAILS_API_URL = "https://mahadevaaya.com/govbillingsystem/backend/api/center-link-details-bycenter";
 const MEDIA_BASE_URL = "https://mahadevaaya.com/govbillingsystem/backend";
@@ -95,7 +96,31 @@ const getArray = (response) => {
   if (Array.isArray(d)) return d;
   if (Array.isArray(d?.data)) return d.data;
   if (Array.isArray(d?.results)) return d.results;
+  if (Array.isArray(d?.data?.results)) return d.data.results;
   return [];
+};
+
+const toBoolean = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+};
+
+const getCategoryId = (category) => {
+  if (category === null || category === undefined) return null;
+  if (typeof category === "object") {
+    return category.id ?? category.category_id ?? category.pk ?? null;
+  }
+  return category;
+};
+
+const getDocumentCategoryId = (document) => {
+  return (
+    getCategoryId(document?.category) ??
+    document?.category_id ??
+    document?.categoryId ??
+    null
+  );
 };
 
 const getError = (error, fallback) =>
@@ -138,6 +163,9 @@ const GetViewLibrary = () => {
 
   const [activeTab, setActiveTab] = useState("documents");
 
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentsError, setDocumentsError] = useState("");
@@ -159,20 +187,135 @@ const GetViewLibrary = () => {
     remark: ""
   });
 
-  const fetchDocuments = async () => {
+  // =====================================================
+  // FETCH LIBRARY CATEGORIES
+  // Same category-first structure as the Admin Library.
+  // Only active categories are shown to the Center.
+  // =====================================================
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    setDocumentsError("");
+
+    try {
+      const response = await axios.get(`${LIBRARY_CATEGORIES_API_URL}/`, {
+        headers: getHeaders(),
+      });
+
+      const categoryList = getArray(response);
+
+      const activeCategories = categoryList.filter((category) =>
+        toBoolean(category?.is_active)
+      );
+
+      setCategories(activeCategories);
+    } catch (error) {
+      console.error("Category fetch error:", error);
+      setCategories([]);
+      setDocumentsError(
+        getError(error, "Failed to fetch library categories")
+      );
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  // =====================================================
+  // FETCH DOCUMENTS FOR ONE SELECTED CATEGORY
+  // This follows the same category-wise API logic as LibrarySystem:
+  // normal + active + inactive requests, merge by ID, then verify
+  // the document belongs to the selected category.
+  // =====================================================
+  const fetchDocuments = async (categoryId) => {
+    const id = getCategoryId(categoryId);
+
+    if (id === null || id === undefined || id === "") {
+      setDocuments([]);
+      return;
+    }
+
     setDocumentsLoading(true);
     setDocumentsError("");
+
     try {
-      const response = await axios.get(`${LIBRARY_API_URL}/documents/`, { headers: getHeaders() });
-      setDocuments(getArray(response));
+      const requests = [
+        axios.get(
+          `${LIBRARY_API_URL}/documents/?category=${encodeURIComponent(id)}`,
+          { headers: getHeaders() }
+        ),
+        axios.get(
+          `${LIBRARY_API_URL}/documents/?category=${encodeURIComponent(id)}&is_active=true`,
+          { headers: getHeaders() }
+        ),
+        axios.get(
+          `${LIBRARY_API_URL}/documents/?category=${encodeURIComponent(id)}&is_active=false`,
+          { headers: getHeaders() }
+        ),
+      ];
+
+      const results = await Promise.allSettled(requests);
+      const documentMap = new Map();
+
+      results.forEach((result) => {
+        if (result.status !== "fulfilled") return;
+
+        const list = getArray(result.value);
+
+        list.forEach((doc) => {
+          if (!doc || doc.id === undefined || doc.id === null) return;
+
+          const normalizedDocument = {
+            ...doc,
+            is_active: toBoolean(doc.is_active),
+            category_id: getDocumentCategoryId(doc) ?? id,
+            file_url: getFileUrl(doc.file_url || doc.file),
+          };
+
+          documentMap.set(String(doc.id), normalizedDocument);
+        });
+      });
+
+      const categoryDocuments = Array.from(documentMap.values()).filter((doc) => {
+        const docCategoryId = getDocumentCategoryId(doc);
+
+        return (
+          docCategoryId === null ||
+          String(docCategoryId) === String(id)
+        );
+      });
+
+      setDocuments(categoryDocuments);
     } catch (error) {
-      console.error(error);
-      setDocumentsError(getError(error, "Failed to fetch documents"));
+      console.error("Document fetch error:", error);
       setDocuments([]);
+      setDocumentsError(
+        getError(error, "Failed to fetch documents for this category")
+      );
     } finally {
       setDocumentsLoading(false);
     }
   };
+
+  const handleOpenCategory = (category) => {
+    const categoryId = getCategoryId(category);
+
+    if (categoryId === null || categoryId === undefined || categoryId === "") {
+      alert("Invalid category selected.");
+      return;
+    }
+
+    setSelectedCategory(category);
+    setDocuments([]);
+    setDocumentSearch("");
+    fetchDocuments(categoryId);
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategory(null);
+    setDocuments([]);
+    setDocumentSearch("");
+    setDocumentsError("");
+  };
+
 
   /*
    * Fetch ADMIN REQUESTS separately from CENTER RESPONSES.
@@ -263,7 +406,7 @@ const GetViewLibrary = () => {
     }
   };
 
-  useEffect(() => { fetchDocuments(); }, []);
+  useEffect(() => { fetchCategories(); }, []);
   useEffect(() => {
     if (activeTab === "requests") fetchRequests();
   }, [activeTab, centerName]);
@@ -371,7 +514,17 @@ const GetViewLibrary = () => {
     }
   };
 
-  const filteredDocuments = documents.filter(doc =>
+  const filteredCategories = categories.filter((category) => {
+    const q = documentSearch.trim().toLowerCase();
+    if (!q) return true;
+
+    return (
+      String(category?.name || "").toLowerCase().includes(q) ||
+      String(category?.description || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredDocuments = documents.filter((doc) =>
     String(doc?.title || "").toLowerCase().includes(documentSearch.toLowerCase())
   );
 
@@ -428,37 +581,164 @@ const GetViewLibrary = () => {
         <>
           <div className="gvl-search-wrapper">
             <FaSearch />
-            <input placeholder="Search documents by title..." value={documentSearch} onChange={e => setDocumentSearch(e.target.value)} />
+            <input
+              placeholder={
+                selectedCategory
+                  ? "Search documents by title..."
+                  : "Search library categories..."
+              }
+              value={documentSearch}
+              onChange={(e) => setDocumentSearch(e.target.value)}
+            />
           </div>
+
           {documentsError && <div className="gvl-error">{documentsError}</div>}
-          {documentsLoading ? <div className="gvl-loading">Loading documents...</div> :
-            filteredDocuments.length === 0 ? (
-              <div className="gvl-empty"><FaFileAlt /><h3>No Documents Found</h3><p>Upload documents from the Library System to view them here.</p></div>
-            ) : (
-              <div className="gvl-table-wrapper">
-                <table className="gvl-table">
-                  <thead><tr><th>S.No.</th><th>Title</th><th>Description</th><th>File</th><th>Action</th></tr></thead>
-                  <tbody>
-                    {filteredDocuments.map((doc, index) => {
-                      const raw = doc?.file || doc?.file_url || "";
-                      const url = getFileUrl(raw);
-                      return (
-                        <tr key={doc.id || index}>
-                          <td>{index + 1}</td>
-                          <td><strong>{doc?.title || "-"}</strong></td>
-                          <td>{doc?.description || "-"}</td>
-                          <td><div className="gvl-file-cell"><span className="gvl-file-icon">{getFileIcon(raw)}</span><span className="gvl-file-name">{raw ? String(raw).split("/").pop() : "-"}</span></div></td>
-                          <td>{url && <div className="gvl-actions">
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="gvl-action-btn view" title="View / Download"><FaExternalLinkAlt /></a>
-                            <a href={url} download className="gvl-action-btn download" title="Download"><FaDownload /></a>
-                          </div>}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+
+          {/* CATEGORY LEVEL */}
+          {!selectedCategory && (
+            <>
+              {categoriesLoading ? (
+                <div className="gvl-loading">Loading categories...</div>
+              ) : filteredCategories.length === 0 ? (
+                <div className="gvl-empty">
+                  <FaFolder />
+                  <h3>No Categories Found</h3>
+                  <p>No active library categories are available.</p>
+                </div>
+              ) : (
+                <div className="gvl-category-grid">
+                  {filteredCategories.map((category) => (
+                    <button
+                      type="button"
+                      className="gvl-category-card"
+                      key={category.id}
+                      onClick={() => handleOpenCategory(category)}
+                    >
+                      <div className="gvl-category-icon">
+                        <FaFolder />
+                      </div>
+
+                      <div className="gvl-category-content">
+                        <h3>{category?.name || "Untitled Category"}</h3>
+                        <p>
+                          {category?.description ||
+                            "No description available"}
+                        </p>
+                      </div>
+
+                      <div className="gvl-category-footer">
+                        <span>
+                          {category?.document_count || 0}{" "}
+                          {Number(category?.document_count) === 1
+                            ? "Document"
+                            : "Documents"}
+                        </span>
+                        <span>{formatDate(category?.created_at)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* DOCUMENT LEVEL */}
+          {selectedCategory && (
+            <>
+              <div className="gvl-category-toolbar">
+                <button
+                  type="button"
+                  className="gvl-back-btn"
+                  onClick={handleBackToCategories}
+                >
+                  <FaArrowLeft />
+                  Back to Categories
+                </button>
+
+                <div className="gvl-selected-category">
+                  <FaFolder />
+                  <div>
+                    <span>Category</span>
+                    <strong>
+                      {selectedCategory?.name || "Selected Category"}
+                    </strong>
+                  </div>
+                </div>
               </div>
-            )}
+
+              {documentsLoading ? (
+                <div className="gvl-loading">Loading documents...</div>
+              ) : filteredDocuments.length === 0 ? (
+                <div className="gvl-empty">
+                  <FaFileAlt />
+                  <h3>No Documents Found</h3>
+                  <p>
+                    No documents are available in this category.
+                  </p>
+                </div>
+              ) : (
+                <div className="gvl-document-list">
+                  {filteredDocuments.map((doc, index) => {
+                    const raw = doc?.file || doc?.file_url || "";
+                    const url = getFileUrl(raw);
+
+                    return (
+                      <div
+                        className="gvl-document-card"
+                        key={doc.id || index}
+                      >
+                        <div className="gvl-document-icon">
+                          {getFileIcon(raw)}
+                        </div>
+
+                        <div className="gvl-document-info">
+                          <h3>{doc?.title || "Untitled Document"}</h3>
+
+                          <p>
+                            {doc?.description ||
+                              "No description available"}
+                          </p>
+
+                          <div className="gvl-document-meta">
+                            <span>
+                              Uploaded by:{" "}
+                              {doc?.uploaded_by_name || "Admin"}
+                            </span>
+                            <span>
+                              {formatDate(doc?.created_at)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {url && (
+                          <div className="gvl-actions">
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="gvl-action-btn view"
+                              title="View"
+                            >
+                              <FaExternalLinkAlt />
+                            </a>
+
+                            <a
+                              href={url}
+                              download
+                              className="gvl-action-btn download"
+                              title="Download"
+                            >
+                              <FaDownload />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
 
