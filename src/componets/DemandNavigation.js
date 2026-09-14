@@ -132,6 +132,15 @@ const DemandNavigation = () => {
               >
                 मासिक उपस्थिति
               </NavDropdown.Item>
+              <NavDropdown.Item
+                active={isActive("/VetanMang")}
+                onClick={() => navigate("/VetanMang")}
+                style={{
+                  fontWeight: isActive("/VetanMang") ? "bold" : "normal",
+                }}
+              >
+                वेतन मांग पत्र
+              </NavDropdown.Item>
             </NavDropdown>
           </Nav>
 

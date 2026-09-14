@@ -60,6 +60,8 @@ function VetanMang() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [showFormModal, setShowFormModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewReport, setPreviewReport] = useState(null);
 
   const openAddModal = () => {
     setShowFormModal(true);
@@ -67,6 +69,73 @@ function VetanMang() {
 
   const closeAddModal = () => {
     setShowFormModal(false);
+  };
+
+  const openPreviewModal = (report) => {
+    setPreviewReport(report);
+    setShowPreviewModal(true);
+  };
+
+  const closePreviewModal = () => {
+    setShowPreviewModal(false);
+    setPreviewReport(null);
+  };
+
+  const handlePrintPreview = () => {
+    if (!previewReport) return;
+    setShowPreviewModal(false);
+    setTimeout(() => {
+      const tableRows = previewReport.report_data.map(row =>
+        row.map(cell => `<td>${cell || ''}</td>`).join('')
+      ).join('');
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>वेतन मांग पत्र - प्रिव्यू</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #2c3e50; }
+            h1, h2 { color: #1a5276; text-align: center; margin-bottom: 5px; }
+            .header-info { margin-bottom: 20px; border-bottom: 2px solid #1a5276; padding-bottom: 10px; }
+            .meta-info { margin-bottom: 15px; }
+            .meta-info p { margin: 5px 0; font-size: 0.95rem; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #1a5276; color: white; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <div class="header-info">
+            <h1>वेतन मांग पत्र एवं उपस्थिति सूचना</h1>
+            <h2>${previewReport.subject || ''}</h2>
+          </div>
+          <div class="meta-info">
+            <p><strong>केंद्र:</strong> ${previewReport.center_name}</p>
+            <p><strong>माह:</strong> ${previewReport.month}</p>
+            <p><strong>वित्तीय वर्ष:</strong> ${previewReport.financial_year}</p>
+            <p><strong>पत्र संख्या:</strong> ${previewReport.letter_number}</p>
+            <p><strong>रिपोर्ट दिनांक:</strong> ${previewReport.report_date}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                ${TABLE_HEADERS.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    }, 300);
   };
 
   useEffect(() => {
@@ -252,7 +321,7 @@ function VetanMang() {
   };
 
   return (
-    <Container fluid className="px-3" style={{ paddingTop: '60px' }}>
+    <Container fluid className="px-3" style={{ paddingTop: '89px' }}>
       <Row className="mb-3">
         <Col>
           <div
@@ -500,6 +569,60 @@ function VetanMang() {
           </Card>
         </Col>
       </Row>
+      {/* Preview Modal */}
+      {showPreviewModal && previewReport && (
+        <div className="vm-modal-overlay">
+          <div className="vm-modal">
+            <div className="vm-modal-header">
+              <h2>रिपोर्ट प्रिव्यू - {previewReport.center_name}</h2>
+              <button type="button" className="vm-modal-close" onClick={closePreviewModal}>×</button>
+            </div>
+            <div className="vm-preview-content">
+              <div className="vm-preview-header">
+                <h3>वेतन मांग पत्र एवं उपस्थिति सूचना</h3>
+                <p className="vm-preview-subject">{previewReport.subject}</p>
+              </div>
+              <div className="vm-preview-meta">
+                <div className="vm-preview-meta-row">
+                  <span><strong>केंद्र:</strong> {previewReport.center_name}</span>
+                  <span><strong>माह:</strong> {previewReport.month}</span>
+                </div>
+                <div className="vm-preview-meta-row">
+                  <span><strong>वित्तीय वर्ष:</strong> {previewReport.financial_year}</span>
+                  <span><strong>पत्र संख्या:</strong> {previewReport.letter_number}</span>
+                </div>
+                <div className="vm-preview-meta-row">
+                  <span><strong>रिपोर्ट दिनांक:</strong> {previewReport.report_date}</span>
+                </div>
+              </div>
+              <div className="vm-preview-table-wrapper">
+                <table className="vm-preview-table">
+                  <thead>
+                    <tr>
+                      {TABLE_HEADERS.map((header, idx) => <th key={idx}>{header}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewReport.report_data.map((row, rIdx) => (
+                      <tr key={rIdx}>
+                        {row.map((cell, cIdx) => <td key={cIdx}>{cell}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="vm-form-actions">
+              <button type="button" className="vm-btn vm-btn-cancel" onClick={closePreviewModal}>
+                बंद करें
+              </button>
+              <button type="button" className="vm-btn vm-btn-primary" onClick={handlePrintPreview}>
+                प्रिंट करें
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 }
