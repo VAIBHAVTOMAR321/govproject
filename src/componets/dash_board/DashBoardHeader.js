@@ -42,6 +42,14 @@ function DashBoardHeader() {
               MPR रिपोर्ट
             </Nav.Link>
 
+            <Nav.Link as={NavLink} to="/AdminVetanMang">
+              वेतन मांग
+            </Nav.Link>
+
+            <Nav.Link as={NavLink} to="/MonthAttendance">
+              मासिक उपस्थिति
+            </Nav.Link>
+
             <Nav.Link as={NavLink} to="/Dashboard">
               MIS रिपोर्ट
             </Nav.Link>
