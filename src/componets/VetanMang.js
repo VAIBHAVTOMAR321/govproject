@@ -17,7 +17,7 @@ const API_URL = 'https://mahadevaaya.com/govbillingsystem/backend/api/salary-att
 
 // Default headers for the dynamic table (Text Headings)
 const TABLE_HEADERS = [
-  "क्र.", "नाम", "पदनाम", "वर्ग", "दिनांक (शुरू)", "दिनांक (अंत)",
+  "क्र.", "नाव", "पदनाव", "वर्ग", "दिनांक (शुरू)", "दिनांक (अंत)",
   "छुट्टी (शुरू)", "छुट्टी (अंत)", "उपस्थिति", "अवैतनिक",
   "कुल दिन", "शेष", "वित्तीय वर्ष", "टिप्पणी / कार्य विवरण"
 ];
@@ -30,6 +30,24 @@ const MONTH_OPTIONS = [
 
 // Financial Year Options
 const FINANCIAL_YEAR_OPTIONS = ["2024-25", "2025-26", "2026-27", "2027-28"];
+
+// Column widths for print/preview (14 columns)
+const COL_WIDTHS = [
+  '3%',   // 0  क्र.
+  '7%',   // 1  नाव
+  '7%',   // 2  पदनाव
+  '4%',   // 3  वर्ग
+  '6%',   // 4  दिनांक (शुरू)
+  '6%',   // 5  दिनांक (अंत)
+  '6%',   // 6  छुट्टी (शुरू)
+  '6%',   // 7  छुट्टी (अंत)
+  '5%',   // 8  उपस्थिति
+  '5%',   // 9  अवैतनिक
+  '4%',   // 10 कुल दिन
+  '4%',   // 11 शेष
+  '7%',   // 12 वित्तीय वर्ष
+  '30%'   // 13 टिप्पणी / कार्य विवरण  ← WIDEST
+];
 
 // Helper to extract center name
 const getCenterNameFromUser = (authUser) => {
@@ -81,6 +99,7 @@ function VetanMang() {
     setPreviewReport(null);
   };
 
+  // ===== PRINT PREVIEW (Single Report) =====
   const handlePrintPreview = () => {
     if (!previewReport) return;
     setShowPreviewModal(false);
@@ -89,21 +108,75 @@ function VetanMang() {
         row.map(cell => `<td>${cell || ''}</td>`).join('')
       ).join('');
 
+      const colGroup = COL_WIDTHS
+        .map(w => `<col style="width:${w};">`)
+        .join('');
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
         <html>
         <head>
           <title>वेतन मांग पत्र - प्रिव्यू</title>
           <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #2c3e50; }
-            h1, h2 { color: #1a5276; text-align: center; margin-bottom: 5px; }
-            .header-info { margin-bottom: 20px; border-bottom: 2px solid #1a5276; padding-bottom: 10px; }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+              font-family: 'Mangal', 'Nirmala UI', 'Segoe UI', Tahoma, sans-serif;
+              padding: 15px;
+              color: #000;
+            }
+            h1, h2 {
+              text-align: center;
+              margin-bottom: 5px;
+              color: #000;
+            }
+            .header-info {
+              margin-bottom: 15px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 10px;
+            }
             .meta-info { margin-bottom: 15px; }
-            .meta-info p { margin: 5px 0; font-size: 0.95rem; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background-color: #1a5276; color: white; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
+            .meta-info p { margin: 4px 0; font-size: 13px; }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 15px;
+              font-size: 10px;
+              table-layout: fixed;
+            }
+            th, td {
+              border: 1px solid #444;
+              padding: 5px 6px;
+              text-align: left;
+              vertical-align: top;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+              word-break: break-word;
+              white-space: normal;
+              line-height: 1.3;
+            }
+            th {
+              background-color: #000 !important;
+              color: #fff !important;
+              font-weight: 700;
+              text-align: center;
+              font-size: 10px;
+              padding: 6px 4px;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            tr:nth-child(even) td { background-color: #f0f0f0; }
+
+            th:last-child, td:last-child {
+              word-break: break-word !important;
+              white-space: normal !important;
+            }
+            th:first-child, td:first-child { text-align: center; }
+
+            @page {
+              size: landscape;
+              margin: 10mm;
+            }
           </style>
         </head>
         <body>
@@ -119,6 +192,7 @@ function VetanMang() {
             <p><strong>रिपोर्ट दिनांक:</strong> ${previewReport.report_date}</p>
           </div>
           <table>
+            <colgroup>${colGroup}</colgroup>
             <thead>
               <tr>
                 ${TABLE_HEADERS.map(h => `<th>${h}</th>`).join('')}
@@ -264,12 +338,16 @@ function VetanMang() {
     }
   };
 
-  // Print entire table
+  // ===== PRINT ALL REPORTS =====
   const handlePrintAll = () => {
     if (!reports.length) {
       alert('कोई रिपोर्ट उपलब्ध नहीं है।');
       return;
     }
+
+    const colGroup = COL_WIDTHS
+      .map(w => `<col style="width:${w};">`)
+      .join('');
 
     const tableRows = reports.map(report =>
       report.report_data.map(row =>
@@ -277,19 +355,72 @@ function VetanMang() {
       ).join('')
     ).join('');
 
+    const allColWidths = ['5%', '5%', '5%', '5%', ...COL_WIDTHS];
+    const allColGroup = allColWidths
+      .map(w => `<col style="width:${w};">`)
+      .join('');
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
       <head>
         <title>वेतन मांग पत्र - सभी रिपोर्ट</title>
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #2c3e50; }
-          h1, h2 { color: #1a5276; text-align: center; margin-bottom: 5px; }
-          .header-info { margin-bottom: 20px; border-bottom: 2px solid #1a5276; padding-bottom: 10px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-          th { background-color: #1a5276; color: white; }
-          tr:nth-child(even) { background-color: #f9f9f9; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: 'Mangal', 'Nirmala UI', 'Segoe UI', Tahoma, sans-serif;
+            padding: 15px;
+            color: #000;
+          }
+          h1, h2 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: #000;
+          }
+          .header-info {
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 10px;
+            table-layout: fixed;
+          }
+          th, td {
+            border: 1px solid #444;
+            padding: 5px 6px;
+            text-align: left;
+            vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            line-height: 1.3;
+          }
+          th {
+            background-color: #000 !important;
+            color: #fff !important;
+            font-weight: 700;
+            text-align: center;
+            font-size: 10px;
+            padding: 6px 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          tr:nth-child(even) td { background-color: #f0f0f0; }
+          th:last-child, td:last-child {
+            word-break: break-word !important;
+            white-space: normal !important;
+          }
+          th:first-child, td:first-child { text-align: center; }
+
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
         </style>
       </head>
       <body>
@@ -298,6 +429,7 @@ function VetanMang() {
           <h2>सभी सहेजी गई रिपोर्ट - कुल: ${reports.length}</h2>
         </div>
         <table>
+          <colgroup>${allColGroup}</colgroup>
           <thead>
             <tr>
               <th>केंद्र</th>
@@ -569,6 +701,7 @@ function VetanMang() {
           </Card>
         </Col>
       </Row>
+
       {/* Preview Modal */}
       {showPreviewModal && previewReport && (
         <div className="vm-modal-overlay">
@@ -597,6 +730,22 @@ function VetanMang() {
               </div>
               <div className="vm-preview-table-wrapper">
                 <table className="vm-preview-table">
+                  <colgroup>
+                    <col style={{ width: '3%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '30%' }} />
+                  </colgroup>
                   <thead>
                     <tr>
                       {TABLE_HEADERS.map((header, idx) => <th key={idx}>{header}</th>)}
