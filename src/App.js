@@ -35,6 +35,7 @@ import { useAuth } from "./context/AuthContext";
 import HorticultureManagementSystem from "./componets/dash_board/HorticultureManagementSystem";
 import UdyanBill from "./componets/udhyan/UdyanBill";
 import KishanBeej from "./componets/KishanBeej/KishanBeej";
+import MonthAttendance from "./componets/KishanBeej/MonthAttendance";
 import SeedFarmers from "./componets/Farmers/SeedFarmers";
 import DashBoardHeader from "./componets/dash_board/DashBoardHeader";
 import LibrarySystem from "./componets/Library/LibrarySystem";
@@ -42,6 +43,8 @@ import MonthReport from "./componets/MonthReport/MonthReport";
 import KisanAavedanPortal from "./componets/kishanavedan/KisanAavedanPortal";
 import GetViewLibrary from "./componets/GetViewLibrary";
 import CenterUdyanBill from "./componets/udhyan/CenterUdyanBill";
+import VetanMang from "./componets/VetanMang";
+import AdminVetanMang from "./componets/dash_board/AdminVetanMang";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -53,7 +56,8 @@ function NavbarWrapper() {
     "/KishanBeej",
     "/LibrarySystem",
     "/MonthReport",
-    
+    "/AdminVetanMang",
+    "/MonthAttendance",
   ]);
   const hiddenPaths = new Set([
     "/Dashboard",
@@ -77,7 +81,8 @@ function NavbarWrapper() {
     "/KishanBeej",
     "/KisanAavedanPortal",
     "/GetViewLibrary",
-    "/CenterUdyanBill"
+    "/CenterUdyanBill",
+    "/VetanMang"
     
   ]);
 
@@ -126,6 +131,7 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          
   <Route
             path="/MonthReport"
             element={
@@ -134,7 +140,22 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-
+  <Route
+    path="/VetanMang"
+    element={
+      <ProtectedRoute allowedLoginTypes={["demand"]}>
+        <VetanMang />
+      </ProtectedRoute>
+    }
+  />
+  <Route
+    path="/AdminVetanMang"
+    element={
+      <ProtectedRoute allowedLoginTypes={["admin"]}>
+        <AdminVetanMang />
+      </ProtectedRoute>
+    }
+  />
           <Route
             path="/Registration"
             element={
@@ -159,6 +180,15 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/MonthAttendance"
+            element={
+              <ProtectedRoute allowedLoginTypes={["admin", "demand"]}>
+                <MonthAttendance />
+              </ProtectedRoute>
+            }
+          />
+          
           <Route
             path="/LibrarySystem"
             element={

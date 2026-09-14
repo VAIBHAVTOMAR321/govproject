@@ -90,7 +90,8 @@ const DemandNavigation = () => {
                 fontWeight:
                   isActive("/CenterUdyanBill") ||
                   isActive("/GetViewLibrary") ||
-                  isActive("/KisanAavedanPortal")
+                  isActive("/KisanAavedanPortal") ||
+                  isActive("/MonthAttendance")
                     ? "bold"
                     : "normal",
               }}
@@ -121,6 +122,15 @@ const DemandNavigation = () => {
                 }}
               >
                 किसान आवेदन पोर्टल
+              </NavDropdown.Item>
+              <NavDropdown.Item
+                active={isActive("/MonthAttendance")}
+                onClick={() => navigate("/MonthAttendance")}
+                style={{
+                  fontWeight: isActive("/MonthAttendance") ? "bold" : "normal",
+                }}
+              >
+                मासिक उपस्थिति
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
