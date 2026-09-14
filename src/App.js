@@ -57,7 +57,6 @@ function NavbarWrapper() {
     "/LibrarySystem",
     "/MonthReport",
     "/AdminVetanMang",
-    "/MonthAttendance",
   ]);
   const hiddenPaths = new Set([
     "/Dashboard",
@@ -82,7 +81,8 @@ function NavbarWrapper() {
     "/KisanAavedanPortal",
     "/GetViewLibrary",
     "/CenterUdyanBill",
-    "/VetanMang"
+    "/VetanMang",
+    "/MonthAttendance"
     
   ]);
 
@@ -183,7 +183,7 @@ function AppContent() {
           <Route
             path="/MonthAttendance"
             element={
-              <ProtectedRoute allowedLoginTypes={["admin", "demand"]}>
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
                 <MonthAttendance />
               </ProtectedRoute>
             }

@@ -46,9 +46,7 @@ function DashBoardHeader() {
               वेतन मांग
             </Nav.Link>
 
-            <Nav.Link as={NavLink} to="/MonthAttendance">
-              मासिक उपस्थिति
-            </Nav.Link>
+          
 
             <Nav.Link as={NavLink} to="/Dashboard">
               MIS रिपोर्ट

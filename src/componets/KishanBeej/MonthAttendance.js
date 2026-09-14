@@ -73,10 +73,13 @@ function MonthAttendance() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(API_URL);
+      const url = centerName
+        ? `${API_URL}?center_name=${encodeURIComponent(centerName)}`
+        : API_URL;
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Network response was not ok");
       const result = await response.json();
-
+      
       if (Array.isArray(result)) {
         setReports(result);
       } else if (Array.isArray(result.data)) {
