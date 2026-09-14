@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal, Table } from 'react-bootstrap';
+import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal } from 'react-bootstrap';
 import DashBoardHeader from './DashBoardHeader';
 import LeftNav from './LeftNav';
 import Footer from '../footer/Footer';
@@ -8,9 +8,20 @@ import '../../assets/css/dashboard.css';
 
 const API_BASE_URL = 'https://mahadevaaya.com/govbillingsystem/backend/api/salary-attendance-reports/';
 
+// 12 Months List (January to December)
 const MONTH_OPTIONS = [
-  "जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून",
-  "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"
+  "जनवरी (January)", 
+  "फरवरी (February)", 
+  "मार्च (March)", 
+  "अप्रैल (April)", 
+  "मई (May)", 
+  "जून (June)", 
+  "जुलाई (July)", 
+  "अगस्त (August)", 
+  "सितम्बर (September)", 
+  "अक्टूबर (October)", 
+  "नवंबर (November)", 
+  "दिसंबर (December)"
 ];
 
 const FINANCIAL_YEAR_OPTIONS = ["2024-25", "2025-26", "2026-27", "2027-28"];
@@ -26,6 +37,11 @@ const AdminVetanMang = () => {
   
   const [showModal, setShowModal] = useState(false);
   const [editingReport, setEditingReport] = useState(null);
+
+  // Filter States
+  const [filterCenterName, setFilterCenterName] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterFinancialYear, setFilterFinancialYear] = useState('');
   
   // Default empty form data
   const initialFormData = {
@@ -40,7 +56,7 @@ const AdminVetanMang = () => {
 
   const [formData, setFormData] = useState(initialFormData);
 
-  // Check device width (Same as your Dashboard code)
+  // Check device width
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
@@ -77,6 +93,23 @@ const AdminVetanMang = () => {
     fetchReports();
   }, []);
 
+  // Filtered Reports Logic
+  const filteredReports = reports.filter(report => {
+    const matchesCenter = filterCenterName 
+      ? (report.center_name && report.center_name.toLowerCase().includes(filterCenterName.toLowerCase())) 
+      : true;
+    const matchesMonth = filterMonth ? report.month === filterMonth : true;
+    const matchesYear = filterFinancialYear ? report.financial_year === filterFinancialYear : true;
+    
+    return matchesCenter && matchesMonth && matchesYear;
+  });
+
+  const clearFilters = () => {
+    setFilterCenterName('');
+    setFilterMonth('');
+    setFilterFinancialYear('');
+  };
+
   // Handle standard input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -94,7 +127,7 @@ const AdminVetanMang = () => {
   const addReportRow = () => {
     setFormData(prev => ({
       ...prev,
-      report_data: [...prev.report_data, Array(14).fill('')] // 14 columns based on your JSON
+      report_data: [...prev.report_data, Array(14).fill('')]
     }));
   };
 
@@ -143,7 +176,7 @@ const AdminVetanMang = () => {
       if (!response.ok) throw new Error('Failed to save data');
       
       setShowModal(false);
-      fetchReports(); // Refresh list
+      fetchReports(); 
     } catch (err) {
       alert('डेटा सेव करने में त्रुटि हुई।');
     }
@@ -156,12 +189,12 @@ const AdminVetanMang = () => {
     try {
       const response = await fetch(`${API_BASE_URL}${id}/`, {
         method: 'DELETE',
-        headers: { Accept: 'application/json' },
+        headers: { Accept: "application/json" },
       });
 
       if (!response.ok && response.status !== 204) throw new Error('Failed to delete');
       
-      fetchReports(); // Refresh list
+      fetchReports(); 
     } catch (err) {
       alert('डिलीट करने में त्रुटि हुई।');
     }
@@ -188,39 +221,72 @@ const AdminVetanMang = () => {
 
           <Container fluid className="dashboard-body bg-home professional-dashboard-body">
             
-            {/* Welcome Section - Same Theme */}
+            {/* Welcome Section */}
             <div className="home-welcome-section professional-welcome d-flex justify-content-between text-center mb-4">
               <h1 className="home-title">वेतन मांग एवं उपस्थिति प्रबंधन</h1>
               <p className="home-subtitle">DHO कोटद्वार उद्यान विभाग डिजिटल प्लेटफॉर्म में आपका स्वागत है</p>
             </div>
 
-            {/* Export Card Style Header for consistency */}
+            {/* Header and Filters */}
             <Card className="report-export-card professional-export-card mb-4">
               <Card.Body className="py-2">
-                <Row className="align-items-center">
-                  <Col md={6} className="mb-2 mb-md-0">
+                <Row className="align-items-center g-2">
+                  <Col md={12} className="mb-2">
                     <div className="d-flex align-items-center">
                       <FaClipboardList className="text-primary me-2" />
                       <span className="report-title" style={{ fontSize: '0.9rem', fontWeight: '600' }}>
                         वेतन मांग पत्र एवं उपस्थिति सूचना
                       </span>
                       <span className="badge bg-info ms-2" style={{ fontSize: '0.7rem' }}>
-                        {reports.length} रिपोर्ट्स
+                        {filteredReports.length} रिपोर्ट्स
                       </span>
                     </div>
                   </Col>
-                  <Col md={6}>
-                    <div className="d-flex gap-2 justify-content-md-end flex-wrap">
-                      <Button variant="primary" size="sm" onClick={() => handleOpenModal()}>
-                        <FaPlus className="me-1" /> नई रिपोर्ट जोड़ें
-                      </Button>
-                    </div>
+
+                  {/* Filter Section */}
+                  <Col md={4} sm={6} xs={12}>
+                    <Form.Control
+                      size="sm"
+                      type="text"
+                      placeholder="केंद्र का नाम खोजें..."
+                      value={filterCenterName}
+                      onChange={(e) => setFilterCenterName(e.target.value)}
+                    />
+                  </Col>
+                  <Col md={3} sm={6} xs={12}>
+                    <Form.Select
+                      size="sm"
+                      value={filterMonth}
+                      onChange={(e) => setFilterMonth(e.target.value)}
+                    >
+                      <option value="">सभी महीने</option>
+                      {MONTH_OPTIONS.map((month, idx) => (
+                        <option key={idx} value={month}>{month}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                  <Col md={3} sm={6} xs={12}>
+                    <Form.Select
+                      size="sm"
+                      value={filterFinancialYear}
+                      onChange={(e) => setFilterFinancialYear(e.target.value)}
+                    >
+                      <option value="">सभी वित्तीय वर्ष</option>
+                      {FINANCIAL_YEAR_OPTIONS.map((year, idx) => (
+                        <option key={idx} value={year}>{year}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                  <Col md={2} sm={6} xs={12} className="d-flex justify-content-md-end">
+                    <Button variant="outline-danger" size="sm" onClick={clearFilters} style={{ width: '100%' }}>
+                      <FaTimes className="me-1" /> साफ करें
+                    </Button>
                   </Col>
                 </Row>
               </Card.Body>
             </Card>
 
-            {/* Loading & Error States - Same Theme */}
+            {/* Loading & Error States */}
             {loading ? (
               <div className="text-center my-5">
                 <Spinner animation="border" role="status" variant="primary">
@@ -239,7 +305,7 @@ const AdminVetanMang = () => {
               </Alert>
             ) : (
               
-              /* Dynamic Report Section & Table Theme */
+              /* Dynamic Report Section & Table */
               <section className="dynamic-report-section" style={{ marginTop: "0", paddingTop: "0" }}>
                 <div className="dynamic-report-heading" style={{ marginTop: "0", marginBottom: "8px", paddingTop: "4px", paddingBottom: "4px" }}>
                   <h4 style={{ margin: 0 }}><FaClipboardList className="me-2" />सभी वेतन एवं उपस्थिति रिपोर्ट्स</h4>
@@ -262,7 +328,7 @@ const AdminVetanMang = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {reports.length > 0 ? reports.map((report, index) => (
+                          {filteredReports.length > 0 ? filteredReports.map((report, index) => (
                             <tr key={report.id}>
                               <td>{index + 1}</td>
                               <td>{report.center_name}</td>
@@ -271,7 +337,7 @@ const AdminVetanMang = () => {
                               <td style={{ maxWidth: '250px', whiteSpace: 'normal' }}>{report.letter_number}</td>
                               <td>
                                 <FaCalendarAlt className="me-1" />
-                                {new Date(report.report_date).toLocaleDateString('hi-IN')}
+                                {report.report_date ? new Date(report.report_date).toLocaleDateString('hi-IN') : '-'}
                               </td>
                               <td style={{ maxWidth: '300px', whiteSpace: 'normal' }}>{report.subject}</td>
                               <td>
@@ -279,14 +345,14 @@ const AdminVetanMang = () => {
                                   <Button variant="warning" size="sm" onClick={() => handleOpenModal(report)}>
                                     <FaEdit />
                                   </Button>
-              
+                                
                                 </div>
                               </td>
                             </tr>
                           )) : (
                             <tr>
                               <td colSpan="8" className="dynamic-report-empty text-center p-4">
-                                कोई डेटा नहीं — कृपया नई रिपोर्ट जोड़ें।
+                                कोई डेटा नहीं मिला। कृपया फिल्टर बदलें या नई रिपोर्ट जोड़ें।
                               </td>
                             </tr>
                           )}
@@ -303,7 +369,7 @@ const AdminVetanMang = () => {
       
       <Footer />
 
-      {/* Add/Edit Modal - Using Bootstrap Theme */}
+      {/* Add/Edit Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="xl" centered scrollable>
         <Modal.Header closeButton style={{ backgroundColor: '#194e8b', color: 'white' }}>
           <Modal.Title style={{ fontSize: '1rem' }}>
@@ -334,7 +400,7 @@ const AdminVetanMang = () => {
                     value={formData.month}
                     onChange={handleInputChange}
                   >
-                    <option value="">-- माह निवडा --</option>
+                    <option value="">-- माह चुनें --</option>
                     {MONTH_OPTIONS.map((month, idx) => (
                       <option key={idx} value={month}>{month}</option>
                     ))}
