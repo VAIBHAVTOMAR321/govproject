@@ -631,6 +631,13 @@ export default function KisanAavedanPortal() {
   const [completedSteps, setCompletedSteps] = useState(() => new Set());
   const [apiLoading, setApiLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  // Home page now has two center-level tabs: fresh application and completed applications.
+  const [activeTab, setActiveTab] = useState("new");
+  const [completedApplications, setCompletedApplications] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [applicationsError, setApplicationsError] = useState("");
+  const [previewApplication, setPreviewApplication] = useState(null);
+  const [schemeFilter, setSchemeFilter] = useState("all");
 
   // Always return the user to the top when moving between form steps.
   const scrollToTop = () => {
@@ -1135,8 +1142,8 @@ export default function KisanAavedanPortal() {
    * Populate the form from the server response, mark completed
    * steps and open the first incomplete step.
    */
-  const resumeApplication = async () => {
-    const application = await getCurrentApplicationFromServer();
+  const resumeApplication = async (resumeId = "") => {
+    const application = resumeId ? await getApplication(resumeId) : await getCurrentApplicationFromServer();
 
     if (!application) {
       return false;
@@ -1291,8 +1298,116 @@ export default function KisanAavedanPortal() {
    * Run resume whenever this component is mounted.
    * No draft/localStorage data is read.
    */
+  const getPreviewDataFromApplication = (application) => {
+    const personal = application?.personal || {};
+    const plan = application?.plan_technical_bank || {};
+    const docs = application?.application_documents || {};
+    return {
+      ...initialData,
+      centerName: personal.center_name || "",
+      planScheme: personal.plan_scheme || plan.plan_scheme || "",
+      fencingType: normalizeFencing[personal.fencing_type] || personal.fencing_type || "",
+      subsidyRatio: personal.subsidy_ratio || "",
+      name: personal.name || "",
+      gender: normalizeGender[personal.gender] || personal.gender || "",
+      father: personal.father || "",
+      udyanCard: personal.udyan_card || "",
+      village: personal.village || "",
+      post: personal.post || "",
+      block: personal.block || "",
+      district: personal.district || "",
+      mobile: apiText(personal.mobile),
+      aadhaar: apiText(personal.aadhaar),
+      category: normalizeCategory[personal.category] || personal.category || "",
+      photo: personal.photo || "",
+      totalLand: apiText(plan.total_land),
+      propArea_val: apiText(plan.proposed_area),
+      lat: apiText(plan.latitude),
+      lng: apiText(plan.longitude),
+      irrigation: normalizeIrrigation[plan.irrigation] || plan.irrigation || "",
+      irrSource: Array.isArray(plan.irr_source) ? plan.irr_source : [],
+      irrOther: plan.irr_other || "",
+      altitude: apiText(plan.altitude),
+      roadDist: apiText(plan.road_dist),
+      slope: normalizeSlope[plan.slope] || plan.slope || "",
+      soil: plan.soil || "",
+      bankName: plan.bank_name || "",
+      branch: plan.branch || "",
+      account: apiText(plan.account),
+      ifsc: plan.ifsc || "",
+      costPerHa: apiText(plan.cost_per_ha),
+      planType: normalizePlanType[plan.plan_type] || plan.plan_type || "",
+      groupName: plan.group_name || "",
+      contribution: plan.contribution || "",
+      otherScheme: plan.other_scheme || "",
+      execution: normalizeExecution[docs.execution] || docs.execution || "",
+      firmName: docs.firm_name || "",
+      accept: !!docs.technical_standard_accepted,
+      place: docs.place || "",
+      date: docs.application_date || "",
+      docs: Array.isArray(docs.documents) ? docs.documents : [],
+      declare: !!docs.declaration_accepted,
+    };
+  };
+
+  const getApplicationList = async () => {
+    setApplicationsLoading(true);
+    setApplicationsError("");
+    try {
+      const response = await fetch(`${API_BASE}/kisan-application/`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.error || payload?.detail || `GET failed (${response.status})`);
+      }
+      const candidates = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : payload?.data && typeof payload.data === "object"
+            ? [payload.data]
+            : payload && typeof payload === "object"
+              ? [payload]
+              : [];
+
+      // A form is considered completed only after the declaration is submitted.
+      const completed = candidates.filter((item) =>
+        item?.application_documents?.declaration_accepted === true ||
+        item?.application_documents?.declaration_accepted === 1 ||
+        item?.declaration_accepted === true ||
+        item?.declaration_accepted === 1
+      );
+
+      setCompletedApplications(completed);
+      return candidates;
+    } catch (error) {
+      console.error("[APPLICATION LIST]", error);
+      setApplicationsError(error.message || "आवेदन सूची प्राप्त नहीं हो सकी।");
+      return [];
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    resumeApplication();
+    // Do not automatically open a submitted application. Submitted forms are
+    // treated as completed and the next form must start fresh.
+    (async () => {
+      const applications = await getApplicationList();
+      const incomplete = [...applications]
+        .filter((item) => !item?.application_documents?.declaration_accepted)
+        .sort((a, b) => new Date(b.updated_at || b.updatedAt || 0) - new Date(a.updated_at || a.updatedAt || 0))[0];
+
+      if (incomplete) {
+        const id = incomplete.form_id || incomplete.formId || incomplete.id || "";
+        if (id) {
+          // Resume only an unfinished server application.
+          await resumeApplication(String(id));
+        }
+      }
+    })();
   }, []);
 
   // Keep the step indicators accurate while the user edits the form.
@@ -1787,6 +1902,23 @@ export default function KisanAavedanPortal() {
         );
 
         await syncFromGetAndMark();
+
+        // Declaration submission is the final completion event. Once it is
+        // accepted, never resume this form again; return to the two-tab home
+        // screen so the center can immediately start a fresh application.
+        if (data.declare === true) {
+          await getApplicationList();
+          setSchemeId(null);
+          setStep(0);
+          setFormId("");
+          setData({ ...initialData });
+          setCompletedSteps(new Set());
+          setErrors({});
+          setApiError("");
+          setActiveTab("completed");
+          scrollToTop();
+          return true;
+        }
       }
 
       /*
@@ -1827,6 +1959,7 @@ export default function KisanAavedanPortal() {
     setErrors((e) => ({ ...e, [k]: false }));
   };
   const selectScheme = (id) => {
+    setActiveTab("new");
     setSchemeId(id);
     setStep(0);
     setData({ ...initialData });
@@ -1947,7 +2080,7 @@ export default function KisanAavedanPortal() {
     r.readAsDataURL(f);
   };
 
-  const print = () => {
+  const printCurrentApplication = () => {
     const source = document.querySelector(
       ".print-document:not(.print-document-preview)",
     );
@@ -2140,6 +2273,163 @@ export default function KisanAavedanPortal() {
     window.setTimeout(waitForImages, 300);
   };
 
+  // Print a completed application from the table preview. The browser's
+  // native print dialog can then be used to print or choose "Save as PDF".
+  const printCompletedApplication = () => {
+    const source = document.querySelector(
+      ".application-preview-modal .print-document-preview",
+    );
+
+    if (!source || !previewApplication?.schemeKey) {
+      window.alert("प्रिंट के लिए आवेदन पूर्वावलोकन उपलब्ध नहीं है।");
+      return;
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    document.body.appendChild(iframe);
+
+    const printDocument = iframe.contentDocument;
+    const printWindow = iframe.contentWindow;
+
+    if (!printDocument || !printWindow) {
+      iframe.remove();
+      window.alert("प्रिंट विंडो तैयार नहीं हो सकी।");
+      return;
+    }
+
+    const styles = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style'),
+    )
+      .map((node) => {
+        if (node.tagName.toLowerCase() === "link") {
+          return `<link rel="stylesheet" href="${node.href}">`;
+        }
+        return `<style>${node.textContent || ""}</style>`;
+      })
+      .join("\n");
+
+    // Clone only the actual A4 document. Do not copy the preview wrapper/classes
+    // that are hidden by the normal application's screen/print CSS.
+    const printableNode = source.cloneNode(true);
+    printableNode.classList.remove("print-document-preview");
+    printableNode.classList.add("print-document-printable");
+    printableNode.style.cssText =
+      "display:block!important;position:static!important;visibility:visible!important;opacity:1!important;overflow:visible!important;width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;";
+
+    const printableHtml = printableNode.outerHTML
+      .replace(/position:\s*absolute/gi, "position: static")
+      .replace(/left:\s*-9999px/gi, "left: 0")
+      .replace(/opacity:\s*0/gi, "opacity: 1")
+      .replace(/z-index:\s*-1/gi, "z-index: 1");
+
+    const schemeTitle =
+      SCHEMES[previewApplication.schemeKey]?.full || "कृषक आवेदन पत्र";
+
+    printDocument.open();
+    printDocument.write(`<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${schemeTitle}</title>
+  ${styles}
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      width: 100% !important;
+      min-height: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .print-document-printable {
+      display: block !important;
+      position: static !important;
+      width: 210mm !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      background: #fff !important;
+    }
+    .print-page {
+      display: block !important;
+      visibility: visible !important;
+      width: 210mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
+      padding: 14mm 13mm 16mm 13mm !important;
+      box-sizing: border-box !important;
+      background: #fff !important;
+      color: #000 !important;
+      box-shadow: none !important;
+    }
+    .print-document-printable .print-page {
+      break-after: auto !important;
+      page-break-after: auto !important;
+    }
+    .print-table tr, .print-avoid-break {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+  </style>
+</head>
+<body>${printableHtml}</body>
+</html>`);
+    printDocument.close();
+
+    const finish = () => window.setTimeout(() => iframe.remove(), 800);
+    const waitForImages = () => {
+      const images = Array.from(printDocument.images || []);
+      if (!images.length) {
+        printWindow.focus();
+        printWindow.print();
+        finish();
+        return;
+      }
+      let remaining = images.length;
+      let done = false;
+      const complete = () => {
+        if (done) return;
+        remaining -= 1;
+        if (remaining > 0) return;
+        done = true;
+        printWindow.focus();
+        printWindow.print();
+        finish();
+      };
+      images.forEach((img) => {
+        if (img.complete) complete();
+        else {
+          img.addEventListener("load", complete, { once: true });
+          img.addEventListener("error", complete, { once: true });
+        }
+      });
+      window.setTimeout(() => {
+        if (done) return;
+        done = true;
+        printWindow.focus();
+        printWindow.print();
+        finish();
+      }, 2500);
+    };
+
+    window.setTimeout(waitForImages, 350);
+  };
+
   if (!scheme)
     return (
       <div className="kisan-page">
@@ -2150,30 +2440,161 @@ export default function KisanAavedanPortal() {
             <h1>कृषक आवेदन पोर्टल</h1>
             <p>तीनों योजनाओं का आवेदन — एक ही जगह</p>
           </div>
-          <div className="scheme-grid">
-            {Object.entries(SCHEMES).map(([id, s]) => (
-              <button
-                className={`scheme-card s-${id}`}
-                key={id}
-                onClick={() => selectScheme(id)}
-              >
-                <SchemeIcon type={id} />
-                <div>
-                  <h3>{s.name}</h3>
-                  <p>{s.blurb}</p>
-                  <div className="tags">
-                    {s.tags.map((t) => (
-                      <span className="tag" key={t}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <span className="arrow">→</span>
-              </button>
-            ))}
+
+          <div className="portal-tabs" role="tablist" aria-label="कृषक आवेदन विकल्प">
+            <button
+              type="button"
+              className={`portal-tab ${activeTab === "new" ? "active" : ""}`}
+              onClick={() => setActiveTab("new")}
+            >
+              <span>＋</span> नया आवेदन
+            </button>
+            <button
+              type="button"
+              className={`portal-tab ${activeTab === "completed" ? "active" : ""}`}
+              onClick={async () => {
+                setActiveTab("completed");
+                await getApplicationList();
+              }}
+            >
+              <span>▣</span> पूर्ण किए गए आवेदन
+              <b>{completedApplications.length}</b>
+            </button>
           </div>
+
+          {activeTab === "new" ? (
+            <section className="new-application-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="eyebrow">नई शुरुआत</span>
+                  <h2>योजना चुनें और आवेदन भरें</h2>
+                  <p>घोषणा सफलतापूर्वक जमा होने के बाद उसी केंद्र के लिए अगला आवेदन हमेशा नए फॉर्म से शुरू होगा।</p>
+                </div>
+              </div>
+              <div className="scheme-grid">
+                {Object.entries(SCHEMES).map(([id, s]) => (
+                  <button
+                    className={`scheme-card s-${id}`}
+                    key={id}
+                    onClick={() => selectScheme(id)}
+                  >
+                    <SchemeIcon type={id} />
+                    <div>
+                      <h3>{s.name}</h3>
+                      <p>{s.blurb}</p>
+                      <div className="tags">
+                        {s.tags.map((t) => <span className="tag" key={t}>{t}</span>)}
+                      </div>
+                    </div>
+                    <span className="arrow">→</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className="completed-panel">
+              <div className="completed-toolbar">
+                <div>
+                  <span className="eyebrow">केंद्र द्वारा जमा किए गए आवेदन</span>
+                  <h2>पूर्ण आवेदन</h2>
+                  <p>वे आवेदन जिनमें <b>घोषणा</b> सफलतापूर्वक जमा हो चुकी है।</p>
+                </div>
+                <button className="btn" type="button" onClick={() => setActiveTab("new")}>＋ नया आवेदन</button>
+              </div>
+
+              <div className="completed-filter-row">
+                <label>योजना के अनुसार फ़िल्टर</label>
+                <select
+                  className="control"
+                  value={schemeFilter}
+                  onChange={(e) => setSchemeFilter(e.target.value)}
+                >
+                  <option value="all">सभी योजनाएँ</option>
+                  {Object.entries(SCHEMES).map(([id, s]) => <option key={id} value={id}>{s.name}</option>)}
+                </select>
+                <button className="btn ghost" type="button" onClick={getApplicationList}>↻ ताज़ा करें</button>
+              </div>
+
+              {applicationsError && <div className="applications-error">{applicationsError}</div>}
+              {applicationsLoading ? (
+                <div className="empty-applications">आवेदन प्राप्त किए जा रहे हैं...</div>
+              ) : (() => {
+                const filter = schemeFilter;
+                const rows = completedApplications.filter((item) => filter === "all" || detectSchemeIdFromApplication(item) === filter);
+                if (!rows.length) return <div className="empty-applications">इस फ़िल्टर के लिए कोई पूर्ण आवेदन नहीं मिला।</div>;
+                return (
+                  <div className="applications-table-wrap">
+                    <table className="applications-table">
+                      <thead>
+                        <tr>
+                          <th>आवेदन क्रमांक</th>
+                          <th>योजना</th>
+                          <th>कृषक का नाम</th>
+                          <th>ग्राम</th>
+                          <th>जनपद</th>
+                          <th>मोबाइल</th>
+                          <th>जमा दिनांक</th>
+                          <th>स्थिति</th>
+                          <th className="action-column">कार्रवाई</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((item, index) => {
+                          const key = item.form_id || item.formId || item.id || `application-${index}`;
+                          const schemeKey = detectSchemeIdFromApplication(item);
+                          const viewScheme = schemeKey ? SCHEMES[schemeKey] : null;
+                          const viewData = getPreviewDataFromApplication(item);
+                          return (
+                            <tr key={key}>
+                              <td><b>{key}</b></td>
+                              <td>{viewScheme?.name || "—"}</td>
+                              <td>{viewData.name || "—"}</td>
+                              <td>{viewData.village || "—"}</td>
+                              <td>{viewData.district || "—"}</td>
+                              <td>{viewData.mobile || "—"}</td>
+                              <td>{printValue("date", viewData.date || item.updated_at || "—")}</td>
+                              <td><span className="status-badge">✓ घोषणा जमा</span></td>
+                              <td className="action-column"><button className="view-btn" type="button" disabled={!viewScheme} onClick={() => setPreviewApplication({ item, schemeKey, data: viewData, formId: String(key) })}>देखें</button></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </section>
+          )}
         </main>
+
+        {previewApplication?.schemeKey && SCHEMES[previewApplication.schemeKey] && (
+          <div className="application-preview-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setPreviewApplication(null); }}>
+            <div className="application-preview-modal" role="dialog" aria-modal="true" aria-label="आवेदन पूर्वावलोकन">
+              <div className="preview-modal-head">
+                <div className="preview-heading-copy">
+                  <span className="preview-eyebrow">पूर्ण आवेदन • प्रिंट पूर्वावलोकन</span>
+                  <h2>आवेदन का पूर्वावलोकन</h2>
+                  <span>आवेदन क्रमांक: <b>{previewApplication.formId}</b></span>
+                </div>
+                <div className="preview-modal-actions">
+                  <button type="button" className="preview-print-btn" onClick={printCompletedApplication}>
+                    🖨 प्रिंट / PDF
+                  </button>
+                  <button type="button" className="preview-close" onClick={() => setPreviewApplication(null)} aria-label="बंद करें">×</button>
+                </div>
+              </div>
+              <div className="preview-modal-body">
+                <PrintableApplication
+                  scheme={SCHEMES[previewApplication.schemeKey]}
+                  data={previewApplication.data}
+                  calc={calculate(SCHEMES[previewApplication.schemeKey], previewApplication.data)}
+                  appNo={previewApplication.formId}
+                  preview
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
 
@@ -2351,7 +2772,7 @@ export default function KisanAavedanPortal() {
                       : "आगे बढ़ें"}
                 </button>
               ) : (
-                <button className="btn" onClick={print}>
+                <button className="btn" onClick={printCurrentApplication}>
                   प्रिंट / PDF
                 </button>
               )}

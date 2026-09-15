@@ -1178,3 +1178,509 @@
     print-color-adjust: exact;
   }
 }
+/* ============================================================
+   CENTER APPLICATION TABS + COMPLETED APPLICATIONS
+   ============================================================ */
+.kisan-page .portal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 auto 26px;
+  padding: 6px;
+  max-width: 1120px;
+  background: #e8eee4;
+  border: 1px solid #d2ddd0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 26, 20, .06);
+}
+
+.kisan-page .portal-tab {
+  min-height: 54px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #52635a;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 12px 18px;
+  transition: .18s ease;
+}
+
+.kisan-page .portal-tab span {
+  margin-right: 8px;
+  font-size: 17px;
+}
+
+.kisan-page .portal-tab b {
+  display: inline-flex;
+  min-width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 9px;
+  padding: 0 7px;
+  border-radius: 99px;
+  background: #dce8dc;
+  color: #245a35;
+  font-size: 12px;
+}
+
+.kisan-page .portal-tab:hover {
+  color: #245a35;
+  background: rgba(255,255,255,.72);
+}
+
+.kisan-page .portal-tab.active {
+  background: #fff;
+  color: #214f30;
+  border-color: #d7e1d5;
+  box-shadow: 0 5px 16px rgba(15, 26, 20, .09);
+}
+
+.kisan-page .new-application-panel,
+.kisan-page .completed-panel {
+  background: var(--kp-card);
+  border: 1px solid #d7e0d5;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 26, 20, .08), 0 2px 8px rgba(15,26,20,.04);
+}
+
+.kisan-page .panel-heading,
+.kisan-page .completed-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.kisan-page .panel-heading h2,
+.kisan-page .completed-toolbar h2 {
+  margin: 5px 0 5px;
+  font-size: 25px;
+  color: #13271b;
+  line-height: 1.25;
+}
+
+.kisan-page .panel-heading p,
+.kisan-page .completed-toolbar p {
+  margin: 0;
+  color: #5c6a62;
+}
+
+.kisan-page .completed-toolbar .btn {
+  flex-shrink: 0;
+}
+
+.kisan-page .completed-filter-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(250px, 340px) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  margin-bottom: 18px;
+  background: linear-gradient(180deg, #f9fbf8, #f3f7f1);
+  border: 1px solid #d6e0d3;
+  border-radius: 14px;
+}
+
+.kisan-page .completed-filter-row label {
+  font-weight: 800;
+  color: #1d3827;
+}
+
+.kisan-page .completed-filter-row .control {
+  background: #fff;
+  border-color: #cbd8c9;
+}
+
+.kisan-page .applications-table-wrap {
+  width: 100%;
+  max-height: 62vh;
+  overflow: auto;
+  border: 1px solid #cfdacf;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15,26,20,.05);
+}
+
+.kisan-page .applications-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.kisan-page .applications-table th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 14px 13px;
+  background: #245a35 !important;
+  color: #fff !important;
+  border: 0;
+  border-right: 1px solid rgba(255,255,255,.14);
+  border-bottom: 2px solid #1b4629;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-shadow: none;
+}
+
+.kisan-page .applications-table th:first-child {
+  border-top-left-radius: 12px;
+}
+
+.kisan-page .applications-table th:last-child {
+  border-top-right-radius: 12px;
+  border-right: 0;
+}
+
+.kisan-page .applications-table td {
+  padding: 14px 13px;
+  border-right: 1px solid #e4e9e2;
+  border-bottom: 1px solid #e1e7df;
+  color: #203027;
+  background: #fff;
+  font-size: 12.5px;
+  vertical-align: middle;
+}
+
+.kisan-page .applications-table tbody tr:nth-child(even) td {
+  background: #fafcf9;
+}
+
+.kisan-page .applications-table tbody tr:hover td {
+  background: #f0f6ef;
+}
+
+.kisan-page .applications-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.kisan-page .applications-table td:first-child b {
+  color: #1e5531;
+  font-weight: 850;
+}
+
+.kisan-page .applications-table .action-column {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  text-align: center;
+  min-width: 105px;
+  box-shadow: -6px 0 12px rgba(15,26,20,.06);
+}
+
+.kisan-page .applications-table th.action-column {
+  z-index: 7;
+  background: #245a35 !important;
+  color: #fff !important;
+}
+
+.kisan-page .applications-table tbody tr:nth-child(even) td.action-column {
+  background: #fafcf9;
+}
+
+.kisan-page .applications-table tbody tr:hover td.action-column {
+  background: #f0f6ef;
+}
+
+.kisan-page .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 99px;
+  background: #ecfdf4;
+  color: #166534;
+  border: 1px solid #b8ebc9;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.kisan-page .view-btn {
+  border: 1px solid #2f6b42;
+  background: #fff;
+  color: #245a35;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(15,26,20,.05);
+}
+
+.kisan-page .view-btn:hover {
+  background: #eaf3e9;
+  transform: translateY(-1px);
+}
+
+.kisan-page .view-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.kisan-page .empty-applications {
+  padding: 52px 20px;
+  text-align: center;
+  border: 1px dashed #cbd7c8;
+  border-radius: 14px;
+  color: #64736a;
+  background: #fbfcfa;
+}
+
+.kisan-page .applications-error {
+  padding: 12px 15px;
+  margin-bottom: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- COMPLETED APPLICATION PRINT PREVIEW ---------- */
+.kisan-page .application-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(9, 20, 13, .68);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.kisan-page .application-preview-modal {
+  width: min(1120px, 97vw);
+  height: min(94vh, 960px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f0f3ef;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 18px;
+  box-shadow: 0 30px 90px rgba(0,0,0,.38);
+}
+
+.kisan-page .preview-modal-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #d6ded4;
+  background: #fff;
+}
+
+.kisan-page .preview-heading-copy {
+  min-width: 0;
+}
+
+.kisan-page .preview-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: #2f6b42;
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.kisan-page .preview-modal-head h2 {
+  margin: 0 0 2px;
+  font-size: 20px;
+  color: #12251a;
+  line-height: 1.25;
+}
+
+.kisan-page .preview-modal-head span:not(.preview-eyebrow) {
+  color: #617067;
+  font-size: 12px;
+}
+
+.kisan-page .preview-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.kisan-page .preview-print-btn {
+  border: 0;
+  border-radius: 9px;
+  background: #245a35;
+  color: #fff;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 9px rgba(36,90,53,.18);
+}
+
+.kisan-page .preview-print-btn:hover {
+  background: #1c492b;
+}
+
+.kisan-page .preview-close {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid #d7dfd5;
+  border-radius: 9px;
+  background: #f4f6f3;
+  color: #26372c;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kisan-page .preview-close:hover {
+  background: #e7ece5;
+}
+
+.kisan-page .preview-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: 22px;
+  background: #e9ede8;
+}
+
+.kisan-page .preview-modal-body .print-document-preview {
+  margin: 0 auto;
+  max-width: 210mm;
+}
+
+@media (max-width: 768px) {
+  .kisan-page .portal-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .kisan-page .portal-tab {
+    min-height: 48px;
+  }
+
+  .kisan-page .new-application-panel,
+  .kisan-page .completed-panel {
+    padding: 17px;
+    border-radius: 14px;
+  }
+
+  .kisan-page .panel-heading,
+  .kisan-page .completed-toolbar {
+    flex-direction: column;
+  }
+
+  .kisan-page .completed-toolbar .btn {
+    width: 100%;
+  }
+
+  .kisan-page .completed-filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .kisan-page .application-preview-overlay {
+    padding: 6px;
+  }
+
+  .kisan-page .application-preview-modal {
+    width: 100%;
+    height: 97vh;
+    border-radius: 12px;
+  }
+
+  .kisan-page .preview-modal-head {
+    padding: 12px;
+  }
+
+  .kisan-page .preview-modal-actions {
+    gap: 5px;
+  }
+
+  .kisan-page .preview-print-btn {
+    padding: 8px 10px;
+    font-size: 11.5px;
+  }
+
+  .kisan-page .preview-modal-body {
+    padding: 8px;
+  }
+}
+
+/* ---------- FINAL PREVIEW / PRINT FIXES ---------- */
+.kisan-page .application-preview-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 24px;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+}
+
+.kisan-page .application-preview-modal {
+  width: min(1120px, calc(100vw - 48px));
+  height: auto;
+  max-height: calc(100vh - 48px);
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.kisan-page .preview-modal-head {
+  min-height: 70px;
+  box-sizing: border-box;
+}
+
+.kisan-page .preview-modal-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.kisan-page .preview-modal-body .print-document-preview {
+  display: block;
+  width: 210mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .kisan-page .application-preview-overlay {
+    padding: 10px;
+  }
+
+  .kisan-page .application-preview-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 20px);
+  }
+
+  .kisan-page .preview-modal-body {
+    padding: 10px;
+  }
+}
