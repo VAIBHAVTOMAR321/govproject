@@ -60,6 +60,18 @@ const getCenterNameFromUser = (authUser) => {
   return direct ? String(direct).trim() : "";
 };
 
+// Helper to format date into Hindi readable format (e.g., 20 अगस्त, 2026)
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('hi-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (e) {
+    return dateString;
+  }
+};
+
 function VetanMang() {
   const { user } = useAuth();
   const centerName = getCenterNameFromUser(user);
@@ -99,19 +111,82 @@ function VetanMang() {
     setPreviewReport(null);
   };
 
+  // Reusable HTML generator for formal letter print format
+  const generatePrintHTML = (report) => {
+    const tableRows = report.report_data.map(row =>
+      `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`
+    ).join('');
+
+    const colGroup = COL_WIDTHS.map(w => `<col style="width:${w};">`).join('');
+    const yearPart = report.financial_year ? report.financial_year.split('-')[0] : '';
+    const formattedDate = formatDate(report.report_date);
+
+    return `
+      <div class="doc-header">
+        <h1>उद्यान एवं खाद्य प्रसंस्करण विभाग, उत्तराखण्ड</h1>
+        <h2>कार्यालय — प्रभारी, उद्यान सचल दल केन्द्र ${report.center_name}</h2>
+        <h3>विकासखण्ड ${report.center_name}, जनपद पौड़ी गढ़वाल (उत्तराखण्ड)</h3>
+      </div>
+
+      <div class="ref-date">
+        <span><strong>पत्रांक:</strong> ${report.letter_number} / वेतन मांग पत्र एवं उपस्थिति सूचना / वर्ष ${report.financial_year}</span>
+        <span><strong>दिनांक:</strong> ${formattedDate}</span>
+      </div>
+
+      <div class="to-address">
+        सेवा में,<br>
+        श्रीमान उद्यान विशेषज्ञ,<br>
+        कोटद्वार, जनपद पौड़ी गढ़वाल।
+      </div>
+
+      <div class="subject">
+        <strong>विषय :</strong> माह ${report.month}, वर्ष ${report.financial_year} का वेतन मांग पत्र (D-4) एवं नियमित तथा उपनल प्रायोजित कार्मिकों की उपस्थिति सूचना प्रेषित किये जाने के सम्बन्ध में।
+      </div>
+
+      <div class="body-text">
+        महोदय,<br>
+        उपरोक्त विषयक अवगत कराना है कि इस केन्द्र में कार्यरत नियमित एवं उपनल प्रायोजित (कुशल-माली) कार्मिकों की माह ${report.month}, ${yearPart} की उपस्थिति सूचना एवं वेतन मांग पत्र (D-4) निम्नानुसार है, जो आपकी सेवा में सूचनार्थ एवं वेतन आहरण/भुगतान की आवश्यक कार्यवाही हेतु प्रेषित है :—
+      </div>
+
+      <table>
+        <colgroup>${colGroup}</colgroup>
+        <thead>
+          <tr>
+            ${TABLE_HEADERS.map(h => `<th>${h}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+
+      <div class="body-text">
+        प्रमाणित किया जाता है कि उपरोक्त अंकित उपस्थिति विवरण कार्यालय की उपस्थिति पंजिका के अनुसार पूर्णतः सही एवं सत्य है। उपरोक्त कार्मिकों द्वारा उल्लिखित अवधि में अपने पदीय दायित्वों का निर्वहन किया गया है तथा किसी भी कार्मिक द्वारा अनाधिकृत रूप से अनुपस्थिति/अवकाश का उपभोग नहीं किया गया है। तदनुसार माह ${report.month}, ${yearPart} का वेतन आहरण किये जाने की कृपा करें।
+      </div>
+
+      <div class="sign-off">
+        भवदीय,<br><br><br>
+        ( हस्ताक्षर )<br>
+        प्रभारी<br>
+        उद्यान सचल दल केन्द्र, ${report.center_name}<br>
+        जनपद पौड़ी गढ़वाल
+      </div>
+
+      <div class="cc-section">
+        <div class="ref-date no-margin">
+          <span><strong>पत्रांक:</strong> ${report.letter_number}-24 / वेतन मांग पत्र एवं उपस्थिति सूचना / वर्ष ${report.financial_year}</span>
+          <span><strong>दिनांक:</strong> ${formattedDate}</span>
+        </div>
+        <p><strong>प्रतिलिपि :</strong> निम्नलिखित को सूचनार्थ एवं आवश्यक कार्यवाही हेतु प्रेषित —</p>
+        <p>1. सम्बन्धित कार्मिक को सूचनार्थ।</p>
+        <p>2. कार्यालय प्रति।</p>
+      </div>
+    `;
+  };
+
   // ===== PRINT PREVIEW (Single Report) =====
   const handlePrintPreview = () => {
     if (!previewReport) return;
     setShowPreviewModal(false);
     setTimeout(() => {
-      const tableRows = previewReport.report_data.map(row =>
-        row.map(cell => `<td>${cell || ''}</td>`).join('')
-      ).join('');
-
-      const colGroup = COL_WIDTHS
-        .map(w => `<col style="width:${w};">`)
-        .join('');
-
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
         <html>
@@ -121,32 +196,34 @@ function VetanMang() {
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body {
               font-family: 'Mangal', 'Nirmala UI', 'Segoe UI', Tahoma, sans-serif;
-              padding: 15px;
+              padding: 20px;
               color: #000;
+              line-height: 1.5;
             }
-            h1, h2 {
-              text-align: center;
-              margin-bottom: 5px;
-              color: #000;
-            }
-            .header-info {
-              margin-bottom: 15px;
-              border-bottom: 2px solid #000;
-              padding-bottom: 10px;
-            }
-            .meta-info { margin-bottom: 15px; }
-            .meta-info p { margin: 4px 0; font-size: 13px; }
-
+            .doc-header { text-align: center; margin-bottom: 20px; }
+            .doc-header h1 { font-size: 16px; margin-bottom: 5px; }
+            .doc-header h2 { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+            .doc-header h3 { font-size: 13px; font-weight: normal; }
+            
+            .ref-date { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; }
+            .ref-date.no-margin { margin-bottom: 5px; margin-top: 30px; border-top: 1px solid #000; padding-top: 15px; }
+            
+            .to-address { margin: 20px 0; font-size: 13px; }
+            
+            .subject { margin: 20px 0; font-size: 13px; }
+            
+            .body-text { margin: 15px 0; text-align: justify; font-size: 13px; }
+            
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 15px;
+              margin: 15px 0;
               font-size: 10px;
               table-layout: fixed;
             }
             th, td {
-              border: 1px solid #444;
-              padding: 5px 6px;
+              border: 1px solid #000;
+              padding: 4px 5px;
               text-align: left;
               vertical-align: top;
               word-wrap: break-word;
@@ -156,23 +233,20 @@ function VetanMang() {
               line-height: 1.3;
             }
             th {
-              background-color: #000 !important;
-              color: #fff !important;
-              font-weight: 700;
+              background-color: #f2f2f2;
+              color: #000;
+              font-weight: bold;
               text-align: center;
               font-size: 10px;
-              padding: 6px 4px;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
             }
-            tr:nth-child(even) td { background-color: #f0f0f0; }
-
-            th:last-child, td:last-child {
-              word-break: break-word !important;
-              white-space: normal !important;
-            }
-            th:first-child, td:first-child { text-align: center; }
-
+            td { text-align: center; }
+            td:last-child { text-align: left; }
+            
+            .sign-off { margin-top: 40px; text-align: right; font-size: 13px; }
+            
+            .cc-section { margin-top: 50px; font-size: 13px; }
+            .cc-section p { margin-bottom: 5px; }
+            
             @page {
               size: landscape;
               margin: 10mm;
@@ -180,26 +254,7 @@ function VetanMang() {
           </style>
         </head>
         <body>
-          <div class="header-info">
-            <h1>वेतन मांग पत्र एवं उपस्थिति सूचना</h1>
-            <h2>${previewReport.subject || ''}</h2>
-          </div>
-          <div class="meta-info">
-            <p><strong>केंद्र:</strong> ${previewReport.center_name}</p>
-            <p><strong>माह:</strong> ${previewReport.month}</p>
-            <p><strong>वित्तीय वर्ष:</strong> ${previewReport.financial_year}</p>
-            <p><strong>पत्र संख्या:</strong> ${previewReport.letter_number}</p>
-            <p><strong>रिपोर्ट दिनांक:</strong> ${previewReport.report_date}</p>
-          </div>
-          <table>
-            <colgroup>${colGroup}</colgroup>
-            <thead>
-              <tr>
-                ${TABLE_HEADERS.map(h => `<th>${h}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
+          ${generatePrintHTML(previewReport)}
         </body>
         </html>
       `);
@@ -345,20 +400,11 @@ function VetanMang() {
       return;
     }
 
-    const colGroup = COL_WIDTHS
-      .map(w => `<col style="width:${w};">`)
-      .join('');
-
-    const tableRows = reports.map(report =>
-      report.report_data.map(row =>
-        `<tr><td>${report.center_name}</td><td>${report.month}</td><td>${report.financial_year}</td><td>${report.report_date}</td>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`
-      ).join('')
+    const allReportsHTML = reports.map((report, index) => 
+      `<div class="report-page ${index < reports.length - 1 ? 'page-break' : ''}">
+         ${generatePrintHTML(report)}
+       </div>`
     ).join('');
-
-    const allColWidths = ['5%', '5%', '5%', '5%', ...COL_WIDTHS];
-    const allColGroup = allColWidths
-      .map(w => `<col style="width:${w};">`)
-      .join('');
 
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -369,29 +415,37 @@ function VetanMang() {
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
             font-family: 'Mangal', 'Nirmala UI', 'Segoe UI', Tahoma, sans-serif;
-            padding: 15px;
+            padding: 20px;
             color: #000;
+            line-height: 1.5;
           }
-          h1, h2 {
-            text-align: center;
-            margin-bottom: 5px;
-            color: #000;
-          }
-          .header-info {
-            margin-bottom: 15px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-          }
+          .report-page { padding-bottom: 30px; }
+          .page-break { page-break-after: always; }
+          
+          .doc-header { text-align: center; margin-bottom: 20px; }
+          .doc-header h1 { font-size: 16px; margin-bottom: 5px; }
+          .doc-header h2 { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+          .doc-header h3 { font-size: 13px; font-weight: normal; }
+          
+          .ref-date { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; }
+          .ref-date.no-margin { margin-bottom: 5px; margin-top: 30px; border-top: 1px solid #000; padding-top: 15px; }
+          
+          .to-address { margin: 20px 0; font-size: 13px; }
+          
+          .subject { margin: 20px 0; font-size: 13px; }
+          
+          .body-text { margin: 15px 0; text-align: justify; font-size: 13px; }
+          
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin: 15px 0;
             font-size: 10px;
             table-layout: fixed;
           }
           th, td {
-            border: 1px solid #444;
-            padding: 5px 6px;
+            border: 1px solid #000;
+            padding: 4px 5px;
             text-align: left;
             vertical-align: top;
             word-wrap: break-word;
@@ -401,22 +455,20 @@ function VetanMang() {
             line-height: 1.3;
           }
           th {
-            background-color: #000 !important;
-            color: #fff !important;
-            font-weight: 700;
+            background-color: #f2f2f2;
+            color: #000;
+            font-weight: bold;
             text-align: center;
             font-size: 10px;
-            padding: 6px 4px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
           }
-          tr:nth-child(even) td { background-color: #f0f0f0; }
-          th:last-child, td:last-child {
-            word-break: break-word !important;
-            white-space: normal !important;
-          }
-          th:first-child, td:first-child { text-align: center; }
-
+          td { text-align: center; }
+          td:last-child { text-align: left; }
+          
+          .sign-off { margin-top: 40px; text-align: right; font-size: 13px; }
+          
+          .cc-section { margin-top: 50px; font-size: 13px; }
+          .cc-section p { margin-bottom: 5px; }
+          
           @page {
             size: landscape;
             margin: 10mm;
@@ -424,23 +476,7 @@ function VetanMang() {
         </style>
       </head>
       <body>
-        <div class="header-info">
-          <h1>वेतन मांग पत्र एवं उपस्थिति सूचना</h1>
-          <h2>सभी सहेजी गई रिपोर्ट - कुल: ${reports.length}</h2>
-        </div>
-        <table>
-          <colgroup>${allColGroup}</colgroup>
-          <thead>
-            <tr>
-              <th>केंद्र</th>
-              <th>माह</th>
-              <th>वित्तीय वर्ष</th>
-              <th>रिपोर्ट दिनांक</th>
-              ${TABLE_HEADERS.map(h => `<th>${h}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
+        ${allReportsHTML}
       </body>
       </html>
     `);
@@ -637,15 +673,7 @@ function VetanMang() {
                   >
                     {isLoading ? 'लोड हो रहा है...' : 'रिफ्रेश करें'}
                   </Button>
-                  <Button
-                    variant="info"
-                    size="sm"
-                    onClick={handleShareAll}
-                    disabled={!reports.length}
-                    className="fw-bold"
-                  >
-                    शेयर करें
-                  </Button>
+                
                   <Button
                     variant="secondary"
                     size="sm"
