@@ -3,7 +3,7 @@ import { Container, Spinner, Alert, Row, Col, Card, Form, Button, Modal } from '
 import DashBoardHeader from './DashBoardHeader';
 import LeftNav from './LeftNav';
 import Footer from '../footer/Footer';
-import { FaClipboardList, FaPlus, FaEdit, FaTrashAlt, FaSave, FaTimes, FaCalendarAlt } from 'react-icons/fa';
+import { FaClipboardList, FaPlus, FaEdit, FaTrashAlt, FaSave, FaTimes, FaCalendarAlt, FaEye, FaPrint } from 'react-icons/fa';
 import '../../assets/css/dashboard.css';
 
 const API_BASE_URL = 'https://mahadevaaya.com/govbillingsystem/backend/api/salary-attendance-reports/';
@@ -37,6 +37,8 @@ const AdminVetanMang = () => {
   
   const [showModal, setShowModal] = useState(false);
   const [editingReport, setEditingReport] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewReport, setPreviewReport] = useState(null);
 
   // Filter States
   const [filterCenterName, setFilterCenterName] = useState('');
@@ -66,8 +68,371 @@ const AdminVetanMang = () => {
     };
     checkDevice();
     window.addEventListener("resize", checkDevice);
-    return () => window.removeEventListener("resize", checkDevice);
+
+    return () => {
+      window.removeEventListener("resize", checkDevice);
+    };
   }, []);
+
+  // ===== SELECTED REPORT PRINT PREVIEW =====
+  // The preview is generated only for the report/centre selected
+  // from the dashboard table. Therefore the centre name is always
+  // dynamic and comes from that selected report.
+  const handleOpenPreview = (report) => {
+    setPreviewReport(report);
+    setShowPreviewModal(true);
+  };
+
+  const formatPreviewDate = (dateValue) => {
+    if (!dateValue) return '';
+    try {
+      const d = new Date(dateValue);
+      return Number.isNaN(d.getTime())
+        ? String(dateValue)
+        : d.toLocaleDateString('hi-IN');
+    } catch {
+      return String(dateValue);
+    }
+  };
+
+  const escapePreviewHtml = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  const getPreviewRows = (report) => {
+    const sourceRows = Array.isArray(report?.report_data)
+      ? report.report_data
+      : [];
+
+    return sourceRows.map((sourceRow, rowIndex) => {
+      const row = Array.isArray(sourceRow) ? [...sourceRow] : [];
+
+      while (row.length < 14) row.push('');
+      if (row.length > 14) row.length = 14;
+
+      // Use the actual employee row number only when serial is absent.
+      if (row[0] === null || row[0] === undefined || row[0] === '') {
+        row[0] = rowIndex + 1;
+      }
+
+      return row;
+    });
+  };
+
+  const buildSelectedReportPreview = (report) => {
+    if (!report) return '';
+
+    const centerName = escapePreviewHtml(report.center_name || '');
+    const month = escapePreviewHtml(report.month || '');
+    const financialYear = escapePreviewHtml(report.financial_year || '');
+    const letterNumber = escapePreviewHtml(report.letter_number || '');
+    const reportDate = escapePreviewHtml(formatPreviewDate(report.report_date));
+    const yearPart = financialYear ? financialYear.split('-')[0] : '';
+    const rows = getPreviewRows(report);
+
+    const tableRows = rows.map((row) => `
+      <tr>
+        ${row.map((cell) => `<td>${escapePreviewHtml(cell)}</td>`).join('')}
+      </tr>
+    `).join('');
+
+    return `
+      <div class="vm-print-document">
+        <div class="vm-print-header">
+          <div class="vm-print-title">उद्यान एवं खाद्य प्रसंस्करण विभाग, उत्तराखण्ड</div>
+          <div class="vm-print-subtitle">
+            कार्यालय — प्रभारी, उद्यान सचल दल केन्द्र ${centerName}
+          </div>
+          <div class="vm-print-subtitle">
+            विकासखण्ड ${centerName}, जनपद पौड़ी गढ़वाल (उत्तराखण्ड)
+          </div>
+        </div>
+
+        <div class="vm-print-ref-date">
+          <span>
+            <strong>पत्रांक:</strong>
+            ${letterNumber} / वेतन मांग पत्र एवं उपस्थिति सूचना /
+            वर्ष ${financialYear}
+          </span>
+          <span><strong>दिनांक:</strong> ${reportDate}</span>
+        </div>
+
+        <div class="vm-print-address">
+          सेवा में,<br>
+          श्रीमान उद्यान विशेषज्ञ,<br>
+          कोटद्वार, जनपद पौड़ी गढ़वाल।
+        </div>
+
+        <div class="vm-print-subject">
+          <strong>विषय :</strong>
+          माह ${month}, वर्ष ${financialYear} का वेतन मांग पत्र (D-4)
+          एवं नियमित तथा उपनल प्रायोजित कार्मिकों की उपस्थिति सूचना
+          प्रेषित किये जाने के सम्बन्ध में।
+        </div>
+
+        <div class="vm-print-text">
+          महोदय,<br>
+          उपरोक्त विषयक अवगत कराना है कि इस केन्द्र में कार्यरत नियमित एवं
+          उपनल प्रायोजित (कुशल-माली) कार्मिकों की माह ${month}, ${yearPart}
+          की उपस्थिति सूचना एवं वेतन मांग पत्र (D-4) निम्नानुसार है,
+          जो आपकी सेवा में सूचनार्थ एवं वेतन आहरण/भुगतान की आवश्यक कार्यवाही
+          हेतु प्रेषित है :—
+        </div>
+
+        <table class="vm-print-table">
+          <colgroup>
+            <col style="width:4%">
+            <col style="width:11%">
+            <col style="width:10%">
+            <col style="width:9%">
+            <col style="width:5%">
+            <col style="width:5%">
+            <col style="width:5%">
+            <col style="width:5%">
+            <col style="width:6%">
+            <col style="width:6%">
+            <col style="width:6%">
+            <col style="width:6%">
+            <col style="width:6%">
+            <col style="width:20%">
+          </colgroup>
+
+          <thead>
+            <tr>
+              <th rowspan="2">क्रम सं.</th>
+              <th rowspan="2">कर्मचारी का नाम</th>
+              <th rowspan="2">पदनाम</th>
+              <th rowspan="2">नियुक्ति का प्रकार</th>
+              <th colspan="2">वास्तविक उपस्थिति</th>
+              <th colspan="2">संभावित उपस्थिति</th>
+              <th colspan="2">माह में उपभोग किये गये अवकाश</th>
+              <th colspan="2">अवशेष अवकाश</th>
+              <th rowspan="2">माह में कुल दिवस</th>
+              <th rowspan="2">अभ्युक्ति</th>
+            </tr>
+            <tr>
+              <th>दिनांक से</th>
+              <th>दिनांक तक</th>
+              <th>दिनांक से</th>
+              <th>दिनांक तक</th>
+              <th>अकस्मिक अवकाश</th>
+              <th>उपार्जित अवकाश</th>
+              <th>अकस्मिक अवकाश</th>
+              <th>उपार्जित अवकाश</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${tableRows || `
+              <tr>
+                <td colspan="14">कोई कर्मचारी डेटा उपलब्ध नहीं है।</td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+
+        <div class="vm-print-text">
+          प्रमाणित किया जाता है कि उपरोक्त अंकित उपस्थिति विवरण कार्यालय की
+          उपस्थिति पंजिका के अनुसार पूर्णतः सही एवं सत्य है। उपरोक्त कार्मिकों
+          द्वारा उल्लिखित अवधि में अपने पदीय दायित्वों का निर्वहन किया गया है
+          तथा किसी भी कार्मिक द्वारा अनाधिकृत रूप से अनुपस्थिति/अवकाश का
+          उपभोग नहीं किया गया है। तदनुसार माह ${month}, ${yearPart} का वेतन
+          आहरण किये जाने की कृपा करें।
+        </div>
+
+        <div class="vm-print-signoff">
+          भवदीय,<br><br><br>
+          ( हस्ताक्षर )<br>
+          प्रभारी<br>
+          उद्यान सचल दल केन्द्र, ${centerName}<br>
+          जनपद पौड़ी गढ़वाल
+        </div>
+
+        <div class="vm-print-cc">
+          <div class="vm-print-ref-date">
+            <span>
+              <strong>पत्रांक:</strong>
+              ${letterNumber}-24 / वेतन मांग पत्र एवं उपस्थिति सूचना /
+              वर्ष ${financialYear}
+            </span>
+            <span><strong>दिनांक:</strong> ${reportDate}</span>
+          </div>
+          <p><strong>प्रतिलिपि :</strong> निम्नलिखित को सूचनार्थ एवं आवश्यक कार्यवाही हेतु प्रेषित —</p>
+          <p>1. सम्बन्धित कार्मिक को सूचनार्थ।</p>
+          <p>2. कार्यालय प्रति।</p>
+        </div>
+      </div>
+    `;
+  };
+
+  const handlePrintSelectedReport = () => {
+    if (!previewReport) return;
+
+    const printWindow = window.open('', '_blank');
+
+    if (!printWindow) {
+      alert('प्रिंट विंडो नहीं खुल सकी। कृपया browser pop-up अनुमति दें।');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="hi">
+      <head>
+        <meta charset="UTF-8">
+        <title>वेतन मांग पत्र - ${escapePreviewHtml(previewReport.center_name || '')}</title>
+        <style>
+          * { box-sizing: border-box; }
+
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #000;
+          }
+
+          body {
+            font-family: "Nirmala UI", "Mangal", "Noto Sans Devanagari", Arial, sans-serif;
+            font-size: 10.5px;
+            line-height: 1.4;
+          }
+
+          .vm-print-document {
+            width: 100%;
+            padding: 8mm 10mm;
+          }
+
+          .vm-print-header {
+            text-align: center;
+            margin-bottom: 10px;
+          }
+
+          .vm-print-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 3px;
+          }
+
+          .vm-print-subtitle {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 2px;
+          }
+
+          .vm-print-ref-date {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin: 8px 0 10px;
+          }
+
+          .vm-print-address,
+          .vm-print-subject,
+          .vm-print-text {
+            margin: 7px 0;
+            text-align: justify;
+          }
+
+          .vm-print-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 12px 0;
+            page-break-inside: auto;
+            break-inside: auto;
+          }
+
+          .vm-print-table thead {
+            display: table-header-group !important;
+          }
+
+          .vm-print-table tbody {
+            display: table-row-group !important;
+          }
+
+          .vm-print-table tr {
+            display: table-row !important;
+            height: auto !important;
+            min-height: 0 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          .vm-print-table th,
+          .vm-print-table td {
+            display: table-cell !important;
+            border: 1px solid #000;
+            padding: 3px 4px;
+            font-size: 8.2px;
+            line-height: 1.15;
+            vertical-align: middle;
+            text-align: center;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            white-space: normal;
+          }
+
+          .vm-print-table th {
+            font-weight: 700;
+          }
+
+          .vm-print-table td:last-child,
+          .vm-print-table th:last-child {
+            text-align: left;
+          }
+
+          .vm-print-signoff {
+            margin-top: 18px;
+            text-align: right;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .vm-print-cc {
+            margin-top: 25px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .vm-print-cc p {
+            margin: 3px 0;
+          }
+
+          @page {
+            size: A4 landscape;
+            margin: 8mm;
+          }
+
+          @media print {
+            .vm-print-document {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${buildSelectedReportPreview(previewReport)}
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+    }, 600);
+  };
 
   // Fetch all reports (GET)
   const fetchReports = async () => {
@@ -342,10 +707,23 @@ const AdminVetanMang = () => {
                               <td style={{ maxWidth: '300px', whiteSpace: 'normal' }}>{report.subject}</td>
                               <td>
                                 <div className="d-flex gap-2">
-                                  <Button variant="warning" size="sm" onClick={() => handleOpenModal(report)}>
+                                  <Button
+                                    variant="info"
+                                    size="sm"
+                                    title="देखें / प्रिंट प्रीव्यू"
+                                    onClick={() => handleOpenPreview(report)}
+                                  >
+                                    <FaEye className="me-1" /> देखें
+                                  </Button>
+
+                                  <Button
+                                    variant="warning"
+                                    size="sm"
+                                    title="एडिट करें"
+                                    onClick={() => handleOpenModal(report)}
+                                  >
                                     <FaEdit />
                                   </Button>
-                                
                                 </div>
                               </td>
                             </tr>
@@ -368,6 +746,99 @@ const AdminVetanMang = () => {
       </div>
       
       <Footer />
+
+      {/* Selected Report Print Preview Modal */}
+      <Modal
+        show={showPreviewModal}
+        onHide={() => setShowPreviewModal(false)}
+        fullscreen
+        centered
+        className="vm-print-preview-modal"
+      >
+        <Modal.Header
+          closeButton
+          style={{
+            backgroundColor: '#194e8b',
+            color: 'white',
+            padding: '10px 16px'
+          }}
+        >
+          <Modal.Title style={{ fontSize: '1rem' }}>
+            <FaEye className="me-2" />
+            प्रिंट प्रीव्यू
+            {previewReport?.center_name
+              ? ` — ${previewReport.center_name}`
+              : ''}
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body
+          style={{
+            background: '#525659',
+            padding: '18px',
+            overflow: 'auto'
+          }}
+        >
+          {previewReport ? (
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '1500px',
+                minWidth: isMobile ? '1050px' : '0',
+                margin: '0 auto',
+                background: '#fff',
+                boxShadow: '0 2px 12px rgba(0,0,0,.35)',
+                padding: isMobile ? '18px' : '30px',
+                overflowX: 'auto'
+              }}
+            >
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: buildSelectedReportPreview(previewReport)
+                }}
+              />
+            </div>
+          ) : (
+            <div className="text-center text-white py-5">
+              कोई रिपोर्ट चयनित नहीं है।
+            </div>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer
+          style={{
+            background: '#fff',
+            padding: '8px 16px',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', color: '#555' }}>
+            केंद्र:
+            <strong className="ms-1">
+              {previewReport?.center_name || '-'}
+            </strong>
+          </div>
+
+          <div className="d-flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowPreviewModal(false)}
+            >
+              <FaTimes className="me-1" /> बंद करें
+            </Button>
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handlePrintSelectedReport}
+              disabled={!previewReport}
+            >
+              <FaPrint className="me-1" /> प्रिंट करें
+            </Button>
+          </div>
+        </Modal.Footer>
+      </Modal>
 
       {/* Add/Edit Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="xl" centered scrollable>
@@ -524,5 +995,121 @@ const AdminVetanMang = () => {
     </>
   );
 }; 
+
+const vmPreviewStyleText = `
+  .vm-print-preview-modal .modal-dialog {
+    margin: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+  }
+
+  .vm-print-preview-modal .modal-content {
+    height: 100vh !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .vm-print-preview-modal .modal-body {
+    min-height: 0 !important;
+  }
+
+  .vm-print-preview-modal .vm-print-document {
+    width: 100%;
+    color: #000;
+    font-family: "Nirmala UI", "Mangal", "Noto Sans Devanagari", Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .vm-print-preview-modal .vm-print-header {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .vm-print-preview-modal .vm-print-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .vm-print-preview-modal .vm-print-subtitle {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .vm-print-preview-modal .vm-print-ref-date {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 8px 0 12px;
+  }
+
+  .vm-print-preview-modal .vm-print-address,
+  .vm-print-preview-modal .vm-print-subject,
+  .vm-print-preview-modal .vm-print-text {
+    margin: 8px 0;
+    text-align: justify;
+  }
+
+  .vm-print-preview-modal .vm-print-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 12px 0;
+  }
+
+  .vm-print-preview-modal .vm-print-table th,
+  .vm-print-preview-modal .vm-print-table td {
+    border: 1px solid #000;
+    padding: 4px 5px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 9px;
+    line-height: 1.2;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    white-space: normal;
+  }
+
+  .vm-print-preview-modal .vm-print-table th {
+    font-weight: 700;
+  }
+
+  .vm-print-preview-modal .vm-print-table td:last-child,
+  .vm-print-preview-modal .vm-print-table th:last-child {
+    text-align: left;
+  }
+
+  .vm-print-preview-modal .vm-print-signoff {
+    margin-top: 20px;
+    text-align: right;
+  }
+
+  .vm-print-preview-modal .vm-print-cc {
+    margin-top: 28px;
+  }
+
+  @media (max-width: 900px) {
+    .vm-print-preview-modal .vm-print-document {
+      min-width: 1050px;
+    }
+
+    .vm-print-preview-modal .vm-print-table {
+      min-width: 1050px;
+    }
+  }
+`;
+
+if (typeof document !== 'undefined' && !document.getElementById('vm-preview-styles')) {
+  const style = document.createElement('style');
+  style.id = 'vm-preview-styles';
+  style.textContent = vmPreviewStyleText;
+  document.head.appendChild(style);
+}
 
 export default AdminVetanMang;
