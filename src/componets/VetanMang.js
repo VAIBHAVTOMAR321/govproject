@@ -46,7 +46,7 @@ const COL_WIDTHS = [
   '4%',   // 10 कुल दिन
   '4%',   // 11 शेष
   '7%',   // 12 वित्तीय वर्ष
-  '30%'   // 13 टिप्पणी / कार्य विवरण  ← WIDEST
+  '30%'   // 13 टिप्पणी / कार्य विवरण
 ];
 
 // Helper to extract center name
@@ -259,13 +259,8 @@ function VetanMang() {
               break-inside: auto;
             }
 
-            thead {
-              display: table-header-group;
-            }
-
-            tbody {
-              display: table-row-group;
-            }
+            thead { display: table-header-group; }
+            tbody { display: table-row-group; }
 
             tr {
               display: table-row;
@@ -274,8 +269,7 @@ function VetanMang() {
               break-inside: avoid;
             }
 
-            th,
-            td {
+            th, td {
               display: table-cell;
               height: auto !important;
               min-height: 0 !important;
@@ -340,7 +334,6 @@ function VetanMang() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      // Encode the centerName to properly handle Hindi/Marathi characters in the URL
       const url = `${API_URL}?center_name=${encodeURIComponent(centerName)}`;
       const response = await fetch(url);
       
@@ -363,19 +356,68 @@ function VetanMang() {
     setFormData({ ...formData, [name]: value });
   };
 
+  // Handle Input Change and Calculate Columns
   const handleReportDataChange = (rowIndex, colIndex, value) => {
     const updatedReportData = [...formData.report_data];
     updatedReportData[rowIndex][colIndex] = value;
+
+    // Indices for logic
+    // 4: दिनांक (शुरू), 5: दिनांक (अंत), 6: छुट्टी (शुरू), 7: छुट्टी (अंत)
+    // 10: कुल दिन, 11: शेष
+
+    // Calculate Total Days (कुल दिन) - Difference between Start and End Date
+    if (colIndex === 4 || colIndex === 5) {
+      const startDateStr = updatedReportData[rowIndex][4];
+      const endDateStr = updatedReportData[rowIndex][5];
+      if (startDateStr && endDateStr) {
+        const start = new Date(startDateStr);
+        const end = new Date(endDateStr);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+          const diffTime = Math.abs(end - start);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start date
+          updatedReportData[rowIndex][10] = diffDays.toString();
+        } else {
+          updatedReportData[rowIndex][10] = '';
+        }
+      } else {
+        updatedReportData[rowIndex][10] = '';
+      }
+    }
+
+    // Calculate Leave Balance (शेष) - Difference between Leave Start and Leave End
+    if (colIndex === 6 || colIndex === 7) {
+      const leaveStartStr = updatedReportData[rowIndex][6];
+      const leaveEndStr = updatedReportData[rowIndex][7];
+      if (leaveStartStr && leaveEndStr) {
+        const leaveStart = new Date(leaveStartStr);
+        const leaveEnd = new Date(leaveEndStr);
+        if (!isNaN(leaveStart.getTime()) && !isNaN(leaveEnd.getTime()) && leaveEnd >= leaveStart) {
+          const diffTime = Math.abs(leaveEnd - leaveStart);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start date
+          updatedReportData[rowIndex][11] = diffDays.toString();
+        } else {
+          updatedReportData[rowIndex][11] = '';
+        }
+      } else {
+        updatedReportData[rowIndex][11] = '';
+      }
+    }
+
     setFormData({ ...formData, report_data: updatedReportData });
   };
 
   const addRow = () => {
     const newRow = Array(14).fill('');
+    newRow[0] = formData.report_data.length + 1; // Auto increment क्र.
     setFormData({ ...formData, report_data: [...formData.report_data, newRow] });
   };
 
   const removeRow = (rowIndex) => {
     const updatedReportData = formData.report_data.filter((_, index) => index !== rowIndex);
+    // Re-number क्र. column after deletion
+    updatedReportData.forEach((row, index) => {
+      row[0] = index + 1;
+    });
     setFormData({ ...formData, report_data: updatedReportData });
   };
 
@@ -385,7 +427,7 @@ function VetanMang() {
     setMessage({ text: '', type: '' });
 
     const cleanedReportData = formData.report_data.filter(row =>
-      row.some(cell => cell && cell.trim() !== '')
+      row.some(cell => cell && String(cell).trim() !== '')
     );
 
     const payload = { ...formData, report_data: cleanedReportData };
@@ -470,7 +512,6 @@ function VetanMang() {
       (report.report_data || []).forEach((row) => {
         const safeRow = Array.isArray(row) ? [...row] : [];
 
-        // The attendance table has exactly 14 data columns.
         while (safeRow.length < 14) safeRow.push('');
         if (safeRow.length > 14) safeRow.length = 14;
 
@@ -512,57 +553,20 @@ function VetanMang() {
         <title>वेतन मांग पत्र एवं उपस्थिति सूचना - सभी कर्मचारी</title>
 
         <style>
-          * {
-            box-sizing: border-box;
-          }
-
-          html,
+          * { box-sizing: border-box; }
+          html, body { margin: 0; padding: 0; width: 100%; background: #fff; }
           body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            background: #fff;
-          }
-
-          body {
-            font-family:
-              'Nirmala UI',
-              'Mangal',
-              'Noto Sans Devanagari',
-              'Segoe UI',
-              sans-serif;
+            font-family: 'Nirmala UI', 'Mangal', 'Noto Sans Devanagari', 'Segoe UI', sans-serif;
             color: #000;
             font-size: 10.5pt;
             line-height: 1.45;
           }
 
-          .print-document {
-            width: 100%;
-            padding: 8mm 10mm;
-          }
-
-          .doc-header {
-            text-align: center;
-            margin: 0 0 10px;
-          }
-
-          .doc-header h1 {
-            margin: 0 0 3px;
-            font-size: 15px;
-            font-weight: 700;
-          }
-
-          .doc-header h2 {
-            margin: 0 0 2px;
-            font-size: 13px;
-            font-weight: 700;
-          }
-
-          .doc-header h3 {
-            margin: 0;
-            font-size: 11.5px;
-            font-weight: 400;
-          }
+          .print-document { width: 100%; padding: 8mm 10mm; }
+          .doc-header { text-align: center; margin: 0 0 10px; }
+          .doc-header h1 { margin: 0 0 3px; font-size: 15px; font-weight: 700; }
+          .doc-header h2 { margin: 0 0 2px; font-size: 13px; font-weight: 700; }
+          .doc-header h3 { margin: 0; font-size: 11.5px; font-weight: 400; }
 
           .ref-date {
             display: flex;
@@ -573,17 +577,8 @@ function VetanMang() {
             font-size: 10.5px;
           }
 
-          .to-address,
-          .subject,
-          .body-text {
-            margin: 8px 0;
-            font-size: 10.5px;
-          }
-
-          .subject,
-          .body-text {
-            text-align: justify;
-          }
+          .to-address, .subject, .body-text { margin: 8px 0; font-size: 10.5px; }
+          .subject, .body-text { text-align: justify; }
 
           table.print-attendance-table {
             width: 100%;
@@ -595,14 +590,9 @@ function VetanMang() {
             break-inside: auto;
           }
 
-          table.print-attendance-table thead {
-            display: table-header-group !important;
-          }
-
-          table.print-attendance-table tbody {
-            display: table-row-group !important;
-          }
-
+          table.print-attendance-table thead { display: table-header-group !important; }
+          table.print-attendance-table tbody { display: table-row-group !important; }
+          
           table.print-attendance-table tr {
             display: table-row !important;
             height: auto !important;
@@ -613,8 +603,7 @@ function VetanMang() {
             break-after: auto !important;
           }
 
-          table.print-attendance-table th,
-          table.print-attendance-table td {
+          table.print-attendance-table th, table.print-attendance-table td {
             display: table-cell !important;
             width: auto;
             height: auto !important;
@@ -640,78 +629,23 @@ function VetanMang() {
             print-color-adjust: exact;
           }
 
-          table.print-attendance-table td {
-            text-align: center;
-          }
+          table.print-attendance-table td { text-align: center; }
+          table.print-attendance-table td:last-child { text-align: left; }
 
-          table.print-attendance-table td:last-child {
-            text-align: left;
-          }
+          .sign-off { margin-top: 18px; text-align: right; font-size: 10.5px; page-break-inside: avoid; break-inside: avoid; }
+          .cc-section { margin-top: 25px; font-size: 10.5px; page-break-inside: avoid; break-inside: avoid; }
+          .cc-section p { margin: 3px 0; }
 
-          .sign-off {
-            margin-top: 18px;
-            text-align: right;
-            font-size: 10.5px;
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-
-          .cc-section {
-            margin-top: 25px;
-            font-size: 10.5px;
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-
-          .cc-section p {
-            margin: 3px 0;
-          }
-
-          @page {
-            size: A4 landscape;
-            margin: 8mm;
-          }
+          @page { size: A4 landscape; margin: 8mm; }
 
           @media print {
-            html,
-            body {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100% !important;
-              background: #fff !important;
-            }
-
-            .print-document {
-              width: 100% !important;
-              padding: 0 !important;
-            }
-
-            table.print-attendance-table {
-              width: 100% !important;
-              table-layout: fixed !important;
-              page-break-inside: auto !important;
-              break-inside: auto !important;
-            }
-
-            table.print-attendance-table thead {
-              display: table-header-group !important;
-            }
-
-            table.print-attendance-table tbody {
-              display: table-row-group !important;
-            }
-
-            table.print-attendance-table tr {
-              height: auto !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-
-            table.print-attendance-table th,
-            table.print-attendance-table td {
-              height: auto !important;
-              min-height: 0 !important;
-            }
+            html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; background: #fff !important; }
+            .print-document { width: 100% !important; padding: 0 !important; }
+            table.print-attendance-table { width: 100% !important; table-layout: fixed !important; page-break-inside: auto !important; break-inside: auto !important; }
+            table.print-attendance-table thead { display: table-header-group !important; }
+            table.print-attendance-table tbody { display: table-row-group !important; }
+            table.print-attendance-table tr { height: auto !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+            table.print-attendance-table th, table.print-attendance-table td { height: auto !important; min-height: 0 !important; }
           }
         </style>
       </head>
@@ -986,15 +920,58 @@ function VetanMang() {
                       ) : (
                         formData.report_data.map((row, rIdx) => (
                           <tr key={rIdx}>
-                            {row.map((cell, cIdx) => (
-                              <td key={cIdx}>
-                                <input
-                                  type="text"
-                                  value={cell}
-                                  onChange={(e) => handleReportDataChange(rIdx, cIdx, e.target.value)}
-                                />
-                              </td>
-                            ))}
+                            {row.map((cell, cIdx) => {
+                              // क्र. (cIdx === 0) should be read only and auto filled
+                              if (cIdx === 0) {
+                                return (
+                                  <td key={cIdx}>
+                                    <input
+                                      type="text"
+                                      value={cell}
+                                      readOnly
+                                      style={{ backgroundColor: '#f8f9fa', fontWeight: 'bold' }}
+                                    />
+                                  </td>
+                                );
+                              }
+                              // Date inputs for दिनांक (शुरू), दिनांक (अंत), छुट्टी (शुरू), छुट्टी (अंत)
+                              else if (cIdx === 4 || cIdx === 5 || cIdx === 6 || cIdx === 7) {
+                                return (
+                                  <td key={cIdx}>
+                                    <input
+                                      type="date"
+                                      value={cell}
+                                      onChange={(e) => handleReportDataChange(rIdx, cIdx, e.target.value)}
+                                    />
+                                  </td>
+                                );
+                              }
+                              // कुल दिन (cIdx === 10) and शेष (cIdx === 11) should be read only as they are auto-calculated
+                              else if (cIdx === 10 || cIdx === 11) {
+                                return (
+                                  <td key={cIdx}>
+                                    <input
+                                      type="text"
+                                      value={cell}
+                                      readOnly
+                                      style={{ backgroundColor: '#e9ecef' }}
+                                    />
+                                  </td>
+                                );
+                              }
+                              // Default Text Input
+                              else {
+                                return (
+                                  <td key={cIdx}>
+                                    <input
+                                      type="text"
+                                      value={cell}
+                                      onChange={(e) => handleReportDataChange(rIdx, cIdx, e.target.value)}
+                                    />
+                                  </td>
+                                );
+                              }
+                            })}
                             <td className="vm-action-col">
                               <button type="button" className="vm-btn-danger" onClick={() => removeRow(rIdx)}>
                                 हटाएं
