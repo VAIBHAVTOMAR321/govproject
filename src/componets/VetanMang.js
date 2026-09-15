@@ -24,8 +24,8 @@ const TABLE_HEADERS = [
 
 // Marathi Month Options for Dropdown
 const MONTH_OPTIONS = [
-  "जानेवारी", "फेब्रुवारी", "मार्च", "एप्रिल", "मे", "जून",
-  "जुलै", "ऑगस्ट", "सप्टेंबर", "ऑक्टोबर", "नोव्हेंबर", "डिसेंबर"
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
 ];
 
 // Financial Year Options
@@ -324,9 +324,12 @@ function VetanMang() {
     }, 300);
   };
 
+  // Update useEffect to trigger fetchReports as soon as the centerName is available
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (centerName) {
+      fetchReports();
+    }
+  }, [centerName]);
 
   useEffect(() => {
     if (centerName) {
@@ -337,7 +340,10 @@ function VetanMang() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(API_URL);
+      // Encode the centerName to properly handle Hindi/Marathi characters in the URL
+      const url = `${API_URL}?center_name=${encodeURIComponent(centerName)}`;
+      const response = await fetch(url);
+      
       if (!response.ok) throw new Error("Network response was not ok");
 
       const result = await response.json();
@@ -451,9 +457,6 @@ function VetanMang() {
   };
 
   // ===== PRINT ALL REPORTS =====
-  // Print every employee row in ONE continuous attendance table.
-  // The supplied DOCX is used as the visual/reference structure:
-  // two-level table header + 14 columns.
   const handlePrintAll = () => {
     if (!reports.length) {
       alert('कोई रिपोर्ट उपलब्ध नहीं है।');
@@ -582,11 +585,6 @@ function VetanMang() {
             text-align: justify;
           }
 
-          /*
-            IMPORTANT:
-            This is ONE table. The browser is allowed to paginate it.
-            Only THEAD repeats on a new printed page.
-          */
           table.print-attendance-table {
             width: 100%;
             margin: 10px 0 12px;
