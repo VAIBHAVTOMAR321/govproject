@@ -1094,42 +1094,77 @@
   margin: 0;
 }
 
-/* When printing is triggered, we bring the document back to a normal static position */
-.kisan-printing .print-document {
-  position: static !important;
-  left: 0 !important;
-  opacity: 1 !important;
-  z-index: 9999 !important;
-  overflow: visible !important;
-}
-
+/* Native print for a completed application. The same DOM that is visible in
+   the "देखें" modal is printed; no iframe/cloned document is used. */
 @media print {
   html,
   body,
   #root {
-    background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     min-height: 0 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  body {
-    font-size: 11.5pt !important;
+  body.printing-completed-application {
+    overflow: visible !important;
   }
 
-  .kisan-page {
+  body.printing-completed-application .kisan-page {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body.printing-completed-application .kisan-page > .portal-header,
+  body.printing-completed-application .kisan-page > .portal {
     display: none !important;
   }
 
-  .print-document {
+  body.printing-completed-application .application-preview-overlay {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body.printing-completed-application .application-preview-modal {
     display: block !important;
     position: static !important;
-    left: 0 !important;
-    opacity: 1 !important;
-    z-index: 9999 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  body.printing-completed-application .preview-modal-head {
+    display: none !important;
+  }
+
+  body.printing-completed-application .preview-modal-body {
+    display: block !important;
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
@@ -1139,43 +1174,48 @@
     background: #fff !important;
   }
 
-  .print-document-preview {
-    display: none !important;
+  body.printing-completed-application .print-document-preview {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: #fff !important;
   }
 
-  .print-page {
+  body.printing-completed-application .print-page {
     display: block !important;
     visibility: visible !important;
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0;
-    padding: 12mm;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 12mm !important;
+    box-sizing: border-box !important;
     background: #fff !important;
+    color: #000 !important;
     box-shadow: none !important;
   }
 
-  .print-section,
-  .print-table,
-  .print-list,
-  .print-signatures,
-  .print-officer {
-    break-inside: auto;
-    page-break-inside: auto;
-  }
-
-  .print-avoid-break {
+  body.printing-completed-application .print-table tr {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
-  .print-table tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
+  body.printing-completed-application .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
-  .print-photo img {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  body.printing-completed-application .print-photo img {
+    display: block !important;
+    max-width: 100% !important;
   }
 }
 /* ============================================================
@@ -1682,5 +1722,69 @@
 
   .kisan-page .preview-modal-body {
     padding: 10px;
+  }
+}
+
+/* ---------- FULL SCREEN COMPLETED APPLICATION MODAL ---------- */
+.kisan-page .application-preview-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.kisan-page .application-preview-modal {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.kisan-page .preview-modal-head {
+  flex: 0 0 auto !important;
+  min-height: 72px !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.kisan-page .preview-modal-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+}
+
+.kisan-page .preview-modal-body .print-document-preview {
+  display: block !important;
+  width: 210mm !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 768px) {
+  .kisan-page .preview-modal-head {
+    min-height: 64px !important;
+  }
+
+  .kisan-page .preview-modal-body {
+    padding: 10px !important;
   }
 }

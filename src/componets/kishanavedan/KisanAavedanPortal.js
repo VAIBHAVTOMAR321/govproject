@@ -2273,161 +2273,79 @@ export default function KisanAavedanPortal() {
     window.setTimeout(waitForImages, 300);
   };
 
-  // Print a completed application from the table preview. The browser's
-  // native print dialog can then be used to print or choose "Save as PDF".
+  // Print exactly the same A4 document that is visible in the full-screen
+  // "देखें" modal. We intentionally do not create an iframe or clone the
+  // document because that can lose the component styles and produce blank pages.
   const printCompletedApplication = () => {
-    const source = document.querySelector(
-      ".application-preview-modal .print-document-preview",
-    );
-
-    if (!source || !previewApplication?.schemeKey) {
+    if (!previewApplication?.schemeKey) {
       window.alert("प्रिंट के लिए आवेदन पूर्वावलोकन उपलब्ध नहीं है।");
       return;
     }
 
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.border = "0";
-    iframe.style.opacity = "0";
-    iframe.style.pointerEvents = "none";
-    document.body.appendChild(iframe);
+    const overlay = document.querySelector(".application-preview-overlay");
+    const modal = overlay?.querySelector(".application-preview-modal");
+    const documentNode = modal?.querySelector(".print-document-preview");
 
-    const printDocument = iframe.contentDocument;
-    const printWindow = iframe.contentWindow;
-
-    if (!printDocument || !printWindow) {
-      iframe.remove();
-      window.alert("प्रिंट विंडो तैयार नहीं हो सकी।");
+    if (!overlay || !modal || !documentNode) {
+      window.alert("प्रिंट के लिए आवेदन तैयार नहीं है। कृपया पुनः प्रयास करें।");
       return;
     }
 
-    const styles = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style'),
-    )
-      .map((node) => {
-        if (node.tagName.toLowerCase() === "link") {
-          return `<link rel="stylesheet" href="${node.href}">`;
-        }
-        return `<style>${node.textContent || ""}</style>`;
-      })
-      .join("\n");
+    // The CSS print rules use this class to expose only the modal/document.
+    document.body.classList.add("printing-completed-application");
 
-    // Clone only the actual A4 document. Do not copy the preview wrapper/classes
-    // that are hidden by the normal application's screen/print CSS.
-    const printableNode = source.cloneNode(true);
-    printableNode.classList.remove("print-document-preview");
-    printableNode.classList.add("print-document-printable");
-    printableNode.style.cssText =
-      "display:block!important;position:static!important;visibility:visible!important;opacity:1!important;overflow:visible!important;width:210mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;";
-
-    const printableHtml = printableNode.outerHTML
-      .replace(/position:\s*absolute/gi, "position: static")
-      .replace(/left:\s*-9999px/gi, "left: 0")
-      .replace(/opacity:\s*0/gi, "opacity: 1")
-      .replace(/z-index:\s*-1/gi, "z-index: 1");
-
-    const schemeTitle =
-      SCHEMES[previewApplication.schemeKey]?.full || "कृषक आवेदन पत्र";
-
-    printDocument.open();
-    printDocument.write(`<!doctype html>
-<html lang="hi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${schemeTitle}</title>
-  ${styles}
-  <style>
-    @page { size: A4 portrait; margin: 0; }
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-      width: 100% !important;
-      min-height: 0 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    .print-document-printable {
-      display: block !important;
-      position: static !important;
-      width: 210mm !important;
-      height: auto !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: visible !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      background: #fff !important;
-    }
-    .print-page {
-      display: block !important;
-      visibility: visible !important;
-      width: 210mm !important;
-      min-height: 297mm !important;
-      margin: 0 !important;
-      padding: 14mm 13mm 16mm 13mm !important;
-      box-sizing: border-box !important;
-      background: #fff !important;
-      color: #000 !important;
-      box-shadow: none !important;
-    }
-    .print-document-printable .print-page {
-      break-after: auto !important;
-      page-break-after: auto !important;
-    }
-    .print-table tr, .print-avoid-break {
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-    }
-  </style>
-</head>
-<body>${printableHtml}</body>
-</html>`);
-    printDocument.close();
-
-    const finish = () => window.setTimeout(() => iframe.remove(), 800);
-    const waitForImages = () => {
-      const images = Array.from(printDocument.images || []);
-      if (!images.length) {
-        printWindow.focus();
-        printWindow.print();
-        finish();
-        return;
-      }
-      let remaining = images.length;
-      let done = false;
-      const complete = () => {
-        if (done) return;
-        remaining -= 1;
-        if (remaining > 0) return;
-        done = true;
-        printWindow.focus();
-        printWindow.print();
-        finish();
-      };
-      images.forEach((img) => {
-        if (img.complete) complete();
-        else {
-          img.addEventListener("load", complete, { once: true });
-          img.addEventListener("error", complete, { once: true });
-        }
-      });
-      window.setTimeout(() => {
-        if (done) return;
-        done = true;
-        printWindow.focus();
-        printWindow.print();
-        finish();
-      }, 2500);
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      document.body.classList.remove("printing-completed-application");
+      window.removeEventListener("afterprint", cleanup);
     };
 
-    window.setTimeout(waitForImages, 350);
+    window.addEventListener("afterprint", cleanup, { once: true });
+
+    const printNow = () => {
+      // Force browser layout/repaint before opening the native print preview.
+      void documentNode.offsetHeight;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.print();
+        });
+      });
+    };
+
+    // Wait for application images before printing. This avoids a blank image
+    // area in Chrome's print preview.
+    const images = Array.from(documentNode.querySelectorAll("img"));
+    const pendingImages = images.filter((img) => !img.complete);
+
+    if (pendingImages.length === 0) {
+      printNow();
+      return;
+    }
+
+    let remaining = pendingImages.length;
+    let finished = false;
+
+    const ready = () => {
+      if (finished) return;
+      remaining -= 1;
+      if (remaining > 0) return;
+      finished = true;
+      printNow();
+    };
+
+    pendingImages.forEach((img) => {
+      img.addEventListener("load", ready, { once: true });
+      img.addEventListener("error", ready, { once: true });
+    });
+
+    // Never leave the page stuck in print mode if an image request hangs.
+    window.setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      printNow();
+    }, 3000);
   };
 
   if (!scheme)
