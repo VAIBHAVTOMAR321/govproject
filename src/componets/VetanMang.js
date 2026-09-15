@@ -829,8 +829,8 @@ function VetanMang() {
       )}
 
       {showFormModal && (
-        <div className="vm-modal-overlay">
-          <div className="vm-modal">
+        <div className="vm-modal-overlay vm-add-report-overlay">
+          <div className="vm-modal vm-add-report-modal">
             <div className="vm-modal-header">
               <h2>नई रिपोर्ट दर्ज करें (Add New Report)</h2>
               <button type="button" className="vm-modal-close" onClick={closeAddModal}>×</button>

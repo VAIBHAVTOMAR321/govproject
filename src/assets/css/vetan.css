@@ -725,3 +725,180 @@
     vertical-align: middle !important;
   }
 }
+
+
+/* ============================================================
+   ADD NEW REPORT MODAL - TABLE VIEW / SCROLL FIX ONLY
+   This section is intentionally scoped to .vm-add-report-modal.
+   No API, form, calculation, preview or other page logic is changed.
+   ============================================================ */
+
+.vm-add-report-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  margin-top: 0 !important;
+  padding: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.vm-add-report-modal {
+  width: min(1200px, 100%) !important;
+  height: min(94vh, 900px) !important;
+  max-width: 1200px !important;
+  max-height: 94vh !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.vm-add-report-modal .vm-modal-header {
+  flex: 0 0 auto !important;
+  min-height: 58px !important;
+  box-sizing: border-box !important;
+  padding: 12px 18px !important;
+}
+
+.vm-add-report-modal > .vm-alert {
+  flex: 0 0 auto !important;
+  margin: 12px 18px 0 !important;
+}
+
+.vm-add-report-modal > form {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding: 14px 18px 16px !important;
+  box-sizing: border-box !important;
+}
+
+.vm-add-report-modal .vm-grid-2 {
+  flex: 0 0 auto !important;
+  margin-bottom: 8px !important;
+}
+
+.vm-add-report-modal .vm-table-container {
+  flex: 1 1 auto !important;
+  min-height: 180px !important;
+  margin-top: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.vm-add-report-modal .vm-table-header-bar {
+  flex: 0 0 auto !important;
+  margin-bottom: 10px !important;
+  padding: 4px 0 !important;
+  min-height: 48px !important;
+}
+
+.vm-add-report-modal .vm-table-header-bar h3 {
+  margin: 0 !important;
+}
+
+.vm-add-report-modal .vm-table-header-bar .vm-btn-secondary {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+.vm-add-report-modal .vm-table-scroll {
+  flex: 1 1 auto !important;
+  min-height: 120px !important;
+  max-height: none !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  scrollbar-width: auto !important;
+}
+
+.vm-add-report-modal .vm-data-table {
+  width: max-content !important;
+  min-width: 1800px !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  margin: 0 !important;
+}
+
+.vm-add-report-modal .vm-data-table thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 5 !important;
+  background-color: var(--primary-color) !important;
+}
+
+.vm-add-report-modal .vm-data-table th,
+.vm-add-report-modal .vm-data-table td {
+  box-sizing: border-box !important;
+  padding: 10px !important;
+  vertical-align: middle !important;
+}
+
+.vm-add-report-modal .vm-data-table input {
+  display: block !important;
+  width: 100% !important;
+  min-width: 80px !important;
+  box-sizing: border-box !important;
+}
+
+.vm-add-report-modal .vm-form-actions {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid var(--border-color) !important;
+  background: #fff !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.vm-add-report-modal .vm-form-actions .vm-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 768px) {
+  .vm-add-report-overlay {
+    padding: 8px !important;
+  }
+
+  .vm-add-report-modal {
+    width: 100% !important;
+    height: 96vh !important;
+    max-height: 96vh !important;
+    border-radius: 8px !important;
+  }
+
+  .vm-add-report-modal > form {
+    padding: 10px !important;
+  }
+
+  .vm-add-report-modal .vm-table-header-bar {
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .vm-add-report-modal .vm-table-header-bar h3 {
+    font-size: 1rem !important;
+  }
+
+  .vm-add-report-modal .vm-form-actions {
+    gap: 8px !important;
+  }
+}
