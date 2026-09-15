@@ -148,11 +148,45 @@ function VetanMang() {
         उपरोक्त विषयक अवगत कराना है कि इस केन्द्र में कार्यरत नियमित एवं उपनल प्रायोजित (कुशल-माली) कार्मिकों की माह ${report.month}, ${yearPart} की उपस्थिति सूचना एवं वेतन मांग पत्र (D-4) निम्नानुसार है, जो आपकी सेवा में सूचनार्थ एवं वेतन आहरण/भुगतान की आवश्यक कार्यवाही हेतु प्रेषित है :—
       </div>
 
-      <table>
-        <colgroup>${colGroup}</colgroup>
+      <table class="print-attendance-table">
+        <colgroup>
+          <col style="width:4%;">
+          <col style="width:11%;">
+          <col style="width:10%;">
+          <col style="width:9%;">
+          <col style="width:5%;">
+          <col style="width:5%;">
+          <col style="width:5%;">
+          <col style="width:5%;">
+          <col style="width:6%;">
+          <col style="width:6%;">
+          <col style="width:6%;">
+          <col style="width:6%;">
+          <col style="width:6%;">
+          <col style="width:20%;">
+        </colgroup>
         <thead>
           <tr>
-            ${TABLE_HEADERS.map(h => `<th>${h}</th>`).join('')}
+            <th rowspan="2">क्रम सं.</th>
+            <th rowspan="2">कर्मचारी का नाम</th>
+            <th rowspan="2">पदनाम</th>
+            <th rowspan="2">नियुक्ति का प्रकार</th>
+            <th colspan="2">वास्तविक उपस्थिति</th>
+            <th colspan="2">संभावित उपस्थिति</th>
+            <th colspan="2">माह में उपभोग किये गये अवकाश</th>
+            <th colspan="2">अवशेष अवकाश</th>
+            <th rowspan="2">माह में कुल दिवस</th>
+            <th rowspan="2">अभ्युक्ति</th>
+          </tr>
+          <tr>
+            <th>दिनांक से</th>
+            <th>दिनांक तक</th>
+            <th>दिनांक से</th>
+            <th>दिनांक तक</th>
+            <th>अकस्मिक अवकाश</th>
+            <th>उपार्जित अवकाश</th>
+            <th>अकस्मिक अवकाश</th>
+            <th>उपार्जित अवकाश</th>
           </tr>
         </thead>
         <tbody>${tableRows}</tbody>
@@ -217,20 +251,43 @@ function VetanMang() {
             table {
               width: 100%;
               border-collapse: collapse;
-              margin: 15px 0;
-              font-size: 10px;
+              border-spacing: 0;
+              margin: 12px 0;
+              font-size: 8.5px;
               table-layout: fixed;
+              page-break-inside: auto;
+              break-inside: auto;
             }
-            th, td {
+
+            thead {
+              display: table-header-group;
+            }
+
+            tbody {
+              display: table-row-group;
+            }
+
+            tr {
+              display: table-row;
+              height: auto !important;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+
+            th,
+            td {
+              display: table-cell;
+              height: auto !important;
+              min-height: 0 !important;
               border: 1px solid #000;
-              padding: 4px 5px;
-              text-align: left;
-              vertical-align: top;
+              padding: 3px 4px;
+              text-align: center;
+              vertical-align: middle;
               word-wrap: break-word;
-              overflow-wrap: break-word;
-              word-break: break-word;
+              overflow-wrap: anywhere;
+              word-break: normal;
               white-space: normal;
-              line-height: 1.3;
+              line-height: 1.15;
             }
             th {
               background-color: #f2f2f2;
@@ -394,98 +451,413 @@ function VetanMang() {
   };
 
   // ===== PRINT ALL REPORTS =====
+  // Print every employee row in ONE continuous attendance table.
+  // The supplied DOCX is used as the visual/reference structure:
+  // two-level table header + 14 columns.
   const handlePrintAll = () => {
     if (!reports.length) {
       alert('कोई रिपोर्ट उपलब्ध नहीं है।');
       return;
     }
 
-    const allReportsHTML = reports.map((report, index) => 
-      `<div class="report-page ${index < reports.length - 1 ? 'page-break' : ''}">
-         ${generatePrintHTML(report)}
-       </div>`
-    ).join('');
+    const firstReport = reports[0];
+
+    const allRows = [];
+    reports.forEach((report) => {
+      (report.report_data || []).forEach((row) => {
+        const safeRow = Array.isArray(row) ? [...row] : [];
+
+        // The attendance table has exactly 14 data columns.
+        while (safeRow.length < 14) safeRow.push('');
+        if (safeRow.length > 14) safeRow.length = 14;
+
+        allRows.push(safeRow);
+      });
+    });
+
+    if (!allRows.length) {
+      alert('प्रिंट करने के लिए कोई कर्मचारी डेटा उपलब्ध नहीं है।');
+      return;
+    }
+
+    const tableRows = allRows.map((row) => `
+      <tr>
+        ${row.map((cell) => `
+          <td>${cell === null || cell === undefined ? '' : String(cell)}</td>
+        `).join('')}
+      </tr>
+    `).join('');
+
+    const yearPart = firstReport.financial_year
+      ? firstReport.financial_year.split('-')[0]
+      : '';
+
+    const formattedDate = formatDate(firstReport.report_date);
 
     const printWindow = window.open('', '_blank');
+
+    if (!printWindow) {
+      alert('प्रिंट विंडो नहीं खुल सकी। कृपया browser pop-up अनुमति दें।');
+      return;
+    }
+
     printWindow.document.write(`
-      <html>
+      <!DOCTYPE html>
+      <html lang="hi">
       <head>
-        <title>वेतन मांग पत्र - सभी रिपोर्ट</title>
+        <meta charset="UTF-8">
+        <title>वेतन मांग पत्र एवं उपस्थिति सूचना - सभी कर्मचारी</title>
+
         <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
+          * {
+            box-sizing: border-box;
+          }
+
+          html,
           body {
-            font-family: 'Mangal', 'Nirmala UI', 'Segoe UI', Tahoma, sans-serif;
-            padding: 20px;
-            color: #000;
-            line-height: 1.5;
-          }
-          .report-page { padding-bottom: 30px; }
-          .page-break { page-break-after: always; }
-          
-          .doc-header { text-align: center; margin-bottom: 20px; }
-          .doc-header h1 { font-size: 16px; margin-bottom: 5px; }
-          .doc-header h2 { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
-          .doc-header h3 { font-size: 13px; font-weight: normal; }
-          
-          .ref-date { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; }
-          .ref-date.no-margin { margin-bottom: 5px; margin-top: 30px; border-top: 1px solid #000; padding-top: 15px; }
-          
-          .to-address { margin: 20px 0; font-size: 13px; }
-          
-          .subject { margin: 20px 0; font-size: 13px; }
-          
-          .body-text { margin: 15px 0; text-align: justify; font-size: 13px; }
-          
-          table {
+            margin: 0;
+            padding: 0;
             width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 10px;
-            table-layout: fixed;
+            background: #fff;
           }
-          th, td {
-            border: 1px solid #000;
-            padding: 4px 5px;
-            text-align: left;
-            vertical-align: top;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            white-space: normal;
-            line-height: 1.3;
-          }
-          th {
-            background-color: #f2f2f2;
+
+          body {
+            font-family:
+              'Nirmala UI',
+              'Mangal',
+              'Noto Sans Devanagari',
+              'Segoe UI',
+              sans-serif;
             color: #000;
-            font-weight: bold;
-            text-align: center;
-            font-size: 10px;
+            font-size: 10.5pt;
+            line-height: 1.45;
           }
-          td { text-align: center; }
-          td:last-child { text-align: left; }
-          
-          .sign-off { margin-top: 40px; text-align: right; font-size: 13px; }
-          
-          .cc-section { margin-top: 50px; font-size: 13px; }
-          .cc-section p { margin-bottom: 5px; }
-          
+
+          .print-document {
+            width: 100%;
+            padding: 8mm 10mm;
+          }
+
+          .doc-header {
+            text-align: center;
+            margin: 0 0 10px;
+          }
+
+          .doc-header h1 {
+            margin: 0 0 3px;
+            font-size: 15px;
+            font-weight: 700;
+          }
+
+          .doc-header h2 {
+            margin: 0 0 2px;
+            font-size: 13px;
+            font-weight: 700;
+          }
+
+          .doc-header h3 {
+            margin: 0;
+            font-size: 11.5px;
+            font-weight: 400;
+          }
+
+          .ref-date {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin: 8px 0 12px;
+            font-size: 10.5px;
+          }
+
+          .to-address,
+          .subject,
+          .body-text {
+            margin: 8px 0;
+            font-size: 10.5px;
+          }
+
+          .subject,
+          .body-text {
+            text-align: justify;
+          }
+
+          /*
+            IMPORTANT:
+            This is ONE table. The browser is allowed to paginate it.
+            Only THEAD repeats on a new printed page.
+          */
+          table.print-attendance-table {
+            width: 100%;
+            margin: 10px 0 12px;
+            border-collapse: collapse;
+            border-spacing: 0;
+            table-layout: fixed;
+            page-break-inside: auto;
+            break-inside: auto;
+          }
+
+          table.print-attendance-table thead {
+            display: table-header-group !important;
+          }
+
+          table.print-attendance-table tbody {
+            display: table-row-group !important;
+          }
+
+          table.print-attendance-table tr {
+            display: table-row !important;
+            height: auto !important;
+            min-height: 0 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+
+          table.print-attendance-table th,
+          table.print-attendance-table td {
+            display: table-cell !important;
+            width: auto;
+            height: auto !important;
+            min-height: 0 !important;
+            border: 1px solid #000;
+            padding: 3px 4px;
+            vertical-align: middle;
+            line-height: 1.15;
+            font-size: 8.5px;
+            overflow: hidden;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            white-space: normal;
+          }
+
+          table.print-attendance-table th {
+            background: #fff !important;
+            color: #000 !important;
+            text-align: center;
+            font-weight: 700;
+            vertical-align: middle;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          table.print-attendance-table td {
+            text-align: center;
+          }
+
+          table.print-attendance-table td:last-child {
+            text-align: left;
+          }
+
+          .sign-off {
+            margin-top: 18px;
+            text-align: right;
+            font-size: 10.5px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .cc-section {
+            margin-top: 25px;
+            font-size: 10.5px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .cc-section p {
+            margin: 3px 0;
+          }
+
           @page {
-            size: landscape;
-            margin: 10mm;
+            size: A4 landscape;
+            margin: 8mm;
+          }
+
+          @media print {
+            html,
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              background: #fff !important;
+            }
+
+            .print-document {
+              width: 100% !important;
+              padding: 0 !important;
+            }
+
+            table.print-attendance-table {
+              width: 100% !important;
+              table-layout: fixed !important;
+              page-break-inside: auto !important;
+              break-inside: auto !important;
+            }
+
+            table.print-attendance-table thead {
+              display: table-header-group !important;
+            }
+
+            table.print-attendance-table tbody {
+              display: table-row-group !important;
+            }
+
+            table.print-attendance-table tr {
+              height: auto !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+
+            table.print-attendance-table th,
+            table.print-attendance-table td {
+              height: auto !important;
+              min-height: 0 !important;
+            }
           }
         </style>
       </head>
+
       <body>
-        ${allReportsHTML}
+        <main class="print-document">
+
+          <div class="doc-header">
+            <h1>उद्यान एवं खाद्य प्रसंस्करण विभाग, उत्तराखण्ड</h1>
+            <h2>कार्यालय — प्रभारी, उद्यान सचल दल केन्द्र ${firstReport.center_name || ''}</h2>
+            <h3>विकासखण्ड ${firstReport.center_name || ''}, जनपद पौड़ी गढ़वाल (उत्तराखण्ड)</h3>
+          </div>
+
+          <div class="ref-date">
+            <span>
+              <strong>पत्रांक:</strong>
+              ${firstReport.letter_number || ''}
+              / वेतन मांग पत्र एवं उपस्थिति सूचना /
+              वर्ष ${firstReport.financial_year || ''}
+            </span>
+            <span>
+              <strong>दिनांक:</strong> ${formattedDate}
+            </span>
+          </div>
+
+          <div class="to-address">
+            सेवा में,<br>
+            श्रीमान उद्यान विशेषज्ञ,<br>
+            कोटद्वार, जनपद पौड़ी गढ़वाल।
+          </div>
+
+          <div class="subject">
+            <strong>विषय :</strong>
+            माह ${firstReport.month || ''}, वर्ष ${firstReport.financial_year || ''}
+            का वेतन मांग पत्र (D-4) एवं नियमित तथा उपनल प्रायोजित कार्मिकों की
+            उपस्थिति सूचना प्रेषित किये जाने के सम्बन्ध में।
+          </div>
+
+          <div class="body-text">
+            महोदय,<br>
+            उपरोक्त विषयक अवगत कराना है कि इस केन्द्र में कार्यरत नियमित एवं
+            उपनल प्रायोजित (कुशल-माली) कार्मिकों की माह ${firstReport.month || ''},
+            ${yearPart} की उपस्थिति सूचना एवं वेतन मांग पत्र (D-4) निम्नानुसार है,
+            जो आपकी सेवा में सूचनार्थ एवं वेतन आहरण/भुगतान की आवश्यक कार्यवाही
+            हेतु प्रेषित है :—
+          </div>
+
+          <table class="print-attendance-table">
+            <colgroup>
+              <col style="width:4%;">
+              <col style="width:11%;">
+              <col style="width:10%;">
+              <col style="width:9%;">
+              <col style="width:5%;">
+              <col style="width:5%;">
+              <col style="width:5%;">
+              <col style="width:5%;">
+              <col style="width:6%;">
+              <col style="width:6%;">
+              <col style="width:6%;">
+              <col style="width:6%;">
+              <col style="width:6%;">
+              <col style="width:20%;">
+            </colgroup>
+
+            <thead>
+              <tr>
+                <th rowspan="2">क्रम सं.</th>
+                <th rowspan="2">कर्मचारी का नाम</th>
+                <th rowspan="2">पदनाम</th>
+                <th rowspan="2">नियुक्ति का प्रकार</th>
+                <th colspan="2">वास्तविक उपस्थिति</th>
+                <th colspan="2">संभावित उपस्थिति</th>
+                <th colspan="2">माह में उपभोग किये गये अवकाश</th>
+                <th colspan="2">अवशेष अवकाश</th>
+                <th rowspan="2">माह में कुल दिवस</th>
+                <th rowspan="2">अभ्युक्ति</th>
+              </tr>
+              <tr>
+                <th>दिनांक से</th>
+                <th>दिनांक तक</th>
+                <th>दिनांक से</th>
+                <th>दिनांक तक</th>
+                <th>अकस्मिक अवकाश</th>
+                <th>उपार्जित अवकाश</th>
+                <th>अकस्मिक अवकाश</th>
+                <th>उपार्जित अवकाश</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <div class="body-text">
+            प्रमाणित किया जाता है कि उपरोक्त अंकित उपस्थिति विवरण कार्यालय की
+            उपस्थिति पंजिका के अनुसार पूर्णतः सही एवं सत्य है। उपरोक्त कार्मिकों
+            द्वारा उल्लिखित अवधि में अपने पदीय दायित्वों का निर्वहन किया गया है
+            तथा किसी भी कार्मिक द्वारा अनाधिकृत रूप से अनुपस्थिति/अवकाश का
+            उपभोग नहीं किया गया है। तदनुसार माह ${firstReport.month || ''},
+            ${yearPart} का वेतन आहरण किये जाने की कृपा करें।
+          </div>
+
+          <div class="sign-off">
+            भवदीय,<br><br><br>
+            ( हस्ताक्षर )<br>
+            प्रभारी<br>
+            उद्यान सचल दल केन्द्र, ${firstReport.center_name || ''}<br>
+            जनपद पौड़ी गढ़वाल
+          </div>
+
+          <div class="cc-section">
+            <div class="ref-date">
+              <span>
+                <strong>पत्रांक:</strong>
+                ${firstReport.letter_number || ''}-24 /
+                वेतन मांग पत्र एवं उपस्थिति सूचना /
+                वर्ष ${firstReport.financial_year || ''}
+              </span>
+              <span>
+                <strong>दिनांक:</strong> ${formattedDate}
+              </span>
+            </div>
+
+            <p>
+              <strong>प्रतिलिपि :</strong>
+              निम्नलिखित को सूचनार्थ एवं आवश्यक कार्यवाही हेतु प्रेषित —
+            </p>
+            <p>1. सम्बन्धित कार्मिक को सूचनार्थ।</p>
+            <p>2. कार्यालय प्रति।</p>
+          </div>
+
+        </main>
       </body>
       </html>
     `);
+
     printWindow.document.close();
     printWindow.focus();
+
     setTimeout(() => {
       printWindow.print();
-      printWindow.close();
-    }, 500);
+    }, 700);
   };
 
   return (

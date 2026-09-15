@@ -627,3 +627,101 @@
     padding: 6px;
   }
 }
+
+/* ============================================================
+   FINAL PRINT/PREVIEW TABLE ALIGNMENT FIX
+   Based on the supplied "vetan mang-1.docx" structure.
+   ============================================================ */
+
+/* Keep the in-app table aligned with the 14-column structure. */
+.vm-preview-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.vm-preview-table {
+  width: 100%;
+  min-width: 1050px;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+}
+
+.vm-preview-table th,
+.vm-preview-table td {
+  height: auto !important;
+  min-height: 0 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box;
+  line-height: 1.2 !important;
+}
+
+.vm-preview-table th {
+  text-align: center !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.vm-preview-table td {
+  text-align: center !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere;
+}
+
+.vm-preview-table td:last-child,
+.vm-preview-table th:last-child {
+  text-align: left !important;
+}
+
+/*
+  The print CSS below intentionally does NOT use height: 100%,
+  flex/table-cell stretching, or forced page breaks. Those are the
+  common causes of the very tall header/data rows seen in Chrome
+  Print Preview.
+*/
+@media print {
+  .vm-preview-table-wrapper {
+    overflow: visible !important;
+    width: 100% !important;
+  }
+
+  .vm-preview-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .vm-preview-table thead {
+    display: table-header-group !important;
+  }
+
+  .vm-preview-table tbody {
+    display: table-row-group !important;
+  }
+
+  .vm-preview-table tr {
+    display: table-row !important;
+    height: auto !important;
+    min-height: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  .vm-preview-table th,
+  .vm-preview-table td {
+    display: table-cell !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 3px 4px !important;
+    line-height: 1.15 !important;
+    vertical-align: middle !important;
+  }
+}
