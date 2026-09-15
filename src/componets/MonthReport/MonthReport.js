@@ -181,18 +181,138 @@ const getPrimitiveCellValue = (cell) => {
   return excelValueToText(value);
 };
 
+/*
+  A numeric value should be shown with exactly two decimals ONLY when the
+  Excel cell actually contains a value or a formula has a meaningful input.
+  Empty cells must remain visually empty. This is especially important for
+  MPR sheets where Excel often contains formulas in unused cells which
+  evaluate to 0. Showing those as 0.00 makes the editor look filled with
+  data even though the source cells are empty.
+*/
+const formatEditorNumber = (value, cell) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value ?? "");
+
+  // Column A contains serial/index values in the MPR sheet. Keep these as
+  // integers instead of turning row numbers such as 25 into 25.00.
+  if (cell?.column?.number === 1 && Number.isInteger(number)) {
+    return String(number);
+  }
+
+  return number.toLocaleString("en-IN", {
+    useGrouping: true,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const formulaHasMeaningfulInput = (workbook, worksheet, formula, visited = new Set()) => {
+  if (!workbook || !worksheet || typeof formula !== "string") return false;
+
+  const expression = formula.replace(/^=/, "");
+  const references = [];
+
+  // Capture normal/range references, including references to another sheet.
+  const rangePattern = /(?:(?:'([^']+)'|([A-Za-z0-9\u0900-\u097F _📊-]+))!)?\$?([A-Z]{1,3})\$?(\d+):\$?([A-Z]{1,3})\$?(\d+)/gi;
+  let match;
+  while ((match = rangePattern.exec(expression))) {
+    references.push(match[0]);
+  }
+
+  const singlePattern = /(?:(?:'([^']+)'|([A-Za-z0-9\u0900-\u097F _📊-]+))!)?\$?([A-Z]{1,3})\$?(\d+)/gi;
+  while ((match = singlePattern.exec(expression))) {
+    // Do not add a single-cell match when it is already part of a range.
+    const full = match[0];
+    const alreadyInRange = references.some((range) => range.includes(full));
+    if (!alreadyInRange) references.push(full);
+  }
+
+  if (!references.length) {
+    return /[A-Z]+\s*\(/i.test(expression) ? false : /[0-9]/.test(expression);
+  }
+
+  for (const reference of references) {
+    const range = parseFormulaRange(reference, worksheet);
+    if (range) {
+      const target = workbook.getWorksheet(range.worksheetName);
+      if (!target) continue;
+
+      const minRow = Math.min(range.startRow, range.endRow);
+      const maxRow = Math.max(range.startRow, range.endRow);
+      const minCol = Math.min(range.startCol, range.endCol);
+      const maxCol = Math.max(range.startCol, range.endCol);
+
+      for (let row = minRow; row <= maxRow; row += 1) {
+        for (let col = minCol; col <= maxCol; col += 1) {
+          const refCell = target.getCell(row, col);
+          const raw = refCell.value;
+          if (raw === null || raw === undefined || raw === "") continue;
+
+          if (raw && typeof raw === "object" && raw.formula !== undefined) {
+            const key = `${target.name}!${refCell.address}`;
+            if (!visited.has(key) && formulaHasMeaningfulInput(workbook, target, raw.formula, new Set([...visited, key]))) {
+              return true;
+            }
+          } else {
+            return true;
+          }
+        }
+      }
+      continue;
+    }
+
+    const ref = parseSheetCellReference(reference, worksheet);
+    if (!ref) continue;
+    const target = workbook.getWorksheet(ref.worksheetName);
+    if (!target) continue;
+    const refCell = target.getCell(ref.address);
+    const raw = refCell.value;
+
+    if (raw === null || raw === undefined || raw === "") continue;
+
+    if (raw && typeof raw === "object" && raw.formula !== undefined) {
+      const key = `${target.name}!${refCell.address}`;
+      if (!visited.has(key) && formulaHasMeaningfulInput(workbook, target, raw.formula, new Set([...visited, key]))) {
+        return true;
+      }
+    } else {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const getCellDisplayText = (cell, workbook = null, worksheet = null) => {
   if (!cell) return "";
 
-  // IMPORTANT: Formula cells must be evaluated from the current workbook
-  // before reading ExcelJS's cached `cell.text`. ExcelJS does not calculate
-  // formulas in the browser, so cached values can otherwise stay stale after
-  // an input cell is edited.
-  if (workbook && worksheet) {
+  const raw = cell.value;
+
+  // A genuinely empty cell must stay empty. Never turn null/undefined into 0.00.
+  if (raw === null || raw === undefined || raw === "") return "";
+
+  // Formula cells must be evaluated from the current workbook so edited input
+  // values immediately update their displayed totals.
+  if (workbook && worksheet && typeof raw === "object" && raw.formula !== undefined) {
     const value = evaluateCellValue(workbook, worksheet, cell);
-    if (value !== undefined && value !== null && value !== "") {
-      return excelValueToText(value);
+
+    // Hide zero results when the formula has no meaningful source value.
+    // This keeps unused formula cells visually blank while retaining 0.00 for
+    // real calculations/totals where the referenced cells contain data.
+    if (value === 0 && !formulaHasMeaningfulInput(workbook, worksheet, raw.formula)) {
+      return "";
     }
+
+    if (value !== undefined && value !== null && value !== "") {
+      return typeof value === "number"
+        ? formatEditorNumber(value, cell)
+        : excelValueToText(value);
+    }
+  }
+
+  // Actual numeric cells with a value are consistently displayed to 2 decimals.
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return formatEditorNumber(raw, cell);
   }
 
   try {
@@ -203,7 +323,7 @@ const getCellDisplayText = (cell, workbook = null, worksheet = null) => {
     // Fall back to value conversion.
   }
 
-  return excelValueToText(cell.value);
+  return excelValueToText(raw);
 };
 
 const splitFormulaParts = (formula, operator) => {
@@ -753,8 +873,22 @@ const refreshMprStructuredTotals = (workbook) => {
       );
     }
 
-    totalValues[colNumber] = total;
-    setCalculatedCellValue(worksheet.getCell(totalRow, colNumber), total);
+    // Only write a grand total when at least one source cell in that column
+    // actually contains data/formula output. Completely unused columns stay blank.
+    let hasSourceValue = false;
+    for (let rowNumber = dataStartRow; rowNumber < totalRow; rowNumber += 1) {
+      const sourceCell = worksheet.getCell(rowNumber, colNumber);
+      const sourceValue = sourceCell.value;
+      if (sourceValue !== null && sourceValue !== undefined && sourceValue !== "") {
+        hasSourceValue = true;
+        break;
+      }
+    }
+
+    totalValues[colNumber] = hasSourceValue ? total : null;
+    if (hasSourceValue) {
+      setCalculatedCellValue(worksheet.getCell(totalRow, colNumber), total);
+    }
   }
 
   const summaryTitleRow = findRowContaining(
@@ -1934,6 +2068,99 @@ const DashboardTab = ({
       };
     };
 
+    const parseFinancialSummary = (sheet) => {
+      const empty = {
+        items: new Map(),
+        allocatedTotal: 0,
+        remainingTotal: 0,
+        found: false,
+      };
+
+      if (!sheet) return empty;
+
+      let headerRow = 0;
+      let allocatedCol = 0;
+      let expenditureCol = 0;
+      let remainingCol = 0;
+
+      for (let row = 1; row <= Math.min(sheet.rowCount, 100); row += 1) {
+        let foundAllocated = 0;
+        let foundExpenditure = 0;
+        let foundRemaining = 0;
+
+        for (let col = 1; col <= sheet.columnCount; col += 1) {
+          const value = normalized(sheet.getCell(row, col).value);
+
+          if (
+            value.includes("आवंटित धनराशि") ||
+            value.includes("allocated amount") ||
+            value.includes("allocated")
+          ) {
+            foundAllocated = col;
+          }
+
+          if (
+            value.includes("वित्तीय व्यय") ||
+            value.includes("financial expenditure") ||
+            value.includes("expenditure")
+          ) {
+            foundExpenditure = col;
+          }
+
+          if (
+            value.includes("अवशेष धनराशि") ||
+            value.includes("remaining amount") ||
+            value.includes("remaining")
+          ) {
+            foundRemaining = col;
+          }
+        }
+
+        if (foundAllocated && foundExpenditure && foundRemaining) {
+          headerRow = row;
+          allocatedCol = foundAllocated;
+          expenditureCol = foundExpenditure;
+          remainingCol = foundRemaining;
+          break;
+        }
+      }
+
+      if (!headerRow) return empty;
+
+      const items = new Map();
+      let allocatedTotal = 0;
+      let remainingTotal = 0;
+
+      for (let row = headerRow + 1; row <= sheet.rowCount; row += 1) {
+        const name = text(sheet.getCell(row, 2).value);
+        if (!name) continue;
+
+        const allocated = safeNumber(sheet.getCell(row, allocatedCol).value);
+        const expenditure = safeNumber(sheet.getCell(row, expenditureCol).value);
+        const remaining = safeNumber(sheet.getCell(row, remainingCol).value);
+
+        if (isTotalName(name)) {
+          allocatedTotal = allocated;
+          remainingTotal = remaining;
+          continue;
+        }
+
+        items.set(normalized(name), {
+          name,
+          allocated,
+          expenditure,
+          remaining,
+        });
+      }
+
+      return {
+        items,
+        allocatedTotal,
+        remainingTotal,
+        found: true,
+      };
+    };
+
     const parseWorkbook = async (book, sourceReport) => {
       const mprSheet = findSheet(
         book,
@@ -1955,10 +2182,14 @@ const DashboardTab = ({
           total: 0,
           beneficiaries: 0,
           hasBeneficiaries: false,
+          allocatedTotal: 0,
+          remainingTotal: 0,
+          financialSummary: [],
           fileName: sourceReport?.fileName || "MPR.xlsx",
         };
       }
 
+      const financialSummary = parseFinancialSummary(sheet);
       const header = findHeaderInfo(sheet);
       const schemes = [];
       let total = 0;
@@ -2075,10 +2306,16 @@ const DashboardTab = ({
         }
 
         schemes.push(
-          ...[...schemeMap.values()].map((item) => ({
-            ...item,
-            sourceFile: sourceReport?.fileName || "",
-          }))
+          ...[...schemeMap.values()].map((item) => {
+            const summaryItem = financialSummary.items.get(normalized(item.name));
+
+            return {
+              ...item,
+              allocated: summaryItem?.allocated ?? 0,
+              remaining: summaryItem?.remaining ?? 0,
+              sourceFile: sourceReport?.fileName || "",
+            };
+          })
         );
       }
 
@@ -2087,6 +2324,9 @@ const DashboardTab = ({
         total,
         beneficiaries,
         hasBeneficiaries: Boolean(beneficiaryColumnUsed || hasBeneficiaries),
+        allocatedTotal: financialSummary.allocatedTotal,
+        remainingTotal: financialSummary.remainingTotal,
+        financialSummary: [...financialSummary.items.values()],
         fileName: sourceReport?.fileName || "MPR.xlsx",
       };
     };
@@ -2124,11 +2364,15 @@ const DashboardTab = ({
 
         const schemeMap = new Map();
         let total = 0;
+        let allocatedTotal = 0;
+        let remainingTotal = 0;
         let beneficiaries = 0;
         let hasBeneficiaries = false;
 
         for (const parsed of parsedReports) {
           total += safeNumber(parsed.total);
+          allocatedTotal += safeNumber(parsed.allocatedTotal);
+          remainingTotal += safeNumber(parsed.remainingTotal);
           beneficiaries += safeNumber(parsed.beneficiaries);
           hasBeneficiaries = hasBeneficiaries || parsed.hasBeneficiaries;
 
@@ -2140,10 +2384,14 @@ const DashboardTab = ({
 
             if (existing) {
               existing.value += safeNumber(scheme.value);
+              existing.allocated += safeNumber(scheme.allocated);
+              existing.remaining += safeNumber(scheme.remaining);
             } else {
               schemeMap.set(key, {
                 name: scheme.name,
                 value: safeNumber(scheme.value),
+                allocated: safeNumber(scheme.allocated),
+                remaining: safeNumber(scheme.remaining),
               });
             }
           }
@@ -2157,6 +2405,8 @@ const DashboardTab = ({
           source: aggregateAll ? "ALL_REPORTS" : "SELECTED_REPORT",
           values: {
             total,
+            allocated: allocatedTotal,
+            remaining: remainingTotal,
             beneficiaries,
           },
           schemes,
@@ -2203,11 +2453,21 @@ const DashboardTab = ({
     );
   }
 
-  const formatValue = (value) =>
-    Number(value || 0).toLocaleString("en-IN", {
+  const formatValue = (value) => {
+    // Keep genuinely missing dashboard values blank. Only actual numeric
+    // values/calculated totals are formatted to exactly 2 decimal places.
+    if (value === null || value === undefined || String(value).trim() === "") {
+      return "";
+    }
+
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "";
+
+    return number.toLocaleString("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+  };
 
   const formatCompact = (value) => {
     const number = Number(value || 0);
@@ -2383,7 +2643,9 @@ const DashboardTab = ({
                   <tr>
                     <th>#</th>
                     <th>योजना</th>
-                    <th>वित्तीय उपलब्धि</th>
+                    <th>आवंटित धनराशि (₹ )</th>
+                    <th>वित्तीय व्यय (₹ )</th>
+                    <th>अवशेष धनराशि (₹ )</th>
                     <th>कुल %</th>
                   </tr>
                 </thead>
@@ -2404,7 +2666,9 @@ const DashboardTab = ({
                           </span>
                         </td>
                         <td>{scheme.name}</td>
+                        <td>₹ {formatValue(scheme.allocated)}</td>
                         <td>₹ {formatValue(scheme.value)}</td>
+                        <td>₹ {formatValue(scheme.remaining)}</td>
                         <td>
                           <div className="mpr-dashboard-share-cell">
                             <span>{share.toFixed(1)}%</span>
@@ -2422,8 +2686,10 @@ const DashboardTab = ({
 
                   <tr className="mpr-dashboard-total-row">
                     <td />
-                    <td>कुल वित्तीय उपलब्धि</td>
+                    <td>कुल</td>
+                    <td>₹ {formatValue(dashboard.values.allocated)}</td>
                     <td>₹ {formatValue(dashboard.values.total)}</td>
+                    <td>₹ {formatValue(dashboard.values.remaining)}</td>
                     <td>100.0%</td>
                   </tr>
                 </tbody>
@@ -2937,7 +3203,16 @@ const MonthReport = () => {
         .mpr-dashboard-table { width:100%; border-collapse:collapse; font-size:13px; }
         .mpr-dashboard-table th { background:#154360; color:#fff; padding:8px 10px; text-align:left; border:1px solid #fff; }
         .mpr-dashboard-table td { padding:8px 10px; border:1px solid #d7dee4; }
+        .mpr-dashboard-table td:nth-child(3),
+        .mpr-dashboard-table td:nth-child(4),
+        .mpr-dashboard-table td:nth-child(5),
+        .mpr-dashboard-table td:nth-child(3),
+        .mpr-dashboard-table td:nth-child(4),
+        .mpr-dashboard-table td:nth-child(5),
         .mpr-dashboard-table td:last-child { text-align:right; font-weight:700; }
+        .mpr-dashboard-table th:nth-child(3),
+        .mpr-dashboard-table th:nth-child(4),
+        .mpr-dashboard-table th:nth-child(5) { text-align:right; }
         .mpr-dashboard-table tbody tr:nth-child(even) { background:#f8f9fa; }
         .mpr-dashboard-loading { padding:70px 20px; text-align:center; color:#5d7083; }
         .mpr-dashboard-error { padding:45px 20px; text-align:center; color:#b42318; background:#fff5f5; }
