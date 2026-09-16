@@ -51,8 +51,8 @@ function DashBoardHeader() {
             <Nav.Link as={NavLink} to="/AdminMonthAttendance">
               मासिक उपस्थिति
             </Nav.Link>
-            <Nav.Link as={NavLink} to="/AdminKishanBeej">
-              किसान बीज
+            <Nav.Link as={NavLink} to="/AdminKishanAavedan">
+            किसान आवेदन
             </Nav.Link>
 
 

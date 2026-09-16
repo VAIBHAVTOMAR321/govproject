@@ -151,7 +151,7 @@ function AdminPrintableApplication({ application }) {
   );
 }
 
-function AdminKishanBeej() {
+function AdminKishanAavedan() {
   const [data, setData] = useState({ kisan: [], kiwi: [], dragon: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -577,4 +577,4 @@ function AdminKishanBeej() {
   );
 }
 
-export default AdminKishanBeej;
+export default AdminKishanAavedan;
