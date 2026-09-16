@@ -46,6 +46,7 @@ import CenterUdyanBill from "./componets/udhyan/CenterUdyanBill";
 import VetanMang from "./componets/VetanMang";
 import AdminVetanMang from "./componets/dash_board/AdminVetanMang";
 import AdminMonthAttendance from "./componets/dash_board/AdminMonthAttendance";
+import AdminKishanBeej from "./componets/KishanBeej/AdminKishanBeej";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -58,6 +59,7 @@ function NavbarWrapper() {
     "/LibrarySystem",
     "/MonthReport",
     "/AdminVetanMang",
+    "/AdminKishanBeej"
   ]);
   const hiddenPaths = new Set([
     "/Dashboard",
@@ -83,7 +85,8 @@ function NavbarWrapper() {
     "/GetViewLibrary",
     "/CenterUdyanBill",
     "/VetanMang",
-    "/MonthAttendance"
+    "/MonthAttendance",
+    "/AdminKishanBeej"
     
   ]);
 
@@ -170,6 +173,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedLoginTypes={["admin"]}>
                 <Registration />
+              </ProtectedRoute>
+            }
+          />
+            <Route
+            path="/AdminKishanBeej"
+            element={
+              <ProtectedRoute allowedLoginTypes={["admin"]}>
+                <AdminKishanBeej />
               </ProtectedRoute>
             }
           />
