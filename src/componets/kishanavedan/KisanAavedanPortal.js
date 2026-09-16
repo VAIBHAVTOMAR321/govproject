@@ -7,6 +7,31 @@ const NALI_ACRE = 20;
 const IRR = ["पाइपलाइन", "पानी की टंकी", "नहर", "बोरिंग", "अन्य"];
 const CAT_SM = ["लघु कृषक", "सीमांत कृषक", "अन्य"];
 
+// Shared draft-detection helpers. Keep these at module scope so every
+// GET/resume path can use the same rules without redeclaration errors.
+const hasMeaningfulValue = (value) => {
+  if (Array.isArray(value)) return value.some((item) => hasMeaningfulValue(item));
+  if (value === null || value === undefined) return false;
+  if (typeof value === "boolean") return value === true;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized !== "" && normalized !== "null" && normalized !== "undefined";
+};
+
+const hasAnySavedField = (item) => {
+  const sections = [
+    item?.personal || {},
+    item?.plan_land_bank || {},
+    item?.plan_technical_bank || {},
+    item?.application_documents || {},
+  ];
+  const metadata = new Set(["id", "form_id", "created_at", "updated_at"]);
+  return sections.some((section) =>
+    Object.entries(section).some(([key, value]) =>
+      !metadata.has(key) && hasMeaningfulValue(value)
+    )
+  );
+};
+
 const SCHEMES = {
   fencing: {
     name: "फेंसिंग",
@@ -607,6 +632,9 @@ function PrintableApplication({ scheme, data, calc, appNo, preview = false }) {
   );
 }
 
+// Checks only real user/application fields. Database metadata such as id,
+// form_id and timestamps never makes a record look like an incomplete draft.
+
 export default function KisanAavedanPortal() {
   /*
    * Remove the legacy draft created by older versions of the portal.
@@ -638,6 +666,9 @@ export default function KisanAavedanPortal() {
   const [applicationsError, setApplicationsError] = useState("");
   const [previewApplication, setPreviewApplication] = useState(null);
   const [schemeFilter, setSchemeFilter] = useState("all");
+  // Incomplete applications are tracked PER SCHEME.
+  const [incompleteApplicationsByScheme, setIncompleteApplicationsByScheme] = useState({});
+  const incompleteApplication = schemeId ? incompleteApplicationsByScheme[schemeId] || null : null;
 
   // Always return the user to the top when moving between form steps.
   const scrollToTop = () => {
@@ -719,7 +750,7 @@ export default function KisanAavedanPortal() {
     if (!item || typeof item !== "object") return null;
 
     const personal = item.personal || {};
-    const plan = item.plan_technical_bank || {};
+    const plan = item.plan_land_bank || item.plan_technical_bank || {};
     const docs = item.application_documents || {};
 
     const nextData = {
@@ -791,21 +822,129 @@ export default function KisanAavedanPortal() {
     return { item, personal, plan, docs, nextData };
   };
 
-  const getApplication = async (id = formId) => {
+  /*
+   * ============================================================
+   * GET ONE APPLICATION FROM THE SCHEME-SPECIFIC GET-ALL API
+   * ============================================================
+   *
+   * IMPORTANT:
+   * Neither Kiwi nor Fencing sends form_id in the GET URL.
+   *
+   * Kiwi:
+   *   GET /kiwi-application/
+   *
+   * Fencing:
+   *   GET /kisan-application/
+   *
+   * After receiving the complete list, find the requested form_id
+   * locally. This matches the backend API contract supplied for
+   * this application.
+   */
+  const getApplication = async (id = formId, schemeOverride = schemeId) => {
     if (!id) return null;
-    const response = await fetch(
-      `${API_BASE}/kisan-application/?form_id=${encodeURIComponent(id)}`,
-      {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      },
-    );
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw new Error(
-        payload?.message || payload?.error || `GET failed (${response.status})`,
+
+    const endpoint =
+      schemeOverride === "kiwi"
+        ? "kiwi-application/"
+        : schemeOverride === "dragon"
+          ? "dragon-application/"
+          : schemeOverride === "fencing"
+            ? "kisan-application/"
+            : null;
+
+    if (!endpoint) {
+      console.error(
+        "[GET APPLICATION] Missing/invalid scheme. Request cancelled:",
+        schemeOverride
       );
-    return mergeApiResponse(payload);
+      throw new Error("आवेदन की योजना की पहचान नहीं हो सकी।");
+    }
+
+    console.log(
+      `[GET APPLICATION] scheme=${schemeOverride}, searching form_id=${id} from GET /${endpoint}`
+    );
+
+    const response = await fetch(`${API_BASE}/${endpoint}`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    console.log(
+      `[${String(schemeOverride).toUpperCase()} GET ALL] /${endpoint} → ${response.status}`,
+      payload
+    );
+
+    if (response.status === 404 || response.status === 204) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        payload?.message ||
+          payload?.error ||
+          payload?.detail ||
+          `GET failed (${response.status})`
+      );
+    }
+
+    let candidates = [];
+
+    if (Array.isArray(payload)) {
+      candidates = payload;
+    } else if (Array.isArray(payload?.data)) {
+      candidates = payload.data;
+    } else if (payload?.data && typeof payload.data === "object") {
+      candidates = [payload.data];
+    } else if (
+      payload &&
+      typeof payload === "object" &&
+      (payload.form_id ||
+        payload.formId ||
+        payload.personal ||
+        payload.plan_land_bank ||
+        payload.plan_technical_bank ||
+        payload.application_documents)
+    ) {
+      candidates = [payload];
+    }
+
+    const requestedId = String(id).trim();
+
+    const application = candidates.find((item) => {
+      const candidateId = String(
+        item?.form_id ||
+          item?.formId ||
+          item?.id ||
+          item?.personal?.form_id ||
+          item?.plan_land_bank?.form_id ||
+          item?.plan_technical_bank?.form_id ||
+          item?.application_documents?.form_id ||
+          ""
+      ).trim();
+
+      return candidateId === requestedId;
+    });
+
+    if (!application) {
+      console.warn(
+        `[${String(schemeOverride).toUpperCase()} GET ALL] form_id=${requestedId} was not found in the GET response.`,
+        candidates
+      );
+      return null;
+    }
+
+    console.log(
+      `[${String(schemeOverride).toUpperCase()} GET ALL] Found form_id=${requestedId}:`,
+      application
+    );
+
+    /*
+     * mergeApiResponse() expects the same object shape returned by the
+     * backend: { form_id, personal, plan_land_bank, application_documents }.
+     */
+    return mergeApiResponse(application);
   };
 
 
@@ -825,22 +964,42 @@ export default function KisanAavedanPortal() {
    * If the backend requires form_id even for this request, it
    * must expose a current-user/current-application lookup.
    */
-  const getCurrentApplicationFromServer = async () => {
+  const getCurrentApplicationFromServer = async (schemeOverride = schemeId) => {
     try {
+      const effectiveSchemeId = schemeOverride || schemeId;
+
+      if (!effectiveSchemeId || !SCHEMES[effectiveSchemeId]) {
+        throw new Error("आवेदन की योजना की पहचान नहीं हो सकी।");
+      }
+
       setApiLoading(true);
       setApiError("");
 
-      const response = await fetch(`${API_BASE}/kisan-application/`, {
+      const endpoint =
+        effectiveSchemeId === "kiwi"
+          ? "kiwi-application/"
+          : effectiveSchemeId === "dragon"
+            ? "dragon-application/"
+            : effectiveSchemeId === "fencing"
+              ? "kisan-application/"
+              : null;
+
+      if (!endpoint) {
+        throw new Error("आवेदन की योजना की पहचान नहीं हो सकी।");
+      }
+
+      /*
+       * GET ALL — no form_id in URL.
+       */
+      const response = await fetch(`${API_BASE}/${endpoint}`, {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
       });
 
       const payload = await response.json().catch(() => ({}));
 
       console.log(
-        `[RESUME] GET /kisan-application/ → ${response.status}`,
+        `[${effectiveSchemeId.toUpperCase()} CURRENT GET] /${endpoint} → ${response.status}`,
         payload
       );
 
@@ -875,6 +1034,7 @@ export default function KisanAavedanPortal() {
           typeof item === "object" &&
           (
             item.personal ||
+            item.plan_land_bank ||
             item.plan_technical_bank ||
             item.application_documents ||
             item.form_id
@@ -882,31 +1042,104 @@ export default function KisanAavedanPortal() {
       );
 
       if (!applications.length) {
-        console.log("[RESUME] No existing application found.");
+        console.log(
+          `[${effectiveSchemeId.toUpperCase()} CURRENT GET] No application records found.`
+        );
         return null;
       }
 
-      const application = [...applications].sort((a, b) => {
-        const dateA = new Date(
-          a.updated_at ||
-            a.updatedAt ||
-            a.application_documents?.updated_at ||
-            a.plan_technical_bank?.updated_at ||
-            a.personal?.updated_at ||
-            0
-        ).getTime();
+      /*
+       * IMPORTANT:
+       * The GET-all API is the source of truth. Select only records belonging
+       * to this scheme's own endpoint. Never inspect the other scheme's data.
+       *
+       * An application is considered incomplete when:
+       *   - declaration is not accepted, AND
+       *   - at least one meaningful field exists in any step.
+       *
+       * A completely empty server row is NOT resumed as an existing draft.
+       */
 
-        const dateB = new Date(
-          b.updated_at ||
-            b.updatedAt ||
-            b.application_documents?.updated_at ||
-            b.plan_technical_bank?.updated_at ||
-            b.personal?.updated_at ||
-            0
-        ).getTime();
+      const applicationHasAnySavedField = (item) => {
+        const personal = item?.personal || {};
+        const plan =
+          item?.plan_land_bank ||
+          item?.plan_technical_bank ||
+          {};
+        const docs = item?.application_documents || {};
 
-        return dateB - dateA;
-      })[0];
+        const values = [
+          ...Object.entries(personal),
+          ...Object.entries(plan),
+          ...Object.entries(docs),
+        ];
+
+        return values.some(([key, value]) => {
+          /*
+           * Metadata must not make an empty application look incomplete.
+           */
+          if (
+            [
+              "id",
+              "form_id",
+              "created_at",
+              "updated_at",
+            ].includes(key)
+          ) {
+            return false;
+          }
+
+          return hasMeaningfulValue(value);
+        });
+      };
+
+      const isDeclarationAccepted = (item) =>
+        item?.application_documents?.declaration_accepted === true ||
+        item?.application_documents?.declaration_accepted === 1 ||
+        item?.declaration_accepted === true ||
+        item?.declaration_accepted === 1;
+
+      /*
+       * A DB row containing only form_id / id / timestamps is not a useful
+       * incomplete draft. At least one actual application field must have
+       * been saved.
+       */
+
+      const incompleteApplications = applications.filter(
+        (item) =>
+          !!(
+            item?.form_id ||
+            item?.formId ||
+            item?.id
+          ) &&
+          !isDeclarationAccepted(item) &&
+          applicationHasAnySavedField(item)
+      );
+
+      const getUpdatedTime = (item) => {
+        const value =
+          item?.updated_at ||
+          item?.updatedAt ||
+          item?.application_documents?.updated_at ||
+          item?.plan_land_bank?.updated_at ||
+          item?.plan_technical_bank?.updated_at ||
+          item?.personal?.updated_at ||
+          0;
+
+        const time = new Date(value).getTime();
+        return Number.isFinite(time) ? time : 0;
+      };
+
+      const application = [...incompleteApplications].sort(
+        (a, b) => getUpdatedTime(b) - getUpdatedTime(a)
+      )[0];
+
+      if (!application) {
+        console.log(
+          `[${effectiveSchemeId.toUpperCase()} CURRENT GET] No meaningful incomplete application found.`
+        );
+        return null;
+      }
 
       const existingFormId =
         application.form_id ||
@@ -915,20 +1148,24 @@ export default function KisanAavedanPortal() {
         "";
 
       if (!existingFormId) {
-        throw new Error(
-          "सर्वर से आवेदन मिला लेकिन form_id नहीं मिला।"
-        );
+        return null;
       }
 
-      /*
-       * Now call the exact GET endpoint already used elsewhere:
-       * /kisan-application/?form_id=FORM-XXXXXX
-       */
-      await getApplication(String(existingFormId));
+      console.log(
+        `[${effectiveSchemeId.toUpperCase()} CURRENT GET] Incomplete form found: ${existingFormId}`,
+        application
+      );
 
+      /*
+       * Do NOT call getApplication(existingFormId, ...).
+       * The GET-all response above is already the required GET response.
+       */
       return application;
     } catch (error) {
-      console.error("[RESUME] Could not restore application:", error);
+      console.error(
+        `[${String(schemeOverride || schemeId).toUpperCase()} CURRENT GET]`,
+        error
+      );
 
       setApiError(
         error.message ||
@@ -957,8 +1194,23 @@ export default function KisanAavedanPortal() {
       return null;
     }
 
+    /*
+     * APPLICATION LIST RECORDS ARE TAGGED WITH THE API THAT PRODUCED THEM.
+     * This is the authoritative scheme identity for the completed-applications
+     * table. The three APIs can legitimately return records without a
+     * scheme_id field, so do not try to guess Kiwi/Dragon from contribution
+     * text when the API source is already known.
+     */
+    if (
+      application.__schemeSource === "fencing" ||
+      application.__schemeSource === "kiwi" ||
+      application.__schemeSource === "dragon"
+    ) {
+      return application.__schemeSource;
+    }
+
     const personal = application.personal || {};
-    const plan = application.plan_technical_bank || {};
+    const plan = application.plan_land_bank || application.plan_technical_bank || {};
 
     const explicitScheme =
       application.scheme_id ||
@@ -1117,7 +1369,11 @@ export default function KisanAavedanPortal() {
         }
 
         if (stepName === "technical") return ["execution", "accept"];
-        if (stepName === "docs") return [];
+
+        // Kiwi Step 5 is the document-selection step. An empty/null
+        // documents array means the step is still incomplete.
+        if (stepName === "docs") return ["docs"];
+
         if (stepName === "declaration") return ["place", "date", "declare"];
       }
 
@@ -1142,25 +1398,40 @@ export default function KisanAavedanPortal() {
    * Populate the form from the server response, mark completed
    * steps and open the first incomplete step.
    */
-  const resumeApplication = async (resumeId = "") => {
-    const application = resumeId ? await getApplication(resumeId) : await getCurrentApplicationFromServer();
+  const resumeApplication = async (resumeId = "", resumeSchemeId = schemeId) => {
+    // setSchemeId() is asynchronous. selectScheme() therefore passes the
+    // selected scheme explicitly so the first GET can never use null.
+    const effectiveSchemeId = resumeSchemeId || schemeId;
+
+    if (!effectiveSchemeId || !SCHEMES[effectiveSchemeId]) {
+      console.error("[RESUME APPLICATION] Missing/invalid scheme:", {
+        resumeId,
+        resumeSchemeId,
+        currentSchemeId: schemeId,
+      });
+      setApiError("आवेदन की योजना की पहचान नहीं हो सकी।");
+      return false;
+    }
+
+    const application = resumeId
+      ? await getApplication(resumeId, effectiveSchemeId)
+      : await getCurrentApplicationFromServer(effectiveSchemeId);
 
     if (!application) {
       return false;
     }
 
-    const detectedScheme = detectSchemeIdFromApplication(application);
+    // The GET endpoint is already scheme-specific. The selected scheme is
+    // therefore authoritative even when the API response has no scheme_id.
+    const detectedScheme = effectiveSchemeId;
 
-    if (!detectedScheme || !SCHEMES[detectedScheme]) {
-      setApiError(
-        "सर्वर से आवेदन मिला है, लेकिन योजना की पहचान नहीं हो सकी। " +
-        "GET response में scheme_id / scheme_code लौटाएँ।"
-      );
+    if (!SCHEMES[detectedScheme]) {
+      setApiError("सर्वर से आवेदन मिला है, लेकिन योजना की पहचान नहीं हो सकी।");
       return false;
     }
 
     const personal = application.personal || {};
-    const plan = application.plan_technical_bank || {};
+    const plan = application.plan_land_bank || application.plan_technical_bank || {};
     const docs = application.application_documents || {};
 
     const restoredData = {
@@ -1300,7 +1571,7 @@ export default function KisanAavedanPortal() {
    */
   const getPreviewDataFromApplication = (application) => {
     const personal = application?.personal || {};
-    const plan = application?.plan_technical_bank || {};
+    const plan = application?.plan_land_bank || application?.plan_technical_bank || {};
     const docs = application?.application_documents || {};
     return {
       ...initialData,
@@ -1350,41 +1621,229 @@ export default function KisanAavedanPortal() {
     };
   };
 
+  /*
+   * ============================================================
+   * APPLICATION LIST — SCHEME-SPECIFIC GET APIS
+   * ============================================================
+   *
+   * FENCING:
+   *   GET /kisan-application/
+   *
+   * KIWI:
+   *   GET /kiwi-application/
+   *
+   * These APIs are intentionally kept separate. Their response data
+   * is never used interchangeably.
+   */
   const getApplicationList = async () => {
     setApplicationsLoading(true);
     setApplicationsError("");
-    try {
-      const response = await fetch(`${API_BASE}/kisan-application/`, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.message || payload?.error || payload?.detail || `GET failed (${response.status})`);
-      }
-      const candidates = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.data)
-          ? payload.data
-          : payload?.data && typeof payload.data === "object"
-            ? [payload.data]
-            : payload && typeof payload === "object"
-              ? [payload]
-              : [];
 
-      // A form is considered completed only after the declaration is submitted.
-      const completed = candidates.filter((item) =>
+    const parseApplications = async (response, endpointName) => {
+      const payload = await response.json().catch(() => ({}));
+
+      console.log(
+        `%c[${endpointName} GET] Status: ${response.status}`,
+        `color:${response.ok ? "#16a34a" : "#dc2626"};font-weight:bold`
+      );
+      console.log(`[${endpointName} GET] Full response:`, payload);
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 204) {
+          return [];
+        }
+
+        throw new Error(
+          payload?.message ||
+            payload?.error ||
+            payload?.detail ||
+            `${endpointName} GET failed (${response.status})`
+        );
+      }
+
+      if (Array.isArray(payload)) return payload;
+
+      if (Array.isArray(payload?.data)) {
+        return payload.data;
+      }
+
+      if (payload?.data && typeof payload.data === "object") {
+        return [payload.data];
+      }
+
+      if (
+        payload &&
+        typeof payload === "object" &&
+        (payload.form_id ||
+          payload.formId ||
+          payload.personal ||
+          payload.plan_land_bank ||
+          payload.plan_technical_bank ||
+          payload.application_documents)
+      ) {
+        return [payload];
+      }
+
+      return [];
+    };
+
+    try {
+      /*
+       * IMPORTANT:
+       * Run both APIs independently. Do NOT replace Kiwi with Kisan API
+       * or Kisan/Fencing with Kiwi API.
+       */
+      const [fencingResponse, kiwiResponse, dragonResponse] = await Promise.all([
+        fetch(`${API_BASE}/kisan-application/`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        }),
+        fetch(`${API_BASE}/kiwi-application/`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        }),
+        fetch(`${API_BASE}/dragon-application/`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        }),
+      ]);
+
+      const [fencingApplications, kiwiApplications, dragonApplications] = await Promise.all([
+        parseApplications(fencingResponse, "FENCING / kisan-application"),
+        parseApplications(kiwiResponse, "KIWI / kiwi-application"),
+        parseApplications(dragonResponse, "DRAGON / dragon-application"),
+      ]);
+
+      console.log(
+        "[FENCING GET] Applications:",
+        fencingApplications
+      );
+      console.log(
+        "[KIWI GET] Applications:",
+        kiwiApplications
+      );
+      console.log(
+        "[DRAGON GET] Applications:",
+        dragonApplications
+      );
+
+      /*
+       * Tag only the in-memory copy with its API source.
+       * This prevents a Kiwi response from being interpreted as Fencing.
+       */
+      const allApplications = [
+        ...fencingApplications.map((item) => ({
+          ...item,
+          __schemeSource: "fencing",
+        })),
+        ...kiwiApplications.map((item) => ({
+          ...item,
+          __schemeSource: "kiwi",
+        })),
+        ...dragonApplications.map((item) => ({
+          ...item,
+          __schemeSource: "dragon",
+        })),
+      ];
+
+      const isDeclarationAccepted = (item) =>
         item?.application_documents?.declaration_accepted === true ||
         item?.application_documents?.declaration_accepted === 1 ||
         item?.declaration_accepted === true ||
-        item?.declaration_accepted === 1
+        item?.declaration_accepted === 1;
+
+      const getFormId = (item) =>
+        item?.form_id ||
+        item?.formId ||
+        item?.id ||
+        "";
+
+      const getUpdatedTime = (item) => {
+        const value =
+          item?.updated_at ||
+          item?.updatedAt ||
+          item?.application_documents?.updated_at ||
+          item?.plan_land_bank?.updated_at ||
+          item?.plan_technical_bank?.updated_at ||
+          item?.personal?.updated_at ||
+          0;
+
+        const parsed = new Date(value).getTime();
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      /*
+       * Completed applications are still shown in the existing completed
+       * applications section, but the source scheme remains attached.
+       */
+      setCompletedApplications(
+        allApplications.filter(
+          (item) =>
+            !!getFormId(item) &&
+            isDeclarationAccepted(item)
+        )
       );
 
-      setCompletedApplications(completed);
-      return candidates;
+      /*
+       * Find the latest incomplete record SEPARATELY for each scheme.
+       */
+      const latestFencing = fencingApplications
+        .filter(
+          (item) =>
+            !!getFormId(item) &&
+            !isDeclarationAccepted(item) &&
+            hasAnySavedField(item)
+        )
+        .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))[0] || null;
+
+      const latestKiwi = kiwiApplications
+        .filter(
+          (item) =>
+            !!getFormId(item) &&
+            !isDeclarationAccepted(item) &&
+            hasAnySavedField(item)
+        )
+        .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))[0] || null;
+
+      const latestDragon = dragonApplications
+        .filter(
+          (item) =>
+            !!getFormId(item) &&
+            !isDeclarationAccepted(item) &&
+            hasAnySavedField(item)
+        )
+        .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))[0] || null;
+
+      const incompleteByScheme = {
+        fencing: latestFencing,
+        kiwi: latestKiwi,
+        dragon: latestDragon,
+      };
+
+      setIncompleteApplicationsByScheme(incompleteByScheme);
+
+      console.log(
+        "%c[INCOMPLETE FENCING]",
+        "color:#d97706;font-weight:bold",
+        latestFencing
+      );
+      console.log(
+        "%c[INCOMPLETE KIWI]",
+        "color:#16a34a;font-weight:bold",
+        latestKiwi
+      );
+      console.log(
+        "%c[INCOMPLETE DRAGON]",
+        "color:#dc2626;font-weight:bold",
+        latestDragon
+      );
+
+      return allApplications;
     } catch (error) {
       console.error("[APPLICATION LIST]", error);
-      setApplicationsError(error.message || "आवेदन सूची प्राप्त नहीं हो सकी।");
+      setApplicationsError(
+        error.message || "आवेदन सूची प्राप्त नहीं हो सकी।"
+      );
       return [];
     } finally {
       setApplicationsLoading(false);
@@ -1392,21 +1851,15 @@ export default function KisanAavedanPortal() {
   };
 
   useEffect(() => {
-    // Do not automatically open a submitted application. Submitted forms are
-    // treated as completed and the next form must start fresh.
+    /*
+     * Load the status of BOTH schemes when the home screen opens.
+     *
+     * Do NOT resume a form here because schemeId is not known yet.
+     * The user first clicks Kiwi or Fencing. selectScheme() then uses
+     * ONLY that scheme's API and resumes its form_id.
+     */
     (async () => {
-      const applications = await getApplicationList();
-      const incomplete = [...applications]
-        .filter((item) => !item?.application_documents?.declaration_accepted)
-        .sort((a, b) => new Date(b.updated_at || b.updatedAt || 0) - new Date(a.updated_at || a.updatedAt || 0))[0];
-
-      if (incomplete) {
-        const id = incomplete.form_id || incomplete.formId || incomplete.id || "";
-        if (id) {
-          // Resume only an unfinished server application.
-          await resumeApplication(String(id));
-        }
-      }
+      await getApplicationList();
     })();
   }, []);
 
@@ -1531,6 +1984,89 @@ export default function KisanAavedanPortal() {
     center_name: data.centerName || "",
   });
 
+  const kiwiPersonalCreatePayload = () => ({
+    name: data.name || "", gender: genderApi[data.gender] || data.gender || "", father: data.father || "",
+    udyan_card: data.udyanCard || "", village: data.village || "", post: data.post || "", block: data.block || "",
+    district: data.district || "", mobile: data.mobile || "", aadhaar: data.aadhaar || "",
+    category: categoryApi[data.category] || data.category || "", photo: data.photo || null,
+  });
+  const kiwiPersonalPayload = () => ({ form_id: formId, ...kiwiPersonalCreatePayload() });
+  const kiwiLandPayload = () => ({
+    form_id: formId, total_land: data.totalLand === "" ? null : Number(data.totalLand),
+    proposed_area: data.propArea_val === "" ? null : Number(data.propArea_val),
+    irrigation: irrigationApi[data.irrigation] || data.irrigation || "", irr_source: data.irrSource || [],
+    irr_other: data.irrOther || "", altitude: data.altitude === "" ? null : Number(data.altitude),
+    road_dist: data.roadDist === "" ? null : Number(data.roadDist), slope: slopeApi[data.slope] || data.slope || "",
+    soil: data.soil || "", latitude: data.lat === "" ? null : Number(data.lat), longitude: data.lng === "" ? null : Number(data.lng),
+  });
+  const kiwiPlanBankPayload = () => ({
+    form_id: formId, plan_scheme: data.planScheme || "", cost_per_ha: data.costPerHa === "" ? null : String(data.costPerHa),
+    plan_type: planTypeApi[data.planType] || data.planType || "", group_name: data.groupName || "",
+    contribution: data.contribution || "", other_scheme: data.otherScheme || "", bank_name: data.bankName || "",
+    branch: data.branch || "", account: data.account || "", ifsc: data.ifsc || "",
+  });
+  const kiwiDocumentsPayload = () => ({
+    form_id: formId, execution: executionApi[data.execution] || data.execution || null, firm_name: data.firmName || null,
+    technical_standard_accepted: !!data.accept, documents: data.docs || [], place: data.place || "",
+    application_date: data.date || new Date().toISOString().slice(0, 10), declaration_accepted: !!data.declare,
+  });
+
+  // Dragon Fruit uses the same field structure as Kiwi, but its own API endpoints.
+  const dragonPersonalCreatePayload = () => ({
+    name: data.name || "",
+    gender: genderApi[data.gender] || data.gender || "",
+    father: data.father || "",
+    udyan_card: data.udyanCard || "",
+    village: data.village || "",
+    post: data.post || "",
+    block: data.block || "",
+    district: data.district || "",
+    mobile: data.mobile || "",
+    aadhaar: data.aadhaar || "",
+    category: categoryApi[data.category] || data.category || "",
+  });
+
+  const dragonPersonalPayload = () => ({ form_id: formId, ...dragonPersonalCreatePayload() });
+  const dragonLandPayload = () => ({
+    form_id: formId,
+    total_land: data.totalLand === "" ? null : Number(data.totalLand),
+    proposed_area: data.propArea_val === "" ? null : Number(data.propArea_val),
+    latitude: data.lat === "" ? null : Number(data.lat),
+    longitude: data.lng === "" ? null : Number(data.lng),
+    irrigation: irrigationApi[data.irrigation] || data.irrigation || "",
+    irr_source: data.irrSource || [],
+    irr_other: data.irrOther || null,
+    altitude: data.altitude === "" ? null : Number(data.altitude),
+    road_dist: data.roadDist === "" ? null : Number(data.roadDist),
+    slope: slopeApi[data.slope] || data.slope || "",
+    soil: data.soil || "",
+    latitude: data.lat === "" ? null : Number(data.lat),
+    longitude: data.lng === "" ? null : Number(data.lng),
+  });
+  const dragonPlanBankPayload = () => ({
+    form_id: formId,
+    plan_scheme: data.planScheme || "",
+    cost_per_ha: data.costPerHa === "" ? null : String(data.costPerHa),
+    plan_type: planTypeApi[data.planType] || data.planType || "",
+    group_name: data.groupName || "",
+    contribution: data.contribution || "",
+    other_scheme: data.otherScheme || "",
+    bank_name: data.bankName || "",
+    branch: data.branch || "",
+    account: data.account || "",
+    ifsc: data.ifsc || "",
+  });
+  const dragonDocumentsPayload = () => ({
+    form_id: formId,
+    execution: executionApi[data.execution] || data.execution || null,
+    firm_name: data.firmName || null,
+    technical_standard_accepted: !!data.accept,
+    documents: data.docs || [],
+    place: data.place || "",
+    application_date: data.date || new Date().toISOString().slice(0, 10),
+    declaration_accepted: !!data.declare,
+  });
+
   const personalCreatePayload = () => ({
     name: data.name || "",
     gender: genderApi[data.gender] || data.gender || "",
@@ -1608,6 +2144,15 @@ export default function KisanAavedanPortal() {
   const syncFromGetAndMark = async () => {
     const result = await getApplication();
 
+    if (result?.item && formId) {
+      const declarationAccepted =
+        result.item?.application_documents?.declaration_accepted === true ||
+        result.item?.application_documents?.declaration_accepted === 1 ||
+        result.item?.declaration_accepted === true ||
+        result.item?.declaration_accepted === 1;
+      setIncompleteApplicationsByScheme((prev) => ({ ...prev, [schemeId]: declarationAccepted ? null : result.item }));
+    }
+
     // Never blindly mark a step complete after PUT. Recalculate completion
     // from the actual server response so a missing required field stays !.
     const currentData = result?.nextData || data;
@@ -1625,6 +2170,12 @@ export default function KisanAavedanPortal() {
     }
 
     try {
+      // Always use the server response after a save for completion checks.
+      // React state updates are asynchronous, so checking `data` immediately
+      // after PUT can otherwise evaluate the previous values and incorrectly
+      // block/resume the wrong step.
+      let savedServerData = data;
+
       /*
        * ============================================================
        * FIRST STEP - CREATE APPLICATION
@@ -1669,7 +2220,28 @@ export default function KisanAavedanPortal() {
             if (!newId) throw new Error("POST सफल रहा लेकिन response में form_id नहीं मिला।");
 
             setFormId(String(newId));
+            // Keep the newly created server record as the single active
+            // application so a re-entry can only resume this same form_id.
+            setIncompleteApplicationsByScheme((prev) => ({ ...prev, [schemeId]: { form_id: String(newId) } }));
             await getApplication(String(newId));
+          } else if (schemeId === "kiwi") {
+            console.log("[KIWI STEP 1] New Kiwi application → POST /kiwi-application/");
+            const created = await apiRequest("kiwi-application/", "POST", kiwiPersonalCreatePayload());
+            const createdItem = mergeApiResponse(created);
+            const newId = extractFormId(created) || createdItem?.item?.form_id || created?.data?.[0]?.form_id || "";
+            if (!newId) throw new Error("Kiwi POST सफल रहा लेकिन response में form_id नहीं मिला।");
+            setFormId(String(newId));
+            setIncompleteApplicationsByScheme((prev) => ({ ...prev, kiwi: { form_id: String(newId) } }));
+            await getApplication(String(newId), "kiwi");
+          } else if (schemeId === "dragon") {
+            console.log("[DRAGON STEP 1] New Dragon Fruit application → POST /dragon-application/");
+            const created = await apiRequest("dragon-application/", "POST", dragonPersonalCreatePayload());
+            const createdItem = mergeApiResponse(created);
+            const newId = extractFormId(created) || createdItem?.item?.form_id || created?.data?.[0]?.form_id || "";
+            if (!newId) throw new Error("Dragon Fruit POST सफल रहा लेकिन response में form_id नहीं मिला।");
+            setFormId(String(newId));
+            setIncompleteApplicationsByScheme((prev) => ({ ...prev, dragon: { form_id: String(newId) } }));
+            await getApplication(String(newId), "dragon");
           } else {
             console.log("[STEP 1] New personal application → POST /kisan-application/");
 
@@ -1691,6 +2263,9 @@ export default function KisanAavedanPortal() {
             if (!newId) throw new Error("POST सफल रहा लेकिन response में form_id नहीं मिला।");
 
             setFormId(String(newId));
+            // Keep the newly created server record as the single active
+            // application so a re-entry can only resume this same form_id.
+            setIncompleteApplicationsByScheme((prev) => ({ ...prev, [schemeId]: { form_id: String(newId) } }));
             await getApplication(String(newId));
           }
         } else {
@@ -1702,6 +2277,12 @@ export default function KisanAavedanPortal() {
               "PUT",
               fencingSchemeUpdatePayload()
             );
+          } else if (schemeId === "kiwi") {
+            console.log("[KIWI STEP 1] Existing Kiwi application → PUT /kiwi-personal-details-update/");
+            await apiRequest("kiwi-personal-details-update/", "PUT", kiwiPersonalPayload());
+          } else if (schemeId === "dragon") {
+            console.log("[DRAGON STEP 1] Existing Dragon Fruit application → PUT /dragon-personal-details-update/");
+            await apiRequest("dragon-personal-details-update/", "PUT", dragonPersonalPayload());
           } else {
             console.log("[STEP 1] Existing personal application → PUT /kisan-personal-land-update/");
             await apiRequest(
@@ -1712,6 +2293,7 @@ export default function KisanAavedanPortal() {
           }
 
           const synced = await syncFromGetAndMark();
+          savedServerData = synced?.nextData || data;
           if (synced?.nextData) {
             const syncedCompleted = getCompletedStepsFromData(schemeId, synced.nextData);
             setCompletedSteps(syncedCompleted);
@@ -1721,7 +2303,7 @@ export default function KisanAavedanPortal() {
 
         // Only move forward after successful POST/PUT and after the step is
         // actually complete according to the same required-field rules.
-        const latestCompleted = getCompletedStepsFromData(schemeId, data);
+        const latestCompleted = getCompletedStepsFromData(schemeId, savedServerData);
         if (!latestCompleted.has(current)) return false;
 
         setCompletedSteps(latestCompleted);
@@ -1755,17 +2337,19 @@ export default function KisanAavedanPortal() {
        * ------------------------------------------------------------
        */
       if (current === "personal") {
-        console.log(
-          "[PERSONAL] → PUT /kisan-personal-land-update/"
-        );
+        if (schemeId === "kiwi") {
+          console.log("[KIWI PERSONAL] → PUT /kiwi-personal-details-update/");
+          await apiRequest("kiwi-personal-details-update/", "PUT", kiwiPersonalPayload());
+        } else if (schemeId === "dragon") {
+          console.log("[DRAGON PERSONAL] → PUT /dragon-personal-details-update/");
+          await apiRequest("dragon-personal-details-update/", "PUT", dragonPersonalPayload());
+        } else {
+          console.log("[PERSONAL] → PUT /kisan-personal-land-update/");
+          await apiRequest("kisan-personal-land-update/", "PUT", personalPayload());
+        }
 
-        await apiRequest(
-          "kisan-personal-land-update/",
-          "PUT",
-          personalPayload()
-        );
-
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
       }
 
       /*
@@ -1785,17 +2369,19 @@ export default function KisanAavedanPortal() {
        * }
        */
       else if (current === "land") {
-        console.log(
-          "[LAND] → PUT /kisan-plan-technical-bank-update/"
-        );
+        if (schemeId === "kiwi") {
+          console.log("[KIWI LAND] → PUT /kiwi-plan-land-bank-update/");
+          await apiRequest("kiwi-plan-land-bank-update/", "PUT", kiwiLandPayload());
+        } else if (schemeId === "dragon") {
+          console.log("[DRAGON LAND] → PUT /dragon-plan-land-bank-update/");
+          await apiRequest("dragon-plan-land-bank-update/", "PUT", dragonLandPayload());
+        } else {
+          console.log("[LAND] → PUT /kisan-plan-technical-bank-update/");
+          await apiRequest("kisan-plan-technical-bank-update/", "PUT", landPayload());
+        }
 
-        await apiRequest(
-          "kisan-plan-technical-bank-update/",
-          "PUT",
-          landPayload()
-        );
-
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
       }
 
       /*
@@ -1825,7 +2411,8 @@ export default function KisanAavedanPortal() {
           bankPayload()
         );
 
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
       }
 
       /*
@@ -1834,17 +2421,19 @@ export default function KisanAavedanPortal() {
        * ------------------------------------------------------------
        */
       else if (current === "planbank") {
-        console.log(
-          "[PLAN BANK] → PUT /kisan-plan-technical-bank-update/"
-        );
+        if (schemeId === "kiwi") {
+          console.log("[KIWI PLAN + BANK] → PUT /kiwi-plan-land-bank-update/");
+          await apiRequest("kiwi-plan-land-bank-update/", "PUT", kiwiPlanBankPayload());
+        } else if (schemeId === "dragon") {
+          console.log("[DRAGON PLAN + BANK] → PUT /dragon-plan-land-bank-update/");
+          await apiRequest("dragon-plan-land-bank-update/", "PUT", dragonPlanBankPayload());
+        } else {
+          console.log("[PLAN BANK] → PUT /kisan-plan-technical-bank-update/");
+          await apiRequest("kisan-plan-technical-bank-update/", "PUT", planBankPayload());
+        }
 
-        await apiRequest(
-          "kisan-plan-technical-bank-update/",
-          "PUT",
-          planBankPayload()
-        );
-
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
       }
 
       /*
@@ -1853,17 +2442,19 @@ export default function KisanAavedanPortal() {
        * ------------------------------------------------------------
        */
       else if (current === "technical") {
-        console.log(
-          "[TECHNICAL] → PUT /kisan-application-documents-update/"
-        );
+        if (schemeId === "kiwi") {
+          console.log("[KIWI TECHNICAL] → PUT /kiwi-application-documents-update/");
+          await apiRequest("kiwi-application-documents-update/", "PUT", kiwiDocumentsPayload());
+        } else if (schemeId === "dragon") {
+          console.log("[DRAGON TECHNICAL] → PUT /dragon-application-documents-update/");
+          await apiRequest("dragon-application-documents-update/", "PUT", dragonDocumentsPayload());
+        } else {
+          console.log("[TECHNICAL] → PUT /kisan-application-documents-update/");
+          await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
+        }
 
-        await apiRequest(
-          "kisan-application-documents-update/",
-          "PUT",
-          techDocsPayload()
-        );
-
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
       }
 
       /*
@@ -1872,17 +2463,19 @@ export default function KisanAavedanPortal() {
        * ------------------------------------------------------------
        */
       else if (current === "docs") {
-        console.log(
-          "[DOCUMENTS] → PUT /kisan-application-documents-update/"
-        );
+        if (schemeId === "kiwi") {
+          console.log("[KIWI DOCUMENTS] → PUT /kiwi-application-documents-update/");
+          await apiRequest("kiwi-application-documents-update/", "PUT", kiwiDocumentsPayload());
+        } else if (schemeId === "dragon") {
+          console.log("[DRAGON DOCUMENTS] → PUT /dragon-application-documents-update/");
+          await apiRequest("dragon-application-documents-update/", "PUT", dragonDocumentsPayload());
+        } else {
+          console.log("[DOCUMENTS] → PUT /kisan-application-documents-update/");
+          await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
+        }
 
-        await apiRequest(
-          "kisan-application-documents-update/",
-          "PUT",
-          techDocsPayload()
-        );
-
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
       }
 
       /*
@@ -1891,28 +2484,31 @@ export default function KisanAavedanPortal() {
        * ------------------------------------------------------------
        */
       else if (current === "declaration") {
-        console.log(
-          "[DECLARATION] → PUT /kisan-application-documents-update/"
-        );
+        if (schemeId === "kiwi") {
+          console.log("[KIWI DECLARATION] → PUT /kiwi-application-documents-update/");
+          await apiRequest("kiwi-application-documents-update/", "PUT", kiwiDocumentsPayload());
+        } else if (schemeId === "dragon") {
+          console.log("[DRAGON DECLARATION] → PUT /dragon-application-documents-update/");
+          await apiRequest("dragon-application-documents-update/", "PUT", dragonDocumentsPayload());
+        } else {
+          console.log("[DECLARATION] → PUT /kisan-application-documents-update/");
+          await apiRequest("kisan-application-documents-update/", "PUT", techDocsPayload());
+        }
 
-        await apiRequest(
-          "kisan-application-documents-update/",
-          "PUT",
-          techDocsPayload()
-        );
-
-        await syncFromGetAndMark();
+        const synced = await syncFromGetAndMark();
+        savedServerData = synced?.nextData || data;
 
         // Declaration submission is the final completion event. Once it is
         // accepted, never resume this form again; return to the two-tab home
         // screen so the center can immediately start a fresh application.
-        if (data.declare === true) {
+        if (savedServerData.declare === true) {
           await getApplicationList();
           setSchemeId(null);
           setStep(0);
           setFormId("");
           setData({ ...initialData });
           setCompletedSteps(new Set());
+          setIncompleteApplicationsByScheme((prev) => ({ ...prev, [schemeId]: null }));
           setErrors({});
           setApiError("");
           setActiveTab("completed");
@@ -1925,7 +2521,7 @@ export default function KisanAavedanPortal() {
        * Move forward only after the API request succeeds AND the server data
        * confirms that every required field in this step is complete.
        */
-      const latestCompleted = getCompletedStepsFromData(schemeId, data);
+      const latestCompleted = getCompletedStepsFromData(schemeId, savedServerData);
       if (!latestCompleted.has(current)) {
         setCompletedSteps(latestCompleted);
         setApiError("इस चरण की सभी आवश्यक जानकारी भरना अनिवार्य है।");
@@ -1958,22 +2554,275 @@ export default function KisanAavedanPortal() {
     setData((d) => ({ ...d, [k]: v }));
     setErrors((e) => ({ ...e, [k]: false }));
   };
-  const selectScheme = (id) => {
+  const selectScheme = async (id) => {
     setActiveTab("new");
-    setSchemeId(id);
-    setStep(0);
-    setData({ ...initialData });
-    setFormId("");
-    setCompletedSteps(new Set());
-    setErrors({});
     setApiError("");
+    setApiLoading(true);
+
+    try {
+      if (!SCHEMES[id]) {
+        throw new Error("अमान्य योजना चुनी गई है।");
+      }
+
+      /*
+       * ============================================================
+       * SCHEME-SPECIFIC GET-ALL
+       * ============================================================
+       *
+       * Kiwi  -> /kiwi-application/
+       * Fencing -> /kisan-application/
+       *
+       * Never send form_id in the GET URL.
+       */
+      const endpoint =
+        id === "kiwi"
+          ? "kiwi-application/"
+          : id === "dragon"
+            ? "dragon-application/"
+            : id === "fencing"
+              ? "kisan-application/"
+              : null;
+
+      if (!endpoint) {
+        throw new Error("अमान्य योजना चुनी गई है।");
+      }
+
+      console.log(
+        `[SELECT SCHEME] ${id} → GET /${endpoint}`
+      );
+
+      const response = await fetch(`${API_BASE}/${endpoint}`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      console.log(
+        `[${id.toUpperCase()} SELECT GET] /${endpoint} → ${response.status}`,
+        payload
+      );
+
+      if (response.status === 404 || response.status === 204) {
+        setIncompleteApplicationsByScheme((prev) => ({
+          ...prev,
+          [id]: null,
+        }));
+
+        setSchemeId(id);
+        setStep(0);
+        setData({ ...initialData });
+        setFormId("");
+        setCompletedSteps(new Set());
+        setErrors({});
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.message ||
+            payload?.error ||
+            payload?.detail ||
+            `GET failed (${response.status})`
+        );
+      }
+
+      let candidates = [];
+
+      if (Array.isArray(payload)) {
+        candidates = payload;
+      } else if (Array.isArray(payload?.data)) {
+        candidates = payload.data;
+      } else if (payload?.data && typeof payload.data === "object") {
+        candidates = [payload.data];
+      } else if (payload && typeof payload === "object") {
+        candidates = [payload];
+      }
+
+      const isDeclarationAccepted = (item) =>
+        item?.application_documents?.declaration_accepted === true ||
+        item?.application_documents?.declaration_accepted === 1 ||
+        item?.declaration_accepted === true ||
+        item?.declaration_accepted === 1;
+
+      /*
+       * IMPORTANT:
+       * Only this scheme's GET response is searched.
+       *
+       * A record is an incomplete application only when:
+       *   1. it has a form_id,
+       *   2. declaration is not accepted,
+       *   3. at least one actual field has been saved.
+       *
+       * A completely empty record is treated as a fresh form.
+       */
+      const incomplete = candidates
+        .filter((item) => {
+          const idValue =
+            item?.form_id ||
+            item?.formId ||
+            item?.id ||
+            "";
+
+          return (
+            !!idValue &&
+            !isDeclarationAccepted(item) &&
+            hasAnySavedField(item)
+          );
+        })
+        .sort((a, b) => {
+          const getDate = (item) => {
+            const value =
+              item?.updated_at ||
+              item?.updatedAt ||
+              item?.application_documents?.updated_at ||
+              item?.plan_land_bank?.updated_at ||
+              item?.plan_technical_bank?.updated_at ||
+              item?.personal?.updated_at ||
+              0;
+
+            const parsed = new Date(value).getTime();
+            return Number.isFinite(parsed) ? parsed : 0;
+          };
+
+          return getDate(b) - getDate(a);
+        })[0] || null;
+
+      /*
+       * No meaningful incomplete record for THIS scheme.
+       * Start a brand-new application.
+       */
+      if (!incomplete) {
+        console.log(
+          `[${id.toUpperCase()}] No incomplete saved data found. Opening new form.`
+        );
+
+        setIncompleteApplicationsByScheme((prev) => ({
+          ...prev,
+          [id]: null,
+        }));
+
+        setSchemeId(id);
+        setStep(0);
+        setData({ ...initialData });
+        setFormId("");
+        setCompletedSteps(new Set());
+        setErrors({});
+        return;
+      }
+
+      const existingId =
+        incomplete.form_id ||
+        incomplete.formId ||
+        incomplete.id ||
+        "";
+
+      /*
+       * Store the exact response record. Do not mix it with the other scheme.
+       */
+      setIncompleteApplicationsByScheme((prev) => ({
+        ...prev,
+        [id]: {
+          ...incomplete,
+          __schemeKey: id,
+        },
+      }));
+
+      setSchemeId(id);
+      setFormId(String(existingId));
+
+      console.log(
+        `%c[${id.toUpperCase()} INCOMPLETE] Found form_id=${existingId}`,
+        "color:#16a34a;font-weight:bold",
+        incomplete
+      );
+
+      /*
+       * Resume directly from the object returned by the GET-all API.
+       * No second GET with ?form_id=... is made.
+       */
+      const result = mergeApiResponse(incomplete);
+
+      if (!result?.item) {
+        throw new Error(
+          `${id} आवेदन का GET डेटा मान्य नहीं है।`
+        );
+      }
+
+      const restoredData = result.nextData || {
+        ...initialData,
+      };
+
+      setData(restoredData);
+
+      const completed = getCompletedStepsFromData(
+        id,
+        restoredData
+      );
+
+      setCompletedSteps(completed);
+
+      const steps = SCHEMES[id].steps;
+
+      /*
+       * First step whose ALL required fields are not saved/valid.
+       * Example:
+       *   personal complete
+       *   land complete
+       *   planbank partially filled
+       *
+       * Result: open planbank, not a blank personal form.
+       */
+      const firstIncompleteIndex = steps.findIndex(
+        (stepName) => !completed.has(stepName)
+      );
+
+      const nextStep =
+        firstIncompleteIndex === -1
+          ? Math.max(0, steps.length - 1)
+          : firstIncompleteIndex;
+
+      setStep(nextStep);
+      setErrors({});
+
+      console.log(
+        `[${id.toUpperCase()} RESUME] form_id=${existingId}`
+      );
+      console.log(
+        `[${id.toUpperCase()} RESUME] completed steps:`,
+        Array.from(completed)
+      );
+      console.log(
+        `[${id.toUpperCase()} RESUME] opening step:`,
+        steps[nextStep]
+      );
+
+      /*
+       * IMPORTANT:
+       * Do not call resumeApplication(existingId, id) here.
+       * That would cause another GET and is unnecessary because the GET-all
+       * response has already supplied the complete server record.
+       */
+    } catch (error) {
+      console.error(
+        `[${String(id).toUpperCase()} RESUME]`,
+        error
+      );
+
+      setApiError(
+        error.message ||
+          "पिछला आवेदन प्राप्त नहीं हो सका।"
+      );
+    } finally {
+      setApiLoading(false);
+    }
   };
   const backToSchemes = () => {
+    // Going back must NOT delete/reset an unfinished server application.
+    // The lock remains active and the same form can be reopened from the home
+    // screen.
     setSchemeId(null);
     setStep(0);
-    setData({ ...initialData });
-    setFormId("");
-    setCompletedSteps(new Set());
     setErrors({});
     setApiError("");
   };
@@ -2389,6 +3238,12 @@ export default function KisanAavedanPortal() {
                   <p>घोषणा सफलतापूर्वक जमा होने के बाद उसी केंद्र के लिए अगला आवेदन हमेशा नए फॉर्म से शुरू होगा।</p>
                 </div>
               </div>
+              {Object.entries(incompleteApplicationsByScheme).some(([, app]) => !!app) && (
+                <div className="applications-error" role="alert">
+                  <b>अधूरा आवेदन:</b> जिस योजना का आवेदन पहले से शुरू है, उसी योजना को चुनने पर
+                  उसका पिछला डेटा server से उसी form_id के साथ फॉर्म में भरा जाएगा। दूसरी योजना स्वतंत्र है।
+                </div>
+              )}
               <div className="scheme-grid">
                 {Object.entries(SCHEMES).map(([id, s]) => (
                   <button
@@ -2458,13 +3313,14 @@ export default function KisanAavedanPortal() {
                       </thead>
                       <tbody>
                         {rows.map((item, index) => {
-                          const key = item.form_id || item.formId || item.id || `application-${index}`;
+                          const formKey = item.form_id || item.formId || item.id || `application-${index}`;
                           const schemeKey = detectSchemeIdFromApplication(item);
+                          const key = `${schemeKey || "unknown"}-${formKey}`;
                           const viewScheme = schemeKey ? SCHEMES[schemeKey] : null;
                           const viewData = getPreviewDataFromApplication(item);
                           return (
                             <tr key={key}>
-                              <td><b>{key}</b></td>
+                              <td><b>{formKey}</b></td>
                               <td>{viewScheme?.name || "—"}</td>
                               <td>{viewData.name || "—"}</td>
                               <td>{viewData.village || "—"}</td>
@@ -2472,7 +3328,7 @@ export default function KisanAavedanPortal() {
                               <td>{viewData.mobile || "—"}</td>
                               <td>{printValue("date", viewData.date || item.updated_at || "—")}</td>
                               <td><span className="status-badge">✓ घोषणा जमा</span></td>
-                              <td className="action-column"><button className="view-btn" type="button" disabled={!viewScheme} onClick={() => setPreviewApplication({ item, schemeKey, data: viewData, formId: String(key) })}>देखें</button></td>
+                              <td className="action-column"><button className="view-btn" type="button" disabled={!viewScheme} onClick={() => setPreviewApplication({ item, schemeKey, data: viewData, formId: String(formKey) })}>देखें</button></td>
                             </tr>
                           );
                         })}
