@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Container,
   Form,
@@ -372,7 +372,7 @@ const NurseryPhysicalEntry = () => {
   // State to store unique created_at dates extracted from data
   const [uniqueCreatedAtDates, setUniqueCreatedAtDates] = useState([]);
 
-  // State for filter options (unique values from API)
+  // State for filter options (unique values from date-filtered data)
   const [filterOptions, setFilterOptions] = useState({
     nursery_name: [],
     crop_name: [],
@@ -407,47 +407,13 @@ const NurseryPhysicalEntry = () => {
     fetchRecipientItems();
   }, []);
 
-  // Populate filter options from all items
-  useEffect(() => {
-    if (allNurseryPhysicalItems.length > 0) {
-      setFilterOptions({
-        nursery_name: [
-          ...new Set(
-            allNurseryPhysicalItems
-              .map((item) => item.nursery_name)
-              .filter(Boolean),
-          ),
-        ].sort(),
-        crop_name: [
-          ...new Set(
-            allNurseryPhysicalItems
-              .map((item) => item.crop_name)
-              .filter(Boolean),
-          ),
-        ].sort(),
-      });
+  // Compute date-filtered data (after date filters but before multi-select filters)
+  const dateFilteredItems = useMemo(() => {
+    let filtered = allNurseryPhysicalItems;
 
-      // Extract unique created_at dates for the new date filter
-      const createdAtDates = allNurseryPhysicalItems
-        .map((item) =>
-          item.created_at
-            ? new Date(item.created_at).toISOString().split("T")[0]
-            : null,
-        )
-        .filter(Boolean);
-      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
-      setUniqueCreatedAtDates(uniqueDates);
-    }
-  }, [allNurseryPhysicalItems]);
-
-  // Apply local filtering when filters change (based on created_at field)
-  useEffect(() => {
-    // Only apply filters when both dates are selected
+    // Apply created_at date range filters (from_date, to_date)
     if (filters.from_date && filters.to_date) {
-      let filtered = allNurseryPhysicalItems;
-
-      filtered = allNurseryPhysicalItems.filter((item) => {
-        // Filter by created_at date field
+      filtered = filtered.filter((item) => {
         if (!item.created_at) {
           return false;
         }
@@ -457,13 +423,78 @@ const NurseryPhysicalEntry = () => {
         const toDate = new Date(filters.to_date);
         toDate.setHours(23, 59, 59, 999); // Set to end of day
 
-        const isDateInRange = createdAt >= fromDate && createdAt <= toDate;
+        return createdAt >= fromDate && createdAt <= toDate;
+      });
+    }
 
-        if (!isDateInRange) {
-          return false;
-        }
+    // Apply created_at filter
+    if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
+      const { selectedDate, manualDate } = createdAtFilter;
+      const filterDate = selectedDate || manualDate;
 
-        // Other filters (nursery_name, crop_name)
+      filtered = filtered.filter((item) => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at).toISOString().split("T")[0];
+        return itemDate === filterDate;
+      });
+    }
+
+    return filtered;
+  }, [allNurseryPhysicalItems, filters.from_date, filters.to_date, createdAtFilter.selectedDate, createdAtFilter.manualDate]);
+
+  // Populate filter options from date-filtered data
+  useEffect(() => {
+    if (dateFilteredItems.length > 0) {
+      setFilterOptions({
+        nursery_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.nursery_name).filter(Boolean),
+          ),
+        ].sort(),
+        crop_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.crop_name).filter(Boolean),
+          ),
+        ].sort(),
+      });
+    } else {
+      // Reset filter options when no date-filtered data
+      setFilterOptions({
+        nursery_name: [],
+        crop_name: [],
+      });
+    }
+  }, [dateFilteredItems]);
+
+  // Extract unique created_at dates from ALL data for the date selector dropdown
+  useEffect(() => {
+    if (allNurseryPhysicalItems.length > 0) {
+      const createdAtDates = allNurseryPhysicalItems
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
+        .filter(Boolean);
+      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
+      setUniqueCreatedAtDates(uniqueDates);
+    } else {
+      setUniqueCreatedAtDates([]);
+    }
+  }, [allNurseryPhysicalItems]);
+
+  // Apply local filtering when filters change (based on created_at field)
+  useEffect(() => {
+    let filtered = dateFilteredItems;
+
+    // Other filters (nursery_name, crop_name)
+    const hasFilters = Object.keys(filters).some((key) =>
+      Array.isArray(filters[key])
+        ? filters[key].length > 0
+        : filters[key].trim(),
+    );
+    if (hasFilters) {
+      filtered = dateFilteredItems.filter((item) => {
         for (const key in filters) {
           if (key === "from_date" || key === "to_date") {
             continue;
@@ -472,30 +503,14 @@ const NurseryPhysicalEntry = () => {
             return false;
           }
         }
-
         return true;
       });
-
-      // Apply created_at filter on top of other filters
-      if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
-        const { selectedDate, manualDate } = createdAtFilter;
-        const filterDate = selectedDate || manualDate;
-
-        filtered = filtered.filter((item) => {
-          if (!item.created_at) return false;
-          const itemDate = new Date(item.created_at)
-            .toISOString()
-            .split("T")[0];
-          return itemDate === filterDate;
-        });
-      }
-
-      setNurseryPhysicalItems(filtered);
-    } else {
-      // If no date range selected, show all data
-      setNurseryPhysicalItems(allNurseryPhysicalItems);
     }
-  }, [filters, allNurseryPhysicalItems, createdAtFilter]);
+
+    // Note: date range filters and created_at filter are already applied in dateFilteredItems
+
+    setNurseryPhysicalItems(filtered);
+  }, [filters, dateFilteredItems]);
 
   // Reset to page 1 when filters change
   useEffect(() => {

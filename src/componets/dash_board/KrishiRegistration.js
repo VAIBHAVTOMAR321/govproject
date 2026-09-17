@@ -426,7 +426,7 @@ const KrishiRegistration = () => {
   // State to store unique created_at dates extracted from data
   const [uniqueCreatedAtDates, setUniqueCreatedAtDates] = useState([]);
 
-  // State for filter options (unique values from API)
+  // State for filter options (unique values from date-filtered data)
   const [filterOptions, setFilterOptions] = useState({
     farmer_name: [],
     center_name: [],
@@ -872,109 +872,31 @@ const KrishiRegistration = () => {
     }
   }, [formData.center_name]);
 
-  // Populate filter options from all beneficiaries
-  useEffect(() => {
-    if (allBeneficiaries.length > 0) {
-      setFilterOptions({
-        farmer_name: [
-          ...new Set(
-            allBeneficiaries.map((item) => item.farmer_name).filter(Boolean),
-          ),
-        ],
-        center_name: [
-          ...new Set(
-            allBeneficiaries.map((item) => item.center_name).filter(Boolean),
-          ),
-        ],
-        supplied_item_name: [
-          ...new Set(
-            allBeneficiaries
-              .map((item) => item.supplied_item_name)
-              .filter(Boolean),
-          ),
-        ],
-        category: [
-          ...new Set(
-            allBeneficiaries.map((item) => item.category).filter(Boolean),
-          ),
-        ],
-        scheme_name: [
-          ...new Set(
-            allBeneficiaries.map((item) => item.scheme_name).filter(Boolean),
-          ),
-        ],
-        vikas_khand_name: [
-          ...new Set(
-            allBeneficiaries
-              .map((item) => item.vikas_khand_name)
-              .filter(Boolean),
-          ),
-        ],
-        vidhan_sabha_name: [
-          ...new Set(
-            allBeneficiaries
-              .map((item) => item.vidhan_sabha_name)
-              .filter(Boolean),
-          ),
-        ],
-      });
-
-      // Extract unique created_at dates for the new date filter
-      const createdAtDates = allBeneficiaries
-        .map((item) =>
-          item.created_at
-            ? new Date(item.created_at).toISOString().split("T")[0]
-            : null,
-        )
-        .filter(Boolean);
-      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
-      setUniqueCreatedAtDates(uniqueDates);
-    }
-  }, [allBeneficiaries]);
-
-  // Apply local filtering when filters change
-  useEffect(() => {
+  // Compute date-filtered data (after date filters but before multi-select filters)
+  const dateFilteredItems = useMemo(() => {
     let filtered = allBeneficiaries;
 
-    const hasFilters = Object.keys(filters).some((key) =>
-      Array.isArray(filters[key])
-        ? filters[key].length > 0
-        : filters[key].trim(),
-    );
-    if (hasFilters) {
-      filtered = allBeneficiaries.filter((item) => {
-        // Check all other filters
-        for (const key in filters) {
-          if (key === "start_date" || key === "end_date") continue; // Skip date filters for now
-          if (filters[key].length > 0 && !filters[key].includes(item[key])) {
-            return false;
-          }
+    // Apply beneficiary_reg_date range filters (start_date, end_date)
+    if (filters.start_date || filters.end_date) {
+      filtered = filtered.filter((item) => {
+        if (!item.beneficiary_reg_date) return false;
+
+        const itemDate = new Date(item.beneficiary_reg_date);
+        const startDate = filters.start_date ? new Date(filters.start_date) : null;
+        const endDate = filters.end_date ? new Date(filters.end_date) : null;
+
+        if (endDate) {
+          endDate.setHours(23, 59, 59, 999);
         }
 
-        // Check date range filters
-        if (filters.start_date || filters.end_date) {
-          if (!item.beneficiary_reg_date) return false; // Skip if no date field
-
-          const itemDate = new Date(item.beneficiary_reg_date);
-          const startDate = filters.start_date
-            ? new Date(filters.start_date)
-            : null;
-          const endDate = filters.end_date ? new Date(filters.end_date) : null;
-
-          // Set end date to end of day for inclusive comparison
-          if (endDate) {
-            endDate.setHours(23, 59, 59, 999);
-          }
-
-          if (startDate && itemDate < startDate) return false;
-          if (endDate && itemDate > endDate) return false;
-        }
+        if (startDate && itemDate < startDate) return false;
+        if (endDate && itemDate > endDate) return false;
 
         return true;
       });
     }
 
-    // Apply created_at filter on top of other filters
+    // Apply created_at filter
     if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
       const { selectedDate, manualDate } = createdAtFilter;
       const filterDate = selectedDate || manualDate;
@@ -986,8 +908,113 @@ const KrishiRegistration = () => {
       });
     }
 
+    return filtered;
+  }, [allBeneficiaries, filters.start_date, filters.end_date, createdAtFilter.selectedDate, createdAtFilter.manualDate]);
+
+  // Populate filter options from date-filtered data
+  useEffect(() => {
+    if (dateFilteredItems.length > 0) {
+      setFilterOptions({
+        farmer_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.farmer_name).filter(Boolean),
+          ),
+        ],
+        center_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.center_name).filter(Boolean),
+          ),
+        ],
+        supplied_item_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.supplied_item_name)
+              .filter(Boolean),
+          ),
+        ],
+        category: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.category).filter(Boolean),
+          ),
+        ],
+        scheme_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.scheme_name).filter(Boolean),
+          ),
+        ],
+        vikas_khand_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.vikas_khand_name)
+              .filter(Boolean),
+          ),
+        ],
+        vidhan_sabha_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.vidhan_sabha_name)
+              .filter(Boolean),
+          ),
+        ],
+      });
+    } else {
+      // Reset filter options when no date-filtered data
+      setFilterOptions({
+        farmer_name: [],
+        center_name: [],
+        supplied_item_name: [],
+        category: [],
+        scheme_name: [],
+        vikas_khand_name: [],
+        vidhan_sabha_name: [],
+      });
+    }
+  }, [dateFilteredItems]);
+
+  // Extract unique created_at dates from ALL data for the date selector dropdown
+  useEffect(() => {
+    if (allBeneficiaries.length > 0) {
+      const createdAtDates = allBeneficiaries
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
+        .filter(Boolean);
+      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
+      setUniqueCreatedAtDates(uniqueDates);
+    } else {
+      setUniqueCreatedAtDates([]);
+    }
+  }, [allBeneficiaries]);
+
+  // Apply local filtering when filters change
+  useEffect(() => {
+    let filtered = dateFilteredItems;
+
+    const hasFilters = Object.keys(filters).some((key) =>
+      Array.isArray(filters[key])
+        ? filters[key].length > 0
+        : filters[key].trim(),
+    );
+    if (hasFilters) {
+      filtered = dateFilteredItems.filter((item) => {
+        // Check all other filters
+        for (const key in filters) {
+          if (key === "start_date" || key === "end_date") continue; // Skip date filters for now
+          if (filters[key].length > 0 && !filters[key].includes(item[key])) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }
+
+    // Note: created_at filter is already applied in dateFilteredItems, so no need to apply again
+
     setBeneficiaries(filtered);
-  }, [filters, allBeneficiaries, createdAtFilter]);
+  }, [filters, dateFilteredItems]);
 
   const getMostFrequentValue = (list = []) => {
     const counts = list.reduce((acc, value) => {

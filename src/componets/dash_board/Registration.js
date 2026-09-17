@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Container,
   Form,
@@ -395,7 +395,7 @@ const Registration = () => {
   // State to store unique created_at dates extracted from data
   const [uniqueCreatedAtDates, setUniqueCreatedAtDates] = useState([]);
 
-  // State for filter options (unique values from API)
+  // State for filter options (unique values from date-filtered data)
   const [filterOptions, setFilterOptions] = useState({
     center_name: [],
     investment_name: [],
@@ -811,120 +811,31 @@ const Registration = () => {
     fetchCenterOptions();
   }, []);
 
-  // Populate filter options from all billing items
-  useEffect(() => {
-    if (allBillingItems.length > 0) {
-      setFilterOptions({
-        center_name: [
-          ...new Set(
-            allBillingItems.map((item) => item.center_name).filter(Boolean),
-          ),
-        ],
-        investment_name: [
-          ...new Set(
-            allBillingItems.map((item) => item.investment_name).filter(Boolean),
-          ),
-        ],
-        sub_investment_name: [
-          ...new Set(
-            allBillingItems
-              .map((item) => item.sub_investment_name)
-              .filter(Boolean),
-          ),
-        ],
-        unit: [
-          ...new Set(allBillingItems.map((item) => item.unit).filter(Boolean)),
-        ],
-        source_of_receipt: [
-          ...new Set(
-            allBillingItems
-              .map((item) => item.source_of_receipt)
-              .filter(Boolean),
-          ),
-        ],
-        scheme_name: [
-          ...new Set(
-            allBillingItems.map((item) => item.scheme_name).filter(Boolean),
-          ),
-        ],
-        vikas_khand_name: [
-          ...new Set(
-            allBillingItems
-              .map((item) => item.vikas_khand_name)
-              .filter(Boolean),
-          ),
-        ],
-        vidhan_sabha_name: [
-          ...new Set(
-            allBillingItems
-              .map((item) => item.vidhan_sabha_name)
-              .filter(Boolean),
-          ),
-        ],
-        anudan_name: [
-          ...new Set(
-            allBillingItems
-              .map((item) => item.anudan_name)
-              .filter(Boolean),
-          ),
-        ],
-      });
-
-      // Extract unique created_at dates for the new date filter
-      const createdAtDates = allBillingItems
-        .map((item) =>
-          item.created_at
-            ? new Date(item.created_at).toISOString().split("T")[0]
-            : null,
-        )
-        .filter(Boolean);
-      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
-      setUniqueCreatedAtDates(uniqueDates);
-    }
-  }, [allBillingItems]);
-
-  // Apply local filtering when filters change
-  useEffect(() => {
+  // Compute date-filtered data (after date filters but before multi-select filters)
+  const dateFilteredItems = useMemo(() => {
     let filtered = allBillingItems;
 
-    const hasFilters = Object.keys(filters).some((key) =>
-      Array.isArray(filters[key])
-        ? filters[key].length > 0
-        : filters[key].trim(),
-    );
-    if (hasFilters) {
-      filtered = allBillingItems.filter((item) => {
-        // Check all other filters
-        for (const key in filters) {
-          if (key === "start_date" || key === "end_date") continue;
-          if (filters[key].length > 0 && !filters[key].includes(item[key])) {
-            return false;
-          }
+    // Apply bill_date range filters (start_date, end_date)
+    if (filters.start_date || filters.end_date) {
+      filtered = filtered.filter((item) => {
+        if (!item.bill_date) return false;
+
+        const itemDate = new Date(item.bill_date);
+        const startDate = filters.start_date ? new Date(filters.start_date) : null;
+        const endDate = filters.end_date ? new Date(filters.end_date) : null;
+
+        if (endDate) {
+          endDate.setHours(23, 59, 59, 999);
         }
 
-        // Check date range filters (use bill_date)
-        if (filters.start_date || filters.end_date) {
-          if (!item.bill_date) return false;
-
-          const itemDate = new Date(item.bill_date);
-          const startDate = filters.start_date
-            ? new Date(filters.start_date)
-            : null;
-          const endDate = filters.end_date ? new Date(filters.end_date) : null;
-
-          if (endDate) {
-            endDate.setHours(23, 59, 59, 999);
-          }
-
-          if (startDate && itemDate < startDate) return false;
-          if (endDate && itemDate > endDate) return false;
-        }
+        if (startDate && itemDate < startDate) return false;
+        if (endDate && itemDate > endDate) return false;
 
         return true;
       });
     }
 
-    // Apply created_at filter on top of other filters
+    // Apply created_at filter
     if (createdAtFilter.selectedDate || createdAtFilter.manualDate) {
       const { selectedDate, manualDate } = createdAtFilter;
       const filterDate = selectedDate || manualDate;
@@ -936,8 +847,127 @@ const Registration = () => {
       });
     }
 
+    return filtered;
+  }, [allBillingItems, filters.start_date, filters.end_date, createdAtFilter.selectedDate, createdAtFilter.manualDate]);
+
+  // Populate filter options from date-filtered data
+  useEffect(() => {
+    if (dateFilteredItems.length > 0) {
+      setFilterOptions({
+        center_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.center_name).filter(Boolean),
+          ),
+        ],
+        investment_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.investment_name).filter(Boolean),
+          ),
+        ],
+        sub_investment_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.sub_investment_name)
+              .filter(Boolean),
+          ),
+        ],
+        unit: [
+          ...new Set(dateFilteredItems.map((item) => item.unit).filter(Boolean)),
+        ],
+        source_of_receipt: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.source_of_receipt)
+              .filter(Boolean),
+          ),
+        ],
+        scheme_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.scheme_name).filter(Boolean),
+          ),
+        ],
+        vikas_khand_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.vikas_khand_name)
+              .filter(Boolean),
+          ),
+        ],
+        vidhan_sabha_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.vidhan_sabha_name)
+              .filter(Boolean),
+          ),
+        ],
+        anudan_name: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.anudan_name)
+              .filter(Boolean),
+          ),
+        ],
+      });
+    } else {
+      // Reset filter options when no date-filtered data
+      setFilterOptions({
+        center_name: [],
+        investment_name: [],
+        sub_investment_name: [],
+        unit: [],
+        source_of_receipt: [],
+        scheme_name: [],
+        vikas_khand_name: [],
+        vidhan_sabha_name: [],
+        anudan_name: [],
+      });
+    }
+  }, [dateFilteredItems]);
+
+  // Extract unique created_at dates from ALL data for the date selector dropdown
+  useEffect(() => {
+    if (allBillingItems.length > 0) {
+      const createdAtDates = allBillingItems
+        .map((item) =>
+          item.created_at
+            ? new Date(item.created_at).toISOString().split("T")[0]
+            : null,
+        )
+        .filter(Boolean);
+      const uniqueDates = [...new Set(createdAtDates)].sort().reverse();
+      setUniqueCreatedAtDates(uniqueDates);
+    } else {
+      setUniqueCreatedAtDates([]);
+    }
+  }, [allBillingItems]);
+
+  // Apply local filtering when filters change
+  useEffect(() => {
+    let filtered = dateFilteredItems;
+
+    const hasFilters = Object.keys(filters).some((key) =>
+      Array.isArray(filters[key])
+        ? filters[key].length > 0
+        : filters[key].trim(),
+    );
+    if (hasFilters) {
+      filtered = dateFilteredItems.filter((item) => {
+        // Check all other filters
+        for (const key in filters) {
+          if (key === "start_date" || key === "end_date") continue;
+          if (filters[key].length > 0 && !filters[key].includes(item[key])) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }
+
+    // Note: created_at filter and date range filters are already applied in dateFilteredItems, so no need to apply again
+
     setBillingItems(filtered);
-  }, [filters, allBillingItems, createdAtFilter]);
+  }, [filters, dateFilteredItems]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
