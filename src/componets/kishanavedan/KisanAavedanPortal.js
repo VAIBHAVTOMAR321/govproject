@@ -2941,260 +2941,316 @@ export default function KisanAavedanPortal() {
       return;
     }
 
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.border = "0";
-    iframe.style.opacity = "0";
-    iframe.style.pointerEvents = "none";
+    const clone = source.cloneNode(true);
 
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText =
+      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
     document.body.appendChild(iframe);
 
-    const printDocument = iframe.contentDocument;
-    const printWindow = iframe.contentWindow;
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
-    if (!printDocument || !printWindow) {
-      iframe.remove();
-      window.alert("प्रिंट विंडो तैयार नहीं हो सकी।");
+    const html = `
+      <!DOCTYPE html>
+      <html lang="hi">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${scheme.full || "कृषक आवेदन पत्र"}</title>
+        <style>
+          @page { size: A4 portrait; margin: 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: "Noto Sans Devanagari", "Nirmala UI", "Mangal", "Segoe UI", sans-serif;
+            background: #fff;
+            color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print-document {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: auto !important;
+            background: #fff !important;
+          }
+          .print-page {
+            display: block !important;
+            visibility: visible !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 auto !important;
+            padding: 12mm !important;
+            box-sizing: border-box !important;
+            background: #fff !important;
+            color: #000 !important;
+            box-shadow: none !important;
+          }
+          .print-document-preview { display: none !important; }
+          .print-table tr { break-inside: avoid; page-break-inside: avoid; }
+          .print-avoid-break { break-inside: avoid !important; page-break-inside: avoid !important; }
+          .print-photo img { display: block !important; max-width: 100% !important; }
+          .print-top { min-height: 36mm; position: relative; }
+          .print-app-no { font-size: 10.5pt; font-weight: 700; padding-right: 34mm; }
+          .print-photo {
+            position: absolute; top: 0; right: 0;
+            width: 28mm; height: 34mm;
+            border: 1px solid #000;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 8.5pt; line-height: 1.35;
+          }
+          .print-title { margin: 2mm 0 1mm; text-align: center; font-size: 17pt; font-weight: 800; }
+          .print-department { text-align: center; font-size: 11pt; font-weight: 700; margin-bottom: 5mm; }
+          .print-section { margin-top: 5mm; }
+          .print-section h2 {
+            margin: 0 0 2mm; padding-bottom: 1.5mm;
+            border-bottom: 1px solid #000; font-size: 12.5pt; font-weight: 800;
+          }
+          .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          .print-table td {
+            border: 1px solid #555; padding: 2.2mm 2.5mm;
+            vertical-align: top; overflow-wrap: anywhere;
+          }
+          .print-table .print-key { width: 36%; background: #f2f2f2; font-weight: 700; }
+          .print-list { margin: 0; padding-left: 7mm; }
+          .print-list li { margin: 1.5mm 0; line-height: 1.5; }
+          .print-note { margin: 2mm 0 0; font-size: 9.5pt; line-height: 1.5; }
+          .print-check { font-weight: 700; }
+          .print-signatures { display: flex; justify-content: space-between; gap: 20mm; margin-top: 13mm; font-size: 10.5pt; }
+          .print-signatures > div:last-child { text-align: right; }
+          .print-officer { margin-top: 10mm; padding-top: 4mm; border-top: 1px solid #000; font-size: 10.5pt; }
+          .print-officer p { margin: 2mm 0 8mm; }
+          @media print {
+            html, body { width: 100% !important; background: #fff !important; }
+            .print-document { display: block !important; }
+          }
+        </style>
+      </head>
+      <body>
+        ${clone.outerHTML}
+      </body>
+      </html>
+    `;
+
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    const iframeWindow = iframe.contentWindow;
+    let printTriggered = false;
+
+    const triggerIframePrint = () => {
+      if (printTriggered) return;
+      printTriggered = true;
+      iframeWindow.focus();
+      iframeWindow.print();
+    };
+
+    const iframeImages = iframeDoc.querySelectorAll("img");
+    if (iframeImages.length === 0) {
+      setTimeout(triggerIframePrint, 300);
       return;
     }
 
-    const styles = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style'),
-    )
-      .map((node) => {
-        if (node.tagName.toLowerCase() === "link") {
-          return `<link rel="stylesheet" href="${node.href}">`;
-        }
-        return `<style>${node.textContent || ""}</style>`;
-      })
-      .join("\n");
+    let pendingCount = 0;
 
-    const printableHtml = source.outerHTML
-      .replace(/position:\s*absolute/gi, "position: static")
-      .replace(/left:\s*-9999px/gi, "left: 0")
-      .replace(/opacity:\s*0/gi, "opacity: 1")
-      .replace(/z-index:\s*-1/gi, "z-index: 1");
-
-    printDocument.open();
-    printDocument.write(`<!doctype html>
-<html lang="hi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${scheme.full || "कृषक आवेदन पत्र"}</title>
-  ${styles}
-  <style>
-    @page {
-      size: A4 portrait;
-      margin: 0;
-    }
-
-    html,
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-      width: 100% !important;
-      min-height: 0 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    .print-document {
-      display: block !important;
-      position: static !important;
-      left: 0 !important;
-      top: 0 !important;
-      width: 100% !important;
-      height: auto !important;
-      min-height: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: visible !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      z-index: 1 !important;
-      pointer-events: auto !important;
-      background: #fff !important;
-    }
-
-    .print-page {
-      display: block !important;
-      visibility: visible !important;
-      width: 210mm !important;
-      min-height: 297mm !important;
-      margin: 0 !important;
-      padding: 12mm !important;
-      box-sizing: border-box !important;
-      background: #fff !important;
-      color: #000 !important;
-      box-shadow: none !important;
-    }
-
-    .print-document-preview {
-      display: none !important;
-    }
-
-    .print-table tr {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-
-    .print-avoid-break {
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-    }
-
-    .print-photo img {
-      display: block !important;
-      max-width: 100% !important;
-    }
-
-    @media print {
-      html,
-      body {
-        width: 100% !important;
-        background: #fff !important;
+    const onImageReady = () => {
+      pendingCount -= 1;
+      if (pendingCount <= 0 && !printTriggered) {
+        setTimeout(triggerIframePrint, 100);
       }
-
-      .print-document {
-        display: block !important;
-      }
-    }
-  </style>
-</head>
-<body>
-  ${printableHtml}
-</body>
-</html>`);
-    printDocument.close();
-
-    const finish = () => {
-      window.setTimeout(() => iframe.remove(), 500);
     };
 
-    const waitForImages = () => {
-      const images = Array.from(printDocument.images || []);
+    Array.from(iframeImages).forEach((img) => {
+      if (img.complete) return;
+      pendingCount += 1;
+      img.addEventListener("load", onImageReady, { once: true });
+      img.addEventListener("error", onImageReady, { once: true });
+    });
 
-      if (!images.length) {
-        printWindow.focus();
-        printWindow.print();
-        finish();
-        return;
+    setTimeout(() => {
+      if (!printTriggered) {
+        triggerIframePrint();
       }
+    }, 2000);
 
-      let remaining = images.length;
-      let done = false;
-
-      const complete = () => {
-        if (done) return;
-        remaining -= 1;
-        if (remaining > 0) return;
-        done = true;
-        printWindow.focus();
-        printWindow.print();
-        finish();
-      };
-
-      images.forEach((img) => {
-        if (img.complete) {
-          complete();
-        } else {
-          img.addEventListener("load", complete, { once: true });
-          img.addEventListener("error", complete, { once: true });
-        }
-      });
-
-      window.setTimeout(() => {
-        if (done) return;
-        done = true;
-        printWindow.focus();
-        printWindow.print();
-        finish();
-      }, 2500);
+    const cleanupIframe = () => {
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
     };
 
-    window.setTimeout(waitForImages, 300);
+    iframeWindow.addEventListener("afterprint", cleanupIframe, { once: true });
+    setTimeout(cleanupIframe, 30000);
   };
 
-  // Print exactly the same A4 document that is visible in the full-screen
-  // "देखें" modal. We intentionally do not create an iframe or clone the
-  // document because that can lose the component styles and produce blank pages.
   const printCompletedApplication = () => {
     if (!previewApplication?.schemeKey) {
       window.alert("प्रिंट के लिए आवेदन पूर्वावलोकन उपलब्ध नहीं है।");
       return;
     }
 
-    const overlay = document.querySelector(".application-preview-overlay");
-    const modal = overlay?.querySelector(".application-preview-modal");
-    const documentNode = modal?.querySelector(".print-document-preview");
-
-    if (!overlay || !modal || !documentNode) {
+    const documentNode = document.querySelector(".print-document-preview");
+    if (!documentNode) {
       window.alert("प्रिंट के लिए आवेदन तैयार नहीं है। कृपया पुनः प्रयास करें।");
       return;
     }
 
-    // The CSS print rules use this class to expose only the modal/document.
-    document.body.classList.add("printing-completed-application");
+    const clone = documentNode.cloneNode(true);
 
-    let cleaned = false;
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      document.body.classList.remove("printing-completed-application");
-      window.removeEventListener("afterprint", cleanup);
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText =
+      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="hi">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>आवेदन प्रिंट - ${previewApplication.formId || ""}</title>
+        <style>
+          @page { size: A4 portrait; margin: 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: "Noto Sans Devanagari", "Nirmala UI", "Mangal", "Segoe UI", sans-serif;
+            background: #fff;
+            color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print-document {
+            display: block !important;
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: auto !important;
+            background: #fff !important;
+          }
+          .print-page {
+            display: block !important;
+            visibility: visible !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 auto !important;
+            padding: 12mm !important;
+            box-sizing: border-box !important;
+            background: #fff !important;
+            color: #000 !important;
+            box-shadow: none !important;
+          }
+          .print-document-preview { display: none !important; }
+          .print-table tr { break-inside: avoid; page-break-inside: avoid; }
+          .print-avoid-break { break-inside: avoid !important; page-break-inside: avoid !important; }
+          .print-photo img { display: block !important; max-width: 100% !important; }
+          .print-top { min-height: 36mm; position: relative; }
+          .print-app-no { font-size: 10.5pt; font-weight: 700; padding-right: 34mm; }
+          .print-photo {
+            position: absolute; top: 0; right: 0;
+            width: 28mm; height: 34mm;
+            border: 1px solid #000;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 8.5pt; line-height: 1.35;
+          }
+          .print-title { margin: 2mm 0 1mm; text-align: center; font-size: 17pt; font-weight: 800; }
+          .print-department { text-align: center; font-size: 11pt; font-weight: 700; margin-bottom: 5mm; }
+          .print-section { margin-top: 5mm; }
+          .print-section h2 {
+            margin: 0 0 2mm; padding-bottom: 1.5mm;
+            border-bottom: 1px solid #000; font-size: 12.5pt; font-weight: 800;
+          }
+          .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          .print-table td {
+            border: 1px solid #555; padding: 2.2mm 2.5mm;
+            vertical-align: top; overflow-wrap: anywhere;
+          }
+          .print-table .print-key { width: 36%; background: #f2f2f2; font-weight: 700; }
+          .print-list { margin: 0; padding-left: 7mm; }
+          .print-list li { margin: 1.5mm 0; line-height: 1.5; }
+          .print-note { margin: 2mm 0 0; font-size: 9.5pt; line-height: 1.5; }
+          .print-check { font-weight: 700; }
+          .print-signatures { display: flex; justify-content: space-between; gap: 20mm; margin-top: 13mm; font-size: 10.5pt; }
+          .print-signatures > div:last-child { text-align: right; }
+          .print-officer { margin-top: 10mm; padding-top: 4mm; border-top: 1px solid #000; font-size: 10.5pt; }
+          .print-officer p { margin: 2mm 0 8mm; }
+          @media print {
+            html, body { width: 100% !important; background: #fff !important; }
+            .print-document { display: block !important; }
+          }
+        </style>
+      </head>
+      <body>
+        ${clone.outerHTML}
+      </body>
+      </html>
+    `;
+
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    const iframeWindow = iframe.contentWindow;
+    let printTriggered = false;
+
+    const triggerIframePrint = () => {
+      if (printTriggered) return;
+      printTriggered = true;
+      iframeWindow.focus();
+      iframeWindow.print();
     };
 
-    window.addEventListener("afterprint", cleanup, { once: true });
-
-    const printNow = () => {
-      // Force browser layout/repaint before opening the native print preview.
-      void documentNode.offsetHeight;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.print();
-        });
-      });
-    };
-
-    // Wait for application images before printing. This avoids a blank image
-    // area in Chrome's print preview.
-    const images = Array.from(documentNode.querySelectorAll("img"));
-    const pendingImages = images.filter((img) => !img.complete);
-
-    if (pendingImages.length === 0) {
-      printNow();
+    const iframeImages = iframeDoc.querySelectorAll("img");
+    if (iframeImages.length === 0) {
+      setTimeout(triggerIframePrint, 300);
       return;
     }
 
-    let remaining = pendingImages.length;
-    let finished = false;
+    let pendingCount = 0;
 
-    const ready = () => {
-      if (finished) return;
-      remaining -= 1;
-      if (remaining > 0) return;
-      finished = true;
-      printNow();
+    const onImageReady = () => {
+      pendingCount -= 1;
+      if (pendingCount <= 0 && !printTriggered) {
+        setTimeout(triggerIframePrint, 100);
+      }
     };
 
-    pendingImages.forEach((img) => {
-      img.addEventListener("load", ready, { once: true });
-      img.addEventListener("error", ready, { once: true });
+    Array.from(iframeImages).forEach((img) => {
+      if (img.complete) return;
+      pendingCount += 1;
+      img.addEventListener("load", onImageReady, { once: true });
+      img.addEventListener("error", onImageReady, { once: true });
     });
 
-    // Never leave the page stuck in print mode if an image request hangs.
-    window.setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      printNow();
-    }, 3000);
+    setTimeout(() => {
+      if (!printTriggered) {
+        triggerIframePrint();
+      }
+    }, 2000);
+
+    const cleanupIframe = () => {
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+    };
+
+    iframeWindow.addEventListener("afterprint", cleanupIframe, { once: true });
+    setTimeout(cleanupIframe, 30000);
   };
 
   if (!scheme)
