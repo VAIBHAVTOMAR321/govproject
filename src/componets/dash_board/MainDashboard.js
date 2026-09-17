@@ -290,7 +290,7 @@ const MainDashboard = () => {
     remark: false,
   });
 
-  // State for filter options (populated from API)
+  // State for filter options (unique values from date-filtered data)
   const [filterOptions, setFilterOptions] = useState({
     center_name: [],
     sub_investment_name: [],
@@ -2058,79 +2058,7 @@ const MainDashboard = () => {
         setDateFilter({ start, end });
         setIsDateFilterApplied(true);
 
-        // Filter data by financial year
-        const financialYearFiltered = data.filter((item) => {
-          if (!item.bill_date) return false;
-          const itemDate = new Date(item.bill_date);
-          const startDate = new Date(start);
-          const endDate = new Date(end);
-          endDate.setHours(23, 59, 59, 999);
-          return itemDate >= startDate && itemDate <= endDate;
-        });
-
-        // Extract unique values for each filter field
-        const uniqueOptions = {
-          center_name: [
-            ...new Set(data.map((item) => item.center_name).filter(Boolean)),
-          ],
-          sub_investment_name: [
-            ...new Set(
-              data.map((item) => item.sub_investment_name).filter(Boolean),
-            ),
-          ],
-          investment_name: [
-            ...new Set(
-              data.map((item) => item.investment_name).filter(Boolean),
-            ),
-          ],
-          source_of_receipt: [
-            ...new Set(
-              data.map((item) => item.source_of_receipt).filter(Boolean),
-            ),
-          ],
-          scheme_name: [
-            ...new Set(data.map((item) => item.scheme_name).filter(Boolean)),
-          ],
-          vikas_khand_name: [
-            ...new Set(
-              data.map((item) => item.vikas_khand_name).filter(Boolean),
-            ),
-          ],
-          vidhan_sabha_name: [
-            ...new Set(
-              data.map((item) => item.vidhan_sabha_name).filter(Boolean),
-            ),
-          ],
-          unit: [...new Set(data.map((item) => item.unit).filter(Boolean))],
-          farmer_selling_rate: [
-            ...new Set(
-              data
-                .map((item) => item.farmer_selling_rate)
-                .filter((v) => v !== null && v !== undefined && v !== ""),
-            ),
-          ],
-          farmer_subsidy_rate: [
-            ...new Set(
-              data
-                .map((item) => item.farmer_subsidy_rate)
-                .filter((v) => v !== null && v !== undefined && v !== ""),
-            ),
-          ],
-          anudan_name: [
-            ...new Set(data.map((item) => item.anudan_name).filter(Boolean)),
-          ],
-          remark: [
-            ...new Set(data.map((item) => item.remark).filter(Boolean)),
-          ],
-        };
-
         setTableData(data);
-        setFilteredTableData(financialYearFiltered);
-        setFilterOptions((prev) => ({
-          ...prev,
-          ...uniqueOptions,
-        }));
-
         setError(null);
       } catch (err) {
         console.error("Error fetching filter options:", err);
@@ -2142,6 +2070,110 @@ const MainDashboard = () => {
 
     fetchFilterOptions();
   }, []);
+
+  // Compute date-filtered data (after date range filter but before multi-select filters)
+  const dateFilteredItems = useMemo(() => {
+    let filtered = tableData;
+
+    // Apply bill_date range filter (dateFilter)
+    if (dateFilter.start && dateFilter.end) {
+      filtered = filtered.filter((item) => {
+        if (!item.bill_date) return false;
+        const itemDate = new Date(item.bill_date);
+        const startDate = new Date(dateFilter.start);
+        const endDate = new Date(dateFilter.end);
+        endDate.setHours(23, 59, 59, 999);
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+    }
+
+    return filtered;
+  }, [tableData, dateFilter.start, dateFilter.end]);
+
+  // Populate filter options from date-filtered data
+  useEffect(() => {
+    if (dateFilteredItems.length > 0) {
+      const uniqueOptions = {
+        center_name: [
+          ...new Set(dateFilteredItems.map((item) => item.center_name).filter(Boolean)),
+        ],
+        sub_investment_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.sub_investment_name).filter(Boolean),
+          ),
+        ],
+        investment_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.investment_name).filter(Boolean),
+          ),
+        ],
+        source_of_receipt: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.source_of_receipt).filter(Boolean),
+          ),
+        ],
+        scheme_name: [
+          ...new Set(dateFilteredItems.map((item) => item.scheme_name).filter(Boolean)),
+        ],
+        vikas_khand_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.vikas_khand_name).filter(Boolean),
+          ),
+        ],
+        vidhan_sabha_name: [
+          ...new Set(
+            dateFilteredItems.map((item) => item.vidhan_sabha_name).filter(Boolean),
+          ),
+        ],
+        unit: [...new Set(dateFilteredItems.map((item) => item.unit).filter(Boolean))],
+        farmer_selling_rate: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.farmer_selling_rate)
+              .filter((v) => v !== null && v !== undefined && v !== ""),
+          ),
+        ],
+        farmer_subsidy_rate: [
+          ...new Set(
+            dateFilteredItems
+              .map((item) => item.farmer_subsidy_rate)
+              .filter((v) => v !== null && v !== undefined && v !== ""),
+          ),
+        ],
+        anudan_name: [
+          ...new Set(dateFilteredItems.map((item) => item.anudan_name).filter(Boolean)),
+        ],
+        remark: [
+          ...new Set(dateFilteredItems.map((item) => item.remark).filter(Boolean)),
+        ],
+      };
+
+      setFilterOptions((prev) => ({
+        ...prev,
+        ...uniqueOptions,
+      }));
+
+      // Apply date filter to get initial filteredTableData
+      setFilteredTableData(dateFilteredItems);
+    } else {
+      // Reset filter options when no date-filtered data
+      setFilterOptions({
+        center_name: [],
+        sub_investment_name: [],
+        investment_name: [],
+        source_of_receipt: [],
+        scheme_name: [],
+        vikas_khand_name: [],
+        vidhan_sabha_name: [],
+        unit: [],
+        anudan_name: [],
+        farmer_selling_rate: [],
+        farmer_subsidy_rate: [],
+        remark: [],
+      });
+      setFilteredTableData([]);
+    }
+  }, [dateFilteredItems]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -2172,17 +2204,6 @@ const MainDashboard = () => {
     setAdditionalTables([]);
     setMainSummaryExpandedColumns({});
     setNavigationHistory([]);
-
-    // Refresh table with financial year data
-    const financialYearFiltered = tableData.filter((item) => {
-      if (!item.bill_date) return false;
-      const itemDate = new Date(item.bill_date);
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-      endDate.setHours(23, 59, 59, 999);
-      return itemDate >= startDate && itemDate <= endDate;
-    });
-    setFilteredTableData(financialYearFiltered);
     // Ensure the summary heading updates immediately
     checkIfTopFiltersApplied();
   };
@@ -2520,7 +2541,7 @@ const MainDashboard = () => {
   // Apply filters (with date range)
   const applyFilters = () => {
     setIsApplyingFilters(true);
-    let filteredData = tableData.filter((item) => {
+    let filteredData = dateFilteredItems.filter((item) => {
       const selected = (key) =>
         Array.isArray(filters[key]) ? filters[key] : [];
 
@@ -2552,19 +2573,7 @@ const MainDashboard = () => {
       );
     });
 
-    // Date filter logic
-    if (dateFilter.start && dateFilter.end) {
-      filteredData = filteredData.filter((item) => {
-        if (!item.bill_date) return false;
-        const itemDate = new Date(item.bill_date);
-        const startDate = new Date(dateFilter.start);
-        const endDate = new Date(dateFilter.end);
-        return itemDate >= startDate && itemDate <= endDate;
-      });
-      setIsDateFilterApplied(true);
-    } else {
-      setIsDateFilterApplied(false);
-    }
+    // Note: date filter is already applied in dateFilteredItems
 
     setFilteredTableData(filteredData);
     setCurrentPage(1);
