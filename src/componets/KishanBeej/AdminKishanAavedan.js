@@ -321,87 +321,137 @@ function AdminKishanAavedan() {
   const printApplication = () => {
     if (!viewingApplication) return;
 
-    const overlay = document.querySelector('.application-preview-overlay');
-    const modal = overlay?.querySelector('.application-preview-modal');
-    const documentNode = modal?.querySelector('.print-document-preview');
-
-    if (!overlay || !modal || !documentNode) {
+    const documentNode = document.querySelector('.print-document-preview');
+    if (!documentNode) {
       window.alert('प्रिंट के लिए आवेदन तैयार नहीं है। कृपया पुनः प्रयास करें।');
       return;
     }
 
-    const body = document.body;
-    body.classList.add('printing-completed-application');
+    const clone = documentNode.cloneNode(true);
 
-    let cleaned = false;
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText =
+      'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(iframe);
 
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      body.classList.remove('printing-completed-application');
-      window.removeEventListener('afterprint', cleanup);
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>आवेदन प्रिंट - ${adminPrintText(viewingApplication.form_id)}</title>
+        <style>
+          @page { size: A4 portrait; margin: 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: "Noto Sans Devanagari", "Nirmala UI", "Mangal", "Segoe UI", sans-serif;
+            background: #fff;
+            color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 12mm;
+            background: #fff;
+            color: #000;
+            font-size: 11.5pt;
+            line-height: 1.5;
+          }
+          .print-top { min-height: 36mm; position: relative; }
+          .print-app-no { font-size: 10.5pt; font-weight: 700; padding-right: 34mm; }
+          .print-photo {
+            position: absolute; top: 0; right: 0;
+            width: 28mm; height: 34mm;
+            border: 1px solid #000;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 8.5pt; line-height: 1.35;
+          }
+          .print-photo img { width: 100%; height: 100%; object-fit: cover; }
+          .print-title { margin: 2mm 0 1mm; text-align: center; font-size: 17pt; font-weight: 800; }
+          .print-department { text-align: center; font-size: 11pt; font-weight: 700; margin-bottom: 5mm; }
+          .print-section { margin-top: 5mm; }
+          .print-section h2 {
+            margin: 0 0 2mm; padding-bottom: 1.5mm;
+            border-bottom: 1px solid #000; font-size: 12.5pt; font-weight: 800;
+          }
+          .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          .print-table td {
+            border: 1px solid #555; padding: 2.2mm 2.5mm;
+            vertical-align: top; overflow-wrap: anywhere;
+          }
+          .print-table .print-key {
+            width: 36%; background: #f2f2f2; font-weight: 700;
+          }
+          .print-list { margin: 0; padding-left: 7mm; }
+          .print-list li { margin: 1.5mm 0; line-height: 1.5; }
+          .print-note { margin: 2mm 0 0; font-size: 9.5pt; line-height: 1.5; }
+          .print-check { font-weight: 700; }
+          .print-signatures { display: flex; justify-content: space-between; gap: 20mm; margin-top: 13mm; font-size: 10.5pt; }
+          .print-signatures > div:last-child { text-align: right; }
+          .print-officer { margin-top: 10mm; padding-top: 4mm; border-top: 1px solid #000; font-size: 10.5pt; }
+          .print-officer p { margin: 2mm 0 8mm; }
+        </style>
+      </head>
+      <body>
+        ${clone.outerHTML}
+      </body>
+      </html>
+    `;
+
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    const iframeWindow = iframe.contentWindow;
+    let printTriggered = false;
+
+    const triggerIframePrint = () => {
+      if (printTriggered) return;
+      printTriggered = true;
+      iframeWindow.focus();
+      iframeWindow.print();
     };
 
-    window.addEventListener('afterprint', cleanup, { once: true });
-
-    const printNow = () => {
-      /*
-       * Force Chromium to recalculate the print layout after the
-       * print-only CSS has changed the modal from fixed/scrolling
-       * layout to normal A4 document flow.
-       */
-      void overlay.offsetWidth;
-      void modal.offsetWidth;
-      void documentNode.offsetWidth;
-      void documentNode.offsetHeight;
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.print();
-        });
-      });
-    };
-
-    /*
-     * If the application contains a farmer photo, wait for it before
-     * printing. A broken image must never block printing.
-     */
-    const images = Array.from(documentNode.querySelectorAll('img'));
-    const pendingImages = images.filter((img) => !img.complete);
-
-    if (pendingImages.length === 0) {
-      printNow();
+    const iframeImages = iframeDoc.querySelectorAll('img');
+    if (iframeImages.length === 0) {
+      setTimeout(triggerIframePrint, 300);
       return;
     }
 
-    let remaining = pendingImages.length;
-    let started = false;
+    let pendingCount = 0;
 
-    const imageReady = () => {
-      if (started || cleaned) return;
-
-      remaining -= 1;
-
-      if (remaining <= 0) {
-        started = true;
-        printNow();
+    const onImageReady = () => {
+      pendingCount -= 1;
+      if (pendingCount <= 0 && !printTriggered) {
+        setTimeout(triggerIframePrint, 100);
       }
     };
 
-    pendingImages.forEach((img) => {
-      img.addEventListener('load', imageReady, { once: true });
-      img.addEventListener('error', imageReady, { once: true });
+    Array.from(iframeImages).forEach((img) => {
+      if (img.complete) return;
+      pendingCount += 1;
+      img.addEventListener('load', onImageReady, { once: true });
+      img.addEventListener('error', onImageReady, { once: true });
     });
 
-    /*
-     * Fallback: do not keep the print dialog waiting forever because
-     * an image request is slow or unavailable.
-     */
-    window.setTimeout(() => {
-      if (started || cleaned) return;
-      started = true;
-      printNow();
+    setTimeout(() => {
+      if (!printTriggered) {
+        triggerIframePrint();
+      }
     }, 2000);
+
+    const cleanupIframe = () => {
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+    };
+
+    iframeWindow.addEventListener('afterprint', cleanupIframe, { once: true });
+    setTimeout(cleanupIframe, 30000);
   };
 
   useEffect(() => {
