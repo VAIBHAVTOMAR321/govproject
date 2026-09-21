@@ -381,6 +381,7 @@ const Registration = () => {
     scheme_name: [],
     vikas_khand_name: [],
     vidhan_sabha_name: [],
+    anudan_name: [],
     start_date: "",
     end_date: "",
   });
@@ -803,6 +804,7 @@ const Registration = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
+      anudan_name: [],
       start_date: financialYearDates.start_date,
       end_date: financialYearDates.end_date,
     });
@@ -994,6 +996,7 @@ const Registration = () => {
       scheme_name: [],
       vikas_khand_name: [],
       vidhan_sabha_name: [],
+      anudan_name: [],
       start_date: financialYearDates.start_date,
       end_date: financialYearDates.end_date,
     });
@@ -4024,6 +4027,34 @@ const Registration = () => {
                               }));
                             }}
                             options={filterOptions.vidhan_sabha_name.map(
+                              (option) => ({ value: option, label: option }),
+                            )}
+                            className="compact-input"
+                            placeholder="चुनें"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12} sm={6} md={3}>
+                        <Form.Group className="mb-2">
+                          <Form.Label className="small-fonts fw-bold">
+                            {translations.anudanName}
+                          </Form.Label>
+                          <Select
+                            isMulti
+                            name="anudan_name"
+                            value={filters.anudan_name.map((val) => ({
+                              value: val,
+                              label: val,
+                            }))}
+                            onChange={(selected) => {
+                              setFilters((prev) => ({
+                                ...prev,
+                                anudan_name: selected
+                                  ? selected.map((s) => s.value)
+                                  : [],
+                              }));
+                            }}
+                            options={filterOptions.anudan_name.map(
                               (option) => ({ value: option, label: option }),
                             )}
                             className="compact-input"
