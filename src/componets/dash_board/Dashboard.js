@@ -718,7 +718,7 @@ const SummaryFilteredTable = ({ data }) => {
   );
 };
 
-const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
+const SummaryMadUpMadTable = ({ data }) => {
   const summaryWiseUniq = values => [...new Set(
     values.filter(v => v !== null && v !== undefined && String(v).trim() !== '')
   )].sort((a, b) => String(a).localeCompare(String(b), 'hi'));
@@ -780,8 +780,8 @@ const SummaryMadUpMadTable = ({ data, fixedPlan }) => {
   // Five independent filters for this table.
   // Empty/null selection means ALL values for that filter.
   const summaryWiseBaseRows = useMemo(
-    () => (Array.isArray(data) ? data : []).filter(r => !fixedPlan || r.kraya !== fixedPlan),
-    [data, fixedPlan]
+    () => (Array.isArray(data) ? data : []),
+    [data]
   );
 
   const summaryWiseFilterDefinitions = [
@@ -1609,13 +1609,11 @@ const DynamicReportTabs = ({ sourceData }) => {
 
   const summaryRows = useMemo(() => (
     applyFilters(summaryDateRows, summaryFilters, ['vahan', 'kendra'])
-      .filter(r => !fixedPlan || r.kraya !== fixedPlan)
-  ), [summaryDateRows, summaryFilters, fixedPlan]);
+  ), [summaryDateRows, summaryFilters]);
 
   const progressRows = useMemo(() => (
     applyFilters(progressDateRows, progressFilters, ['vahan', 'kendra', 'block', 'vidhan'])
-      .filter(r => !fixedPlan || r.kraya !== fixedPlan)
-  ), [progressDateRows, progressFilters, fixedPlan]);
+  ), [progressDateRows, progressFilters]);
 
   const saleRows = useMemo(() => (
     fixedPlan
@@ -1623,17 +1621,16 @@ const DynamicReportTabs = ({ sourceData }) => {
       : []
   ), [saleDateRows, saleFilters, fixedPlan]);
 
-  // ---------------------------------------------------------------------------
   // Two additional tables required inside "योजना प्रगति विवरण".
   // They intentionally do NOT use the main progress filters. They work exactly
   // like the reference HTML:
   //   1. Select a ब्लॉक -> show its centers as columns.
   //   2. Select a विधानसभा -> show its centers as columns.
-  // Both tables use grant-bearing data only (4401 is excluded).
+  // Both tables include all grant-bearing rows, including 4401 / जिला योजना data.
   // ---------------------------------------------------------------------------
   const grantRows = useMemo(
-    () => progressDateRows.filter(r => !fixedPlan || r.kraya !== fixedPlan),
-    [progressDateRows, fixedPlan]
+    () => progressDateRows,
+    [progressDateRows]
   );
 
   const progressBlockOptions = useMemo(
@@ -2316,7 +2313,7 @@ const DynamicReportTabs = ({ sourceData }) => {
             <h6 className="dynamic-report-subtitle">
               2) मद / उप-मद  के नाम अनुसार — योजना-वार
             </h6>
-            <SummaryMadUpMadTable data={summaryRows} fixedPlan={fixedPlan} />
+            <SummaryMadUpMadTable data={summaryRows} />
           </div>
         )}
 
