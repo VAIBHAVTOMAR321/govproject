@@ -149,7 +149,7 @@ const translations = {
   pageNoLabel: "पेज नंबर",
   savePageNo: "पेज नंबर सेव करें",
   pageNoEmptyError: "कृपया कम से कम एक उप-निवेश के लिए पेज नंबर दर्ज करें।",
-  noUniqueSubnivesh: "API से कोई उप-निवेश नाम उपलब्ध नहीं है।",
+  noUniqueSubnivesh: "कोई उप-निवेश नाम उपलब्ध नहीं है।",
   closeBtn: "बंद करें",
 };
 
@@ -262,7 +262,6 @@ const Billing = () => {
   const [pageNoInputs, setPageNoInputs] = useState({});
   const [savingPageNo, setSavingPageNo] = useState(false);
   const [pageNoRecordId, setPageNoRecordId] = useState(1);
-  const [apiSubniveshData, setApiSubniveshData] = useState([]); // <-- Only API data will be stored here
 
   const columnMapping = {
     sno: { header: "क्र.सं.", accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
@@ -367,6 +366,19 @@ const Billing = () => {
       return matchesCenter && matchesSource && matchesScheme && matchesNivesh && matchesSubnivesh && matchesDateRange;
     });
   }, [billingData, filters, fromDate, toDate]);
+
+  // Unique sub_investment_name values from filtered data (used for modal)
+  const uniqueSubniveshNames = useMemo(() => {
+    if (!filteredData || filteredData.length === 0) return [];
+    const uniqueSet = new Set();
+    filteredData.forEach((item) => {
+      const name = item.sub_investment_name;
+      if (name !== null && name !== undefined && String(name).trim() !== "") {
+        uniqueSet.add(String(name).trim());
+      }
+    });
+    return Array.from(uniqueSet);
+  }, [filteredData]);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -482,35 +494,41 @@ const Billing = () => {
           if (data.id) setPageNoRecordId(data.id);
           
           const existingPagenos = {};
-          const fetchedNames = [];
-          
           // Parse the [[["name1"], pageno1], [["name2"], pageno2]] format
           data.component_pageno.forEach((item) => {
             if (Array.isArray(item) && item.length === 2) {
               const nameArray = item[0];
               const pageno = item[1];
               if (nameArray && nameArray.length > 0) {
-                const name = nameArray[0];
-                fetchedNames.push(name);
-                existingPagenos[name] = pageno;
+                existingPagenos[nameArray[0]] = pageno;
               }
             }
           });
           
-          // ONLY Set the API Data to State
-          setApiSubniveshData(fetchedNames);
-          setPageNoInputs(existingPagenos);
+          // Set inputs based on FILTERED data, default to "00" if null/undefined
+          const inputs = {};
+          uniqueSubniveshNames.forEach(name => {
+            const val = existingPagenos[name];
+            inputs[name] = (val === null || val === undefined || val === "") ? "00" : val;
+          });
+          setPageNoInputs(inputs);
         } else {
-          setApiSubniveshData([]);
-          setPageNoInputs({});
+          // If no data in API, default all filtered items to "00"
+          const inputs = {};
+          uniqueSubniveshNames.forEach(name => { inputs[name] = "00"; });
+          setPageNoInputs(inputs);
         }
       } else {
-         setApiSubniveshData([]);
-         setPageNoInputs({});
+        // If API fails, default all filtered items to "00"
+        const inputs = {};
+        uniqueSubniveshNames.forEach(name => { inputs[name] = "00"; });
+        setPageNoInputs(inputs);
       }
     } catch (e) {
       console.error("Error fetching page numbers:", e);
-      setApiSubniveshData([]);
+      const inputs = {};
+      uniqueSubniveshNames.forEach(name => { inputs[name] = "00"; });
+      setPageNoInputs(inputs);
     }
   };
 
@@ -524,7 +542,7 @@ const Billing = () => {
       setSavingPageNo(true);
       
       // Convert pageNoInputs back to the API format [[["name1"], 14], [["name2"], 16]]
-      const componentPagenoArray = apiSubniveshData.map((name) => {
+      const componentPagenoArray = uniqueSubniveshNames.map((name) => {
         const pno = pageNoInputs[name];
         const parsedPno = parseInt(pno, 10);
         return [[name], isNaN(parsedPno) ? pno : parsedPno];
@@ -613,9 +631,9 @@ const Billing = () => {
           return [item.bill_id, totalUpdated];
         });
 
-        // --- Build component_pageno array for main submit (using API data) ---
+        // --- Build component_pageno array for main submit (using filtered data) ---
         const pnoGrouped = {};
-        apiSubniveshData.forEach(name => { // Looping through API fetched names only
+        uniqueSubniveshNames.forEach(name => { 
           const pno = pageNoInputs[name];
           if (pno !== undefined && pno !== null && String(pno).trim() !== "") {
             const pnoStr = String(pno).trim();
@@ -896,12 +914,12 @@ const Billing = () => {
           <Modal.Title><FaListAlt className="me-2" />{translations.pageNoModalTitle}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="pageno-modal-body">
-          {apiSubniveshData.length === 0 ? (
+          {uniqueSubniveshNames.length === 0 ? (
             <Alert variant="warning" className="text-center">{translations.noUniqueSubnivesh}</Alert>
           ) : (
             <>
-              <p className="small-fonts text-muted mb-3">कुल अद्वितीय उप-निवेश नाम (API से): <strong>{apiSubniveshData.length}</strong></p>
-              {apiSubniveshData.map((name, idx) => (
+              <p className="small-fonts text-muted mb-3">कुल अद्वितीय उप-निवेश नाम: <strong>{uniqueSubniveshNames.length}</strong></p>
+              {uniqueSubniveshNames.map((name, idx) => (
                 <div key={name} className="pageno-row">
                   <Row className="align-items-center">
                     <Col xs={12} md={7}>
@@ -925,7 +943,7 @@ const Billing = () => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowPageNoModal(false)}>{translations.closeBtn}</Button>
-          <Button variant="primary" onClick={handleSavePageNo} disabled={apiSubniveshData.length === 0 || savingPageNo}>
+          <Button variant="primary" onClick={handleSavePageNo} disabled={uniqueSubniveshNames.length === 0 || savingPageNo}>
             {savingPageNo ? <Spinner as="span" animation="border" size="sm" /> : translations.savePageNo}
           </Button>
         </Modal.Footer>
