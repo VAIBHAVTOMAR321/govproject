@@ -1,3176 +1,669 @@
-/* Kisan Aavedan Portal - isolated structural CSS
-   All selectors are scoped under .kisan-html-react-root so this component
-   cannot change the parent application's body/main/table/input styles.
-*/
+/* Kisan Aavedan Portal - Modern Professional Blue UI */
 .kisan-html-react-root {
-  --ink: #16281e;
-  --ink-soft: #4a5a50;
-  --paper: #eff1ec;
+  /* Modern Blue Color Palette */
+  --ink: #1e293b;       /* Slate 800 */
+  --ink-soft: #64748b;  /* Slate 500 */
+  --paper: #f1f5f9;     /* Slate 100 */
   --card: #ffffff;
-  --seal: #1f5c3a;
-  --seal-dk: #16352a;
-  --rule: #c6cdc4;
-  --fill: #fff8d6;
-  --fill-line: #e0cf7a;
-  --alert: #8c2f1e;
-  --gold: #e0b23c;
-  --gov-green: #174d35;
-  --gov-green-2: #236747;
-  --gov-line: #aebbb2;
-  --gov-soft: #f3f6f3;
-  --gov-soft-2: #eaf0ec;
-  --gov-gold: #b58a2a;
-  --gov-text: #17231d;
+  --seal: #2563eb;      /* Royal Blue 600 */
+  --seal-dk: #1e3a8a;   /* Dark Blue 900 */
+  --rule: #e2e8f0;      /* Slate 200 */
+  --fill: #f8fafc;      /* Slate 50 */
+  --fill-line: #cbd5e1; /* Slate 300 */
+  --alert: #dc2626;     /* Red 600 */
+  --gold: #d97706;      /* Amber 600 */
+  
+  /* Legacy variables mapped to new blue palette */
+  --gov-green: var(--seal);
+  --gov-green-2: #3b82f6; /* Blue 500 */
+  --gov-line: var(--rule);
+  --gov-soft: var(--fill);
+  --gov-soft-2: #f1f5f9;
+  --gov-gold: var(--gold);
+  --gov-text: var(--ink);
+
   display: block;
   width: 100%;
   min-width: 0;
   isolation: isolate;
   color: var(--ink);
-}
-.kisan-html-react-root{
-
-  --ink: #16281e;
-
-  --ink-soft: #4a5a50;
-
-  --paper: #eff1ec;
-
-  --card: #ffffff;
-
-  --seal: #1f5c3a;
-
-  --seal-dk: #16352a;
-
-  --rule: #c6cdc4;
-
-  --fill: #fff8d6;
-
-  --fill-line: #e0cf7a;
-
-  --alert: #8c2f1e;
-
-  --gold: #e0b23c;
-
-}.kisan-html-react-root *{
-
-  box-sizing: border-box;
-
-}.kisan-html-react-root .num{
-
-  font-variant-numeric: tabular-nums;
-
-}.kisan-html-react-root .shell{
-
-  display: flex;
-
-  min-height: 100vh;
-
-}.kisan-html-react-root .rail{
-
-  width: 236px;
-
-  flex: 0 0 236px;
-
-  background: var(--seal-dk);
-
-  color: #dde6df;
-
-  padding: 20px 0 100px;
-
-  position: sticky;
-
-  top: 56px;
-
-  height: 100vh;
-
-  overflow: auto;
-
-}.kisan-html-react-root .rail h1{
-
-  font-size: 16px;
-
-  margin: 0 20px 4px;
-
-  color: #fff;
-
-  font-weight: 600;
-
-  line-height: 1.35;
-
-}.kisan-html-react-root .rail .sub{
-
-  font-size: 12px;
-
-  margin: 0 20px 22px;
-
-  color: #8fa79a;
-
-  line-height: 1.45;
-
-}.kisan-html-react-root .rail nav a{
-
-  display: block;
-
-  padding: 10px 20px;
-
-  color: #c7d6cc;
-
-  text-decoration: none;
-
-  font-size: 14px;
-
-  border-left: 3px solid transparent;
-
-  cursor: pointer;
-
-}.kisan-html-react-root .rail nav a:hover{
-
-  background: #1e4231;
-
-  color: #fff;
-
-}.kisan-html-react-root .rail nav a.on{
-
-  background: #24503c;
-
-  color: #fff;
-
-  border-left-color: var(--gold);
-
-  font-weight: 600;
-
-}.kisan-html-react-root .rail .grp{
-
-  font-size: 11.5px;
-
-  color: #7c948a;
-
-  margin: 20px 20px 6px;
-
-}.kisan-html-react-root .rail .tools{
-
-  margin: 22px 16px 0;
-
-  display: flex;
-
-  flex-wrap: wrap;
-
-  gap: 6px;
-
-}.kisan-html-react-root .rail .tools button{
-
-  flex: 1 1 46%;
-
-  background: #2b5c46;
-
-  color: #e7f0ea;
-
-  border: 1px solid #3c7358;
-
-  padding: 7px 4px;
-
-  font: inherit;
-
-  font-size: 12.5px;
-
-  border-radius: 2px;
-
-  cursor: pointer;
-
-}.kisan-html-react-root .rail .tools button:hover{
-
-  background: #39755a;
-
-}.kisan-html-react-root .rail select{
-
-  background: #2b5c46;
-
-  border: 1px solid #3c7358;
-
-  color: #fff;
-
-  width: 100%;
-
-  font: inherit;
-
-  font-size: 14px;
-
-  padding: 6px 8px;
-
-  border-radius: 2px;
-
-}.kisan-html-react-root :focus-visible{
-
-  outline: 2px solid var(--gold);
-
-  outline-offset: 2px;
-
-}.kisan-html-react-root main{
-
-  flex: 1;
-
-  min-width: 0;
-
-  padding: 26px 30px 120px;
-
-  max-width: 1180px;
-
-}.kisan-html-react-root .view{
-
-  display: none;
-
-}.kisan-html-react-root .view.on{
-
-  display: block;
-
-}.kisan-html-react-root h2.head{
-
-  font-size: 21px;
-
-  margin: 0 0 3px;
-
-  font-weight: 600;
-
-}.kisan-html-react-root p.lead{
-
-  margin: 0 0 20px;
-
-  color: var(--ink-soft);
-
-  font-size: 13.5px;
-
-  max-width: 74ch;
-
-}.kisan-html-react-root .card{
-
-  background: var(--card);
-
-  border: 1px solid var(--rule);
-
-  border-radius: 2px;
-
-  margin-bottom: 18px;
-
-}.kisan-html-react-root .card > .cap{
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 9px;
-
-  padding: 9px 14px;
-
-  border-bottom: 1px solid var(--rule);
-
-  background: #f4f7f3;
-
-  font-weight: 600;
-
-  font-size: 14px;
-
-}.kisan-html-react-root .cap i{
-
-  width: 9px;
-
-  height: 9px;
-
-  background: var(--seal);
-
-  display: inline-block;
-
-  flex: 0 0 9px;
-
-}.kisan-html-react-root .cap small{
-
-  margin-left: auto;
-
-  font-weight: 400;
-
-  color: var(--ink-soft);
-
-  font-size: 12px;
-
-}.kisan-html-react-root .pad{
-
-  padding: 14px;
-
-}.kisan-html-react-root .grid{
-
-  display: grid;
-
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-
-  gap: 12px 16px;
-
-}.kisan-html-react-root label.f{
-
-  display: block;
-
-  font-size: 12.5px;
-
-  color: var(--ink-soft);
-
-  margin-bottom: 3px;
-
-}.kisan-html-react-root .pad > .grid input{
-
-  width: 100%;
-
-  font: inherit;
-
-  font-size: 14px;
-
-  padding: 6px 8px;
-
-  border: 1px solid var(--fill-line);
-
-  background: var(--fill);
-
-  border-radius: 2px;
-
-  color: var(--ink);
-
-}.kisan-html-react-root table{
-
-  width: 100%;
-
-  border-collapse: collapse;
-
-}.kisan-html-react-root th{
-
-  background: var(--seal);
-
-  color: #fff;
-
-  font-weight: 600;
-
-  font-size: 12.5px;
-
-  padding: 7px 8px;
-
-  text-align: left;
-
-  border: 1px solid var(--seal);
-
-}.kisan-html-react-root td{
-
-  border: 1px solid var(--rule);
-
-  padding: 2px;
-
-  vertical-align: middle;
-
-}.kisan-html-react-root td.n{
-
-  text-align: center;
-
-  font-size: 13px;
-
-  color: var(--ink-soft);
-
-  padding: 4px;
-
-}.kisan-html-react-root td input{
-
-  width: 100%;
-
-  font: inherit;
-
-  font-size: 14px;
-
-  padding: 6px 8px;
-
-  border: 1px solid transparent;
-
-  background: var(--fill);
-
-  border-radius: 0;
-
-  color: var(--ink);
-
-}.kisan-html-react-root td input:hover{
-
-  border-color: var(--fill-line);
-
-}.kisan-html-react-root td input:focus{
-
-  outline: 2px solid var(--seal);
-
-  background: #fff;
-
-}.kisan-html-react-root td.calc{
-
-  text-align: right;
-
-  white-space: nowrap;
-
-  padding: 6px 9px;
-
-  font-variant-numeric: tabular-nums;
-
-  background: #f7f9f6;
-
-}.kisan-html-react-root tr.tot td{
-
-  background: #e3ebe4;
-
-  font-weight: 600;
-
-  padding: 7px 9px;
-
-}.kisan-html-react-root .rm{
-
-  background: none;
-
-  border: 0;
-
-  color: #9a8;
-
-  cursor: pointer;
-
-  font-size: 17px;
-
-  line-height: 1;
-
-  padding: 2px 7px;
-
-}.kisan-html-react-root .rm:hover{
-
-  color: var(--alert);
-
-}.kisan-html-react-root .addrow{
-
-  margin: 10px 0 2px;
-
-  background: #fff;
-
-  border: 1px dashed var(--seal);
-
-  color: var(--seal);
-
-  padding: 6px 14px;
-
-  font: inherit;
-
-  font-size: 13px;
-
-  border-radius: 2px;
-
-  cursor: pointer;
-
-}.kisan-html-react-root .addrow:hover{
-
-  background: #eff5f0;
-
-}.kisan-html-react-root .strip{
-
-  position: fixed;
-
-  left: 236px;
-
-  right: 0;
-
-  bottom: 0;
-
-  background: var(--seal-dk);
-
-  color: #fff;
-
-  display: flex;
-
-  align-items: stretch;
-
-  z-index: 20;
-
-  border-top: 3px solid var(--gold);
-
-}.kisan-html-react-root .strip .cell{
-
-  padding: 9px 18px;
-
-  border-right: 1px solid #2e5a46;
-
-  min-width: 130px;
-
-}.kisan-html-react-root .strip .k{
-
-  font-size: 11.5px;
-
-  color: #9db6a8;
-
-  margin-bottom: 1px;
-
-}.kisan-html-react-root .strip .v{
-
-  font-size: 19px;
-
-  font-weight: 600;
-
-  font-variant-numeric: tabular-nums;
-
-  line-height: 1.2;
-
-}.kisan-html-react-root .strip .cell.pay .v{
-
-  color: #f4cf6a;
-
-}.kisan-html-react-root .strip .msg{
-
-  flex: 1;
-
-  padding: 9px 18px;
-
-  font-size: 12.5px;
-
-  color: #b9ccc0;
-
-  display: flex;
-
-  align-items: center;
-
-  line-height: 1.4;
-
-}.kisan-html-react-root .strip .msg.bad{
-
-  color: #f0b9a8;
-
-}.kisan-html-react-root .strip .go{
-
-  border: 0;
-
-  background: var(--gold);
-
-  color: #20301f;
-
-  font: inherit;
-
-  font-weight: 600;
-
-  font-size: 14px;
-
-  padding: 0 24px;
-
-  cursor: pointer;
-
-}.kisan-html-react-root .strip .go:hover{
-
-  background: #f0c455;
-
-}.kisan-html-react-root .doc{
-
-  background: #fff;
-
-  padding: 34px 40px;
-
-  border: 1px solid var(--rule);
-
-  font-size: 14px;
-
-}.kisan-html-react-root .doc h3{
-
-  text-align: center;
-
-  margin: 0 0 2px;
-
-  font-size: 17px;
-
-}.kisan-html-react-root .doc h4{
-
-  text-align: center;
-
-  margin: 0 0 18px;
-
-  font-size: 14px;
-
-  font-weight: 600;
-
-  color: var(--ink-soft);
-
-}.kisan-html-react-root .doc h5{
-
-  font-size: 14px;
-
-  margin: 18px 0 6px;
-
-  font-weight: 600;
-
-  border-bottom: 1px solid var(--rule);
-
-  padding-bottom: 3px;
-
-}.kisan-html-react-root .kv{
-
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 8px 30px;
-
-  margin-bottom: 6px;
-
-}.kisan-html-react-root .kv .r{
-
-  display: flex;
-
-  align-items: baseline;
-
-  gap: 6px;
-
-}.kisan-html-react-root .kv .r b{
-
-  font-weight: 600;
-
-  white-space: nowrap;
-
-}.kisan-html-react-root .ln{
-
-  flex: 1;
-
-  min-width: 40px;
-
-  border: 0;
-
-  border-bottom: 1px dotted #6b7a70;
-
-  background: #fffdf0;
-
-  font: inherit;
-
-  font-size: inherit;
-
-  color: var(--ink);
-
-  padding: 1px 5px;
-
-  border-radius: 0;
-
-}.kisan-html-react-root .ln:focus{
-
-  outline: 0;
-
-  background: #fff4c4;
-
-  border-bottom: 1.5px solid var(--seal);
-
-}.kisan-html-react-root .ln.rt{
-
-  text-align: right;
-
-  font-variant-numeric: tabular-nums;
-
-}.kisan-html-react-root .ln.sm{
-
-  flex: 0 0 96px;
-
-}.kisan-html-react-root select.ln{
-
-  flex: 0 0 auto;
-
-}.kisan-html-react-root .auto{
-
-  font-weight: 600;
-
-  font-variant-numeric: tabular-nums;
-
-}.kisan-html-react-root .doc table{
-
-  margin: 8px 0;
-
-}.kisan-html-react-root .doc th{
-
-  background: #e8eee9;
-
-  color: var(--ink);
-
-  border: 1px solid #7e8c82;
-
-  font-size: 12.5px;
-
-}.kisan-html-react-root .doc td{
-
-  border: 1px solid #7e8c82;
-
-  padding: 6px 8px;
-
-  font-size: 13.5px;
-
-}.kisan-html-react-root .doc td.calc{
-
-  background: #fff;
-
-}.kisan-html-react-root .doc tr.tot td{
-
-  background: #eff3ef;
-
-}.kisan-html-react-root .doc .decl{
-
-  margin: 12px 0;
-
-  line-height: 1.75;
-
-}.kisan-html-react-root .blank{
-
-  display: inline-block;
-
-  min-width: 104px;
-
-  border-bottom: 1px solid var(--ink);
-
-  text-align: center;
-
-  font-weight: 600;
-
-  font-variant-numeric: tabular-nums;
-
-}.kisan-html-react-root .xbox{
-
-  border: 1.5px solid var(--seal);
-
-  margin: 14px 0;
-
-}.kisan-html-react-root .xbox .xh{
-
-  background: #e8eee9;
-
-  padding: 6px 12px;
-
-  font-weight: 600;
-
-  font-size: 13.5px;
-
-  border-bottom: 1px solid var(--seal);
-
-}.kisan-html-react-root .xbox table{
-
-  margin: 0;
-
-}.kisan-html-react-root .xbox td{
-
-  border: 0;
-
-  border-bottom: 1px dotted var(--rule);
-
-  padding: 6px 12px;
-
-  font-size: 13.5px;
-
-}.kisan-html-react-root .xbox tr:last-child td{
-
-  border-bottom: 0;
-
-}.kisan-html-react-root .xbox td.v{
-
-  text-align: right;
-
-  font-weight: 600;
-
-  font-variant-numeric: tabular-nums;
-
-  white-space: nowrap;
-
-  width: 180px;
-
-}.kisan-html-react-root .xbox tr.hi td{
-
-  background: #f3f7f3;
-
-  font-size: 15px;
-
-}.kisan-html-react-root .flag{
-
-  padding: 8px 12px;
-
-  font-size: 13px;
-
-  border-radius: 2px;
-
-  margin: 10px 0;
-
-}.kisan-html-react-root .flag.bad{
-
-  background: #fbf0ec;
-
-  border: 1px solid #e0beb4;
-
-  color: var(--alert);
-
-}.kisan-html-react-root .flag.ok{
-
-  background: #eef4ee;
-
-  border: 1px solid #c3d6c7;
-
-  color: var(--seal);
-
-}@media (max-width: 860px){.kisan-html-react-root .shell{
-
-    flex-direction: column;
-
-  }.kisan-html-react-root .rail{
-
-    width: auto;
-
-    height: auto;
-
-    position: static;
-
-    flex: 0 0 auto;
-
-    padding-bottom: 16px;
-
-  }.kisan-html-react-root .rail nav{
-
-    display: flex;
-
-    flex-wrap: wrap;
-
-  }.kisan-html-react-root .strip{
-
-    left: 0;
-
-    flex-wrap: wrap;
-
-  }.kisan-html-react-root .strip .msg{
-
-    display: none;
-
-  }.kisan-html-react-root main{
-
-    padding: 18px 14px 150px;
-
-  }.kisan-html-react-root .kv{
-
-    grid-template-columns: 1fr;
-
-  }.kisan-html-react-root .doc{
-
-    padding: 20px 16px;
-
-  }
-
-}.kisan-html-react-root .appdoc{
-
-  background: #fff;
-
-  border: 1px solid var(--rule);
-
-  padding: 28px 34px;
-
-  font-size: 14px;
-
-}.kisan-html-react-root .appdoc h3{
-
-  text-align: center;
-
-  margin: 0;
-
-  font-size: 19px;
-
-}.kisan-html-react-root .appdoc h4{
-
-  text-align: center;
-
-  margin: 3px 0 16px;
-
-  font-size: 14px;
-
-  color: var(--ink-soft);
-
-}.kisan-html-react-root .appdoc h5{
-
-  font-size: 14px;
-
-  margin: 16px 0 7px;
-
-  border-bottom: 1px solid var(--rule);
-
-  padding-bottom: 4px;
-
-}.kisan-html-react-root .appgrid{
-
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 8px 24px;
-
-}.kisan-html-react-root .appfield{
-
-  display: flex;
-
-  align-items: baseline;
-
-  gap: 6px;
-
-  min-height: 28px;
-
-}.kisan-html-react-root .appfield b{
-
-  white-space: nowrap;
-
-}.kisan-html-react-root .appfield input,
-.kisan-html-react-root .appfield select{
-
-  flex: 1;
-
-  min-width: 80px;
-
-  border: 0;
-
-  border-bottom: 1px dotted #68766d;
-
-  background: #fffdf0;
-
-  padding: 3px 5px;
-
-  font: inherit;
-
-}.kisan-html-react-root .appnote{
-
-  background: #f3f7f3;
-
-  border: 1px solid #c6cdc4;
-
-  padding: 8px 10px;
-
-  margin: 8px 0;
-
-  font-size: 13px;
-
-}.kisan-html-react-root .summaryTbl{
-
-  width: 100%;
-
-  border-collapse: collapse;
-
-  margin: 6px 0 10px;
-
-  border: 1.5px solid var(--seal);
-
-}.kisan-html-react-root .summaryTbl td{
-
-  border-bottom: 1px dotted var(--rule);
-
-  padding: 9px 14px;
-
-  font-size: 15px;
-
-}.kisan-html-react-root .summaryTbl tr:last-child td{
-
-  border-bottom: 0;
-
-}.kisan-html-react-root .summaryTbl td:first-child{
-
-  color: var(--ink-soft);
-
-  width: 55%;
-
-}.kisan-html-react-root .summaryTbl td.sv{
-
-  text-align: right;
-
-  font-weight: 600;
-
-  font-variant-numeric: tabular-nums;
-
-}.kisan-html-react-root .summaryTbl td.sv.big{
-
-  font-size: 19px;
-
-  color: var(--seal);
-
-}.kisan-html-react-root .summaryTbl tr.hi td{
-
-  background: #f3f7f3;
-
-}.kisan-html-react-root .summaryTbl tr.hi td.sv{
-
-  font-size: 21px;
-
-}.kisan-html-react-root .appok{
-
-  background: #eef4ee;
-
-  border: 1px solid #bfd2c2;
-
-  padding: 8px 10px;
-
-  margin: 8px 0;
-
-}.kisan-html-react-root .appbad{
-
-  background: #fbf0ec;
-
-  border: 1px solid #dfbbb0;
-
-  padding: 8px 10px;
-
-  margin: 8px 0;
-
-}.kisan-html-react-root .landtable th,
-.kisan-html-react-root .landtable td{
-
-  font-size: 13px;
-
-  padding: 5px 6px;
-
-}.kisan-html-react-root .landtable input,
-.kisan-html-react-root .landtable select{
-
-  width: 100%;
-
-  border: 1px solid var(--fill-line);
-
-  background: var(--fill);
-
-  padding: 4px;
-
-  font: inherit;
-
-}.kisan-html-react-root .landtable input.landVil,
-.kisan-html-react-root .landtable input.landSelfName,
-.kisan-html-react-root .landtable input.landSelfFather{
-
-  background: #eef1ec;
-
-  color: var(--ink-soft);
-
-  border-color: var(--rule);
-
-  cursor: default;
-
-}.kisan-html-react-root .infoTable td.flabel{
-
-  width: 230px;
-
-  font-weight: 600;
-
-  background: #f4f7f3;
-
-  color: var(--ink);
-
-  vertical-align: middle;
-
-}.kisan-html-react-root .app-actions{
-
-  display: flex;
-
-  gap: 8px;
-
-  margin: 10px 0;
-
-}.kisan-html-react-root .app-actions button{
-
-  background: var(--seal);
-
-  color: #fff;
-
-  border: 0;
-
-  padding: 7px 13px;
-
-  font: inherit;
-
-  cursor: pointer;
-
-}@media print{.kisan-html-react-root .view[data-v="application"]{
-
-    display: block !important;
-
-  }.kisan-html-react-root .view[data-v="application"] h2.head,
-.kisan-html-react-root .view[data-v="application"] p.lead{
-
-    display: none !important;
-
-  }.kisan-html-react-root .appdoc{
-
-    border: 0;
-
-    padding: 0;
-
-    font-size: 9.5pt;
-
-  }.kisan-html-react-root .appdoc h3{
-
-    font-size: 13pt;
-
-  }.kisan-html-react-root .appdoc h4{
-
-    font-size: 10pt;
-
-    margin-bottom: 7px;
-
-  }.kisan-html-react-root .appdoc h5{
-
-    font-size: 10.5pt;
-
-    margin: 7px 0 3px;
-
-  }.kisan-html-react-root .appgrid{
-
-    gap: 3px 18px;
-
-  }.kisan-html-react-root .appfield{
-
-    min-height: 22px;
-
-  }.kisan-html-react-root .appnote,
-.kisan-html-react-root .appok,
-.kisan-html-react-root .appbad{
-
-    padding: 4px 7px;
-
-    margin: 4px 0;
-
-    font-size: 9pt;
-
-  }.kisan-html-react-root .landtable th,
-.kisan-html-react-root .landtable td{
-
-    font-size: 9pt;
-
-    padding: 3px 4px;
-
-  }@page{
-
-    size: A4 portrait;
-
-    margin: 12mm;
-
-  }
-
-}@media (prefers-reduced-motion: reduce){.kisan-html-react-root *{
-
-    transition: none !important;
-
-  }
-
-}@media print{.kisan-html-react-root .rail,
-.kisan-html-react-root .strip,
-.kisan-html-react-root .noprint{
-
-    display: none !important;
-
-  }.kisan-html-react-root .shell{
-
-    display: block;
-
-    min-height: 0;
-
-  }.kisan-html-react-root main{
-
-    padding: 0;
-
-    max-width: none;
-
-    display: block;
-
-  }.kisan-html-react-root .view{
-
-    display: none !important;
-
-  }.kisan-html-react-root .view[data-v="bill"]{
-
-    display: block !important;
-
-  }.kisan-html-react-root .view[data-v="application"]{
-
-    display: block !important;
-
-  }.kisan-html-react-root .view[data-v="application"]{
-
-    display: block !important;
-
-  }.kisan-html-react-root .view[data-v="bill"] h2.head,
-.kisan-html-react-root .view[data-v="bill"] p.lead{
-
-    display: none !important;
-
-  }.kisan-html-react-root{
-
-    background: #fff;
-
-    font-size: 11pt;
-
-  }.kisan-html-react-root .doc{
-
-    border: 0;
-
-    padding: 0;
-
-    font-size: 9pt;
-
-    background: #fff;
-
-  }.kisan-html-react-root .doc h3{
-
-    font-size: 12pt;
-
-    margin-bottom: 1px;
-
-  }.kisan-html-react-root .doc h4{
-
-    font-size: 9.5pt;
-
-    margin-bottom: 4px;
-
-  }.kisan-html-react-root .doc > div[style*="margin-top:22px"]{
-
-    margin-top: 10px !important;
-
-  }.kisan-html-react-root .doc > div[style*="margin-top:26px"]{
-
-    margin-top: 10px !important;
-
-  }.kisan-html-react-root .doc > div[style*="margin-top:20px"]{
-
-    margin-top: 8px !important;
-
-  }.kisan-html-react-root .doc h5{
-
-    margin: 5px 0 2px;
-
-    font-size: 10pt;
-
-  }.kisan-html-react-root .doc p{
-
-    margin: 2px 0;
-
-    font-size: 9pt;
-
-  }.kisan-html-react-root .doc table{
-
-    margin: 3px 0;
-
-  }.kisan-html-react-root .doc td,
-.kisan-html-react-root .doc th{
-
-    padding: 2px 5px;
-
-    font-size: 9pt;
-
-  }.kisan-html-react-root .doc .decl{
-
-    margin: 4px 0;
-
-    line-height: 1.3;
-
-  }.kisan-html-react-root .kv{
-
-    display: grid;
-
-    grid-template-columns: 1fr 1fr;
-
-    gap: 2px 22px;
-
-    margin-bottom: 2px;
-
-  }.kisan-html-react-root .xbox{
-
-    margin: 4px 0;
-
-  }.kisan-html-react-root .xbox td{
-
-    padding: 2px 10px;
-
-    font-size: 9pt;
-
-  }.kisan-html-react-root .xbox .xh{
-
-    padding: 3px 10px;
-
-    font-size: 9.5pt;
-
-  }.kisan-html-react-root .xbox tr.hi td{
-
-    font-size: 10pt;
-
-  }.kisan-html-react-root .flag{
-
-    border: 1px solid #000;
-
-    background: #fff !important;
-
-    color: #000 !important;
-
-    padding: 4px 8px;
-
-    font-size: 9pt;
-
-    margin: 4px 0;
-
-  }.kisan-html-react-root .ln{
-
-    background: transparent !important;
-
-    border-bottom: 1px dotted #000;
-
-    color: #000;
-
-    -webkit-appearance: none;
-
-    appearance: none;
-
-  }.kisan-html-react-root .ln::placeholder{
-
-    color: transparent;
-
-  }.kisan-html-react-root select.ln{
-
-    border: 0;
-
-    border-bottom: 1px dotted #000;
-
-    padding-right: 2px;
-
-  }.kisan-html-react-root input[type="date"].ln::-webkit-calendar-picker-indicator{
-
-    display: none;
-
-  }@page{
-
-    size: A4 portrait;
-
-    margin: 14mm;
-
-  }
-
-}.kisan-html-react-root .serial-layout{
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 10px;
-
-}.kisan-html-react-root .serial-section{
-
-  border: 1px solid #b8c1bb;
-
-  border-radius: 6px;
-
-  padding: 10px 12px;
-
-  background: #fff;
-
-}.kisan-html-react-root .serial-title{
-
-  font-weight: 700;
-
-  font-size: 14px;
-
-  padding-bottom: 6px;
-
-  margin-bottom: 6px;
-
-  border-bottom: 1px solid #d7ddd9;
-
-}.kisan-html-react-root .serial-section .kv{
-
-  margin-top: 0;
-
-}@media print{.kisan-html-react-root #fenceMappingApplicationTable{
-
-    display: table !important;
-
-  }.kisan-html-react-root #fenceMappingApplicationTable thead{
-
-    display: table-header-group !important;
-
-  }.kisan-html-react-root #fenceMappingApplicationTable tbody{
-
-    display: table-row-group !important;
-
-  }.kisan-html-react-root #fenceMappingApplicationTable tbody tr{
-
-    display: none !important;
-
-  }.kisan-html-react-root #fenceMappingApplicationTable tbody tr.print-selected{
-
-    display: table-row !important;
-
-  }
-
-}.kisan-html-react-root .note-box{
-
-  margin-top: 14px;
-
-  border: 1px solid #999;
-
-  padding: 10px 12px;
-
-  font-size: 12px;
-
-  line-height: 1.55;
-
-  font-weight: 400;
-
-  color: #222;
-
-  background: #fff;
-
-}.kisan-html-react-root .note-title{
-
-  font-size: 14px;
-
-  font-weight: 400;
-
-  padding-bottom: 5px;
-
-  margin-bottom: 6px;
-
-  border-bottom: 1px solid #ccc;
-
-}@media print{.kisan-html-react-root .note-box{
-
-    display: block !important;
-
-    visibility: visible !important;
-
-    page-break-inside: avoid;
-
-    break-inside: avoid;
-
-    color: #000 !important;
-
-    background: #fff !important;
-
-    border: 1px solid #777 !important;
-
-    font-weight: 400 !important;
-
-  }.kisan-html-react-root .note-box .note-title{
-
-    font-weight: 400 !important;
-
-    color: #000 !important;
-
-  }
-
-}.kisan-html-react-root /* ───── देयक प्रपत्र का नया प्रोफेशनल डिज़ाइन ───── */
-
-.bill-doc{
-
-  background: #fff;
-
-  border: 1px solid #aeb9b1;
-
-  border-radius: 4px;
-
-  padding: 28px 34px 34px;
-
-  box-shadow: 0 3px 12px rgba(22, 40, 30, 0.07);
-
-}.kisan-html-react-root .bill-header{
-
-  border: 1px solid #b9c5bd;
-
-  border-radius: 4px;
-
-  overflow: hidden;
-
-  margin-bottom: 16px;
-
-  background: #fff;
-
-}.kisan-html-react-root .bill-kicker{
-
-  padding: 6px 14px;
-
-  background: #16352a;
-
-  color: #fff;
-
-  font-size: 11px;
-
-  letter-spacing: 0.3px;
-
-  text-align: center;
-
-}.kisan-html-react-root .bill-title{
-
-  margin: 13px 16px 7px !important;
-
-  text-align: center;
-
-  font-size: 20px !important;
-
-  font-weight: 700 !important;
-
-  color: #16352a;
-
-}.kisan-html-react-root .bill-rule{
-
-  width: 76px;
-
-  height: 3px;
-
-  background: #e0b23c;
-
-  margin: 0 auto 12px;
-
-}.kisan-html-react-root .bill-meta{
-
-  display: grid;
-
-  grid-template-columns: 1.15fr 1.55fr 0.8fr;
-
-  border-top: 1px solid #d5ddd7;
-
-}.kisan-html-react-root .bill-meta > div{
-
-  padding: 8px 12px;
-
-  border-right: 1px solid #d5ddd7;
-
-  text-align: center;
-
-}.kisan-html-react-root .bill-meta > div:last-child{
-
-  border-right: 0;
-
-}.kisan-html-react-root .bill-meta span{
-
-  display: block;
-
-  font-size: 10.5px;
-
-  color: #65746b;
-
-  margin-bottom: 2px;
-
-}.kisan-html-react-root .bill-meta b{
-
-  font-size: 12.5px;
-
-  color: #16281e;
-
-}.kisan-html-react-root .bill-doc .serial-section{
-
-  border: 1px solid #c3ccc6;
-
-  border-radius: 4px;
-
-  padding: 0 14px 10px;
-
-  background: #fff;
-
-  margin-bottom: 10px;
-
-  overflow: hidden;
-
-}.kisan-html-react-root .bill-doc .serial-title{
-
-  margin: 0 -14px 9px;
-
-  padding: 7px 12px;
-
-  font-size: 13.5px;
-
-  font-weight: 600;
-
-  color: #16352a;
-
-  background: #f0f4f1;
-
-  border-bottom: 1px solid #c9d2cc;
-
-}.kisan-html-react-root .bill-doc .kv{
-
-  gap: 6px 26px;
-
-}.kisan-html-react-root .bill-doc .kv .r{
-
-  padding: 4px 0;
-
-  border-bottom: 1px dotted #d5ddd7;
-
-}.kisan-html-react-root .bill-doc .kv .r:last-child{
-
-  border-bottom: 0;
-
-}.kisan-html-react-root .bill-doc > table{
-
-  margin: 16px 0 12px;
-
-  border: 1px solid #aeb9b1;
-
-  border-radius: 4px;
-
-  overflow: hidden;
-
-}.kisan-html-react-root .bill-doc > table th{
-
-  background: #1f5c3a;
-
-  padding: 8px 6px;
-
-  font-size: 11.5px;
-
-  line-height: 1.35;
-
-}.kisan-html-react-root .bill-doc > table td{
-
-  padding: 7px 6px;
-
-  border: 1px solid #d3dbd6;
-
-  font-size: 12px;
-
-}.kisan-html-react-root .bill-doc > table .tot td{
-
-  background: #f0f4f1;
-
-  font-weight: 700;
-
-}.kisan-html-react-root .bill-doc .xbox{
-
-  border: 1px solid #aeb9b1;
-
-  border-radius: 4px;
-
-  overflow: hidden;
-
-  margin: 16px 0;
-
-}.kisan-html-react-root .bill-doc .xbox .xh{
-
-  background: #16352a;
-
-  color: #fff;
-
-  padding: 8px 12px;
-
-  font-size: 13px;
-
-  font-weight: 600;
-
-}.kisan-html-react-root .bill-doc .xbox td{
-
-  padding: 7px 12px;
-
-  border-bottom: 1px solid #e0e5e1;
-
-}.kisan-html-react-root .bill-doc .xbox tr.hi td{
-
-  background: #eaf2ec;
-
-  font-size: 15px;
-
-  color: #16352a;
-
-  border-top: 1px solid #b7c9bd;
-
-  border-bottom: 1px solid #b7c9bd;
-
-}.kisan-html-react-root .bill-doc .note-box{
-
-  background: #fafbfa;
-
-  border: 1px solid #bfc8c2;
-
-  border-left: 4px solid #7b8f83;
-
-  border-radius: 3px;
-
-  padding: 10px 12px;
-
-  font-size: 12px;
-
-}.kisan-html-react-root .bill-doc .decl{
-
-  background: #fafbfa;
-
-  border: 1px solid #d1d9d3;
-
-  border-radius: 3px;
-
-  padding: 10px 12px;
-
-  line-height: 1.8;
-
-}.kisan-html-react-root .bill-doc .blank{
-
-  min-width: 96px;
-
-}.kisan-html-react-root .bill-doc [data-f="date"],
-.kisan-html-react-root .bill-doc [data-f="place"],
-.kisan-html-react-root .bill-doc [data-f="officer"],
-.kisan-html-react-root .bill-doc [data-f="desig"]{
-
-  background: #fffdf0;
-
-}@media print{@page{
-
-    size: A4 portrait;
-
-    margin: 10mm;
-
-  }.kisan-html-react-root{
-
-    background: #fff !important;
-
-  }.kisan-html-react-root main{
-
-    padding: 0 !important;
-
-    max-width: none !important;
-
-  }.kisan-html-react-root .bill-doc{
-
-    border: 0 !important;
-
-    box-shadow: none !important;
-
-    padding: 0 !important;
-
-  }.kisan-html-react-root .bill-header{
-
-    margin-bottom: 10px;
-
-  }.kisan-html-react-root .bill-title{
-
-    font-size: 17px !important;
-
-  }.kisan-html-react-root .bill-doc .serial-section{
-
-    break-inside: avoid;
-
-    page-break-inside: avoid;
-
-  }.kisan-html-react-root .bill-doc .xbox{
-
-    break-inside: avoid;
-
-    page-break-inside: avoid;
-
-  }.kisan-html-react-root .bill-doc .decl{
-
-    break-inside: avoid;
-
-    page-break-inside: avoid;
-
-  }.kisan-html-react-root .bill-doc .note-box{
-
-    break-inside: avoid;
-
-    page-break-inside: avoid;
-
-  }
-
-}@media (max-width: 760px){.kisan-html-react-root .bill-meta{
-
-    grid-template-columns: 1fr;
-
-  }.kisan-html-react-root .bill-meta > div{
-
-    border-right: 0;
-
-    border-bottom: 1px solid #d5ddd7;
-
-  }.kisan-html-react-root .bill-meta > div:last-child{
-
-    border-bottom: 0;
-
-  }.kisan-html-react-root .bill-doc{
-
-    padding: 18px 14px 24px;
-
-  }
-
-}.kisan-html-react-root .bill-table-heading{
-
-  margin: 14px 0 5px;
-
-  padding: 8px 12px;
-
-  border: 1px solid #c3ccc6;
-
-  border-bottom: 0;
-
-  border-radius: 4px 4px 0 0;
-
-  background: #f0f4f1;
-
-}.kisan-html-react-root .bill-table-title{
-
-  font-size: 14px;
-
-  font-weight: 600;
-
-  color: #16352a;
-
-}.kisan-html-react-root .bill-table-subtitle{
-
-  margin-top: 2px;
-
-  font-size: 11px;
-
-  color: #65746b;
-
-}@media print{.kisan-html-react-root .bill-table-heading{
-
-    margin-top: 8px;
-
-    padding: 6px 9px;
-
-    background: #f0f4f1 !important;
-
-    -webkit-print-color-adjust: exact;
-
-    print-color-adjust: exact;
-
-  }.kisan-html-react-root .bill-table-title{
-
-    font-size: 11.5pt;
-
-  }.kisan-html-react-root .bill-table-subtitle{
-
-    font-size: 8.5pt;
-
-  }
-
-}.kisan-html-react-root .expense-table{
-
-  table-layout: fixed;
-
-}.kisan-html-react-root .expense-table th,
-.kisan-html-react-root .expense-table td{
-
-  vertical-align: middle;
-
-}.kisan-html-react-root .expense-table td input{
-
-  height: 34px;
-
-}.kisan-html-react-root .expense-table th{
-
-  white-space: normal;
-
-  line-height: 1.25;
-
-}@media print{.kisan-html-react-root .expense-table td input{
-
-    height: auto;
-
-  }
-
-}@media print{.kisan-html-react-root .receipt-card{
-
-    box-shadow: none;
-
-    border: 1px solid #888;
-
-    padding: 16px 18px;
-
-    margin: 0 0 12px;
-
-  }.kisan-html-react-root .receipt-card:last-child{
-
-    page-break-after: auto;
-
-  }.kisan-html-react-root .receipt-title{
-
-    font-size: 16px;
-
-  }.kisan-html-react-root .receipt-subtitle{
-
-    font-size: 10.5pt;
-
-  }.kisan-html-react-root .receipt-meta{
-
-    margin-bottom: 8px;
-
-  }.kisan-html-react-root .receipt-table th,
-.kisan-html-react-root .receipt-table td{
-
-    font-size: 9pt;
-
-    padding: 4px;
-
-  }.kisan-html-react-root .receipt-text,
-.kisan-html-react-root .receipt-cert{
-
-    font-size: 9pt;
-
-    line-height: 1.45;
-
-  }.kisan-html-react-root .receipt-sign{
-
-    margin-top: 14px;
-
-  }
-
-}@media (max-width: 760px){.kisan-html-react-root .receipt-meta,
-.kisan-html-react-root .receipt-sign{
-
-    grid-template-columns: 1fr;
-
-  }.kisan-html-react-root .receipt-meta > div{
-
-    border-right: 0;
-
-    border-bottom: 1px solid #d1d9d3;
-
-  }.kisan-html-react-root .receipt-meta > div:last-child{
-
-    border-bottom: 0;
-
-  }.kisan-html-react-root .receipt-card{
-
-    padding: 18px 14px;
-
-  }
-
-}.kisan-html-react-root /* ===== STANDARD GOVERNMENT FORM DESIGN ===== */
-
-.kisan-html-react-root{
-
-  --gov-green: #174d35;
-
-  --gov-green-2: #236747;
-
-  --gov-line: #aebbb2;
-
-  --gov-soft: #f3f6f3;
-
-  --gov-soft-2: #eaf0ec;
-
-  --gov-gold: #b58a2a;
-
-  --gov-text: #17231d;
-
-}.kisan-html-react-root .appdoc,
-.kisan-html-react-root .bill-doc{
-
-  background: #fff;
-
-  color: var(--gov-text);
-
-  border: 1px solid var(--gov-line);
-
-  border-radius: 2px;
-
-  box-shadow: 0 2px 10px rgba(20, 45, 32, 0.06);
-
-  position: relative;
-
-}.kisan-html-react-root .appdoc:before,
-.kisan-html-react-root .bill-doc:before{
-
-  content: "";
-
-  position: absolute;
-
-  left: 0;
-
-  right: 0;
-
-  top: 0;
-
-  height: 5px;
-
-  background: var(--gov-green);
-
-}.kisan-html-react-root .appdoc{
-
-  padding: 32px 38px 36px;
-
-  font-size: 14px;
-
-}.kisan-html-react-root .appdoc h3{
-
-  font-size: 20px !important;
-
-  font-weight: 700 !important;
-
-  color: var(--gov-green) !important;
-
-  letter-spacing: 0.1px;
-
-  margin: 3px 0 2px !important;
-
-}.kisan-html-react-root .appdoc h4{
-
-  color: #2b3a32 !important;
-
-  font-size: 14px !important;
-
-  font-weight: 600 !important;
-
-  margin: 3px 0 18px !important;
-
-}.kisan-html-react-root .appdoc h5{
-
-  color: var(--gov-green);
-
-  font-size: 13.5px !important;
-
-  font-weight: 700 !important;
-
-  background: linear-gradient(to right, var(--gov-soft), #fff);
-
-  border-left: 4px solid var(--gov-green);
-
-  border-bottom: 1px solid #d2dbd5 !important;
-
-  padding: 7px 10px 7px !important;
-
-  margin: 16px 0 8px !important;
-
-}.kisan-html-react-root .appdoc .appnote{
-
-  border: 1px solid #cbd5ce !important;
-
-  background: var(--gov-soft) !important;
-
-  border-radius: 2px !important;
-
-}.kisan-html-react-root .appdoc .infoTable{
-
-  border: 1px solid var(--gov-line);
-
-}.kisan-html-react-root .appdoc .infoTable td.flabel{
-
-  background: var(--gov-soft) !important;
-
-  color: #25352c !important;
-
-  font-weight: 600 !important;
-
-  border-right: 1px solid var(--gov-line);
-
-}.kisan-html-react-root .appdoc .landtable{
-
-  border: 1px solid var(--gov-line);
-
-}.kisan-html-react-root .appdoc .landtable th{
-
-  background: var(--gov-green) !important;
-
-  color: #fff !important;
-
-  text-align: center !important;
-
-  font-weight: 600 !important;
-
-}.kisan-html-react-root .appdoc .landtable td{
-
-  background: #fff;
-
-  border-color: #cbd5ce !important;
-
-}.kisan-html-react-root .appdoc .landtable tr.tot td{
-
-  background: var(--gov-soft-2) !important;
-
-  font-weight: 700;
-
-}.kisan-html-react-root .appdoc .summaryTbl{
-
-  border: 1.5px solid var(--gov-green) !important;
-
-}.kisan-html-react-root .appdoc .summaryTbl tr.hi td{
-
-  background: var(--gov-soft-2) !important;
-
-}.kisan-html-react-root .appdoc .summaryTbl td.sv.big{
-
-  color: var(--gov-green) !important;
-
-}.kisan-html-react-root .appdoc .appok{
-
-  border-left: 4px solid var(--gov-green) !important;
-
-  background: #f0f6f1 !important;
-
-}.kisan-html-react-root .appdoc .appbad{
-
-  border-left: 4px solid #9a3d2a !important;
-
-  background: #fbf3f0 !important;
-
-}.kisan-html-react-root .appdoc .app-actions button{
-
-  border-radius: 2px;
-
-  background: var(--gov-green) !important;
-
-}.kisan-html-react-root .appdoc .app-actions button:hover{
-
-  background: var(--gov-green-2) !important;
-
-}.kisan-html-react-root .bill-doc{
-
-  padding: 30px 34px 34px;
-
-  font-size: 13.5px;
-
-}.kisan-html-react-root .bill-header{
-
-  border: 1px solid var(--gov-line) !important;
-
-  box-shadow: none !important;
-
-  background: #fff !important;
-
-}.kisan-html-react-root .bill-kicker{
-
-  background: var(--gov-green) !important;
-
-  color: #fff !important;
-
-  padding: 7px 12px !important;
-
-  font-size: 11px !important;
-
-  letter-spacing: 0.15px;
-
-}.kisan-html-react-root .bill-title{
-
-  color: var(--gov-green) !important;
-
-  font-size: 21px !important;
-
-  font-weight: 700 !important;
-
-  margin: 14px 16px 6px !important;
-
-}.kisan-html-react-root .bill-rule{
-
-  background: var(--gov-gold) !important;
-
-  height: 3px !important;
-
-}.kisan-html-react-root .bill-meta{
-
-  background: #fff !important;
-
-}.kisan-html-react-root .bill-meta > div{
-
-  padding: 8px 10px !important;
-
-  background: var(--gov-soft) !important;
-
-}.kisan-html-react-root .bill-meta span{
-
-  color: #65746b !important;
-
-}.kisan-html-react-root .bill-meta b{
-
-  color: #1e2d25 !important;
-
-}.kisan-html-react-root .bill-doc .serial-section{
-
-  border: 1px solid var(--gov-line) !important;
-
-  border-radius: 2px !important;
-
-  margin-bottom: 10px !important;
-
-}.kisan-html-react-root .bill-doc .serial-title{
-
-  background: var(--gov-soft) !important;
-
-  color: var(--gov-green) !important;
-
-  border-bottom: 1px solid #cbd5ce !important;
-
-  font-weight: 700 !important;
-
-}.kisan-html-react-root .bill-table-heading{
-
-  border-color: var(--gov-line) !important;
-
-  background: var(--gov-soft) !important;
-
-}.kisan-html-react-root .bill-table-title{
-
-  color: var(--gov-green) !important;
-
-  font-weight: 700 !important;
-
-}.kisan-html-react-root .bill-doc > table th{
-
-  background: var(--gov-green) !important;
-
-  color: #fff !important;
-
-}.kisan-html-react-root .bill-doc > table .tot td{
-
-  background: var(--gov-soft-2) !important;
-
-}.kisan-html-react-root .bill-doc .xbox{
-
-  border: 1.5px solid var(--gov-green) !important;
-
-}.kisan-html-react-root .bill-doc .xbox .xh{
-
-  background: var(--gov-green) !important;
-
-}.kisan-html-react-root .bill-doc .xbox tr.hi td{
-
-  background: var(--gov-soft-2) !important;
-
-  color: var(--gov-green) !important;
-
-}.kisan-html-react-root .bill-doc .note-box{
-
-  border-left: 4px solid #78887d !important;
-
-  background: #fafbfa !important;
-
-  color: #24342b !important;
-
-}.kisan-html-react-root .bill-doc .decl{
-
-  border: 1px solid #ccd5cf !important;
-
-  background: #fafbfa !important;
-
-}.kisan-html-react-root .bill-doc .blank{
-
-  border-bottom: 1px solid #1d2a23 !important;
-
-  min-width: 88px;
-
-}@media print{.kisan-html-react-root{
-
-    background: #fff !important;
-
-  }.kisan-html-react-root .appdoc,
-.kisan-html-react-root .bill-doc{
-
-    box-shadow: none !important;
-
-    border: 0 !important;
-
-    border-radius: 0 !important;
-
-  }.kisan-html-react-root .appdoc:before,
-.kisan-html-react-root .bill-doc:before{
-
-    display: none !important;
-
-  }.kisan-html-react-root .appdoc h5,
-.kisan-html-react-root .bill-doc .serial-section,
-.kisan-html-react-root .bill-doc .xbox,
-.kisan-html-react-root .bill-doc .note-box,
-.kisan-html-react-root .bill-doc .decl{
-
-    break-inside: avoid;
-
-    page-break-inside: avoid;
-
-  }.kisan-html-react-root .appdoc h3{
-
-    font-size: 16px !important;
-
-  }.kisan-html-react-root .appdoc h4{
-
-    font-size: 11pt !important;
-
-  }.kisan-html-react-root .bill-title{
-
-    font-size: 16px !important;
-
-  }.kisan-html-react-root .bill-kicker{
-
-    font-size: 9pt !important;
-
-  }
-
-}@media print{.kisan-html-react-root .view{
-
-    display: none !important;
-
-  }.kisan-html-react-root .view\.print-target{
-
-    display: block !important;
-
-  }
-
-}.kisan-html-react-root /* ===== स्वचालित शपथ-पत्र ===== */
-
-.affidavit-doc{
-
-  background: #fff;
-
-  border: 1px solid #aebbb2;
-
-  border-radius: 2px;
-
-  padding: 30px 38px 34px;
-
-  margin-top: 20px;
-
-  color: #17231d;
-
-  font-size: 13.5px;
-
-  line-height: 1.8;
-
-  box-shadow: 0 2px 10px rgba(20, 45, 32, 0.05);
-
-}.kisan-html-react-root .affidavit-doc .aff-head{
-
-  text-align: center;
-
-  margin-bottom: 16px;
-
-}.kisan-html-react-root .affidavit-doc .aff-kicker{
-
-  font-size: 11px;
-
-  color: #65746b;
-
-}.kisan-html-react-root .affidavit-doc .aff-title{
-
-  font-size: 19px;
-
-  font-weight: 700;
-
-  color: #174d35;
-
-  margin: 2px 0;
-
-}.kisan-html-react-root .affidavit-doc .aff-sub{
-
-  font-size: 12px;
-
-  color: #4a5a50;
-
-}.kisan-html-react-root .affidavit-doc .aff-line{
-
-  width: 70px;
-
-  height: 2px;
-
-  background: #b58a2a;
-
-  margin: 8px auto 10px;
-
-}.kisan-html-react-root .affidavit-doc .aff-meta{
-
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  border: 1px solid #cbd5ce;
-
-  background: #f5f7f5;
-
-  margin-bottom: 12px;
-
-}.kisan-html-react-root .affidavit-doc .aff-meta > div{
-
-  padding: 7px 10px;
-
-  border-right: 1px solid #cbd5ce;
-
-  border-bottom: 1px solid #cbd5ce;
-
-}.kisan-html-react-root .affidavit-doc .aff-meta > div:nth-child(2n){
-
-  border-right: 0;
-
-}.kisan-html-react-root .affidavit-doc .aff-meta > div:nth-last-child(-n + 2){
-
-  border-bottom: 0;
-
-}.kisan-html-react-root .affidavit-doc .aff-meta span{
-
-  display: block;
-
-  font-size: 10px;
-
-  color: #65746b;
-
-}.kisan-html-react-root .affidavit-doc .aff-meta b{
-
-  font-size: 12px;
-
-  font-weight: 600;
-
-}.kisan-html-react-root .affidavit-doc .aff-intro{
-
-  margin: 7px 0 10px;
-
-}.kisan-html-react-root .affidavit-doc .aff-item{
-
-  margin: 6px 0;
-
-  text-align: justify;
-
-}.kisan-html-react-root .affidavit-doc .aff-land{
-
-  width: 100%;
-
-  border-collapse: collapse;
-
-  margin: 8px 0 10px;
-
-}.kisan-html-react-root .affidavit-doc .aff-land th{
-
-  background: #174d35;
-
-  color: #fff;
-
-  padding: 6px 7px;
-
-  font-size: 11px;
-
-  border: 1px solid #174d35;
-
-}.kisan-html-react-root .affidavit-doc .aff-land td{
-
-  padding: 6px 7px;
-
-  border: 1px solid #c8d2cb;
-
-  font-size: 11.5px;
-
-}.kisan-html-react-root .affidavit-doc .aff-land .right{
-
-  text-align: right;
-
-}.kisan-html-react-root .affidavit-doc .aff-decl{
-
-  margin-top: 10px;
-
-}.kisan-html-react-root .affidavit-doc .aff-sign{
-
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 30px;
-
-  margin-top: 20px;
-
-}.kisan-html-react-root .affidavit-doc .aff-sign .box{
-
-  min-height: 72px;
-
-}.kisan-html-react-root .affidavit-doc .aff-sign .line{
-
-  margin-top: 36px;
-
-  border-top: 1px solid #17231d;
-
-  text-align: center;
-
-  padding-top: 4px;
-
-}.kisan-html-react-root .affidavit-doc .aff-consent{
-
-  margin-top: 18px;
-
-  padding-top: 12px;
-
-  border-top: 1px solid #cbd5ce;
-
-}.kisan-html-react-root .affidavit-doc .aff-page-break{
-
-  page-break-before: always;
-
-  break-before: page;
-
-}@media print{.kisan-html-react-root .affidavit-doc{
-
-    box-shadow: none;
-
-    border: 0;
-
-    border-radius: 0;
-
-    margin-top: 0;
-
-    padding: 14px 16px 18px;
-
-    font-size: 9pt;
-
-    line-height: 1.55;
-
-  }.kisan-html-react-root .affidavit-doc .aff-title{
-
-    font-size: 15pt;
-
-  }.kisan-html-react-root .affidavit-doc .aff-sub{
-
-    font-size: 9pt;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta{
-
-    margin-bottom: 7px;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta > div{
-
-    padding: 4px 6px;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta span{
-
-    font-size: 8pt;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta b{
-
-    font-size: 9pt;
-
-  }.kisan-html-react-root .affidavit-doc .aff-item{
-
-    margin: 3px 0;
-
-  }.kisan-html-react-root .affidavit-doc .aff-land{
-
-    margin: 4px 0 6px;
-
-  }.kisan-html-react-root .affidavit-doc .aff-land th,
-.kisan-html-react-root .affidavit-doc .aff-land td{
-
-    padding: 3px 4px;
-
-    font-size: 8pt;
-
-  }.kisan-html-react-root .affidavit-doc .aff-sign{
-
-    margin-top: 10px;
-
-  }
-
-}@media (max-width: 760px){.kisan-html-react-root .affidavit-doc{
-
-    padding: 20px 14px;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta,
-.kisan-html-react-root .affidavit-doc .aff-sign{
-
-    grid-template-columns: 1fr;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta > div{
-
-    border-right: 0;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta > div:nth-last-child(-n + 2){
-
-    border-bottom: 1px solid #cbd5ce;
-
-  }.kisan-html-react-root .affidavit-doc .aff-meta > div:last-child{
-
-    border-bottom: 0;
-
-  }
-
-}.kisan-html-react-root .aff-preview{
-
-  margin: 12px 0 18px;
-
-  border: 1px solid #c3ccc6;
-
-  border-radius: 4px;
-
-  background: #f7f9f7;
-
-  padding: 0;
-
-}.kisan-html-react-root .aff-preview-title{
-
-  padding: 8px 12px;
-
-  background: #eef3ef;
-
-  border-bottom: 1px solid #cbd5ce;
-
-  color: #174d35;
-
-  font-weight: 600;
-
-  font-size: 13.5px;
-
-}.kisan-html-react-root .aff-preview-grid{
-
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 0;
-
-}.kisan-html-react-root .aff-preview-item{
-
-  padding: 7px 11px;
-
-  border-bottom: 1px solid #d8dfda;
-
-}.kisan-html-react-root .aff-preview-item:nth-child(odd){
-
-  border-right: 1px solid #d8dfda;
-
-}.kisan-html-react-root .aff-preview-label{
-
-  font-size: 10.5px;
-
-  color: #66756c;
-
-  display: block;
-
-  margin-bottom: 1px;
-
-}.kisan-html-react-root .aff-preview-value{
-
-  font-size: 12.5px;
-
-  color: #1b2b22;
-
-}.kisan-html-react-root .aff-preview-table{
-
-  width: 100%;
-
-  border-collapse: collapse;
-
-  margin: 8px 0 0;
-
-}.kisan-html-react-root .aff-preview-table th{
-
-  background: #174d35;
-
-  color: #fff;
-
-  font-size: 11px;
-
-  padding: 6px;
-
-  border: 1px solid #174d35;
-
-}.kisan-html-react-root .aff-preview-table td{
-
-  font-size: 11.5px;
-
-  padding: 5px 6px;
-
-  border: 1px solid #cbd5ce;
-
-}@media (max-width: 760px){.kisan-html-react-root .aff-preview-grid{
-
-    grid-template-columns: 1fr;
-
-  }.kisan-html-react-root .aff-preview-item:nth-child(odd){
-
-    border-right: 0;
-
-  }
-
-}@media print{.kisan-html-react-root .aff-preview{
-
-    display: none !important;
-
-  }
-
-}.kisan-html-react-root .land-row-actions{
-
-  margin: 7px 0 12px;
-
-}.kisan-html-react-root .land-remove{
-
-  border: 1px solid #c9d2cc;
-
-  background: #fff;
-
-  color: #8a3a2b;
-
-  border-radius: 3px;
-
-  width: 28px;
-
-  height: 28px;
-
-  cursor: pointer;
-
-  font-size: 17px;
-
-  line-height: 24px;
-
-}.kisan-html-react-root .land-remove:hover{
-
-  background: #fbf1ee;
-
-}@media print{.kisan-html-react-root .land-remove,
-.kisan-html-react-root .land-row-actions{
-
-    display: none !important;
-
-  }.kisan-html-react-root #applicationOut table.landtable th.noprint,
-.kisan-html-react-root #applicationOut table.landtable td.noprint{
-
-    display: none !important;
-
-  }
-
-}.kisan-html-react-root{
-
-  min-height: 100vh;
-
-}.kisan-html-react-root > .shell{
-
-  min-height: 100vh;
-
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-
-/* ===== Responsive isolation additions ===== */
-.kisan-html-react-root,
 .kisan-html-react-root * {
   box-sizing: border-box;
 }
 
-.kisan-html-react-root .shell {
-  width: 100%;
-  max-width: 100%;
-  overflow: visible;
-}
-
-.kisan-html-react-root main {
-  width: 100%;
-  max-width: 1180px;
-  min-width: 0;
-  margin-top: 56px;
-}
-
-.kisan-html-react-root .card,
-.kisan-html-react-root .doc,
-.kisan-html-react-root .appdoc,
-.kisan-html-react-root .bill-doc,
-.kisan-html-react-root .affidavit-doc {
-  max-width: 100%;
-  min-width: 0;
-}
-
-.kisan-html-react-root .pad,
-.kisan-html-react-root .doc,
-.kisan-html-react-root .appdoc,
-.kisan-html-react-root .bill-doc,
-.kisan-html-react-root .affidavit-doc {
-  overflow-x: auto;
-}
-
-.kisan-html-react-root .expense-table,
-.kisan-html-react-root .landtable,
-.kisan-html-react-root .infoTable,
-.kisan-html-react-root .summaryTbl,
-.kisan-html-react-root .bill-doc > table,
-.kisan-html-react-root .aff-land {
-  min-width: 0;
-}
-
-@media (max-width: 1100px) {
-  .kisan-html-react-root main {
-    max-width: none;
-    padding-left: 22px;
-    padding-right: 22px;
-  }
-
-  .kisan-html-react-root .rail {
-    width: 210px;
-    flex-basis: 210px;
-  }
-
-  .kisan-html-react-root .strip {
-    left: 210px;
-  }
-
-  .kisan-html-react-root .strip .cell {
-    min-width: 112px;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-}
-
-@media (max-width: 860px) {
-  .kisan-html-react-root .shell {
-    flex-direction: column;
-  }
-
-  .kisan-html-react-root .rail {
-    width: 100%;
-    flex: 0 0 auto;
-    height: auto;
-    position: relative;
-    top: auto;
-    overflow: visible;
-    padding: 14px 0 16px;
-  }
-
-  .kisan-html-react-root .rail nav {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .kisan-html-react-root .rail nav a {
-    flex: 1 1 140px;
-  }
-
-  .kisan-html-react-root main {
-    width: 100%;
-    padding: 18px 14px 150px;
-  }
-
-  .kisan-html-react-root .strip {
-    left: 0;
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .kisan-html-react-root .strip .msg {
-    display: none;
-  }
-
-  .kisan-html-react-root .strip .cell {
-    flex: 1 1 25%;
-    min-width: 0;
-  }
-
-  .kisan-html-react-root .strip .go {
-    min-height: 48px;
-  }
-
-  .kisan-html-react-root .appgrid,
-  .kisan-html-react-root .kv,
-  .kisan-html-react-root .bill-meta,
-  .kisan-html-react-root .aff-meta-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .kisan-html-react-root .appdoc,
-  .kisan-html-react-root .bill-doc,
-  .kisan-html-react-root .doc,
-  .kisan-html-react-root .affidavit-doc {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-}
-
-@media (max-width: 640px) {
-  .kisan-html-react-root .rail h1 {
-    font-size: 15px;
-  }
-
-  .kisan-html-react-root .rail .sub {
-    margin-bottom: 12px;
-  }
-
-  .kisan-html-react-root .rail nav a {
-    flex: 1 1 100%;
-    padding: 9px 14px;
-  }
-
-  .kisan-html-react-root .tools {
-    width: auto;
-  }
-
-  .kisan-html-react-root .grid,
-  .kisan-html-react-root .appgrid,
-  .kisan-html-react-root .kv,
-  .kisan-html-react-root .aff-preview-grid,
-  .kisan-html-react-root .aff-sign {
-    grid-template-columns: 1fr !important;
-  }
-
-  .kisan-html-react-root .cap {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .kisan-html-react-root .cap small {
-    width: 100%;
-    margin-left: 18px;
-  }
-
-  .kisan-html-react-root .strip {
-    position: fixed;
-    bottom: 0;
-    padding: 0;
-  }
-
-  .kisan-html-react-root .strip .cell {
-    flex: 1 1 50%;
-    padding: 7px 9px;
-  }
-
-  .kisan-html-react-root .strip .v {
-    font-size: 16px;
-  }
-
-  .kisan-html-react-root .strip .go {
-    flex: 1 1 100%;
-    min-height: 42px;
-    padding: 8px 12px;
-  }
-
-  .kisan-html-react-root .expense-table {
-    min-width: 680px;
-  }
-
-  .kisan-html-react-root .landtable {
-    min-width: 620px;
-  }
-
-  .kisan-html-react-root .bill-doc > table {
-    min-width: 680px;
-  }
-}
-
-@media (max-width: 420px) {
-  .kisan-html-react-root main {
-    padding: 12px 10px 170px;
-  }
-
-  .kisan-html-react-root .pad {
-    padding: 10px;
-  }
-
-  .kisan-html-react-root .appdoc,
-  .kisan-html-react-root .bill-doc,
-  .kisan-html-react-root .doc,
-  .kisan-html-react-root .affidavit-doc {
-    padding: 14px 10px;
-  }
-
-  .kisan-html-react-root h2.head {
-    font-size: 18px;
-  }
-
-  .kisan-html-react-root .strip .cell .k {
-    font-size: 10px;
-  }
-
-  .kisan-html-react-root .strip .cell .v {
-    font-size: 14px;
-  }
-}
-/* ===== VERMICOMPOST SPECIFIC STYLES ===== */
-.kisan-html-react-root .vermi-unit-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 24px;
-  padding: 10px 0;
-}
-.kisan-html-react-root .vermi-unit-details .r {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 5px 0;
-  border-bottom: 1px dotted #D5DDD7;
-}
-.kisan-html-react-root .vermi-unit-details .r:last-child {
-  border-bottom: 0;
-}
-.kisan-html-react-root .vermi-unit-details b {
-  white-space: nowrap;
-  font-weight: 600;
-}
-.kisan-html-react-root .vermi-unit-details .auto {
-  font-weight: 600;
+.kisan-html-react-root .num {
   font-variant-numeric: tabular-nums;
 }
 
-.kisan-html-react-root .vermi-crops-table th,
-.kisan-html-react-root .vermi-crops-table td {
-  font-size: 13px;
-  padding: 5px 6px;
-}
-.kisan-html-react-root .vermi-crops-table input {
-  width: 100%;
-  border: 1px solid var(--fill-line);
-  background: var(--fill);
-  padding: 4px;
-  font: inherit;
+.kisan-html-react-root .shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--paper);
 }
 
-.kisan-html-react-root .vermi-doc-list {
-  background: #f3f7f3;
-  border: 1px solid #c6cdc4;
-  padding: 10px 12px 10px 28px;
-  margin: 8px 0;
+/* === SIDEBAR === */
+.kisan-html-react-root .rail {
+  width: 260px;
+  flex: 0 0 260px;
+  background: var(--seal-dk);
+  color: #cbd5e1;
+  padding: 81px 0 100px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+}
+
+.kisan-html-react-root .rail h1 {
+  font-size: 18px;
+  margin: 0 24px 8px;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.kisan-html-react-root .rail .sub {
   font-size: 13px;
-  line-height: 1.8;
+  margin: 0 24px 28px;
+  color: #94a3b8;
+  line-height: 1.5;
 }
-.kisan-html-react-root .vermi-doc-list ol {
-  margin: 0;
-  padding: 0;
+
+.kisan-html-react-root .rail nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-left: 4px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-.kisan-html-react-root .vermi-prabhari-box {
-  background: #f3f7f3;
-  border: 1px solid #c6cdc4;
+
+.kisan-html-react-root .rail nav a:hover {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+}
+
+.kisan-html-react-root .rail nav a.on {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border-left-color: var(--gold);
+  font-weight: 600;
+}
+
+.kisan-html-react-root .rail .grp {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 28px 24px 10px;
+  font-weight: 700;
+}
+
+.kisan-html-react-root .rail .tools {
+  margin: 16px 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kisan-html-react-root .rail .tools button {
+  flex: 1 1 45%;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
   padding: 10px 12px;
-  margin: 8px 0;
+  font: inherit;
   font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.kisan-html-react-root .rail .tools button:hover {
+  background: var(--seal);
+  border-color: var(--seal);
+}
+.kisan-html-react-root .rail select {
+
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #000000; /* टेक्स्ट कलर काला */
+  width: calc(100% - 40px);
+  margin: 0 20px;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ड्रॉपडाउन खुलने पर वाले विकल्पों (options) का कलर काला करने के लिए */
+.kisan-html-react-root .rail select option {
+  color: #000000;
+ 
+}
+/* === MAIN AREA === */
+.kisan-html-react-root main {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 48px 120px;
+  max-width: 1180px;
+}
+
+.kisan-html-react-root .view { display: none; }
+.kisan-html-react-root .view.on { display: block; animation: fadeIn 0.3s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kisan-html-react-root h2.head {
+  font-size: 26px;
+  margin: 0 0 6px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.kisan-html-react-root p.lead {
+  margin: 0 0 28px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  max-width: 74ch;
+  line-height: 1.6;
+}
+
+/* === MODERN CARDS === */
+.kisan-html-react-root .card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.kisan-html-react-root .card > .cap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--fill);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.kisan-html-react-root .cap i {
+  width: 10px;
+  height: 10px;
+  background: var(--seal);
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 10px;
+}
+
+.kisan-html-react-root .cap small {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.kisan-html-react-root .pad {
+  padding: 20px;
+}
+
+.kisan-html-react-root .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.kisan-html-react-root label.f {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kisan-html-react-root .pad > .grid input,
+.kisan-html-react-root .pad > .grid select {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 6px;
+  color: var(--ink);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.kisan-html-react-root .pad > .grid input:focus {
+  outline: none;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* === TABLES === */
+.kisan-html-react-root table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.kisan-html-react-root th {
+ 
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 2px solid var(--rule);
+}
+
+.kisan-html-react-root td {
+  border-bottom: 1px solid var(--rule);
+  padding: 4px;
+  vertical-align: middle;
+}
+
+.kisan-html-react-root td.n {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 8px;
+  font-weight: 600;
+}
+
+.kisan-html-react-root td input {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--ink);
+  transition: all 0.2s;
+}
+
+.kisan-html-react-root td input:hover {
+  background: var(--fill);
+}
+
+.kisan-html-react-root td input:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.kisan-html-react-root td.calc {
+  text-align: right;
+  white-space: nowrap;
+  padding: 8px 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--seal-dk);
+}
+
+.kisan-html-react-root tr.tot td {
+  background: var(--fill);
+  font-weight: 700;
+  padding: 12px;
+  border-top: 2px solid var(--rule);
+  border-bottom: none;
+  color: var(--ink);
+}
+
+.kisan-html-react-root .rm {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.kisan-html-react-root .rm:hover {
+  color: var(--alert);
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.kisan-html-react-root .addrow {
+  margin: 12px 0 4px;
+  background: #fff;
+  border: 1px dashed var(--seal);
+  color: var(--seal);
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.kisan-html-react-root .addrow:hover {
+  background: var(--seal);
+  color: #fff;
+}
+
+/* === BOTTOM STRIP === */
+.kisan-html-react-root .strip {
+  position: fixed;
+  left: 260px;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: stretch;
+  z-index: 20;
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+}
+
+.kisan-html-react-root .strip .cell {
+  padding: 16px 24px;
+  border-right: 1px solid var(--rule);
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kisan-html-react-root .strip .k {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.kisan-html-react-root .strip .v {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.kisan-html-react-root .strip .cell.pay .v {
+  color: var(--seal);
+}
+
+.kisan-html-react-root .strip .msg {
+  flex: 1;
+  padding: 16px 24px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.kisan-html-react-root .strip .msg.bad {
+  color: var(--alert);
+  font-weight: 500;
+}
+
+.kisan-html-react-root .strip .go {
+  border: 0;
+  background: var(--seal);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 0 32px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.kisan-html-react-root .strip .go:hover {
+  background: var(--seal-dk);
+}
+
+/* === GOVERNMENT FORM LAYOUT === */
+.kisan-html-react-root .doc,
+.kisan-html-react-root .appdoc,
+.kisan-html-react-root .bill-doc {
+  background: #fff;
+  padding: 40px 48px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+.kisan-html-react-root .appdoc h3,
+.kisan-html-react-root .doc h3 {
+  text-align: center;
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--seal-dk);
+}
+
+.kisan-html-react-root .appdoc h4,
+.kisan-html-react-root .doc h4 {
+  text-align: center;
+  margin: 0 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.kisan-html-react-root .appdoc h5,
+.kisan-html-react-root .doc h5 {
+  font-size: 15px;
+  margin: 24px 0 12px;
+  font-weight: 700;
+  color: var(--seal-dk);
+  border-bottom: 2px solid var(--seal);
+  padding-bottom: 8px;
+}
+
+.kisan-html-react-root .kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 32px;
+  margin-bottom: 12px;
+}
+
+.kisan-html-react-root .kv .r {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.kisan-html-react-root .kv .r b {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.kisan-html-react-root .ln {
+  flex: 1;
+  min-width: 40px;
+  border: 0;
+  border-bottom: 1px dotted #94a3b8;
+  background: var(--fill);
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.kisan-html-react-root .ln:focus {
+  outline: none;
+  background: #fff;
+  border-bottom: 2px solid var(--seal);
+}
+
+.kisan-html-react-root .ln.rt { text-align: right; font-variant-numeric: tabular-nums; }
+.kisan-html-react-root .ln.sm { flex: 0 0 120px; }
+
+.kisan-html-react-root .auto {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.kisan-html-react-root .doc th,
+.kisan-html-react-root .bill-doc th {
+  background: var(--seal-dk);
+  color: #fff;
+  font-size: 13px;
+  padding: 10px;
+  border: 1px solid var(--seal-dk);
+}
+
+.kisan-html-react-root .doc td,
+.kisan-html-react-root .bill-doc td {
+  border: 1px solid var(--rule);
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.kisan-html-react-root .doc .decl {
+  margin: 16px 0;
   line-height: 1.8;
+  background: var(--fill);
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid var(--seal);
 }
 
+.kisan-html-react-root .xbox {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.kisan-html-react-root .xbox .xh {
+  background: var(--seal-dk);
+  color: #fff;
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.kisan-html-react-root .xbox table { margin: 0; }
+.kisan-html-react-root .xbox td { border: 0; border-bottom: 1px solid var(--rule); padding: 10px 16px; }
+.kisan-html-react-root .xbox tr:last-child td { border-bottom: 0; }
+
+.kisan-html-react-root .xbox td.v {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: 200px;
+}
+
+.kisan-html-react-root .xbox tr.hi td {
+  background: var(--fill);
+  font-size: 16px;
+  color: var(--seal-dk);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 860px) {
+  .kisan-html-react-root .shell { flex-direction: column; }
+  .kisan-html-react-root .rail {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 16px;
+  }
+  .kisan-html-react-root .rail nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px; }
+  .kisan-html-react-root .rail nav a { flex: 1 1 auto; padding: 8px 12px; border-radius: 6px; border-left: none; }
+  .kisan-html-react-root .strip { left: 0; flex-wrap: wrap; }
+  .kisan-html-react-root .strip .msg { display: none; }
+  .kisan-html-react-root main { padding: 20px 16px 150px; }
+  .kisan-html-react-root .kv { grid-template-columns: 1fr; }
+  .kisan-html-react-root .doc, .kisan-html-react-root .appdoc, .kisan-html-react-root .bill-doc { padding: 24px 16px; }
+}
+
+/* === PROFESSIONAL PRINT LAYOUT === */
 @media print {
-  .kisan-html-react-root .vermi-unit-details {
-    gap: 3px 18px;
+  @page { size: A4 portrait; margin: 12mm; }
+  
+  .kisan-html-react-root {
+    background: #fff !important;
   }
-  .kisan-html-react-root .vermi-unit-details .r {
-    padding: 2px 0;
+  
+  .kisan-html-react-root .rail,
+  .kisan-html-react-root .strip,
+  .kisan-html-react-root .noprint,
+  .kisan-html-react-root .app-actions,
+  .kisan-html-react-root .land-row-actions {
+    display: none !important;
   }
-  .kisan-html-react-root .vermi-crops-table th,
-  .kisan-html-react-root .vermi-crops-table td {
-    font-size: 9pt;
-    padding: 3px 4px;
+  
+  .kisan-html-react-root .shell { display: block; min-height: 0; }
+  .kisan-html-react-root main { padding: 0; max-width: none; }
+  
+  .kisan-html-react-root .view { display: none !important; }
+  .kisan-html-react-root .view.print-target { display: block !important; }
+  
+  .kisan-html-react-root h2.head, .kisan-html-react-root p.lead { display: none !important; }
+  
+  .kisan-html-react-root .doc,
+  .kisan-html-react-root .appdoc,
+  .kisan-html-react-root .bill-doc {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
   }
-  .kisan-html-react-root .vermi-doc-list,
-  .kisan-html-react-root .vermi-prabhari-box {
-    padding: 4px 7px;
-    margin: 4px 0;
-    font-size: 9pt;
+  
+  /* Ensure tables don't break awkwardly */
+  .kisan-html-react-root table, 
+  .kisan-html-react-root tr, 
+  .kisan-html-react-root td, 
+  .kisan-html-react-root th {
+    page-break-inside: avoid;
+  }
+  
+  /* Clean Inputs for Print */
+  .kisan-html-react-root .ln {
+    background: transparent !important;
+    border-bottom: 1px solid #000 !important;
+    color: #000 !important;
+  }
+  
+  /* Remove colored backgrounds for print */
+  .kisan-html-react-root .xbox, .kisan-html-react-root .xbox .xh {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
   }
 }
-/* ===== SCHEME SELECTOR BAR ===== */
-.kisan-html-react-root .scheme-selector-bar{
-  display:flex;align-items:center;gap:12px;
-  padding:10px 20px;background:#16352a;color:#fff;
-  position:sticky;top:0;z-index:100;
-}
-.kisan-html-react-root .scheme-selector-bar label{font-weight:600;font-size:14px}
-.kisan-html-react-root .scheme-selector-bar select{
-  padding:6px 10px;border-radius:4px;border:1px solid #3c7358;
-  background:#2b5c46;color:#fff;font-size:14px;cursor:pointer;
-}
-
-/* ===== VERMI PORTAL — संपूर्ण अलग संरचना ===== */
-.kisan-html-react-root .vermi-portal{background:#eef2ef;min-height:100vh}
-.kisan-html-react-root .vermi-portal .vwrap{max-width:1250px;margin:auto;padding:20px}
-.kisan-html-react-root .vermi-portal .top{
-  background:#123f2f;color:#fff;border-radius:8px;padding:18px 22px;margin-bottom:14px;
-}
-.kisan-html-react-root .vermi-portal .top h1{margin:0;font-size:24px}
-.kisan-html-react-root .vermi-portal .top p{margin:6px 0 0}
-.kisan-html-react-root .vermi-portal .tabs{
-  display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;
-}
-.kisan-html-react-root .vermi-portal .tabs button{
-  padding:10px 18px;border:1px solid #b8c9bf;background:#fff;
-  border-radius:5px;cursor:pointer;font-weight:600;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal .tabs button.on{background:#174f39;color:#fff}
-.kisan-html-react-root .vermi-portal .panel{
-  display:none;background:#fff;border:1px solid #cbd6cf;
-  border-radius:7px;padding:18px;
-}
-.kisan-html-react-root .vermi-portal .panel.on{display:block}
-.kisan-html-react-root .vermi-portal .grid2{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;
-}
-.kisan-html-react-root .vermi-portal .field label{
-  display:block;font-weight:600;margin-bottom:4px;
-}
-.kisan-html-react-root .vermi-portal .field input,
-.kisan-html-react-root .vermi-portal .field select{
-  width:100%;box-sizing:border-box;padding:9px;
-  border:1px solid #c9d3cc;border-radius:4px;font:inherit;
-}
-.kisan-html-react-root .vermi-portal .st{
-  font-size:18px;font-weight:700;color:#164c37;
-  border-bottom:2px solid #d9e2dd;padding-bottom:7px;margin:18px 0 12px;
-}
-.kisan-html-react-root .vermi-portal .btn{
-  padding:9px 15px;border:1px solid #9eb2a6;background:#f7faf8;
-  border-radius:4px;cursor:pointer;font:inherit;
-}
-.kisan-html-react-root .vermi-portal .primary{background:#174f39;color:#fff}
-.kisan-html-react-root .vermi-portal table{width:100%;border-collapse:collapse}
-.kisan-html-react-root .vermi-portal th{
-  background:#174f39;color:#fff;padding:9px;text-align:left;
-  font-weight:600;border:1px solid #174f39;font-size:13px;
-}
-.kisan-html-react-root .vermi-portal td{
-  border:1px solid #d5ddd8;padding:7px;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal td input,
-.kisan-html-react-root .vermi-portal td select{
-  width:100%;box-sizing:border-box;padding:7px;
-  border:1px solid #d5ddd8;font:inherit;background:#fff8d6;
-}
-.kisan-html-react-root .vermi-portal .material-cell input{min-width:220px}
-.kisan-html-react-root .vermi-portal .num{text-align:right}
-.kisan-html-react-root .vermi-portal .note{
-  margin-top:14px;padding:12px 14px;background:#f5f7f5;
-  border-left:4px solid #174f39;font-size:13px;line-height:1.6;
-}
-.kisan-html-react-root .vermi-portal .summaryTbl{
-  width:100%;border-collapse:collapse;margin:6px 0 10px;
-  border:1.5px solid #174f39;
-}
-.kisan-html-react-root .vermi-portal .summaryTbl td{
-  border:none;border-bottom:1px dotted #c6cdc4;
-  padding:9px 14px;font-size:15px;
-}
-.kisan-html-react-root .vermi-portal .summaryTbl tr:last-child td{border-bottom:0}
-.kisan-html-react-root .vermi-portal .summaryTbl td:first-child{color:#4a5a50;width:55%}
-.kisan-html-react-root .vermi-portal .summaryTbl td.sv{
-  text-align:right;font-weight:600;font-variant-numeric:tabular-nums;
-}
-.kisan-html-react-root .vermi-portal .summaryTbl td.sv.big{font-size:19px;color:#1f5c3a}
-.kisan-html-react-root .vermi-portal .summaryTbl tr.hi td{background:#f3f7f3}
-.kisan-html-react-root .vermi-portal .summaryTbl tr.hi td.sv{font-size:21px}
-.kisan-html-react-root .vermi-portal .report-box{
-  border:1px solid #444;padding:14px 16px;margin-top:10px;
-  line-height:1.7;text-align:justify;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal .report-sign{
-  margin-top:24px;text-align:right;line-height:1.8;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal .declaration-box{
-  line-height:1.7;text-align:justify;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal .farmer-signature{
-  display:flex;justify-content:space-between;gap:30px;
-  flex-wrap:wrap;margin-top:24px;line-height:1.8;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal .prabhari-box{
-  line-height:1.7;text-align:justify;font-size:14px;
-}
-.kisan-html-react-root .vermi-portal .print-head{display:none}
-
-@media print{
-  .kisan-html-react-root .scheme-selector-bar{display:none!important}
-  .kisan-html-react-root .vermi-portal .top,
-  .kisan-html-react-root .vermi-portal .tabs,
-  .kisan-html-react-root .vermi-portal .no-print{display:none!important}
-  .kisan-html-react-root .vermi-portal .vwrap{padding:0}
-  .kisan-html-react-root .vermi-portal .panel{display:none!important;border:0;padding:0}
-  .kisan-html-react-root .vermi-portal .panel.printing{display:block!important}
-  .kisan-html-react-root .vermi-portal .print-head{display:block!important;text-align:center}
-  @page{size:A4 portrait;margin:14mm}
-}
-@media(max-width:760px){
-  .kisan-html-react-root .vermi-portal .grid2{grid-template-columns:1fr}
-}
-/* ===== VERMI FORM STYLES (shell के अंदर उपयोग) ===== */
-.kisan-html-react-root .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kisan-html-react-root .field label{display:block;font-weight:600;margin-bottom:4px}
-.kisan-html-react-root .field input,.kisan-html-react-root .field select{
-  width:100%;box-sizing:border-box;padding:9px;border:1px solid #c9d3cc;border-radius:4px;font:inherit
-}
-.kisan-html-react-root .st{
-  font-size:18px;font-weight:700;color:#164c37;
-  border-bottom:2px solid #d9e2dd;padding-bottom:7px;margin:18px 0 12px
-}
-.kisan-html-react-root .btn{padding:9px 15px;border:1px solid #9eb2a6;background:#f7faf8;border-radius:4px;cursor:pointer;font:inherit}
-.kisan-html-react-root .primary{background:#174f39;color:#fff}
-.kisan-html-react-root .material-cell input{min-width:220px}
-.kisan-html-react-root .note{margin-top:14px;padding:12px 14px;background:#f5f7f5;border-left:4px solid #174f39;font-size:13px;line-height:1.6}
-.kisan-html-react-root .report-box{border:1px solid #444;padding:14px 16px;margin-top:10px;line-height:1.7;text-align:justify;font-size:14px}
-.kisan-html-react-root .report-sign{margin-top:24px;text-align:right;line-height:1.8;font-size:14px}
-.kisan-html-react-root .declaration-box{line-height:1.7;text-align:justify;font-size:14px}
-.kisan-html-react-root .farmer-signature{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;margin-top:24px;line-height:1.8;font-size:14px}
-.kisan-html-react-root .prabhari-box{line-height:1.7;text-align:justify;font-size:14px}
-@media print{
-  .kisan-html-react-root .st{font-size:11pt;margin:7px 0 4px}
-  .kisan-html-react-root .grid2{gap:4px}
-  .kisan-html-react-root .field input,.kisan-html-react-root .field select{padding:4px;font-size:9pt}
-  .kisan-html-react-root .btn{display:none!important}
-  .kisan-html-react-root .note,.kisan-html-react-root .report-box,.kisan-html-react-root .declaration-box{font-size:9pt;padding:6px 8px}
-}
-@media(max-width:760px){.kisan-html-react-root .grid2{grid-template-columns:1fr}}

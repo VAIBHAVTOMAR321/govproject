@@ -47,6 +47,8 @@ import VetanMang from "./componets/VetanMang";
 import AdminVetanMang from "./componets/dash_board/AdminVetanMang";
 import AdminMonthAttendance from "./componets/dash_board/AdminMonthAttendance";
 import AdminKishanAavedan from "./componets/KishanBeej/AdminKishanAavedan";
+import KisanAvedan from "./componets/kishanavedan/KisanAvedan";
+import KisanAavedan from "./componets/kishanavedan/KisanAvedan";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -86,7 +88,8 @@ function NavbarWrapper() {
     "/CenterUdyanBill",
     "/VetanMang",
     "/MonthAttendance",
-    "/AdminKishanAavedan"
+    "/AdminKishanAavedan",
+    "/KisanAvedan"
     
   ]);
 
@@ -125,6 +128,7 @@ function AppContent() {
           {/* Public Route */}
           <Route path="/" element={<Home />} />
           <Route path="/ForgotPassword" element={<ForgotPassword />} />
+      
 
           {/* PROTECTED ROUTES */}
           <Route
@@ -135,6 +139,8 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+
+        
           
   <Route
             path="/MonthReport"
@@ -149,6 +155,14 @@ function AppContent() {
     element={
       <ProtectedRoute allowedLoginTypes={["demand"]}>
         <VetanMang />
+      </ProtectedRoute>
+    }
+  />
+  <Route
+    path="/KisanAvedan"
+    element={
+      <ProtectedRoute allowedLoginTypes={["demand"]}>
+        <KisanAavedan />
       </ProtectedRoute>
     }
   />

@@ -90,8 +90,8 @@ const DemandNavigation = () => {
                 fontWeight:
                   isActive("/CenterUdyanBill") ||
                   isActive("/GetViewLibrary") ||
-                  isActive("/KisanAavedanPortal") ||
-                  isActive("/MonthAttendance")
+                  isActive("/MonthAttendance") ||
+                  isActive("/VetanMang")
                     ? "bold"
                     : "normal",
               }}
@@ -115,15 +115,6 @@ const DemandNavigation = () => {
                 लाइब्रेरी
               </NavDropdown.Item>
               <NavDropdown.Item
-                active={isActive("/KisanAavedanPortal")}
-                onClick={() => navigate("/KisanAavedanPortal")}
-                style={{
-                  fontWeight: isActive("/KisanAavedanPortal") ? "bold" : "normal",
-                }}
-              >
-                किसान आवेदन पोर्टल
-              </NavDropdown.Item>
-              <NavDropdown.Item
                 active={isActive("/MonthAttendance")}
                 onClick={() => navigate("/MonthAttendance")}
                 style={{
@@ -140,6 +131,38 @@ const DemandNavigation = () => {
                 }}
               >
                 वेतन मांग पत्र
+              </NavDropdown.Item>
+            </NavDropdown>
+
+            {/* New Dropdown: किसान आवेदन (KisanAvedan) */}
+            <NavDropdown
+              title="किसान आवेदन"
+              id="kisanavedan-nav-dropdown"
+              style={{
+                fontWeight:
+                  isActive("/KisanAvedan") ||
+                  isActive("/KisanAavedanPortal")
+                    ? "bold"
+                    : "normal",
+              }}
+            >
+              <NavDropdown.Item
+                active={isActive("/KisanAvedan")}
+                onClick={() => navigate("/KisanAvedan")}
+                style={{
+                  fontWeight: isActive("/KisanAvedan") ? "bold" : "normal",
+                }}
+              >
+                वर्मी (Vermi)
+              </NavDropdown.Item>
+              <NavDropdown.Item
+                active={isActive("/KisanAavedanPortal")}
+                onClick={() => navigate("/KisanAavedanPortal")}
+                style={{
+                  fontWeight: isActive("/KisanAavedanPortal") ? "bold" : "normal",
+                }}
+              >
+                फेंसिंग (Fencing)
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>
