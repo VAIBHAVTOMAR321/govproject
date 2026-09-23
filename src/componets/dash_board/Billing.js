@@ -26,6 +26,9 @@ const GET_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/billing-items/";
 const UPDATE_API_URL =
   "https://mahadevaaya.com/govbillingsystem/backend/api/update-billing-item/";
+// Page No API URL
+const PAGE_NO_API_URL_BASE =
+  "https://mahadevaaya.com/govbillingsystem/backend/api/billing-report-component-pageno/";
 
 // Custom styles for react-select
 const customSelectStyles = {
@@ -146,7 +149,7 @@ const translations = {
   pageNoLabel: "पेज नंबर",
   savePageNo: "पेज नंबर सेव करें",
   pageNoEmptyError: "कृपया कम से कम एक उप-निवेश के लिए पेज नंबर दर्ज करें।",
-  noUniqueSubnivesh: "कोई उप-निवेश नाम उपलब्ध नहीं है।",
+  noUniqueSubnivesh: "API से कोई उप-निवेश नाम उपलब्ध नहीं है।",
   closeBtn: "बंद करें",
 };
 
@@ -256,7 +259,10 @@ const Billing = () => {
 
   // Page Number State
   const [showPageNoModal, setShowPageNoModal] = useState(false);
-  const [pageNoInputs, setPageNoInputs] = useState({}); 
+  const [pageNoInputs, setPageNoInputs] = useState({});
+  const [savingPageNo, setSavingPageNo] = useState(false);
+  const [pageNoRecordId, setPageNoRecordId] = useState(1);
+  const [apiSubniveshData, setApiSubniveshData] = useState([]); // <-- Only API data will be stored here
 
   const columnMapping = {
     sno: { header: "क्र.सं.", accessor: (item, index, currentPage, itemsPerPage) => (currentPage - 1) * itemsPerPage + index + 1 },
@@ -362,19 +368,6 @@ const Billing = () => {
     });
   }, [billingData, filters, fromDate, toDate]);
 
-  // Unique sub_investment_name values from filtered data
-  const uniqueSubniveshNames = useMemo(() => {
-    if (!filteredData || filteredData.length === 0) return [];
-    const uniqueSet = new Set();
-    filteredData.forEach((item) => {
-      const name = item.sub_investment_name;
-      if (name !== null && name !== undefined && String(name).trim() !== "") {
-        uniqueSet.add(String(name).trim());
-      }
-    });
-    return Array.from(uniqueSet);
-  }, [filteredData]);
-
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const paginatedBillingData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
@@ -444,7 +437,6 @@ const Billing = () => {
     applyBulkFieldValue("billing_date", formattedDate, id);
   };
 
-  // FIXED: Only apply Bill Report ID to rows with the same Center and Billing Date
   const handleBillReportIdChange = (id, value) => {
     const trimmed = value ? value.toString().trim() : "";
     const changedItem = billingData.find(item => item.id === id);
@@ -479,16 +471,86 @@ const Billing = () => {
   const calculateAllocatedAmount = (allocatedQuantity, rate) => ((parseFloat(allocatedQuantity) || 0) * (parseFloat(rate) || 0)).toFixed(2);
   const calculateTotalBill = (cutQuantity, rate) => ((parseFloat(cutQuantity) || 0) * (parseFloat(rate) || 0)).toFixed(2);
 
-  const handleOpenPageNoModal = () => {
+  // Fetch previously saved Page Numbers when opening the modal
+  const handleOpenPageNoModal = async () => {
     setShowPageNoModal(true);
+    try {
+      const response = await fetch(`${PAGE_NO_API_URL_BASE}${pageNoRecordId}/`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.component_pageno) {
+          if (data.id) setPageNoRecordId(data.id);
+          
+          const existingPagenos = {};
+          const fetchedNames = [];
+          
+          // Parse the [[["name1"], pageno1], [["name2"], pageno2]] format
+          data.component_pageno.forEach((item) => {
+            if (Array.isArray(item) && item.length === 2) {
+              const nameArray = item[0];
+              const pageno = item[1];
+              if (nameArray && nameArray.length > 0) {
+                const name = nameArray[0];
+                fetchedNames.push(name);
+                existingPagenos[name] = pageno;
+              }
+            }
+          });
+          
+          // ONLY Set the API Data to State
+          setApiSubniveshData(fetchedNames);
+          setPageNoInputs(existingPagenos);
+        } else {
+          setApiSubniveshData([]);
+          setPageNoInputs({});
+        }
+      } else {
+         setApiSubniveshData([]);
+         setPageNoInputs({});
+      }
+    } catch (e) {
+      console.error("Error fetching page numbers:", e);
+      setApiSubniveshData([]);
+    }
   };
 
   const handlePageNoInputChange = (subniveshName, value) => {
     setPageNoInputs((prev) => ({ ...prev, [subniveshName]: value }));
   };
 
-  const handleSavePageNo = () => {
-    setShowPageNoModal(false);
+  // PUT API call to save updated page numbers
+  const handleSavePageNo = async () => {
+    try {
+      setSavingPageNo(true);
+      
+      // Convert pageNoInputs back to the API format [[["name1"], 14], [["name2"], 16]]
+      const componentPagenoArray = apiSubniveshData.map((name) => {
+        const pno = pageNoInputs[name];
+        const parsedPno = parseInt(pno, 10);
+        return [[name], isNaN(parsedPno) ? pno : parsedPno];
+      }).filter(item => item[1] !== "" && item[1] !== null && item[1] !== undefined);
+
+      const payload = {
+        id: pageNoRecordId,
+        component_pageno: componentPagenoArray,
+      };
+
+      const response = await fetch(`${PAGE_NO_API_URL_BASE}${pageNoRecordId}/`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setShowPageNoModal(false);
+      } else {
+        console.error("Failed to save page numbers");
+      }
+    } catch (e) {
+      console.error("Error saving page numbers:", e);
+    } finally {
+      setSavingPageNo(false);
+    }
   };
 
   // Main form submit (includes both multiple_bills and component_pageno)
@@ -535,7 +597,6 @@ const Billing = () => {
         itemsByCenterDateReport[compositeKey].items.push(item);
       });
 
-      // Check if the user entered the same Bill Report ID for different centers/dates
       const reportIdsArray = Object.values(itemsByCenterDateReport).map(g => g.bill_report_id);
       const duplicateReportIds = reportIdsArray.filter((id, index) => reportIdsArray.indexOf(id) !== index);
       if (duplicateReportIds.length > 0) {
@@ -552,10 +613,9 @@ const Billing = () => {
           return [item.bill_id, totalUpdated];
         });
 
-        // --- Build component_pageno array ---
+        // --- Build component_pageno array for main submit (using API data) ---
         const pnoGrouped = {};
-        group.items.forEach(item => {
-          const name = item.sub_investment_name;
+        apiSubniveshData.forEach(name => { // Looping through API fetched names only
           const pno = pageNoInputs[name];
           if (pno !== undefined && pno !== null && String(pno).trim() !== "") {
             const pnoStr = String(pno).trim();
@@ -574,7 +634,7 @@ const Billing = () => {
         if (pnoPairs.length > 0) {
           finalComponentPageno = pnoPairs.length === 1 ? pnoPairs[0] : pnoPairs;
         }
-        // -----------------------------------
+        // --------------------------------------------------------------------
 
         return {
           bill_report_id: group.bill_report_id || "",
@@ -584,8 +644,6 @@ const Billing = () => {
           component_pageno: finalComponentPageno
         };
       });
-
-      console.log("Submitting payloads:", JSON.stringify({ data: payloads }, null, 2));
 
       const response = await fetch(UPDATE_API_URL, {
         method: "POST",
@@ -601,7 +659,6 @@ const Billing = () => {
       if (!response.ok) {
         let errorMessage;
         if (responseData && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
-          // Deduplicate error messages so they don't show 9 times
           const uniqueErrorStrings = Array.from(new Set(responseData.errors.map(err => `बिल रिपोर्ट आईडी '${err.bill_report_id}' के लिए त्रुटि: ${err.error}`)));
           errorMessage = uniqueErrorStrings.join("\n");
         } else {
@@ -612,7 +669,6 @@ const Billing = () => {
 
       setSubmitSuccess(true);
       setModifiedItems({});
-      setPageNoInputs({});
 
       const refreshResponse = await fetch(GET_API_URL);
       if (refreshResponse.ok) {
@@ -684,7 +740,7 @@ const Billing = () => {
                 <h1 className="page-title small-fonts">{translations.billing}</h1>
 
                 {submitSuccess && (<Alert variant="success" dismissible onClose={() => setSubmitSuccess(false)}>{translations.billingDataUpdated}</Alert>)}
-                {submitError && (<Alert variant="danger" dismissible onClose={() => setSubmitError(null)}>{translations.error}: {submitError}</Alert>)}
+                {submitError && !showErrorModal && (<Alert variant="danger" dismissible onClose={() => setSubmitError(null)}>{translations.error}: {submitError}</Alert>)}
 
                 {/* Filters Section */}
                 <div className="filter-section mb-4 p-3 border rounded bg-light">
@@ -840,12 +896,12 @@ const Billing = () => {
           <Modal.Title><FaListAlt className="me-2" />{translations.pageNoModalTitle}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="pageno-modal-body">
-          {uniqueSubniveshNames.length === 0 ? (
+          {apiSubniveshData.length === 0 ? (
             <Alert variant="warning" className="text-center">{translations.noUniqueSubnivesh}</Alert>
           ) : (
             <>
-              <p className="small-fonts text-muted mb-3">कुल अद्वितीय उप-निवेश नाम: <strong>{uniqueSubniveshNames.length}</strong></p>
-              {uniqueSubniveshNames.map((name, idx) => (
+              <p className="small-fonts text-muted mb-3">कुल अद्वितीय उप-निवेश नाम (API से): <strong>{apiSubniveshData.length}</strong></p>
+              {apiSubniveshData.map((name, idx) => (
                 <div key={name} className="pageno-row">
                   <Row className="align-items-center">
                     <Col xs={12} md={7}>
@@ -869,7 +925,9 @@ const Billing = () => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowPageNoModal(false)}>{translations.closeBtn}</Button>
-          <Button variant="primary" onClick={handleSavePageNo} disabled={uniqueSubniveshNames.length === 0}>{translations.savePageNo}</Button>
+          <Button variant="primary" onClick={handleSavePageNo} disabled={apiSubniveshData.length === 0 || savingPageNo}>
+            {savingPageNo ? <Spinner as="span" animation="border" size="sm" /> : translations.savePageNo}
+          </Button>
         </Modal.Footer>
       </Modal>
 
