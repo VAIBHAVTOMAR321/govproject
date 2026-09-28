@@ -917,6 +917,11 @@
   border-color: var(--rule);
   cursor: default;
 }
+.kisan-html-react-root .landtable input:not([readonly]):not([disabled]) {
+  background: #fff;
+  color: var(--ink);
+  cursor: text;
+}
 .kisan-html-react-root .landtable tr.tot td {
   background: var(--fill) !important;
   font-weight: 700;
