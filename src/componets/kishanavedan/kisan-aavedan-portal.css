@@ -41,111 +41,397 @@
   font-variant-numeric: tabular-nums;
 }
 .kisan-html-react-root .shell {
-  display: flex;
+  display: block;
   min-height: 100vh;
   background: var(--paper);
+  margin-top: var(--app-nav-pad, 0px);
 }
 
-/* === SIDEBAR === */
-.kisan-html-react-root .rail {
-  width: 260px;
-  flex: 0 0 260px;
+/* === TOP BAR === */
+.kisan-html-react-root .topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
   background: var(--seal-dk);
-  color: #cbd5e1;
-  padding: 81px 0 100px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: auto;
-  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+  color: #fff;
+  padding: 14px 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
-.kisan-html-react-root .rail h1 {
-  font-size: 18px;
-  margin: 0 24px 8px;
+.kisan-html-react-root .topbar .topbar-brand {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.kisan-html-react-root .topbar h1 {
+  font-size: 19px;
+  margin: 0;
   color: #fff;
   font-weight: 700;
   line-height: 1.4;
 }
-.kisan-html-react-root .rail .sub {
-  font-size: 13px;
-  margin: 0 24px 28px;
+.kisan-html-react-root .topbar .sub {
+  font-size: 12.5px;
+  margin: 3px 0 0;
   color: #94a3b8;
   line-height: 1.5;
 }
-.kisan-html-react-root .rail nav a {
+.kisan-html-react-root .topbar .topbar-scheme {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 24px;
-  color: #cbd5e1;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  border-left: 4px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 8px;
 }
-.kisan-html-react-root .rail nav a:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
-.kisan-html-react-root .rail nav a.on {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-left-color: var(--gold);
-  font-weight: 600;
-}
-.kisan-html-react-root .rail .grp {
+.kisan-html-react-root .topbar .tk {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #94a3b8;
-  margin: 28px 24px 10px;
   font-weight: 700;
 }
-.kisan-html-react-root .rail .tools {
-  margin: 16px 20px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.kisan-html-react-root .rail .tools button {
-  flex: 1 1 45%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.kisan-html-react-root .topbar select {
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 12px;
+  background: #fff;
+  color: #000000;
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* === TOP TABS === */
+.kisan-html-react-root .tabs {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border-bottom: 1px solid var(--rule);
+  padding: 0 24px;
+  position: sticky;
+  top: var(--app-nav-h, 0px);
+  z-index: 30;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+.kisan-html-react-root .tabs a {
+  padding: 14px 26px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.kisan-html-react-root .tabs a:hover {
+  color: var(--seal);
+  background: var(--fill);
+}
+.kisan-html-react-root .tabs a.on {
+  color: var(--seal);
+  border-bottom-color: var(--seal);
+  background: var(--fill);
+}
+.kisan-html-react-root .tabs .tabs-preview {
+  margin: 8px 0 8px auto;
+  padding: 9px 18px;
   font: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  color: #fff;
+  background: var(--seal);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.kisan-html-react-root .tabs .tabs-preview:hover {
+  background: var(--seal-dk);
+}
+
+/* === SUB TABS (प्रपत्र भरना) === */
+.kisan-html-react-root .subtabs {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0 8px;
+  margin: 0 0 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.kisan-html-react-root .subtabs a {
+  padding: 11px 22px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.kisan-html-react-root .subtabs a:hover {
+  color: var(--seal);
+  background: var(--fill);
+}
+.kisan-html-react-root .subtabs a.on {
+  color: #fff;
+  background: var(--seal);
+}
+
+/* === ACTIVE FORM ID (top bar) === */
+.kisan-html-react-root .topbar .topbar-formid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kisan-html-react-root .topbar .fid {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 7px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.kisan-html-react-root .topbar .fid.active {
+  color: #fff;
+  background: var(--seal);
+  border-color: var(--seal);
+}
+
+/* === API MESSAGE BAR === */
+.kisan-html-react-root .api-msg {
+  margin: 14px 48px 0;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-left: 4px solid var(--seal);
+  background: #eff6ff;
+  color: var(--seal-dk);
+}
+.kisan-html-react-root .api-msg.ok {
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+  color: #166534;
+}
+.kisan-html-react-root .api-msg.bad {
+  border-left-color: var(--alert);
+  background: #fef2f2;
+  color: #991b1b;
+}
+.kisan-html-react-root .api-msg[hidden] {
+  display: none;
+}
+
+/* === REGISTRATION FORM + TABLE === */
+.kisan-html-react-root .reg-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.kisan-html-react-root .reg-actions input[disabled] {
+  background: var(--fill);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 1;
+  -webkit-text-fill-color: var(--ink);
+}
+.kisan-html-react-root .addrow.solid {
+  background: var(--seal);
+  color: #fff;
+  border: 1px solid var(--seal);
+  margin: 0;
+  padding: 10px 20px;
+}
+.kisan-html-react-root .addrow.solid:hover {
+  background: var(--seal-dk);
+  border-color: var(--seal-dk);
+  color: #fff;
+}
+.kisan-html-react-root .table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.kisan-html-react-root .reg-table th {
+  background: var(--seal-dk);
+  color: #fff;
+  border-bottom: 1px solid var(--seal-dk);
+  white-space: nowrap;
+}
+.kisan-html-react-root .reg-table td {
+  padding: 10px;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.kisan-html-react-root .reg-table tr.sel td {
+  background: #eff6ff;
+}
+.kisan-html-react-root .reg-table td.empty {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 22px 10px;
+}
+.kisan-html-react-root .reg-table td.act {
+  text-align: center;
+}
+.kisan-html-react-root .pill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kisan-html-react-root .pill.ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.kisan-html-react-root .pill.wait {
+  background: #fef3c7;
+  color: #92400e;
+}
+.kisan-html-react-root .mini {
+  border: 1px solid var(--seal);
+  background: #fff;
+  color: var(--seal);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
-.kisan-html-react-root .rail .tools button:hover {
+.kisan-html-react-root .mini:hover {
   background: var(--seal);
-  border-color: var(--seal);
+  color: #fff;
 }
-.kisan-html-react-root .rail select {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #000000;
-  width: calc(100% - 40px);
-  margin: 0 20px;
+.kisan-html-react-root .mini.on {
+  background: var(--seal);
+  color: #fff;
+}
+
+/* === SAVE BARS (per API step) === */
+.kisan-html-react-root .save-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  background: var(--fill);
+  border: 1px dashed var(--fill-line);
+  border-radius: 8px;
+}
+.kisan-html-react-root .save-bar .addrow {
+  margin: 0;
+  padding: 9px 20px;
+}
+.kisan-html-react-root .save-hint {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.kisan-html-react-root .save-hint b {
+  color: var(--seal);
+}
+.kisan-html-react-root .tabs-preview:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--ink-soft);
+}
+
+/* === PRINT PREVIEW OVERLAY === */
+.kisan-html-react-root .pv-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  z-index: 2000;
+  overflow: auto;
+  padding: 24px;
+}
+.kisan-html-react-root .pv-overlay[hidden] {
+  display: none;
+}
+.kisan-html-react-root .pv-box {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--paper);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+}
+.kisan-html-react-root .pv-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--seal-dk);
+  color: #fff;
+  padding: 12px 18px;
+  z-index: 2;
+  border-radius: 10px 10px 0 0;
+}
+.kisan-html-react-root .pv-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+.kisan-html-react-root .pv-actions {
+  display: flex;
+  gap: 8px;
+}
+.kisan-html-react-root .pv-btn {
+  background: #fff;
+  color: var(--seal-dk);
+  border: none;
   font: inherit;
-  font-size: 14px;
-  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s;
 }
-.kisan-html-react-root .rail select option {
-  color: #000000;
+.kisan-html-react-root .pv-btn:hover {
+  background: var(--fill);
+}
+.kisan-html-react-root .pv-btn.close {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.kisan-html-react-root .pv-btn.close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.kisan-html-react-root .pv-body {
+  padding: 24px;
+  background: var(--paper);
+}
+.kisan-html-react-root .pv-body .view {
+  display: block;
+  animation: none;
+}
+.kisan-html-react-root .pv-body h2.head {
+  margin-top: 0;
+}
+.kisan-html-react-root .pv-body .noprint {
+  display: none;
 }
 
 /* === MAIN AREA === */
 .kisan-html-react-root main {
-  flex: 1;
+  width: 100%;
   min-width: 0;
-  padding: 40px 48px 120px;
+  margin: 0 auto;
+  padding: 32px 48px 120px;
   max-width: 1180px;
 }
 .kisan-html-react-root .view {
@@ -354,7 +640,7 @@
 /* === BOTTOM STRIP === */
 .kisan-html-react-root .strip {
   position: fixed;
-  left: 260px;
+  left: 0;
   right: 0;
   bottom: 0;
   background: #fff;
@@ -1055,29 +1341,21 @@
 
 /* === RESPONSIVE === */
 @media (max-width: 860px) {
-  .kisan-html-react-root .shell {
-    flex-direction: column;
+  .kisan-html-react-root .topbar {
+    padding: 12px 16px;
+    gap: 12px;
   }
-  .kisan-html-react-root .rail {
-    width: 100%;
-    height: auto;
-    position: relative;
-    padding: 16px;
-  }
-  .kisan-html-react-root .rail nav {
-    display: flex;
+  .kisan-html-react-root .tabs {
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 0 16px;
+    padding: 0 8px;
   }
-  .kisan-html-react-root .rail nav a {
+  .kisan-html-react-root .tabs a {
     flex: 1 1 auto;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border-left: none;
+    text-align: center;
+    padding: 12px 10px;
+    font-size: 13px;
   }
   .kisan-html-react-root .strip {
-    left: 0;
     flex-wrap: wrap;
   }
   .kisan-html-react-root .strip .msg {
@@ -1117,6 +1395,36 @@
 
 /* === PROFESSIONAL PRINT LAYOUT === */
 @media print {
+  /* App shell is a fixed-height scroll container — neutralise it in print,
+     otherwise the whole document is clipped to a single blank page. */
+  html,
+  body,
+  #root,
+  .app-container,
+  .main-content {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .app-container > nav,
+  .app-container > header,
+  .app-container > footer,
+  .copyright-footer {
+    display: none !important;
+  }
+  .kisan-html-react-root .shell {
+    display: block;
+    min-height: 0;
+    margin-top: 0 !important;
+  }
+}
+@media print {
   @page {
     size: A4 portrait;
     margin: 12mm;
@@ -1124,7 +1432,8 @@
   .kisan-html-react-root {
     background: #fff !important;
   }
-  .kisan-html-react-root .rail,
+  .kisan-html-react-root .topbar,
+  .kisan-html-react-root .tabs,
   .kisan-html-react-root .strip,
   .kisan-html-react-root .noprint,
   .kisan-html-react-root .app-actions,
@@ -1137,13 +1446,16 @@
     min-height: 0;
   }
   .kisan-html-react-root main {
-    padding: 0;
-    max-width: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
   }
   .kisan-html-react-root .view {
     display: none !important;
   }
-  .kisan-html-react-root .view.print-target {
+  .kisan-html-react-root .view.print-target,
+  .kisan-html-react-root .view.has-print-target {
     display: block !important;
   }
   .kisan-html-react-root h2.head,

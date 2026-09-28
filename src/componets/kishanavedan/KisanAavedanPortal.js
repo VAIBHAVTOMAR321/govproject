@@ -1,54 +1,112 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
+import { useAuth } from "../../context/AuthContext";
 import "./kisan-aavedan-portal.css";
+
+const getCenterNameFromUser = (authUser) => {
+  if (!authUser) return "";
+  const candidates = [
+    authUser.center_name, authUser.centerName, authUser.username, authUser.name,
+    authUser.center?.center_name, authUser.center?.name, authUser.profile?.center_name
+  ];
+  const direct = candidates.find(v => v !== null && v !== undefined && String(v).trim() !== "");
+  return direct ? String(direct).trim() : "";
+};
+
+const API_FENCING = "https://mahadevaaya.com/govbillingsystem/backend/api/fencing-kisan/";
 
 const HTML_BODY = `
 <div class="shell">
-  <aside class="rail noprint">
-    <h1>अनुदान देयक प्रपत्र</h1>
-    <p class="sub">कार्यालय — उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल)<br>वित्तीय वर्ष 2026-27</p>
-    <div class="grp">योजना</div>
-    <div style="margin:0 16px 4px">
+  <header class="topbar noprint">
+    <div class="topbar-brand">
+      <h1>अनुदान देयक प्रपत्र</h1>
+      <p class="sub">कार्यालय — उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल) · वित्तीय वर्ष 2026-27</p>
+    </div>
+    <div class="topbar-scheme">
+      <label class="tk">योजना</label>
       <select id="scheme">
         <option value="fencing">चेनलिंक फेंसिंग / घेरबाड़</option>
       </select>
     </div>
-    <div class="grp">प्रपत्र</div>
-    <nav id="nav">
-      <a data-go="application">आवेदन पत्र</a>
-      <a data-go="work" class="on">व्यय विवरण</a>
-      <a data-go="bill">देयक प्रपत्र</a>
-    </nav>
-    <div class="grp">फाइल</div>
-    <div class="tools">
-      <button id="bSave">सहेजें</button>
-      <button id="bOpen">खोलें</button>
-      <button id="bPrint">प्रिंट</button>
-      <button id="bNew">नया</button>
+    <div class="topbar-formid">
+      <label class="tk">चयनित फॉर्म</label>
+      <span class="fid" id="curFormId">— कोई फॉर्म चयनित नहीं —</span>
     </div>
-    <input type="file" id="fileIn" accept=".json" hidden>
-  </aside>
+  </header>
+  <nav id="nav" class="tabs noprint">
+    <a data-tab="register" class="on">उपयोगकर्ता पंजीकरण</a>
+    <a data-tab="filling">प्रपत्र भरना</a>
+    <button type="button" class="tabs-preview" id="bPreview">प्रिंट पूर्वावलोकन</button>
+  </nav>
+  <div class="api-msg noprint" id="apiMsg" hidden></div>
   <main>
-    <section class="view" data-v="application">
-      <h2 class="head">आवेदन पत्र</h2>
-      <p class="lead">चेनलिंक फेंसिंग / घेरबाड़ के लिए आवेदन पत्र — उद्यान कार्ड, पौधों की संख्या, भूमि और फेंसिंग mapping के अनुसार।</p>
-      <div id="applicationOut"></div>
-    </section>
-    <section class="view on" data-v="work">
-      <h2 class="head">व्यय विवरण</h2>
-      <p class="lead" id="workLead"></p>
-      <div class="card" id="standardsCard">
-        <div class="cap">
-          <i></i><span id="standardsTitle">राजसहायता के मानक</span>
-          <small>प्रपत्र पर नहीं छपेंगे — यहीं से अपडेट करें</small>
+    <section class="view on" data-v="register">
+      <h2 class="head">उपयोगकर्ता पंजीकरण</h2>
+      <p class="lead">पहले कृषक का पंजीकरण करें — इससे सर्वर पर फॉर्म आईडी बन जाती है। उसी फॉर्म आईडी पर आगे आवेदन, व्यय विवरण एवं देयक प्रपत्र भरा जाता है।</p>
+      <div class="card">
+        <div class="cap"><i></i>नया पंजीकरण<small>POST — फॉर्म आईडी स्वतः बनेगी</small></div>
+        <div class="pad">
+          <form id="regForm" class="grid" autocomplete="off">
+            <div><label class="f">कृषक का नाम</label><input id="regName" placeholder="पूरा नाम"></div>
+            <div><label class="f">मोबाइल नंबर</label><input id="regMob" inputmode="numeric" maxlength="10" placeholder="10 अंक"></div>
+            <div><label class="f">केंद्र / कार्यालय का नाम</label><input id="regCenter" readonly disabled></div>
+            <div class="reg-actions">
+              <button type="submit" class="addrow solid">पंजीकरण करें</button>
+              <button type="button" class="addrow" id="regRefresh">सूची ताज़ा करें</button>
+            </div>
+          </form>
         </div>
-        <div class="pad" id="standardsBody"></div>
       </div>
-      <div id="workBody"></div>
+      <div class="card">
+        <div class="cap"><i></i>पंजीकृत कृषक एवं फॉर्म<small id="regCount"></small></div>
+        <div class="pad">
+          <div class="table-scroll">
+            <table class="reg-table">
+              <thead><tr>
+                <th style="width:48px">क्र०</th><th>फॉर्म आईडी</th><th>कृषक का नाम</th><th>मोबाइल</th>
+                <th>केंद्र</th><th>योजना</th><th>उद्यान कार्ड</th><th>क्षेत्रफल (हे०)</th><th>स्थिति</th>
+                <th style="width:160px">क्रिया</th>
+              </tr></thead>
+              <tbody id="regRows"><tr><td colspan="10" class="empty">लोड हो रहा है…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </section>
-    <section class="view" data-v="bill">
-      <h2 class="head">देयक प्रपत्र</h2>
-      <p class="lead">सीधे प्रपत्र पर ही भरें — जहाँ बिन्दु बने हैं वहीं लिखते जाएँ। तालिका, राजसहायता और शब्दों में राशि अपने आप भरती जाएगी।</p>
-      <div id="billOut"></div>
+    <section class="view" data-v="filling">
+      <div class="subtabs noprint" id="subnav">
+        <a data-go="application" class="on">आवेदन पत्र</a>
+        <a data-go="work">व्यय विवरण</a>
+        <a data-go="bill">देयक प्रपत्र</a>
+      </div>
+      <section class="view on" data-v="application">
+        <h2 class="head">आवेदन पत्र</h2>
+        <p class="lead">चेनलिंक फेंसिंग / घेरबाड़ के लिए आवेदन पत्र — उद्यान कार्ड, पौधों की संख्या, भूमि और फेंसिंग mapping के अनुसार।</p>
+        <div id="applicationOut"></div>
+      </section>
+      <section class="view" data-v="work">
+        <h2 class="head">व्यय विवरण</h2>
+        <p class="lead" id="workLead"></p>
+        <div class="card" id="standardsCard">
+          <div class="cap">
+            <i></i><span id="standardsTitle">राजसहायता के मानक</span>
+            <small>प्रपत्र पर नहीं छपेंगे — यहीं से अपडेट करें</small>
+          </div>
+          <div class="pad" id="standardsBody"></div>
+        </div>
+        <div id="workBody"></div>
+      </section>
+      <section class="view" data-v="bill">
+        <h2 class="head">देयक प्रपत्र</h2>
+        <p class="lead">सीधे प्रपत्र पर ही भरें — जहाँ बिन्दु बने हैं वहीं लिखते जाएँ। तालिका, राजसहायता और शब्दों में राशि अपने आप भरती जाएगी।</p>
+        <div class="card noprint" id="billSaveCard">
+          <div class="cap"><i></i>सर्वर पर सहेजें<small>सभी चरण एक साथ</small></div>
+          <div class="pad reg-actions">
+            <button type="button" class="addrow solid" id="btnSaveAll">सम्पूर्ण प्रपत्र सहेजें</button>
+            <span class="save-hint" id="saveAllHint"></span>
+          </div>
+        </div>
+        <div id="billOut"></div>
+      </section>
     </section>
   </main>
 </div>
@@ -61,15 +119,54 @@ const HTML_BODY = `
   <div class="msg" id="sMsg"></div>
   <button class="go" id="bGo">देयक देखें</button>
 </div>
+<div class="pv-overlay noprint" id="pvOverlay" hidden>
+  <div class="pv-box" role="dialog" aria-modal="true" aria-label="प्रिंट पूर्वावलोकन">
+    <div class="pv-head">
+      <span class="pv-title" id="pvTitle">प्रिंट पूर्वावलोकन</span>
+      <span class="pv-actions">
+        <button type="button" class="pv-btn" id="pvPrint">प्रिंट करें</button>
+        <button type="button" class="pv-btn close" id="pvClose">बंद करें</button>
+      </span>
+    </div>
+    <div class="pv-body" id="pvBody"></div>
+  </div>
+</div>
 `;
 
 export default function KisanAavedanPortal() {
   const rootRef = useRef(null);
+  const { user } = useAuth();
+  const centerName = useMemo(() => getCenterNameFromUser(user), [user]);
+  const centerRef = useRef(centerName);
+  centerRef.current = centerName;
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     root.innerHTML = HTML_BODY;
+    const authCenter = (centerRef.current || "").trim();
+    const centerInput = root.querySelector("#regCenter");
+    if (centerInput) {
+      centerInput.value = authCenter || "— लॉग इन केंद्र नहीं मिला —";
+      centerInput.title = authCenter ? ("लॉग इन केंद्र: " + authCenter) : "लॉग इन केंद्र नहीं मिला";
+    }
+
+    const syncAppNav = () => {
+      const appNav = document.querySelector(".app-container > nav, .app-container > .navbar");
+      if (!appNav) {
+        root.style.setProperty("--app-nav-h", "0px");
+        root.style.setProperty("--app-nav-pad", "0px");
+        return;
+      }
+      const h = Math.round(appNav.getBoundingClientRect().height) || 0;
+      const isFixed = window.getComputedStyle(appNav).position === "fixed";
+      root.style.setProperty("--app-nav-h", h + "px");
+      root.style.setProperty("--app-nav-pad", isFixed ? h + "px" : "0px");
+    };
+    syncAppNav();
+    window.addEventListener("resize", syncAppNav);
+    window.addEventListener("load", syncAppNav);
+    const navSyncTimer = window.setTimeout(syncAppNav, 400);
 
     try {
       (function() {
@@ -105,6 +202,7 @@ export default function KisanAavedanPortal() {
 
         const blank = () => ({
           scheme:"fencing",
+          formId:"",
           lists: JSON.parse(JSON.stringify(LISTS)),
           norm:{fRate:80, vRate:75, fCap:"", vCap:"", fCostHa:200000},
           f:{name:"",father:"",village:"",post:"",block:"",dist:"",mob:"",aadhar:"",khasra:"",
@@ -122,14 +220,20 @@ export default function KisanAavedanPortal() {
         const COLS = {
           material:{amt:r=>num(r.amt),
             c:[["item","किस कार्य / सामग्री का बिल है",0,0,"dlMaterial"],["sup","आपूर्तिकर्ता / फर्म"],["bill","बिल सं०"],
+               ["qty","मात्रा",0,"n"],["unit","इकाई",0,0,"dlUnit"],["rate","दर (₹)",0,"n"],
                ["amt","बिल राशि (₹)",0,"n"]]},
           footing:{amt:r=>num(r.amt),
             c:[["item","किस कार्य / सामग्री का बिल है",0,0,"dlFooting"],["sup","आपूर्तिकर्ता / फर्म"],
+               ["qty","मात्रा",0,"n"],["unit","इकाई",0,0,"dlUnit"],["rate","दर (₹)",0,"n"],
                ["amt","बिल राशि (₹)",0,"n"]]},
           labour:{amt:r=>num(r.amt),
-            c:[["work","कार्य का विवरण",0,0,"dlWork"],["amt","भुगतान राशि (₹)",0,"n"]]},
+            c:[["work","कार्य का विवरण",0,0,"dlWork"],
+               ["qty","मात्रा",0,"n"],["unit","इकाई",0,0,"dlUnit"],["rate","दर (₹)",0,"n"],
+               ["amt","भुगतान राशि (₹)",0,"n"]]},
           other:{amt:r=>num(r.amt),
-            c:[["item","विवरण",0,0,"dlOther"],["name","प्राप्तकर्ता का नाम"],["vil","ग्राम"],["aad","आधार सं०"],["amt","राशि (₹)",0,"n"]]}
+            c:[["item","विवरण",0,0,"dlOther"],["name","प्राप्तकर्ता का नाम"],["vil","ग्राम"],["aad","आधार सं०"],
+               ["qty","मात्रा",0,"n"],["unit","इकाई",0,0,"dlUnit"],["rate","दर (₹)",0,"n"],
+               ["amt","राशि (₹)",0,"n"]]}
         };
         const sum = k => S[k].reduce((a,r)=>a+COLS[k].amt(r),0);
 
@@ -214,7 +318,7 @@ export default function KisanAavedanPortal() {
           });
           const ai = cfg.c.findIndex(c=>c[0]==="_amt"||c[0]==="amt");
           h+=`<tr class="tot"><td colspan="${ai+1}" style="text-align:right">योग</td><td class="calc num" data-tot="${k}">${fmtN(sum(k))}</td>`;
-          for(let j=ai+1;j<cfg.c.length;j++) h+="<td></td>";
+          for(let j=ai+1;j<=cfg.c.length;j++) h+="<td></td>";
           h+='</tr></tbody></table>';
           h+=`<button class="addrow" data-add="${k}">+ पंक्ति जोड़ें</button>`;
           return h;
@@ -245,7 +349,7 @@ export default function KisanAavedanPortal() {
             ? "बिल एवं वाउचर के अनुसार पूरा व्यय भरें। हर अनुभाग का योग अपने आप देयक की सम्बन्धित पंक्ति में चला जाएगा।"
             : "इकाई निर्माण पर हुआ पूरा व्यय भरें। हर पंक्ति में पहले कार्य / विवरण चुनें, फिर उसी के सामने बिल राशि डालें।";
           document.getElementById("workBody").innerHTML = SECTIONS[S.scheme].map(([k,t,n])=>
-            `<div class="card"><div class="cap"><i></i>${t}<small>${n}</small></div><div class="pad">${tableHTML(k)}</div></div>`).join("");
+            `<div class="card"><div class="cap"><i></i>${t}<small>${n}</small></div><div class="pad">${tableHTML(k)}${saveBar(k, SAVE_LABELS[k]||t)}</div></div>`).join("");
           buildLists();
           const mapCard=document.getElementById("fenceMapCard");
           if(mapCard) mapCard.style.display = S.scheme==="fencing" ? "" : "none";
@@ -565,6 +669,7 @@ export default function KisanAavedanPortal() {
               <tr><td class="flabel">कृषक श्रेणी</td><td><select data-f="farmerCat"><option>सीमांत</option><option>लघु</option><option>अन्य</option></select></td></tr>
               <tr><td class="flabel">सिंचाई की सुविधा</td><td><select data-f="irrigation"><option>उपलब्ध</option><option>उपलब्ध नहीं</option></select></td></tr>
             </tbody></table>
+            ${saveBar("personal","आवेदक एवं योजना विवरण")}
             <h5>2. बैंक विवरण (DBT हेतु)</h5>
             <table class="landtable infoTable"><tbody>
               <tr><td class="flabel">बैंक का नाम</td><td><input data-f="bank" value="${esc(S.f.bank||"")}"></td></tr>
@@ -572,6 +677,7 @@ export default function KisanAavedanPortal() {
               <tr><td class="flabel">खाता संख्या</td><td><input data-f="acct" value="${esc(S.f.acct||"")}"></td></tr>
               <tr><td class="flabel">IFSC कोड</td><td><input data-f="ifsc" value="${esc(S.f.ifsc||"")}"></td></tr>
             </tbody></table>
+            ${saveBar("bank","बैंक विवरण")}
             <h5>3. भूमि एवं कार्य का विवरण</h5>
             <table class="landtable">
               <thead><tr>
@@ -630,6 +736,7 @@ export default function KisanAavedanPortal() {
             </p>
             <p class="appnote noprint" style="margin-top:6px">आवश्यकतानुसार सह-खातेदार / भूमि की नई पंक्ति जोड़ें; अनुपयोगी पंक्ति को × से हटाया जा सकता है। कुल क्षेत्रफल सभी भरी गयी पंक्तियों से स्वतः निकलेगा।</p>
             <p class="appnote" style="margin-top:6px">«नाम», «पिता का नाम» (पहली पंक्ति — स्वयं) एवं «ग्राम» कॉलम ऊपर <b>1. ${applicantWord()} का विवरण</b> में भरे गये विवरण से स्वतः भरते हैं — यहाँ अलग से टाइप करने की आवश्यकता नहीं। «खसरा / खतौनी सं०» एवं «आधार संख्या» प्रत्येक सह-खातेदार की पंक्ति में अलग-अलग भरें — पहली पंक्ति (स्वयं) का आधार संख्या आवेदन विवरण से स्वतः आएगा।</p>
+            ${saveBar("farmers","भूमि / सह-खातेदार विवरण")}
             <h5>4. सारांश — क्षेत्रफल, फेंसिंग एवं राजसहायता</h5>
             <table>
               <thead><tr>
@@ -652,6 +759,7 @@ export default function KisanAavedanPortal() {
                 </tr>
               </tbody>
             </table>
+            ${saveBar("expenses","क्षेत्रफल एवं मानक सारांश")}
             <h5>5. घोषणा</h5>
             <div class="appnote">
               • उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं।<br>
@@ -677,6 +785,7 @@ export default function KisanAavedanPortal() {
               <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
                 हस्ताक्षर ${G("कृषक","कृषिका")}<br><span class="auto" id="appCertName">${esc(S.f.name||"")}</span></div>
             </div>
+            ${saveBar("date","दिनांक एवं स्थान")}
             <h5>8. प्रभारी की आख्या</h5>
             <div class="appnote" style="line-height:1.9;text-align:justify">
               प्रमाणित किया जाता है कि ${G("कृषक","कृषिका")} द्वारा प्रस्तुत आवेदन, उद्यान कार्ड, भूमि अभिलेख (खतौनी) एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है तथा प्रस्तावित भूमि का स्थलीय निरीक्षण किया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं।
@@ -989,17 +1098,406 @@ export default function KisanAavedanPortal() {
           refresh();
         }
 
-        let cur="work";
+        /* =========================================================
+           SERVER API — फॉर्म पंजीकरण एवं चरण-दर-चरण सहेजना (PUT)
+           ========================================================= */
+        const apiFetch = async (url, options = {}) => {
+          const method = (options.method || "GET").toUpperCase();
+          return fetch(url, { ...options, method, credentials: "omit" });
+        };
+        const readJsonResponse = async (response) => {
+          const ct = response.headers.get("content-type") || "";
+          const text = await response.text();
+          if (!text) return {};
+          if (!ct.toLowerCase().includes("application/json")) {
+            throw new Error("सर्वर से अपेक्षित JSON नहीं मिला (" + response.status + ")।");
+          }
+          try { return JSON.parse(text); }
+          catch (e) { throw new Error("सर्वर का उत्तर पढ़ा नहीं जा सका।"); }
+        };
+        let FORM_ID = "";
+        let AUTH_CENTER = "";
+        let REG_ROWS = [];
+        let apiMsgTimer = null;
+        function apiMsg(text, kind){
+          const el=document.getElementById("apiMsg");
+          if(!el) return;
+          if(!text){ el.hidden=true; el.textContent=""; return; }
+          el.hidden=false;
+          el.className = "api-msg noprint " + (kind||"info");
+          el.textContent = text;
+          if(apiMsgTimer) window.clearTimeout(apiMsgTimer);
+          apiMsgTimer = window.setTimeout(()=>{ el.hidden=true; }, 6000);
+        }
+        function setFormId(id){
+          FORM_ID = id || "";
+          S.formId = FORM_ID;
+          const el=document.getElementById("curFormId");
+          if(el){
+            el.textContent = FORM_ID ? ("फॉर्म: " + FORM_ID) : "— कोई फॉर्म चयनित नहीं —";
+            el.classList.toggle("active", !!FORM_ID);
+          }
+          save();
+        }
+        function pickFormId(data){
+          if(!data) return "";
+          if(typeof data === "string") return data;
+          if(data.form_id) return data.form_id;
+          if(data.personal_details && data.personal_details.form_id) return data.personal_details.form_id;
+          if(Array.isArray(data) && data[0]) return data[0].form_id || (data[0].personal_details && data[0].personal_details.form_id) || "";
+          if(data.id && data.form_id === undefined && data.full_name) return data.id;
+          return "";
+        }
+        function centerFilter(){
+          return AUTH_CENTER;
+        }
+        function expenseTuples(section){
+          return (S[section]||[]).map(r=>[
+            r.item || r.work || "",
+            num(r.qty),
+            r.unit || "",
+            num(r.rate),
+            num(r.amt)
+          ]);
+        }
+        const isBarbed = () => /कंटीले|barbed/i.test(String(S.f.fenceMaterial||""));
+        function payloadPersonal(){
+          return {
+            form_id: FORM_ID,
+            scheme_name: S.f.planType || "जिला योजना",
+            gender: isFemale() ? "Female" : "Male",
+            fencing_material: isBarbed() ? "Barbed Wire" : "Chain Link",
+            subsidy_rate: String(num(S.norm.fRate)||0),
+            garden_card: S.f.gardenCard || "",
+            plants_no: num(S.f.plants),
+            full_name: S.f.name || "",
+            father_name: S.f.father || "",
+            village: S.f.village || "",
+            post: S.f.post || "",
+            block: S.f.block || "",
+            dist: S.f.dist || "",
+            mob: S.f.mob || "",
+            aadhar: S.f.aadhar || "",
+            category: S.f.cat || "",
+            farmer_category: S.f.farmerCat || ""
+          };
+        }
+        function payloadBank(){
+          return { form_id: FORM_ID, bank_name: S.f.bank || "", branch: S.f.branch || "",
+                   account: S.f.acct || "", ifsc: S.f.ifsc || "" };
+        }
+        function payloadFarmers(){
+          return {
+            form_id: FORM_ID,
+            farmer_details: (S.landRows||[]).filter(r=>String(r.name||"").trim() || num(r.hec)>0).map(r=>{
+              const hec=num(r.hec);
+              return [r.name||"", r.father||"", S.f.village||"", r.khasra||"", r.aadhaar||"",
+                      Math.round(hec*50*100)/100, hec];
+            })
+          };
+        }
+        function payloadExpenses(){
+          const c=calc();
+          const std=fenceStandard(c.hec);
+          const costHa=num(S.norm.fCostHa)||200000;
+          const totalCost=c.hec>0 ? Math.round(c.hec*costHa) : 0;
+          return {
+            form_id: FORM_ID,
+            land_nali: Math.round(c.hec*50*100)/100,
+            area_hectare: c.hec,
+            permissible_length_meter: std ? std.len : 0,
+            number_of_poles: std ? std.poles : 0,
+            total_cost: totalCost,
+            subsidy_80_percent: Math.round(totalCost*0.8),
+            subsidy_50_percent: Math.round(totalCost*0.5),
+            selected_subsidy_rate: num(S.norm.fRate),
+            payable_subsidy: c.sub,
+            subsidy_rate: num(S.norm.fRate),
+            unit_cost_per_hectare: costHa,
+            additional_max_limit: num(S.norm.fCap)
+          };
+        }
+        function payloadSection(section){
+          return { form_id: FORM_ID, [section+"_expenses"]: expenseTuples(section), [section+"_total"]: sum(section) };
+        }
+        function payloadDate(){
+          return { form_id: FORM_ID, date: S.f.date || null, place: S.f.place || "" };
+        }
+        async function apiPut(payload, label){
+          if(!FORM_ID){ apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad"); return false; }
+          try{
+            const res = await apiFetch(API_FENCING, {
+              method:"PUT",
+              headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify(payload)
+            });
+            const data = await readJsonResponse(res);
+            if(!res.ok) throw new Error((data && (data.detail || data.error || data.message)) || ("सहेजना विफल (" + res.status + ")"));
+            apiMsg((label||"विवरण") + " सहेजा गया — " + FORM_ID, "ok");
+            loadRegistrations();
+            return true;
+          }catch(err){
+            apiMsg("सहेजना विफल: " + (err && err.message ? err.message : "अज्ञात त्रुटि"), "bad");
+            return false;
+          }
+        }
+        const SAVE_STEPS = [
+          { key:"personal", label:"आवेदक एवं योजना विवरण",   build:payloadPersonal },
+          { key:"bank",     label:"बैंक विवरण",               build:payloadBank },
+          { key:"farmers",  label:"भूमि / सह-खातेदार विवरण", build:payloadFarmers },
+          { key:"expenses", label:"क्षेत्रफल एवं मानक",       build:payloadExpenses },
+          { key:"material", label:"सामग्री व्यय",             build:()=>payloadSection("material") },
+          { key:"footing",  label:"फुटिंग व्यय",              build:()=>payloadSection("footing") },
+          { key:"labour",   label:"श्रमिक व्यय",               build:()=>payloadSection("labour") },
+          { key:"other",    label:"अन्य व्यय",                build:()=>payloadSection("other") },
+          { key:"date",     label:"दिनांक एवं स्थान",         build:payloadDate }
+        ];
+        function saveStep(key){
+          const step = SAVE_STEPS.find(s=>s.key===key);
+          if(!step) return;
+          apiPut(step.build(), step.label);
+        }
+        const SAVE_LABELS = { material:"सामग्री व्यय", footing:"फुटिंग व्यय", labour:"श्रमिक व्यय", other:"अन्य व्यय" };
+        function saveBar(key, label){
+          return `<div class="save-bar noprint">
+            <button type="button" class="addrow solid" data-save="${key}">सहेजें — ${label}</button>
+            <span class="save-hint">PUT · फॉर्म आईडी <b>${esc(FORM_ID||"चयनित नहीं")}</b></span>
+          </div>`;
+        }
+        async function saveAllSteps(){
+          if(!FORM_ID){ apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad"); return; }
+          const hint=document.getElementById("saveAllHint");
+          let ok=0;
+          for(const step of SAVE_STEPS){
+            if(hint) hint.textContent = "सहेजा जा रहा है: " + step.label + "…";
+            const done = await apiPut(step.build(), step.label);
+            if(done) ok++;
+            if(!done) break;
+          }
+          if(hint) hint.textContent = ok + " / " + SAVE_STEPS.length + " चरण सहेजे गए।";
+          if(ok===SAVE_STEPS.length) apiMsg("सम्पूर्ण प्रपत्र सर्वर पर सहेजा गया — " + FORM_ID, "ok");
+        }
+
+        /* ---------- GET: पंजीकृत फॉर्म सूची ---------- */
+        const GENDER_BACK = { male:"पुरुष", पुरुष:"पुरुष", female:"महिला", महिला:"महिला" };
+        const CAT_BACK = { general:"सामान्य", सामान्य:"सामान्य", obc:"OBC", sc:"SC", st:"ST" };
+        const FARMER_BACK = { "small farmer":"लघु", "small":"लघु", लघु:"लघु", marginal:"सीमांत", "border farmer":"सीमांत",
+                              सीमांत:"सीमांत", "other":"अन्य", अन्य:"अन्य" };
+        const MAT_BACK = { "chain link":"चेनलिंक जाली", "chainlink":"चेनलिंक जाली", "चेनलिंक जाली":"चेनलिंक जाली",
+                           "barbed wire":"कंटीले तार (बार्बड वायर)", "barbedwire":"कंटीले तार (बार्बड वायर)",
+                           "कंटीले तार":"कंटीले तार (बार्बड वायर)", "कंटीले तार (बार्बड वायर)":"कंटीले तार (बार्बड वायर)" };
+        function matchValue(map, v, fallback){
+          if(v===null || v===undefined || v==="") return fallback;
+          const k=String(v).trim().toLowerCase();
+          if(map[k]) return map[k];
+          const hit=Object.keys(map).find(x=>x.length>2 && k.indexOf(x)===0);
+          return hit ? map[hit] : v;
+        }
+        function rowFilled(rec){
+          const p=rec.personal_details||{}, e=rec.expense_details||{};
+          const has = (p.garden_card && String(p.garden_card).trim()) ||
+                       (p.father_name && String(p.father_name).trim()) ||
+                       (p.bank_name && String(p.bank_name).trim()) ||
+                       (e.area_hectare && num(e.area_hectare)>0) ||
+                       (e.material_expenses && e.material_expenses.length) ||
+                       (e.footing_expenses && e.footing_expenses.length) ||
+                       (e.labour_expenses && e.labour_expenses.length) ||
+                       (e.other_expenses && e.other_expenses.length);
+          return has ? "भरा गया" : "पंजीकृत (रिक्त)";
+        }
+        function renderRegistrations(){
+          const tb=document.getElementById("regRows");
+          const cnt=document.getElementById("regCount");
+          if(!tb) return;
+          if(cnt) cnt.textContent = REG_ROWS.length ? (REG_ROWS.length + " फॉर्म") : "";
+          if(!REG_ROWS.length){
+            tb.innerHTML = '<tr><td colspan="10" class="empty">कोई फॉर्म नहीं मिला। ऊपर नया पंजीकरण करें।</td></tr>';
+            return;
+          }
+          tb.innerHTML = REG_ROWS.map((rec,i)=>{
+            const p=rec.personal_details||rec, e=rec.expense_details||{};
+            const fid=rec.form_id || p.form_id || "";
+            const hec=num(e.area_hectare);
+            const filled=rowFilled(rec);
+            const active = fid && fid===FORM_ID;
+            return `<tr class="${active?"sel":""}">
+              <td class="n">${i+1}</td>
+              <td><b>${esc(fid||"—")}</b></td>
+              <td>${esc(p.full_name||"—")}</td>
+              <td>${esc(p.mob||"—")}</td>
+              <td>${esc(p.center_name||"—")}</td>
+              <td>${esc(p.scheme_name||"—")}</td>
+              <td>${esc(p.garden_card||"—")}</td>
+              <td style="text-align:right">${hec>0?fmtN(hec).replace(/\.00$/,""):"—"}</td>
+              <td><span class="pill ${filled==="भरा गया"?"ok":"wait"}">${filled}</span></td>
+              <td class="act">
+                <button type="button" class="mini ${active?"on":""}" data-open="${esc(fid)}" title="इस फॉर्म के विवरण प्रपत्र में खोलें">प्रपत्र भरें</button>
+              </td>
+            </tr>`;
+          }).join("");
+        }
+        async function loadRegistrations(){
+          const tb=document.getElementById("regRows");
+          if(tb) tb.innerHTML = '<tr><td colspan="10" class="empty">लोड हो रहा है…</td></tr>';
+          const c = centerFilter();
+          const url = API_FENCING + (c ? ("?center_name=" + encodeURIComponent(c)) : "");
+          try{
+            const res = await apiFetch(url);
+            const data = await readJsonResponse(res);
+            if(!res.ok) throw new Error((data && (data.detail || data.error)) || ("सूची प्राप्त नहीं (" + res.status + ")"));
+            REG_ROWS = Array.isArray(data) ? data : (data && data.results ? data.results : []);
+            renderRegistrations();
+          }catch(err){
+            REG_ROWS = [];
+            renderRegistrations();
+            apiMsg("सूची लोड नहीं हो सकी: " + (err && err.message ? err.message : "अज्ञात त्रुटि"), "bad");
+          }
+        }
+        function findRecord(formId){
+          return REG_ROWS.find(r => (r.form_id || (r.personal_details||{}).form_id) === formId) || null;
+        }
+        function applyRecord(rec){
+          if(!rec) return;
+          const p = rec.personal_details || rec;
+          const e = rec.expense_details || {};
+          S.f.planType     = matchValue({}, p.scheme_name, S.f.planType);
+          S.f.gender       = matchValue(GENDER_BACK, p.gender, S.f.gender);
+          S.f.fenceMaterial= matchValue(MAT_BACK, p.fencing_material, S.f.fenceMaterial);
+          S.f.gardenCard   = p.garden_card || "";
+          S.f.plants       = p.plants_no !== undefined && p.plants_no !== null ? p.plants_no : "";
+          S.f.name         = p.full_name || "";
+          S.f.father       = p.father_name || "";
+          S.f.village      = p.village || "";
+          S.f.post         = p.post || "";
+          S.f.block        = p.block || "";
+          S.f.dist         = p.dist || "";
+          S.f.mob          = p.mob || "";
+          S.f.aadhar       = p.aadhar || "";
+          if(p.category)      S.f.cat       = matchValue(CAT_BACK, p.category, S.f.cat);
+          if(p.farmer_category) S.f.farmerCat = matchValue(FARMER_BACK, p.farmer_category, S.f.farmerCat);
+          S.f.bank   = p.bank_name || "";
+          S.f.branch = p.branch || "";
+          S.f.acct   = p.account || "";
+          S.f.ifsc   = p.ifsc || "";
+          S.f.date   = p.date || S.f.date;
+          S.f.place  = p.place || S.f.place;
+
+          if(p.subsidy_rate!==undefined && p.subsidy_rate!==null && String(p.subsidy_rate)!=="") S.norm.fRate = String(num(p.subsidy_rate));
+          if(e.subsidy_rate!==undefined && num(e.subsidy_rate)>0) S.norm.fRate = String(num(e.subsidy_rate));
+          if(num(e.unit_cost_per_hectare)>0) S.norm.fCostHa = String(num(e.unit_cost_per_hectare));
+          S.norm.fCap = (e.additional_max_limit!==undefined && e.additional_max_limit!==null) ? String(e.additional_max_limit) : S.norm.fCap;
+
+          if(Array.isArray(p.farmer_details) && p.farmer_details.length){
+            S.landRows = p.farmer_details.map((row,i)=>{
+              const arr = Array.isArray(row) ? row : [];
+              const hec = num(arr[6]) || (num(arr[5])>0 ? num(arr[5])/50 : 0);
+              return {
+                relation: (S.landRows && S.landRows[i] && S.landRows[i].relation) || (i===0 ? "स्वयं" : "अन्य"),
+                name: arr[0]||"", father: arr[1]||"", village: arr[2]||"", khasra: arr[3]||"",
+                aadhaar: arr[4]||"", hec: hec>0 ? String(hec) : ""
+              };
+            });
+          }
+          const loadRows=(sec, arr, firstKey)=>{
+            if(!Array.isArray(arr) || !arr.length) return;
+            S[sec] = arr.map(row=>{
+              const a = Array.isArray(row) ? row : (row && typeof row==="object" ? Object.values(row) : []);
+              const o = {};
+              o[firstKey] = a[0] || "";
+              o.qty = num(a[1]) || "";
+              o.unit = a[2] || "";
+              o.rate = num(a[3]) || "";
+              o.amt  = num(a[4]) || "";
+              return o;
+            });
+          };
+          loadRows("material", e.material_expenses, "item");
+          loadRows("footing",  e.footing_expenses,  "item");
+          loadRows("labour",   e.labour_expenses,   "work");
+          loadRows("other",    e.other_expenses,    "item");
+        }
+        function openForm(formId){
+          const rec = findRecord(formId);
+          setFormId(formId);
+          if(rec){ applyRecord(rec); }
+          save();
+          showTab("filling");
+          show("application");
+          renderRegistrations();
+          apiMsg(rec ? ("फॉर्म " + formId + " के सहेजे गए विवरण प्रपत्र में खोले गए।") : ("फॉर्म " + formId + " चयनित — विवरण भरकर सहेजें।"), "ok");
+        }
+        async function registerUser(ev){
+          ev && ev.preventDefault && ev.preventDefault();
+          const name=(document.getElementById("regName")||{}).value || "";
+          const mob =(document.getElementById("regMob")||{}).value  || "";
+          const ctr = AUTH_CENTER;
+          if(!ctr){ apiMsg("लॉग इन केंद्र का नाम नहीं मिला — पहले दोबारा लॉगिन करें।","bad"); return; }
+          if(!name.trim()){ apiMsg("कृषक का नाम भरना अनिवार्य है।","bad"); return; }
+          if(!/^\d{10}$/.test(mob.trim())){ apiMsg("10 अंक का सही मोबाइल नंबर भरें।","bad"); return; }
+          const btn=document.querySelector('#regForm button[type="submit"]');
+          if(btn) btn.disabled=true;
+          try{
+            const res = await apiFetch(API_FENCING, {
+              method:"POST",
+              headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify({ full_name: name.trim(), mob: mob.trim(), center_name: ctr.trim() })
+            });
+            const data = await readJsonResponse(res);
+            if(!res.ok) throw new Error((data && (data.detail || data.error || data.message)) || ("पंजीकरण विफल (" + res.status + ")"));
+            const newId = pickFormId(data);
+            await loadRegistrations();
+            if(newId){
+              setFormId(newId);
+              S.f.name = name.trim();
+              S.f.mob = mob.trim();
+              S.f.gardenCard = "";
+              S.f.plants = "";
+              S.landRows = [{relation:"स्वयं",name:name.trim(),father:"",khasra:"",aadhaar:"",hec:""},
+                            {relation:"भाई",name:"",father:"",khasra:"",aadhaar:"",hec:""},
+                            {relation:"पुत्र",name:"",father:"",khasra:"",aadhaar:"",hec:""},
+                            {relation:"पिता",name:"",father:"",khasra:"",aadhaar:"",hec:""},
+                            {relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""}];
+              save();
+              const rec=findRecord(newId);
+              if(rec) applyRecord(rec);
+              renderRegistrations();
+              apiMsg("पंजीकरण हो गया — फॉर्म आईडी " + newId + "। अब 'प्रपत्र भरना' टैब में विवरण भरें।", "ok");
+              showTab("filling");
+            }else{
+              apiMsg("पंजीकरण हो गया, पर फॉर्म आईडी नहीं मिली। सूची ताज़ा करें।", "bad");
+            }
+          }catch(err){
+            apiMsg("पंजीकरण विफल: " + (err && err.message ? err.message : "अज्ञात त्रुटि"), "bad");
+          }finally{
+            if(btn) btn.disabled=false;
+          }
+        }
+
+        let cur="application";
+        let topCur="register";
         function show(v){
           cur=v;
-          document.querySelectorAll(".view").forEach(s=>{
-            s.classList.toggle("on", s.dataset.v===v);
-            s.classList.remove("print-target");
-          });
-          document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
+          document.querySelectorAll("#subnav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
+          const host = document.querySelector('.view[data-v="filling"]');
+          if(host){
+            host.querySelectorAll(":scope > .view").forEach(s=>{
+              s.classList.toggle("on", s.dataset.v===v);
+              s.classList.remove("print-target");
+            });
+          }
           if(v==="application"){ buildApplication(); }
           else if(v==="work"){ buildWork(); refresh(); }
           else if(v==="bill"){ buildBill(); }
+          window.scrollTo(0,0);
+        }
+        function showTab(v){
+          topCur=v;
+          document.querySelectorAll("main > .view").forEach(s=>s.classList.toggle("on", s.dataset.v===v));
+          document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.tab===v));
+          if(v==="filling"){ show(cur); }
+          if(v==="register"){ loadRegistrations(); }
+          const pv=document.getElementById("bPreview");
+          if(pv) pv.disabled = (v!=="filling");
           window.scrollTo(0,0);
         }
 
@@ -1034,7 +1532,20 @@ export default function KisanAavedanPortal() {
             }
           }
           else if(t.dataset.norm){ S.norm[t.dataset.norm]=t.value; refresh(); if(cur==="application") buildApplication(); }
-          else if(t.dataset.row){ S[t.dataset.row][+t.dataset.i][t.dataset.k]=t.value; refreshWorkTotals(); }
+          else if(t.dataset.row){
+            const k=t.dataset.row, i=+t.dataset.i;
+            if(!S[k][i]) S[k][i]={};
+            S[k][i][t.dataset.k]=t.value;
+            if(t.dataset.k==="qty" || t.dataset.k==="rate"){
+              const q=num(S[k][i].qty), r=num(S[k][i].rate);
+              if(q>0 && r>0){
+                S[k][i].amt = String(Math.round(q*r*100)/100);
+                const cell=document.querySelector(`input[data-row="${k}"][data-i="${i}"][data-k="amt"]`);
+                if(cell) cell.value = S[k][i].amt;
+              }
+            }
+            refreshWorkTotals();
+          }
         });
         document.addEventListener("change", e=>{
           const t=e.target;
@@ -1050,7 +1561,7 @@ export default function KisanAavedanPortal() {
           }
         });
         document.addEventListener("click", e=>{
-          const b=e.target.closest("[data-add],[data-del],[data-go],[data-land-del],#addLandRow"); if(!b) return;
+          const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],[data-save],[data-open],[data-land-del],#addLandRow"); if(!b) return;
           if(b.id==="addLandRow"){
             if(!S.landRows) S.landRows=[];
             S.landRows.push({relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""});
@@ -1067,31 +1578,61 @@ export default function KisanAavedanPortal() {
             }
             return;
           }
+          if(b.dataset.open!==undefined){ openForm(b.dataset.open); return; }
+          if(b.dataset.save!==undefined){ saveStep(b.dataset.save); return; }
+          if(b.dataset.tab){ showTab(b.dataset.tab); return; }
           if(b.dataset.add){ S[b.dataset.add].push({}); buildWork(); refresh(); }
           else if(b.dataset.del){ const k=b.dataset.del; S[k].splice(+b.dataset.i,1); if(!S[k].length) S[k].push({}); buildWork(); refresh(); }
           else if(b.dataset.go){ show(b.dataset.go); }
         });
-        document.getElementById("bGo").onclick    = ()=>show("bill");
-        document.getElementById("bPrint").onclick = ()=>{
-          document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target"));
+        document.getElementById("bGo").onclick    = ()=>{ showTab("filling"); show("bill"); };
+        document.getElementById("regForm").addEventListener("submit", registerUser);
+        document.getElementById("regRefresh").onclick = ()=>loadRegistrations();
+        document.getElementById("btnSaveAll").onclick = ()=>saveAllSteps();
+        function printCurrent(){
+          document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target","has-print-target"));
           const target=document.querySelector(`.view[data-v="${cur}"]`);
-          if(target){ target.classList.add("print-target"); window.print(); }
-        };
-        document.getElementById("bNew").onclick   = ()=>{ if(window.confirm("सारी प्रविष्टि मिट जाएगी। नया प्रपत्र खोलें?")){ S=blank(); document.getElementById("scheme").value=S.scheme; show("work"); } };
-        document.getElementById("bSave").onclick  = ()=>{
-          const nm=(S.f.name||"कृषक").replace(/\s+/g,"_");
-          const a=document.createElement("a");
-          a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));
-          a.download=`अनुदान_${nm}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-        };
-        document.getElementById("bOpen").onclick  = ()=>document.getElementById("fileIn").click();
-        document.getElementById("fileIn").onchange = e=>{
-          const fl=e.target.files[0]; if(!fl) return;
-          const r=new FileReader();
-          r.onload=()=>{ try{ S=Object.assign(blank(), JSON.parse(r.result)); document.getElementById("scheme").value=S.scheme; show("work"); }
-                     catch(err){ window.alert("यह फाइल पढ़ी नहीं जा सकी। इसी प्रपत्र से सहेजी गयी .json फाइल चुनें।"); } };
-          r.readAsText(fl); e.target.value="";
-        };
+          if(!target) return;
+          target.classList.add("print-target");
+          let p=target.parentElement;
+          while(p && p!==rootRef.current){
+            if(p.classList && p.classList.contains("view")) p.classList.add("has-print-target");
+            p=p.parentElement;
+          }
+          window.print();
+        }
+        const PV_TITLES={application:"फेंसिंग आवेदन पत्र", work:"व्यय विवरण", bill:"देयक प्रपत्र"};
+        function openPreview(){
+          if(topCur!=="filling"){ apiMsg("पहले 'प्रपत्र भरना' टैब खोलें।","bad"); return; }
+          const overlay=document.getElementById("pvOverlay");
+          const body=document.getElementById("pvBody");
+          const target=document.querySelector(`.view[data-v="${cur}"]`);
+          if(!overlay||!body||!target) return;
+          document.getElementById("pvTitle").textContent = "प्रिंट पूर्वावलोकन — " + (PV_TITLES[cur]||"प्रपत्र");
+          body.innerHTML="";
+          const clone=target.cloneNode(true);
+          clone.classList.add("on");
+          body.appendChild(clone);
+          overlay.hidden=false;
+          overlay.scrollTop=0;
+        }
+        function closePreview(){
+          const overlay=document.getElementById("pvOverlay");
+          if(!overlay) return;
+          overlay.hidden=true;
+          const body=document.getElementById("pvBody");
+          if(body) body.innerHTML="";
+        }
+        document.getElementById("bPreview").onclick = openPreview;
+        document.getElementById("pvClose").onclick   = closePreview;
+        document.getElementById("pvPrint").onclick   = ()=>{ closePreview(); printCurrent(); };
+        document.getElementById("pvOverlay").addEventListener("click", e=>{
+          if(e.target === e.currentTarget) closePreview();
+        });
+        document.addEventListener("keydown", e=>{
+          if(e.key==="Escape") closePreview();
+        });
+        window.addEventListener("beforeprint", ()=>{ closePreview(); });
 
         try{
           const r=window.localStorage.getItem(KEY);
@@ -1103,7 +1644,10 @@ export default function KisanAavedanPortal() {
           }
         }catch(e){}
         document.getElementById("scheme").value = S.scheme;
-        show("application");
+        setFormId(S.formId || "");
+        AUTH_CENTER = authCenter;
+        showTab("register");
+        loadRegistrations();
         window.addEventListener('beforeprint', setFenceMappingPrintRow);
         window.addEventListener('afterprint', ()=>document.querySelectorAll('#fenceMappingApplicationTable tbody tr').forEach(tr=>tr.classList.remove('print-selected')));
       })();
@@ -1117,9 +1661,24 @@ export default function KisanAavedanPortal() {
     }
 
     return () => {
+      window.removeEventListener("resize", syncAppNav);
+      window.removeEventListener("load", syncAppNav);
+      window.clearTimeout(navSyncTimer);
       root.innerHTML = "";
     };
   }, []);
+
+  const centerSyncRef = useRef(false);
+  useEffect(() => {
+    const el = rootRef.current && rootRef.current.querySelector("#regCenter");
+    if (!el) return;
+    const value = (centerName || "").trim();
+    el.value = value || "— लॉग इन केंद्र नहीं मिला —";
+    el.title = value ? ("लॉग इन केंद्र: " + value) : "लॉग इन केंद्र नहीं मिला";
+    if (!centerSyncRef.current) { centerSyncRef.current = true; return; }
+    const btn = document.getElementById("regRefresh");
+    if (btn) btn.click();
+  }, [centerName]);
 
   return <div ref={rootRef} className="kisan-html-react-root" />;
 }
