@@ -1,19 +1,16 @@
 /* Kisan Aavedan Portal - Modern Professional Blue UI */
 .kisan-html-react-root {
-  /* Modern Blue Color Palette */
-  --ink: #1e293b; /* Slate 800 */
-  --ink-soft: #64748b; /* Slate 500 */
-  --paper: #f1f5f9; /* Slate 100 */
+  --ink: #1e293b;
+  --ink-soft: #64748b;
+  --paper: #f1f5f9;
   --card: #ffffff;
-  --seal: #2563eb; /* Royal Blue 600 */
-  --seal-dk: #1e3a8a; /* Dark Blue 900 */
-  --rule: #e2e8f0; /* Slate 200 */
-  --fill: #f8fafc; /* Slate 50 */
-  --fill-line: #cbd5e1; /* Slate 300 */
-  --alert: #dc2626; /* Red 600 */
-  --gold: #d97706; /* Amber 600 */
-
-  /* Legacy variables mapped to new blue palette */
+  --seal: #2563eb;
+  --seal-dk: #1e3a8a;
+  --rule: #e2e8f0;
+  --fill: #f8fafc;
+  --fill-line: #cbd5e1;
+  --alert: #dc2626;
+  --gold: #d97706;
   --gov-green: var(--seal);
   --gov-green-2: #3b82f6;
   --gov-line: var(--rule);
@@ -108,7 +105,7 @@
   position: sticky;
   top: var(--app-nav-h, 0px);
   z-index: 30;
-  margin-top:12px;
+  margin-top: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 .kisan-html-react-root .tabs a {
@@ -149,203 +146,59 @@
   background: var(--seal-dk);
 }
 
-/* === SUB TABS (प्रपत्र भरना) === */
+/* === SUB TABS (inside filling view) === */
 .kisan-html-react-root .subtabs {
   display: flex;
   gap: 4px;
   background: #fff;
-  border: 1px solid var(--rule);
-  border-radius: 10px;
-  padding: 0 8px;
-  margin: 0 0 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 24px;
+  margin: 0 -24px 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 .kisan-html-react-root .subtabs a {
-  padding: 11px 22px;
+  padding: 12px 20px;
   color: var(--ink-soft);
   text-decoration: none;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: 8px;
+  background: transparent;
+  border-bottom: 3px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 .kisan-html-react-root .subtabs a:hover {
   color: var(--seal);
   background: var(--fill);
 }
 .kisan-html-react-root .subtabs a.on {
-  color: #fff;
-  background: var(--seal);
-}
-
-/* === ACTIVE FORM ID (top bar) === */
-.kisan-html-react-root .topbar .topbar-formid {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.kisan-html-react-root .topbar .fid {
-  font-size: 13px;
-  font-weight: 700;
-  color: #cbd5e1;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 7px 12px;
-  border-radius: 6px;
-  white-space: nowrap;
-}
-.kisan-html-react-root .topbar .fid.active {
-  color: #fff;
-  background: var(--seal);
-  border-color: var(--seal);
-}
-
-/* === API MESSAGE BAR === */
-.kisan-html-react-root .api-msg {
-  margin: 14px 48px 0;
-  padding: 11px 16px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  font-weight: 600;
-  border-left: 4px solid var(--seal);
-  background: #eff6ff;
-  color: var(--seal-dk);
-}
-.kisan-html-react-root .api-msg.ok {
-  border-left-color: #16a34a;
-  background: #f0fdf4;
-  color: #166534;
-}
-.kisan-html-react-root .api-msg.bad {
-  border-left-color: var(--alert);
-  background: #fef2f2;
-  color: #991b1b;
-}
-.kisan-html-react-root .api-msg[hidden] {
-  display: none;
-}
-
-/* === REGISTRATION FORM + TABLE === */
-.kisan-html-react-root .reg-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-.kisan-html-react-root .reg-actions input[disabled] {
-  background: var(--fill);
-  color: var(--ink);
-  font-weight: 600;
-  cursor: not-allowed;
-  opacity: 1;
-  -webkit-text-fill-color: var(--ink);
-}
-.kisan-html-react-root .addrow.solid {
-  background: var(--seal);
-  color: #fff;
-  border: 1px solid var(--seal);
-  margin: 0;
-  padding: 10px 20px;
-}
-.kisan-html-react-root .addrow.solid:hover {
-  background: var(--seal-dk);
-  border-color: var(--seal-dk);
-  color: #fff;
-}
-.kisan-html-react-root .table-scroll {
-  overflow-x: auto;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-}
-.kisan-html-react-root .reg-table th {
-  background: var(--seal-dk);
-  color: #fff;
-  border-bottom: 1px solid var(--seal-dk);
-  white-space: nowrap;
-}
-.kisan-html-react-root .reg-table td {
-  padding: 10px;
-  font-size: 13.5px;
-  border-bottom: 1px solid var(--rule);
-  white-space: nowrap;
-}
-.kisan-html-react-root .reg-table tr.sel td {
-  background: #eff6ff;
-}
-.kisan-html-react-root .reg-table td.empty {
-  text-align: center;
-  color: var(--ink-soft);
-  padding: 22px 10px;
-}
-.kisan-html-react-root .reg-table td.act {
-  text-align: center;
-}
-.kisan-html-react-root .pill {
-  display: inline-block;
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.kisan-html-react-root .pill.ok {
-  background: #dcfce7;
-  color: #166534;
-}
-.kisan-html-react-root .pill.wait {
-  background: #fef3c7;
-  color: #92400e;
-}
-.kisan-html-react-root .mini {
-  border: 1px solid var(--seal);
-  background: #fff;
   color: var(--seal);
+  border-bottom-color: var(--seal);
+  background: var(--fill);
+}
+
+/* === TOOLS === */
+.kisan-html-react-root .topbar .tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kisan-html-react-root .topbar .tools button {
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 6px 14px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
+  white-space: nowrap;
 }
-.kisan-html-react-root .mini:hover {
+.kisan-html-react-root .topbar .tools button:hover {
   background: var(--seal);
-  color: #fff;
-}
-.kisan-html-react-root .mini.on {
-  background: var(--seal);
-  color: #fff;
-}
-
-/* === SAVE BARS (per API step) === */
-.kisan-html-react-root .save-bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin: 14px 0 4px;
-  padding: 12px 14px;
-  background: var(--fill);
-  border: 1px dashed var(--fill-line);
-  border-radius: 8px;
-}
-.kisan-html-react-root .save-bar .addrow {
-  margin: 0;
-  padding: 9px 20px;
-}
-.kisan-html-react-root .save-hint {
-  font-size: 12px;
-  color: var(--ink-soft);
-}
-.kisan-html-react-root .save-hint b {
-  color: var(--seal);
-}
-.kisan-html-react-root .tabs-preview:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: var(--ink-soft);
+  border-color: var(--seal);
 }
 
 /* === PRINT PREVIEW OVERLAY === */
@@ -453,7 +306,6 @@
     transform: translateY(0);
   }
 }
-
 .kisan-html-react-root h2.head {
   font-size: 26px;
   margin: 0 0 6px;
@@ -707,6 +559,231 @@
   background: var(--seal-dk);
 }
 
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: FORM SECTION TITLES (.st) — matches HTML .st ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .st {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--seal-dk);
+  border-bottom: 2px solid var(--rule);
+  padding-bottom: 8px;
+  margin: 24px 0 14px;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: FORM GRID (.grid2) — 2-column field layout ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: FORM FIELD (.field) — label + input/select ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .field {
+  display: block;
+}
+.kisan-html-react-root .field label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+.kisan-html-react-root .field input,
+.kisan-html-react-root .field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.kisan-html-react-root .field input:focus,
+.kisan-html-react-root .field select:focus {
+  outline: none;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: DECLARATION BOX ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .declaration-box {
+  background: var(--fill);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--seal);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 10px 0;
+  line-height: 1.7;
+}
+.kisan-html-react-root .declaration-box p {
+  margin: 6px 0;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: FARMER SIGNATURE ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .farmer-signature {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  line-height: 1.8;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: PRABHARI BOX ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .prabhari-box {
+  line-height: 1.7;
+  text-align: justify;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: NOTE BOX (.note) — used in app + work sections ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .note {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--fill);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--seal);
+  border-radius: 6px;
+  font-size: 13.5px;
+  line-height: 1.8;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: BUTTONS (.btn, .primary) ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .btn {
+  padding: 9px 16px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.kisan-html-react-root .btn:hover {
+  background: var(--fill);
+  border-color: var(--seal);
+}
+.kisan-html-react-root .btn.primary {
+  background: var(--seal);
+  color: #fff;
+  border-color: var(--seal);
+}
+.kisan-html-react-root .btn.primary:hover {
+  background: var(--seal-dk);
+  border-color: var(--seal-dk);
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: ACTIONS CONTAINER ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: MATERIAL CELL ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .material-cell input {
+  min-width: 220px;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: REPORT BOX + REPORT SIGN (bill section) ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .report-box {
+  border: 1px solid var(--rule);
+  padding: 14px 18px;
+  margin-top: 10px;
+  line-height: 1.7;
+  text-align: justify;
+  background: var(--fill);
+  border-radius: 6px;
+  border-left: 4px solid var(--seal);
+}
+.kisan-html-react-root .report-sign {
+  margin-top: 24px;
+  text-align: right;
+  line-height: 1.8;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: AFFIDAVIT INFO ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .aff-info {
+  border: 1px solid var(--rule);
+  padding: 12px 15px;
+  margin: 8px 0 16px;
+  line-height: 1.8;
+  background: #fff;
+}
+.kisan-html-react-root .aff-info div {
+  margin: 2px 0;
+}
+
+/* ════════════════════════════════════════════════════════
+   ★★★ ADDED: TABLE STYLES WITHIN .appdoc (crop table etc.) ★★★
+   ════════════════════════════════════════════════════════ */
+.kisan-html-react-root .appdoc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+}
+.kisan-html-react-root .appdoc th {
+  background: var(--seal-dk);
+  color: #fff;
+  padding: 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--seal-dk);
+}
+.kisan-html-react-root .appdoc td {
+  border: 1px solid var(--rule);
+  padding: 6px;
+}
+.kisan-html-react-root .appdoc td input,
+.kisan-html-react-root .appdoc td select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+}
+.kisan-html-react-root .appdoc td input:focus,
+.kisan-html-react-root .appdoc td select:focus {
+  outline: none;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
 /* === GOVERNMENT FORM LAYOUT === */
 .kisan-html-react-root .doc,
 .kisan-html-react-root .appdoc,
@@ -743,6 +820,32 @@
   color: var(--seal-dk);
   border-bottom: 2px solid var(--seal);
   padding-bottom: 8px;
+}
+.kisan-html-react-root .appdoc {
+  padding: 32px 38px 36px;
+}
+.kisan-html-react-root .appdoc h3 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--seal) !important;
+  letter-spacing: 0.1px;
+  margin: 3px 0 2px !important;
+}
+.kisan-html-react-root .appdoc h4 {
+  color: var(--ink) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  margin: 3px 0 18px !important;
+}
+.kisan-html-react-root .appdoc h5 {
+  color: var(--seal);
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(to right, var(--fill), #fff);
+  border-left: 4px solid var(--seal);
+  border-bottom: 1px solid var(--rule) !important;
+  padding: 7px 10px 7px !important;
+  margin: 16px 0 8px !important;
 }
 
 .kisan-html-react-root .kv {
@@ -815,6 +918,7 @@
   border-radius: 6px;
   border-left: 4px solid var(--seal);
 }
+
 .kisan-html-react-root .xbox {
   border: 1px solid var(--rule);
   border-radius: 8px;
@@ -852,33 +956,7 @@
   color: var(--seal-dk);
 }
 
-/* === MISSING STYLES ADAPTED FOR BLUE UI === */
-.kisan-html-react-root .appdoc {
-  padding: 32px 38px 36px;
-}
-.kisan-html-react-root .appdoc h3 {
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  color: var(--seal) !important;
-  letter-spacing: 0.1px;
-  margin: 3px 0 2px !important;
-}
-.kisan-html-react-root .appdoc h4 {
-  color: var(--ink) !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  margin: 3px 0 18px !important;
-}
-.kisan-html-react-root .appdoc h5 {
-  color: var(--seal);
-  font-size: 13.5px !important;
-  font-weight: 700 !important;
-  background: linear-gradient(to right, var(--fill), #fff);
-  border-left: 4px solid var(--seal);
-  border-bottom: 1px solid var(--rule) !important;
-  padding: 7px 10px 7px !important;
-  margin: 16px 0 8px !important;
-}
+/* === APPDOC ADDITIONAL === */
 .kisan-html-react-root .appnote {
   border: 1px solid var(--rule) !important;
   background: var(--fill) !important;
@@ -910,19 +988,6 @@
   background: var(--fill);
   padding: 4px;
   font: inherit;
-}
-.kisan-html-react-root .landtable input.landVil,
-.kisan-html-react-root .landtable input.landSelfName,
-.kisan-html-react-root .landtable input.landSelfFather {
-  background: var(--paper);
-  color: var(--ink-soft);
-  border-color: var(--rule);
-  cursor: default;
-}
-.kisan-html-react-root .landtable input:not([readonly]):not([disabled]) {
-  background: #fff;
-  color: var(--ink);
-  cursor: text;
 }
 .kisan-html-react-root .landtable tr.tot td {
   background: var(--fill) !important;
@@ -1017,6 +1082,7 @@
   background: #fef2f2;
 }
 
+/* === BILL DOC === */
 .kisan-html-react-root .bill-doc {
   padding: 30px 34px 34px;
   font-size: 13.5px;
@@ -1157,6 +1223,10 @@
   line-height: 1.8;
   border-radius: 4px;
 }
+.kisan-html-react-root .bill-doc .blank {
+  border-bottom: 1px solid #1d2a23 !important;
+  min-width: 88px;
+}
 .kisan-html-react-root .flag {
   padding: 8px 12px;
   font-size: 13px;
@@ -1174,6 +1244,7 @@
   color: var(--seal);
 }
 
+/* === AFFIDAVIT DOC === */
 .kisan-html-react-root .affidavit-doc {
   background: #fff;
   border: 1px solid var(--rule);
@@ -1286,10 +1357,6 @@
   padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
-.kisan-html-react-root .affidavit-doc .aff-page-break {
-  page-break-before: always;
-  break-before: page;
-}
 
 .kisan-html-react-root .aff-preview {
   margin: 12px 0 18px;
@@ -1398,12 +1465,18 @@
   .kisan-html-react-root .affidavit-doc .aff-meta > div {
     border-right: 0;
   }
+  /* ★ ADDED responsive for form fields ★ */
+  .kisan-html-react-root .grid2 {
+    grid-template-columns: 1fr;
+  }
+  .kisan-html-react-root .farmer-signature {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
-/* === PROFESSIONAL PRINT LAYOUT === */
+/* === PRINT LAYOUT === */
 @media print {
-  /* App shell is a fixed-height scroll container — neutralise it in print,
-     otherwise the whole document is clipped to a single blank page. */
   html,
   body,
   #root,
@@ -1430,8 +1503,6 @@
     min-height: 0;
     margin-top: 0 !important;
   }
-}
-@media print {
   @page {
     size: A4 portrait;
     margin: 12mm;
@@ -1445,12 +1516,10 @@
   .kisan-html-react-root .noprint,
   .kisan-html-react-root .app-actions,
   .kisan-html-react-root .land-row-actions,
-  .kisan-html-react-root .aff-preview {
+  .kisan-html-react-root .aff-preview,
+  .kisan-html-react-root .btn,
+  .kisan-html-react-root .actions {
     display: none !important;
-  }
-  .kisan-html-react-root .shell {
-    display: block;
-    min-height: 0;
   }
   .kisan-html-react-root main {
     padding: 0 !important;
@@ -1495,5 +1564,29 @@
     background: #fff !important;
     color: #000 !important;
     border: 1px solid #000 !important;
+  }
+  /* ★ ADDED print styles for form classes ★ */
+  .kisan-html-react-root .st {
+    border-bottom: 1px solid #000 !important;
+  }
+  .kisan-html-react-root .declaration-box,
+  .kisan-html-react-root .note,
+  .kisan-html-react-root .report-box {
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    border-left: 4px solid #000 !important;
+  }
+  .kisan-html-react-root .appdoc th {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+  .kisan-html-react-root .appdoc td {
+    border: 1px solid #000 !important;
+  }
+  .kisan-html-react-root .field input,
+  .kisan-html-react-root .field select {
+    border: 1px solid #000 !important;
+    background: #fff !important;
   }
 }

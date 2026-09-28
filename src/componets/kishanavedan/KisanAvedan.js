@@ -3,57 +3,93 @@ import "./kisan-aavedan-portal.css";
 
 const HTML_BODY = `
 <div class="shell">
-  <aside class="rail noprint">
-    <h1>अनुदान देयक प्रपत्र</h1>
-    <p class="sub">कार्यालय — उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल)<br/>वित्तीय वर्ष 2026-27</p>
-    <div class="grp">योजना</div>
-    <div style="margin:0 16px 4px">
-      <select id="scheme">
-        <option value="vermicompost">वर्मी कम्पोस्ट इकाई</option>
-      </select>
+  <header class="topbar noprint">
+    <div class="topbar-brand">
+      <h1>अनुदान देयक प्रपत्र</h1>
+      <p class="sub">कार्यालय — उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल) · वित्तीय वर्ष 2026-27</p>
     </div>
-    <div class="grp">प्रपत्र</div>
-    <nav id="nav"></nav>
-    <div class="grp">फाइल</div>
-    <div class="tools">
-      <button id="bSave">सहेजें</button>
-      <button id="bOpen">खोलें</button>
-      <button id="bPrint">प्रिंट</button>
-      <button id="bNew">नया</button>
+    <div class="topbar-scheme">
+      <span class="tk">वर्मी कम्पोस्ट इकाई</span>
     </div>
-    <input accept=".json" hidden="" id="fileIn" type="file"/>
-  </aside>
+  </header>
+  <nav id="nav" class="tabs noprint">
+    <a data-tab="register" class="on">उपयोगकर्ता पंजीकरण</a>
+    <a data-tab="filling">प्रपत्र भरना</a>
+    <button type="button" class="tabs-preview" id="bPreview">प्रिंट पूर्वावलोकन</button>
+  </nav>
   <main>
-    <section class="view" data-v="application">
-      <h2 class="head">आवेदन पत्र</h2>
-      <p class="lead" id="appLead"></p>
-      <div id="applicationOut"></div>
-    </section>
-    <section class="view" data-v="affidavit">
-      <h2 class="head">शपथ-पत्र</h2>
-      <p class="lead" id="affLead"></p>
-      <div id="affidavitOut"></div>
-    </section>
-    <section class="view on" data-v="work">
-      <h2 class="head">व्यय विवरण</h2>
-      <p class="lead" id="workLead"></p>
-      <div class="card" id="standardsCard">
-        <div class="cap">
-          <i></i><span id="standardsTitle">राजसहायता के मानक</span>
-          <small>प्रपत्र पर नहीं छपेंगे — यहीं से अपडेट करें</small>
+    <section class="view on" data-v="register">
+      <h2 class="head">उपयोगकर्ता पंजीकरण</h2>
+      <p class="lead">पहले कृषक का पंजीकरण करें — इससे फॉर्म आईडी बन जाएगी। उसी फॉर्म आईडी पर आगे आवेदन, व्यय विवरण एवं देयक प्रपत्र भरा जाता है।</p>
+      <div class="card">
+        <div class="cap"><i></i>नया पंजीकरण<small>POST — फॉर्म आईडी स्वतः बनेगी</small></div>
+        <div class="pad">
+          <form id="regForm" class="grid" autocomplete="off">
+            <div><label class="f">कृषक का नाम</label><input id="regName" placeholder="पूरा नाम"></div>
+            <div><label class="f">मोबाइल नंबर</label><input id="regMob" inputmode="numeric" maxlength="10" placeholder="10 अंक"></div>
+            <div><label class="f">ग्राम</label><input id="regVillage" placeholder="ग्राम का नाम"></div>
+            <div><label class="f">जनपद</label><input id="regDist" placeholder="जनपद का नाम"></div>
+            <div class="reg-actions">
+              <button type="submit" class="addrow solid">पंजीकरण करें</button>
+              <button type="button" class="addrow" id="regRefresh">सूची ताज़ा करें</button>
+            </div>
+          </form>
         </div>
-        <div class="pad" id="standardsBody"></div>
       </div>
-      <div id="workBody"></div>
+      <div class="card">
+        <div class="cap"><i></i>पंजीकृत कृषक एवं फॉर्म<small id="regCount"></small></div>
+        <div class="pad">
+          <div class="table-scroll">
+            <table class="reg-table">
+              <thead><tr>
+                <th style="width:48px">क्र०</th><th>फॉर्म आईडी</th><th>कृषक का नाम</th><th>मोबाइल</th>
+                <th>ग्राम</th><th>जनपद</th><th>स्थिति</th>
+                <th style="width:160px">क्रिया</th>
+              </tr></thead>
+              <tbody id="regRows"><tr><td colspan="8" class="empty">लोड हो रहा है…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </section>
-    <section class="view" data-v="bill">
-      <h2 class="head">देयक प्रपत्र</h2>
-      <p class="lead" id="billLead"></p>
-      <div id="billOut"></div>
+    <section class="view" data-v="filling">
+      <div class="subtabs noprint" id="subnav">
+        <a data-go="application" class="on">आवेदन पत्र</a>
+        <a data-go="affidavit">शपथ-पत्र</a>
+        <a data-go="work">व्यय विवरण</a>
+        <a data-go="bill">देयक प्रपत्र</a>
+      </div>
+      <section class="view on" data-v="application">
+        <h2 class="head">आवेदन पत्र</h2>
+        <p class="lead" id="appLead"></p>
+        <div id="applicationOut"></div>
+      </section>
+      <section class="view" data-v="affidavit">
+        <h2 class="head">शपथ-पत्र</h2>
+        <p class="lead" id="affLead"></p>
+        <div id="affidavitOut"></div>
+      </section>
+      <section class="view" data-v="work">
+        <h2 class="head">व्यय विवरण</h2>
+        <p class="lead" id="workLead"></p>
+        <div class="card" id="standardsCard">
+          <div class="cap">
+            <i></i><span id="standardsTitle">राजसहायता के मानक</span>
+            <small>प्रपत्र पर नहीं छपेंगे — यहीं से अपडेट करें</small>
+          </div>
+          <div class="pad" id="standardsBody"></div>
+        </div>
+        <div id="workBody"></div>
+      </section>
+      <section class="view" data-v="bill">
+        <h2 class="head">देयक प्रपत्र</h2>
+        <p class="lead" id="billLead"></p>
+        <div id="billOut"></div>
+      </section>
     </section>
   </main>
 </div>
-<div hidden="" id="datalists"></div>
+<div hidden id="datalists"></div>
 <div class="strip noprint" id="bottomStrip">
   <div class="cell"><div class="k">बिल का कुल योग</div><div class="v num" id="sBill">₹ 0</div></div>
   <div class="cell"><div class="k">एम०बी० मूल्यांकन</div><div class="v num" id="sMb">—</div></div>
@@ -61,6 +97,18 @@ const HTML_BODY = `
   <div class="cell"><div class="k">कृषक द्वारा वहन</div><div class="v num" id="sOwn">₹ 0</div></div>
   <div class="msg" id="sMsg"></div>
   <button class="go" id="bGo">देयक देखें</button>
+</div>
+<div class="pv-overlay noprint" id="pvOverlay" hidden>
+  <div class="pv-box" role="dialog" aria-modal="true" aria-label="प्रिंट पूर्वावलोकन">
+    <div class="pv-head">
+      <span class="pv-title" id="pvTitle">प्रिंट पूर्वावलोकन</span>
+      <span class="pv-actions">
+        <button type="button" class="pv-btn" id="pvPrint">प्रिंट करें</button>
+        <button type="button" class="pv-btn close" id="pvClose">बंद करें</button>
+      </span>
+    </div>
+    <div class="pv-body" id="pvBody"></div>
+  </div>
 </div>
 `;
 
@@ -95,11 +143,12 @@ const SECTIONS = {
   vermicompost:[["vermi","वर्मी कम्पोस्ट इकाई — सामग्री एवं व्यय","ईंट, सीमेंट, रेत, बजरी, चिनाई, केंचुए, गोबर आदि"]]
 };
 
+/* ★ CHANGED: gender default from "पुरुष" to "" so "चुनें" shows by default ★ */
 const blank = () => ({
   scheme:"vermicompost",
   lists: JSON.parse(JSON.stringify(LISTS)),
   norm:{ vRate:75, vCap:24998, vStdCost:33333 },
-  f:{name:"",father:"",village:"",post:"",block:"",dist:"",mob:"",aadhar:"",khasra:"",bank:"",branch:"",acct:"",ifsc:"",cat:"सामान्य",farmerCat:"सीमांत",hortiCard:"",tehsil:"",proposedArea:"",irrigation:"उपलब्ध", gender:"पुरुष",mbAmt:"", date:new Date().toISOString().slice(0,10), place:"", officer:"", desig:""},
+  f:{name:"",father:"",village:"",post:"",block:"",dist:"",mob:"",aadhar:"",khasra:"",bank:"",branch:"",acct:"",ifsc:"",cat:"सामान्य",farmerCat:"सीमांत",hortiCard:"",tehsil:"",proposedArea:"",irrigation:"उपलब्ध", gender:"",mbAmt:"", date:new Date().toISOString().slice(0,10), place:"", officer:"", desig:""},
   vermi:[{}], vcrops:[{name:"",area:""}]
 });
 let S = blank();
@@ -165,7 +214,7 @@ function buildLists(){
 
 function buildNav(){
   const nav=document.getElementById("nav"); if(!nav) return;
-  nav.innerHTML='<a data-go="application">आवेदन पत्र</a><a data-go="affidavit">शपथ-पत्र</a><a class="on" data-go="work">व्यय विवरण</a><a data-go="bill">देयक प्रपत्र</a>';
+  nav.innerHTML='<a data-tab="register" class="on">उपयोगकर्ता पंजीकरण</a><a data-tab="filling">प्रपत्र भरना</a><button type="button" class="tabs-preview" id="bPreview">प्रिंट पूर्वावलोकन</button>';
 }
 
 function toggleStrip(){
@@ -192,11 +241,15 @@ function buildWork(){
   document.querySelectorAll("[data-norm]").forEach(el=>el.value = S.norm[el.dataset.norm]);
 }
 
-function rebuildDocs(){ if(cur==="application" && document.getElementById("applicationOut")) buildApplication(); if(cur==="bill" && document.getElementById("billOut")) buildBill(); if(cur==="affidavit" && document.getElementById("affidavitOut")) buildAffidavit(); save(); }
-function isFemale(){ return (S.f.gender||"पुरुष")==="महिला"; }
+function rebuildDocs(){ 
+  const activeView = cur==="filling" ? subCur : cur;
+  if(activeView==="application" && document.getElementById("applicationOut")) buildApplication(); 
+  if(activeView==="bill" && document.getElementById("billOut")) buildBill(); 
+  if(activeView==="affidavit" && document.getElementById("affidavitOut")) buildAffidavit(); 
+  save(); 
+}
+function isFemale(){ return (S.f.gender||"")==="महिला"; }
 function G(m,f){ return isFemale()?f:m; }
-function applicantWord(){ return G("आवेदक","आवेदिका"); }
-function beneficiaryWord(){ return G("लाभार्थी","लाभार्थिनी"); }
 
 function buildVermiApplication(){
   const f=S.f||{};
@@ -206,7 +259,8 @@ function buildVermiApplication(){
   const subsidy=Math.min(Math.round(stdCost*rate/100),maxSub);
   const farmerShare=stdCost-subsidy;
   let cropHTML=(S.vcrops||[]).map((r,i)=>'<tr><td>'+(i+1)+'</td><td><input list="cropOptions" data-vc="'+i+'" data-k="name" value="'+esc(r.name||"")+'" placeholder="फसल का नाम"></td><td><input data-vc="'+i+'" data-k="area" value="'+esc(r.area||"")+'" inputmode="decimal"></td><td class="noprint"><button class="btn" data-vcdel="'+i+'">×</button></td></tr>').join("");
-  document.getElementById("applicationOut").innerHTML=\`<div class="appdoc"><div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div><h3 style="text-decoration:underline">राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई हेतु</h3><h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4><div class="st">आवेदक का विवरण</div><div class="grid2"><div class="field"><label>कृषक का नाम</label><input data-f="name" value="\${esc(f.name||"")}"></div><div class="field"><label>पिता / पति का नाम</label><input data-f="father" value="\${esc(f.father||"")}"></div><div class="field"><label>ग्राम</label><input data-f="village" value="\${esc(f.village||"")}"></div><div class="field"><label>डाकघर</label><input data-f="post" value="\${esc(f.post||"")}"></div><div class="field"><label>तहसील</label><input data-f="tehsil" value="\${esc(f.tehsil||"")}" placeholder="तहसील का नाम"></div><div class="field"><label>जनपद</label><input data-f="dist" value="\${esc(f.dist||"")}"></div><div class="field"><label>उद्यान कार्ड संख्या</label><input data-f="hortiCard" value="\${esc(f.hortiCard||"")}"></div><div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" value="\${esc(f.mob||"")}"></div><div class="field"><label>आधार संख्या</label><input data-f="aadhar" inputmode="numeric" maxlength="12" value="\${esc(f.aadhar||"")}"></div><div class="field"><label>खाता / खतौनी संख्या</label><input data-f="khasra" value="\${esc(f.khasra||"")}"></div><div class="field"><label>लिंग</label><select data-f="gender"><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option></select></div></div><div class="st">भूमि का विवरण</div><div class="grid2"><div class="field"><label>भूमि का क्षेत्रफल (हे०)</label><input data-f="proposedArea" inputmode="decimal" value="\${esc(f.proposedArea||"")}" placeholder="हे० में क्षेत्रफल"></div></div><div class="st">कृषक की खेती का विवरण</div><table><thead><tr><th style="width:55px">क्र०</th><th>फसल / बागवानी फसल का नाम</th><th>क्षेत्रफल (हे०)</th><th class="noprint" style="width:70px">क्रिया</th></tr></thead><tbody>\${cropHTML}</tbody></table><div class="noprint" style="margin-top:8px"><button class="btn" id="addCropBtn">+ फसल जोड़ें</button></div><div class="st">बैंक विवरण</div><div class="grid2"><div class="field"><label>विकासखण्ड</label><input data-f="block" value="\${esc(f.block||"")}"></div><div class="field"><label>बैंक का नाम</label><input data-f="bank" value="\${esc(f.bank||"")}"></div><div class="field"><label>शाखा</label><input data-f="branch" value="\${esc(f.branch||"")}"></div><div class="field"><label>बैंक खाता संख्या</label><input data-f="acct" inputmode="numeric" value="\${esc(f.acct||"")}"></div><div class="field"><label>IFSC कोड</label><input data-f="ifsc" value="\${esc(f.ifsc||"")}"></div></div><div class="st">स्थान एवं दिनांक</div><div class="grid2"><div class="field"><label>स्थान</label><input data-f="place" value="\${esc(f.place||"")}" placeholder="स्थान का नाम"></div><div class="field"><label>दिनांक</label><input data-f="date" value="\${esc(f.date||"")}" placeholder="दिन/माह/वर्ष"></div></div><div class="st">7. घोषणा</div><div class="declaration-box"><p>उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं। मुझे पूर्व में किसी भी सरकारी योजना से वर्मी कम्पोस्ट यूनिट हेतु अनुदान प्राप्त नहीं हुआ है। यूनिट की स्थापना व रखरखाव विभागीय दिशा-निर्देशों के अनुसार मेरी जिम्मेदारी होगी।</p><div class="farmer-signature"><div>कृषक का नाम : <strong id="app_farmer_name">\${esc(f.name||"…………")}</strong></div><div>कृषक के हस्ताक्षर : ______________________________</div></div></div><div class="st">संलग्न दस्तावेज</div><div class="note">1. खाता-खतौनी की प्रति — 6 माह से अधिक पुरानी नहीं हो।<br>2. आधार कार्ड की प्रति।<br>3. उद्यान कार्ड की प्रति।<br>4. बैंक खाते का विवरण / बैंक पासबुक की प्रति।<br>5. ₹10 का नोटरीकृत शपथ-पत्र।</div><div class="st">8. प्रभारी की आख्या</div><div class="declaration-box prabhari-box"><p>प्रमाणित किया जाता है कि कृषक द्वारा प्रस्तुत आवेदन, भूमि अभिलेख एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं। अतः कृषक आवेदन <strong>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में वर्क ऑर्डर जारी करने हेतु संस्तुति सहित अग्रसारित</strong> है।</p><p style="margin-top:24px;"><strong>प्रभारी, उद्यान सचल दल केन्द्र</strong><br><strong>केन्द्र का नाम :</strong> ________________________________________________________________</p></div></div>\`;
+  /* ★ Structure matches HTML file: .appdoc > .st + .grid2 + .field + table + .declaration-box + .note ★ */
+  document.getElementById("applicationOut").innerHTML=\`<div class="appdoc"><div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div><h3 style="text-decoration:underline">राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई हेतु</h3><h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4><div class="st">आवेदक का विवरण</div><div class="grid2"><div class="field"><label>कृषक का नाम</label><input data-f="name" value="\${esc(f.name||"")}"></div><div class="field"><label>पिता / पति का नाम</label><input data-f="father" value="\${esc(f.father||"")}"></div><div class="field"><label>ग्राम</label><input data-f="village" value="\${esc(f.village||"")}"></div><div class="field"><label>डाकघर</label><input data-f="post" value="\${esc(f.post||"")}"></div><div class="field"><label>तहसील</label><input data-f="tehsil" value="\${esc(f.tehsil||"")}" placeholder="तहसील का नाम"></div><div class="field"><label>जनपद</label><input data-f="dist" value="\${esc(f.dist||"")}"></div><div class="field"><label>उद्यान कार्ड संख्या</label><input data-f="hortiCard" value="\${esc(f.hortiCard||"")}"></div><div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" value="\${esc(f.mob||"")}"></div><div class="field"><label>आधार संख्या</label><input data-f="aadhar" inputmode="numeric" maxlength="12" value="\${esc(f.aadhar||"")}"></div><div class="field"><label>खाता / खतौनी संख्या</label><input data-f="khasra" value="\${esc(f.khasra||"")}"></div><div class="field"><label>लिंग</label><select data-f="gender"><option value="">चुनें</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option></select></div></div><div class="st">भूमि का विवरण</div><div class="grid2"><div class="field"><label>भूमि का क्षेत्रफल (हे०)</label><input data-f="proposedArea" inputmode="decimal" value="\${esc(f.proposedArea||"")}" placeholder="हे० में क्षेत्रफल"></div></div><div class="st">कृषक की खेती का विवरण</div><table><thead><tr><th style="width:55px">क्र०</th><th>फसल / बागवानी फसल का नाम</th><th>क्षेत्रफल (हे०)</th><th class="noprint" style="width:70px">क्रिया</th></tr></thead><tbody>\${cropHTML}</tbody></table><div class="noprint" style="margin-top:8px"><button class="btn" id="addCropBtn">+ फसल जोड़ें</button></div><div class="st">बैंक विवरण</div><div class="grid2"><div class="field"><label>विकासखण्ड</label><input data-f="block" value="\${esc(f.block||"")}"></div><div class="field"><label>बैंक का नाम</label><input data-f="bank" value="\${esc(f.bank||"")}"></div><div class="field"><label>शाखा</label><input data-f="branch" value="\${esc(f.branch||"")}"></div><div class="field"><label>बैंक खाता संख्या</label><input data-f="acct" inputmode="numeric" value="\${esc(f.acct||"")}"></div><div class="field"><label>IFSC कोड</label><input data-f="ifsc" value="\${esc(f.ifsc||"")}"></div></div><div class="st">स्थान एवं दिनांक</div><div class="grid2"><div class="field"><label>स्थान</label><input data-f="place" value="\${esc(f.place||"")}" placeholder="स्थान का नाम"></div><div class="field"><label>दिनांक</label><input data-f="date" value="\${esc(f.date||"")}" placeholder="दिन/माह/वर्ष"></div></div><div class="st">7. घोषणा</div><div class="declaration-box"><p>उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं। मुझे पूर्व में किसी भी सरकारी योजना से वर्मी कम्पोस्ट यूनिट हेतु अनुदान प्राप्त नहीं हुआ है। यूनिट की स्थापना व रखरखाव विभागीय दिशा-निर्देशों के अनुसार मेरी जिम्मेदारी होगी।</p><div class="farmer-signature"><div>कृषक का नाम : <strong id="app_farmer_name">\${esc(f.name||"…………")}</strong></div><div>कृषक के हस्ताक्षर : ______________________________</div></div></div><div class="st">संलग्न दस्तावेज</div><div class="note">1. खाता-खतौनी की प्रति — 6 माह से अधिक पुरानी नहीं हो।<br>2. आधार कार्ड की प्रति।<br>3. उद्यान कार्ड की प्रति।<br>4. बैंक खाते का विवरण / बैंक पासबुक की प्रति।<br>5. ₹10 का नोटरीकृत शपथ-पत्र।</div><div class="st">8. प्रभारी की आख्या</div><div class="declaration-box prabhari-box"><p>प्रमाणित किया जाता है कि कृषक द्वारा प्रस्तुत आवेदन, भूमि अभिलेख एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं। अतः कृषक आवेदन <strong>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में वर्क ऑर्डर जारी करने हेतु संस्तुति सहित अग्रसारित</strong> है।</p><p style="margin-top:24px;"><strong>प्रभारी, उद्यान सचल दल केन्द्र</strong><br><strong>केन्द्र का नाम :</strong> ________________________________________________________________</p></div></div>\`;
   document.querySelectorAll("#applicationOut [data-f]").forEach(el=>{ if(S.f[el.dataset.f]!==undefined) el.value=S.f[el.dataset.f]; });
   let dl=document.getElementById("cropOptions");
   if(!dl){dl=document.createElement("datalist");dl.id="cropOptions";document.body.appendChild(dl);}
@@ -267,7 +321,6 @@ function refresh(){
   const c = calc();
   c.rows.forEach((r,i)=>{ set("r"+i+"a",fmtN(r.amt)); });
   set("tA",fmtN(c.bill));
-  
   set("xBill", c.bill?fmt0(c.bill):"—"); set("xMb", c.mb?fmt0(c.mb):"—");
   set("xStdCost", fmt0(c.standardCost));
   set("xBase",fmt0(c.base)); set("xRate",(c.rate*100).toFixed(0)+"%"); set("xSub",fmt0(c.sub));
@@ -277,11 +330,41 @@ function refresh(){
 }
 function refreshWorkTotals(){ document.querySelectorAll("#workBody table").forEach(tb=>{ const t = tb.querySelector("[data-tot]"); if(!t) return; const k = t.dataset.tot, cfg = COLS[k]; tb.querySelectorAll("tbody tr").forEach((tr,i)=>{ if(i<(S[k]||[]).length){ const cell=tr.querySelector("td.calc"); if(cell) cell.textContent=fmtN(cfg.amt(S[k][i])); } }); t.textContent = fmtN(sum(k)); }); refresh(); }
 
-let cur="work";
-function show(v){
-  cur=v;
-  document.querySelectorAll(".view").forEach(s=>{ s.classList.toggle("on", s.dataset.v===v); s.classList.remove("print-target"); });
-  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
+let cur="register";
+let subCur="application";
+
+function showTab(tab){
+  cur=tab;
+  // Only toggle MAIN views (register, filling) - direct children of main
+  document.querySelectorAll("main > .view").forEach(s=>{ s.classList.toggle("on", s.dataset.v===tab); s.classList.remove("print-target"); });
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.tab===tab));
+  
+  if(tab==="register"){
+    buildRegister();
+    const subnav=document.getElementById("subnav");
+    if(subnav) subnav.style.display="none";
+  }else if(tab==="filling"){
+    // Show subnav - always navigate to first sub-tab (आवेदन पत्र)
+    const subnav=document.getElementById("subnav");
+    if(subnav) subnav.style.display="flex";
+    subCur = "application"; // Reset to first tab
+    showSub("application");
+  }
+  window.scrollTo(0,0);
+}
+
+function showSub(v){
+  subCur=v;
+  // Only handle sub-tabs when in filling mode
+  if(cur!=="filling") return;
+  
+  // Only toggle SUB views inside the filling section
+  const fillingSection = document.querySelector('.view[data-v="filling"]');
+  if(fillingSection){
+    fillingSection.querySelectorAll(".view[data-v]").forEach(s=>{ s.classList.toggle("on", s.dataset.v===v); s.classList.remove("print-target"); });
+  }
+  document.querySelectorAll("#subnav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
+  
   if(v==="application"){ buildApplication(); }
   else if(v==="affidavit"){ buildAffidavit(); }
   else if(v==="work"){ buildWork(); refresh(); }
@@ -289,30 +372,34 @@ function show(v){
   window.scrollTo(0,0);
 }
 
-/* FIXED INPUT HANDLER */
+function buildRegister(){
+  // Registration form logic - placeholder for API integration
+  const tbody=document.getElementById("regRows");
+  if(tbody) tbody.innerHTML='<tr><td colspan="8" class="empty">कोई पंजीकृत कृषक नहीं — ऊपर फॉर्म भरकर पंजीकरण करें</td></tr>';
+}
+
 document.addEventListener("input", e=>{
   const t=e.target;
-  if(t.id==="scheme") return; 
   if(t.dataset && t.dataset.vc){ const i=+t.dataset.vc, k=t.dataset.k; if(!S.vcrops) S.vcrops=[{}]; if(!S.vcrops[i]) S.vcrops[i]={}; S.vcrops[i][k]=t.value; save(); return; }
   if(t.dataset && t.dataset.f){
     S.f[t.dataset.f]=t.value; save();
     refresh();
-    if(cur==="application"){ const fn=document.getElementById("app_farmer_name"); if(fn) fn.textContent=S.f.name||"…………"; }
+    const activeView = cur==="filling" ? subCur : cur;
+    if(activeView==="application"){ const fn=document.getElementById("app_farmer_name"); if(fn) fn.textContent=S.f.name||"…………"; }
     return;
   }
   if(t.dataset && t.dataset.norm){ S.norm[t.dataset.norm]=t.value; save(); refresh(); }
   else if(t.dataset && t.dataset.row){ S[t.dataset.row][+t.dataset.i][t.dataset.k]=t.value; refreshWorkTotals(); }
 });
 
-/* FIXED CHANGE HANDLER */
 document.addEventListener("change", e=>{
   const t=e.target;
-  if(t.id==="scheme"){ return; } 
   if(t.dataset && t.dataset.f){
     S.f[t.dataset.f]=t.value; save();
+    const activeView = cur==="filling" ? subCur : cur;
     if(t.dataset.f==="gender"){
-      if(cur==="application") buildVermiApplication();
-      if(cur==="affidavit") buildVermiAffidavit();
+      if(activeView==="application") buildVermiApplication();
+      if(activeView==="affidavit") buildVermiAffidavit();
     }
     refresh();
     return;
@@ -324,43 +411,78 @@ document.addEventListener("change", e=>{
 });
 
 document.addEventListener("click", e=>{
-  const b=e.target.closest("[data-add],[data-del],[data-go],#addCropBtn,[data-vcdel]");
+  const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],#addCropBtn,[data-vcdel],#regForm button[type=submit],#regRefresh");
   if(!b) return;
   if(b.id==="addCropBtn"){ if(!S.vcrops) S.vcrops=[]; S.vcrops.push({name:"",area:""}); buildApplication(); save(); return; }
   if(b.dataset.vcdel!==undefined){ const i=+b.dataset.vcdel; if(S.vcrops && i<S.vcrops.length){ S.vcrops.splice(i,1); buildApplication(); save(); } return; }
   if(b.dataset.add){ S[b.dataset.add].push({}); buildWork(); refresh(); }
   else if(b.dataset.del){ const k=b.dataset.del; S[k].splice(+b.dataset.i,1); if(!S[k].length) S[k].push({}); buildWork(); refresh(); }
-  else if(b.dataset.go){ show(b.dataset.go); }
+  else if(b.dataset.go){ showSub(b.dataset.go); }
+  else if(b.dataset.tab){ showTab(b.dataset.tab); }
+  else if(b.id==="regRefresh"){ buildRegister(); }
+  else if(b.type==="submit" && b.form && b.form.id==="regForm"){
+    e.preventDefault();
+    const name=document.getElementById("regName").value.trim();
+    const mob=document.getElementById("regMob").value.trim();
+    const village=document.getElementById("regVillage").value.trim();
+    const dist=document.getElementById("regDist").value.trim();
+    if(!name || !mob){ alert("नाम और मोबाइल अनिवार्य हैं"); return; }
+    // TODO: Replace with actual API POST call
+    // const formId = await api.post("/register", {name, mob, village, dist, scheme:"vermicompost"});
+    const formId = "VMC-" + Date.now().toString(36).toUpperCase();
+    alert("पंजीकरण सफल! फॉर्म आईडी: " + formId);
+    // Pre-fill form data
+    S.f.name=name; S.f.mob=mob; S.f.village=village; S.f.dist=dist;
+    S.f.date=new Date().toISOString().slice(0,10);
+    save();
+    showTab("filling");
+  }
 });
 
-// Null-safe event bindings to prevent React StrictMode unmount/mount crashes
 const bGoBtn = document.getElementById("bGo");
-if (bGoBtn) bGoBtn.onclick = ()=>show("bill");
+if (bGoBtn) bGoBtn.onclick = ()=>showSub("bill");
 
-const bPrintBtn = document.getElementById("bPrint");
-if (bPrintBtn) {
-  bPrintBtn.onclick = ()=>{
-    document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target"));
-    const target=document.querySelector(\`.view[data-v="\${cur}"]\`);
-    if(target){
-      target.classList.add("print-target");
-      // Small timeout ensures DOM classes are painted before print dialog opens
-      setTimeout(() => window.print(), 100);
-    }
-  };
+function printCurrent(){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target"));
+  let target;
+  if(cur==="filling"){
+    const fillingSection = document.querySelector('.view[data-v="filling"]');
+    target = fillingSection ? fillingSection.querySelector('.view[data-v="' + subCur + '"]') : null;
+  }else{
+    target = document.querySelector('.view[data-v="' + cur + '"]');
+  }
+  if(!target) return;
+  target.classList.add("print-target");
+  window.print();
 }
-
-const bNewBtn = document.getElementById("bNew");
-if (bNewBtn) bNewBtn.onclick = ()=>{ if(confirm("सारी प्रविष्टि मिट जाएगी। नया प्रपत्र खोलें?")){ S=blank(); const sc=document.getElementById("scheme"); if(sc) sc.value=S.scheme; buildNav(); toggleStrip(); show("work"); } };
-
-const bSaveBtn = document.getElementById("bSave");
-if (bSaveBtn) bSaveBtn.onclick = ()=>{ const nm=(S.f.name||"कृषक").replace(/\\s+/g,"_"); const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"})); a.download=\`अनुदान_\${nm}.json\`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
-
-const bOpenBtn = document.getElementById("bOpen");
-if (bOpenBtn) bOpenBtn.onclick = ()=>{ const fi=document.getElementById("fileIn"); if(fi) fi.click(); };
-
-const fileInBtn = document.getElementById("fileIn");
-if (fileInBtn) fileInBtn.onchange = e=>{ const fl=e.target.files[0]; if(!fl) return; const r=new FileReader(); r.onload=()=>{ try{ S=Object.assign(blank(), JSON.parse(r.result)); const sc=document.getElementById("scheme"); if(sc) sc.value=S.scheme; buildNav(); toggleStrip(); show("work"); } catch(err){ alert("यह फाइल पढ़ी नहीं जा सकी।"); } }; r.readAsText(fl); e.target.value=""; };
+const PV_TITLES={application:"आवेदन पत्र", affidavit:"शपथ-पत्र", work:"व्यय विवरण", bill:"देयक प्रपत्र", register:"उपयोगकर्ता पंजीकरण"};
+function openPreview(){
+  const overlay=document.getElementById("pvOverlay");
+  const body=document.getElementById("pvBody");
+  let target;
+  if(cur==="filling"){
+    const fillingSection = document.querySelector('.view[data-v="filling"]');
+    target = fillingSection ? fillingSection.querySelector('.view[data-v="' + subCur + '"]') : null;
+  }else{
+    target = document.querySelector('.view[data-v="' + cur + '"]');
+  }
+  if(!overlay||!body||!target) return;
+  const activeView = cur==="filling" ? subCur : cur;
+  document.getElementById("pvTitle").textContent = "प्रिंट पूर्वावलोकन — " + (PV_TITLES[activeView]||"प्रपत्र");
+  body.innerHTML="";
+  const clone=target.cloneNode(true);
+  clone.classList.add("on");
+  body.appendChild(clone);
+  overlay.hidden=false;
+  overlay.scrollTop=0;
+}
+function closePreview(){
+  const overlay=document.getElementById("pvOverlay");
+  if(!overlay) return;
+  overlay.hidden=true;
+  const body=document.getElementById("pvBody");
+  if(body) body.innerHTML="";
+}
 
 try{
   const r=localStorage.getItem(KEY);
@@ -371,12 +493,20 @@ try{
   }
 }catch(e){}
 
-const schemeEl = document.getElementById("scheme");
-if (schemeEl) schemeEl.value = S.scheme;
-
 buildNav();
 toggleStrip();
-show("work");
+showTab("register");
+
+const bPreviewBtn=document.getElementById("bPreview");
+if (bPreviewBtn) bPreviewBtn.onclick = openPreview;
+const pvCloseBtn=document.getElementById("pvClose");
+if (pvCloseBtn) pvCloseBtn.onclick = closePreview;
+const pvPrintBtn=document.getElementById("pvPrint");
+if (pvPrintBtn) pvPrintBtn.onclick = ()=>{ closePreview(); printCurrent(); };
+const pvOverlayEl=document.getElementById("pvOverlay");
+if (pvOverlayEl) pvOverlayEl.addEventListener("click", e=>{ if(e.target===e.currentTarget) closePreview(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closePreview(); });
+window.addEventListener("beforeprint", ()=>{ closePreview(); });
 `;
 
 export default function KisanAavedan() {
@@ -387,8 +517,24 @@ export default function KisanAavedan() {
     if (!root) return;
     root.innerHTML = HTML_BODY;
 
+    const syncAppNav = () => {
+      const appNav = document.querySelector(".app-container > nav, .app-container > .navbar");
+      if (!appNav) {
+        root.style.setProperty("--app-nav-h", "0px");
+        root.style.setProperty("--app-nav-pad", "0px");
+        return;
+      }
+      const h = Math.round(appNav.getBoundingClientRect().height) || 0;
+      const isFixed = window.getComputedStyle(appNav).position === "fixed";
+      root.style.setProperty("--app-nav-h", h + "px");
+      root.style.setProperty("--app-nav-pad", isFixed ? h + "px" : "0px");
+    };
+    syncAppNav();
+    window.addEventListener("resize", syncAppNav);
+    window.addEventListener("load", syncAppNav);
+    const navSyncTimer = window.setTimeout(syncAppNav, 400);
+
     try {
-      // Run logic
       const run = new Function("document", "window", HTML_LOGIC);
       run(document, window);
     } catch (error) {
@@ -403,6 +549,9 @@ export default function KisanAavedan() {
     }
 
     return () => {
+      window.removeEventListener("resize", syncAppNav);
+      window.removeEventListener("load", syncAppNav);
+      window.clearTimeout(navSyncTimer);
       root.innerHTML = "";
     };
   }, []);
