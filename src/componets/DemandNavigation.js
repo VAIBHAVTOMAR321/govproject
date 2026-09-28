@@ -164,6 +164,15 @@ const DemandNavigation = () => {
               >
                 फेंसिंग (Fencing)
               </NavDropdown.Item>
+                <NavDropdown.Item
+                active={isActive("/DragfruitsAndKiwi")}
+                onClick={() => navigate("/DragfruitsAndKiwi")}
+                style={{
+                  fontWeight: isActive("/DragfruitsAndKiwi") ? "bold" : "normal",
+                }}
+              >
+               Drag And Kiwi
+              </NavDropdown.Item>
             </NavDropdown>
           </Nav>
 
