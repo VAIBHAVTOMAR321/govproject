@@ -1,21 +1,21 @@
 /* Kisan Aavedan Portal - Modern Professional Blue UI */
 .kisan-html-react-root {
   /* Modern Blue Color Palette */
-  --ink: #1e293b;       /* Slate 800 */
-  --ink-soft: #64748b;  /* Slate 500 */
-  --paper: #f1f5f9;     /* Slate 100 */
+  --ink: #1e293b; /* Slate 800 */
+  --ink-soft: #64748b; /* Slate 500 */
+  --paper: #f1f5f9; /* Slate 100 */
   --card: #ffffff;
-  --seal: #2563eb;      /* Royal Blue 600 */
-  --seal-dk: #1e3a8a;   /* Dark Blue 900 */
-  --rule: #e2e8f0;      /* Slate 200 */
-  --fill: #f8fafc;      /* Slate 50 */
+  --seal: #2563eb; /* Royal Blue 600 */
+  --seal-dk: #1e3a8a; /* Dark Blue 900 */
+  --rule: #e2e8f0; /* Slate 200 */
+  --fill: #f8fafc; /* Slate 50 */
   --fill-line: #cbd5e1; /* Slate 300 */
-  --alert: #dc2626;     /* Red 600 */
-  --gold: #d97706;      /* Amber 600 */
-  
+  --alert: #dc2626; /* Red 600 */
+  --gold: #d97706; /* Amber 600 */
+
   /* Legacy variables mapped to new blue palette */
   --gov-green: var(--seal);
-  --gov-green-2: #3b82f6; /* Blue 500 */
+  --gov-green-2: #3b82f6;
   --gov-line: var(--rule);
   --gov-soft: var(--fill);
   --gov-soft-2: #f1f5f9;
@@ -27,17 +27,19 @@
   min-width: 0;
   isolation: isolate;
   color: var(--ink);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .kisan-html-react-root * {
   box-sizing: border-box;
 }
-
 .kisan-html-react-root .num {
   font-variant-numeric: tabular-nums;
 }
-
 .kisan-html-react-root .shell {
   display: flex;
   min-height: 100vh;
@@ -55,9 +57,8 @@
   top: 0;
   height: 100vh;
   overflow: auto;
-  box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
 }
-
 .kisan-html-react-root .rail h1 {
   font-size: 18px;
   margin: 0 24px 8px;
@@ -65,14 +66,12 @@
   font-weight: 700;
   line-height: 1.4;
 }
-
 .kisan-html-react-root .rail .sub {
   font-size: 13px;
   margin: 0 24px 28px;
   color: #94a3b8;
   line-height: 1.5;
 }
-
 .kisan-html-react-root .rail nav a {
   display: flex;
   align-items: center;
@@ -86,19 +85,16 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .kisan-html-react-root .rail nav a:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: #fff;
 }
-
 .kisan-html-react-root .rail nav a.on {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   border-left-color: var(--gold);
   font-weight: 600;
 }
-
 .kisan-html-react-root .rail .grp {
   font-size: 11px;
   text-transform: uppercase;
@@ -107,19 +103,17 @@
   margin: 28px 24px 10px;
   font-weight: 700;
 }
-
 .kisan-html-react-root .rail .tools {
   margin: 16px 20px 0;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-
 .kisan-html-react-root .rail .tools button {
   flex: 1 1 45%;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 10px 12px;
   font: inherit;
   font-size: 13px;
@@ -128,15 +122,13 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-
 .kisan-html-react-root .rail .tools button:hover {
   background: var(--seal);
   border-color: var(--seal);
 }
 .kisan-html-react-root .rail select {
-
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #000000; /* टेक्स्ट कलर काला */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #000000;
   width: calc(100% - 40px);
   margin: 0 20px;
   font: inherit;
@@ -145,12 +137,10 @@
   border-radius: 6px;
   cursor: pointer;
 }
-
-/* ड्रॉपडाउन खुलने पर वाले विकल्पों (options) का कलर काला करने के लिए */
 .kisan-html-react-root .rail select option {
   color: #000000;
- 
 }
+
 /* === MAIN AREA === */
 .kisan-html-react-root main {
   flex: 1;
@@ -158,13 +148,22 @@
   padding: 40px 48px 120px;
   max-width: 1180px;
 }
-
-.kisan-html-react-root .view { display: none; }
-.kisan-html-react-root .view.on { display: block; animation: fadeIn 0.3s ease; }
-
+.kisan-html-react-root .view {
+  display: none;
+}
+.kisan-html-react-root .view.on {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .kisan-html-react-root h2.head {
@@ -174,7 +173,6 @@
   color: var(--ink);
   letter-spacing: -0.02em;
 }
-
 .kisan-html-react-root p.lead {
   margin: 0 0 28px;
   color: var(--ink-soft);
@@ -189,10 +187,11 @@
   border: 1px solid var(--rule);
   border-radius: 12px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -2px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
-
 .kisan-html-react-root .card > .cap {
   display: flex;
   align-items: center;
@@ -204,7 +203,6 @@
   font-size: 15px;
   color: var(--ink);
 }
-
 .kisan-html-react-root .cap i {
   width: 10px;
   height: 10px;
@@ -213,24 +211,20 @@
   display: inline-block;
   flex: 0 0 10px;
 }
-
 .kisan-html-react-root .cap small {
   margin-left: auto;
   font-weight: 500;
   color: var(--ink-soft);
   font-size: 12px;
 }
-
 .kisan-html-react-root .pad {
   padding: 20px;
 }
-
 .kisan-html-react-root .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
 }
-
 .kisan-html-react-root label.f {
   display: block;
   font-size: 12px;
@@ -240,7 +234,6 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 .kisan-html-react-root .pad > .grid input,
 .kisan-html-react-root .pad > .grid select {
   width: 100%;
@@ -251,9 +244,10 @@
   background: #fff;
   border-radius: 6px;
   color: var(--ink);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
-
 .kisan-html-react-root .pad > .grid input:focus {
   outline: none;
   border-color: var(--seal);
@@ -266,9 +260,7 @@
   border-collapse: collapse;
   margin: 12px 0;
 }
-
 .kisan-html-react-root th {
- 
   color: var(--ink);
   font-weight: 700;
   font-size: 12px;
@@ -278,13 +270,11 @@
   text-align: left;
   border-bottom: 2px solid var(--rule);
 }
-
 .kisan-html-react-root td {
   border-bottom: 1px solid var(--rule);
   padding: 4px;
   vertical-align: middle;
 }
-
 .kisan-html-react-root td.n {
   text-align: center;
   font-size: 13px;
@@ -292,7 +282,6 @@
   padding: 8px;
   font-weight: 600;
 }
-
 .kisan-html-react-root td input {
   width: 100%;
   font: inherit;
@@ -304,18 +293,15 @@
   color: var(--ink);
   transition: all 0.2s;
 }
-
 .kisan-html-react-root td input:hover {
   background: var(--fill);
 }
-
 .kisan-html-react-root td input:focus {
   outline: none;
   background: #fff;
   border-color: var(--seal);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
-
 .kisan-html-react-root td.calc {
   text-align: right;
   white-space: nowrap;
@@ -324,7 +310,6 @@
   font-weight: 600;
   color: var(--seal-dk);
 }
-
 .kisan-html-react-root tr.tot td {
   background: var(--fill);
   font-weight: 700;
@@ -333,7 +318,6 @@
   border-bottom: none;
   color: var(--ink);
 }
-
 .kisan-html-react-root .rm {
   background: transparent;
   border: none;
@@ -345,12 +329,10 @@
   border-radius: 4px;
   transition: all 0.2s;
 }
-
 .kisan-html-react-root .rm:hover {
   color: var(--alert);
   background: rgba(220, 38, 38, 0.1);
 }
-
 .kisan-html-react-root .addrow {
   margin: 12px 0 4px;
   background: #fff;
@@ -364,7 +346,6 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-
 .kisan-html-react-root .addrow:hover {
   background: var(--seal);
   color: #fff;
@@ -382,9 +363,8 @@
   align-items: stretch;
   z-index: 20;
   border-top: 1px solid var(--rule);
-  box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
 }
-
 .kisan-html-react-root .strip .cell {
   padding: 16px 24px;
   border-right: 1px solid var(--rule);
@@ -393,7 +373,6 @@
   flex-direction: column;
   justify-content: center;
 }
-
 .kisan-html-react-root .strip .k {
   font-size: 11px;
   text-transform: uppercase;
@@ -402,7 +381,6 @@
   margin-bottom: 4px;
   font-weight: 600;
 }
-
 .kisan-html-react-root .strip .v {
   font-size: 20px;
   font-weight: 700;
@@ -410,11 +388,9 @@
   line-height: 1.2;
   color: var(--ink);
 }
-
 .kisan-html-react-root .strip .cell.pay .v {
   color: var(--seal);
 }
-
 .kisan-html-react-root .strip .msg {
   flex: 1;
   padding: 16px 24px;
@@ -424,12 +400,10 @@
   align-items: center;
   line-height: 1.4;
 }
-
 .kisan-html-react-root .strip .msg.bad {
   color: var(--alert);
   font-weight: 500;
 }
-
 .kisan-html-react-root .strip .go {
   border: 0;
   background: var(--seal);
@@ -441,7 +415,6 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-
 .kisan-html-react-root .strip .go:hover {
   background: var(--seal-dk);
 }
@@ -455,10 +428,9 @@
   border: 1px solid var(--rule);
   border-radius: 8px;
   font-size: 14px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   position: relative;
 }
-
 .kisan-html-react-root .appdoc h3,
 .kisan-html-react-root .doc h3 {
   text-align: center;
@@ -467,7 +439,6 @@
   font-weight: 800;
   color: var(--seal-dk);
 }
-
 .kisan-html-react-root .appdoc h4,
 .kisan-html-react-root .doc h4 {
   text-align: center;
@@ -476,7 +447,6 @@
   font-weight: 600;
   color: var(--ink-soft);
 }
-
 .kisan-html-react-root .appdoc h5,
 .kisan-html-react-root .doc h5 {
   font-size: 15px;
@@ -493,7 +463,6 @@
   gap: 12px 32px;
   margin-bottom: 12px;
 }
-
 .kisan-html-react-root .kv .r {
   display: flex;
   align-items: baseline;
@@ -501,14 +470,12 @@
   padding: 6px 0;
   border-bottom: 1px solid var(--rule);
 }
-
 .kisan-html-react-root .kv .r b {
   font-weight: 600;
   white-space: nowrap;
   color: var(--ink-soft);
   font-size: 13px;
 }
-
 .kisan-html-react-root .ln {
   flex: 1;
   min-width: 40px;
@@ -521,16 +488,18 @@
   padding: 4px 6px;
   border-radius: 4px;
 }
-
 .kisan-html-react-root .ln:focus {
   outline: none;
   background: #fff;
   border-bottom: 2px solid var(--seal);
 }
-
-.kisan-html-react-root .ln.rt { text-align: right; font-variant-numeric: tabular-nums; }
-.kisan-html-react-root .ln.sm { flex: 0 0 120px; }
-
+.kisan-html-react-root .ln.rt {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.kisan-html-react-root .ln.sm {
+  flex: 0 0 120px;
+}
 .kisan-html-react-root .auto {
   font-weight: 700;
   color: var(--ink);
@@ -544,14 +513,12 @@
   padding: 10px;
   border: 1px solid var(--seal-dk);
 }
-
 .kisan-html-react-root .doc td,
 .kisan-html-react-root .bill-doc td {
   border: 1px solid var(--rule);
   padding: 8px 10px;
   font-size: 14px;
 }
-
 .kisan-html-react-root .doc .decl {
   margin: 16px 0;
   line-height: 1.8;
@@ -560,14 +527,12 @@
   border-radius: 6px;
   border-left: 4px solid var(--seal);
 }
-
 .kisan-html-react-root .xbox {
   border: 1px solid var(--rule);
   border-radius: 8px;
   margin: 16px 0;
   overflow: hidden;
 }
-
 .kisan-html-react-root .xbox .xh {
   background: var(--seal-dk);
   color: #fff;
@@ -575,11 +540,17 @@
   font-weight: 700;
   font-size: 14px;
 }
-
-.kisan-html-react-root .xbox table { margin: 0; }
-.kisan-html-react-root .xbox td { border: 0; border-bottom: 1px solid var(--rule); padding: 10px 16px; }
-.kisan-html-react-root .xbox tr:last-child td { border-bottom: 0; }
-
+.kisan-html-react-root .xbox table {
+  margin: 0;
+}
+.kisan-html-react-root .xbox td {
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 16px;
+}
+.kisan-html-react-root .xbox tr:last-child td {
+  border-bottom: 0;
+}
 .kisan-html-react-root .xbox td.v {
   text-align: right;
   font-weight: 700;
@@ -587,55 +558,598 @@
   white-space: nowrap;
   width: 200px;
 }
-
 .kisan-html-react-root .xbox tr.hi td {
   background: var(--fill);
   font-size: 16px;
   color: var(--seal-dk);
 }
 
+/* === MISSING STYLES ADAPTED FOR BLUE UI === */
+.kisan-html-react-root .appdoc {
+  padding: 32px 38px 36px;
+}
+.kisan-html-react-root .appdoc h3 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--seal) !important;
+  letter-spacing: 0.1px;
+  margin: 3px 0 2px !important;
+}
+.kisan-html-react-root .appdoc h4 {
+  color: var(--ink) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  margin: 3px 0 18px !important;
+}
+.kisan-html-react-root .appdoc h5 {
+  color: var(--seal);
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(to right, var(--fill), #fff);
+  border-left: 4px solid var(--seal);
+  border-bottom: 1px solid var(--rule) !important;
+  padding: 7px 10px 7px !important;
+  margin: 16px 0 8px !important;
+}
+.kisan-html-react-root .appnote {
+  border: 1px solid var(--rule) !important;
+  background: var(--fill) !important;
+  border-radius: 4px !important;
+  padding: 8px 10px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.kisan-html-react-root .infoTable {
+  border: 1px solid var(--rule);
+}
+.kisan-html-react-root .infoTable td.flabel {
+  background: var(--fill) !important;
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+  border-right: 1px solid var(--rule);
+  width: 230px;
+  vertical-align: middle;
+}
+.kisan-html-react-root .landtable th,
+.kisan-html-react-root .landtable td {
+  font-size: 13px;
+  padding: 5px 6px;
+}
+.kisan-html-react-root .landtable input,
+.kisan-html-react-root .landtable select {
+  width: 100%;
+  border: 1px solid var(--fill-line);
+  background: var(--fill);
+  padding: 4px;
+  font: inherit;
+}
+.kisan-html-react-root .landtable input.landVil,
+.kisan-html-react-root .landtable input.landSelfName,
+.kisan-html-react-root .landtable input.landSelfFather {
+  background: var(--paper);
+  color: var(--ink-soft);
+  border-color: var(--rule);
+  cursor: default;
+}
+.kisan-html-react-root .landtable tr.tot td {
+  background: var(--fill) !important;
+  font-weight: 700;
+}
+.kisan-html-react-root .summaryTbl {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 10px;
+  border: 1.5px solid var(--seal);
+}
+.kisan-html-react-root .summaryTbl td {
+  border-bottom: 1px dotted var(--rule);
+  padding: 9px 14px;
+  font-size: 15px;
+}
+.kisan-html-react-root .summaryTbl tr:last-child td {
+  border-bottom: 0;
+}
+.kisan-html-react-root .summaryTbl td:first-child {
+  color: var(--ink-soft);
+  width: 55%;
+}
+.kisan-html-react-root .summaryTbl td.sv {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.kisan-html-react-root .summaryTbl td.sv.big {
+  font-size: 19px;
+  color: var(--seal);
+}
+.kisan-html-react-root .summaryTbl tr.hi td {
+  background: var(--fill);
+}
+.kisan-html-react-root .summaryTbl tr.hi td.sv {
+  font-size: 21px;
+}
+.kisan-html-react-root .appok {
+  border-left: 4px solid var(--seal) !important;
+  background: #eff6ff !important;
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-radius: 4px;
+}
+.kisan-html-react-root .appbad {
+  border-left: 4px solid var(--alert) !important;
+  background: #fef2f2 !important;
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-radius: 4px;
+}
+.kisan-html-react-root .appgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+}
+.kisan-html-react-root .appfield {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 28px;
+}
+.kisan-html-react-root .appfield b {
+  white-space: nowrap;
+}
+.kisan-html-react-root .appfield input,
+.kisan-html-react-root .appfield select {
+  flex: 1;
+  min-width: 80px;
+  border: 0;
+  border-bottom: 1px dotted var(--ink-soft);
+  background: var(--fill);
+  padding: 3px 5px;
+  font: inherit;
+}
+.kisan-html-react-root .land-row-actions {
+  margin: 7px 0 12px;
+}
+.kisan-html-react-root .land-remove {
+  border: 1px solid var(--rule);
+  background: #fff;
+  color: var(--alert);
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 24px;
+}
+.kisan-html-react-root .land-remove:hover {
+  background: #fef2f2;
+}
+
+.kisan-html-react-root .bill-doc {
+  padding: 30px 34px 34px;
+  font-size: 13.5px;
+}
+.kisan-html-react-root .bill-header {
+  border: 1px solid var(--rule) !important;
+  box-shadow: none !important;
+  background: #fff !important;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.kisan-html-react-root .bill-kicker {
+  background: var(--seal) !important;
+  color: #fff !important;
+  padding: 7px 12px !important;
+  font-size: 11px !important;
+  text-align: center;
+}
+.kisan-html-react-root .bill-title {
+  color: var(--seal) !important;
+  font-size: 21px !important;
+  font-weight: 700 !important;
+  margin: 14px 16px 6px !important;
+  text-align: center;
+}
+.kisan-html-react-root .bill-rule {
+  background: var(--gold) !important;
+  height: 3px !important;
+  width: 76px;
+  margin: 0 auto 12px;
+}
+.kisan-html-react-root .bill-meta {
+  background: #fff !important;
+  display: grid;
+  grid-template-columns: 1.15fr 1.55fr 0.8fr;
+  border-top: 1px solid var(--rule);
+}
+.kisan-html-react-root .bill-meta > div {
+  padding: 8px 10px !important;
+  background: var(--fill) !important;
+  border-right: 1px solid var(--rule);
+  text-align: center;
+}
+.kisan-html-react-root .bill-meta > div:last-child {
+  border-right: 0;
+}
+.kisan-html-react-root .bill-meta span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--ink-soft) !important;
+  margin-bottom: 2px;
+}
+.kisan-html-react-root .bill-meta b {
+  font-size: 12.5px;
+  color: var(--ink) !important;
+}
+.kisan-html-react-root .serial-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.kisan-html-react-root .serial-section {
+  border: 1px solid var(--rule) !important;
+  border-radius: 4px !important;
+  margin-bottom: 10px !important;
+  padding: 0 14px 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.kisan-html-react-root .serial-title {
+  background: var(--fill) !important;
+  color: var(--seal) !important;
+  border-bottom: 1px solid var(--rule) !important;
+  font-weight: 700 !important;
+  margin: 0 -14px 9px;
+  padding: 7px 12px;
+  font-size: 13.5px;
+}
+.kisan-html-react-root .bill-table-heading {
+  margin: 14px 0 5px;
+  padding: 8px 12px;
+  border: 1px solid var(--rule);
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  background: var(--fill);
+}
+.kisan-html-react-root .bill-table-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--seal);
+}
+.kisan-html-react-root .bill-table-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.kisan-html-react-root .bill-doc > table th {
+  background: var(--seal) !important;
+  color: #fff !important;
+}
+.kisan-html-react-root .bill-doc > table .tot td {
+  background: var(--fill) !important;
+  font-weight: 700;
+}
+.kisan-html-react-root .bill-doc .xbox {
+  border: 1.5px solid var(--seal) !important;
+}
+.kisan-html-react-root .bill-doc .xbox .xh {
+  background: var(--seal) !important;
+}
+.kisan-html-react-root .bill-doc .xbox tr.hi td {
+  background: var(--fill) !important;
+  color: var(--seal) !important;
+}
+.kisan-html-react-root .bill-doc .note-box {
+  background: var(--fill) !important;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--ink-soft);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 12px;
+  margin: 16px 0;
+  color: var(--ink);
+}
+.kisan-html-react-root .bill-doc .note-title {
+  font-size: 14px;
+  font-weight: 600;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--seal);
+}
+.kisan-html-react-root .bill-doc .decl {
+  border: 1px solid var(--rule) !important;
+  background: var(--fill) !important;
+  padding: 10px 12px;
+  line-height: 1.8;
+  border-radius: 4px;
+}
+.kisan-html-react-root .flag {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+.kisan-html-react-root .flag.bad {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--alert);
+}
+.kisan-html-react-root .flag.ok {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: var(--seal);
+}
+
+.kisan-html-react-root .affidavit-doc {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 30px 38px 34px;
+  margin-top: 20px;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.8;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.kisan-html-react-root .affidavit-doc .aff-head {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.kisan-html-react-root .affidavit-doc .aff-kicker {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.kisan-html-react-root .affidavit-doc .aff-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--seal);
+  margin: 2px 0;
+}
+.kisan-html-react-root .affidavit-doc .aff-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.kisan-html-react-root .affidavit-doc .aff-line {
+  width: 70px;
+  height: 2px;
+  background: var(--gold);
+  margin: 8px auto 10px;
+}
+.kisan-html-react-root .affidavit-doc .aff-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--rule);
+  background: var(--fill);
+  margin-bottom: 12px;
+}
+.kisan-html-react-root .affidavit-doc .aff-meta > div {
+  padding: 7px 10px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.kisan-html-react-root .affidavit-doc .aff-meta > div:nth-child(2n) {
+  border-right: 0;
+}
+.kisan-html-react-root .affidavit-doc .aff-meta > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+.kisan-html-react-root .affidavit-doc .aff-meta span {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+.kisan-html-react-root .affidavit-doc .aff-meta b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.kisan-html-react-root .affidavit-doc .aff-intro {
+  margin: 7px 0 10px;
+}
+.kisan-html-react-root .affidavit-doc .aff-item {
+  margin: 6px 0;
+  text-align: justify;
+}
+.kisan-html-react-root .affidavit-doc .aff-land {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 10px;
+}
+.kisan-html-react-root .affidavit-doc .aff-land th {
+  background: var(--seal);
+  color: #fff;
+  padding: 6px 7px;
+  font-size: 11px;
+  border: 1px solid var(--seal);
+}
+.kisan-html-react-root .affidavit-doc .aff-land td {
+  padding: 6px 7px;
+  border: 1px solid var(--rule);
+  font-size: 11.5px;
+}
+.kisan-html-react-root .affidavit-doc .aff-land .right {
+  text-align: right;
+}
+.kisan-html-react-root .affidavit-doc .aff-decl {
+  margin-top: 10px;
+}
+.kisan-html-react-root .affidavit-doc .aff-sign {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+.kisan-html-react-root .affidavit-doc .aff-sign .box {
+  min-height: 72px;
+}
+.kisan-html-react-root .affidavit-doc .aff-sign .line {
+  margin-top: 36px;
+  border-top: 1px solid var(--ink);
+  text-align: center;
+  padding-top: 4px;
+}
+.kisan-html-react-root .affidavit-doc .aff-consent {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+.kisan-html-react-root .affidavit-doc .aff-page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+.kisan-html-react-root .aff-preview {
+  margin: 12px 0 18px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--fill);
+  padding: 0;
+}
+.kisan-html-react-root .aff-preview-title {
+  padding: 8px 12px;
+  background: #eff6ff;
+  border-bottom: 1px solid var(--rule);
+  color: var(--seal);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.kisan-html-react-root .aff-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.kisan-html-react-root .aff-preview-item {
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--rule);
+}
+.kisan-html-react-root .aff-preview-item:nth-child(odd) {
+  border-right: 1px solid var(--rule);
+}
+.kisan-html-react-root .aff-preview-label {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  display: block;
+  margin-bottom: 1px;
+}
+.kisan-html-react-root .aff-preview-value {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.kisan-html-react-root .aff-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 0;
+}
+.kisan-html-react-root .aff-preview-table th {
+  background: var(--seal);
+  color: #fff;
+  font-size: 11px;
+  padding: 6px;
+  border: 1px solid var(--seal);
+}
+.kisan-html-react-root .aff-preview-table td {
+  font-size: 11.5px;
+  padding: 5px 6px;
+  border: 1px solid var(--rule);
+}
+
 /* === RESPONSIVE === */
 @media (max-width: 860px) {
-  .kisan-html-react-root .shell { flex-direction: column; }
+  .kisan-html-react-root .shell {
+    flex-direction: column;
+  }
   .kisan-html-react-root .rail {
     width: 100%;
     height: auto;
     position: relative;
     padding: 16px;
   }
-  .kisan-html-react-root .rail nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px; }
-  .kisan-html-react-root .rail nav a { flex: 1 1 auto; padding: 8px 12px; border-radius: 6px; border-left: none; }
-  .kisan-html-react-root .strip { left: 0; flex-wrap: wrap; }
-  .kisan-html-react-root .strip .msg { display: none; }
-  .kisan-html-react-root main { padding: 20px 16px 150px; }
-  .kisan-html-react-root .kv { grid-template-columns: 1fr; }
-  .kisan-html-react-root .doc, .kisan-html-react-root .appdoc, .kisan-html-react-root .bill-doc { padding: 24px 16px; }
+  .kisan-html-react-root .rail nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .kisan-html-react-root .rail nav a {
+    flex: 1 1 auto;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: none;
+  }
+  .kisan-html-react-root .strip {
+    left: 0;
+    flex-wrap: wrap;
+  }
+  .kisan-html-react-root .strip .msg {
+    display: none;
+  }
+  .kisan-html-react-root main {
+    padding: 20px 16px 150px;
+  }
+  .kisan-html-react-root .kv,
+  .kisan-html-react-root .appgrid {
+    grid-template-columns: 1fr;
+  }
+  .kisan-html-react-root .doc,
+  .kisan-html-react-root .appdoc,
+  .kisan-html-react-root .bill-doc {
+    padding: 24px 16px;
+  }
+  .kisan-html-react-root .bill-meta {
+    grid-template-columns: 1fr;
+  }
+  .kisan-html-react-root .bill-meta > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .kisan-html-react-root .bill-meta > div:last-child {
+    border-bottom: 0;
+  }
+  .kisan-html-react-root .affidavit-doc .aff-meta,
+  .kisan-html-react-root .affidavit-doc .aff-sign,
+  .kisan-html-react-root .aff-preview-grid {
+    grid-template-columns: 1fr;
+  }
+  .kisan-html-react-root .affidavit-doc .aff-meta > div {
+    border-right: 0;
+  }
 }
 
 /* === PROFESSIONAL PRINT LAYOUT === */
 @media print {
-  @page { size: A4 portrait; margin: 12mm; }
-  
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
   .kisan-html-react-root {
     background: #fff !important;
   }
-  
   .kisan-html-react-root .rail,
   .kisan-html-react-root .strip,
   .kisan-html-react-root .noprint,
   .kisan-html-react-root .app-actions,
-  .kisan-html-react-root .land-row-actions {
+  .kisan-html-react-root .land-row-actions,
+  .kisan-html-react-root .aff-preview {
     display: none !important;
   }
-  
-  .kisan-html-react-root .shell { display: block; min-height: 0; }
-  .kisan-html-react-root main { padding: 0; max-width: none; }
-  
-  .kisan-html-react-root .view { display: none !important; }
-  .kisan-html-react-root .view.print-target { display: block !important; }
-  
-  .kisan-html-react-root h2.head, .kisan-html-react-root p.lead { display: none !important; }
-  
+  .kisan-html-react-root .shell {
+    display: block;
+    min-height: 0;
+  }
+  .kisan-html-react-root main {
+    padding: 0;
+    max-width: none;
+  }
+  .kisan-html-react-root .view {
+    display: none !important;
+  }
+  .kisan-html-react-root .view.print-target {
+    display: block !important;
+  }
+  .kisan-html-react-root h2.head,
+  .kisan-html-react-root p.lead {
+    display: none !important;
+  }
   .kisan-html-react-root .doc,
   .kisan-html-react-root .appdoc,
   .kisan-html-react-root .bill-doc {
@@ -644,24 +1158,21 @@
     padding: 0 !important;
     border-radius: 0 !important;
   }
-  
-  /* Ensure tables don't break awkwardly */
-  .kisan-html-react-root table, 
-  .kisan-html-react-root tr, 
-  .kisan-html-react-root td, 
+  .kisan-html-react-root table,
+  .kisan-html-react-root tr,
+  .kisan-html-react-root td,
   .kisan-html-react-root th {
     page-break-inside: avoid;
   }
-  
-  /* Clean Inputs for Print */
   .kisan-html-react-root .ln {
     background: transparent !important;
     border-bottom: 1px solid #000 !important;
     color: #000 !important;
   }
-  
-  /* Remove colored backgrounds for print */
-  .kisan-html-react-root .xbox, .kisan-html-react-root .xbox .xh {
+  .kisan-html-react-root .xbox,
+  .kisan-html-react-root .xbox .xh,
+  .kisan-html-react-root .bill-kicker,
+  .kisan-html-react-root .landtable th {
     background: #fff !important;
     color: #000 !important;
     border: 1px solid #000 !important;
