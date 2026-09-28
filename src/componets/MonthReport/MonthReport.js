@@ -1171,9 +1171,9 @@ const DashboardTab = ({ report }) => {
 
   const cards = [
     { label: "कुल बजट", value: totals.budget },
-    { label: "कुल अनुमुक्त", value: totals.released },
+    { label: "कुल अवमुक्त", value: totals.released },
     { label: "कुल खर्च", value: totals.expenditure },
-    { label: "अनुमुक्त में खर्च शेष", value: totals.balReleased },
+    { label: "अवमुक्त में खर्च शेष", value: totals.balReleased },
     { label: "बजट में खर्च शेष", value: totals.balBudget },
   ];
 
@@ -1219,7 +1219,7 @@ const DashboardTab = ({ report }) => {
             {cards.map((card, i) => (
               <div key={i} className="mpr-dashboard-summary-card">
                 <div className="mpr-dashboard-card-label">{card.label}</div>
-                <div className="mpr-dashboard-card-value">₹ {formatYojanaVal(card.value)}</div>
+                <div className="mpr-dashboard-card-value">{formatYojanaVal(card.value)}</div>
                 <div className="mpr-dashboard-card-unit">रुपये</div>
               </div>
             ))}
@@ -1237,16 +1237,13 @@ const DashboardTab = ({ report }) => {
               <table className="mpr-dashboard-table" style={{ minWidth: "1050px" }}>
                 <thead>
                   <tr>
-                    <th style={{ textAlign: "center" }}>क्रम संख्या</th>
+                    <th style={{ textAlign: "center" }}>क्र.सं.</th>
                     <th>योजना</th>
                     <th style={{ textAlign: "right" }}>बजट</th>
-                    <th style={{ textAlign: "right" }}>अनुमुक्त</th>
-                    <th style={{ textAlign: "right" }}>खर्च</th>
-                    <th style={{ textAlign: "right" }}>खर्च शेष (अनुमुक्त)</th>
-                    <th style={{ textAlign: "right" }}>खर्च शेष (बजट)</th>
-                    <th style={{ textAlign: "right" }}>अनुमुक्ति %</th>
-                    <th style={{ textAlign: "right" }}>खर्च % (बजट)</th>
-                    <th style={{ textAlign: "right" }}>खर्च % (अनुमुक्त)</th>
+                    <th style={{ textAlign: "right" }}>अवमुक्त</th>
+                    <th style={{ textAlign: "right" }}>खर्च हुआ</th>
+                    <th style={{ textAlign: "right" }}>खर्च शेष (अवमुक्त में से)</th>
+                    <th style={{ textAlign: "right" }}>खर्च शेष (बजट में से)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1254,28 +1251,22 @@ const DashboardTab = ({ report }) => {
                     <tr key={item.id || index}>
                       <td style={{ textAlign: "center" }}>{index + 1}</td>
                       <td>{item.yojana || "—"}</td>
-                      <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(item.budget)}</td>
-                      <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(item.released_amount)}</td>
-                      <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(item.expenditure)}</td>
-                      <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(item.expenditure_balance_released)}</td>
-                      <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(item.expenditure_balance_budget)}</td>
-                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.release_percentage)}%</td>
-                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.expenditure_percentage_budget)}%</td>
-                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.expenditure_percentage_released)}%</td>
+                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.budget)}</td>
+                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.released_amount)}</td>
+                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.expenditure)}</td>
+                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.expenditure_balance_released)}</td>
+                      <td style={{ textAlign: "right" }}>{formatYojanaVal(item.expenditure_balance_budget)}</td>
                     </tr>
                   ))}
                   {/* Total row */}
                   <tr style={{ background: "#d5f5e3", fontWeight: "800" }}>
                     <td style={{ textAlign: "center" }}>—</td>
                     <td>कुल योग</td>
-                    <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(totals.budget)}</td>
-                    <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(totals.released)}</td>
-                    <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(totals.expenditure)}</td>
-                    <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(totals.balReleased)}</td>
-                    <td style={{ textAlign: "right" }}>₹ {formatYojanaVal(totals.balBudget)}</td>
-                    <td style={{ textAlign: "right" }}>{totals.budget > 0 ? formatYojanaVal((totals.released / totals.budget) * 100) : "0.00"}%</td>
-                    <td style={{ textAlign: "right" }}>{totals.budget > 0 ? formatYojanaVal((totals.expenditure / totals.budget) * 100) : "0.00"}%</td>
-                    <td style={{ textAlign: "right" }}>{totals.released > 0 ? formatYojanaVal((totals.expenditure / totals.released) * 100) : "0.00"}%</td>
+                    <td style={{ textAlign: "right" }}>{formatYojanaVal(totals.budget)}</td>
+                    <td style={{ textAlign: "right" }}>{formatYojanaVal(totals.released)}</td>
+                    <td style={{ textAlign: "right" }}>{formatYojanaVal(totals.expenditure)}</td>
+                    <td style={{ textAlign: "right" }}>{formatYojanaVal(totals.balReleased)}</td>
+                    <td style={{ textAlign: "right" }}>{formatYojanaVal(totals.balBudget)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1302,50 +1293,44 @@ const DashboardTab = ({ report }) => {
               <div style={{ overflowX: "auto" }}>
                 <table className="mpr-yojana-form-table" style={{ minWidth: "980px" }}>
                   <thead>
-                    <tr>
-                      <th style={{ width: "40px" }}>क्रम</th>
-                      <th style={{ minWidth: "140px" }}>योजना</th>
-                      <th style={{ width: "110px" }}>बजट</th>
-                      <th style={{ width: "110px" }}>अनुमुक्त</th>
-                      <th style={{ width: "110px" }}>खर्च</th>
-                      <th style={{ width: "100px" }}>शेष (अनुमुक्त)</th>
-                      <th style={{ width: "100px" }}>शेष (बजट)</th>
-                      <th style={{ width: "80px" }}>अनुमुक्ति %</th>
-                      <th style={{ width: "80px" }}>खर्च % (बजट)</th>
-                      <th style={{ width: "80px" }}>खर्च % (अनुमुक्त)</th>
-                      <th style={{ width: "50px" }}>✕</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formRows.map((row, index) => {
-                      const calc = computeYojanaPayload(row);
-                      return (
-                        <tr key={index}>
-                          <td className="mpr-yojana-form-serial">{index + 1}</td>
-                          <td>
-                            <input type="text" value={row.yojana} onChange={(e) => updateRow(index, "yojana", e.target.value)} placeholder="योजना का नाम" />
-                          </td>
-                          <td>
-                            <input type="number" step="0.01" value={row.budget} onChange={(e) => updateRow(index, "budget", e.target.value)} placeholder="0.00" />
-                          </td>
-                          <td>
-                            <input type="number" step="0.01" value={row.released_amount} onChange={(e) => updateRow(index, "released_amount", e.target.value)} placeholder="0.00" />
-                          </td>
-                          <td>
-                            <input type="number" step="0.01" value={row.expenditure} onChange={(e) => updateRow(index, "expenditure", e.target.value)} placeholder="0.00" />
-                          </td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_released)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_budget)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.release_percentage)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_percentage_budget)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_percentage_released)}</td>
-                          <td className="mpr-yojana-form-remove">
-                            <button type="button" onClick={() => removeRow(index)} disabled={formRows.length <= 1}>✕</button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+<tr>
+                       <th style={{ width: "40px" }}>क्रम</th>
+                       <th style={{ minWidth: "140px" }}>योजना</th>
+                       <th style={{ width: "110px" }}>बजट</th>
+                       <th style={{ width: "110px" }}>अवमुक्त</th>
+                       <th style={{ width: "110px" }}>खर्च हुआ</th>
+                       <th style={{ width: "100px" }}>शेष (अवमुक्त)</th>
+                       <th style={{ width: "100px" }}>शेष (बजट)</th>
+                       <th style={{ width: "50px" }}>✕</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {formRows.map((row, index) => {
+                       const calc = computeYojanaPayload(row);
+                       return (
+                         <tr key={index}>
+                           <td className="mpr-yojana-form-serial">{index + 1}</td>
+                           <td>
+                             <input type="text" value={row.yojana} onChange={(e) => updateRow(index, "yojana", e.target.value)} placeholder="योजना का नाम" />
+                           </td>
+                           <td>
+                             <input type="number" step="0.01" value={row.budget} onChange={(e) => updateRow(index, "budget", e.target.value)} placeholder="0.00" />
+                           </td>
+                           <td>
+                             <input type="number" step="0.01" value={row.released_amount} onChange={(e) => updateRow(index, "released_amount", e.target.value)} placeholder="0.00" />
+                           </td>
+                           <td>
+                             <input type="number" step="0.01" value={row.expenditure} onChange={(e) => updateRow(index, "expenditure", e.target.value)} placeholder="0.00" />
+                           </td>
+                           <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_released)}</td>
+                           <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_budget)}</td>
+                           <td className="mpr-yojana-form-remove">
+                             <button type="button" onClick={() => removeRow(index)} disabled={formRows.length <= 1}>✕</button>
+                           </td>
+                         </tr>
+                       );
+                     })}
+                   </tbody>
                 </table>
               </div>
               <button type="button" className="mpr-yojana-add-row-btn" onClick={addRow}>+ Add Row</button>
@@ -1378,50 +1363,55 @@ const DashboardTab = ({ report }) => {
               <div style={{ overflowX: "auto" }}>
                 <table className="mpr-yojana-form-table" style={{ minWidth: "980px" }}>
                   <thead>
-                    <tr>
-                      <th style={{ width: "40px" }}>क्रम</th>
-                      <th style={{ minWidth: "140px" }}>योजना</th>
-                      <th style={{ width: "110px" }}>बजट</th>
-                      <th style={{ width: "110px" }}>अनुमुक्त</th>
-                      <th style={{ width: "110px" }}>खर्च</th>
-                      <th style={{ width: "100px" }}>शेष (अनुमुक्त)</th>
-                      <th style={{ width: "100px" }}>शेष (बजट)</th>
-                      <th style={{ width: "80px" }}>अनुमुक्ति %</th>
-                      <th style={{ width: "80px" }}>खर्च % (बजट)</th>
-                      <th style={{ width: "80px" }}>खर्च % (अनुमुक्त)</th>
-                      <th style={{ width: "50px" }}>✕</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {viewRows.map((row, index) => {
-                      const calc = computeYojanaPayload(row);
-                      return (
-                        <tr key={row.id || `new-${index}`}>
-                          <td className="mpr-yojana-form-serial">{index + 1}</td>
-                          <td>
-                            <input type="text" value={row.yojana} onChange={(e) => updateViewRow(index, "yojana", e.target.value)} placeholder="योजना का नाम" />
-                          </td>
-                          <td>
-                            <input type="number" step="0.01" value={row.budget} onChange={(e) => updateViewRow(index, "budget", e.target.value)} placeholder="0.00" />
-                          </td>
-                          <td>
-                            <input type="number" step="0.01" value={row.released_amount} onChange={(e) => updateViewRow(index, "released_amount", e.target.value)} placeholder="0.00" />
-                          </td>
-                          <td>
-                            <input type="number" step="0.01" value={row.expenditure} onChange={(e) => updateViewRow(index, "expenditure", e.target.value)} placeholder="0.00" />
-                          </td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_released)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_budget)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.release_percentage)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_percentage_budget)}</td>
-                          <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_percentage_released)}</td>
-                          <td className="mpr-yojana-form-remove">
-                            <button type="button" onClick={() => handleViewDelete(index, row.id)}>✕</button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+<tr>
+                       <th style={{ width: "40px" }}>क्रम</th>
+                       <th style={{ minWidth: "140px" }}>योजना</th>
+                       <th style={{ width: "110px" }}>बजट</th>
+                       <th style={{ width: "110px" }}>अवमुक्त</th>
+                       <th style={{ width: "110px" }}>खर्च हुआ</th>
+                       <th style={{ width: "100px" }}>शेष (अवमुक्त)</th>
+                       <th style={{ width: "100px" }}>शेष (बजट)</th>
+                       <th style={{ width: "50px" }}>✕</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {viewRows.map((row, index) => {
+                       const calc = computeYojanaPayload(row);
+                       return (
+                         <tr key={row.id || `new-${index}`}>
+                           <td className="mpr-yojana-form-serial">{index + 1}</td>
+                           <td>
+                             <input type="text" value={row.yojana} onChange={(e) => updateViewRow(index, "yojana", e.target.value)} placeholder="योजना का नाम" />
+                           </td>
+                           <td>
+                             <input type="number" step="0.01" value={row.budget} onChange={(e) => updateViewRow(index, "budget", e.target.value)} placeholder="0.00" />
+                           </td>
+                           <td>
+                             <input type="number" step="0.01" value={row.released_amount} onChange={(e) => updateViewRow(index, "released_amount", e.target.value)} placeholder="0.00" />
+                           </td>
+                           <td>
+                             <input type="number" step="0.01" value={row.expenditure} onChange={(e) => updateViewRow(index, "expenditure", e.target.value)} placeholder="0.00" />
+                           </td>
+                           <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_released)}</td>
+                           <td className="mpr-yojana-form-calc">{formatYojanaVal(calc.expenditure_balance_budget)}</td>
+                           <td className="mpr-yojana-form-remove">
+                             <button type="button" onClick={() => handleViewDelete(index, row.id)}>✕</button>
+                           </td>
+                         </tr>
+                       );
+                     })}
+                     {/* Total row for View Form */}
+                     <tr style={{ background: "#d5f5e3", fontWeight: "800" }}>
+                       <td className="mpr-yojana-form-serial">—</td>
+                       <td>कुल योग</td>
+                       <td className="mpr-yojana-form-calc">{formatYojanaVal(viewRows.reduce((s, r) => s + round2(r.budget), 0))}</td>
+                       <td className="mpr-yojana-form-calc">{formatYojanaVal(viewRows.reduce((s, r) => s + round2(r.released_amount), 0))}</td>
+                       <td className="mpr-yojana-form-calc">{formatYojanaVal(viewRows.reduce((s, r) => s + round2(r.expenditure), 0))}</td>
+                       <td className="mpr-yojana-form-calc">{formatYojanaVal(viewRows.reduce((s, r) => s + round2(round2(r.released_amount) - round2(r.expenditure)), 0))}</td>
+                       <td className="mpr-yojana-form-calc">{formatYojanaVal(viewRows.reduce((s, r) => s + round2(round2(r.budget) - round2(r.expenditure)), 0))}</td>
+                       <td />
+                     </tr>
+                   </tbody>
                 </table>
               </div>
               <button type="button" className="mpr-yojana-add-row-btn" onClick={addViewRow}>+ Add New Row</button>
