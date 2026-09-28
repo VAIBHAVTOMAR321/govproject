@@ -49,6 +49,7 @@ import AdminMonthAttendance from "./componets/dash_board/AdminMonthAttendance";
 import AdminKishanAavedan from "./componets/KishanBeej/AdminKishanAavedan";
 import KisanAvedan from "./componets/kishanavedan/KisanAvedan";
 import KisanAavedan from "./componets/kishanavedan/KisanAvedan";
+import DragfruitsAndKiwi from "./componets/kishanavedan/DragfruitsAndKiwi";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -89,7 +90,8 @@ function NavbarWrapper() {
     "/VetanMang",
     "/MonthAttendance",
     "/AdminKishanAavedan",
-    "/KisanAvedan"
+    "/KisanAvedan",
+    "/DragfruitsAndKiwi"
     
   ]);
 
@@ -155,6 +157,14 @@ function AppContent() {
     element={
       <ProtectedRoute allowedLoginTypes={["demand"]}>
         <VetanMang />
+      </ProtectedRoute>
+    }
+  />
+   <Route
+    path="/DragfruitsAndKiwi"
+    element={
+      <ProtectedRoute allowedLoginTypes={["demand"]}>
+        <DragfruitsAndKiwi />
       </ProtectedRoute>
     }
   />

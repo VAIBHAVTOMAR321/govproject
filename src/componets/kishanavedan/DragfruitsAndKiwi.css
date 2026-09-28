@@ -1,0 +1,12 @@
+
+.drag-fruits-container {
+  width: 100%;
+ 
+ margin-top: 80px;
+  padding: 25px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
