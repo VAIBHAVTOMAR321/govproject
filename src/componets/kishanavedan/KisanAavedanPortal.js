@@ -744,11 +744,11 @@ export default function KisanAavedanPortal() {
                 <td style="text-align:center">${x.poles}</td>
               </tr>`).join("")}</tbody>
             </table>
-            <p class="appnote" style="margin-top:6px">
+            <p class="appnote noprint" style="margin-top:6px">
               फेंसिंग के लिए ऊपर दर्ज सभी भूमि पंक्तियों का क्षेत्रफल जोड़कर कुल क्षेत्रफल निकलेगा। यही कुल क्षेत्रफल ऊपर दी गयी मैपिंग तालिका के किसी एक निर्धारित अंक से हूबहू मिलना आवश्यक है। कुल क्षेत्रफल किसी भी निर्धारित अंक से मेल नहीं होने पर किसान का फेंसिंग आवेदन लागू नहीं माना जाएगा।
             </p>
             <p class="appnote noprint" style="margin-top:6px">आवश्यकतानुसार सह-खातेदार / भूमि की नई पंक्ति जोड़ें; अनुपयोगी पंक्ति को × से हटाया जा सकता है। कुल क्षेत्रफल सभी भरी गयी पंक्तियों से स्वतः निकलेगा।</p>
-            <p class="appnote" style="margin-top:6px">पहली पंक्ति (स्वयं) के «नाम», «पिता का नाम», «ग्राम» एवं «आधार संख्या» यदि खाली हों तो ऊपर <b>1. ${applicantWord()} का विवरण</b> से स्वतः भर दिए जाते हैं। हर पंक्ति के सभी कॉलम यहाँ स्वतंत्र रूप से बदले जा सकते हैं। «खसरा / खतौनी सं०» प्रत्येक सह-खातेदार की पंक्ति में अलग-अलग भरें। कुल क्षेत्रफल सभी पंक्तियों के योग से निकलता है।</p>
+            <p class="appnote noprint" style="margin-top:6px">पहली पंक्ति (स्वयं) के «नाम», «पिता का नाम», «ग्राम» एवं «आधार संख्या» यदि खाली हों तो ऊपर <b>1. ${applicantWord()} का विवरण</b> से स्वतः भर दिए जाते हैं। हर पंक्ति के सभी कॉलम यहाँ स्वतंत्र रूप से बदले जा सकते हैं। «खसरा / खतौनी सं०» प्रत्येक सह-खातेदार की पंक्ति में अलग-अलग भरें। कुल क्षेत्रफल सभी पंक्तियों के योग से निकलता है।</p>
             ${saveBar("farmers","भूमि / सह-खातेदार विवरण")}
             <h5>4. सारांश — क्षेत्रफल, फेंसिंग एवं राजसहायता</h5>
             <table>
@@ -1853,8 +1853,17 @@ export default function KisanAavedanPortal() {
         showTab("register");
         loadRegistrations();
         loadFenceStandards();
+        /* प्रिंट के बाद अस्थायी वर्ग हटा देते हैं, ताकि फॉर्म-टेबल शैली
+           केवल प्रिंट/पूर्वावलोकन में ही लागू हो, स्क्रीन पर नहीं। */
+        function clearPrintTarget(){
+          const r = rootRef.current;
+          if(r) r.querySelectorAll(".print-target, .has-print-target").forEach(v=>v.classList.remove("print-target","has-print-target"));
+        }
         window.addEventListener('beforeprint', setFenceMappingPrintRow);
-        window.addEventListener('afterprint', ()=>document.querySelectorAll('#fenceMappingApplicationTable tbody tr').forEach(tr=>tr.classList.remove('print-selected')));
+        window.addEventListener('afterprint', ()=>{
+          document.querySelectorAll('#fenceMappingApplicationTable tbody tr').forEach(tr=>tr.classList.remove('print-selected'));
+          clearPrintTarget();
+        });
       })();
     } catch (error) {
       console.error("Kisan Aavedan Portal initialization failed:", error);
