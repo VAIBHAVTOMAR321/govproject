@@ -1236,8 +1236,15 @@ export default function KisanAavedanPortal() {
             return txt.length > 300 ? (txt.slice(0,300) + "…") : txt;
           }catch(e){ return ("सहेजना विफल (" + res.status + ")"); }
         }
-        async function apiPut(payload, label){
-          if(!FORM_ID){ apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad"); return false; }
+        async function apiPut(payload, label, key, quiet){
+          if(!FORM_ID){
+            const m="पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।";
+            if(!quiet) apiMsg(m, "bad");
+            setSaveState(key, "✗ फॉर्म आईडी नहीं है", "bad");
+            return false;
+          }
+          const btn=document.querySelector('[data-save="'+(key||"")+'"]');
+          if(btn && !quiet) btn.disabled=true;
           try{
             const res = await apiFetch(API_FENCING, {
               method:"PUT",
@@ -1246,13 +1253,65 @@ export default function KisanAavedanPortal() {
             });
             const data = await readJsonResponse(res);
             if(!res.ok) throw new Error(apiErrorText(data, res));
-            apiMsg((label||"विवरण") + " सहेजा गया — " + FORM_ID, "ok");
+            if(!quiet) apiMsg("✓ " + (label||"विवरण") + " सफलतापूर्वक सहेजा गया — " + FORM_ID, "ok");
+            setSaveState(key, "✓ सहेजा गया", "ok");
             loadRegistrations();
             return true;
           }catch(err){
-            apiMsg("सहेजना विफल: " + (err && err.message ? err.message : "अज्ञात त्रुटि"), "bad");
+            const msg=(err && err.message) ? err.message : "अज्ञात त्रुटि";
+            if(!quiet) apiMsg("सहेजना विफल: " + msg, "bad");
+            setSaveState(key, "✗ " + msg, "bad");
+            return false;
+          }finally{
+            if(btn) btn.disabled=false;
+          }
+        }
+        /* ---------- DELETE: फॉर्म हटाना ----------
+           DELETE {API_FENCING}
+           body: { "form_ids": ["FORM-000003", ...] }
+           उत्तर: { "form_ids": ["शेष फॉर्म आईडी", ...] } */
+        async function apiDelete(formIds){
+          const ids=(Array.isArray(formIds) ? formIds : [formIds]).map(x=>String(x||"").trim()).filter(Boolean);
+          if(!ids.length){ apiMsg("फॉर्म आईडी नहीं मिली — हटाया नहीं जा सका।","bad"); return false; }
+          try{
+            const res = await apiFetch(API_FENCING, {
+              method:"DELETE",
+              headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify({ form_ids: ids })
+            });
+            const data = await readJsonResponse(res);
+            if(!res.ok) throw new Error((data && (data.detail || data.error || data.message)) || ("हटाना विफल (" + res.status + ")"));
+            const left = Array.isArray(data && data.form_ids) ? data.form_ids.map(String) : null;
+            if(FORM_ID && ids.includes(FORM_ID)){
+              FORM_ID = ""; S.formId = "";
+              S = blank();
+              const el=document.getElementById("curFormId");
+              if(el) el.textContent = "— कोई फॉर्म चयनित नहीं —";
+            }
+            /* सर्वर जो form_ids लौटाता है वही अब अधिकारिक सूची है,
+               अन्यथा केवल हटाए गए पंक्तियाँ ही निकाल दें। */
+            REG_ROWS = left
+              ? REG_ROWS.filter(r => left.includes(String((r.form_id || (r.personal_details||{}).form_id) || "")))
+              : REG_ROWS.filter(r => !ids.includes(String((r.form_id || (r.personal_details||{}).form_id) || "")));
+            renderRegistrations();
+            apiMsg(ids.length + " फॉर्म हटा दिया गया: " + ids.join(", ")
+                  + (left ? (" · शेष: " + (left.length ? left.join(", ") : "कोई नहीं")) : ""), "ok");
+            loadRegistrations();
+            return true;
+          }catch(err){
+            apiMsg("हटाना विफल: " + (err && err.message ? err.message : "अज्ञात त्रुटि"), "bad");
             return false;
           }
+        }
+        function requestDeleteForm(fid, btn){
+          if(!fid) return;
+          const rec=findRecord(fid);
+          const p=rec ? (rec.personal_details||rec) : null;
+          const name=(p && p.full_name) ? p.full_name : "";
+          const msg="फॉर्म " + fid + (name ? (" (" + name + ")") : "") + " सर्वर से स्थायी रूप से हटा देना है?\nयह कार्रवाई वापस नहीं होगी।";
+          if(!window.confirm(msg)) return;
+          if(btn){ btn.disabled = true; btn.textContent = "हट रहा है…"; }
+          apiDelete([fid]);
         }
         const SAVE_STEPS = [
           { key:"personal", label:"आवेदक एवं योजना विवरण",   build:payloadPersonal },
@@ -1268,27 +1327,47 @@ export default function KisanAavedanPortal() {
         function saveStep(key){
           const step = SAVE_STEPS.find(s=>s.key===key);
           if(!step) return;
-          apiPut(step.build(), step.label);
+          setSaveState(key, "सहेजा जा रहा है…", "wait");
+          apiPut(step.build(), step.label, key);
         }
+        const SAVE_STATES = {};
+        function setSaveState(key, text, kind){
+          if(!key) return;
+          if(text) SAVE_STATES[key] = { text, kind: kind||"" };
+          else delete SAVE_STATES[key];
+          const st = SAVE_STATES[key];
+          document.querySelectorAll('[data-savestate="'+key+'"]').forEach(el=>{
+            el.className = "save-state" + (st ? (" " + st.kind) : "");
+            el.textContent = st ? st.text : "";
+          });
+        }
+        function clearSaveStates(){ Object.keys(SAVE_STATES).forEach(k=>{ delete SAVE_STATES[k]; }); }
         const SAVE_LABELS = { material:"सामग्री व्यय", footing:"फुटिंग व्यय", labour:"श्रमिक व्यय", other:"अन्य व्यय" };
         function saveBar(key, label){
+          const st = SAVE_STATES[key];
           return `<div class="save-bar noprint">
             <button type="button" class="addrow solid" data-save="${key}">सहेजें — ${label}</button>
+            <span class="save-state${st ? (" " + st.kind) : ""}" data-savestate="${key}">${st ? st.text : ""}</span>
             <span class="save-hint">PUT · फॉर्म आईडी <b>${esc(FORM_ID||"चयनित नहीं")}</b></span>
           </div>`;
         }
         async function saveAllSteps(){
-          if(!FORM_ID){ apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad"); return; }
+          if(!FORM_ID){
+            apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad");
+            return;
+          }
           const hint=document.getElementById("saveAllHint");
           let ok=0;
           for(const step of SAVE_STEPS){
             if(hint) hint.textContent = "सहेजा जा रहा है: " + step.label + "…";
-            const done = await apiPut(step.build(), step.label);
+            setSaveState(step.key, "सहेजा जा रहा है…", "wait");
+            const done = await apiPut(step.build(), step.label, step.key, true);
             if(done) ok++;
             if(!done) break;
           }
           if(hint) hint.textContent = ok + " / " + SAVE_STEPS.length + " चरण सहेजे गए।";
-          if(ok===SAVE_STEPS.length) apiMsg("सम्पूर्ण प्रपत्र सर्वर पर सहेजा गया — " + FORM_ID, "ok");
+          if(ok===SAVE_STEPS.length) apiMsg("✓ सम्पूर्ण प्रपत्र सफलतापूर्वक सहेजा गया — " + FORM_ID + " (" + ok + "/" + SAVE_STEPS.length + " चरण)", "ok");
+          else apiMsg("✗ " + ok + " / " + SAVE_STEPS.length + " चरण ही सहेजे जा सके।", "bad");
         }
 
         /* ---------- GET: पंजीकृत फॉर्म सूची ---------- */
@@ -1349,6 +1428,7 @@ export default function KisanAavedanPortal() {
               <td><span class="pill ${filled==="भरा गया"?"ok":"wait"}">${filled}</span></td>
               <td class="act">
                 <button type="button" class="mini ${active?"on":""}" data-open="${esc(fid)}" title="इस फॉर्म के विवरण प्रपत्र में खोलें">प्रपत्र भरें</button>
+                <button type="button" class="mini danger" data-delform="${esc(fid)}" title="यह फॉर्म सर्वर से हटाएँ">हटाएँ</button>
               </td>
             </tr>`;
           }).join("");
@@ -1463,6 +1543,7 @@ export default function KisanAavedanPortal() {
         function resetFill(){
           S = blank();
           setFormId("");
+          clearSaveStates();
           refresh();
         }
         function expenseRowsLoaded(rec){
@@ -1478,6 +1559,7 @@ export default function KisanAavedanPortal() {
             S = blank();
           }
           setFormId(formId);
+          clearSaveStates();
           if(rec){ applyRecord(rec); }
           fillLocked = true;
           showTab("filling");
@@ -1646,7 +1728,7 @@ export default function KisanAavedanPortal() {
           }
         });
         document.addEventListener("click", e=>{
-          const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],[data-save],[data-open],[data-land-del],#addLandRow"); if(!b) return;
+          const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],[data-save],[data-open],[data-delform],[data-land-del],#addLandRow"); if(!b) return;
           if(b.id==="addLandRow"){
             if(!S.landRows) S.landRows=[];
             S.landRows.push({relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""});
@@ -1664,6 +1746,7 @@ export default function KisanAavedanPortal() {
             return;
           }
           if(b.dataset.open!==undefined){ openForm(b.dataset.open); return; }
+          if(b.dataset.delform!==undefined){ requestDeleteForm(b.dataset.delform, b); return; }
           if(b.dataset.save!==undefined){ saveStep(b.dataset.save); return; }
           if(b.dataset.tab){ showTab(b.dataset.tab); return; }
           if(b.dataset.add){ S[b.dataset.add].push({}); buildWork(); refresh(); }
@@ -1675,12 +1758,16 @@ export default function KisanAavedanPortal() {
         document.getElementById("regRefresh").onclick = ()=>loadRegistrations();
         document.getElementById("btnSaveAll").onclick = ()=>saveAllSteps();
         function printCurrent(){
-          document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target","has-print-target"));
-          const target=document.querySelector(`.view[data-v="${cur}"]`);
+          const root=rootRef.current;
+          if(!root) return;
+          root.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target","has-print-target"));
+          const host=root.querySelector('.view[data-v="filling"]');
+          const target=(host ? host.querySelector('.view[data-v="'+cur+'"]') : null)
+                     || root.querySelector('.view[data-v="'+cur+'"]');
           if(!target) return;
           target.classList.add("print-target");
           let p=target.parentElement;
-          while(p && p!==rootRef.current){
+          while(p && p!==root){
             if(p.classList && p.classList.contains("view")) p.classList.add("has-print-target");
             p=p.parentElement;
           }
@@ -1691,13 +1778,29 @@ export default function KisanAavedanPortal() {
           if(topCur!=="filling"){ apiMsg("पहले 'प्रपत्र भरना' टैब खोलें।","bad"); return; }
           const overlay=document.getElementById("pvOverlay");
           const body=document.getElementById("pvBody");
-          const target=document.querySelector(`.view[data-v="${cur}"]`);
+          const host=document.querySelector('.view[data-v="filling"]');
+          const target=(host ? host.querySelector('.view[data-v="'+cur+'"]') : null)
+                     || document.querySelector('.view[data-v="'+cur+'"]');
           if(!overlay||!body||!target) return;
           document.getElementById("pvTitle").textContent = "प्रिंट पूर्वावलोकन — " + (PV_TITLES[cur]||"प्रपत्र");
           body.innerHTML="";
+          if(cur==="application") setFenceMappingPrintRow();
+          const sheet=document.createElement("div");
+          sheet.className="pv-sheet";
           const clone=target.cloneNode(true);
           clone.classList.add("on");
-          body.appendChild(clone);
+          /* cloneNode केवल value एट्रिब्यूट कॉपी करता है — टाइप किए गए मान
+             स्क्रीन पर रहते हैं, अतः लाइव मान क्लोन में भी भर देते हैं। */
+          const liveFields=target.querySelectorAll("input,select,textarea");
+          const cloneFields=clone.querySelectorAll("input,select,textarea");
+          for(let i=0;i<liveFields.length;i++){
+            const cf=cloneFields[i];
+            if(!cf) break;
+            if(cf.type==="checkbox"||cf.type==="radio") cf.checked=liveFields[i].checked;
+            else cf.value=liveFields[i].value;
+          }
+          sheet.appendChild(clone);
+          body.appendChild(sheet);
           overlay.hidden=false;
           overlay.scrollTop=0;
         }

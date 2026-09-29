@@ -268,7 +268,23 @@
 }
 .kisan-html-react-root .pv-body {
   padding: 24px;
-  background: var(--paper);
+  background: #6b7280;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+/* पूर्वावलोकन में असली A4 शीट (210mm × 297mm) जैसा रूप */
+.kisan-html-react-root .pv-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm;
+  background: #fff;
+  color: #1d2a23;
+  font-size: 12.5px;
+  line-height: 1.6;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+  border-radius: 2px;
+  overflow: hidden;
 }
 .kisan-html-react-root .pv-body .view {
   display: block;
@@ -279,6 +295,194 @@
 }
 .kisan-html-react-root .pv-body .noprint {
   display: none;
+}
+/* पूर्वावलोकन में प्रिंट जैसा ही सादा प्रारूप */
+.kisan-html-react-root .pv-sheet .head,
+.kisan-html-react-root .pv-sheet .lead,
+.kisan-html-react-root .pv-sheet .addrow,
+.kisan-html-react-root .pv-sheet .rm,
+.kisan-html-react-root .pv-sheet .mini,
+.kisan-html-react-root .pv-sheet .land-remove {
+  display: none !important;
+}
+.kisan-html-react-root .pv-sheet .doc,
+.kisan-html-react-root .pv-sheet .appdoc,
+.kisan-html-react-root .pv-sheet .bill-doc,
+.kisan-html-react-root .pv-sheet .affidavit-doc {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+}
+.kisan-html-react-root .pv-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.kisan-html-react-root .pv-sheet th,
+.kisan-html-react-root .pv-sheet td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  color: #000;
+}
+.kisan-html-react-root .pv-sheet th {
+  background: #fff !important;
+  color: #000 !important;
+  font-size: 11.5px;
+}
+.kisan-html-react-root .pv-sheet input,
+.kisan-html-react-root .pv-sheet select {
+  border: none !important;
+  border-bottom: 1px solid #333 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 1px 2px !important;
+  color: #000 !important;
+  min-width: 60px;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left !important;
+}
+.kisan-html-react-root .pv-sheet select {
+  padding-right: 0 !important;
+}
+.kisan-html-react-root .pv-sheet .ln,
+.kisan-html-react-root .pv-sheet .blank {
+  background: transparent !important;
+  border-bottom: 1px solid #000 !important;
+}
+.kisan-html-react-root .pv-sheet .xbox,
+.kisan-html-react-root .pv-sheet .note-box,
+.kisan-html-react-root .pv-sheet .decl,
+.kisan-html-react-root .pv-sheet .declaration-box,
+.kisan-html-react-root .pv-sheet .report-box,
+.kisan-html-react-root .pv-sheet .note {
+  background: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  box-shadow: none !important;
+}
+.kisan-html-react-root .pv-sheet .print-selected > td {
+  background: #e8eefb !important;
+  outline: 1px solid #000;
+  outline-offset: -1px;
+}
+@media (max-width: 900px) {
+  .kisan-html-react-root .pv-sheet {
+    width: 100%;
+    min-height: 0;
+    padding: 18px 14px;
+  }
+}
+
+/* === REGISTRATION LIST ACTIONS === */
+.kisan-html-react-root .reg-table td.act {
+  white-space: nowrap;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.kisan-html-react-root .mini {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--seal-dk);
+  background: var(--fill);
+  color: var(--seal-dk);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.kisan-html-react-root .mini:hover {
+  background: var(--seal);
+  color: #fff;
+}
+.kisan-html-react-root .mini.on {
+  background: var(--seal);
+  color: #fff;
+}
+.kisan-html-react-root .mini.danger {
+  border-color: #b91c1c;
+  background: #fff;
+  color: #b91c1c;
+}
+.kisan-html-react-root .mini.danger:hover {
+  background: #b91c1c;
+  color: #fff;
+}
+.kisan-html-react-root .mini:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* === API MESSAGE BANNER === */
+.kisan-html-react-root .api-msg {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: block;
+  margin: 10px 0 0;
+  padding: 11px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--seal);
+  border-left: 5px solid var(--seal);
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+}
+.kisan-html-react-root .api-msg[hidden] {
+  display: none;
+}
+.kisan-html-react-root .api-msg.ok {
+  border-color: #15803d;
+  border-left-color: #15803d;
+  background: #f0fdf4;
+  color: #14532d;
+}
+.kisan-html-react-root .api-msg.bad {
+  border-color: #b91c1c;
+  border-left-color: #b91c1c;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+/* === SAVE BAR (सहेजें …) === */
+.kisan-html-react-root .save-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 4px;
+  padding: 8px 10px;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.kisan-html-react-root .save-hint {
+  font-size: 11.5px;
+  color: #66756c;
+}
+.kisan-html-react-root .save-hint b {
+  color: var(--seal-dk);
+}
+.kisan-html-react-root .save-state {
+  font-size: 12.5px;
+  font-weight: 700;
+  min-width: 0;
+}
+.kisan-html-react-root .save-state.ok {
+  color: #15803d;
+}
+.kisan-html-react-root .save-state.bad {
+  color: #b91c1c;
+}
+.kisan-html-react-root .save-state.wait {
+  color: var(--seal-dk);
 }
 
 /* === MAIN AREA === */
@@ -1477,6 +1681,10 @@
 
 /* === PRINT LAYOUT === */
 @media print {
+  /* AdminKishanBeej.css की वैश्विक `@media print { body * { visibility:hidden!important } }`
+     तथा KishanBeej.css की `main{display:none!important}` — दोनों इस route पर पूरा पोर्टल
+     छिपा देते थे, इसलिए प्रिंट प्रीव्यू खाली (blank) आता था।
+     नीचे हमारे स्कोप वाले नियम अधिक विशिष्टता (specificity) के कारण हमेशा जीतते हैं। */
   html,
   body,
   #root,
@@ -1491,6 +1699,11 @@
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    visibility: visible !important;
+  }
+  .kisan-html-react-root,
+  .kisan-html-react-root * {
+    visibility: visible !important;
   }
   .app-container > nav,
   .app-container > header,
@@ -1498,10 +1711,17 @@
   .copyright-footer {
     display: none !important;
   }
+  /* KishanBeej.css आदि की वैश्विक @media print में `main { display:none!important }`
+     लिखा है — वह हमारे <main> को भी छिपा देता था, इसलिए प्रिंट प्रीव्यू खाली आता था।
+     नीचे हमारे अपने स्कोप वाले नियम उसी महत्त्व (specificity) से जीतते हैं। */
   .kisan-html-react-root .shell {
-    display: block;
+    display: block !important;
     min-height: 0;
     margin-top: 0 !important;
+  }
+  .kisan-html-react-root .shell > header,
+  .kisan-html-react-root .shell > nav {
+    display: none !important;
   }
   @page {
     size: A4 portrait;
@@ -1522,6 +1742,7 @@
     display: none !important;
   }
   .kisan-html-react-root main {
+    display: block !important;
     padding: 0 !important;
     margin: 0 !important;
     max-width: none !important;
@@ -1533,6 +1754,45 @@
   .kisan-html-react-root .view.print-target,
   .kisan-html-react-root .view.has-print-target {
     display: block !important;
+  }
+  /* असली A4 शीट: 210mm − 2×12mm = 186mm चौड़ाई, ऊपर-नीचे 12mm,
+     बाईं-दाईं 12mm केंद्रित करके। इससे किसी भी @page margin की परवाह नहीं करनी पड़ती। */
+  .kisan-html-react-root .view.print-target {
+    width: 186mm !important;
+    max-width: 186mm !important;
+    margin: 0 auto !important;
+    padding: 12mm 0 !important;
+    background: #fff !important;
+    box-sizing: border-box;
+  }
+  .kisan-html-react-root .aff-page-break,
+  .kisan-html-react-root .pv-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+  .kisan-html-react-root .appdoc,
+  .kisan-html-react-root .bill-doc,
+  .kisan-html-react-root .affidavit-doc {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .kisan-html-react-root .appdoc table,
+  .kisan-html-react-root .bill-doc table,
+  .kisan-html-react-root .aff-land,
+  .kisan-html-react-root .expense-table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .kisan-html-react-root thead {
+    display: table-header-group;
+  }
+  .kisan-html-react-root tfoot {
+    display: table-footer-group;
+  }
+  .kisan-html-react-root .print-selected > td {
+    background: #e8eefb !important;
+    outline: 1px solid #000;
+    outline-offset: -1px;
   }
   .kisan-html-react-root h2.head,
   .kisan-html-react-root p.lead {
