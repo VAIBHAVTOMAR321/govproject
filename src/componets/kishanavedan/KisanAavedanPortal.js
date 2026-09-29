@@ -15,6 +15,10 @@ const getCenterNameFromUser = (authUser) => {
 const API_FENCING = "https://mahadevaaya.com/govbillingsystem/backend/api/fencing-kisan/";
 const API_FENCING_LAND_DETAILS = "https://mahadevaaya.com/govbillingsystem/backend/api/fencing-land-details/";
 
+const centerStore = { value: "" };
+const readCenterName = () => (centerStore.value || "").trim();
+const centerLine = () => readCenterName() || "……………………";
+
 const HTML_BODY = `
 <div class="shell">
   <header class="topbar noprint">
@@ -147,6 +151,7 @@ export default function KisanAavedanPortal() {
     if (!root) return;
     root.innerHTML = HTML_BODY;
     const authCenter = (centerRef.current || "").trim();
+    centerStore.value = authCenter;
     const centerInput = root.querySelector("#regCenter");
     if (centerInput) {
       centerInput.value = authCenter || "— लॉग इन केंद्र नहीं मिला —";
@@ -807,7 +812,7 @@ export default function KisanAavedanPortal() {
               अतः ${G("कृषक","कृषिका")} का आवेदन <b>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में ${S.f.planType||"जिला योजना"} अन्तर्गत ${fenceHeading()} / घेरबाड़ कार्य हेतु वर्क ऑर्डर जारी करने के लिए संस्तुति सहित अग्रसारित</b> है।
             </div>
             <div style="margin-top:18px;line-height:2">
-              <b>प्रभारी, उद्यान सचल दल केन्द्र :</b> ______________________________
+              <b>प्रभारी, उद्यान सचल दल केन्द्र :</b> <span class="auto" id="appOfficerCenter">${esc(centerLine())}</span>
             </div>
           </div>
           ${buildAffidavitInfoPreview(d)}
@@ -1887,6 +1892,9 @@ export default function KisanAavedanPortal() {
     const el = rootRef.current && rootRef.current.querySelector("#regCenter");
     if (!el) return;
     const value = (centerName || "").trim();
+    centerStore.value = value;
+    const appCenter = document.getElementById("appOfficerCenter");
+    if (appCenter) appCenter.textContent = value || "……………………";
     el.value = value || "— लॉग इन केंद्र नहीं मिला —";
     el.title = value ? ("लॉग इन केंद्र: " + value) : "लॉग इन केंद्र नहीं मिला";
     if (!centerSyncRef.current) { centerSyncRef.current = true; return; }
