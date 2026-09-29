@@ -13,6 +13,7 @@ const getCenterNameFromUser = (authUser) => {
 };
 
 const API_FENCING = "https://mahadevaaya.com/govbillingsystem/backend/api/fencing-kisan/";
+const API_FENCING_LAND_DETAILS = "https://mahadevaaya.com/govbillingsystem/backend/api/fencing-land-details/";
 
 const HTML_BODY = `
 <div class="shell">
@@ -368,15 +369,37 @@ export default function KisanAavedanPortal() {
           {nali:90,  hec:1.80, len:560, poles:187},
           {nali:100, hec:2.00, len:600, poles:201}
         ];
-        const ALLOWED_FENCE_HEC = FENCE_AREA_MAP.map(x=>x.hec);
+        let FENCE_MAP_DATA = null; // Will be populated from API
+        async function loadFenceStandards(){
+          try{
+            const res = await apiFetch(API_FENCING_LAND_DETAILS);
+            const data = await readJsonResponse(res);
+            const arr = Array.isArray(data) ? data : (data && data.data ? data.data : []);
+            if(arr.length){
+              FENCE_MAP_DATA = arr.map(r=>({
+                nali: num(r.land_nali),
+                hec: num(r.area_hectare),
+                len: num(r.permissible_length),
+                poles: num(r.pillars)
+              })).filter(x=>x.hec>0).sort((a,b)=>a.hec-b.hec);
+            }
+          }catch(e){
+            /* fallback to hardcoded map */
+          }
+        }
+        function getFenceMap(){
+          return (FENCE_MAP_DATA && FENCE_MAP_DATA.length) ? FENCE_MAP_DATA : FENCE_AREA_MAP;
+        }
         function fenceStandard(hec){
+          const map = getFenceMap();
           const h = Math.round(num(hec)*100)/100;
           if(h<=0) return null;
-          return FENCE_AREA_MAP.find(x=>Math.abs(x.hec-h)<0.0001) || null;
+          return map.find(x=>Math.abs(x.hec-h)<0.0001) || null;
         }
         function isAllowedFenceHec(hec){
+          const map = getFenceMap();
           const h = Math.round(num(hec)*100)/100;
-          return ALLOWED_FENCE_HEC.some(x=>Math.abs(x-h)<0.0001);
+          return map.some(x=>Math.abs(x-h)<0.0001);
         }
         function fenceMaterialName(){
           return S.f.fenceMaterial==="कंटीले तार" ? "कंटीले तार (बार्बड वायर)" : "चेनलिंक जाली";
@@ -714,7 +737,7 @@ export default function KisanAavedanPortal() {
               <thead><tr>
                 <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०)</th><th>खम्बे</th>
               </tr></thead>
-              <tbody>${FENCE_AREA_MAP.map(x=>`<tr data-map-hec="${x.hec.toFixed(2)}">
+              <tbody>${getFenceMap().map(x=>`<tr data-map-hec="${x.hec.toFixed(2)}">
                 <td style="text-align:center">${x.nali}</td>
                 <td style="text-align:center">${x.hec.toFixed(2)}</td>
                 <td style="text-align:center"><b>${x.len}</b></td>
@@ -1829,6 +1852,7 @@ export default function KisanAavedanPortal() {
         AUTH_CENTER = authCenter;
         showTab("register");
         loadRegistrations();
+        loadFenceStandards();
         window.addEventListener('beforeprint', setFenceMappingPrintRow);
         window.addEventListener('afterprint', ()=>document.querySelectorAll('#fenceMappingApplicationTable tbody tr').forEach(tr=>tr.classList.remove('print-selected')));
       })();
