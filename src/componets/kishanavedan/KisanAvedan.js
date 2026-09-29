@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { useAuth } from "../../context/AuthContext";
 import "./kisan-aavedan-portal.css";
 
 const HTML_BODY = `
@@ -143,7 +144,6 @@ const SECTIONS = {
   vermicompost:[["vermi","वर्मी कम्पोस्ट इकाई — सामग्री एवं व्यय","ईंट, सीमेंट, रेत, बजरी, चिनाई, केंचुए, गोबर आदि"]]
 };
 
-/* ★ CHANGED: gender default from "पुरुष" to "" so "चुनें" shows by default ★ */
 const blank = () => ({
   scheme:"vermicompost",
   lists: JSON.parse(JSON.stringify(LISTS)),
@@ -156,8 +156,7 @@ const KEY = "anudan_form_v3";
 const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
 
 function mbValue(){
-  const direct = num(S.f.mbAmt);
-  return direct;
+  return num(S.f.mbAmt);
 }
 function calc(){
   const parts = [
@@ -241,30 +240,113 @@ function buildWork(){
   document.querySelectorAll("[data-norm]").forEach(el=>el.value = S.norm[el.dataset.norm]);
 }
 
-function rebuildDocs(){ 
+function rebuildDocs(){
   const activeView = cur==="filling" ? subCur : cur;
-  if(activeView==="application" && document.getElementById("applicationOut")) buildApplication(); 
-  if(activeView==="bill" && document.getElementById("billOut")) buildBill(); 
-  if(activeView==="affidavit" && document.getElementById("affidavitOut")) buildAffidavit(); 
-  save(); 
+  if(activeView==="application" && document.getElementById("applicationOut")) buildApplication();
+  if(activeView==="bill" && document.getElementById("billOut")) buildBill();
+  if(activeView==="affidavit" && document.getElementById("affidavitOut")) buildAffidavit();
+  save();
 }
 function isFemale(){ return (S.f.gender||"")==="महिला"; }
 function G(m,f){ return isFemale()?f:m; }
 
 function buildVermiApplication(){
-  const f=S.f||{};
-  const rate=num(S.norm.vRate)||75;
-  const stdCost=num(S.norm.vStdCost)||33333;
-  const maxSub=num(S.norm.vCap)||24998;
-  const subsidy=Math.min(Math.round(stdCost*rate/100),maxSub);
-  const farmerShare=stdCost-subsidy;
-  let cropHTML=(S.vcrops||[]).map((r,i)=>'<tr><td>'+(i+1)+'</td><td><input list="cropOptions" data-vc="'+i+'" data-k="name" value="'+esc(r.name||"")+'" placeholder="फसल का नाम"></td><td><input data-vc="'+i+'" data-k="area" value="'+esc(r.area||"")+'" inputmode="decimal"></td><td class="noprint"><button class="btn" data-vcdel="'+i+'">×</button></td></tr>').join("");
-  /* ★ Structure matches HTML file: .appdoc > .st + .grid2 + .field + table + .declaration-box + .note ★ */
-  document.getElementById("applicationOut").innerHTML=\`<div class="appdoc"><div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div><h3 style="text-decoration:underline">राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई हेतु</h3><h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4><div class="st">आवेदक का विवरण</div><div class="grid2"><div class="field"><label>कृषक का नाम</label><input data-f="name" value="\${esc(f.name||"")}"></div><div class="field"><label>पिता / पति का नाम</label><input data-f="father" value="\${esc(f.father||"")}"></div><div class="field"><label>ग्राम</label><input data-f="village" value="\${esc(f.village||"")}"></div><div class="field"><label>डाकघर</label><input data-f="post" value="\${esc(f.post||"")}"></div><div class="field"><label>तहसील</label><input data-f="tehsil" value="\${esc(f.tehsil||"")}" placeholder="तहसील का नाम"></div><div class="field"><label>जनपद</label><input data-f="dist" value="\${esc(f.dist||"")}"></div><div class="field"><label>उद्यान कार्ड संख्या</label><input data-f="hortiCard" value="\${esc(f.hortiCard||"")}"></div><div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" value="\${esc(f.mob||"")}"></div><div class="field"><label>आधार संख्या</label><input data-f="aadhar" inputmode="numeric" maxlength="12" value="\${esc(f.aadhar||"")}"></div><div class="field"><label>खाता / खतौनी संख्या</label><input data-f="khasra" value="\${esc(f.khasra||"")}"></div><div class="field"><label>लिंग</label><select data-f="gender"><option value="">चुनें</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option></select></div></div><div class="st">भूमि का विवरण</div><div class="grid2"><div class="field"><label>भूमि का क्षेत्रफल (हे०)</label><input data-f="proposedArea" inputmode="decimal" value="\${esc(f.proposedArea||"")}" placeholder="हे० में क्षेत्रफल"></div></div><div class="st">कृषक की खेती का विवरण</div><table><thead><tr><th style="width:55px">क्र०</th><th>फसल / बागवानी फसल का नाम</th><th>क्षेत्रफल (हे०)</th><th class="noprint" style="width:70px">क्रिया</th></tr></thead><tbody>\${cropHTML}</tbody></table><div class="noprint" style="margin-top:8px"><button class="btn" id="addCropBtn">+ फसल जोड़ें</button></div><div class="st">बैंक विवरण</div><div class="grid2"><div class="field"><label>विकासखण्ड</label><input data-f="block" value="\${esc(f.block||"")}"></div><div class="field"><label>बैंक का नाम</label><input data-f="bank" value="\${esc(f.bank||"")}"></div><div class="field"><label>शाखा</label><input data-f="branch" value="\${esc(f.branch||"")}"></div><div class="field"><label>बैंक खाता संख्या</label><input data-f="acct" inputmode="numeric" value="\${esc(f.acct||"")}"></div><div class="field"><label>IFSC कोड</label><input data-f="ifsc" value="\${esc(f.ifsc||"")}"></div></div><div class="st">स्थान एवं दिनांक</div><div class="grid2"><div class="field"><label>स्थान</label><input data-f="place" value="\${esc(f.place||"")}" placeholder="स्थान का नाम"></div><div class="field"><label>दिनांक</label><input data-f="date" value="\${esc(f.date||"")}" placeholder="दिन/माह/वर्ष"></div></div><div class="st">7. घोषणा</div><div class="declaration-box"><p>उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं। मुझे पूर्व में किसी भी सरकारी योजना से वर्मी कम्पोस्ट यूनिट हेतु अनुदान प्राप्त नहीं हुआ है। यूनिट की स्थापना व रखरखाव विभागीय दिशा-निर्देशों के अनुसार मेरी जिम्मेदारी होगी।</p><div class="farmer-signature"><div>कृषक का नाम : <strong id="app_farmer_name">\${esc(f.name||"…………")}</strong></div><div>कृषक के हस्ताक्षर : ______________________________</div></div></div><div class="st">संलग्न दस्तावेज</div><div class="note">1. खाता-खतौनी की प्रति — 6 माह से अधिक पुरानी नहीं हो।<br>2. आधार कार्ड की प्रति।<br>3. उद्यान कार्ड की प्रति।<br>4. बैंक खाते का विवरण / बैंक पासबुक की प्रति।<br>5. ₹10 का नोटरीकृत शपथ-पत्र।</div><div class="st">8. प्रभारी की आख्या</div><div class="declaration-box prabhari-box"><p>प्रमाणित किया जाता है कि कृषक द्वारा प्रस्तुत आवेदन, भूमि अभिलेख एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं। अतः कृषक आवेदन <strong>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में वर्क ऑर्डर जारी करने हेतु संस्तुति सहित अग्रसारित</strong> है।</p><p style="margin-top:24px;"><strong>प्रभारी, उद्यान सचल दल केन्द्र</strong><br><strong>केन्द्र का नाम :</strong> ________________________________________________________________</p></div></div>\`;
-  document.querySelectorAll("#applicationOut [data-f]").forEach(el=>{ if(S.f[el.dataset.f]!==undefined) el.value=S.f[el.dataset.f]; });
-  let dl=document.getElementById("cropOptions");
-  if(!dl){dl=document.createElement("datalist");dl.id="cropOptions";document.body.appendChild(dl);}
-  dl.innerHTML=["गेहूँ","धान","मक्का","मंडुवा","झंगोरा","दालें","सब्जियाँ","आलू","टमाटर","मिर्च","फूल","सेब","नाशपाती","कीवी","अमरूद","आम","अखरोट","अन्य"].map(x=>\`<option value="\${esc(x)}">\`).join("");
+  const f = S.f || {};
+  const rate    = num(S.norm.vRate)    || 75;
+  const stdCost = num(S.norm.vStdCost) || 33333;
+  const maxSub  = num(S.norm.vCap)     || 24998;
+  const subsidy      = Math.min(Math.round(stdCost * rate / 100), maxSub);
+  const farmerShare  = stdCost - subsidy;
+
+  // फसल पंक्तियाँ — string concatenation (कोई backtick escape नहीं)
+  const cropHTML = (S.vcrops || []).map(function(r, i){
+    return '<tr>'
+      + '<td class="n">' + (i + 1) + '</td>'
+      + '<td><input list="cropOptions" data-vc="' + i + '" data-k="name" value="' + esc(r.name || "") + '" placeholder="फसल का नाम"></td>'
+      + '<td><input data-vc="' + i + '" data-k="area" value="' + esc(r.area || "") + '" inputmode="decimal" placeholder="हे०"></td>'
+      + '<td class="noprint"><button class="rm" data-vcdel="' + i + '" title="पंक्ति हटाएँ">×</button></td>'
+      + '</tr>';
+  }).join("");
+
+  // पूरा आवेदन HTML — string concatenation से
+  const html =
+    '<div class="appdoc">'
+    + '<div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div>'
+    + '<h3 style="text-decoration:underline">राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई हेतु</h3>'
+    + '<h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4>'
+
+    + '<div class="st">आवेदक का विवरण</div>'
+    + '<div class="grid2">'
+    +   '<div class="field"><label>कृषक का नाम</label><input data-f="name" value="' + esc(f.name || "") + '"></div>'
+    +   '<div class="field"><label>पिता / पति का नाम</label><input data-f="father" value="' + esc(f.father || "") + '"></div>'
+    +   '<div class="field"><label>ग्राम</label><input data-f="village" value="' + esc(f.village || "") + '"></div>'
+    +   '<div class="field"><label>डाकघर</label><input data-f="post" value="' + esc(f.post || "") + '"></div>'
+    +   '<div class="field"><label>तहसील</label><input data-f="tehsil" value="' + esc(f.tehsil || "") + '" placeholder="तहसील का नाम"></div>'
+    +   '<div class="field"><label>जनपद</label><input data-f="dist" value="' + esc(f.dist || "") + '"></div>'
+    +   '<div class="field"><label>उद्यान कार्ड संख्या</label><input data-f="hortiCard" value="' + esc(f.hortiCard || "") + '"></div>'
+    +   '<div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" value="' + esc(f.mob || "") + '"></div>'
+    +   '<div class="field"><label>आधार संख्या</label><input data-f="aadhar" inputmode="numeric" maxlength="12" value="' + esc(f.aadhar || "") + '"></div>'
+    +   '<div class="field"><label>खाता / खतौनी संख्या</label><input data-f="khasra" value="' + esc(f.khasra || "") + '"></div>'
+    +   '<div class="field"><label>लिंग</label><select data-f="gender"><option value="">चुनें</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option></select></div>'
+    + '</div>'
+
+    + '<div class="st">भूमि का विवरण</div>'
+    + '<div class="grid2">'
+    +   '<div class="field"><label>भूमि का क्षेत्रफल (हे०)</label><input data-f="proposedArea" inputmode="decimal" value="' + esc(f.proposedArea || "") + '" placeholder="हे० में क्षेत्रफल"></div>'
+    + '</div>'
+
+    + '<div class="st">कृषक की खेती का विवरण</div>'
+    + '<table class="expense-table"><thead><tr>'
+    +   '<th style="width:38px">क्र०</th><th>फसल का नाम</th><th style="width:140px">क्षेत्रफल (हे०)</th><th class="noprint" style="width:60px">क्रिया</th>'
+    + '</tr></thead><tbody>' + (cropHTML || '<tr><td colspan="4" class="empty">कोई फसल नहीं जोड़ी गई</td></tr>') + '</tbody></table>'
+    + '<button type="button" class="addrow" id="addCropBtn">+ फसल जोड़ें</button>'
+
+    + '<div class="declaration-box">'
+    +   '<div class="note"><b>मानक लागत:</b> ₹' + stdCost.toLocaleString("en-IN") + ' · <b>राजसहायता दर:</b> ' + rate + '% · <b>देय राजसहायता:</b> ₹' + subsidy.toLocaleString("en-IN") + ' · <b>कृषक अंश:</b> ₹' + farmerShare.toLocaleString("en-IN") + '</div>'
+    +   '<div class="note">मैं घोषणा करता/करती हूँ कि उपरोक्त समस्त जानकारी सत्य एवं सही है। यदि कोई जानकारी असत्य पाई गई तो मेरा आवेदन निरस्त किया जा सकता है और दी गई राशि की वसूली की जा सकती है।</div>'
+    + '</div>'
+
+    + '</div>'; // end of .appdoc
+
+  document.getElementById("applicationOut").innerHTML = html;
+
+  document.querySelectorAll("#applicationOut [data-f]").forEach(function(el){
+    if (S.f[el.dataset.f] !== undefined) el.value = S.f[el.dataset.f];
+  });
+
+  // फसल-नामों का datalist
+  let dl = document.getElementById("cropOptions");
+  if (!dl) {
+    dl = document.createElement("datalist");
+    dl.id = "cropOptions";
+    document.body.appendChild(dl);
+  }
+  dl.innerHTML = ["गेहूँ","धान","मक्का","मंडुवा","झंगोरा","दालें","सब्जियाँ","आलू","टमाटर","मिर्च","फूल","सेब","नाशपाती","कीवी","अमरूद","आम","अखरोट","अन्य"]
+    .map(function(x){ return '<option value="' + esc(x) + '">'; }).join("");
+
+  // यदि किसी मौजूदा फॉर्म को संपादित कर रहे हैं तो "सहेजें (PUT)" बटन दिखाएँ
+  const appOut = document.getElementById("applicationOut");
+  if (S._editingFormId && appOut) {
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "addrow solid";
+    saveBtn.style.marginTop = "16px";
+    saveBtn.textContent = "परिवर्तन सहेजें (PUT)";
+    saveBtn.onclick = async function(){
+      saveBtn.disabled = true;
+      saveBtn.textContent = "सहेजा जा रहा है...";
+      const ok = await saveFormToApi(S._editingFormId);
+      saveBtn.disabled = false;
+      saveBtn.textContent = "परिवर्तन सहेजें (PUT)";
+      if (ok) {
+        alert("फॉर्म सफलतापूर्वक अपडेट हो गया: " + S._editingFormId);
+        buildRegister();
+      } else {
+        alert("अपडेट करने में त्रुटि");
+      }
+    };
+    appOut.appendChild(saveBtn);
+  }
 }
 
 function buildVermiAffidavit(){
@@ -335,19 +417,22 @@ let subCur="application";
 
 function showTab(tab){
   cur=tab;
-  // Only toggle MAIN views (register, filling) - direct children of main
   document.querySelectorAll("main > .view").forEach(s=>{ s.classList.toggle("on", s.dataset.v===tab); s.classList.remove("print-target"); });
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.tab===tab));
-  
+
   if(tab==="register"){
     buildRegister();
     const subnav=document.getElementById("subnav");
-    if(subnav) subnav.style.display="none";
+    if(subnav) subnav.style.display = "none";
+    setTimeout(()=>{
+      const distEl=document.getElementById("regDist");
+      const userDist = AUTH_USER?.dist || AUTH_USER?.district || AUTH_USER?.district_name || "";
+      if(distEl && userDist && !distEl.value) distEl.value = userDist;
+    }, 0);
   }else if(tab==="filling"){
-    // Show subnav - always navigate to first sub-tab (आवेदन पत्र)
     const subnav=document.getElementById("subnav");
-    if(subnav) subnav.style.display="flex";
-    subCur = "application"; // Reset to first tab
+    if(subnav) subnav.style.display = "flex";
+    subCur = "application";
     showSub("application");
   }
   window.scrollTo(0,0);
@@ -355,16 +440,14 @@ function showTab(tab){
 
 function showSub(v){
   subCur=v;
-  // Only handle sub-tabs when in filling mode
   if(cur!=="filling") return;
-  
-  // Only toggle SUB views inside the filling section
+
   const fillingSection = document.querySelector('.view[data-v="filling"]');
   if(fillingSection){
     fillingSection.querySelectorAll(".view[data-v]").forEach(s=>{ s.classList.toggle("on", s.dataset.v===v); s.classList.remove("print-target"); });
   }
   document.querySelectorAll("#subnav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
-  
+
   if(v==="application"){ buildApplication(); }
   else if(v==="affidavit"){ buildAffidavit(); }
   else if(v==="work"){ buildWork(); refresh(); }
@@ -372,10 +455,42 @@ function showSub(v){
   window.scrollTo(0,0);
 }
 
-function buildRegister(){
-  // Registration form logic - placeholder for API integration
+async function buildRegister(){
   const tbody=document.getElementById("regRows");
-  if(tbody) tbody.innerHTML='<tr><td colspan="8" class="empty">कोई पंजीकृत कृषक नहीं — ऊपर फॉर्म भरकर पंजीकरण करें</td></tr>';
+  const countEl=document.getElementById("regCount");
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="8" class="empty">लोड हो रहा है…</td></tr>';
+  try{
+    const res=await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/?center_name=कोटद्वार");
+    const data=await res.json();
+    if(!data || !data.length){
+      tbody.innerHTML='<tr><td colspan="8" class="empty">कोई पंजीकृत कृषक नहीं</td></tr>';
+      if(countEl) countEl.textContent=" (0)";
+      return;
+    }
+    if(countEl) countEl.textContent=" ("+data.length+")";
+    tbody.innerHTML=data.map((d,i)=>{
+      const p=d.personal_details||{};
+      const status = d.expense_details ? "व्यय भरा गया" : "केवल पंजीकरण";
+      return \`<tr>
+        <td class="n">\${i+1}</td>
+        <td>\${esc(p.form_id||"")}</td>
+        <td>\${esc(p.full_name||"")}</td>
+        <td>\${esc(p.mob||"")}</td>
+        <td>\${esc(p.village||"")}</td>
+        <td>\${esc(p.dist||"")}</td>
+        <td>\${status}</td>
+        <td class="noprint">
+          <button class="btn edit" data-form="\${esc(p.form_id||"")}" title="संपादित करें">संपादित करें</button>
+          <button class="btn delete" data-form="\${esc(p.form_id||"")}" title="हटाएं" style="margin-left:4px;background:#dc3545;">हटाएं</button>
+        </td>
+      </tr>\`;
+    }).join("");
+  }catch(e){
+    console.error(e);
+    tbody.innerHTML='<tr><td colspan="8" class="empty">डेटा लोड करने में त्रुटि</td></tr>';
+    if(countEl) countEl.textContent=" (0)";
+  }
 }
 
 document.addEventListener("input", e=>{
@@ -410,8 +525,8 @@ document.addEventListener("change", e=>{
   }
 });
 
-document.addEventListener("click", e=>{
-  const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],#addCropBtn,[data-vcdel],#regForm button[type=submit],#regRefresh");
+document.addEventListener("click", async e=>{
+  const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],#addCropBtn,[data-vcdel],#regForm button[type=submit],#regRefresh,[data-form]");
   if(!b) return;
   if(b.id==="addCropBtn"){ if(!S.vcrops) S.vcrops=[]; S.vcrops.push({name:"",area:""}); buildApplication(); save(); return; }
   if(b.dataset.vcdel!==undefined){ const i=+b.dataset.vcdel; if(S.vcrops && i<S.vcrops.length){ S.vcrops.splice(i,1); buildApplication(); save(); } return; }
@@ -420,24 +535,197 @@ document.addEventListener("click", e=>{
   else if(b.dataset.go){ showSub(b.dataset.go); }
   else if(b.dataset.tab){ showTab(b.dataset.tab); }
   else if(b.id==="regRefresh"){ buildRegister(); }
+  else if(b.classList.contains("edit") && b.dataset.form){
+    const formId = b.dataset.form;
+    try{
+      const res=await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/?center_name=कोटद्वार");
+      const data=await res.json();
+      const record = data.find(d => (d.personal_details||{}).form_id === formId);
+      if(record){
+        const p = record.personal_details;
+        const exp = record.expense_details;
+        S.f.name = p.full_name || "";
+        S.f.father = p.father_name || "";
+        S.f.village = p.village || "";
+        S.f.post = p.post || "";
+        S.f.block = p.block || "";
+        S.f.dist = p.dist || "";
+        S.f.mob = p.mob || "";
+        S.f.aadhar = p.aadhar || "";
+        S.f.khasra = p.khasra || "";
+        S.f.gender = p.gender || "";
+        S.f.proposedArea = p.proposed_area || "";
+        S.f.bank = p.bank_name || "";
+        S.f.branch = p.branch || "";
+        S.f.acct = p.account || "";
+        S.f.ifsc = p.ifsc || "";
+        S.f.place = p.place || "";
+        S.f.date = p.date || new Date().toISOString().slice(0,10);
+        S.f.hortiCard = p.horticulture_card || "";
+        S.f.tehsil = p.tehsil || "";
+
+        if(p.crop_details && p.crop_details.length){
+          S.vcrops = p.crop_details.map(c => ({name: c[0], area: c[1]}));
+        }
+
+        if(exp && exp.vermi_expenses && exp.vermi_expenses.length){
+          S.vermi = exp.vermi_expenses.map(e => ({item: e[0], amt: e[1]}));
+        }
+
+        if(exp){
+          S.norm.vRate = exp.subsidy_rate || 75;
+          S.norm.vStdCost = exp.standard_cost || 33333;
+          S.norm.vCap = exp.maximum_subsidy || 24998;
+        }
+
+        S._editingFormId = formId;
+        save();
+        showTab("filling");
+        alert("फॉर्म डेटा लोड हो गया: " + formId);
+      }
+    }catch(err){
+      console.error(err);
+      alert("फॉर्म लोड करने में त्रुटि");
+    }
+    return;
+  }
+  else if(b.classList.contains("delete") && b.dataset.form){
+    const formId = b.dataset.form;
+    if(!confirm("क्या आप वाकई फॉर्म " + formId + " को हटाना चाहते हैं?")) return;
+    try{
+      const res=await fetch("https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form_ids: [formId] })
+      });
+      const data=await res.json();
+      if(data.success || data.deleted){
+        alert("फॉर्म हटा दिया गया: " + formId);
+        buildRegister();
+      }else{
+        alert("हटाने में त्रुटि: " + (data?.message || "अज्ञात त्रुटि"));
+      }
+    }catch(err){
+      console.error(err);
+      alert("हटाने में त्रुटि: " + err.message);
+    }
+    return;
+  }
   else if(b.type==="submit" && b.form && b.form.id==="regForm"){
     e.preventDefault();
     const name=document.getElementById("regName").value.trim();
     const mob=document.getElementById("regMob").value.trim();
     const village=document.getElementById("regVillage").value.trim();
-    const dist=document.getElementById("regDist").value.trim();
+    const dist=document.getElementById("regDist").value.trim() || AUTH_USER.dist;
     if(!name || !mob){ alert("नाम और मोबाइल अनिवार्य हैं"); return; }
-    // TODO: Replace with actual API POST call
-    // const formId = await api.post("/register", {name, mob, village, dist, scheme:"vermicompost"});
-    const formId = "VMC-" + Date.now().toString(36).toUpperCase();
-    alert("पंजीकरण सफल! फॉर्म आईडी: " + formId);
-    // Pre-fill form data
-    S.f.name=name; S.f.mob=mob; S.f.village=village; S.f.dist=dist;
-    S.f.date=new Date().toISOString().slice(0,10);
-    save();
-    showTab("filling");
+
+    const submitBtn = b;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "पंजीकरण हो रहा है...";
+
+    const payload = {
+      full_name: name,
+      mob: mob,
+      village: village,
+      dist: dist,
+      center_name: AUTH_USER.center,
+      scheme_name: "वर्मी कम्पोस्ट",
+      father_name: "",
+      post: "",
+      tehsil: AUTH_USER.tehsil,
+      block: AUTH_USER.block,
+      horticulture_card: "",
+      aadhar: "",
+      khasra: "",
+      gender: "",
+      proposed_area: "",
+      crop_details: [],
+      bank_name: "",
+      branch: "",
+      account: "",
+      ifsc: "",
+      place: "",
+      date: new Date().toISOString().slice(0,10)
+    };
+
+    fetch("https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "पंजीकरण करें";
+      if(data && data.form_id){
+        alert("पंजीकरण सफल! फॉर्म आईडी: " + data.form_id);
+        S.f.name = name; S.f.mob = mob; S.f.village = village; S.f.dist = dist;
+        S.f.date = new Date().toISOString().slice(0,10);
+        save();
+        showTab("filling");
+        buildRegister();
+      }else{
+        alert("पंजीकरण विफल: " + (data?.message || "अज्ञात त्रुटि"));
+      }
+    })
+    .catch(err => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "पंजीकरण करें";
+      console.error(err);
+      alert("पंजीकरण में त्रुटि: " + err.message);
+    });
   }
 });
+
+async function saveFormToApi(formId){
+  const baseUrl = "https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/";
+  const payload1 = {
+    form_id: formId,
+    father_name: S.f.father || "",
+    village: S.f.village || "",
+    post: S.f.post || "",
+    tehsil: S.f.tehsil || "",
+    dist: S.f.dist || "",
+    horticulture_card: S.f.hortiCard || "",
+    aadhar: S.f.aadhar || "",
+    khasra: S.f.khasra || "",
+    gender: S.f.gender || ""
+  };
+  const payload2 = {
+    form_id: formId,
+    proposed_area: num(S.f.proposedArea),
+    crop_details: (S.vcrops||[]).filter(c=>c.name).map(c=>[c.name, num(c.area)])
+  };
+  const payload3 = {
+    form_id: formId,
+    block: S.f.block || "",
+    bank_name: S.f.bank || "",
+    branch: S.f.branch || "",
+    account: S.f.acct || "",
+    ifsc: S.f.ifsc || ""
+  };
+  const payload4 = {
+    form_id: formId,
+    place: S.f.place || "",
+    date: S.f.date || new Date().toISOString().slice(0,10)
+  };
+  const payload5 = {
+    form_id: formId,
+    subsidy_rate: num(S.norm.vRate),
+    standard_cost: num(S.norm.vStdCost),
+    maximum_subsidy: num(S.norm.vCap),
+    vermi_expenses: (S.vermi||[]).filter(v=>v.item).map(v=>[v.item, num(v.amt)])
+  };
+
+  const results = await Promise.all([
+    fetch(baseUrl, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload1)}).then(r=>r.json()),
+    fetch(baseUrl, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload2)}).then(r=>r.json()),
+    fetch(baseUrl, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload3)}).then(r=>r.json()),
+    fetch(baseUrl, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload4)}).then(r=>r.json()),
+    fetch(baseUrl, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload5)}).then(r=>r.json())
+  ]);
+  return results.every(r => r.success || r.updated);
+}
 
 const bGoBtn = document.getElementById("bGo");
 if (bGoBtn) bGoBtn.onclick = ()=>showSub("bill");
@@ -511,11 +799,14 @@ window.addEventListener("beforeprint", ()=>{ closePreview(); });
 
 export default function KisanAavedan() {
   const rootRef = useRef(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     root.innerHTML = HTML_BODY;
+
+    window.AUTH_USER = user || {};
 
     const syncAppNav = () => {
       const appNav = document.querySelector(".app-container > nav, .app-container > .navbar");
@@ -535,7 +826,15 @@ export default function KisanAavedan() {
     const navSyncTimer = window.setTimeout(syncAppNav, 400);
 
     try {
-      const run = new Function("document", "window", HTML_LOGIC);
+      const userData = user ? {
+        dist: user.district || user.dist || "",
+        center: user.center || user.center_name || "कोटद्वार",
+        block: user.block || "",
+        tehsil: user.tehsil || ""
+      } : { dist: "", center: "कोटद्वार", block: "", tehsil: "" };
+
+      const logicWithUser = "const AUTH_USER = " + JSON.stringify(userData) + ";\n" + HTML_LOGIC;
+      const run = new Function("document", "window", logicWithUser);
       run(document, window);
     } catch (error) {
       console.error("Kisan Aavedan Portal initialization failed:", error);
@@ -544,7 +843,10 @@ export default function KisanAavedan() {
       box.style.cssText =
         "margin:20px;padding:14px;border:1px solid #d8b4b4;background:#fff5f5;color:#7f1d1d;font-family:Segoe UI,sans-serif;";
       box.innerHTML =
-        "<b>पोर्टल लोड नहीं हो सका।</b><br/>कृपया browser console में error देखें।";
+        "<b>पोर्टल लोड नहीं हो सका।</b><br/>" +
+        "<pre style='white-space:pre-wrap;margin-top:8px;font-size:12px'>" +
+        (error && error.message ? error.message : "अज्ञात त्रुटि") +
+        "</pre><br/>कृपया browser console में error देखें।";
       target.prepend(box);
     }
 
@@ -554,7 +856,7 @@ export default function KisanAavedan() {
       window.clearTimeout(navSyncTimer);
       root.innerHTML = "";
     };
-  }, []);
+  }, [user]);
 
   return <div ref={rootRef} className="kisan-html-react-root" />;
 }
