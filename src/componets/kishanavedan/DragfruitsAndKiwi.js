@@ -38,6 +38,27 @@ const SIDE_TABS = [
   { id: "demo", label: "🧪 Demo" }, { id: "steps", label: "🧭 चरण" },
 ];
 
+// प्रिंट के समय body पर लगने वाले class तथा उनसे दिखने वाले section
+const PRINT_CLASSES = [
+  "print-app", "print-project", "print-affidavit", "print-consent",
+  "print-affidavit-all", "print-anudan", "print-selected",
+  "print-sel-application", "print-sel-project", "print-sel-affidavit",
+  "print-sel-consent", "print-sel-anudan",
+];
+const PRINT_SECTIONS = {
+  app: ["applicationPrint"],
+  project: ["report"],
+  affidavit: ["affidavitPrint"],
+  consent: ["consentPrint"],
+  all: ["affidavitPrint", "consentPrint"],
+  anudan: ["anudanPrint"],
+  selected: [],
+};
+const SELECTED_SECTIONS = {
+  app: "applicationPrint", project: "report", aff: "affidavitPrint",
+  consent: "consentPrint", anudan: "anudanPrint",
+};
+
 const CENTERS = [
   "कोटद्वार", "किनगोड़िखाल", "चौखाल", "धुमाकोट", "बीरोंखाल", "हल्दूखाल", "किल्वोंखाल",
   "चेलूसैंण", "जयहरीखाल", "जेठागांव", "देवियोंखाल", "सिलोगी", "सिसल्ड़ी", "पौखाल",
@@ -154,10 +175,29 @@ const DragfruitsAndKiwi = () => {
       }
 
       document.body.classList.add(cls);
+
+      // खोलने से पहले जाँच लेते हैं कि चुना गया दस्तावेज़ DOM में सचमुच मौजूद है
+      // — नहीं तो PDF प्रीव्यू खाली (blank) आता है।
+      const ids = printType === 'selected'
+        ? Object.keys(SELECTED_SECTIONS).filter((k) => printCheckboxes[k]).map((k) => SELECTED_SECTIONS[k])
+        : (PRINT_SECTIONS[printType] || []);
+      const ready = ids.length > 0 && ids.every((id) => {
+        const el = document.getElementById(id);
+        return el && el.textContent.trim();
+      });
+      if (!ready) {
+        PRINT_CLASSES.forEach((c) => document.body.classList.remove(c));
+        setPrintType(null);
+        alert(ids.length
+          ? 'चुना गया दस्तावेज़ तैयार नहीं है — पहले "मानक बनाएँ / दस्तावेज़ तैयार करें" दबाएँ।'
+          : 'पहले कम से कम एक दस्तावेज़ चुनें।');
+        return;
+      }
+
       window.print();
 
       // Cleanup
-      document.body.classList.remove(cls, 'print-sel-application', 'print-sel-project', 'print-sel-affidavit', 'print-sel-consent', 'print-sel-anudan');
+      PRINT_CLASSES.forEach((c) => document.body.classList.remove(c));
       setPrintType(null);
     }, 300); // 300ms delay ensures React has painted the DOM
 
@@ -535,7 +575,7 @@ const DragfruitsAndKiwi = () => {
           {/* ================= React Based Print Documents ================= */}
           
           {showAppPrint && (
-            <section id="applicationPrint" className="card" style={{ display: viewMode === 'app' ? 'block' : 'none' }}>
+            <section id="applicationPrint" className="card print-doc" style={{ display: viewMode === 'app' ? 'block' : 'none' }}>
               <h2 style={{ textAlign: "center", color: "#1e6091" }}>कृषक आवेदन पत्र</h2>
               <p style={{ textAlign: "center" }}><b>{m.name}</b></p>
               <h3>1. कृषक का विवरण</h3>
@@ -553,7 +593,7 @@ const DragfruitsAndKiwi = () => {
           )}
 
           {showReportPrint && (
-            <section id="report" className="card" style={{ display: viewMode === 'report' ? 'block' : 'none' }}>
+            <section id="report" className="card print-doc" style={{ display: viewMode === 'report' ? 'block' : 'none' }}>
               <div className="summary">
                 <div className="metric"><span>योजना</span><b>{m.name}</b></div>
                 <div className="metric"><span>प्रस्तावित क्षेत्रफल</span><b>{n.toFixed(2)} नाली</b></div>
@@ -590,7 +630,7 @@ const DragfruitsAndKiwi = () => {
           )}
 
           {showAffPrint && (
-            <section id="affidavitPrint" className="card" style={{ display: viewMode === 'aff' ? 'block' : 'none' }}>
+            <section id="affidavitPrint" className="card print-doc" style={{ display: viewMode === 'aff' ? 'block' : 'none' }}>
               <article className="aff-doc">
                 <div className="doc-title">{m.name}</div>
                 <div className="doc-subtitle">लाभार्थी स्व-घोषणा एवं शपथ-पत्र — {coMode ? 'स्वयं + सह-खातेदार' : 'केवल स्वयं की भूमि'}</div>
@@ -610,7 +650,7 @@ const DragfruitsAndKiwi = () => {
           )}
 
           {showConsentPrint && (
-            <section id="consentPrint" className="card" style={{ display: viewMode === 'consent' ? 'block' : 'none' }}>
+            <section id="consentPrint" className="card print-doc" style={{ display: viewMode === 'consent' ? 'block' : 'none' }}>
               {coOwners.length === 0 ? (
                 <div className="aff-doc">
                   <div className="doc-title">सह-खातेदार का सहमति पत्र</div>
@@ -638,7 +678,7 @@ const DragfruitsAndKiwi = () => {
           )}
 
           {showAnudanPrint && (
-            <section id="anudanPrint" className="card" style={{ display: viewMode === 'anudan' ? 'block' : 'none' }}>
+            <section id="anudanPrint" className="card print-doc" style={{ display: viewMode === 'anudan' ? 'block' : 'none' }}>
               <div className="anudan-form">
                 <div className="af-head">जिला योजना वर्ष 2026-27</div>
                 <div className="af-title">{m.name} अन्तर्गत राजसहायता देयक</div>

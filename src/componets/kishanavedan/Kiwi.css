@@ -1225,28 +1225,219 @@
 }
 
 /* ========================================================================
-   Print
+   Generated documents — आवेदन / परियोजना मानक / शपथ-पत्र / सहमति / अनुदान
+   (ये sections ही print होते हैं)
    ======================================================================== */
-@media print {
-  .noprint, .side-tabs, .side-toggle, .side-backdrop { display: none !important; }
-  .kiwi-root { background: #fff; display: block; overflow: visible; }
-  .kiwi-content { overflow: visible; }
-  .card { box-shadow: none; border-color: #999; break-inside: avoid; }
-  .table-wrap { overflow: visible; }
-  .kiwi-root table { min-width: 0; }
+.kiwi-root .aff-doc,
+.kiwi-root .anudan-form {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 0 0 14px;
+  color: #000;
+  line-height: 1.65;
 }
+.kiwi-root .doc-title {
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--primary-dark);
+}
+.kiwi-root .doc-subtitle {
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--muted);
+  margin: 2px 0 12px;
+}
+.kiwi-root .aff-doc p,
+.kiwi-root .aff-doc ol { margin: 0 0 9px; }
+.kiwi-root .sig {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 28px;
+  font-size: 12.5px;
+}
+.kiwi-root .finalbox {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.kiwi-root .finalrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 12.5px;
+}
+.kiwi-root .finalrow:last-child {
+  border-bottom: 0;
+  background: var(--primary-bg);
+  font-weight: 800;
+}
+.kiwi-root .anudan-form .af-head {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.kiwi-root .anudan-form .af-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  margin: 4px 0 10px;
+}
+.kiwi-root .anudan-form .af-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
+  font-size: 12.5px;
+  margin-bottom: 12px;
+}
+.kiwi-root .anudan-form .af-sign {
+  margin-top: 28px;
+  font-size: 12.5px;
+}
+.kiwi-root .af-total td {
+  font-weight: 800;
+  background: #f2f8f3;
+}
+
+@media (max-width: 640px) {
+  .kiwi-root .anudan-form .af-meta { grid-template-columns: 1fr; }
+}
+
 /* ========================================================================
-   Print Rules (Mandatory for Print Buttons)
+   Print
+   ------------------------------------------------------------------
+   ध्यान दें: इस route पर दूसरे पन्नों के global @media print नियम लगे रहते हैं
+   (AdminKishanBeej.css → `body *{visibility:hidden!important}`,
+    KishanBeej.css → `main{display:none!important}`,
+    vetan.css → `body *{visibility:hidden}`)।
+   वे पूरा पन्ना छिपा देते थे, इसलिए PDF प्रीव्यू खाली (blank) आता था।
+   नीचे हमारे स्कोप वाले नियम अधिक विशिष्टता के कारण हमेशा जीतते हैं।
    ======================================================================== */
+@page { size: A4 portrait; margin: 12mm; }
+
 @media print {
-  /* Override kiwi.css's default print rule that hides everything */
+  @page { size: A4 portrait; margin: 12mm; }
+
+  /* 1) ऐप शेल का fixed ऊँचाई / scroll container डॉक्यूमेंट काट देता था */
+  html,
+  body,
+  #root,
+  .app-container,
+  .main-content {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+  }
+
+  /* 2) `body * { visibility:hidden !important }` को अपने ट्री में वापस खोलें */
+  .kiwi-root,
+  .kiwi-root * { visibility: visible !important; }
+
+  /* 3) ऐप चेंक्रॉम + अपना स्क्रीन UI बंद */
+  .app-container > nav,
+  .app-container > header,
+  .app-container > footer,
+  .copyright-footer,
+  .kiwi-root .noprint,
+  .kiwi-root .side-tabs,
+  .kiwi-root .side-toggle,
+  .kiwi-root .side-backdrop { display: none !important; }
+
+  /* 4) KishanBeej.css का `main{display:none!important}` हमारे <main class="wrap">
+        को भी छिपा देता था — इसलिए print sections कभी render ही नहीं होते थे */
+  .kiwi-root main {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .kiwi-root {
+    display: block !important;
+    position: static !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+  .kiwi-content {
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  .kiwi-root .wrap {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .kiwi-root .card {
+    box-shadow: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    break-inside: auto;
+  }
+  .kiwi-root .table-wrap { overflow: visible !important; }
+  .kiwi-root table { min-width: 0 !important; width: 100% !important; }
+  .kiwi-root tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* मोबाइल वाले `@media (max-width: 1024px)` नियम print में भी लागू होते हैं
+     (A4 ≈ 703px) — वहाँ टेबल stacked card में बदल जाता है और thead छिप जाता है।
+     छपाई में टेबल को वापस असली टेबल रूप में लौटाते हैं। */
+  .kiwi-root .print-doc table { display: table !important; border-collapse: collapse; }
+  .kiwi-root .print-doc thead { display: table-header-group !important; }
+  .kiwi-root .print-doc tbody { display: table-row-group !important; }
+  .kiwi-root .print-doc tfoot { display: table-footer-group !important; }
+  .kiwi-root .print-doc tr { display: table-row !important; }
+  .kiwi-root .print-doc th,
+  .kiwi-root .print-doc td {
+    display: table-cell !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    border: 1px solid #666 !important;
+    padding: 4px 6px !important;
+    text-align: left !important;
+    font-size: 11px !important;
+    vertical-align: middle;
+  }
+  .kiwi-root .print-doc td::before,
+  .kiwi-root .print-doc th::before { content: none !important; display: none !important; }
+  .kiwi-root .print-doc td.qty,
+  .kiwi-root .print-doc th { text-align: center !important; }
+  .kiwi-root .print-doc .money { text-align: right !important; }
+
+  /* 5) केवल चुना गया दस्तावेज़ छपे — A4 शीट पर */
+  .kiwi-root .print-doc { display: none !important; }
+
   body.print-app #applicationPrint,
   body.print-project #report,
   body.print-affidavit #affidavitPrint,
   body.print-consent #consentPrint,
-  body.print-anudan #anudanPrint { display: block !important; }
-  
-  body.print-affidavit-all #affidavitPrint, 
+  body.print-anudan #anudanPrint,
+  body.print-affidavit-all #affidavitPrint,
   body.print-affidavit-all #consentPrint { display: block !important; }
 
   body.print-selected #applicationPrint,
@@ -1254,15 +1445,53 @@
   body.print-selected #affidavitPrint,
   body.print-selected #consentPrint,
   body.print-selected #anudanPrint { display: none !important; }
-  
-  body.print-selected.print-sel-application #applicationPrint { display: block !important; }
-  body.print-selected.print-sel-project #report { display: block !important; }
-  body.print-selected.print-sel-affidavit #affidavitPrint { display: block !important; }
-  body.print-selected.print-sel-consent #consentPrint { display: block !important; }
+
+  body.print-selected.print-sel-application #applicationPrint,
+  body.print-selected.print-sel-project #report,
+  body.print-selected.print-sel-affidavit #affidavitPrint,
+  body.print-selected.print-sel-consent #consentPrint,
   body.print-selected.print-sel-anudan #anudanPrint { display: block !important; }
 
-  .kiwi-root { padding: 0 !important; background: #fff !important; display: block !important; }
-  .wrap { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
-  .card { box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
-  .hidden { display: none !important; }
+  .kiwi-root .print-doc {
+    width: 186mm !important;
+    max-width: 186mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  /* एक साथ छपने वाले दस्तावेज़ अलग-अलग पन्ने पर */
+  .kiwi-root .print-doc ~ .print-doc,
+  .kiwi-root .print-doc .page-break-doc {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* 6) सरकारी कागज़ जैसा सादा प्रारूप */
+  .kiwi-root .print-doc,
+  .kiwi-root .print-doc * { color: #000 !important; }
+  .kiwi-root .print-doc th {
+    background: #eee !important;
+    color: #000 !important;
+  }
+  .kiwi-root .print-doc td,
+  .kiwi-root .print-doc tbody tr { background: #fff !important; }
+  .kiwi-root .print-doc .doc-title,
+  .kiwi-root .print-doc .doc-subtitle,
+  .kiwi-root .print-doc .af-title,
+  .kiwi-root .print-doc .aff-doc .doc-title { color: #000 !important; }
+  .kiwi-root .print-doc .aff-doc,
+  .kiwi-root .print-doc .anudan-form,
+  .kiwi-root .print-doc .finalbox {
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .kiwi-root .print-doc .finalrow,
+  .kiwi-root .print-doc .af-total td { background: #f4f4f4 !important; }
+  .kiwi-root .print-doc .finalrow { border-bottom: 1px solid #999 !important; }
+  .kiwi-root .print-doc .sig,
+  .kiwi-root .print-doc .anudan-form .af-sign { break-inside: avoid; page-break-inside: avoid; }
 }

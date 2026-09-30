@@ -40,6 +40,27 @@ const SIDE_TABS = [
   { id: "demo", label: "🧪 Demo" }, { id: "steps", label: "🧭 चरण" },
 ];
 
+// प्रिंट के समय body पर लगने वाले class तथा उनसे दिखने वाले section
+const PRINT_CLASSES = [
+  "print-app", "print-project", "print-affidavit", "print-consent",
+  "print-affidavit-all", "print-anudan", "print-selected",
+  "print-sel-application", "print-sel-project", "print-sel-affidavit",
+  "print-sel-consent", "print-sel-anudan",
+];
+const PRINT_SECTIONS = {
+  app: ["applicationPrint"],
+  project: ["report"],
+  affidavit: ["affidavitPrint"],
+  consent: ["consentPrint"],
+  all: ["affidavitPrint", "consentPrint"],
+  anudan: ["anudanPrint"],
+  selected: [],
+};
+const SELECTED_SECTIONS = {
+  app: "applicationPrint", project: "report", aff: "affidavitPrint",
+  consent: "consentPrint", anudan: "anudanPrint",
+};
+
 const CENTERS = ["कोटद्वार", "किनगोड़िखाल", "चौखाल", "धुमाकोट", "बीरोंखाल", "हल्दूखाल", "किल्वोंखाल", "चेलूसैंण", "जयहरीखाल", "जेठागांव", "देवियोंखाल", "सिलोगी", "सिसल्ड़ी", "पौखाल", "सतपुली", "संगलाकोटी", "देवराजखाल", "पोखड़ा", "वेदीखाल", "विथ्याणी", "गंगाभोगपुर", "दिउली", "दुगड्डा", "सेंधीखाल"];
 const RELATIONS = ["सहखातेदार", "भाई", "पुत्र", "पिता", "पत्नी", "अन्य"];
 
@@ -68,6 +89,10 @@ const KiwiFruits = () => {
 
   const [htmlOutputs, setHtmlOutputs] = useState({ app: "", report: "", aff: "", consent: "", anudan: "" });
   const [printCheckboxes, setPrintCheckboxes] = useState({ app: true, project: true, aff: true, consent: true, anudan: false });
+
+  const clearPrintClasses = () => {
+    PRINT_CLASSES.forEach((c) => document.body.classList.remove(c));
+  };
 
   useEffect(() => {
     setLandRows(prev => {
@@ -119,12 +144,11 @@ const KiwiFruits = () => {
     return () => clearTimeout(t);
   }, [flashAnchor]);
 
+  // -------------- Print Handlers --------------
   useEffect(() => {
-    const clearPrint = () => {
-      document.body.classList.remove("print-app", "print-project", "print-affidavit", "print-consent", "print-affidavit-all", "print-anudan", "print-selected", "print-sel-application", "print-sel-project", "print-sel-affidavit", "print-sel-consent", "print-sel-anudan");
-    };
-    window.addEventListener("afterprint", clearPrint);
-    return () => window.removeEventListener("afterprint", clearPrint);
+    const clear = clearPrintClasses;
+    window.addEventListener("afterprint", clear);
+    return () => window.removeEventListener("afterprint", clear);
   }, []);
 
   // -------------- Helpers & Calculations --------------
@@ -249,9 +273,28 @@ const KiwiFruits = () => {
   };
 
   // -------------- Print Handlers --------------
-  const triggerPrint = (className) => {
+  // body पर छपने वाले class लगाने के बाद ही खोलने से पहले जाँच लेते हैं कि
+  // चुना गया दस्तावेज़ DOM में सचमुच मौजूद है — नहीं तो PDF खाली आता है।
+  const triggerPrint = (className, targetIds) => {
     document.body.classList.add(className);
-    setTimeout(() => window.print(), 250);
+    window.setTimeout(() => {
+      const ids = targetIds && targetIds.length ? targetIds : [];
+      const missing = ids.filter((id) => {
+        const el = document.getElementById(id);
+        return !el || !el.textContent.trim();
+      });
+      if (!ids.length) {
+        clearPrintClasses();
+        alert('पहले कम से कम एक दस्तावेज़ चुनें।');
+        return;
+      }
+      if (missing.length) {
+        clearPrintClasses();
+        alert('चुना गया दस्तावेज़ तैयार नहीं है — पहले "मानक बनाएँ / दस्तावेज़ तैयार करें" दबाएँ।');
+        return;
+      }
+      window.print();
+    }, 250);
   };
 
   const handlePrint = (type) => {
@@ -264,7 +307,9 @@ const KiwiFruits = () => {
       app: 'print-app', project: 'print-project', affidavit: 'print-affidavit',
       consent: 'print-consent', all: 'print-affidavit-all', anudan: 'print-anudan', selected: 'print-selected'
     }[type];
+    if (!cls) return;
 
+    let targetIds = PRINT_SECTIONS[type] || [];
     if (type === 'selected') {
       document.body.classList.add('print-sel-application', 'print-sel-project', 'print-sel-affidavit', 'print-sel-consent', 'print-sel-anudan');
       if (!printCheckboxes.app) document.body.classList.remove('print-sel-application');
@@ -272,8 +317,11 @@ const KiwiFruits = () => {
       if (!printCheckboxes.aff) document.body.classList.remove('print-sel-affidavit');
       if (!printCheckboxes.consent) document.body.classList.remove('print-sel-consent');
       if (!printCheckboxes.anudan) document.body.classList.remove('print-sel-anudan');
+      targetIds = Object.keys(SELECTED_SECTIONS)
+        .filter((k) => printCheckboxes[k])
+        .map((k) => SELECTED_SECTIONS[k]);
     }
-    triggerPrint(cls);
+    triggerPrint(cls, targetIds);
   };
 
   // -------------- Demo Handler --------------
@@ -578,11 +626,11 @@ const KiwiFruits = () => {
           </section>
 
           {/* Hidden Print Sections Injected via State */}
-          {htmlOutputs.app && <section id="applicationPrint" className="card hidden" dangerouslySetInnerHTML={{ __html: htmlOutputs.app }} />}
-          {htmlOutputs.report && <section id="report" className="card hidden" dangerouslySetInnerHTML={{ __html: htmlOutputs.report }} />}
-          {htmlOutputs.aff && <section id="affidavitPrint" className="card hidden" dangerouslySetInnerHTML={{ __html: htmlOutputs.aff }} />}
-          {htmlOutputs.consent && <section id="consentPrint" className="card hidden" dangerouslySetInnerHTML={{ __html: htmlOutputs.consent }} />}
-          {htmlOutputs.anudan && <section id="anudanPrint" className="card hidden" dangerouslySetInnerHTML={{ __html: htmlOutputs.anudan }} />}
+          {htmlOutputs.app && <section id="applicationPrint" className="card hidden print-doc" dangerouslySetInnerHTML={{ __html: htmlOutputs.app }} />}
+          {htmlOutputs.report && <section id="report" className="card hidden print-doc" dangerouslySetInnerHTML={{ __html: htmlOutputs.report }} />}
+          {htmlOutputs.aff && <section id="affidavitPrint" className="card hidden print-doc" dangerouslySetInnerHTML={{ __html: htmlOutputs.aff }} />}
+          {htmlOutputs.consent && <section id="consentPrint" className="card hidden print-doc" dangerouslySetInnerHTML={{ __html: htmlOutputs.consent }} />}
+          {htmlOutputs.anudan && <section id="anudanPrint" className="card hidden print-doc" dangerouslySetInnerHTML={{ __html: htmlOutputs.anudan }} />}
 
         </main>
 
