@@ -88,13 +88,6 @@ const HTML_BODY = `
       <section class="view" data-v="work">
         <h2 class="head">व्यय विवरण</h2>
         <p class="lead" id="workLead"></p>
-        <div class="card" id="standardsCard">
-          <div class="cap">
-            <i></i><span id="standardsTitle">राजसहायता के मानक</span>
-            <small>प्रपत्र पर नहीं छपेंगे — यहीं से अपडेट करें</small>
-          </div>
-          <div class="pad" id="standardsBody"></div>
-        </div>
         <div id="workBody"></div>
       </section>
       <section class="view" data-v="bill">
@@ -164,7 +157,6 @@ export default function KisanAavedan() {
     window.addEventListener("load", syncAppNav);
     const navSyncTimer = window.setTimeout(syncAppNav, 400);
 
-    // User data (dist/block/tehsil) for auto-fill
     const userData = {
       dist: (user && (user.district || user.dist || user.district_name)) || "",
       block: (user && user.block) || "",
@@ -175,7 +167,6 @@ export default function KisanAavedan() {
       (function() {
         "use strict";
 
-        /* ===================== Helpers ===================== */
         const num  = v => { const n = parseFloat(String(v==null?"":v).replace(/[^0-9.\-]/g,"")); return isNaN(n)?0:n; };
         const fmt0 = n => "₹ " + Math.round(Number(n)||0).toLocaleString("en-IN");
         const fmtN = n => (Number(n)||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -191,7 +182,6 @@ export default function KisanAavedan() {
           return o.join(" ");
         }
 
-        /* ===================== Config ===================== */
         const LISTS = {
           vermiMaterial:["ईंट","सीमेंट","रेत","बजरी","चिनाई मजदूरी","प्लास्टर कार्य","केंचुए (वर्म कल्चर)","गोबर / जैविक अपशिष्ट","छाया हेतु शेड / तिरपाल","अन्य"]
         };
@@ -204,13 +194,24 @@ export default function KisanAavedan() {
           vermicompost:[["vermi","वर्मी कम्पोस्ट इकाई — सामग्री एवं व्यय","ईंट, सीमेंट, रेत, बजरी, चिनाई, केंचुए, गोबर आदि"]]
         };
 
-        /* ===================== State ===================== */
         const blank = () => ({
           scheme:"vermicompost",
           lists: JSON.parse(JSON.stringify(LISTS)),
           norm:{ vRate:75, vCap:24998, vStdCost:33333 },
           f:{name:"",father:"",village:"",post:"",block:userData.block,dist:userData.dist,mob:"",aadhar:"",khasra:"",bank:"",branch:"",acct:"",ifsc:"",cat:"सामान्य",farmerCat:"सीमांत",hortiCard:"",tehsil:userData.tehsil,proposedArea:"",irrigation:"उपलब्ध", gender:"",mbAmt:"", date:new Date().toISOString().slice(0,10), place:"", officer:"", desig:""},
-          vermi:[{}], vcrops:[{name:"",area:""}]
+          vermi:[
+            {item:"ईंट", amt:""},
+            {item:"सीमेंट", amt:""},
+            {item:"रेत", amt:""},
+            {item:"बजरी", amt:""},
+            {item:"चिनाई मजदूरी", amt:""},
+            {item:"प्लास्टर कार्य", amt:""},
+            {item:"केंचुए (वर्म कल्चर)", amt:""},
+            {item:"गोबर / जैविक अपशिष्ट", amt:""},
+            {item:"छाया हेतु शेड / तिरपाल", amt:""},
+            {item:"अन्य", amt:""}
+          ], 
+          vcrops:[{name:"",area:""}]
         });
         let S = blank();
         let FORM_ID = "";
@@ -221,7 +222,6 @@ export default function KisanAavedan() {
         let cur = "register";
         let subCur = "application";
 
-        /* ===================== API Helpers ===================== */
         const apiFetch = async (url, options = {}) => {
           const method = (options.method || "GET").toUpperCase();
           return fetch(url, { ...options, method, credentials: "omit" });
@@ -245,7 +245,6 @@ export default function KisanAavedan() {
           catch(e){ return "सहेजना विफल (status " + res.status + ")"; }
         }
 
-        /* ===================== In-page Messaging ===================== */
         let apiMsgTimer = null;
         function apiMsg(text, kind){
           const el = document.getElementById("apiMsg");
@@ -258,13 +257,11 @@ export default function KisanAavedan() {
           apiMsgTimer = window.setTimeout(()=>{ el.hidden=true; }, 6000);
         }
 
-        /* ===================== Form ID ===================== */
         function setFormId(id){
           FORM_ID = id || "";
           S._editingFormId = FORM_ID || null;
         }
 
-        /* ===================== Save State ===================== */
         const SAVE_STATES = {};
         function setSaveState(key, text, kind){
           if(!key) return;
@@ -278,7 +275,6 @@ export default function KisanAavedan() {
         }
         function clearSaveStates(){ Object.keys(SAVE_STATES).forEach(k=>delete SAVE_STATES[k]); }
 
-        /* ===================== Save Bar ===================== */
         function saveBar(key, label){
           const st = SAVE_STATES[key];
           return `<div class="save-bar noprint">
@@ -288,7 +284,6 @@ export default function KisanAavedan() {
           </div>`;
         }
 
-        /* ===================== Payloads ===================== */
         const genderToApi = g => (g==="पुरुष"?"Male":g==="महिला"?"Female":"");
         const genderFromApi = g => {
           const k = String(g||"").trim().toLowerCase();
@@ -351,7 +346,6 @@ export default function KisanAavedan() {
           { key:"date",      label:"दिनांक एवं स्थान",        build:payloadDate }
         ];
 
-        /* ===================== apiPut ===================== */
         async function apiPut(payload, label, key, quiet){
           if(!FORM_ID){
             const m = "पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।";
@@ -406,7 +400,6 @@ export default function KisanAavedan() {
           else apiMsg("✗ " + ok + " / " + SAVE_STEPS.length + " चरण ही सहेजे जा सके।", "bad");
         }
 
-        /* ===================== apiDelete ===================== */
         async function apiDelete(formIds){
           const ids = (Array.isArray(formIds) ? formIds : [formIds]).map(x=>String(x||"").trim()).filter(Boolean);
           if(!ids.length){ apiMsg("फॉर्म आईडी नहीं मिली।","bad"); return false; }
@@ -436,7 +429,6 @@ export default function KisanAavedan() {
           apiDelete([fid]).then(()=>{ loadRegistrations(); });
         }
 
-        /* ===================== Calculations ===================== */
         function mbValue(){ return num(S.f.mbAmt); }
         function calc(){
           const parts = [["वर्मी कम्पोस्ट इकाई निर्माण कार्य", sum("vermi")]];
@@ -448,7 +440,7 @@ export default function KisanAavedan() {
           standardCost = num(S.norm.vStdCost)||33333;
           if(bill>0) bases.push({key:"bill",label:"बिल / वाउचर के अनुसार कुल व्यय",val:bill});
           if(mb>0) bases.push({key:"mb",label:"एम०बी० मूल्यांकन धनराशि",val:mb});
-          if(standardCost>0) bases.push({key:"standard",label:"मानक लागत (10 फीट × 8 फीट × 2.5 फीट)",val:standardCost});
+          if(standardCost>0) bases.push({key:"standard",label:"मानक लागत (10 फीट × 8 फीट × 2.5 फीट)",val: standardCost});
           base = bases.length ? Math.min(...bases.map(b=>b.val)) : 0;
           shortfall = Math.max(0, standardCost - base);
           let sub = Math.round(base*rate);
@@ -464,7 +456,6 @@ export default function KisanAavedan() {
           return { bill, mb, base, bases, rate, sub, own:bill-sub, cap, capped, standardCost, shortfall, rows };
         }
 
-        /* ===================== Render: Tables ===================== */
         function tableHTML(k){
           const cfg=COLS[k];
           let h='<table class="expense-table"><thead><tr><th style="width:38px">क्र०</th>';
@@ -494,41 +485,22 @@ export default function KisanAavedan() {
           if(strip) strip.style.display = "none";
         }
 
-        /* ===================== Render: Standards / Work ===================== */
-        function buildStandards(){
-          const body = document.getElementById("standardsBody");
-          const title = document.getElementById("standardsTitle");
-          if(!body) return;
-          title.textContent = "वर्मी कम्पोस्ट राजसहायता के मानक";
-          body.innerHTML = `<div class="grid"><div><label class="f">वर्मी कम्पोस्ट राजसहायता दर (%)</label><select data-norm="vRate"><option value="75">75%</option></select></div><div><label class="f">मानक लागत ₹ (10 फीट × 8 फीट × 2.5 फीट)</label><input data-norm="vStdCost" inputmode="decimal" placeholder="33,333"></div><div><label class="f">अधिकतम अनुदान सीमा ₹</label><input data-norm="vCap" inputmode="decimal" placeholder="24,998"></div></div><p class="lead" style="margin:12px 0 0">विभागीय मानक: एक इकाई (10 फीट × 8 फीट × 2.5 फीट) हेतु निर्धारित ₹33,333। राजसहायता तीन आधारों — बिल / वाउचर का योग, एम०बी० मूल्यांकन, तथा मानक लागत — इनमें से जो न्यूनतम हो, उस पर देय होगी।</p>`;
-          body.querySelectorAll("[data-norm]").forEach(el=>el.value=S.norm[el.dataset.norm]);
-        }
         function buildWork(){
-          buildStandards();
           document.getElementById("workLead").textContent = "वर्मी कम्पोस्ट इकाई निर्माण पर हुआ पूरा व्यय भरें। हर पंक्ति में पहले कार्य / विवरण चुनें, फिर उसी के सामने बिल राशि डालें।";
           document.getElementById("workBody").innerHTML = SECTIONS.vermicompost.map(([k,t,n])=>
             `<div class="card"><div class="cap"><i></i>${t}<small>${n}</small></div><div class="pad">${tableHTML(k)}</div></div>`).join("")
             + `<div class="note">कार्य / सामग्री: ईंट, सीमेंट, रेत, बजरी, चिनाई मजदूरी, प्लास्टर कार्य, केंचुए (वर्म कल्चर), गोबर / जैविक अपशिष्ट, छाया हेतु शेड / तिरपाल एवं अन्य।</div>`
-            + saveBar("expenses", "मानक एवं व्यय विवरण");
+            + saveBar("expenses", "व्यय विवरण");
           buildLists();
-          document.querySelectorAll("[data-norm]").forEach(el=>el.value = S.norm[el.dataset.norm]);
         }
 
         /* ===================== Render: Application ===================== */
-        function isFemale(){ return (S.f.gender||"")==="महिला"; }
-        function G(m,f){ return isFemale()?f:m; }
         function buildVermiApplication(){
           const f = S.f || {};
-          const rate = num(S.norm.vRate) || 75;
-          const stdCost = num(S.norm.vStdCost) || 33333;
-          const maxSub = num(S.norm.vCap) || 24998;
-          const subsidy = Math.min(Math.round(stdCost*rate/100), maxSub);
-          const farmerShare = stdCost - subsidy;
-
           const cropHTML = (S.vcrops||[]).map(function(r,i){
             return '<tr>'
               + '<td class="n">' + (i+1) + '</td>'
-              + '<td><input list="cropOptions" data-vc="' + i + '" data-k="name" value="' + esc(r.name||"") + '" placeholder="फसल का नाम"></td>'
+              + '<td><input list="cropOptions" data-vc="' + i + '" data-k="name" value="' + esc(r.name||"") + '" placeholder="फसल / बागवानी फसल का नाम"></td>'
               + '<td><input data-vc="' + i + '" data-k="area" value="' + esc(r.area||"") + '" inputmode="decimal" placeholder="हे०"></td>'
               + '<td class="noprint"><button class="rm" data-vcdel="' + i + '" title="पंक्ति हटाएँ">×</button></td>'
               + '</tr>';
@@ -539,6 +511,7 @@ export default function KisanAavedan() {
             + '<div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div>'
             + '<h3 style="text-decoration:underline">राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई हेतु</h3>'
             + '<h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4>'
+
             + '<div class="st">आवेदक का विवरण</div>'
             + '<div class="grid2">'
             +   '<div class="field"><label>कृषक का नाम</label><input data-f="name" value="' + esc(f.name||"") + '"></div>'
@@ -548,26 +521,66 @@ export default function KisanAavedan() {
             +   '<div class="field"><label>तहसील</label><input data-f="tehsil" value="' + esc(f.tehsil||"") + '" placeholder="तहसील का नाम"></div>'
             +   '<div class="field"><label>जनपद</label><input data-f="dist" value="' + esc(f.dist||"") + '"></div>'
             +   '<div class="field"><label>उद्यान कार्ड संख्या</label><input data-f="hortiCard" value="' + esc(f.hortiCard||"") + '"></div>'
-            +   '<div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" value="' + esc(f.mob||"") + '"></div>'
+            +   '<div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" maxlength="10" value="' + esc(f.mob||"") + '"></div>'
             +   '<div class="field"><label>आधार संख्या</label><input data-f="aadhar" inputmode="numeric" maxlength="12" value="' + esc(f.aadhar||"") + '"></div>'
             +   '<div class="field"><label>खाता / खतौनी संख्या</label><input data-f="khasra" value="' + esc(f.khasra||"") + '"></div>'
             +   '<div class="field"><label>लिंग</label><select data-f="gender"><option value="">चुनें</option><option value="पुरुष">पुरुष</option><option value="महिला">महिला</option></select></div>'
             + '</div>'
             + saveBar("personal", "आवेदक एवं योजना विवरण")
+
             + '<div class="st">भूमि का विवरण</div>'
             + '<div class="grid2">'
             +   '<div class="field"><label>भूमि का क्षेत्रफल (हे०)</label><input data-f="proposedArea" inputmode="decimal" value="' + esc(f.proposedArea||"") + '" placeholder="हे० में क्षेत्रफल"></div>'
             + '</div>'
+
             + '<div class="st">कृषक की खेती का विवरण</div>'
             + '<table class="expense-table"><thead><tr>'
-            +   '<th style="width:38px">क्र०</th><th>फसल का नाम</th><th style="width:140px">क्षेत्रफल (हे०)</th><th class="noprint" style="width:60px">क्रिया</th>'
+            +   '<th style="width:38px">क्र०</th><th>फसल / बागवानी फसल का नाम</th><th style="width:140px">क्षेत्रफल (हे०)</th><th class="noprint" style="width:60px">क्रिया</th>'
             + '</tr></thead><tbody>' + (cropHTML || '<tr><td colspan="4" class="empty">कोई फसल नहीं जोड़ी गई</td></tr>') + '</tbody></table>'
             + '<button type="button" class="addrow" id="addCropBtn">+ फसल जोड़ें</button>'
             + saveBar("area", "भूमि एवं फसल विवरण")
-            + '<div class="declaration-box">'
-            +   '<div class="note"><b>मानक लागत:</b> ₹' + stdCost.toLocaleString("en-IN") + ' · <b>राजसहायता दर:</b> ' + rate + '% · <b>देय राजसहायता:</b> ₹' + subsidy.toLocaleString("en-IN") + ' · <b>कृषक अंश:</b> ₹' + farmerShare.toLocaleString("en-IN") + '</div>'
-            +   '<div class="note">मैं घोषणा करता/करती हूँ कि उपरोक्त समस्त जानकारी सत्य एवं सही है। यदि कोई जानकारी असत्य पाई गई तो मेरा आवेदन निरस्त किया जा सकता है और दी गई राशि की वसूली की जा सकती है।</div>'
+
+            + '<div class="st">बैंक विवरण</div>'
+            + '<div class="grid2">'
+            +   '<div class="field"><label>विकासखण्ड</label><input data-f="block" value="' + esc(f.block||"") + '"></div>'
+            +   '<div class="field"><label>बैंक का नाम</label><input data-f="bank" value="' + esc(f.bank||"") + '"></div>'
+            +   '<div class="field"><label>शाखा</label><input data-f="branch" value="' + esc(f.branch||"") + '"></div>'
+            +   '<div class="field"><label>बैंक खाता संख्या</label><input data-f="acct" inputmode="numeric" value="' + esc(f.acct||"") + '"></div>'
+            +   '<div class="field"><label>IFSC कोड</label><input data-f="ifsc" value="' + esc(f.ifsc||"") + '"></div>'
             + '</div>'
+            + saveBar("bank", "बैंक विवरण")
+
+            + '<div class="st">स्थान एवं दिनांक</div>'
+            + '<div class="grid2">'
+            +   '<div class="field"><label>स्थान</label><input data-f="place" value="' + esc(f.place||"") + '" placeholder="स्थान का नाम"></div>'
+            +   '<div class="field"><label>दिनांक</label><input type="date" data-f="date" value="' + esc(f.date||"") + '"></div>'
+            + '</div>'
+
+            + '<div class="st">7. घोषणा</div>'
+            + '<div class="declaration-box">'
+            +   '<p>उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं। मुझे पूर्व में किसी भी सरकारी योजना से वर्मी कम्पोस्ट यूनिट हेतु अनुदान प्राप्त नहीं हुआ है। यूनिट की स्थापना व रखरखाव विभागीय दिशा-निर्देशों के अनुसार मेरी जिम्मेदारी होगी।</p>'
+            +   '<div class="farmer-signature">'
+            +     '<div>कृषक का नाम : <strong id="app_farmer_name">' + esc(f.name||"…………") + '</strong></div>'
+            +     '<div>कृषक के हस्ताक्षर : ______________________________</div>'
+            +   '</div>'
+            + '</div>'
+
+            + '<div class="st">संलग्न दस्तावेज</div>'
+            + '<div class="note">'
+            +   '1. खाता-खतौनी की प्रति — 6 माह से अधिक पुरानी नहीं हो।<br>'
+            +   '2. आधार कार्ड की प्रति।<br>'
+            +   '3. उद्यान कार्ड की प्रति।<br>'
+            +   '4. बैंक खाते का विवरण / बैंक पासबुक की प्रति।<br>'
+            +   '5. ₹10 का नोटरीकृत शपथ-पत्र।'
+            + '</div>'
+
+            + '<div class="st">8. प्रभारी की आख्या</div>'
+            + '<div class="declaration-box prabhari-box">'
+            +   '<p>प्रमाणित किया जाता है कि कृषक द्वारा प्रस्तुत आवेदन, भूमि अभिलेख एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं।अतः कृषक आवेदन <strong>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में वर्क ऑर्डर जारी करने हेतु संस्तुति सहित अग्रसारित</strong> है।</p>'
+            +   '<p style="margin-top:24px;"><strong>प्रभारी, उद्यान सचल दल केन्द्र</strong><br>'
+            +   '<strong>केन्द्र का नाम :</strong> ________________________________________________________________</p>'
+            + '</div>'
+            + saveBar("date", "दिनांक एवं स्थान")
             + '</div>';
 
           document.getElementById("applicationOut").innerHTML = html;
@@ -593,15 +606,37 @@ export default function KisanAavedan() {
         /* ===================== Render: Affidavit ===================== */
         function buildVermiAffidavit(){
           const f = S.f || {};
-          const stdCost = num(S.norm.vStdCost) || 33333;
-          const rate = num(S.norm.vRate) || 75;
-          const maxSub = num(S.norm.vCap) || 24998;
-          const subsidy = Math.min(Math.round(stdCost*rate/100), maxSub);
-          const farmerShare = stdCost - subsidy;
           const name = esc(f.name||"…………"), father = esc(f.father||"…………"), village = esc(f.village||"…………"),
                 post = esc(f.post||"…………"), tehsil = esc(f.tehsil||"…………"), dist = esc(f.dist||"…………"),
                 horti = esc(f.hortiCard||"…………"), khasra = esc(f.khasra||"…………");
-          document.getElementById("affidavitOut").innerHTML = `<div class="affidavit-doc"><div class="aff-head"><div class="aff-kicker">उद्यान विभाग · वित्तीय वर्ष 2026-27</div><div class="aff-title">शपथ-पत्र</div><div class="aff-sub">(वर्मी कम्पोस्ट यूनिट निर्माण हेतु)</div><div class="aff-line"></div></div><div class="aff-meta"><div><span>नाम</span><b>${name}</b></div><div><span>पिता / पति का नाम</span><b>${father}</b></div><div><span>ग्राम</span><b>${village}</b></div><div><span>डाकघर</span><b>${post}</b></div><div><span>तहसील</span><b>${tehsil}</b></div><div><span>जनपद</span><b>${dist}</b></div><div><span>उद्यान कार्ड संख्या</span><b>${horti}</b></div><div><span>खाता / खतौनी संख्या</span><b>${khasra}</b></div></div><div class="aff-intro">मैं <b>${name}</b> ${G("पुत्र","पुत्री")} <b>${father}</b>, निवासी ग्राम <b>${village}</b>, डाकघर <b>${post}</b>, तहसील <b>${tehsil}</b>, जनपद <b>${dist}</b>, उद्यान कार्ड (कृषक पहचान) संख्या <b>${horti}</b>, शपथपूर्वक कथन ${G("करता","करती")} हूँ कि—</div><div class="aff-item">1. मेरा नाम, पता एवं अन्य व्यक्तिगत विवरण उपर्युक्त अनुसार पूर्णतः सत्य, सही एवं प्रामाणिक हैं।</div><div class="aff-item">2. मेरे द्वारा राज्य सेक्टर योजनान्तर्गत <b>वर्मी कम्पोस्ट यूनिट निर्माण हेतु</b> उद्यान विभाग में विधिवत आवेदन किया गया है।</div><div class="aff-item">3. जिस भूमि पर वर्मी कम्पोस्ट यूनिट का निर्माण किया गया है, वह भूमि मेरे वैधानिक स्वामित्व एवं वास्तविक कब्जे में है। ग्राम: <b>${village}</b> · खाता संख्या: <b>${khasra}</b></div><div class="aff-item">4. मेरे द्वारा उक्त भूमि पर विभागीय मानकों के अनुसार <b>10 फीट × 8 फीट × 2.5 फीट आकार की पक्की वर्मी कम्पोस्ट यूनिट</b> का निर्माण किया गया है।</div><div class="aff-item">5. उक्त वर्मी कम्पोस्ट यूनिट की प्रो-रेटा लागत <b>₹${stdCost.toLocaleString("en-IN")}/-</b>, देय ${rate}% राजसहायता <b>₹${subsidy.toLocaleString("en-IN")}/-</b> तथा कृषक का ${100-rate}% अंशदान <b>₹${farmerShare.toLocaleString("en-IN")}/-</b> है।</div><div class="aff-item">6. इससे पूर्व मेरे द्वारा उक्त यूनिट हेतु किसी अन्य सरकारी विभाग / संस्था / योजना से कोई अनुदान प्राप्त नहीं किया गया है।</div><div class="aff-item">7. मेरे द्वारा प्रस्तुत समस्त दस्तावेज, भूमि अभिलेख, बैंक विवरण, बिल / वाउचर एवं अन्य जानकारी सत्य एवं सही है।</div><div class="aff-item">8. यूनिट का निर्माण विभागीय तकनीकी मानकों एवं दिशा-निर्देशों के अनुरूप किया गया है।</div><div class="aff-item">9. यूनिट के रख-रखाव, सफाई, संचालन, केंचुओं की देखभाल एवं नमी बनाए रखने की जिम्मेदारी मेरी होगी।</div><div class="aff-item">10. कोई जानकारी असत्य या भ्रामक पाए जाने पर विभाग को आवेदन / राजसहायता निरस्त करने तथा प्राप्त राशि की वसूली करने का अधिकार होगा।</div><div class="aff-item">11. मैं योजना की निर्धारित शर्तों एवं विभागीय दिशा-निर्देशों से सहमत हूँ।</div><div class="aff-decl">मैं यह शपथ-पत्र पूर्ण होश-हवास में, बिना किसी दबाव, प्रलोभन अथवा भय के, अपनी स्वेच्छा से सत्यनिष्ठा के साथ दे रहा / रही हूँ।</div><div class="aff-sign"><div class="box">स्थान: ${esc(f.place||"…………")}<br>दिनांक: ${esc(f.date||"…………")}</div><div class="box line">${G("शपथकर्ता","शपथकर्त्री")} के हस्ताक्षर<br>${name}<br>मोबाइल: ${esc(f.mob||"…………")}</div></div></div>`;
+          const place = esc(f.place||"…………"), date = esc(f.date||"…………"), mob = esc(f.mob||"…………");
+
+          document.getElementById("affidavitOut").innerHTML = 
+            '<div class="appdoc" style="padding:34px 40px">'
+            + '<h2 style="text-align:center">शपथ-पत्र</h2>'
+            + '<h3 style="text-align:center">(वर्मी कम्पोस्ट यूनिट निर्माण हेतु)</h3>'
+            + '<p>मैं <b>' + name + '</b> पुत्र / पुत्री / पत्नी श्री <b>' + father + '</b>, '
+            + 'निवासी ग्राम <b>' + village + '</b> डाकघर <b>' + post + '</b>, '
+            + 'तहसील <b>' + tehsil + '</b> जनपद <b>' + dist + '</b>, '
+            + 'उद्यान कार्ड (कृषक पहचान) संख्या <b>' + horti + '</b></p>'
+            + '<p>यह शपथपूर्वक कथन करता / करती हूँ कि—</p>'
+            + '<p><b>1.</b> मेरा नाम, पता एवं अन्य व्यक्तिगत विवरण उपर्युक्त अनुसार पूर्णतः सत्य, सही एवं प्रमाणिक हैं।</p>'
+            + '<p><b>2.</b> मेरे द्वारा राज्य सेक्टर योजनान्तर्गत <b>वर्मी कम्पोस्ट यूनिट निर्माण हेतु</b> उद्यान विभाग में विधिवत आवेदन किया गया है।</p>'
+            + '<p><b>3.</b> जिस भूमि पर वर्मी कम्पोस्ट यूनिट का निर्माण किया गया है, वह भूमि मेरे वैधानिक स्वामित्व एवं वास्तविक कब्जे में है।</p>'
+            + '<p>ग्राम : <b>' + village + '</b> &nbsp;&nbsp; खाता संख्या : <b>' + khasra + '</b></p>'
+            + '<p><b>4.</b> मेरे द्वारा उक्त भूमि पर विभागीय मानकों के अनुसार <b>10 फीट × 8 फीट × 2.5 फीट आकार की पक्की वर्मी कम्पोस्ट यूनिट</b> का निर्माण किया गया है।</p>'
+            + '<p><b>5.</b> उक्त वर्मी कम्पोस्ट यूनिट की प्रो-रेटा लागत <b>₹33,333/-</b>, देय 75 प्रतिशत राजसहायता <b>₹24,998/-</b> तथा कृषक का 25 प्रतिशत अंशदान <b>₹8,335/-</b> है।</p>'
+            + '<p><b>6.</b> इससे पूर्व मेरे द्वारा उक्त यूनिट हेतु किसी अन्य सरकारी विभाग / संस्था / योजना / परियोजना से कोई सरकारी अनुदान, सहायता अथवा वित्तीय लाभ प्राप्त नहीं किया गया है।</p>'
+            + '<p><b>7.</b> मेरे द्वारा प्रस्तुत समस्त दस्तावेज, भूमि अभिलेख, बैंक विवरण, बिल / वाउचर एवं अन्य जानकारी सत्य एवं सही है।</p>'
+            + '<p><b>8.</b> यूनिट का निर्माण विभागीय तकनीकी मानकों एवं दिशा-निर्देशों के अनुरूप किया गया है। भिन्नता पाए जाने पर उसकी जिम्मेदारी मेरी होगी।</p>'
+            + '<p><b>9.</b> यूनिट के रख-रखाव, सफाई, संचालन, केंचुओं की देखभाल एवं नमी बनाए रखने की जिम्मेदारी मेरी होगी।</p>'
+            + '<p><b>10.</b> कोई जानकारी असत्य या भ्रामक पाए जाने पर विभाग को आवेदन / राजसहायता निरस्त करने तथा प्राप्त राशि की वसूली करने का अधिकार होगा।</p>'
+            + '<p><b>11.</b> मैं योजना की निर्धारित शर्तों एवं विभागीय दिशा-निर्देशों से सहमत हूँ।</p>'
+            + '<p>मैं यह शपथ-पत्र पूर्ण होश-हवास में, बिना किसी दबाव, प्रलोभन अथवा भय के, अपनी स्वेच्छा से सत्यनिष्ठा के साथ दे रहा / रही हूँ।</p>'
+            + '<div style="margin-top:22px">स्थान : <b>' + place + '</b><br>दिनांक : <b>' + date + '</b></div>'
+            + '<div style="margin-top:28px;text-align:right">शपथकर्ता के हस्ताक्षर : ____________________<br><br>'
+            + 'नाम : <b>' + name + '</b><br><br>मोबाइल नं. : <b>' + mob + '</b></div>'
+            + '</div>';
         }
         function buildAffidavit(){
           document.querySelector('[data-v="affidavit"] .head').textContent = "शपथ-पत्र";
@@ -610,15 +645,80 @@ export default function KisanAavedan() {
         }
 
         /* ===================== Render: Bill ===================== */
-        const LR = (lab,k) => `<div class="r"><b>${lab}</b><span class="auto">${esc(S.f[k]||"…………")}</span></div>`;
         function buildVermiBill(){
           const c = calc();
           const stdCost = num(S.norm.vStdCost) || 33333;
           const rate = num(S.norm.vRate) || 75;
-          let tbl = `<table><thead><tr><th style="width:44px">क्र०</th><th>कार्य / सामग्री</th><th style="width:140px" class="num">बिल राशि (₹)</th></tr></thead><tbody>`;
-          c.rows.forEach((r,i)=>{ tbl += `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.name)}</td><td class="calc num" id="r${i}a"></td></tr>`; });
-          tbl += `<tr class="tot"><td colspan="2" style="text-align:right">योग</td><td class="calc num" id="tA"></td></tr></tbody></table>`;
-          document.getElementById("billOut").innerHTML = `<div class="doc bill-doc"><div class="bill-header"><div class="bill-kicker">उद्यान विभाग · राजसहायता प्रपत्र</div><h3 class="bill-title">वर्मी कम्पोस्ट इकाई — राजसहायता देयक</h3><div class="bill-rule"></div><div class="bill-meta"><div><span>योजना</span><b>राज्य सेक्टर योजना</b></div><div><span>कार्यालय</span><b>उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल)</b></div><div><span>वित्तीय वर्ष</span><b>2026-27</b></div></div></div><div class="serial-layout"><div class="serial-section"><div class="serial-title">एम०बी० मूल्यांकन</div><div class="kv"><div class="r"><b>एम०बी० मूल्यांकन धनराशि (₹):</b><input class="ln rt sm" data-f="mbAmt" inputmode="decimal"></div></div></div><div class="serial-section"><div class="serial-title">1. कृषक का विवरण</div><div class="kv">${LR("नाम कृषक:","name")}${LR("पिता / पति:","father")}${LR("ग्राम:","village")}${LR("विकास खण्ड:","block")}${LR("जनपद:","dist")}${LR("आधार:","aadhar")}${LR("मोबाइल:","mob")}</div></div><div class="serial-section"><div class="serial-title">2. बैंक विवरण</div><div class="kv">${LR("बैंक:","bank")}${LR("शाखा:","branch")}${LR("खाता संख्या:","acct")}${LR("IFSC:","ifsc")}</div></div>${saveBar("bank", "बैंक विवरण")}<div class="serial-section"><div class="serial-title">3. इकाई का विवरण</div><div class="kv"><div class="r"><b>यूनिट का आकार:</b><span class="auto">10 फीट × 8 फीट × 2.5 फीट (पक्की संरचना)</span></div><div class="r"><b>मानक लागत:</b><span class="auto">₹ ${stdCost.toLocaleString("en-IN")}</span></div><div class="r"><b>राजसहायता दर:</b><span class="auto">${rate}%</span></div></div></div></div><div class="bill-table-heading"><div class="bill-table-title">कृषक द्वारा प्रस्तुत कार्य एवं व्यय का विवरण</div><div class="bill-table-subtitle">प्रस्तुत बिल / वाउचर के आधार पर</div></div>${tbl}<div class="xbox"><div class="xh">राजसहायता की गणना — तीनों में से न्यूनतम</div><table><tbody><tr><td>बिल / वाउचर के अनुसार कुल व्यय</td><td class="v" id="xBill"></td></tr><tr><td>एम०बी० मूल्यांकन धनराशि</td><td class="v" id="xMb"></td></tr><tr><td>मानक लागत (10 फीट × 8 फीट × 2.5 फीट)</td><td class="v" id="xStdCost"></td></tr><tr class="hi"><td><b>राजसहायता हेतु स्वीकार्य आधार — उपरोक्त में से न्यूनतम</b></td><td class="v" id="xBase"></td></tr><tr><td>लागू राजसहायता दर</td><td class="v" id="xRate"></td></tr><tr class="hi"><td><b>देय राजसहायता धनराशि</b></td><td class="v" id="xSub"></td></tr><tr><td>कृषक अंश (आधार × शेष दर — मानक अनुसार)</td><td class="v" id="xShare"></td></tr><tr><td>मानक की अधिकतम अनुदान सीमा (मानक लागत × दर)</td><td class="v" id="xMax"></td></tr><tr><td>मानक से कम हुई लागत (कमी के कारण)</td><td class="v" id="xShort"></td></tr><tr><td>कृषक द्वारा वहन की गयी वास्तविक धनराशि (बिल − राजसहायता)</td><td class="v" id="xOwn"></td></tr></tbody></table></div><div class="note-box"><div class="note-title">महत्वपूर्ण नोट — वर्मी कम्पोस्ट इकाई की गणना</div>• मानक लागत: एक इकाई (10 फीट × 8 फीट × 2.5 फीट) हेतु निर्धारित ₹${stdCost.toLocaleString("en-IN")}।<br>• देय आधार: बिल / वाउचर राशि, एम०बी० मूल्यांकन धनराशि एवं मानक लागत — इनमें से न्यूनतम राशि (<span id="xBase2"></span>)।<br>• कृषक अंश: आधार राशि पर लागू शेष दर (${100-rate}%) के अनुसार।<br>• कृषक द्वारा वहन की गयी वास्तविक धनराशि: बिल राशि में से देय राजसहायता घटाकर।</div><p style="margin:10px 0 0"><b>संलग्न:</b> बिल / वाउचर, एम०बी० (मापपुस्तिका), जियो टैग कलर फोटोग्राफ, कृषक का शपथ-पत्र आदि।</p><div class="decl">प्रमाणित किया जाता है कि मेरे द्वारा राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई के निर्माण पर उक्तानुसार धनराशि व्यय की गई है। अतः राजसहायता की धनराशि <span class="blank" id="oSub1"></span> (<span id="oWords1"></span> रुपये मात्र) का भुगतान मुझे करने की कृपा कीजिएगा।</div><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;gap:20px"><div style="flex:0 0 auto"><div style="display:flex;gap:6px;align-items:baseline"><b>दिनांक:</b><input class="ln sm" type="date" data-f="date"></div><div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान:</b><input class="ln sm" data-f="place"></div></div><div style="text-align:center;min-width:240px;border-top:1px solid #16281E;padding-top:5px">हस्ताक्षर ${G("कृषक","कृषिका")}<br><span class="auto" id="oName"></span></div></div></div>${saveBar("date", "दिनांक एवं स्थान")}</div>`;
+          let tbl = `<table><thead><tr><th>क्र०</th><th>कार्य / सामग्री</th><th class="num">बिल राशि (₹)</th></tr></thead><tbody>`;
+          c.rows.forEach((r,i)=>{ tbl += `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.name)}</td><td class="num" id="r${i}a"></td></tr>`; });
+          tbl += `</tbody><tfoot><tr><th colspan="2" class="num">योग</th><th class="num" id="tA">₹ 0.00</th></tr></tfoot></table>`;
+
+          document.getElementById("billOut").innerHTML = 
+            '<div class="appdoc" style="padding:34px 40px">'
+            + '<h3 style="text-align:center;margin:0 0 2px">वर्मी कम्पोस्ट इकाई — राजसहायता देयक प्रपत्र</h3>'
+            + '<h4 style="text-align:center;margin:0 0 18px">उद्यान विभाग · राज्य सेक्टर योजना · वित्तीय वर्ष 2026-27</h4>'
+
+            + '<div class="st noprint">एम०बी० मूल्यांकन (भरें)</div>'
+            + '<div class="grid2 noprint"><div class="field"><label>एम०बी० मूल्यांकन धनराशि (₹)</label><input data-f="mbAmt" inputmode="decimal"></div></div>'
+
+            + '<div class="st">1. कृषक का विवरण</div>'
+            + '<table><tbody>'
+            +   '<tr><td>नाम कृषक</td><td>' + esc(S.f.name||"…………") + '</td><td>पिता / पति का नाम</td><td>' + esc(S.f.father||"…………") + '</td></tr>'
+            +   '<tr><td>ग्राम</td><td>' + esc(S.f.village||"…………") + '</td><td>विकासखण्ड</td><td>' + esc(S.f.block||"…………") + '</td></tr>'
+            +   '<tr><td>जनपद</td><td>' + esc(S.f.dist||"…………") + '</td><td>आधार संख्या</td><td>' + esc(S.f.aadhar||"…………") + '</td></tr>'
+            +   '<tr><td>बैंक का नाम</td><td>' + esc(S.f.bank||"…………") + '</td><td>शाखा</td><td>' + esc(S.f.branch||"…………") + '</td></tr>'
+            +   '<tr><td>खाता संख्या</td><td>' + esc(S.f.acct||"…………") + '</td><td>IFSC कोड</td><td>' + esc(S.f.ifsc||"…………") + '</td></tr>'
+            + '</tbody></table>'
+            + saveBar("bank", "बैंक विवरण")
+
+            + '<div class="st">2. इकाई का विवरण</div>'
+            + '<table><tbody>'
+            +   '<tr><td>यूनिट का आकार</td><td>10 फीट × 8 फीट × 2.5 फीट (पक्की संरचना)</td></tr>'
+            +   '<tr><td>मानक लागत</td><td>₹ ' + stdCost.toLocaleString("en-IN") + '</td></tr>'
+            +   '<tr><td>राजसहायता दर</td><td>' + rate + '%</td></tr>'
+            + '</tbody></table>'
+
+            + '<div class="st">3. प्रस्तुत व्यय (बिल / वाउचर)</div>'
+            + tbl
+
+            + '<div class="st">4. राजसहायता की गणना — तीनों में से न्यूनतम</div>'
+            + '<table class="summaryTbl"><tbody>'
+            +   '<tr><td>बिल / वाउचर के अनुसार कुल व्यय</td><td class="sv" id="xBill">—</td></tr>'
+            +   '<tr><td>एम०बी० मूल्यांकन धनराशि</td><td class="sv" id="xMb">—</td></tr>'
+            +   '<tr><td>मानक लागत (10 फीट × 8 फीट × 2.5 फीट)</td><td class="sv" id="xStdCost">—</td></tr>'
+            +   '<tr class="hi"><td>राजसहायता हेतु स्वीकार्य आधार — उपरोक्त में से न्यूनतम</td><td class="sv" id="xBase">—</td></tr>'
+            +   '<tr><td>लागू राजसहायता दर</td><td class="sv" id="xRate">—</td></tr>'
+            +   '<tr class="hi"><td>देय राजसहायता धनराशि</td><td class="sv big" id="xSub">—</td></tr>'
+            +   '<tr><td>कृषक अंश (आधार × शेष दर — मानक अनुसार)</td><td class="sv" id="xShare">—</td></tr>'
+            +   '<tr><td>मानक की अधिकतम अनुदान सीमा (मानक लागत × दर)</td><td class="sv" id="xMax">—</td></tr>'
+            +   '<tr><td>मानक से कम हुई लागत (कमी के कारण)</td><td class="sv" id="xShort">—</td></tr>'
+            +   '<tr><td>कृषक द्वारा वहन की गयी वास्तविक धनराशि (बिल − राजसहायता)</td><td class="sv" id="xOwn">—</td></tr>'
+            + '</tbody></table>'
+
+            + '<div class="note">'
+            +   '<b>महत्वपूर्ण नोट — वर्मी कम्पोस्ट इकाई की गणना</b><br>'
+            +   '• मानक लागत: एक इकाई (10 फीट × 8 फीट × 2.5 फीट) हेतु निर्धारित ₹' + stdCost.toLocaleString("en-IN") + '।<br>'
+            +   '• देय आधार: बिल / वाउचर राशि, एम०बी० मूल्यांकन धनराशि एवं मानक लागत — इनमें से न्यूनतम राशि (<span id="xBase2">—</span>)।<br>'
+            +   '• कृषक अंश: आधार राशि पर लागू शेष दर (' + (100-rate) + '%) के अनुसार।<br>'
+            +   '• कृषक द्वारा वहन की गयी वास्तविक धनराशि: बिल राशि में से देय राजसहायता घटाकर।'
+            + '</div>'
+
+            + '<div style="margin-top:12px">संलग्न : बिल / वाउचर, एम०बी० (मापपुस्तिका), जियो टैग कलर फोटोग्राफ, कृषक का शपथ-पत्र आदि।</div>'
+
+            + '<div class="st">5. कृषक का प्रमाणपत्र</div>'
+            + '<div class="report-box">प्रमाणित किया जाता है कि मेरे द्वारा राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई के निर्माण पर उक्तानुसार धनराशि व्यय की गई है। अतः राजसहायता की धनराशि <b id="oSub1">—</b> (<span id="oWords1">…………</span>) का भुगतान मुझे करने की कृपा कीजिएगा।</div>'
+            + '<div class="farmer-signature" style="display:flex;justify-content:space-between;gap:30px;margin-top:24px;line-height:1.8">'
+            +   '<div>दिनांक : <b id="bill_date_disp">…………</b><br>स्थान : <b id="bill_place_disp">…………</b></div>'
+            +   '<div style="text-align:right">हस्ताक्षर कृषक<br><br><b id="oName">…………</b></div>'
+            + '</div>'
+            + '<div class="grid2 noprint" style="margin-top:10px"><div class="field"><label>दिनांक</label><input type="date" data-f="date"></div><div class="field"><label>स्थान</label><input data-f="place"></div></div>'
+
+            + '<div class="st">6. प्रभारी की आख्या एवं सत्यापन</div>'
+            + '<div class="report-box">प्रमाणित किया जाता है कि मेरे द्वारा वर्मी कम्पोस्ट इकाई के निर्माण कार्य का स्थलीय निरीक्षण कर लिया गया है तथा इकाई विभागीय मानक (10 फीट × 8 फीट × 2.5 फीट) के अनुरूप पूर्ण पायी गयी। एम०बी० (मापपुस्तिका) के अनुसार कनिष्ठ अभियन्ता द्वारा तैयार मूल्यांकन धनराशि : <b id="xMbVerify">…………</b>। बिल में दर्शायी गयी कुल राशि : <b id="xBillVerify">…………</b>। बिल, एम०बी० एवं स्थलीय सत्यापन का मिलान करने के उपरान्त लागू आधार पर देय राजसहायता धनराशि <b id="xSubVerify">—</b> कृषक को भुगतान हेतु देयक सत्यापित कर संस्तुति सहित अग्रसारित।</div>'
+            + '<div class="report-sign" style="margin-top:24px;text-align:right;line-height:1.8">हस्ताक्षर प्रभारी<br>…………</div>'
+            + saveBar("date", "दिनांक एवं स्थान")
+            + '</div>';
+            
           document.querySelectorAll("#billOut [data-f]").forEach(el=>{ if(S.f[el.dataset.f]!==undefined) el.value = S.f[el.dataset.f]; });
           refresh();
         }
@@ -638,7 +738,13 @@ export default function KisanAavedan() {
           set("xStdCost", fmt0(c.standardCost));
           set("xBase",fmt0(c.base)); set("xRate",(c.rate*100).toFixed(0)+"%"); set("xSub",fmt0(c.sub));
           set("xShare",fmt0(c.base-c.sub)); set("xMax",fmt0(c.cap||24998)); set("xShort",fmt0(c.shortfall)); set("xOwn",c.bill>0?fmt0(c.own):"—");
-          set("xBase2",fmt0(c.base)); set("oSub1",fmt0(c.sub)); set("oWords1",words(c.sub)); set("oName",esc(S.f.name)||"…………");
+          set("xBase2",fmt0(c.base)); 
+          set("oSub1",fmt0(c.sub)); set("oWords1",words(c.sub)); set("oName",esc(S.f.name)||"…………");
+          set("xMbVerify", c.mb ? fmt0(c.mb) : "…………");
+          set("xBillVerify", c.bill > 0 ? fmt0(c.bill) : "…………");
+          set("xSubVerify", fmt0(c.sub));
+          set("bill_date_disp", esc(S.f.date||"…………"));
+          set("bill_place_disp", esc(S.f.place||"…………"));
         }
         function refreshWorkTotals(){
           document.querySelectorAll("#workBody table").forEach(tb=>{
@@ -652,7 +758,6 @@ export default function KisanAavedan() {
           refresh();
         }
 
-        /* ===================== Tabs ===================== */
         function resetFill(){
           S = blank();
           setFormId("");
@@ -697,7 +802,6 @@ export default function KisanAavedan() {
           window.scrollTo(0,0);
         }
 
-        /* ===================== Registration ===================== */
         function renderRegistrations(){
           const tb = document.getElementById("regRows");
           const cnt = document.getElementById("regCount");
@@ -859,7 +963,6 @@ export default function KisanAavedan() {
           }
         }
 
-        /* ===================== Event Handlers ===================== */
         document.addEventListener("input", e=>{
           const t = e.target;
           if(t.dataset && t.dataset.vc){
@@ -879,10 +982,7 @@ export default function KisanAavedan() {
             }
             return;
           }
-          if(t.dataset && t.dataset.norm){
-            S.norm[t.dataset.norm] = t.value;
-            refresh();
-          } else if(t.dataset && t.dataset.row){
+          if(t.dataset && t.dataset.row){
             S[t.dataset.row][+t.dataset.i][t.dataset.k] = t.value;
             refreshWorkTotals();
           }
@@ -925,13 +1025,13 @@ export default function KisanAavedan() {
             return;
           }
           if(b.dataset.add){
-            S[b.dataset.add].push({});
+            S[b.dataset.add].push({item:"", amt:""});
             buildWork();
             refresh();
           } else if(b.dataset.del){
             const k = b.dataset.del;
             S[k].splice(+b.dataset.i, 1);
-            if(!S[k].length) S[k].push({});
+            if(!S[k].length) S[k].push({item:"", amt:""});
             buildWork();
             refresh();
           } else if(b.dataset.go){
@@ -949,7 +1049,6 @@ export default function KisanAavedan() {
           }
         });
 
-        /* ===================== Preview / Print ===================== */
         function printCurrent(){
           document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target"));
           let target;
@@ -1000,7 +1099,6 @@ export default function KisanAavedan() {
           if(body) body.innerHTML = "";
         }
 
-        /* ===================== Init ===================== */
         toggleStrip();
         showTab("register");
         const bGo = document.getElementById("bGo");
