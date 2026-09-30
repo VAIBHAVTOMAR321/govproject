@@ -1779,6 +1779,34 @@
   text-align: center;
   padding-top: 4px;
 }
+.kisan-html-react-root .affidavit-doc .aff-sign-plain {
+  display: block;
+  margin-top: 20px;
+  max-width: 320px;
+  text-align: left;
+}
+.kisan-html-react-root .affidavit-doc .aff-sign-plain > div {
+  margin: 0;
+  border: 0;
+  padding: 1px 0;
+  text-align: left;
+  line-height: 1.9;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .aff-sign-plain {
+  margin-top: 12px;
+}
+.kisan-html-react-root .affidavit-doc .aff-consent-block {
+  margin-top: 14px;
+  page-break-inside: avoid;
+}
+.kisan-html-react-root .affidavit-doc .aff-consent-block .hd {
+  font-size: 11.5px;
+  color: #5d6c63;
+  margin-bottom: 2px;
+}
+.kisan-html-react-root .affidavit-doc .aff-consent-block .aff-sign-plain {
+  margin-top: 4px;
+}
 .kisan-html-react-root .affidavit-doc .aff-consent {
   margin-top: 18px;
   padding-top: 12px;
