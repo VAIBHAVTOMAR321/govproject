@@ -268,7 +268,6 @@ export default function KisanAavedanPortal() {
           const cap  = num(isF ? S.norm.fCap : S.norm.vCap);
 
           let mb=0, base=0, bases=[], hec=0, allowedLen=0, verifiedLen=0, ratio=1, actualArea=0, standardCost=0, shortfall=0;
-          // FIX: track totalHec separately for display
           let totalHec = 0;
 
           if(isF){
@@ -305,7 +304,6 @@ export default function KisanAavedanPortal() {
             run += s;
             rows.push({name:p[0], amt:p[1], sub:s, own:p[1]-s});
           });
-          // FIX: include totalHec in return
           return {isF, bill, mb, base, bases, rate, sub, own:bill-sub, cap, capped, over: mb>0 && bill>0 && bill>mb,
                   hec, totalHec, allowedLen, verifiedLen, mbLen:num(S.f.mbLen), ratio, actualArea, standardCost, shortfall, rows};
         }
@@ -463,7 +461,10 @@ export default function KisanAavedanPortal() {
           const totalNali=affNali(d.totalNali);
           const first=(S.landRows&&S.landRows[0])||{};
           const coRows=(S.landRows||[]).slice(1).filter(r =>
-            num(r.hec)>0 || String(r.name||"").trim() || String(r.relation||"").trim()
+            num(r.hec)>0 || String(r.name||"").trim()
+          );
+          const allRows=(S.landRows||[]).filter((r,i) =>
+            i===0 || num(r.hec)>0 || String(r.name||"").trim()
           );
 
           const plan=esc(f.planType||"जिला योजना");
@@ -475,15 +476,20 @@ export default function KisanAavedanPortal() {
           const card=esc(f.gardenCard||"…………");
           const khasra=esc(first.khasra||"…………");
           const block=esc(f.block||"…………");
+          const panchayat=esc(f.panchayat||f.village||"…………");
+          const bank=esc(f.bank||"…………");
+          const branch=esc(f.branch||"…………");
+          const acct=esc(f.acct||"…………");
+          const mob=esc(f.mob||"…………");
+          const date=esc(f.date||"…………");
+          const aadhar=esc(f.aadhar||"…………");
+
+          const rate=num(S.norm.fRate)||80;
+          const costHa=num(S.norm.fCostHa)||200000;
+          const stdCost=Math.round(num(d.totalHec)*costHa);
+          const estSub=Math.round(stdCost*rate/100);
 
           if(!joint){
-            const rate=num(S.norm.fRate)||80;
-            const costHa=num(S.norm.fCostHa)||200000;
-            const stdCost=Math.round(num(d.totalHec)*costHa);
-            const estSub=Math.round(stdCost*rate/100);
-            const bank=esc(f.bank||"…………");
-            const branch=esc(f.branch||"…………");
-            const acct=esc(f.acct||"…………");
             return `<div class="affidavit-doc aff-page-break">
               <div class="aff-head">
                 <div class="aff-kicker">उद्यान विभाग, कोटद्वार · वित्तीय वर्ष 2026-27</div>
@@ -491,11 +497,11 @@ export default function KisanAavedanPortal() {
                 <div class="aff-sub">(${fenceKaamPhrase()} हेतु आवेदन एवं स्व-घोषणा — स्वयं की पूर्ण भूमि की स्थिति में) · स्टाम्प : ₹10/-</div>
                 <div class="aff-line"></div>
               </div>
-              <div class="aff-intro">मैं श्री <b>${name}</b>, ${G("पुत्र","पुत्री")} श्री <b>${father}</b>, निवासी ग्राम <b>${village}</b>, ग्राम पंचायत <b>${esc(f.panchayat||"…………")}</b>, विकासखण्ड <b>${block}</b>, उद्यान सचल दल केन्द्र कोटद्वार, जनपद <b>${dist}</b>, उत्तराखण्ड, सत्यनिष्ठा से शपथपूर्वक निम्नलिखित घोषणा ${G("करता","करती")} हूँ कि —</div>
-              <div class="aff-item">1. यह कि मेरी स्वयं के स्वामित्व एवं कब्जे की भूमि का विवरण निम्नानुसार है — ग्राम <b>${village}</b>, खसरा / खतौनी सं० <b>${khasra}</b>, कुल क्षेत्रफल <b>${total} हे० (${totalNali} नाली)</b>, भूमि का स्वामित्व : स्वयं। उक्त संपूर्ण भूमि मेरी स्वयं की है तथा ${plan} अन्तर्गत ${fenceKaamPhrase()} की स्थापना हेतु प्रस्तावित क्षेत्रफल इसी भूमि से संबंधित है।</div>
+              <div class="aff-intro">मैं श्री <b>${name}</b>, ${G("पुत्र","पुत्री")} श्री <b>${father}</b>, निवासी ग्राम <b>${village}</b>, ग्राम पंचायत <b>${village}</b>, विकासखण्ड <b>${block}</b>, उद्यान सचल दल केन्द्र कोटद्वार, जनपद <b>${dist}</b>, उत्तराखण्ड, सत्यनिष्ठा से शपथपूर्वक निम्नलिखित घोषणा ${G("करता","करती")} हूँ कि —</div>
+              <div class="aff-item">1. यह कि जिस संपूर्ण भूमि पर मेरे द्वारा घेराबड़ का कार्य कराया जाना प्रस्तावित है, वह भूमि हमारे संयुक्त परिवार के वैधानिक स्वामित्व एवं वास्तविक कब्जे में है तथा वह भौगोलिक रूप से एक ही चक (एक स्थान पर संरेखित) के रूप में स्थित है। जिला योजना के अंतर्गत चेनलिंक फेंसिंग घेराबड़ की स्थापना हेतु मेरे द्वारा कुल ${total} हे० भूमि प्रस्तावित की गई है। उक्त क्षेत्रफल का विवरण निम्नानुसार है  — ग्राम <b>${village}</b>, खसरा / खतौनी सं० <b>${khasra}</b>, कुल क्षेत्रफल <b>${total} हे० (${totalNali} नाली)</b>, भूमि का स्वामित्व : स्वयं। उक्त संपूर्ण भूमि मेरी स्वयं की है तथा ${plan} अन्तर्गत ${fenceKaamPhrase()} की स्थापना हेतु प्रस्तावित क्षेत्रफल इसी भूमि से संबंधित है।</div>
               <div class="aff-item">2. यह कि आवेदन स्वीकृत होने की दशा में, उक्त भूमि पर ${fenceKaamPhrase()} का कार्य उद्यान विभाग द्वारा निर्धारित मानकों एवं स्वीकृत तकनीकी विवरण के अनुसार ही कराया जाएगा। कार्य पूर्ण होने के पश्चात मैं मौके पर सामग्री एवं कार्य का निरीक्षण कर विभाग को सूचित ${G("करूँगा","करूँगी")}।</div>
-              <div class="aff-item">3. यह कि आवेदन के समय विभागीय मानक दर के अनुसार उक्त क्षेत्रफल हेतु ${fenceKaamPhrase()} की अनुमानित लागत <b>${stdCost?fmt0(stdCost):"…………"}/-</b> आँकी गई है। चूँकि कार्य अभी प्रारम्भ नहीं हुआ है, अतः वास्तविक व्यय की जानकारी मुझे नहीं है — कार्य पूर्ण होने के पश्चात प्रस्तुत बिल / वाउचर के आधार पर अंतिम राजसहायता की गणना मान्य लागत या वास्तविक व्यय, इन दोनों में से जो भी कम हो, उसके अनुसार की जाएगी।</div>
-              <div class="aff-item">4. उक्त अनुमानित लागत पर योजना में निर्धारित दर (<b>${rate}%</b>) के अनुसार अनुमानित राजसहायता <b>${estSub?fmt0(estSub):"…………"}/-</b> होगी, जिसका भुगतान कार्य पूर्ण होने एवं देयक सत्यापित होने के पश्चात नियमानुसार डी.बी.टी. (DBT) के माध्यम से मेरे बैंक खाते (<b>${bank}, ${branch}</b>, खाता सं० <b>${acct}</b>) में किया जाएगा।</div>
+              <div class="aff-item">3. यह कि आवेदन के समय विभागीय मानक दर के अनुसार उक्त क्षेत्रफल हेतु ${fenceKaamPhrase()} की अनुमानित लागत <b>${fmt0(stdCost)}/-</b> आँकी गई है। चूँकि कार्य अभी प्रारम्भ नहीं हुआ है, अतः वास्तविक व्यय की जानकारी मुझे नहीं है — कार्य पूर्ण होने के पश्चात प्रस्तुत बिल / वाउचर के आधार पर अंतिम राजसहायता की गणना मान्य लागत या वास्तविक व्यय, इन दोनों में से जो भी कम हो, उसके अनुसार की जाएगी।</div>
+              <div class="aff-item">4. उक्त अनुमानित लागत पर योजना में निर्धारित दर (<b>${rate}%</b>) के अनुसार अनुमानित राजसहायता <b>${fmt0(estSub)}/-</b> होगी, जिसका भुगतान कार्य पूर्ण होने एवं देयक सत्यापित होने के पश्चात नियमानुसार डी.बी.टी. (DBT) के माध्यम से मेरे बैंक खाते (<b>${bank}, ${branch}</b>, खाता सं० <b>${acct}</b>) में किया जाएगा।</div>
               <div class="aff-item">5. यह कि योजनान्तर्गत निर्धारित राजसहायता की शर्तों से मैं पूर्णतः सहमत हूँ। यदि वास्तविक ${fenceKaamPhrase()} कार्य स्वीकृत मानकों या स्वीकृत क्षेत्रफल से अधिक होता है, तो अतिरिक्त लंबाई / क्षेत्रफल पर होने वाला समस्त व्यय मैं स्वयं वहन ${G("करूँगा","करूँगी")} और विभाग से किसी अतिरिक्त राजसहायता की मांग नहीं ${G("करूँगा","करूँगी")}। इसके अतिरिक्त, वास्तविक व्यय मान्य विभागीय लागत से अधिक होने की दशा में भी उस अतिरिक्त राशि पर कोई राजसहायता देय नहीं होगी तथा मान्य लागत एवं देय राजसहायता के मध्य की शेष राशि सहित यह संपूर्ण भार मेरे द्वारा स्वयं वहन किया जाएगा।</div>
               <div class="aff-item">6. यह कि इससे पूर्व मेरे द्वारा उक्त प्रस्तावित भूमि की घेराबाड़ हेतु किसी भी अन्य सरकारी विभाग अथवा किसी अन्य योजना / परियोजना से कोई सरकारी अनुदान, सहायता या वित्तीय लाभ प्राप्त नहीं किया गया है।</div>
               <div class="aff-item">7. यह कि उक्त भूमि पूर्णतः विवाद रहित है तथा इस पर किसी भी प्रकार का कोई मालिकाना हक का वाद-विवाद, न्यायालयीन प्रकरण, बैंक बंधक अथवा अन्य कोई कानूनी अड़चन विद्यमान नहीं है।</div>
@@ -507,96 +513,129 @@ export default function KisanAavedanPortal() {
                 <div><b>${G("शपथकर्ता","शपथकर्त्री")} / कृषक</b></div>
                 <div>नाम : ${name}</div>
                 <div>हस्ताक्षर : ________________</div>
-                <div>मो० : ${esc(f.mob||"…………")}</div>
+                <div>मो० : ${mob}</div>
                 <div>स्थान : ________________</div>
-                <div>दिनांक : ${esc(f.date||"…………")}</div>
+                <div>दिनांक : ${date}</div>
               </div>
             </div>`;
           }
 
-          const coTable=coRows.length ? coRows.map((r,i)=>`
-              <tr>
-                <td style="text-align:center">${i+1}</td>
-                <td>${esc(r.name||"…………")}</td>
-                <td>${esc(r.relation||"…………")}</td>
-                <td>${esc(r.khasra||"…………")}</td>
-                <td>${esc(r.aadhaar||"…………")}</td>
-                <td class="right">${affHec(r.hec)}</td>
-              </tr>`).join("") : `<tr><td colspan="6" style="text-align:center">कोई सह-खातेदार विवरण उपलब्ध नहीं</td></tr>`;
+          function landDesc(r, i){
+            if(i===0) return "आवेदक की स्वयं की भूमि";
+            const rel=String(r.relation||"").trim();
+            const nm=String(r.name||"").trim();
+            if(rel && nm) return `सह-खातेदार ${rel} ${nm} की भूमि`;
+            if(nm) return `सह-खातेदार ${nm} की भूमि`;
+            if(rel) return `सह-खातेदार ${rel} की भूमि`;
+            return "सह-खातेदार की भूमि";
+          }
+
+          const landTableRows = allRows.map((r,i)=>`
+            <tr>
+              <td style="text-align:center">${i+1}</td>
+              <td>${landDesc(r,i)}</td>
+              <td>${esc(r.khasra||"…………")}</td>
+              <td style="text-align:right">${affHec(r.hec)} हे०</td>
+              <td style="text-align:center">${i===0?"स्वयं":"सह-खातेदार"}</td>
+            </tr>
+          `).join("");
+
+          const consentLetters = coRows.map((r,i)=>{
+            const rName=esc(r.name||"…………");
+            const rFather=esc(r.father||"…………");
+            const rVillage=esc(r.village||f.village||"…………");
+            const rKhasra=esc(r.khasra||"…………");
+            const rHec=affHec(r.hec);
+            const rRel=esc(r.relation||"…………");
+            const rAadhaar=esc(r.aadhaar||"…………");
+            return `
+            <div class="aff-consent-block">
+              <div class="aff-head">
+                <div class="aff-title">सह-खातेदार का सहमति एवं अनापत्ति पत्र</div>
+                <div class="aff-line"></div>
+              </div>
+              <div class="aff-intro">मैं श्री <b>${rName}</b>, पुत्र श्री <b>${rFather}</b>, निवासी ग्राम <b>${rVillage}</b>, यह घोषित करता हूँ कि मेरी भूमि का विवरण निम्नानुसार है — खाता सं० <b>${rKhasra}</b>, कुल क्षेत्रफल <b>${rHec} हे०</b>।</div>
+              <div class="aff-item">मैं यह सहमति प्रदान करता हूँ कि मेरी उक्त भूमि में से ${rHec} हे० क्षेत्रफल को श्री ${name}, जो मेरे ${rRel} हैं, द्वारा जिला योजना के अंतर्गत प्रस्तुत चेनलिंक फेंसिंग घेराबड़ आवेदन में सम्मिलित किया जाए।</div>
+              <div class="aff-item">मुझे उक्त भूमि पर घेराबड़ की स्थापना किए जाने पर कोई आपत्ति नहीं है।</div>
+              <div class="aff-item">मैं यह भी सहमति देता हूँ कि योजना के अंतर्गत अनुमन्य राजसहायता की राशि आवेदक के नाम से डी.बी.टी. (DBT) के माध्यम से उसके बैंक खाते में प्राप्त की जाए।</div>
+              <div class="aff-item">मैंने यह सहमति अपनी स्वतंत्र इच्छा से दी है और भविष्य में उक्त स्थापना एवं योजना के लाभ के संबंध में अनावश्यक आपत्ति नहीं करूँगा।</div>
+              <div class="aff-sign-plain">
+                <div><b>सह-खातेदार का विवरण</b></div>
+                <div>नाम : ${rName}</div>
+                <div>हस्ताक्षर : ________________</div>
+                <div>आवेदक से संबंध : ${rRel}</div>
+                <div>आधार कार्ड संख्या : ${rAadhaar}</div>
+                <div>दिनांक : ________________</div>
+              </div>
+            </div>`;
+          }).join("");
 
           return `<div class="affidavit-doc aff-page-break">
             <div class="aff-head">
-              <div class="aff-kicker">उद्यान विभाग · वित्तीय वर्ष 2026-27</div>
+              <div class="aff-kicker">उद्यान विभाग, कोटद्वार · वित्तीय वर्ष 2026-27</div>
               <div class="aff-title">शपथ-पत्र</div>
-              <div class="aff-sub">(चेनलिंक घेराबाड़ कार्य हेतु — संयुक्त भूमि / सह-खातेदार)</div>
+              <div class="aff-sub">(${fenceKaamPhrase()} हेतु आवेदन एवं स्व-घोषणा — संयुक्त भूमि / सह-खातेदार) · स्टाम्प : ₹10/-</div>
               <div class="aff-line"></div>
             </div>
-            <div class="aff-meta">
-              <div><span>नाम</span><b>${name}</b></div>
-              <div><span>पिता / पति का नाम</span><b>${father}</b></div>
-              <div><span>ग्राम</span><b>${village}</b></div>
-              <div><span>डाकघर</span><b>${post}</b></div>
-              <div><span>विकास खण्ड</span><b>${block}</b></div>
-              <div><span>जनपद</span><b>${dist}</b></div>
-              <div><span>उद्यान कार्ड (कृषक पहचान)</span><b>${card}</b></div>
-              <div><span>घेराबाड़ हेतु कुल प्रस्तावित क्षेत्रफल</span><b>${total} हे० (${totalNali} नाली)</b></div>
-            </div>
-            <div class="aff-intro">मैं <b>${name}</b> ${G("पुत्र","पुत्री")} <b>${father}</b>, निवासी ग्राम <b>${village}</b>, डाकघर <b>${post}</b>, जनपद <b>${dist}</b>, शपथपूर्वक बयान ${G("करता","करती")} हूँ कि:</div>
-            <div class="aff-item">1. यह कि मेरा नाम, पता एवं अन्य व्यक्तिगत विवरण उपर्युक्त अनुसार पूर्णतः सत्य, सही एवं प्रमाणिक हैं।</div>
-            <div class="aff-item">2. यह कि मेरे द्वारा अपनी एवं अपने परिवार के सह-खातेदारों की संयुक्त भूमि की जंगली जानवरों एवं बाह्य कारकों से सुरक्षा हेतु घेराबाड़ कार्य पर राजसहायता / अनुदान प्राप्त करने के लिए उद्यान विभाग, कोटद्वार में विधिवत आवेदन प्रस्तुत किया जा रहा है।</div>
-            <div class="aff-item">3. यह कि जिस संपूर्ण भूमि पर मेरे द्वारा घेराबाड़ का कार्य कराया जाना प्रस्तावित है, वह भूमि हमारे संयुक्त परिवार के वैधानिक स्वामित्व एवं वास्तविक कब्जे में है तथा वह भौगोलिक रूप से एक ही चक के रूप में स्थित है, जिसका विवरण निम्नवत है:</div>
+            <div class="aff-intro">मैं श्री <b>${name}</b>, ${G("पुत्र","पुत्री")} श्री <b>${father}</b>, निवासी ग्राम <b>${village}</b>, ग्राम पंचायत <b>${village}</b>, विकासखण्ड <b>${block}</b>, उद्यान सचल दल केन्द्र कोटद्वार, जनपद <b>${dist}</b>, उत्तराखण्ड, सत्यनिष्ठा से शपथपूर्वक निम्नलिखित घोषणा ${G("करता","करती")} हूँ कि —</div>
+
+            <div class="aff-item">1. यह कि जिस संपूर्ण भूमि पर मेरे द्वारा घेराबड़ का कार्य कराया जाना प्रस्तावित है, वह भूमि हमारे संयुक्त परिवार के वैधानिक स्वामित्व एवं वास्तविक कब्जे में है तथा वह भौगोलिक रूप से एक ही चक (एक स्थान पर संरेखित) के रूप में स्थित है। जिला योजना के अंतर्गत चेनलिंक फेंसिंग घेराबड़ की स्थापना हेतु मेरे द्वारा कुल ${total} हे० भूमि प्रस्तावित की गई है। उक्त क्षेत्रफल का विवरण निम्नानुसार है —</div>
             <table class="aff-land">
-              <thead><tr><th>क्र०</th><th>सह-खातेदार का नाम</th><th>${applicantWord()} से संबंध</th><th>खसरा / खतौनी सं०</th><th>आधार संख्या</th><th>क्षेत्रफल (हे०)</th></tr></thead>
+              <thead><tr><th style="width:42px">क्र.</th><th>भूमि का विवरण</th><th>खसरा सं०</th><th>क्षेत्रफल</th><th>स्थिति</th></tr></thead>
               <tbody>
-                <tr><td style="text-align:center">स्वयं</td><td>${name}</td><td>स्वयं</td><td>${khasra}</td><td>${esc(f.aadhar||"…………")}</td><td class="right">${affHec(first.hec)}</td></tr>
-                ${coTable}
-                <tr><td colspan="4" style="text-align:right"><b>घेराबाड़ हेतु कुल प्रस्तावित क्षेत्रफल</b></td><td class="right"><b>${total}</b></td></tr>
+                ${landTableRows}
+                <tr><td colspan="3" style="text-align:right"><b>कुल प्रस्तावित क्षेत्रफल</b></td><td style="text-align:right"><b>${total} हे०</b></td><td></td></tr>
               </tbody>
             </table>
-            <div class="aff-item">4. यह कि उक्त संपूर्ण एकत्रित भूमि पर वर्तमान में विभिन्न प्रजातियों के फलदार पौधे लगे हुए हैं, जिनकी सुरक्षा, सिंचाई, खाद-उर्वरक प्रबंधन एवं समस्त रख-रखाव की पूर्ण जिम्मेदारी वास्तविक रूप से मेरे (${applicantWord()}) द्वारा ही संभाली जाती है।</div>
-            <div class="aff-item">5. यह कि मेरे सह-खातेदारों द्वारा अपनी भूमि पर घेराबाड़ कार्य कराए जाने तथा योजना के अंतर्गत देय राजसहायता की समस्त धनराशि डी.बी.टी. के माध्यम से सीधे मेरे (${applicantWord()} के) बैंक खाते में प्राप्त करने हेतु स्वेच्छा से अपनी लिखित सहमति प्रदान की गई है, जो इस शपथ-पत्र का मुख्य अंग है।</div>
-            <div class="aff-item">6. यह कि इससे पूर्व हमारे द्वारा किसी भी सरकारी विभाग अथवा योजना / परियोजना से उक्त प्रस्तावित संयुक्त भूमि की घेराबाड़ हेतु किसी भी प्रकार का कोई सरकारी अनुदान, सहायता या वित्तीय लाभ प्राप्त नहीं किया गया है।</div>
-            <div class="aff-item">7. यह कि उक्त भूमि पूर्णतः विवाद रहित है तथा इस पर किसी भी प्रकार का कोई मालिकाना हक का वाद-विवाद, न्यायालयीन प्रकरण, पारिवारिक आपसी बंटवारे का विवाद, बैंक बंधक अथवा अन्य कोई कानूनी अड़चन विद्यमान नहीं है।</div>
-            <div class="aff-item">8. यह कि आवेदन स्वीकृत होने की दशा में, मेरे द्वारा घेराबाड़ का कार्य उद्यान विभाग द्वारा निर्धारित विभागीय तकनीकी मानकों एवं दिशा-निर्देशों के अनुरूप ही कराया जाएगा।</div>
-            <div class="aff-item">9. यह कि योजनान्तर्गत निर्धारित राजसहायता की शर्तों से मैं पूर्णतः सहमत हूँ। यदि वास्तविक घेराबाड़ कार्य स्वीकृत मानकों या स्वीकृत क्षेत्रफल से अधिक होता है, तो अतिरिक्त लंबाई पर होने वाला समस्त व्यय मैं स्वयं वहन ${G("करूँगा","करूँगी")} और विभाग से किसी अतिरिक्त राजसहायता की मांग नहीं ${G("करूँगा","करूँगी")}।</div>
+
+            <div class="aff-item">2. यह कि सह-खातेदारों की भूमि को जिला योजना के अंतर्गत मेरे आवेदन में सम्मिलित करने हेतु संबंधित सह-खातेदारों द्वारा स्वेच्छा से लिखित सहमति एवं अनापत्ति प्रदान की गई है (संलग्न)। सह-खातेदारों को प्रस्तावित घेराबड़ स्थापना, भूमि के उपयोग तथा योजना के अंतर्गत देय राजसहायता के संबंध में पूर्ण जानकारी है।</div>
+
+            <div class="aff-item">3. यह कि सह-खातेदारों की सहमति से सम्मिलित भूमि सहित कुल प्रस्तावित क्षेत्रफल में स्थापित की जाने वाली घेराबड़ का उपयोग संबंधित उद्यान / फसल सुरक्षा के लिए किया जाएगा तथा उसके संचालन, सुरक्षा एवं रख-रखाव की जिम्मादारी मेरे द्वारा निभाई जाएगी।</div>
+
+            <div class="aff-item">4. यह कि आवेदन स्वीकृत होने की दशा में, जिला योजना के अंतर्गत प्रस्तावित चेनलिंक फेंसिंग घेराबड़ की स्थापना का कार्य उद्यान विभाग द्वारा निर्धारित मानकों एवं स्वीकृत तकनीकी विवरण के अनुसार ही कराया जाएगा। कार्य पूर्ण होने के पश्चात मैं मौके पर उपलब्ध सामग्री एवं कार्य का निरीक्षण कर विभाग को सूचित ${G("करूँगा","करूँगी")}।</div>
+
+            <div class="aff-item">5. यह कि आवेदन के समय विभागीय मानक दर के अनुसार उक्त कुल क्षेत्रफल हेतु चेनलिंक फेंसिंग घेराबड़ की अनुमानित लागत <b>${fmt0(stdCost)}/-</b> आँकी गई है। चूँकि कार्य अभी प्रारम्भ नहीं हुआ है, अतः वास्तविक व्यय की जानकारी अभी ज्ञात नहीं है — कार्य पूर्ण होने के पश्चात राजसहायता की गणना नियमानुसार मान्य लागत / वास्तविक व्यय में से जो कम हो, उसके अनुसार की जाएगी।</div>
+
+            <div class="aff-item">6. उक्त अनुमानित लागत पर लागू दर (<b>${rate}%</b>) के अनुसार अनुमानित राजसहायता <b>${fmt0(estSub)}/-</b> होगी, जिसका भुगतान कार्य पूर्ण होने एवं देयक सत्यापित होने के पश्चात नियमानुसार डी.बी.टी. (DBT) के माध्यम से आवेदक के बैंक खाते (<b>${bank}, ${branch}</b>, खाता सं० <b>${acct}</b>) में किया जाएगा।</div>
+
+            <div class="aff-item">7. यह कि योजनान्तर्गत निर्धारित राजसहायता की शर्तों से मैं पूर्णतः सहमत हूँ। यदि वास्तविक घेराबड़ कार्य स्वीकृत मानकों या स्वीकृत क्षेत्रफल से अधिक होता है, तो अतिरिक्त लंबाई / क्षेत्रफल पर होने वाला समस्त व्यय मैं स्वयं वहन ${G("करूँगा","करूँगी")} और विभाग से किसी अतिरिक्त राजसहायता की मांग नहीं ${G("करूँगा","करूँगी")}। इसके अतिरिक्त, वास्तविक व्यय मान्य विभागीय लागत से अधिक होने की दशा में भी उस अतिरिक्त राशि पर कोई राजसहायता देय नहीं होगी तथा मान्य लागत एवं देय राजसहायता के मध्य की शेष राशि सहित यह संपूर्ण भार मेरे द्वारा वहन किया जाएगा।</div>
+
+            <div class="aff-item">8. यह कि सह-खातेदारों को इस बात की जानकारी एवं सहमति है कि उनकी भूमि को उक्त जिला योजना आवेदन में सम्मिलित किया गया है और योजना के अंतर्गत स्वीकृत राजसहायता आवेदक के बैंक खाते में डी.बी.टी. के माध्यम से प्राप्त होगी। इस संबंध में सह-खातेदारों की लिखित सहमति इस शपथ-पत्र के साथ संलग्न है।</div>
+
+            <div class="aff-item">9. यह कि प्रस्तावित कुल भूमि पर घेराबड़ हेतु इससे पूर्व किसी अन्य सरकारी योजना / विभाग से कोई सरकारी अनुदान, सहायता या वित्तीय लाभ प्राप्त नहीं किया गया है।</div>
+
             <div class="aff-item">10. यह कि कार्य स्थल पर मेरे द्वारा विभागीय निर्देशानुसार हरी पृष्ठभूमि पर सफेद पेंट से अंकित एक लोहे का सूचना बोर्ड लगाया जाएगा, जिसमें योजना का नाम "${plan} अन्तर्गत उद्यान की ${fenceHeading()} घेराबाड़ योजना वर्ष 2026-2027", कृषक का विवरण, कुल क्षेत्रफल, कुल लागत एवं राजसहायता का स्पष्ट उल्लेख होगा।</div>
-            <div class="aff-item">11. यह कि स्थापित की गई घेराबाड़ के भविष्य में रख-रखाव, मरम्मत एवं देख-रेख की संपूर्ण जिम्मेदारी मेरी स्वयं की होगी। प्राकृतिक आपदा या किसी अन्य कारण से घेराबाड़ को होने वाले नुकसान के लिए उद्यान विभाग उत्तरदायी नहीं होगा।</div>
-            <div class="aff-item">12. यह कि भविष्य में यदि मेरे द्वारा प्रस्तुत भूमि के दस्तावेज, पारिवारिक सहमति-पत्र, बैंक खाते की जानकारी या घेराबाड़ से संबंधित कोई भी तथ्य असत्य या भ्रामक पाया जाता है, तो विभाग को मेरा आवेदन निरस्त करने, कानूनी कार्यवाही करने तथा यदि कोई राशि प्राप्त हुई हो तो उसे भू-राजस्व की भांति वसूल करने का पूर्ण अधिकार होगा, जो मुझे सहर्ष स्वीकार होगा।</div>
-            <div class="aff-decl">मैं यह शपथ-पत्र पूर्ण होश-हवास में, बिना किसी दबाव, प्रलोभन अथवा भय के, स्वेच्छा से सत्यनिष्ठा के साथ दे रहा / रही हूँ।</div>
-            <div class="aff-sign">
-              <div class="box">स्थान: ${village}<br>दिनांक: ${esc(f.date||"…………")}</div>
-              <div class="box line">${G("शपथकर्ता","शपथकर्त्री")} के हस्ताक्षर<br>${name}</div>
+
+            <div class="aff-item">11. यह कि मेरे द्वारा प्रस्तुत भूमि अभिलेख, खाता / खसरा विवरण, क्षेत्रफल, सह-खातेदारों की सहमति तथा योजना से संबंधित अन्य जानकारी मेरे ज्ञान एवं विश्वास के अनुसार सही है।</div>
+
+            <div class="aff-item">12. यह कि उक्त भूमि पूर्णतः विवाद रहित है तथा इस पर किसी भी प्रकार का कोई मालिकाना हक का वाद-विवाद, न्यायालयीन प्रकरण, पारिवारिक आपसी बंटवारे का विवाद, बैंक बंधक अथवा अन्य कोई कानूनी अड़चन विद्यमान नहीं है।</div>
+
+            <div class="aff-item">13. मैं विभाग द्वारा किए जाने वाले स्थलीय निरीक्षण, भौतिक सत्यापन एवं अभिलेखीय जाँच में आवश्यक सहयोग ${G("करूँगा","करूँगी")}। यदि मेरे द्वारा प्रस्तुत भूमि, सह-खातेदारों की सहमति, पूर्व अनुदान अथवा वित्तीय विवरण के संबंध में भविष्य में कोई जानकारी असत्य, भ्रामक अथवा योजना के नियमों के विपरीत पाई जाती है, तो प्राप्त राजसहायता की वसूली तथा नियमानुसार विभागीय / कानूनी कार्यवाही के लिए मैं स्वयं उत्तरदायी रहूँगा।</div>
+
+            <div class="aff-decl">मैंने यह शपथ-पत्र बिना किसी दबाव, भय अथवा प्रलोभन के अपनी स्वतंत्र इच्छा से दिया है और इसमें वर्णित जानकारी मेरे ज्ञान एवं विश्वास के अनुसार सत्य एवं सही है।</div>
+
+            <div class="aff-sign-plain">
+              <div><b>आवेदक</b></div>
+              <div>नाम : ${name}</div>
+              <div>हस्ताक्षर : ________________</div>
+              <div>मो० : ${mob}</div>
+              <div>स्थान : ________________</div>
+              <div>दिनांक : ${date}</div>
             </div>
-            <div class="aff-consent aff-page-break">
-              <div class="aff-head">
-                <div class="aff-title">सह-खातेदार / परिवार के सदस्यों का सहमति-पत्र</div>
-                <div class="aff-line"></div>
-              </div>
-              <div class="aff-item">हम शपथपूर्वक बयान करते हैं कि हमें उद्यान विभाग की इस योजना के अंतर्गत ${applicantWord()} <b>${name}</b> द्वारा उपरोक्त वर्णित हमारी संयुक्त भूमि पर घेराबाड़ का कार्य कराए जाने तथा विभाग द्वारा अनुमन्य राजसहायता की राशि सीधे ${applicantWord()} के बैंक खाते में हस्तांतरित (DBT) किए जाने पर कोई आपत्ति नहीं है। हम अपनी भूमि पर इस कार्य हेतु अपनी पूर्ण सहमति सहर्ष प्रदान करते हैं।</div>
-              ${coRows.length ? coRows.map((r,i)=>`
-                <div class="aff-consent-block">
-                  <div class="hd">${applicantWord()} से संबंध : ${esc(r.relation||"…………")} &nbsp;·&nbsp; आधार कार्ड सं० : ${esc(r.aadhaar||"…………")}</div>
-                  <div class="aff-sign-plain">
-                    <div><b>सह-खातेदार / परिवार का सदस्य (क्र० ${i+1})</b></div>
-                    <div>नाम : ${esc(r.name||"…………")}</div>
-                    <div>हस्ताक्षर : ________________</div>
-                    <div>मो० : ${esc(r.mob||"…………")}</div>
-                    <div>स्थान : ________________</div>
-                    <div>दिनांक : ${esc(f.date||"…………")}</div>
-                  </div>
-                </div>`).join("") : `
-                <div class="aff-consent-block">
-                  <div class="aff-sign-plain">
-                    <div><b>सह-खातेदार / परिवार का सदस्य</b></div>
-                    <div>नाम : ________________</div>
-                    <div>हस्ताक्षर : ________________</div>
-                    <div>मो० : ________________</div>
-                    <div>स्थान : ________________</div>
-                    <div>दिनांक : ________________</div>
-                  </div>
-                </div>`}
+          </div>
+          ${coRows.length ? `
+          <div class="affidavit-doc aff-page-break">
+         
+            ${consentLetters}
+            <div class="aff-sign-plain">
+              <div><b>शपथकर्ता / आवेदक</b></div>
+              <div>नाम : ${name}</div>
+              <div>हस्ताक्षर : ________________</div>
+              <div>मो० : ${mob}</div>
+              <div>स्थान : ________________</div>
+              <div>दिनांक : ${date}</div>
             </div>
-          </div>`;
+          </div>` : ""}`;
         }
 
         function buildFencingApplication(){
@@ -713,7 +752,7 @@ export default function KisanAavedanPortal() {
             <h5>निर्धारित क्षेत्रफल एवं फेंसिंग मानक मैपिंग</h5>
             <table class="landtable" id="fenceMappingApplicationTable">
               <thead><tr>
-                <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०)</th><th>खम्बे</th>
+                <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०</th><th>खम्बे</th>
               </tr></thead>
               <tbody>${getFenceMap().map(x=>`<tr data-map-hec="${x.hec.toFixed(2)}">
                 <td style="text-align:center">${x.nali}</td>
@@ -730,7 +769,7 @@ export default function KisanAavedanPortal() {
             <h5>4. सारांश — क्षेत्रफल, फेंसिंग एवं राजसहायता</h5>
             <table>
               <thead><tr>
-                <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०)</th><th>खम्बे</th>
+                <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०</th><th>खम्बे</th>
                 <th>लागत (₹)</th><th>राजसहायता 80%</th><th>राजसहायता 50%</th>
               </tr></thead>
               <tbody>
@@ -754,7 +793,7 @@ export default function KisanAavedanPortal() {
             <div class="appnote">
               • उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं।<br>
               • मुझे पूर्व में किसी अन्य सरकारी योजना से इस कार्य हेतु अनुदान प्राप्त नहीं हुआ है।<br>
-              • कार्य / इकाई का निर्माण, रखरखाव एवं संचालन विभागीय दिशा-निर्देशों के अनुसार मेरी जिम्मेदारी होगी।<br>
+              • कार्य / इकाई का निर्माण, रखरखाव एवं संचालन विभागीय दिशा-निर्देशों के अनुसार मेरी जिम्मादारी होगी।<br>
               • संलग्न बिल / वाउचर एवं दस्तावेज सही हैं।
             </div>
             <h5>6. आवश्यक संलग्नक</h5>
@@ -803,13 +842,11 @@ export default function KisanAavedanPortal() {
           const standard = d.totalHec>0 ? Math.round(d.totalHec*(num(S.norm.fCostHa)||200000)) : 0;
           const subsidy=standard>0 ? Math.round(standard*rate/100) : 0;
           const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
-          // FIX: sync readonly fields from S.f to first row DOM elements
           document.querySelectorAll('#applicationOut .landVil').forEach(el=>{ el.value = S.f.village||""; });
           document.querySelectorAll('#applicationOut .landSelfName').forEach(el=>{ el.value = S.f.name||""; });
           document.querySelectorAll('#applicationOut .landSelfFather').forEach(el=>{ el.value = S.f.father||""; });
           const ownAad = document.querySelector('#applicationOut .landSelfAadhaar');
           if(ownAad) ownAad.value = S.f.aadhar || "";
-          // FIX: also sync S.landRows[0] from S.f for saving
           syncSelfRowFields();
 
           const h3=document.querySelector('#applicationOut h3');
@@ -1002,7 +1039,6 @@ export default function KisanAavedanPortal() {
           set("tA",fmtN(c.bill)); set("tS",fmtN(c.sub)); set("tO",fmtN(c.own));
           set("oRate",(c.rate*100).toFixed(0)+"%");
           if(S.scheme==="fencing"){
-            // FIX: use totalHec (actual entered area) for display, not c.hec (which is 0 when not allowed)
             const dispHec = (c.totalHec||0) > 0 ? c.totalHec : c.hec;
             const m = fenceStandard(dispHec);
             set("oArea", dispHec>0 ? dispHec.toFixed(2) : "…………");
@@ -1426,7 +1462,7 @@ export default function KisanAavedanPortal() {
         }
         async function loadRegistrations(){
           const tb=document.getElementById("regRows");
-          if(tb) tb.innerHTML = '<tr><td colspan="10" class="empty">लोड हो रहा है…</td></tr>';
+          if(tb) tb.innerHTML = '<tr><td colspan="12" class="empty">लोड हो रहा है…</td></tr>';
           const c = centerFilter();
           const full = (AUTH_CENTER||"").trim();
           const candidates = [];
@@ -1504,7 +1540,6 @@ export default function KisanAavedanPortal() {
                 aadhaar: arr[4]||"", hec: hec>0 ? String(hec) : ""
               };
             });
-            // FIX: ensure at least 5 rows
             while(S.landRows.length < 5) S.landRows.push({relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""});
           }else{
             S.landRows = blank().landRows;
@@ -1596,7 +1631,6 @@ export default function KisanAavedanPortal() {
               S.f.mob = mob.trim();
               S.f.gardenCard = "";
               S.f.plants = "";
-              // FIX: use blank().landRows to preserve default hec:"0.40"
               S.landRows = blank().landRows;
               S.landRows[0].name = name.trim();
 
@@ -1650,7 +1684,6 @@ export default function KisanAavedanPortal() {
 
         function validateFenceAreaValue(i){ return true; }
 
-        // FIX: always sync from S.f to S.landRows[0] (not just when empty)
         function syncSelfRowFields(){
           const row = (S.landRows||[])[0];
           if(!row) return;
