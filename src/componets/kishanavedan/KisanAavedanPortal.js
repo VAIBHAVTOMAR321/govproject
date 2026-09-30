@@ -20,6 +20,11 @@ const readCenterName = () => (centerStore.value || "").trim();
 const centerLine = () => readCenterName() || "……………………";
 
 const HTML_BODY = `
+<style>
+.landtable input.landVil,.landtable input.landSelfName,.landtable input.landSelfFather,.landtable input.landSelfAadhaar{
+  background:#EEF1EC;color:var(--ink-soft,#4A5A50);border-color:var(--rule,#C6CDC4);cursor:default
+}
+</style>
 <div class="shell">
   <header class="topbar noprint">
     <div class="topbar-brand">
@@ -237,7 +242,7 @@ export default function KisanAavedanPortal() {
         const sum = k => S[k].reduce((a,r)=>a+COLS[k].amt(r),0);
 
         const SECTIONS = {
-          fencing:[["material","अ · सामग्री","चेनलिंग / कंटीले वायर, एंगल आयरन, नटबोल्ट आदि → देयक पंक्ति 1"],
+          fencing:[["material","अ · सामग्री","चेनलिंक / कंटीले वायर, एंगल आयरन, नटबोल्ट आदि → देयक पंक्ति 1"],
                    ["footing","ब · फुटिंग सामग्री","सीमेंट, रेत, बजरी → देयक पंक्ति 2"],
                    ["labour","स · श्रमिक कार्य","→ देयक पंक्ति 3"],
                    ["other","अन्य","→ देयक पंक्ति 4"]]
@@ -252,21 +257,24 @@ export default function KisanAavedanPortal() {
         function calc(){
           const isF = S.scheme==="fencing";
           const parts = isF ? [
-              ["सामग्री — चेनलिंग / कंटीले वायर, एंगल आयरन, नटबोल्ट आदि", sum("material")],
+              ["सामग्री — चेनलिंक / कंटीले वायर, एंगल आयरन, नटबोल्ट आदि", sum("material")],
               ["फुटिंग सामग्री — सीमेंट, रेत, बजरी", sum("footing")],
-              ["श्रमिक कार्य — गड्ढा खुदान, खम्बों की स्थापना, चेनलिंग / कंटीले वायर लगाना, गेट लगाना आदि", sum("labour")],
+              ["श्रमिक कार्य — गड्ढा खुदान, खम्बों की स्थापना, चेनलिंक / कंटीले वायर लगाना, गेट लगाना आदि", sum("labour")],
               ["अन्य", sum("other")]
-            ] : S.vermi.map(r=>[r.item||"—", COLS.vermi.amt(r)]);
+            ] : [];
 
           const bill = parts.reduce((a,p)=>a+p[1],0);
           const rate = (isF ? num(S.norm.fRate) : num(S.norm.vRate))/100;
           const cap  = num(isF ? S.norm.fCap : S.norm.vCap);
 
           let mb=0, base=0, bases=[], hec=0, allowedLen=0, verifiedLen=0, ratio=1, actualArea=0, standardCost=0, shortfall=0;
+          // FIX: track totalHec separately for display
+          let totalHec = 0;
 
           if(isF){
             mb = mbValue();
             const app = applicationData();
+            totalHec = app.totalHec;
             hec = app.allowedArea ? app.totalHec : 0;
             const std = app.allowedArea ? fenceStandard(hec) : null;
             allowedLen = std ? std.len : 0;
@@ -297,8 +305,9 @@ export default function KisanAavedanPortal() {
             run += s;
             rows.push({name:p[0], amt:p[1], sub:s, own:p[1]-s});
           });
+          // FIX: include totalHec in return
           return {isF, bill, mb, base, bases, rate, sub, own:bill-sub, cap, capped, over: mb>0 && bill>0 && bill>mb,
-                  hec, allowedLen, verifiedLen, mbLen:num(S.f.mbLen), ratio, actualArea, standardCost, shortfall, rows};
+                  hec, totalHec, allowedLen, verifiedLen, mbLen:num(S.f.mbLen), ratio, actualArea, standardCost, shortfall, rows};
         }
 
         function tableHTML(k){
@@ -374,7 +383,7 @@ export default function KisanAavedanPortal() {
           {nali:90,  hec:1.80, len:560, poles:187},
           {nali:100, hec:2.00, len:600, poles:201}
         ];
-        let FENCE_MAP_DATA = null; // Will be populated from API
+        let FENCE_MAP_DATA = null;
         async function loadFenceStandards(){
           try{
             const res = await apiFetch(API_FENCING_LAND_DETAILS);
@@ -388,9 +397,7 @@ export default function KisanAavedanPortal() {
                 poles: num(r.pillars)
               })).filter(x=>x.hec>0).sort((a,b)=>a.hec-b.hec);
             }
-          }catch(e){
-            /* fallback to hardcoded map */
-          }
+          }catch(e){ /* fallback to hardcoded map */ }
         }
         function getFenceMap(){
           return (FENCE_MAP_DATA && FENCE_MAP_DATA.length) ? FENCE_MAP_DATA : FENCE_AREA_MAP;
@@ -413,7 +420,6 @@ export default function KisanAavedanPortal() {
         function rebuildDocs(){
           if(cur==="application" && document.getElementById("applicationOut")) buildApplication();
           if(cur==="bill" && document.getElementById("billOut")) buildBill();
-
         }
         function isFemale(){ return (S.f.gender||"पुरुष")==="महिला"; }
         function G(m,f){ return isFemale()?f:m; }
@@ -595,7 +601,8 @@ export default function KisanAavedanPortal() {
           const joint=affidavitHasCoSharers(d);
           const co=joint ? rows.slice(1).filter(r => num(r.hec)>0 || String(r.name||"").trim() || String(r.relation||"").trim()) : [];
           const value=(v)=>esc(String(v||"").trim()||"…………");
-          const total=d.allowedArea ? Number(d.totalHec).toFixed(2) : "…………";
+          // FIX: use totalHec directly instead of allowedArea
+          const total=d.totalHec>0 ? Number(d.totalHec).toFixed(2) : "…………";
           const type=joint ? "संयुक्त भूमि / सह-खातेदार वाला शपथ-पत्र" : "सामान्य शपथ-पत्र";
           return `<div class="aff-preview noprint" id="affidavitInfoPreview">
             <div class="aff-preview-title">शपथ-पत्र हेतु स्वतः भरने वाली जानकारी — ${type}</div>
@@ -719,11 +726,17 @@ export default function KisanAavedanPortal() {
                 <tr>
                   <td style="text-align:center">${i+1}</td>
                   <td><input data-land="${i}" data-k="relation" value="${esc(r.relation||"")}" placeholder="भूमि किसकी / विवरण"></td>
-                  <td><input data-land="${i}" data-k="name" value="${esc(r.name||S.f.name||"")}" placeholder="नाम खतौनी अनुसार"></td>
-                  <td><input data-land="${i}" data-k="father" value="${esc(r.father||S.f.father||"")}" placeholder="पिता का नाम"></td>
-                  <td><input data-land="${i}" data-k="village" value="${esc(r.village||S.f.village||"")}" placeholder="ग्राम"></td>
+                  <td>${i===0
+                    ? `<input class="landSelfName" value="${esc(S.f.name||"")}" placeholder="नाम खतौनी अनुसार" readonly tabindex="-1">`
+                    : `<input data-land="${i}" data-k="name" value="${esc(r.name||"")}" placeholder="नाम खतौनी अनुसार">`}</td>
+                  <td>${i===0
+                    ? `<input class="landSelfFather" value="${esc(S.f.father||"")}" placeholder="पिता का नाम" readonly tabindex="-1">`
+                    : `<input data-land="${i}" data-k="father" value="${esc(r.father||"")}" placeholder="पिता का नाम">`}</td>
+                  <td><input class="landVil" value="${esc(S.f.village||"")}" placeholder="ग्राम" readonly tabindex="-1"></td>
                   <td><input data-land="${i}" data-k="khasra" value="${esc(r.khasra||"")}" placeholder="खसरा / खतौनी सं०"></td>
-                  <td><input data-land="${i}" data-k="aadhaar" value="${esc(r.aadhaar||S.f.aadhar||"")}" inputmode="numeric" maxlength="12" placeholder="आधार संख्या"></td>
+                  <td>${i===0
+                    ? `<input class="landSelfAadhaar" value="${esc(S.f.aadhar||"")}" placeholder="आधार संख्या" readonly tabindex="-1">`
+                    : `<input data-land="${i}" data-k="aadhaar" value="${esc(r.aadhaar||"")}" inputmode="numeric" maxlength="12" placeholder="आधार संख्या">`}</td>
                   <td><input data-land="${i}" data-k="hec" inputmode="decimal" value="${esc(r.hec||"")}" placeholder="हे०"></td>
                   <td class="noprint" style="text-align:center">${i===0 ? "" : `<button type="button" class="land-remove" data-land-del="${i}" title="यह पंक्ति हटाएँ">×</button>`}</td>
                 </tr>`).join("")}
@@ -752,8 +765,7 @@ export default function KisanAavedanPortal() {
             <p class="appnote noprint" style="margin-top:6px">
               फेंसिंग के लिए ऊपर दर्ज सभी भूमि पंक्तियों का क्षेत्रफल जोड़कर कुल क्षेत्रफल निकलेगा। यही कुल क्षेत्रफल ऊपर दी गयी मैपिंग तालिका के किसी एक निर्धारित अंक से हूबहू मिलना आवश्यक है। कुल क्षेत्रफल किसी भी निर्धारित अंक से मेल नहीं होने पर किसान का फेंसिंग आवेदन लागू नहीं माना जाएगा।
             </p>
-            <p class="appnote noprint" style="margin-top:6px">आवश्यकतानुसार सह-खातेदार / भूमि की नई पंक्ति जोड़ें; अनुपयोगी पंक्ति को × से हटाया जा सकता है। कुल क्षेत्रफल सभी भरी गयी पंक्तियों से स्वतः निकलेगा।</p>
-            <p class="appnote noprint" style="margin-top:6px">पहली पंक्ति (स्वयं) के «नाम», «पिता का नाम», «ग्राम» एवं «आधार संख्या» यदि खाली हों तो ऊपर <b>1. ${applicantWord()} का विवरण</b> से स्वतः भर दिए जाते हैं। हर पंक्ति के सभी कॉलम यहाँ स्वतंत्र रूप से बदले जा सकते हैं। «खसरा / खतौनी सं०» प्रत्येक सह-खातेदार की पंक्ति में अलग-अलग भरें। कुल क्षेत्रफल सभी पंक्तियों के योग से निकलता है।</p>
+            <p class="appnote noprint" style="margin-top:6px">«नाम», «पिता का नाम» (पहली पंक्ति — स्वयं) एवं «ग्राम» कॉलम ऊपर <b>1. ${applicantWord()} का विवरण</b> में भरे गये विवरण से स्वतः भरते हैं — यहाँ अलग से टाइप करने की आवश्यकता नहीं। «खसरा / खतौनी सं०» एवं «आधार संख्या» प्रत्येक सह-खातेदार की पंक्ति में अलग-अलग भरें — पहली पंक्ति (स्वयं) का आधार संख्या आवेदन विवरण से स्वतः आएगा।</p>
             ${saveBar("farmers","भूमि / सह-खातेदार विवरण")}
             <h5>4. सारांश — क्षेत्रफल, फेंसिंग एवं राजसहायता</h5>
             <table>
@@ -832,7 +844,15 @@ export default function KisanAavedanPortal() {
           const standard = d.totalHec>0 ? Math.round(d.totalHec*(num(S.norm.fCostHa)||200000)) : 0;
           const subsidy=standard>0 ? Math.round(standard*rate/100) : 0;
           const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+          // FIX: sync readonly fields from S.f to first row DOM elements
+          document.querySelectorAll('#applicationOut .landVil').forEach(el=>{ el.value = S.f.village||""; });
+          document.querySelectorAll('#applicationOut .landSelfName').forEach(el=>{ el.value = S.f.name||""; });
+          document.querySelectorAll('#applicationOut .landSelfFather').forEach(el=>{ el.value = S.f.father||""; });
+          const ownAad = document.querySelector('#applicationOut .landSelfAadhaar');
+          if(ownAad) ownAad.value = S.f.aadhar || "";
+          // FIX: also sync S.landRows[0] from S.f for saving
           syncSelfRowFields();
+
           const h3=document.querySelector('#applicationOut h3');
           if(h3) h3.textContent = (S.f.planType||"जिला योजना")+" अन्तर्गत "+fenceHeading()+" हेतु";
           const totalCell=document.querySelector('#applicationOut .landtable .tot .calc');
@@ -947,7 +967,7 @@ export default function KisanAavedanPortal() {
                 <div class="serial-title">4. एम०बी० (मापपुस्तिका) के अनुसार मूल्यांकन — कनिष्ठ अभियन्ता द्वारा तैयार</div>
                 <div class="kv">
                   <div class="r"><b>मापी गयी वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="mbLen" inputmode="decimal" value="${esc(S.f.mbLen||"")}"><b> मी०</b></div>
-                  <div class="r"><b>अथवा सीधे एम०बी० धनराशि:</b><input class="ln rt sm" data-f="mbAmt" inputmode="decimal"><b> ₹</b><span style="font-size:12px;color:#4A5A50" id="oMbSrc"></span></div>
+                  <div class="r"><b>अथवा सीधे एम०बी० धनराशि:</b><input class="ln rt sm" data-f="mbAmt" inputmode="decimal" value="${esc(S.f.mbAmt||"")}"><b> ₹</b><span style="font-size:12px;color:#4A5A50" id="oMbSrc"></span></div>
                   <div class="r"><b>एम०बी० मूल्यांकन धनराशि:</b><span class="auto" id="oMb"></span></div>
                 </div>
               </div>
@@ -955,7 +975,7 @@ export default function KisanAavedanPortal() {
                 <div class="serial-title">5. प्रभारी द्वारा स्थलीय सत्यापन</div>
                 <div class="kv">
                   <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><span class="auto" id="oAllowed"></span> मी०</div>
-                  <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="verifiedLen" inputmode="decimal"><b> मी०</b></div>
+                  <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen||"")}"><b> मी०</b></div>
                   <div class="r"><b>कार्य में कमी:</b><span class="auto" id="oShort"></span> मी०</div>
                   <div class="r"><b>वास्तविक क्षेत्रफल (कमी समायोजित):</b><span class="auto" id="oActualArea"></span> हे०</div>
                   <div class="r"><b id="oStdLabel">मानक लागत: वास्तविक क्षेत्रफल (— हे०) × ₹2,00,000 प्रति हे०:</b><span class="auto" id="oStdCost"></span></div>
@@ -1023,8 +1043,10 @@ export default function KisanAavedanPortal() {
           set("tA",fmtN(c.bill)); set("tS",fmtN(c.sub)); set("tO",fmtN(c.own));
           set("oRate",(c.rate*100).toFixed(0)+"%");
           if(S.scheme==="fencing"){
-            const m = fenceStandard(c.hec);
-            set("oArea", c.hec>0 ? c.hec.toFixed(2) : "…………");
+            // FIX: use totalHec (actual entered area) for display, not c.hec (which is 0 when not allowed)
+            const dispHec = (c.totalHec||0) > 0 ? c.totalHec : c.hec;
+            const m = fenceStandard(dispHec);
+            set("oArea", dispHec>0 ? dispHec.toFixed(2) : "…………");
             set("oFenceLen", m ? fmtN(m.len).replace(/\.00$/,"") : "…………");
             set("oPoles", m ? fmtN(m.poles).replace(/\.00$/,"") : "…………");
           }
@@ -1080,25 +1102,21 @@ export default function KisanAavedanPortal() {
             if(c.mb>0 && c.bill>0 && c.bill>c.mb){
               flag += `<div class="flag bad">बिल का योग एम०बी० मूल्यांकन से ${fmt0(c.bill-c.mb)} अधिक है — अन्तर कृषक द्वारा स्वयं वहन किया जाएगा।</div>`;
             }
-          }else{
-            if(c.over) flag = `<div class="flag bad">बिल का योग एम०बी० मूल्यांकन से ${fmt0(c.bill-c.mb)} अधिक है।
-              राजसहायता एम०बी० धनराशि ${fmt0(c.mb)} पर ही देय होगी — अन्तर की धनराशि कृषक द्वारा स्वयं वहन की जाएगी।</div>`;
-            else if(c.mb && c.bill && c.bill<c.mb) flag = `<div class="flag ok">बिल का योग एम०बी० मूल्यांकन से कम है — राजसहायता बिल की धनराशि पर देय।</div>`;
-            else if(c.mb && c.bill) flag = `<div class="flag ok">बिल एवं एम०बी० का मिलान सही है।</div>`;
           }
           if(c.capped) flag += `<div class="flag bad">गणना अधिकतम सीमा ${fmt0(c.cap)} से अधिक थी — राजसहायता सीमा तक ही देय।</div>`;
           set("oFlag",flag);
-          document.getElementById("sBill").textContent = fmt0(c.bill);
-          document.getElementById("sMb").textContent   = c.mb?fmt0(c.mb):"—";
-          document.getElementById("sSub").textContent  = fmt0(c.sub);
-          document.getElementById("sOwn").textContent  = fmt0(c.own);
-          document.getElementById("sRate").textContent = c.bill?`(${(c.rate*100).toFixed(0)}%)`:"";
+          const sBill=document.getElementById("sBill"); if(sBill) sBill.textContent = fmt0(c.bill);
+          const sMb=document.getElementById("sMb"); if(sMb) sMb.textContent = c.mb?fmt0(c.mb):"—";
+          const sSub=document.getElementById("sSub"); if(sSub) sSub.textContent = fmt0(c.sub);
+          const sOwn=document.getElementById("sOwn"); if(sOwn) sOwn.textContent = fmt0(c.own);
+          const sRate=document.getElementById("sRate"); if(sRate) sRate.textContent = c.bill?`(${(c.rate*100).toFixed(0)}%)`:"";
           const m=document.getElementById("sMsg");
-          m.className = "msg" + (c.over?" bad":"");
-          m.textContent = !c.bill ? "व्यय विवरण भरना प्रारम्भ करें"
-            : c.over ? `बिल एम०बी० से ${fmt0(c.bill-c.mb)} अधिक — राजसहायता एम०बी० पर ही देय`
-            : `राजसहायता शब्दों में: ${words(c.sub)} रुपये मात्र`;
-
+          if(m){
+            m.className = "msg" + (c.over?" bad":"");
+            m.textContent = !c.bill ? "व्यय विवरण भरना प्रारम्भ करें"
+              : c.over ? `बिल एम०बी० से ${fmt0(c.bill-c.mb)} अधिक — राजसहायता एम०बी० पर ही देय`
+              : `राजसहायता शब्दों में: ${words(c.sub)} रुपये मात्र`;
+          }
         }
         function refreshWorkTotals(){
           document.querySelectorAll("#workBody table").forEach(tb=>{
@@ -1112,9 +1130,7 @@ export default function KisanAavedanPortal() {
           refresh();
         }
 
-        /* =========================================================
-           SERVER API — फॉर्म पंजीकरण एवं चरण-दर-चरण सहेजना (PUT)
-           ========================================================= */
+        /* SERVER API */
         const apiFetch = async (url, options = {}) => {
           const method = (options.method || "GET").toUpperCase();
           return fetch(url, { ...options, method, credentials: "omit" });
@@ -1151,7 +1167,6 @@ export default function KisanAavedanPortal() {
             el.textContent = FORM_ID ? ("फॉर्म: " + FORM_ID) : "— कोई फॉर्म चयनित नहीं —";
             el.classList.toggle("active", !!FORM_ID);
           }
-
         }
         function pickFormId(data){
           if(!data) return "";
@@ -1162,8 +1177,6 @@ export default function KisanAavedanPortal() {
           if(data.id && data.form_id === undefined && data.full_name) return data.id;
           return "";
         }
-        /* सर्वर पर center_name छोटे रूप ("कोटद्वार") में रखा जाता है,
-           इसलिए POST और GET दोनों में यही रूप भेजा जाता है। */
         function apiCenterName(){
           const raw = (AUTH_CENTER||"").trim();
           if(!raw) return "";
@@ -1173,9 +1186,6 @@ export default function KisanAavedanPortal() {
         function centerFilter(){
           return apiCenterName() || AUTH_CENTER;
         }
-        /* API टुपल में [item, qty, unit, rate, amount] पाँच अंग हैं;
-           UI के शेष कॉलम (आपूर्तिकर्ता, बिल सं०, प्राप्तकर्ता आदि) उन्हीं के
-           बाद अतिरिक्त अंगों में भेजे जाते हैं ताकि PUT के बाद भी बने रहें। */
         const EXTRA = { material:["sup","bill"], footing:["sup"], labour:[], other:["name","vil","aad"] };
         function expenseTuples(section){
           const ex = EXTRA[section] || [];
@@ -1294,10 +1304,6 @@ export default function KisanAavedanPortal() {
             if(btn) btn.disabled=false;
           }
         }
-        /* ---------- DELETE: फॉर्म हटाना ----------
-           DELETE {API_FENCING}
-           body: { "form_ids": ["FORM-000003", ...] }
-           उत्तर: { "form_ids": ["शेष फॉर्म आईडी", ...] } */
         async function apiDelete(formIds){
           const ids=(Array.isArray(formIds) ? formIds : [formIds]).map(x=>String(x||"").trim()).filter(Boolean);
           if(!ids.length){ apiMsg("फॉर्म आईडी नहीं मिली — हटाया नहीं जा सका।","bad"); return false; }
@@ -1316,8 +1322,6 @@ export default function KisanAavedanPortal() {
               const el=document.getElementById("curFormId");
               if(el) el.textContent = "— कोई फॉर्म चयनित नहीं —";
             }
-            /* सर्वर जो form_ids लौटाता है वही अब अधिकारिक सूची है,
-               अन्यथा केवल हटाए गए पंक्तियाँ ही निकाल दें। */
             REG_ROWS = left
               ? REG_ROWS.filter(r => left.includes(String((r.form_id || (r.personal_details||{}).form_id) || "")))
               : REG_ROWS.filter(r => !ids.includes(String((r.form_id || (r.personal_details||{}).form_id) || "")));
@@ -1398,7 +1402,7 @@ export default function KisanAavedanPortal() {
           else apiMsg("✗ " + ok + " / " + SAVE_STEPS.length + " चरण ही सहेजे जा सके।", "bad");
         }
 
-        /* ---------- GET: पंजीकृत फॉर्म सूची ---------- */
+        /* GET: पंजीकृत फॉर्म सूची */
         const GENDER_BACK = { male:"पुरुष", पुरुष:"पुरुष", female:"महिला", महिला:"महिला" };
         const CAT_BACK = { general:"सामान्य", सामान्य:"सामान्य", obc:"OBC", sc:"SC", st:"ST", female:"महिला" };
         const FARMER_BACK = { "small farmer":"लघु", "small":"लघु", लघु:"लघु", marginal:"सीमांत", "border farmer":"सीमांत",
@@ -1541,6 +1545,8 @@ export default function KisanAavedanPortal() {
                 aadhaar: arr[4]||"", hec: hec>0 ? String(hec) : ""
               };
             });
+            // FIX: ensure at least 5 rows
+            while(S.landRows.length < 5) S.landRows.push({relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""});
           }else{
             S.landRows = blank().landRows;
           }
@@ -1565,8 +1571,6 @@ export default function KisanAavedanPortal() {
           loadRows("labour",   e.labour_expenses,   "work");
           loadRows("other",    e.other_expenses,    "item");
         }
-        /* टैब सीधे खोलने पर प्रपत्र सदैव खाली रहता है — भरा हुआ प्रपत्र
-           केवल पंजीकरण तालिका से 'प्रपत्र भरें' दबाने पर ही आता है। */
         let fillLocked = false;
         function resetFill(){
           S = blank();
@@ -1633,11 +1637,9 @@ export default function KisanAavedanPortal() {
               S.f.mob = mob.trim();
               S.f.gardenCard = "";
               S.f.plants = "";
-              S.landRows = [{relation:"स्वयं",name:name.trim(),father:"",village:"",khasra:"",aadhaar:"",hec:""},
-                            {relation:"भाई",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},
-                            {relation:"पुत्र",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},
-                            {relation:"पिता",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},
-                            {relation:"अन्य",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""}];
+              // FIX: use blank().landRows to preserve default hec:"0.40"
+              S.landRows = blank().landRows;
+              S.landRows[0].name = name.trim();
 
               const rec=findRecord(newId);
               if(rec) applyRecord(rec);
@@ -1689,21 +1691,14 @@ export default function KisanAavedanPortal() {
 
         function validateFenceAreaValue(i){ return true; }
 
-        /* पहली पंक्ति (स्वयं) के खाली बकाने आवेदक विवरण से भर दिए जाते हैं —
-           भरे हुए बकाने कभी नहीं बदले जाते, ताकि कहाँ भी हाथ से सुधारा जा सके। */
+        // FIX: always sync from S.f to S.landRows[0] (not just when empty)
         function syncSelfRowFields(){
           const row = (S.landRows||[])[0];
           if(!row) return;
-          const pairs = [["name",S.f.name],["father",S.f.father],["village",S.f.village],["aadhaar",S.f.aadhar]];
-          pairs.forEach(([k,v])=>{
-            const val = String(v||"").trim();
-            if(!val) return;
-            if(!String(row[k]||"").trim()){
-              row[k] = val;
-              const el=document.querySelector(`#applicationOut input[data-land="0"][data-k="${k}"]`);
-              if(el) el.value = val;
-            }
-          });
+          row.name = S.f.name || "";
+          row.father = S.f.father || "";
+          row.village = S.f.village || "";
+          row.aadhaar = S.f.aadhar || "";
         }
 
         function setFenceMappingPrintRow(){
@@ -1720,7 +1715,8 @@ export default function KisanAavedanPortal() {
           const t=e.target;
           if(t.dataset.land){
             const i=+t.dataset.land, k=t.dataset.k;
-            if(!S.landRows) S.landRows=[{relation:"स्वयं",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},{relation:"भाई",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},{relation:"पुत्र",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},{relation:"पिता",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""},{relation:"अन्य",name:"",father:"",village:"",khasra:"",aadhaar:"",hec:""}];
+            if(!S.landRows) S.landRows=[{relation:"स्वयं",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"भाई",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पुत्र",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पिता",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""}];
+            if(!S.landRows[i]) S.landRows[i]={relation:"",hec:"",aadhaar:""};
             if(["relation","hec","name","father","village","khasra","aadhaar"].includes(k)) S.landRows[i][k]=t.value;
             const validArea = k==="hec" ? validateFenceAreaValue(i) : true;
             updateApplicationDerived(); return;
@@ -1761,7 +1757,6 @@ export default function KisanAavedanPortal() {
             if(!S.landRows) S.landRows=[];
             S.landRows.push({relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""});
             buildApplication();
-
             return;
           }
           if(b.dataset.landDel!==undefined){
@@ -1769,7 +1764,6 @@ export default function KisanAavedanPortal() {
             if(i>0 && S.landRows && i<S.landRows.length){
               S.landRows.splice(i,1);
               buildApplication();
-
             }
             return;
           }
@@ -1781,10 +1775,14 @@ export default function KisanAavedanPortal() {
           else if(b.dataset.del){ const k=b.dataset.del; S[k].splice(+b.dataset.i,1); if(!S[k].length) S[k].push({}); buildWork(); refresh(); }
           else if(b.dataset.go){ show(b.dataset.go); }
         });
-        document.getElementById("bGo").onclick    = ()=>{ showTab("filling"); show("bill"); };
-        document.getElementById("regForm").addEventListener("submit", registerUser);
-        document.getElementById("regRefresh").onclick = ()=>loadRegistrations();
-        document.getElementById("btnSaveAll").onclick = ()=>saveAllSteps();
+        const bGoEl=document.getElementById("bGo");
+        if(bGoEl) bGoEl.onclick = ()=>{ showTab("filling"); show("bill"); };
+        const regFormEl=document.getElementById("regForm");
+        if(regFormEl) regFormEl.addEventListener("submit", registerUser);
+        const regRefreshEl=document.getElementById("regRefresh");
+        if(regRefreshEl) regRefreshEl.onclick = ()=>loadRegistrations();
+        const btnSaveAllEl=document.getElementById("btnSaveAll");
+        if(btnSaveAllEl) btnSaveAllEl.onclick = ()=>saveAllSteps();
         function printCurrent(){
           const root=rootRef.current;
           if(!root) return;
@@ -1817,8 +1815,6 @@ export default function KisanAavedanPortal() {
           sheet.className="pv-sheet";
           const clone=target.cloneNode(true);
           clone.classList.add("on");
-          /* cloneNode केवल value एट्रिब्यूट कॉपी करता है — टाइप किए गए मान
-             स्क्रीन पर रहते हैं, अतः लाइव मान क्लोन में भी भर देते हैं। */
           const liveFields=target.querySelectorAll("input,select,textarea");
           const cloneFields=clone.querySelectorAll("input,select,textarea");
           for(let i=0;i<liveFields.length;i++){
@@ -1839,10 +1835,14 @@ export default function KisanAavedanPortal() {
           const body=document.getElementById("pvBody");
           if(body) body.innerHTML="";
         }
-        document.getElementById("bPreview").onclick = openPreview;
-        document.getElementById("pvClose").onclick   = closePreview;
-        document.getElementById("pvPrint").onclick   = ()=>{ closePreview(); printCurrent(); };
-        document.getElementById("pvOverlay").addEventListener("click", e=>{
+        const bPreviewEl=document.getElementById("bPreview");
+        if(bPreviewEl) bPreviewEl.onclick = openPreview;
+        const pvCloseEl=document.getElementById("pvClose");
+        if(pvCloseEl) pvCloseEl.onclick = closePreview;
+        const pvPrintEl=document.getElementById("pvPrint");
+        if(pvPrintEl) pvPrintEl.onclick = ()=>{ closePreview(); printCurrent(); };
+        const pvOverlayEl=document.getElementById("pvOverlay");
+        if(pvOverlayEl) pvOverlayEl.addEventListener("click", e=>{
           if(e.target === e.currentTarget) closePreview();
         });
         document.addEventListener("keydown", e=>{
@@ -1850,16 +1850,12 @@ export default function KisanAavedanPortal() {
         });
         window.addEventListener("beforeprint", ()=>{ closePreview(); });
 
-        /* कोई स्थानीय संग्रहण नहीं — प्रपत्र पूरी तरह गतिशील है,
-           आँकड़े केवल सर्वर से लेकर भरे जाते हैं। */
         document.getElementById("scheme").value = S.scheme;
         setFormId("");
         AUTH_CENTER = authCenter;
         showTab("register");
         loadRegistrations();
         loadFenceStandards();
-        /* प्रिंट के बाद अस्थायी वर्ग हटा देते हैं, ताकि फॉर्म-टेबल शैली
-           केवल प्रिंट/पूर्वावलोकन में ही लागू हो, स्क्रीन पर नहीं। */
         function clearPrintTarget(){
           const r = rootRef.current;
           if(r) r.querySelectorAll(".print-target, .has-print-target").forEach(v=>v.classList.remove("print-target","has-print-target"));
