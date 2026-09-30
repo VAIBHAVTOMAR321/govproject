@@ -526,7 +526,7 @@
   vertical-align: middle;
 }
 .drag-fruits-root th {
-  background: #e3edf5;
+  background: #1e6091;
   text-align: center;
   color: var(--primary-darker);
   font-size: 11px;
@@ -1241,3 +1241,37 @@
   .drag-fruits-root table { min-width: 0; }
 }
 
+/* ========================================================================
+   Print Rules (Mandatory for Print Buttons)
+   ======================================================================== */
+@media print {
+  .noprint, .side-tabs, .side-toggle, .side-backdrop, .workflow-card { display: none !important; }
+  
+  /* Override inline display:none for printing */
+  #applicationPrint, #report, #affidavitPrint, #consentPrint, #anudanPrint { display: none !important; }
+  
+  body.print-app #applicationPrint { display: block !important; }
+  body.print-project #report { display: block !important; }
+  body.print-affidavit #affidavitPrint { display: block !important; }
+  body.print-consent #consentPrint { display: block !important; }
+  body.print-anudan #anudanPrint { display: block !important; }
+  
+  body.print-affidavit-all #affidavitPrint, 
+  body.print-affidavit-all #consentPrint { display: block !important; }
+  
+  body.print-selected #applicationPrint,
+  body.print-selected #report,
+  body.print-selected #affidavitPrint,
+  body.print-selected #consentPrint,
+  body.print-selected #anudanPrint { display: none !important; }
+  
+  body.print-selected.print-sel-application #applicationPrint { display: block !important; }
+  body.print-selected.print-sel-project #report { display: block !important; }
+  body.print-selected.print-sel-affidavit #affidavitPrint { display: block !important; }
+  body.print-selected.print-sel-consent #consentPrint { display: block !important; }
+  body.print-selected.print-sel-anudan #anudanPrint { display: block !important; }
+
+  .drag-fruits-root { padding: 0 !important; background: #fff !important; display: block !important; }
+  .wrap { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+  .card { box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
+}

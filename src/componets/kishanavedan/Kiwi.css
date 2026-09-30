@@ -1235,3 +1235,34 @@
   .table-wrap { overflow: visible; }
   .kiwi-root table { min-width: 0; }
 }
+/* ========================================================================
+   Print Rules (Mandatory for Print Buttons)
+   ======================================================================== */
+@media print {
+  /* Override kiwi.css's default print rule that hides everything */
+  body.print-app #applicationPrint,
+  body.print-project #report,
+  body.print-affidavit #affidavitPrint,
+  body.print-consent #consentPrint,
+  body.print-anudan #anudanPrint { display: block !important; }
+  
+  body.print-affidavit-all #affidavitPrint, 
+  body.print-affidavit-all #consentPrint { display: block !important; }
+
+  body.print-selected #applicationPrint,
+  body.print-selected #report,
+  body.print-selected #affidavitPrint,
+  body.print-selected #consentPrint,
+  body.print-selected #anudanPrint { display: none !important; }
+  
+  body.print-selected.print-sel-application #applicationPrint { display: block !important; }
+  body.print-selected.print-sel-project #report { display: block !important; }
+  body.print-selected.print-sel-affidavit #affidavitPrint { display: block !important; }
+  body.print-selected.print-sel-consent #consentPrint { display: block !important; }
+  body.print-selected.print-sel-anudan #anudanPrint { display: block !important; }
+
+  .kiwi-root { padding: 0 !important; background: #fff !important; display: block !important; }
+  .wrap { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+  .card { box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .hidden { display: none !important; }
+}
