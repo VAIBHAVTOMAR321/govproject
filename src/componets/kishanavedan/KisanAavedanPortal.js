@@ -188,6 +188,16 @@ export default function KisanAavedanPortal() {
         const fmtN = n => (Number(n)||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
         const esc  = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+        // Helper to safely replace innerHTML without crashing on focused elements
+        const safeSetHTML = (id, html) => {
+          const el = document.getElementById(id);
+          if(!el) return;
+          if(document.activeElement && el.contains(document.activeElement)) {
+            try { document.activeElement.blur(); } catch(e){}
+          }
+          el.innerHTML = html;
+        };
+
         const ONE=["","एक","दो","तीन","चार","पाँच","छह","सात","आठ","नौ","दस","ग्यारह","बारह","तेरह","चौदह","पन्द्रह","सोलह","सत्रह","अठारह","उन्नीस",
         "बीस","इक्कीस","बाईस","तेईस","चौबीस","पच्चीस","छब्बीस","सत्ताईस","अट्ठाईस","उनतीस","तीस","इकतीस","बत्तीस","तैंतीस","चौंतीस","पैंतीस","छत्तीस","सैंतीस","अड़तीस","उनतालीस",
         "चालीस","इकतालीस","बयालीस","तैंतालीस","चवालीस","पैंतालीस","छियालीस","सैंतालीस","अड़तालीस","उनचास","पचास","इक्यावन","बावन","तिरेपन","चौवन","पचपन","छप्पन","सत्तावन","अट्ठावन","उनसठ",
@@ -333,15 +343,14 @@ export default function KisanAavedanPortal() {
           return h;
         }
         function buildLists(){
-          document.getElementById("datalists").innerHTML =
-            Object.keys(DL).map(i=>`<datalist id="${i}">`+(S.lists[DL[i]]||[]).map(v=>`<option value="${esc(v)}">`).join("")+"</datalist>").join("");
+          safeSetHTML("datalists", Object.keys(DL).map(i=>`<datalist id="${i}">`+(S.lists[DL[i]]||[]).map(v=>`<option value="${esc(v)}">`).join("")+"</datalist>").join(""));
         }
         function buildStandards(){
           const body=document.getElementById("standardsBody");
           const title=document.getElementById("standardsTitle");
           if(!body) return;
           title.textContent="फेंसिंग राजसहायता के मानक";
-          body.innerHTML=`<div class="grid">
+          safeSetHTML("standardsBody", `<div class="grid">
             <div><label class="f">फेंसिंग राजसहायता दर (%) — सभी श्रेणियों के लिए समान</label>
               <select data-norm="fRate"><option value="50">50%</option><option value="80">80%</option></select></div>
             <div><label class="f">इकाई लागत ₹ प्रति हेक्टेयर</label><input data-norm="fCostHa" inputmode="decimal" placeholder="2,00,000"></div>
@@ -349,7 +358,7 @@ export default function KisanAavedanPortal() {
           </div>
           <p class="lead" style="margin:12px 0 0">विभागीय मानक: इकाई लागत ₹2,00,000 प्रति हेक्टेयर। लागत सदैव क्षेत्रफल (हे०) से बनती है, मीटर से गुणा करके नहीं।
           सत्यापित लम्बाई अनुमन्य लम्बाई से जितनी कम हो, उसी अनुपात में क्षेत्रफल घटाकर मानक लागत निकाली जाती है।
-          राजसहायता तीन आधारों — <b>बिल / वाउचर का योग</b>, <b>एम०बी० मूल्यांकन</b>, तथा <b>मानक लागत</b> — इनमें से जो <b>न्यूनतम</b> हो, उस पर देय होगी।</p>`;
+          राजसहायता तीन आधारों — <b>बिल / वाउचर का योग</b>, <b>एम०बी० मूल्यांकन</b>, तथा <b>मानक लागत</b> — इनमें से जो <b>न्यूनतम</b> हो, उस पर देय होगी।</p>`);
           body.querySelectorAll("[data-norm]").forEach(el=>el.value=S.norm[el.dataset.norm]);
         }
         function buildWork(){
@@ -357,8 +366,8 @@ export default function KisanAavedanPortal() {
           document.getElementById("workLead").textContent = S.scheme==="fencing"
             ? "बिल एवं वाउचर के अनुसार पूरा व्यय भरें। हर अनुभाग का योग अपने आप देयक की सम्बन्धित पंक्ति में चला जाएगा।"
             : "इकाई निर्माण पर हुआ पूरा व्यय भरें। हर पंक्ति में पहले कार्य / विवरण चुनें, फिर उसी के सामने बिल राशि डालें।";
-          document.getElementById("workBody").innerHTML = SECTIONS[S.scheme].map(([k,t,n])=>
-            `<div class="card"><div class="cap"><i></i>${t}<small>${n}</small></div><div class="pad">${tableHTML(k)}${saveBar(k, SAVE_LABELS[k]||t)}</div></div>`).join("");
+          safeSetHTML("workBody", SECTIONS[S.scheme].map(([k,t,n])=>
+            `<div class="card"><div class="cap"><i></i>${t}<small>${n}</small></div><div class="pad">${tableHTML(k)}${saveBar(k, SAVE_LABELS[k]||t)}</div></div>`).join(""));
           buildLists();
           const mapCard=document.getElementById("fenceMapCard");
           if(mapCard) mapCard.style.display = S.scheme==="fencing" ? "" : "none";
@@ -512,7 +521,7 @@ export default function KisanAavedanPortal() {
               <div class="aff-sign-plain">
                 <div><b>${G("शपथकर्ता","शपथकर्त्री")} / कृषक</b></div>
                 <div>नाम : ${name}</div>
-                <div>हस्ताक्षर : ${name}</div>
+                <div>हस्ताक्षर : ________________</div>
                 <div>मो० : ${mob}</div>
                 <div>स्थान : ${esc(centerLine())}</div>
                 <div>दिनांक : ${date}</div>
@@ -520,19 +529,19 @@ export default function KisanAavedanPortal() {
             </div>`;
           }
 
-function landDesc(r, i){
-  const rel=String(r.relation||"").trim();
-  const nm=String(r.name||"").trim();
-  if(i===0){
-    if(rel && nm) return `${rel} ${nm} की भूमि`;
-    if(rel) return `${rel} की भूमि`;
-    return "आवेदक की स्वयं की भूमि";
-  }
-  if(rel && nm) return `सह-खातेदार ${rel} ${nm} की भूमि`;
-  if(nm) return `सह-खातेदार ${nm} की भूमि`;
-  if(rel) return `सह-खातेदार ${rel} की भूमि`;
-  return "सह-खातेदार की भूमि";
-}
+          function landDesc(r, i){
+            const rel=String(r.relation||"").trim();
+            const nm=String(r.name||"").trim();
+            if(i===0){
+              if(rel && nm) return `${rel} ${nm} की भूमि`;
+              if(rel) return `${rel} की भूमि`;
+              return "आवेदक की स्वयं की भूमि";
+            }
+            if(rel && nm) return `सह-खातेदार ${rel} ${nm} की भूमि`;
+            if(nm) return `सह-खातेदार ${nm} की भूमि`;
+            if(rel) return `सह-खातेदार ${rel} की भूमि`;
+            return "सह-खातेदार की भूमि";
+          }
 
           const landTableRows = allRows.map((r,i)=>`
             <tr>
@@ -618,10 +627,10 @@ function landDesc(r, i){
 
             <div class="aff-decl">मैंने यह शपथ-पत्र बिना किसी दबाव, भय अथवा प्रलोभन के अपनी स्वतंत्र इच्छा से दिया है और इसमें वर्णित जानकारी मेरे ज्ञान एवं विश्वास के अनुसार सत्य एवं सही है।</div>
 
-<div class="aff-sign-plain">
+            <div class="aff-sign-plain">
               <div><b>आवेदक</b></div>
               <div>नाम : ${name}</div>
-              <div>हस्ताक्षर : ${name}</div>
+              <div>हस्ताक्षर : ________________</div>
               <div>मो० : ${mob}</div>
               <div>स्थान : ${esc(centerLine())}</div>
               <div>दिनांक : ${date}</div>
@@ -629,12 +638,11 @@ function landDesc(r, i){
           </div>
           ${coRows.length ? `
           <div class="affidavit-doc aff-page-break">
-         
             ${consentLetters}
             <div class="aff-sign-plain">
               <div><b>शपथकर्ता / आवेदक</b></div>
               <div>नाम : ${name}</div>
-              <div>हस्ताक्षर : ${name}</div>
+              <div>हस्ताक्षर : ________________</div>
               <div>मो० : ${mob}</div>
               <div>स्थान : ${esc(centerLine())}</div>
               <div>दिनांक : ${date}</div>
@@ -659,7 +667,7 @@ function landDesc(r, i){
             ? `<div class="appbad"><b>फेंसिंग पात्रता:</b> अयोग्य — न्यूनतम 100 पौधे प्रति हे० आवश्यक हैं। वर्तमान ${fmtN(d.plants/d.area)} पौधे/हे०।</div>`
             : `<div class="appok"><b>फेंसिंग पात्रता:</b> पात्र — न्यूनतम 100 पौधे प्रति हे० की शर्त पूरी है।</div>`;
 
-          document.getElementById("applicationOut").innerHTML=`<div class="appdoc">
+          safeSetHTML("applicationOut", `<div class="appdoc">
             <div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div>
             <h3 style="text-decoration:underline">${esc(S.f.planType||"जिला योजना")} अन्तर्गत ${fenceHeading()} हेतु</h3>
             <h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4>
@@ -793,6 +801,14 @@ function landDesc(r, i){
               </tbody>
             </table>
             ${saveBar("expenses","क्षेत्रफल एवं मानक सारांश")}
+            <h5>4.1 फेंसिंग कार्य का वास्तविक मापन एवं एम०बी० विवरण</h5>
+            <table class="landtable infoTable"><tbody>
+              <tr><td class="flabel">मापी गयी वास्तविक लम्बाई (मी०)</td><td><input data-f="mbLen" inputmode="decimal" value="${esc(S.f.mbLen||"")}"></td></tr>
+              <tr><td class="flabel">स्थलीय सत्यापित वास्तविक लम्बाई (मी०)</td><td><input data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen||"")}"></td></tr>
+              <tr><td class="flabel">सीधे एम०बी० धनराशि (₹)</td><td><input data-f="mbAmt" inputmode="decimal" value="${esc(S.f.mbAmt||"")}"></td></tr>
+              <tr><td class="flabel">देय दिनांक</td><td><input data-f="date" type="date" value="${esc(S.f.date||"")}"></td></tr>
+            </tbody></table>
+            ${saveBar("mb","मापन एवं एम०बी० विवरण")}
             <h5>5. घोषणा</h5>
             <div class="appnote">
               • उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं।<br>
@@ -830,7 +846,7 @@ function landDesc(r, i){
               <b>प्रभारी, उद्यान सचल दल केन्द्र :</b> <span class="auto" id="appOfficerCenter">${esc(centerLine())}</span>
             </div>
           </div>
-          ${buildFencingAffidavit(d)}`;
+          ${buildFencingAffidavit(d)}`);
           document.querySelectorAll("#applicationOut [data-f]").forEach(el=>{
             if(el.dataset.f==="fRate") el.value=S.norm.fRate;
             else if(S.f[el.dataset.f]!==undefined) el.value=S.f[el.dataset.f];
@@ -922,7 +938,7 @@ function landDesc(r, i){
           tbl+=`<tr class="tot"><td colspan="2" style="text-align:right">योग</td>
             <td class="calc num" id="tA"></td><td class="calc num" id="tS"></td><td class="calc num" id="tO"></td><td></td></tr></tbody></table>`;
 
-          document.getElementById("billOut").innerHTML = `<div class="doc bill-doc">
+          safeSetHTML("billOut", `<div class="doc bill-doc">
             <div class="bill-header">
               <div class="bill-kicker">उद्यान विभाग · राजसहायता प्रपत्र</div>
               <h3 class="bill-title">${title}</h3>
@@ -1026,12 +1042,12 @@ function landDesc(r, i){
             <div class="decl" style="margin-top:26px">प्रमाणित किया जाता है कि मेरे द्वारा ${planLabel} अन्तर्गत ${kaam} कार्य का स्थलीय निरीक्षण कर लिया गया है। प्रभारी द्वारा सत्यापित वास्तविक ${napName}: <span class="blank" id="oLen"></span> ${mbUnit}। एम०बी० (मापपुस्तिका) के अनुसार मूल्यांकन — कनिष्ठ अभियन्ता द्वारा तैयार; मापी गयी वास्तविक लम्बाई: <span class="blank" id="oMbLen"></span> ${mbUnit}; मूल्यांकन धनराशि: <span class="blank" id="oMb2"></span>। बिल में दर्शायी गयी कुल राशि: <span class="blank" id="oBill2"></span>। बिल, एम०बी० एवं स्थलीय सत्यापन का मिलान करने के उपरान्त लागू आधार पर देय राजसहायता धनराशि <span class="blank" id="oSub2"></span> कृषक को भुगतान हेतु देयक सत्यापित कर संस्तुति सहित अग्रसारित।</div>
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:20px;gap:20px">
               <div style="font-size:13px;color:#4A5A50;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap">
-                प्रभारी का नाम एवं पदनाम —
-                <input class="ln sm" data-f="officer" placeholder="नाम"><input class="ln sm" data-f="desig" placeholder="पदनाम"></div>
+              
+                
               <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
                 हस्ताक्षर प्रभारी<br><span class="auto" id="oOff"></span></div>
             </div>
-          </div>`;
+          </div>`);
           document.querySelectorAll("#billOut [data-f]").forEach(el=>{ if(S.f[el.dataset.f]!==undefined) el.value = S.f[el.dataset.f]; });
           refresh();
         }
@@ -1252,7 +1268,20 @@ function landDesc(r, i){
             payable_subsidy: c.sub,
             subsidy_rate: rateValue(),
             unit_cost_per_hectare: costHa,
-            additional_max_limit: num(S.norm.fCap)
+            additional_max_limit: num(S.norm.fCap),
+            measured_actual_length: num(S.f.mbLen),
+            site_verified_actual_length: num(S.f.verifiedLen),
+            direct_mb_amount: num(S.f.mbAmt),
+            payable_date: S.f.date || null
+          };
+        }
+        function payloadMB(){
+          return {
+            form_id: FORM_ID,
+            measured_actual_length: num(S.f.mbLen),
+            site_verified_actual_length: num(S.f.verifiedLen),
+            direct_mb_amount: num(S.f.mbAmt),
+            payable_date: S.f.date || null
           };
         }
         function payloadSection(section){
@@ -1349,6 +1378,7 @@ function landDesc(r, i){
           { key:"bank",     label:"बैंक विवरण",               build:payloadBank },
           { key:"farmers",  label:"भूमि / सह-खातेदार विवरण", build:payloadFarmers },
           { key:"expenses", label:"क्षेत्रफल एवं मानक",       build:payloadExpenses },
+          { key:"mb",       label:"मापन एवं एम०बी० विवरण",   build:payloadMB },
           { key:"material", label:"सामग्री व्यय",             build:()=>payloadSection("material") },
           { key:"footing",  label:"फुटिंग व्यय",              build:()=>payloadSection("footing") },
           { key:"labour",   label:"श्रमिक व्यय",               build:()=>payloadSection("labour") },
@@ -1533,6 +1563,14 @@ function landDesc(r, i){
           S.norm.fCostHa = uc>0 ? String(uc) : "200000";
           S.norm.fCap = (e.additional_max_limit!==undefined && e.additional_max_limit!==null && String(e.additional_max_limit)!=="")
                         ? String(num(e.additional_max_limit)) : "";
+          if(e.measured_actual_length!==undefined && e.measured_actual_length!==null && String(e.measured_actual_length)!=="")
+            S.f.mbLen = String(num(e.measured_actual_length));
+          if(e.site_verified_actual_length!==undefined && e.site_verified_actual_length!==null && String(e.site_verified_actual_length)!=="")
+            S.f.verifiedLen = String(num(e.site_verified_actual_length));
+          if(e.direct_mb_amount!==undefined && e.direct_mb_amount!==null && String(e.direct_mb_amount)!=="")
+            S.f.mbAmt = String(num(e.direct_mb_amount));
+          if(e.payable_date!==undefined && e.payable_date!==null && String(e.payable_date)!=="")
+            S.f.date = String(e.payable_date);
 
           if(Array.isArray(p.farmer_details) && p.farmer_details.length){
             S.landRows = p.farmer_details.map((row,i)=>{
@@ -1723,7 +1761,6 @@ function landDesc(r, i){
             if(LANG_FIELDS.includes(t.dataset.f)){ rebuildDocs(); }
             else{
               if(cur==="application") updateApplicationDerived();
-              if(cur==="bill") buildBill();
             }
           }
           else if(t.dataset.norm){ S.norm[t.dataset.norm]=t.value; refresh(); if(cur==="application") buildApplication(); }
@@ -1738,7 +1775,7 @@ function landDesc(r, i){
           const t=e.target;
           if(t.dataset.f){ S.f[t.dataset.f]=t.value; refresh();
             if(LANG_FIELDS.includes(t.dataset.f)){ rebuildDocs(); }
-            else { if(cur==="application") updateApplicationDerived(); if(cur==="bill") buildBill(); } }
+            else { if(cur==="application") updateApplicationDerived(); } }
           if(t.id==="appRate"){ S.norm.fRate=t.value; refresh(); if(cur==="application") updateApplicationDerived(); return; }
           if(t.dataset.land){ const i=+t.dataset.land, k=t.dataset.k; if(!S.landRows) S.landRows=[]; if(!S.landRows[i]) S.landRows[i]={relation:"",hec:"",aadhaar:""}; S.landRows[i][k]=t.value; if(k==="hec") validateFenceAreaValue(i); if(cur==="application") { buildApplication(); } return; }
           if(t.id==="scheme"){ S.scheme=t.value; buildApplication(); show("work"); return; }
