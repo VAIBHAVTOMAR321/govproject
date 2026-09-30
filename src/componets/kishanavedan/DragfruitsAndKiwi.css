@@ -1012,6 +1012,32 @@
 }
 
 /* ========================================================================
+   Step anchors — scroll target for workflow badges
+   ======================================================================== */
+.step-anchor {
+  scroll-margin-top: calc(var(--app-header-h) + 16px);
+}
+.step-anchor.step-flash {
+  animation: stepFlash 1.4s ease;
+}
+@keyframes stepFlash {
+  0%, 100% { box-shadow: 0 3px 12px rgba(30, 96, 145, .07); }
+  25% { box-shadow: 0 0 0 3px var(--primary), 0 3px 12px rgba(30, 96, 145, .07); }
+}
+.btns.step-anchor.step-flash { animation: none; box-shadow: 0 0 0 3px var(--primary); }
+.inner-card.step-anchor.step-flash { animation: none; box-shadow: 0 0 0 3px var(--primary); }
+.print-select.step-anchor.step-flash { animation: none; box-shadow: 0 0 0 3px var(--primary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .step-anchor.step-flash,
+  .btns.step-anchor.step-flash,
+  .inner-card.step-anchor.step-flash,
+  .print-select.step-anchor.step-flash {
+    animation: none;
+  }
+}
+
+/* ========================================================================
    RESPONSIVE
 
    Rules of the road:

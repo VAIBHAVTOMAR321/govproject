@@ -1,15 +1,17 @@
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import "../kishanavedan/DragfruitsAndKiwi.css";
 
+const ID_PREFIX = "dragon-";
+
 const APP_STEPS = [
-  { title: "योजना + मूल जानकारी", sub: "योजना, नाम, पिता/पति, लिंग, मोबाइल, पता और आवेदन संख्या" },
-  { title: "भूमि / सह-खातेदार", sub: "स्वयं/सह-खातेदार, संबंध, खाता, खसरा और क्षेत्रफल का exact match" },
-  { title: "बैंक + कार्य निष्पादन", sub: "बैंक विवरण और स्वयं/फर्म द्वारा कार्य" },
-  { title: "दस्तावेज + घोषणा", sub: "संलग्न दस्तावेज और पात्रता/किसान घोषणा" },
-  { title: "मानक बनाएं", sub: "क्षेत्रफल से पूर्ण परियोजना मानक और लागत/राजसहायता" },
-  { title: "शपथ-पत्र / NOC", sub: "स्वयं या सह-खातेदार के अनुसार automatic affidavit/NOC" },
-  { title: "अनुदान देयक", sub: "चरण चुनें, project component से voucher जोड़ें, भुगतान पाने वाला चुनें" },
-  { title: "समीक्षा + Print", sub: "आवेदन, मानक, affidavit/NOC और अनुदान print" },
+  { title: "योजना + मूल जानकारी", sub: "योजना, नाम, पिता/पति, लिंग, मोबाइल, पता और आवेदन संख्या", anchor: "wf-basic" },
+  { title: "भूमि / सह-खातेदार", sub: "स्वयं/सह-खातेदार, संबंध, खाता, खसरा और क्षेत्रफल का exact match", anchor: "wf-land" },
+  { title: "बैंक + कार्य निष्पादन", sub: "बैंक विवरण और स्वयं/फर्म द्वारा कार्य", anchor: "wf-bank" },
+  { title: "दस्तावेज + घोषणा", sub: "संलग्न दस्तावेज और पात्रता/किसान घोषणा", anchor: "wf-docs" },
+  { title: "मानक बनाएं", sub: "क्षेत्रफल से पूर्ण परियोजना मानक और लागत/राजसहायता", anchor: "wf-standard" },
+  { title: "शपथ-पत्र / NOC", sub: "स्वयं या सह-खातेदार के अनुसार automatic affidavit/NOC", anchor: "wf-affidavit" },
+  { title: "अनुदान व्यय", sub: "चरण चुनें, project component से voucher जोड़ें, भुगतान पाने वाला चुनें", anchor: "wf-grant" },
+  { title: "समीक्षा + Print", sub: "आवेदन, मानक, affidavit/NOC और अनुदान print", anchor: "wf-review" },
 ];
 
 const SIDE_TABS = [
@@ -48,6 +50,7 @@ const DragfruitsAndKiwi = () => {
   const [activeSideTab, setActiveSideTab] = useState("view");
   const [workflowStep, setWorkflowStep] = useState(0);
   const [sideOpen, setSideOpen] = useState(false);
+  const [flashAnchor, setFlashAnchor] = useState(null);
   const [headerH, setHeaderH] = useState(0);
   const [footerH, setFooterH] = useState(0);
 
@@ -92,6 +95,25 @@ const DragfruitsAndKiwi = () => {
     document.body.classList.toggle("drag-fruits-lock", sideOpen);
     return () => document.body.classList.remove("drag-fruits-lock");
   }, [sideOpen]);
+
+  useEffect(() => {
+    if (!flashAnchor) return undefined;
+    const t = setTimeout(() => setFlashAnchor(null), 1400);
+    return () => clearTimeout(t);
+  }, [flashAnchor]);
+
+  const goToStep = (i) => {
+    const step = APP_STEPS[i];
+    if (!step) return;
+    setWorkflowStep(i);
+    if (window.matchMedia("(max-width: 1180px)").matches) setSideOpen(false);
+    const el = document.getElementById(`${ID_PREFIX}${step.anchor}`);
+    if (!el) return;
+    setFlashAnchor(step.anchor);
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const anchorCls = (anchor) => `step-anchor ${flashAnchor === anchor ? "step-flash" : ""}`;
 
   const selectSideTab = (id) => {
     setActiveSideTab(id);
@@ -170,7 +192,7 @@ const DragfruitsAndKiwi = () => {
                   className={`workflow-step ${i === workflowStep ? "active" : ""} ${
                     i < workflowStep ? "done" : ""
                   }`}
-                  onClick={() => setWorkflowStep(i)}
+                  onClick={() => goToStep(i)}
                 >
                   {i + 1}. {s.title}
                 </button>
@@ -180,14 +202,14 @@ const DragfruitsAndKiwi = () => {
               <button
                 type="button"
                 className="btn secondary"
-                onClick={() => setWorkflowStep(Math.max(0, workflowStep - 1))}
+                onClick={() => goToStep(Math.max(0, workflowStep - 1))}
               >
                 ← पिछला
               </button>
               <button
                 type="button"
                 className="btn"
-                onClick={() => setWorkflowStep(Math.min(APP_STEPS.length - 1, workflowStep + 1))}
+                onClick={() => goToStep(Math.min(APP_STEPS.length - 1, workflowStep + 1))}
               >
                 {workflowStep === APP_STEPS.length - 1 ? "✓ अंतिम समीक्षा" : "अगला चरण →"}
               </button>
@@ -197,7 +219,10 @@ const DragfruitsAndKiwi = () => {
           </div>
 
           {/* Application Form Section */}
-          <section className="card noprint">
+          <section
+            className={`card noprint ${anchorCls("wf-basic")}`}
+            id={`${ID_PREFIX}wf-basic`}
+          >
             <h2>
               <span className="idx">1</span> कृषक का आवेदन
             </h2>
@@ -279,7 +304,10 @@ const DragfruitsAndKiwi = () => {
             </div>
 
             {/* Land Table */}
-            <div className="inner-card">
+            <div
+              className={`inner-card ${anchorCls("wf-land")}`}
+              id={`${ID_PREFIX}wf-land`}
+            >
               <h3>भूमि एवं कार्य का विवरण</h3>
               <p className="card-intro">
                 <b>स्वयं</b> वाली पहली पंक्ति किसान की ऊपर भरी गई जानकारी से स्वतः भरेगी। यदि
@@ -362,7 +390,10 @@ const DragfruitsAndKiwi = () => {
             </div>
 
             {/* Bank Details */}
-            <div className="inner-card">
+            <div
+              className={`inner-card ${anchorCls("wf-bank")}`}
+              id={`${ID_PREFIX}wf-bank`}
+            >
               <h3>बैंक खाता विवरण</h3>
               <p className="card-intro">अनुदान / राजसहायता भुगतान हेतु किसान के बैंक खाते की जानकारी भरें।</p>
               <div className="grid">
@@ -429,7 +460,10 @@ const DragfruitsAndKiwi = () => {
             </div>
 
             {/* Documents */}
-            <div className="inner-card">
+            <div
+              className={`inner-card ${anchorCls("wf-docs")}`}
+              id={`${ID_PREFIX}wf-docs`}
+            >
               <h3>आवश्यक दस्तावेज</h3>
               <p className="card-intro">प्रत्येक दस्तावेज का प्रारूप चुनें — फाइल नाम यहाँ दिखाई देगी।</p>
               <div className="grid">
@@ -461,7 +495,10 @@ const DragfruitsAndKiwi = () => {
             </div>
 
             {/* Declaration */}
-            <div className="inner-card">
+            <div
+              className={`inner-card ${anchorCls("wf-standard")}`}
+              id={`${ID_PREFIX}wf-standard`}
+            >
               <h3>पात्रता एवं किसान घोषणा</h3>
               <p className="card-intro">आवेदन स्वीकृति हेतु निम्न सभी बिंदुओं का सही उत्तर दें।</p>
               <div className="grid">
@@ -475,7 +512,10 @@ const DragfruitsAndKiwi = () => {
             </div>
 
             {/* Process */}
-            <div className="inner-card">
+            <div
+              className={`inner-card ${anchorCls("wf-affidavit")}`}
+              id={`${ID_PREFIX}wf-affidavit`}
+            >
               <h3>निरीक्षण एवं अनुदान प्रक्रिया</h3>
               <div className="stage-grid">
                 <div className="stage">
@@ -497,7 +537,10 @@ const DragfruitsAndKiwi = () => {
             </div>
 
             <div className="err" />
-            <div className="btns">
+            <div
+              className={`btns ${anchorCls("wf-grant")}`}
+              id={`${ID_PREFIX}wf-grant`}
+            >
               <button type="button" className="btn">✓ आवेदन से किसान-विशिष्ट मानक बनाएं</button>
               <button type="button" className="btn secondary">💾 Draft सुरक्षित करें</button>
               <button type="button" className="btn secondary">↶ Draft लोड करें</button>
@@ -511,7 +554,10 @@ const DragfruitsAndKiwi = () => {
               <button type="button" className="btn gold">🖨️ अनुदान देयक Print</button>
             </div>
 
-            <div className="print-select">
+            <div
+              className={`print-select ${anchorCls("wf-review")}`}
+              id={`${ID_PREFIX}wf-review`}
+            >
               <h3>🖨️ चयनित दस्तावेज एक साथ Print करें</h3>
               <div className="small">
                 आवेदन पत्र में संलग्न दस्तावेज सूची + घोषणा तथा प्रभारी की आख्या स्वतः शामिल हैं।
@@ -669,7 +715,7 @@ const DragfruitsAndKiwi = () => {
                 key={i}
                 type="button"
                 className={`side-step ${i === workflowStep ? "active" : ""}`}
-                onClick={() => setWorkflowStep(i)}
+                onClick={() => goToStep(i)}
               >
                 <span className="num">{i + 1}</span>
                 <div>
