@@ -512,23 +512,27 @@ export default function KisanAavedanPortal() {
               <div class="aff-sign-plain">
                 <div><b>${G("शपथकर्ता","शपथकर्त्री")} / कृषक</b></div>
                 <div>नाम : ${name}</div>
-                <div>हस्ताक्षर : ________________</div>
+                <div>हस्ताक्षर : ${name}</div>
                 <div>मो० : ${mob}</div>
-                <div>स्थान : ________________</div>
+                <div>स्थान : ${esc(centerLine())}</div>
                 <div>दिनांक : ${date}</div>
               </div>
             </div>`;
           }
 
-          function landDesc(r, i){
-            if(i===0) return "आवेदक की स्वयं की भूमि";
-            const rel=String(r.relation||"").trim();
-            const nm=String(r.name||"").trim();
-            if(rel && nm) return `सह-खातेदार ${rel} ${nm} की भूमि`;
-            if(nm) return `सह-खातेदार ${nm} की भूमि`;
-            if(rel) return `सह-खातेदार ${rel} की भूमि`;
-            return "सह-खातेदार की भूमि";
-          }
+function landDesc(r, i){
+  const rel=String(r.relation||"").trim();
+  const nm=String(r.name||"").trim();
+  if(i===0){
+    if(rel && nm) return `${rel} ${nm} की भूमि`;
+    if(rel) return `${rel} की भूमि`;
+    return "आवेदक की स्वयं की भूमि";
+  }
+  if(rel && nm) return `सह-खातेदार ${rel} ${nm} की भूमि`;
+  if(nm) return `सह-खातेदार ${nm} की भूमि`;
+  if(rel) return `सह-खातेदार ${rel} की भूमि`;
+  return "सह-खातेदार की भूमि";
+}
 
           const landTableRows = allRows.map((r,i)=>`
             <tr>
@@ -614,12 +618,12 @@ export default function KisanAavedanPortal() {
 
             <div class="aff-decl">मैंने यह शपथ-पत्र बिना किसी दबाव, भय अथवा प्रलोभन के अपनी स्वतंत्र इच्छा से दिया है और इसमें वर्णित जानकारी मेरे ज्ञान एवं विश्वास के अनुसार सत्य एवं सही है।</div>
 
-            <div class="aff-sign-plain">
+<div class="aff-sign-plain">
               <div><b>आवेदक</b></div>
               <div>नाम : ${name}</div>
-              <div>हस्ताक्षर : ________________</div>
+              <div>हस्ताक्षर : ${name}</div>
               <div>मो० : ${mob}</div>
-              <div>स्थान : ________________</div>
+              <div>स्थान : ${esc(centerLine())}</div>
               <div>दिनांक : ${date}</div>
             </div>
           </div>
@@ -630,9 +634,9 @@ export default function KisanAavedanPortal() {
             <div class="aff-sign-plain">
               <div><b>शपथकर्ता / आवेदक</b></div>
               <div>नाम : ${name}</div>
-              <div>हस्ताक्षर : ________________</div>
+              <div>हस्ताक्षर : ${name}</div>
               <div>मो० : ${mob}</div>
-              <div>स्थान : ________________</div>
+              <div>स्थान : ${esc(centerLine())}</div>
               <div>दिनांक : ${date}</div>
             </div>
           </div>` : ""}`;
