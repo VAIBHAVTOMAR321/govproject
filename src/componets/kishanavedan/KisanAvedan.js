@@ -14,7 +14,7 @@ const getCenterNameFromUser = (authUser) => {
 
 const API_VERMI = "https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/";
 
-const centerStore = { value: "" };
+const centerStore = { value: "", onChange: null };
 
 const HTML_BODY = `
 <div class="shell">
@@ -222,6 +222,10 @@ export default function KisanAavedan() {
         let cur = "register";
         let subCur = "application";
 
+        function authCenterName(){
+          return String((centerStore.value || AUTH_CENTER || "") || "").trim();
+        }
+
         const apiFetch = async (url, options = {}) => {
           const method = (options.method || "GET").toUpperCase();
           return fetch(url, { ...options, method, credentials: "omit" });
@@ -329,6 +333,12 @@ export default function KisanAavedan() {
             date: S.f.date || new Date().toISOString().slice(0,10)
           };
         }
+        function payloadMb(){
+          return {
+            form_id: FORM_ID,
+            mb_valuation_amount: num(S.f.mbAmt)
+          };
+        }
         function payloadExpenses(){
           return {
             form_id: FORM_ID,
@@ -343,6 +353,7 @@ export default function KisanAavedan() {
           { key:"area",      label:"भूमि एवं फसल विवरण",     build:payloadArea },
           { key:"bank",      label:"बैंक विवरण",              build:payloadBank },
           { key:"expenses",  label:"मानक एवं व्यय विवरण",     build:payloadExpenses },
+          { key:"mb",        label:"एम०बी० मूल्यांकन धनराशि", build:payloadMb },
           { key:"date",      label:"दिनांक एवं स्थान",        build:payloadDate }
         ];
 
@@ -578,7 +589,9 @@ export default function KisanAavedan() {
             + '<div class="declaration-box prabhari-box">'
             +   '<p>प्रमाणित किया जाता है कि कृषक द्वारा प्रस्तुत आवेदन, भूमि अभिलेख एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं।अतः कृषक आवेदन <strong>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में वर्क ऑर्डर जारी करने हेतु संस्तुति सहित अग्रसारित</strong> है।</p>'
             +   '<p style="margin-top:24px;"><strong>प्रभारी, उद्यान सचल दल केन्द्र</strong><br>'
-            +   '<strong>केन्द्र का नाम :</strong> ________________________________________________________________</p>'
+            +   '<strong>केन्द्र का नाम :</strong> ' + (authCenterName()
+                 ? '<span style="display:inline-block;min-width:300px;border-bottom:1px solid #333;text-align:center;padding:0 6px">' + esc(authCenterName()) + '</span>'
+                 : '<span style="display:inline-block;min-width:300px;border-bottom:1px solid #333;text-align:center">&nbsp;</span>') + '</p>'
             + '</div>'
             + saveBar("date", "दिनांक एवं स्थान")
             + '</div>';
@@ -659,7 +672,8 @@ export default function KisanAavedan() {
             + '<h4 style="text-align:center;margin:0 0 18px">उद्यान विभाग · राज्य सेक्टर योजना · वित्तीय वर्ष 2026-27</h4>'
 
             + '<div class="st noprint">एम०बी० मूल्यांकन (भरें)</div>'
-            + '<div class="grid2 noprint"><div class="field"><label>एम०बी० मूल्यांकन धनराशि (₹)</label><input data-f="mbAmt" inputmode="decimal"></div></div>'
+            + '<div class="grid2 noprint"><div class="field"><label>एम०बी० मूल्यांकन धनराशि (₹)</label><input data-f="mbAmt" inputmode="decimal" placeholder="उदा. 75000.00"></div></div>'
+            + saveBar("mb", "एम०बी० मूल्यांकन")
 
             + '<div class="st">1. कृषक का विवरण</div>'
             + '<table><tbody>'
@@ -835,7 +849,7 @@ export default function KisanAavedan() {
           const tb = document.getElementById("regRows");
           if(tb) tb.innerHTML = '<tr><td colspan="8" class="empty">लोड हो रहा है…</td></tr>';
           try{
-            const center = AUTH_CENTER || "कोटद्वार";
+            const center = authCenterName() || "कोटद्वार";
             const url = API_VERMI + "?center_name=" + encodeURIComponent(center);
             const res = await apiFetch(url);
             const data = await readJsonResponse(res);
@@ -886,6 +900,14 @@ export default function KisanAavedan() {
             S.norm.vStdCost = exp.standard_cost || 33333;
             S.norm.vCap = exp.maximum_subsidy || 24998;
           }
+          const mbSources = [
+            rec.mb_valuation_amount,
+            rec.mb_details && rec.mb_details.mb_valuation_amount,
+            exp.mb_valuation_amount,
+            p.mb_valuation_amount
+          ];
+          const mbLoaded = mbSources.find(v => v !== null && v !== undefined && String(v).trim() !== "");
+          S.f.mbAmt = mbLoaded === undefined ? "" : mbLoaded;
         }
         function openForm(formId){
           const rec = findRecord(formId);
@@ -908,7 +930,7 @@ export default function KisanAavedan() {
           const name = (document.getElementById("regName")||{}).value || "";
           const mob  = (document.getElementById("regMob")||{}).value  || "";
           const village = (document.getElementById("regVillage")||{}).value || "";
-          const center = AUTH_CENTER || "कोटद्वार";
+          const center = authCenterName() || "कोटद्वार";
           if(!name.trim()){ apiMsg("कृषक का नाम भरना अनिवार्य है।","bad"); return; }
           if(!/^\d{10}$/.test(mob.trim())){ apiMsg("10 अंक का सही मोबाइल नंबर भरें।","bad"); return; }
           const btn = document.querySelector('#regForm button[type="submit"]');
@@ -1099,6 +1121,10 @@ export default function KisanAavedan() {
           if(body) body.innerHTML = "";
         }
 
+        centerStore.onChange = () => {
+          if(cur === "filling" && subCur === "application") buildVermiApplication();
+        };
+
         toggleStrip();
         showTab("register");
         const bGo = document.getElementById("bGo");
@@ -1136,6 +1162,7 @@ export default function KisanAavedan() {
       window.removeEventListener("resize", syncAppNav);
       window.removeEventListener("load", syncAppNav);
       window.clearTimeout(navSyncTimer);
+      centerStore.onChange = null;
       root.innerHTML = "";
     };
   }, []);
@@ -1149,6 +1176,7 @@ export default function KisanAavedan() {
     el.value = value || "— लॉग इन केंद्र नहीं मिला —";
     el.title = value ? ("लॉग इन केंद्र: " + value) : "लॉग इन केंद्र नहीं मिला";
     if (!centerSyncRef.current) { centerSyncRef.current = true; return; }
+    if (centerStore.onChange) centerStore.onChange();
     const btn = document.getElementById("regRefresh");
     if (btn) btn.click();
   }, [centerName]);
