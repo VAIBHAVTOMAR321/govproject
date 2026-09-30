@@ -594,51 +594,6 @@ export default function KisanAavedanPortal() {
           </div>`;
         }
 
-        function buildAffidavitInfoPreview(d){
-          if(S.scheme!=="fencing") return "";
-          const f=S.f||{};
-          const rows=(S.landRows||[]);
-          const joint=affidavitHasCoSharers(d);
-          const co=joint ? rows.slice(1).filter(r => num(r.hec)>0 || String(r.name||"").trim() || String(r.relation||"").trim()) : [];
-          const value=(v)=>esc(String(v||"").trim()||"…………");
-          // FIX: use totalHec directly instead of allowedArea
-          const total=d.totalHec>0 ? Number(d.totalHec).toFixed(2) : "…………";
-          const type=joint ? "संयुक्त भूमि / सह-खातेदार वाला शपथ-पत्र" : "सामान्य शपथ-पत्र";
-          return `<div class="aff-preview noprint" id="affidavitInfoPreview">
-            <div class="aff-preview-title">शपथ-पत्र हेतु स्वतः भरने वाली जानकारी — ${type}</div>
-            <div class="aff-preview-grid">
-              <div class="aff-preview-item"><span class="aff-preview-label">नाम</span><span class="aff-preview-value">${value(f.name)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">पिता / पति का नाम</span><span class="aff-preview-value">${value(f.father)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">ग्राम</span><span class="aff-preview-value">${value(f.village)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">डाकघर</span><span class="aff-preview-value">${value(f.post)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">विकास खण्ड</span><span class="aff-preview-value">${value(f.block)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">जनपद</span><span class="aff-preview-value">${value(f.dist)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">उद्यान कार्ड संख्या</span><span class="aff-preview-value">${value(f.gardenCard)}</span></div>
-              <div class="aff-preview-item"><span class="aff-preview-label">कुल प्रस्तावित क्षेत्रफल</span><span class="aff-preview-value">${total} हे०</span></div>
-            </div>
-            ${co.length ? `
-              <div style="padding:8px 11px 10px">
-                <div style="font-size:11px;color:#66756C;margin-bottom:4px">सह-खातेदारों की जानकारी</div>
-                <table class="aff-preview-table">
-                  <thead><tr><th>क्र०</th><th>नाम</th><th>संबंध</th><th>खसरा / खतौनी</th><th>आधार संख्या</th><th>क्षेत्रफल (हे०)</th></tr></thead>
-                  <tbody>
-                    ${co.map((r,i)=>`<tr>
-                      <td style="text-align:center">${i+1}</td>
-                      <td>${value(r.name)}</td>
-                      <td>${value(r.relation)}</td>
-                      <td>${value(r.khasra)}</td>
-                      <td>${value(r.aadhaar)}</td>
-                      <td style="text-align:right">${num(r.hec)>0?Number(r.hec).toFixed(2):"…………"}</td>
-                    </tr>`).join("")}
-                  </tbody>
-                </table>
-              </div>` : `
-              <div style="padding:8px 11px 10px;color:#66756C;font-size:11px">
-                ${applicantWord()} की स्वयं की भूमि ही कुल प्रस्तावित क्षेत्रफल के बराबर है, इसलिए सामान्य शपथ-पत्र बनेगा।
-              </div>`}
-          </div>`;
-        }
-
         function buildFencingApplication(){
           const d=applicationData();
           const rate=num(S.norm.fRate);
@@ -827,7 +782,6 @@ export default function KisanAavedanPortal() {
               <b>प्रभारी, उद्यान सचल दल केन्द्र :</b> <span class="auto" id="appOfficerCenter">${esc(centerLine())}</span>
             </div>
           </div>
-          ${buildAffidavitInfoPreview(d)}
           ${buildFencingAffidavit(d)}`;
           document.querySelectorAll("#applicationOut [data-f]").forEach(el=>{
             if(el.dataset.f==="fRate") el.value=S.norm.fRate;
