@@ -472,7 +472,7 @@ export default function KisanAavedan() {
         function tableHTML(k){
           const cfg=COLS[k];
           let h='<table class="expense-table">';
-          h+='<colgroup><col style="width:38px">'+cfg.c.map(c=>`<col style="width:${c[2]||"auto"}">`).join("")+'<col style="width:46px"></colgroup>';
+          h+='<colgroup><col style="width:38px">'+cfg.c.map(c=>`<col style="width:${c[2]||"auto"}">`).join("")+'<col class="noprint" style="width:46px"></colgroup>';
           h+='<thead><tr><th>क्र०</th>';
           cfg.c.forEach(c=>h+=`<th>${c[1]}</th>`);
           h+='<th class="noprint">क्रिया</th></tr></thead><tbody>';
@@ -482,14 +482,14 @@ export default function KisanAavedan() {
               if(c[0]==="_amt"){ h+=`<td class="calc num">${fmtN(cfg.amt(r))}</td>`; return; }
               h+=`<td><input data-row="${k}" data-i="${i}" data-k="${c[0]}" value="${esc(r[c[0]]||"")}"`+ (c[4]?` list="${c[4]}"`:"") + (c[3]==="n"?' inputmode="decimal"':"") + `></td>`;
             });
-            h+=`<td><button class="rm" data-del="${k}" data-i="${i}" title="पंक्ति हटाएँ">×</button></td></tr>`;
+            h+=`<td class="noprint"><button class="rm" data-del="${k}" data-i="${i}" title="पंक्ति हटाएँ">×</button></td></tr>`;
           });
           const ai = cfg.c.findIndex(c=>c[0]==="_amt"||c[0]==="amt");
           h+=`<tr class="tot"><td colspan="${ai+1}" style="text-align:right">योग</td><td class="calc num" data-tot="${k}">${fmtN(sum(k))}</td>`;
           for(let j=ai+1;j<cfg.c.length;j++) h+="<td></td>";
           h+='<td class="noprint"></td>';
           h+='</tr></tbody></table>';
-          h+=`<button class="addrow" data-add="${k}">+ पंक्ति जोड़ें</button>`;
+          h+=`<button class="addrow noprint" data-add="${k}">+ पंक्ति जोड़ें</button>`;
           return h;
         }
         function buildLists(){
