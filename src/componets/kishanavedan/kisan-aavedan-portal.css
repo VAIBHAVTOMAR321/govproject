@@ -503,6 +503,8 @@
   width: 100%;
   border-collapse: collapse;
   margin: 4px 0 0;
+  outline: 1px solid #000;
+  outline-offset: -1px;
 }
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) th,
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) td {
@@ -844,7 +846,10 @@
 /* === TABLES === */
 .kisan-html-react-root table {
   width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
+  box-sizing: border-box;
   margin: 12px 0;
 }
 .kisan-html-react-root th {
@@ -855,12 +860,15 @@
   letter-spacing: 0.05em;
   padding: 12px 10px;
   text-align: left;
-  border-bottom: 2px solid var(--rule);
+  border: 1px solid var(--rule);
 }
 .kisan-html-react-root td {
-  border-bottom: 1px solid var(--rule);
+  border: 1px solid var(--rule);
   padding: 4px;
   vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
 }
 .kisan-html-react-root td.n {
   text-align: center;
@@ -901,8 +909,8 @@
   background: var(--fill);
   font-weight: 700;
   padding: 12px;
-  border-top: 2px solid var(--rule);
-  border-bottom: none;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
   color: var(--ink);
 }
 .kisan-html-react-root .rm {
