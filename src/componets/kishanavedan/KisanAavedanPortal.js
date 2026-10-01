@@ -801,14 +801,6 @@ export default function KisanAavedanPortal() {
               </tbody>
             </table>
             ${saveBar("expenses","क्षेत्रफल एवं मानक सारांश")}
-            <h5>4.1 फेंसिंग कार्य का वास्तविक मापन एवं एम०बी० विवरण</h5>
-            <table class="landtable infoTable"><tbody>
-              <tr><td class="flabel">मापी गयी वास्तविक लम्बाई (मी०)</td><td><input data-f="mbLen" inputmode="decimal" value="${esc(S.f.mbLen||"")}"></td></tr>
-              <tr><td class="flabel">स्थलीय सत्यापित वास्तविक लम्बाई (मी०)</td><td><input data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen||"")}"></td></tr>
-              <tr><td class="flabel">सीधे एम०बी० धनराशि (₹)</td><td><input data-f="mbAmt" inputmode="decimal" value="${esc(S.f.mbAmt||"")}"></td></tr>
-              <tr><td class="flabel">देय दिनांक</td><td><input data-f="date" type="date" value="${esc(S.f.date||"")}"></td></tr>
-            </tbody></table>
-            ${saveBar("mb","मापन एवं एम०बी० विवरण")}
             <h5>5. घोषणा</h5>
             <div class="appnote">
               • उपर्युक्त सभी विवरण मेरी जानकारी में पूर्णतः सत्य हैं।<br>
@@ -990,7 +982,7 @@ export default function KisanAavedanPortal() {
               <div class="serial-section">
                 <div class="serial-title">5. प्रभारी द्वारा स्थलीय सत्यापन</div>
                 <div class="kv">
-                  <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><input class="ln rt sm" data-f="allowedLen" inputmode="decimal" value="${esc(S.f.allowedLen||"")}"><b> मी०</b> <span class="auto calc-hint" id="oAllowedLen">…………</span></div>
+                  <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><b> मी०</b>:<span class="auto calc-hint" id="oAllowedLen">…………</span></div>
                   <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen||"")}"><b> मी०</b></div>
                   <div class="r"><b>कार्य में कमी:</b><span class="auto" id="oShort"></span> मी०</div>
                   <div class="r"><b>वास्तविक क्षेत्रफल (कमी समायोजित):</b><span class="auto" id="oActualArea"></span> हे०</div>
