@@ -13,6 +13,7 @@ const getCenterNameFromUser = (authUser) => {
 };
 
 const API_VERMI = "https://mahadevaaya.com/govbillingsystem/backend/api/vermicompost-kisan/";
+const DISTRICT_NAME = "पौड़ी गढ़वाल";
 
 const centerStore = { value: "", onChange: null };
 
@@ -158,7 +159,7 @@ export default function KisanAavedan() {
     const navSyncTimer = window.setTimeout(syncAppNav, 400);
 
     const userData = {
-      dist: (user && (user.district || user.dist || user.district_name)) || "",
+      dist: DISTRICT_NAME,
       block: (user && user.block) || "",
       tehsil: (user && user.tehsil) || ""
     };
@@ -302,7 +303,7 @@ export default function KisanAavedan() {
             village: S.f.village || "",
             post: S.f.post || "",
             tehsil: S.f.tehsil || "",
-            dist: S.f.dist || "",
+            dist: DISTRICT_NAME,
             horticulture_card: S.f.hortiCard || "",
             aadhar: S.f.aadhar || "",
             khasra: S.f.khasra || "",
@@ -530,7 +531,7 @@ export default function KisanAavedan() {
             +   '<div class="field"><label>ग्राम</label><input data-f="village" value="' + esc(f.village||"") + '"></div>'
             +   '<div class="field"><label>डाकघर</label><input data-f="post" value="' + esc(f.post||"") + '"></div>'
             +   '<div class="field"><label>तहसील</label><input data-f="tehsil" value="' + esc(f.tehsil||"") + '" placeholder="तहसील का नाम"></div>'
-            +   '<div class="field"><label>जनपद</label><input data-f="dist" value="' + esc(f.dist||"") + '"></div>'
+            +   '<div class="field"><label>जनपद</label><input data-f="dist" value="' + esc(f.dist||DISTRICT_NAME) + '" readonly disabled title="यह जनपद पूर्व निर्धारित है"></div>'
             +   '<div class="field"><label>उद्यान कार्ड संख्या</label><input data-f="hortiCard" value="' + esc(f.hortiCard||"") + '"></div>'
             +   '<div class="field"><label>मोबाइल नं.</label><input data-f="mob" inputmode="numeric" maxlength="10" value="' + esc(f.mob||"") + '"></div>'
             +   '<div class="field"><label>आधार संख्या</label><input data-f="aadhar" inputmode="numeric" maxlength="12" value="' + esc(f.aadhar||"") + '"></div>'
@@ -874,7 +875,7 @@ export default function KisanAavedan() {
           S.f.village = p.village || "";
           S.f.post = p.post || "";
           S.f.block = p.block || userData.block || "";
-          S.f.dist = p.dist || userData.dist || "";
+          S.f.dist = DISTRICT_NAME;
           S.f.mob = p.mob || "";
           S.f.aadhar = p.aadhar || "";
           S.f.khasra = p.khasra || "";
@@ -946,7 +947,7 @@ export default function KisanAavedan() {
               post: "",
               tehsil: userData.tehsil || "",
               block: userData.block || "",
-              dist: userData.dist || "",
+              dist: DISTRICT_NAME,
               horticulture_card: "",
               aadhar: "",
               khasra: "",
