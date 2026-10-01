@@ -231,7 +231,7 @@ export default function KisanAavedanPortal() {
              bank:"",branch:"",acct:"",ifsc:"",cat:"सामान्य",farmerCat:"सीमांत",gardenCard:"",plants:"",irrigation:"उपलब्ध",fenceStandardCost:"",
              planType:"जिला योजना", fenceMaterial:"चेनलिंक जाली", gender:"पुरुष",
              nali:"",area:"",fenceLen:"",poles:"",mbNo:"", verifiedLen:"260", allowedLen:"",
-             mbLen:"",mbRate:"",mbAmt:"82000", date:new Date().toISOString().slice(0,10), place:"", officer:"", desig:""},
+             mbLen:"",mbRate:"",mbAmt:"82000", date:new Date().toISOString().slice(0,10), billDate:"", place:"", officer:"", desig:""},
           landRows:[{relation:"स्वयं",name:"",father:"",khasra:"",aadhaar:"",hec:"0.40"},{relation:"भाई",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पुत्र",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पिता",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""}],
           material:[{}], footing:[{}], labour:[{}], other:[{}]
         });
@@ -240,8 +240,8 @@ export default function KisanAavedanPortal() {
         const COLS = {
           material:{amt:r=>num(r.amt),
             c:[["item","किस कार्य / सामग्री का बिल है",0,0,"dlMaterial"],["sup","आपूर्तिकर्ता / फर्म"],["bill","बिल सं०"],
-               ["amt","बिल राशि (₹)",0,"n"]]},
-          footing:{amt:r=>num(r.amt),
+              ["amt","बिल राशि (₹)",0,"n"]]},
+           footing:{amt:r=>num(r.amt),
             c:[["item","किस कार्य / सामग्री का बिल है",0,0,"dlFooting"],["sup","आपूर्तिकर्ता / फर्म"],
                ["amt","बिल राशि (₹)",0,"n"]]},
           labour:{amt:r=>num(r.amt),
@@ -1025,7 +1025,7 @@ export default function KisanAavedanPortal() {
             अतः राजसहायता की धनराशि <span class="blank" id="oSub1"></span> (<span id="oWords1"></span> रुपये मात्र) का भुगतान मुझे करने की कृपा कीजिएगा।</div>
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;gap:20px">
               <div style="flex:0 0 auto">
-                <div style="display:flex;gap:6px;align-items:baseline"><b>दिनांक:</b><input class="ln sm" type="date" data-f="date"></div>
+                <div style="display:flex;gap:6px;align-items:baseline"><b>देयक दिनांक:</b><input class="ln sm" type="date" data-f="billDate"></div>
                 <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान:</b><input class="ln sm" data-f="place"></div>
               </div>
               <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
@@ -1043,6 +1043,15 @@ export default function KisanAavedanPortal() {
         }
 
         const set = (id,v) => { const el=document.getElementById(id); if(el) el.innerHTML=v; };
+        function validateDistinctDates(showMessage=true){
+          const applicationDate = String(S.f.date||"").trim();
+          const billDate = String(S.f.billDate||"").trim();
+          if(applicationDate && billDate && applicationDate===billDate){
+            if(showMessage) apiMsg("आवेदन पत्र और देयक प्रपत्र की तारीख समान नहीं हो सकती। देयक दिनांक बदलें।", "bad");
+            return false;
+          }
+          return true;
+        }
         function refresh(){
           const c = calc();
           c.rows.forEach((r,i)=>{ set("r"+i+"a",fmtN(r.amt)); set("r"+i+"s",fmtN(r.sub)); set("r"+i+"o",fmtN(r.own)); });
@@ -1262,7 +1271,7 @@ export default function KisanAavedanPortal() {
             site_verified_actual_length: num(S.f.verifiedLen),
             permissible_length_override: num(S.f.allowedLen),
             direct_mb_amount: num(S.f.mbAmt),
-            payable_date: S.f.date || null
+            payable_date: S.f.billDate || null
           };
         }
         function payloadMB(){
@@ -1272,7 +1281,7 @@ export default function KisanAavedanPortal() {
             site_verified_actual_length: num(S.f.verifiedLen),
             permissible_length_override: num(S.f.allowedLen),
             direct_mb_amount: num(S.f.mbAmt),
-            payable_date: S.f.date || null
+            payable_date: S.f.billDate || null
           };
         }
         function payloadSection(section){
@@ -1379,6 +1388,7 @@ export default function KisanAavedanPortal() {
         function saveStep(key){
           const step = SAVE_STEPS.find(s=>s.key===key);
           if(!step) return;
+          if((key==="date" || key==="mb" || key==="expenses") && !validateDistinctDates()) return;
           setSaveState(key, "सहेजा जा रहा है…", "wait");
           apiPut(step.build(), step.label, key);
         }
@@ -1408,6 +1418,7 @@ export default function KisanAavedanPortal() {
             apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad");
             return;
           }
+          if(!validateDistinctDates()) return;
           const hint=document.getElementById("saveAllHint");
           let ok=0;
           for(const step of SAVE_STEPS){
@@ -1563,7 +1574,7 @@ export default function KisanAavedanPortal() {
           if(e.direct_mb_amount!==undefined && e.direct_mb_amount!==null && String(e.direct_mb_amount)!=="")
             S.f.mbAmt = String(num(e.direct_mb_amount));
           if(e.payable_date!==undefined && e.payable_date!==null && String(e.payable_date)!=="")
-            S.f.date = String(e.payable_date);
+            S.f.billDate = String(e.payable_date);
 
           if(Array.isArray(p.farmer_details) && p.farmer_details.length){
             S.landRows = p.farmer_details.map((row,i)=>{
