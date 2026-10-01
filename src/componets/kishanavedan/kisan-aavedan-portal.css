@@ -555,9 +555,17 @@
   padding: 2px 4px;
 }
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .xbox td.v {
-  width: 130px;
+  width: auto;
   font-weight: 700;
   text-align: right;
+}
+.kisan-html-react-root .pv-sheet .bill-doc > table th {
+  background: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+}
+.kisan-html-react-root .pv-sheet .xbox table {
+  width: 100% !important;
 }
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .ln,
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .blank {
@@ -1321,6 +1329,13 @@
 .kisan-html-react-root .auto {
   font-weight: 700;
   color: var(--ink);
+}
+.kisan-html-react-root .calc-hint {
+  font-size: 12px;
+  color: var(--ink-soft, #4A5A50);
+  font-style: italic;
+  margin-left: 8px;
+  min-width: 60px;
 }
 
 .kisan-html-react-root .doc th,
@@ -2095,6 +2110,18 @@
     background: #fff !important;
     color: #000 !important;
     border: 1px solid #000 !important;
+  }
+  .kisan-html-react-root .bill-doc > table th,
+  .kisan-html-react-root .bill-doc table th {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+  .kisan-html-react-root .xbox td.v {
+    width: auto !important;
+  }
+  .kisan-html-react-root .xbox table {
+    width: 100% !important;
   }
   .kisan-html-react-root .appdoc td {
     border: 1px solid #000 !important;

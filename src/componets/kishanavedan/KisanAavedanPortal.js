@@ -127,7 +127,7 @@ const HTML_BODY = `
   <div class="cell"><div class="k">एम०बी० मूल्यांकन</div><div class="v num" id="sMb">—</div></div>
   <div class="cell pay"><div class="k">देय राजसहायता <span id="sRate"></span></div><div class="v num" id="sSub">₹ 0</div></div>
   <div class="cell"><div class="k">कृषक द्वारा वहन</div><div class="v num" id="sOwn">₹ 0</div></div>
-  <div class="msg" id="sMsg"></div>
+
   <button class="go" id="bGo">देयक देखें</button>
 </div>
 <div class="pv-overlay noprint" id="pvOverlay" hidden>
@@ -230,7 +230,7 @@ export default function KisanAavedanPortal() {
           f:{name:"",father:"",village:"",post:"",block:"",dist:"",mob:"",aadhar:"",khasra:"",
              bank:"",branch:"",acct:"",ifsc:"",cat:"सामान्य",farmerCat:"सीमांत",gardenCard:"",plants:"",irrigation:"उपलब्ध",fenceStandardCost:"",
              planType:"जिला योजना", fenceMaterial:"चेनलिंक जाली", gender:"पुरुष",
-             nali:"",area:"",fenceLen:"",poles:"",mbNo:"", verifiedLen:"260",
+             nali:"",area:"",fenceLen:"",poles:"",mbNo:"", verifiedLen:"260", allowedLen:"",
              mbLen:"",mbRate:"",mbAmt:"82000", date:new Date().toISOString().slice(0,10), place:"", officer:"", desig:""},
           landRows:[{relation:"स्वयं",name:"",father:"",khasra:"",aadhaar:"",hec:"0.40"},{relation:"भाई",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पुत्र",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पिता",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""}],
           material:[{}], footing:[{}], labour:[{}], other:[{}]
@@ -284,9 +284,9 @@ export default function KisanAavedanPortal() {
             mb = mbValue();
             const app = applicationData();
             totalHec = app.totalHec;
-            hec = app.allowedArea ? app.totalHec : 0;
-            const std = app.allowedArea ? fenceStandard(hec) : null;
-            allowedLen = std ? std.len : 0;
+            hec = app.totalHec; // Use totalHec directly to allow calculations even if not strictly in mapping
+            const std = fenceStandard(hec);
+            allowedLen = num(S.f.allowedLen) > 0 ? num(S.f.allowedLen) : (std ? std.len : 0); // Allow manual override
             verifiedLen = num(S.f.verifiedLen);
             ratio = (allowedLen>0 && verifiedLen>0) ? (verifiedLen/allowedLen) : 1;
             actualArea = hec * ratio;
@@ -990,7 +990,7 @@ export default function KisanAavedanPortal() {
               <div class="serial-section">
                 <div class="serial-title">5. प्रभारी द्वारा स्थलीय सत्यापन</div>
                 <div class="kv">
-                  <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><span class="auto" id="oAllowed"></span> मी०</div>
+                  <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><input class="ln rt sm" data-f="allowedLen" inputmode="decimal" value="${esc(S.f.allowedLen||"")}"><b> मी०</b> <span class="auto calc-hint" id="oAllowedLen">…………</span></div>
                   <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen||"")}"><b> मी०</b></div>
                   <div class="r"><b>कार्य में कमी:</b><span class="auto" id="oShort"></span> मी०</div>
                   <div class="r"><b>वास्तविक क्षेत्रफल (कमी समायोजित):</b><span class="auto" id="oActualArea"></span> हे०</div>
@@ -1041,10 +1041,8 @@ export default function KisanAavedanPortal() {
             </div>
             <div class="decl" style="margin-top:26px">प्रमाणित किया जाता है कि मेरे द्वारा ${planLabel} अन्तर्गत ${kaam} कार्य का स्थलीय निरीक्षण कर लिया गया है। प्रभारी द्वारा सत्यापित वास्तविक ${napName}: <span class="blank" id="oLen"></span> ${mbUnit}। एम०बी० (मापपुस्तिका) के अनुसार मूल्यांकन — कनिष्ठ अभियन्ता द्वारा तैयार; मापी गयी वास्तविक लम्बाई: <span class="blank" id="oMbLen"></span> ${mbUnit}; मूल्यांकन धनराशि: <span class="blank" id="oMb2"></span>। बिल में दर्शायी गयी कुल राशि: <span class="blank" id="oBill2"></span>। बिल, एम०बी० एवं स्थलीय सत्यापन का मिलान करने के उपरान्त लागू आधार पर देय राजसहायता धनराशि <span class="blank" id="oSub2"></span> कृषक को भुगतान हेतु देयक सत्यापित कर संस्तुति सहित अग्रसारित।</div>
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:20px;gap:20px">
-              <div style="font-size:13px;color:#4A5A50;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap">
-              
-                
-              <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
+              <div style="font-size:13px;color:#4A5A50;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap"></div>
+              <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px;margin-left:auto">
                 हस्ताक्षर प्रभारी<br><span class="auto" id="oOff"></span></div>
             </div>
           </div>`);
@@ -1070,9 +1068,8 @@ export default function KisanAavedanPortal() {
           set("xBill", c.bill?fmt0(c.bill):"— (नहीं भरा गया)");
           set("xMb", c.mb?fmt0(c.mb):"— (नहीं भरा गया)");
           if(c.isF){
-            set("oAllowed", c.allowedLen ? fmtN(c.allowedLen).replace(/\.00$/,"") : "…………");
             set("oShort", c.shortfall>0 ? fmtN(c.shortfall).replace(/\.00$/,"") : "0");
-            set("oActualArea", c.actualArea ? c.actualArea.toFixed(4) : "0.0000");
+            set("oAllowedLen", c.allowedLen ? fmtN(c.allowedLen).replace(/\.00$/,"") + " मी०" : "…………");
             set("oStdCost", c.standardCost ? fmt0(c.standardCost) : "—");
             set("xStdCost", c.standardCost ? fmt0(c.standardCost) : "— (भूमि हे० भरें)");
             const costHa = num(S.norm.fCostHa)||200000;
@@ -1271,6 +1268,7 @@ export default function KisanAavedanPortal() {
             additional_max_limit: num(S.norm.fCap),
             measured_actual_length: num(S.f.mbLen),
             site_verified_actual_length: num(S.f.verifiedLen),
+            permissible_length_override: num(S.f.allowedLen),
             direct_mb_amount: num(S.f.mbAmt),
             payable_date: S.f.date || null
           };
@@ -1280,6 +1278,7 @@ export default function KisanAavedanPortal() {
             form_id: FORM_ID,
             measured_actual_length: num(S.f.mbLen),
             site_verified_actual_length: num(S.f.verifiedLen),
+            permissible_length_override: num(S.f.allowedLen),
             direct_mb_amount: num(S.f.mbAmt),
             payable_date: S.f.date || null
           };
@@ -1567,6 +1566,8 @@ export default function KisanAavedanPortal() {
             S.f.mbLen = String(num(e.measured_actual_length));
           if(e.site_verified_actual_length!==undefined && e.site_verified_actual_length!==null && String(e.site_verified_actual_length)!=="")
             S.f.verifiedLen = String(num(e.site_verified_actual_length));
+          if(e.permissible_length_override!==undefined && e.permissible_length_override!==null && String(e.permissible_length_override)!=="")
+            S.f.allowedLen = String(num(e.permissible_length_override));
           if(e.direct_mb_amount!==undefined && e.direct_mb_amount!==null && String(e.direct_mb_amount)!=="")
             S.f.mbAmt = String(num(e.direct_mb_amount));
           if(e.payable_date!==undefined && e.payable_date!==null && String(e.payable_date)!=="")
