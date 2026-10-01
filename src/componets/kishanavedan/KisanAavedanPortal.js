@@ -926,14 +926,14 @@ export default function KisanAavedanPortal() {
 
           let tbl = `<table><thead><tr><th style="width:44px">क्र०सं०</th><th>कार्य का विवरण</th>
             <th style="width:116px">देयक की कुल धनराशि</th><th style="width:138px">भुगतान की जाने वाली राजसहायता धनराशि</th>
-            <th style="width:128px">कृषक द्वारा वहन की गयी धनराशि</th><th style="width:88px">अभ्युक्ति</th></tr></thead><tbody>`;
+            <th style="width:128px">कृषक द्वारा वहन की गयी धनराशि</th></tr></thead><tbody>`;
           c.rows.forEach((r,i)=>{
             tbl+=`<tr><td style="text-align:center">${i+1}</td><td>${esc(r.name)}</td>
               <td class="calc num" id="r${i}a"></td><td class="calc num" id="r${i}s"></td>
-              <td class="calc num" id="r${i}o"></td><td></td></tr>`;
+              <td class="calc num" id="r${i}o"></td></tr>`;
           });
           tbl+=`<tr class="tot"><td colspan="2" style="text-align:right">योग</td>
-            <td class="calc num" id="tA"></td><td class="calc num" id="tS"></td><td class="calc num" id="tO"></td><td></td></tr></tbody></table>`;
+            <td class="calc num" id="tA"></td><td class="calc num" id="tS"></td><td class="calc num" id="tO"></td></tr></tbody></table>`;
 
           safeSetHTML("billOut", `<div class="doc bill-doc">
             <div class="bill-header">
@@ -1863,7 +1863,7 @@ export default function KisanAavedanPortal() {
           body.innerHTML="";
           if(cur==="application") setFenceMappingPrintRow();
           const sheet=document.createElement("div");
-          sheet.className="pv-sheet";
+          sheet.className="pv-sheet pv-" + cur;
           const clone=target.cloneNode(true);
           clone.classList.add("on");
           const liveFields=target.querySelectorAll("input,select,textarea");

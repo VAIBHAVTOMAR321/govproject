@@ -291,6 +291,9 @@
   border-radius: 2px;
   overflow: visible;
 }
+.kisan-html-react-root .pv-sheet.pv-bill {
+  min-height: 0;
+}
 .kisan-html-react-root .pv-body .view {
   display: block;
   animation: none;
@@ -408,6 +411,45 @@
   text-align: center;
   text-decoration: none;
   margin: 0 0 2px;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-header {
+  border: 1px solid #d5dce8 !important;
+  border-radius: 3px !important;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-kicker {
+  background: #2563eb !important;
+  color: #fff !important;
+  padding: 7px 12px !important;
+  text-align: center;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-title {
+  color: #2563eb !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin: 10px 16px 6px !important;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-rule {
+  background: #eab308 !important;
+  height: 3px !important;
+  width: 76px;
+  margin: 0 auto 10px;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-meta {
+  background: #f8fafc !important;
+  border-top: 1px solid #d5dce8;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-meta > div {
+  background: #f8fafc !important;
+  border-right: 1px solid #d5dce8;
+  text-align: center;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-meta span {
+  color: #64748b !important;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-meta b {
+  color: #1e293b !important;
 }
 /* शीर्षक पंक्ति (भाग संख्या / धारा शीर्षक) — पूर्ण चौड़ाई बॉर्डरयुक्त सेल */
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .serial-title,
@@ -551,6 +593,7 @@
   margin: 6px 0 0 !important;
   font-size: 11px;
   line-height: 1.6;
+  width: 741px;
 }
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .xbox .xh,
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .note-title,
@@ -2189,6 +2232,17 @@
   .kisan-html-react-root .view.print-target .save-bar {
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+  /* Bill details must flow across pages; keeping the whole serial layout
+     together leaves a large blank first page when it is taller than A4. */
+  .kisan-html-react-root .view.print-target .bill-doc > .serial-layout {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+  .kisan-html-react-root .view.print-target .bill-doc > .bill-header,
+  .kisan-html-react-root .view.print-target .bill-doc > .bill-table-heading {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   /* शीर्षक अपने नीचे की सामग्री से अलग न पड़े */
   .kisan-html-react-root .view.print-target .st,
