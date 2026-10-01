@@ -352,11 +352,14 @@ export default function KisanAavedanPortal() {
           const title=document.getElementById("standardsTitle");
           if(!body) return;
           title.textContent="फेंसिंग राजसहायता के मानक";
+          S.norm.fRate = 80;
+          S.norm.fCostHa = 200000;
+          S.norm.fCap = 0;
           safeSetHTML("standardsBody", `<div class="grid">
             <div><label class="f">फेंसिंग राजसहायता दर (%) — सभी श्रेणियों के लिए समान</label>
-              <select data-norm="fRate"><option value="50">50%</option><option value="80">80%</option></select></div>
-            <div><label class="f">इकाई लागत ₹ प्रति हेक्टेयर</label><input data-norm="fCostHa" inputmode="decimal" placeholder="2,00,000"></div>
-            <div><label class="f">अतिरिक्त अधिकतम सीमा ₹ (वैकल्पिक)</label><input data-norm="fCap" inputmode="decimal" placeholder="खाली = कोई अलग सीमा नहीं"></div>
+              <select data-norm="fRate" disabled><option value="50">50%</option><option value="80" selected>80%</option></select></div>
+            <div><label class="f">इकाई लागत ₹ प्रति हेक्टेयर</label><input data-norm="fCostHa" value="200000" inputmode="decimal" readonly disabled></div>
+            <div><label class="f">अतिरिक्त अधिकतम सीमा ₹ (वैकल्पिक)</label><input data-norm="fCap" value="0" inputmode="decimal" readonly disabled></div>
           </div>
           <p class="lead" style="margin:12px 0 0">विभागीय मानक: इकाई लागत ₹2,00,000 प्रति हेक्टेयर। लागत सदैव क्षेत्रफल (हे०) से बनती है, मीटर से गुणा करके नहीं।
           सत्यापित लम्बाई अनुमन्य लम्बाई से जितनी कम हो, उसी अनुपात में क्षेत्रफल घटाकर मानक लागत निकाली जाती है।
