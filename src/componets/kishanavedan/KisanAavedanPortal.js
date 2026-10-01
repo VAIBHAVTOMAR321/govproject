@@ -221,14 +221,16 @@ export default function KisanAavedanPortal() {
           other:["फोटोग्राफी / जियो टैग फोटोग्राफ","ढुलाई","लोडिंग / अनलोडिंग","मजदूरी","अन्य व्यय"]
         };
         const DL = {dlMaterial:"material", dlFooting:"footing", dlUnit:"unit", dlWork:"work", dlOther:"other"};
+        const DISTRICT_NAME = "पौड़ी गढ़वाल";
 
         const blank = () => ({
           scheme:"fencing",
           formId:"",
           lists: JSON.parse(JSON.stringify(LISTS)),
           norm:{fRate:80, vRate:75, fCap:"", vCap:"", fCostHa:200000},
-          f:{name:"",father:"",village:"",post:"",block:"",dist:"",mob:"",aadhar:"",khasra:"",
+          f:{name:"",father:"",village:"",post:"",block:"",mob:"",aadhar:"",khasra:"",
              bank:"",branch:"",acct:"",ifsc:"",cat:"सामान्य",farmerCat:"सीमांत",gardenCard:"",plants:"",irrigation:"उपलब्ध",fenceStandardCost:"",
+             dist:DISTRICT_NAME,
              planType:"जिला योजना", fenceMaterial:"चेनलिंक जाली", gender:"पुरुष",
              nali:"",area:"",fenceLen:"",poles:"",mbNo:"", verifiedLen:"260", allowedLen:"",
              mbLen:"",mbRate:"",mbAmt:"82000", date:new Date().toISOString().slice(0,10), billDate:"", place:"", officer:"", desig:""},
@@ -704,7 +706,7 @@ export default function KisanAavedanPortal() {
               <tr><td class="flabel">ग्राम</td><td><input data-f="village" value="${esc(S.f.village||"")}"></td></tr>
               <tr><td class="flabel">पोस्ट ऑफिस</td><td><input data-f="post" value="${esc(S.f.post||"")}"></td></tr>
               <tr><td class="flabel">विकास खण्ड</td><td><input data-f="block" value="${esc(S.f.block||"")}"></td></tr>
-              <tr><td class="flabel">जनपद</td><td><input data-f="dist" value="${esc(S.f.dist||"")}"></td></tr>
+              <tr><td class="flabel">जनपद</td><td><input data-f="dist" value="${esc(S.f.dist||"पौड़ी गढ़वाल")}" readonly></td></tr>
               <tr><td class="flabel">मोबाइल नंबर</td><td><input data-f="mob" value="${esc(S.f.mob||"")}"></td></tr>
               <tr><td class="flabel">आधार संख्या</td><td><input data-f="aadhar" value="${esc(S.f.aadhar||"")}"></td></tr>
               <tr><td class="flabel">वर्ग</td><td><select data-f="cat"><option>सामान्य</option><option>OBC</option><option>SC</option><option>ST</option><option>महिला</option></select></td></tr>
@@ -821,7 +823,7 @@ export default function KisanAavedanPortal() {
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;gap:20px">
               <div style="flex:0 0 auto">
                 <div style="display:flex;gap:6px;align-items:baseline"><b>दिनांक :</b><input class="ln sm" type="date" data-f="date"></div>
-                <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान :</b><input class="ln sm" data-f="place"></div>
+                <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान :</b><input class="ln sm" value="${esc(centerLine())}" readonly></div>
               </div>
               <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
                 हस्ताक्षर ${G("कृषक","कृषिका")}<br><span class="auto" id="appCertName">${esc(S.f.name||"")}</span></div>
@@ -1026,7 +1028,7 @@ export default function KisanAavedanPortal() {
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;gap:20px">
               <div style="flex:0 0 auto">
                 <div style="display:flex;gap:6px;align-items:baseline"><b>देयक दिनांक:</b><input class="ln sm" type="date" data-f="billDate"></div>
-                <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान:</b><input class="ln sm" data-f="place"></div>
+                <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान:</b><input class="ln sm" value="${esc(centerLine())}" readonly></div>
               </div>
               <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
                 हस्ताक्षर ${G("कृषक","कृषिका")}<br><span class="auto" id="oName"></span></div>
@@ -1048,6 +1050,13 @@ export default function KisanAavedanPortal() {
           const billDate = String(S.f.billDate||"").trim();
           if(applicationDate && billDate && applicationDate===billDate){
             if(showMessage) apiMsg("आवेदन पत्र और देयक प्रपत्र की तारीख समान नहीं हो सकती। देयक दिनांक बदलें।", "bad");
+            return false;
+          }
+          return true;
+        }
+        function validateDistrict(showMessage=true){
+          if(String(S.f.dist||"").trim() !== DISTRICT_NAME){
+            if(showMessage) apiMsg("जनपद केवल 'पौड़ी गढ़वाल' होना चाहिए।", "bad");
             return false;
           }
           return true;
@@ -1388,6 +1397,7 @@ export default function KisanAavedanPortal() {
         function saveStep(key){
           const step = SAVE_STEPS.find(s=>s.key===key);
           if(!step) return;
+          if(!validateDistrict()) return;
           if((key==="date" || key==="mb" || key==="expenses") && !validateDistinctDates()) return;
           setSaveState(key, "सहेजा जा रहा है…", "wait");
           apiPut(step.build(), step.label, key);
@@ -1418,6 +1428,7 @@ export default function KisanAavedanPortal() {
             apiMsg("पहले 'उपयोगकर्ता पंजीकरण' टैब से कृषक पंजीकृत करें — फॉर्म आईडी आवश्यक है।", "bad");
             return;
           }
+          if(!validateDistrict()) return;
           if(!validateDistinctDates()) return;
           const hint=document.getElementById("saveAllHint");
           let ok=0;
@@ -1546,7 +1557,7 @@ export default function KisanAavedanPortal() {
           S.f.village      = p.village || "";
           S.f.post         = p.post || "";
           S.f.block        = p.block || "";
-          S.f.dist         = p.dist || "";
+          S.f.dist         = p.dist || DISTRICT_NAME;
           S.f.mob          = p.mob || "";
           S.f.aadhar       = p.aadhar || "";
           if(p.category!==undefined && p.category!==null && String(p.category)!=="") S.f.cat = matchValue(CAT_BACK, p.category, "सामान्य");
