@@ -214,13 +214,13 @@
   display: none;
 }
 .kisan-html-react-root .pv-box {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   margin-top: 60px;
   background: var(--paper);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 45px rgba(0, 0, 42, 0.35);
 }
 .kisan-html-react-root .pv-head {
   position: sticky;
@@ -267,16 +267,21 @@
   background: rgba(255, 255, 255, 0.2);
 }
 .kisan-html-react-root .pv-body {
-  padding: 24px;
+  padding: 16px;
   background: #6b7280;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  display: block;
+  overflow-x: auto;
 }
-/* पूर्वावलोकन में असली A4 शीट (210mm × 297mm) जैसा रूप */
+/* पूर्वावलोकन में असली A4 शीट (210mm × 297mm) जैसा रूप.
+   box-sizing: border-box ज़रूरी — वरना 12mm padding 210mm के अतिरिक्त
+   जुड़कर शीट 884px हो जाती थी और pv-box की overflow:hidden उसे
+   दाईं ओर काट देती थी। */
 .kisan-html-react-root .pv-sheet {
+  box-sizing: border-box;
   width: 210mm;
+  max-width: 100%;
   min-height: 297mm;
+  margin: 0 auto;
   padding: 12mm;
   background: #fff;
   color: #1d2a23;
@@ -317,6 +322,8 @@
 }
 .kisan-html-react-root .pv-sheet table {
   width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 .kisan-html-react-root .pv-sheet th,
@@ -324,6 +331,11 @@
   border: 1px solid #000;
   padding: 4px 6px;
   color: #000;
+  /* लंबा टेक्स्ट सेल/टेबल से बाहर न निकले — वरना दाईं ओर कट जाता है */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  vertical-align: top;
 }
 .kisan-html-react-root .pv-sheet th {
   background: #fff !important;
@@ -2021,15 +2033,52 @@
   .kisan-html-react-root .view.has-print-target {
     display: block !important;
   }
-  /* असली A4 शीट: 210mm − 2×12mm = 186mm चौड़ाई, ऊपर-नीचे 12mm,
-     बाईं-दाईं 12mm केंद्रित करके। इससे किसी भी @page margin की परवाह नहीं करनी पड़ती। */
+  /* has-print-target सिर्फ ancestor को दिखाता है — वह खाली wrapper है,
+     इसलिए उसे A4 चौड़ाई/पैडिंग नहीं लेनी चाहिए, वरना खाली पेज बनते हैं। */
+  .kisan-html-react-root .view.has-print-target:not(.print-target) {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+  }
+  /* असली A4 शीट। यहाँ `width: 186mm` नहीं लिखा — क्योंकि 186mm केवल तब
+     सही है जब ब्राउज़र `@page { margin:12mm }` ठीक से माने। उपयोगकर्ता के
+     "Custom margins" / "Minimum margins" चुनने पर printable area छोटा
+     हो जाता था और 186mm का block उससे चौड़ा रहता था → टेबल दाईं ओर
+     कटी हुई प्रिंट होती थी। अब width:auto है, यानी टेबल हमेशा
+     printable area के भीतर रहती है और margin @page देता है। */
   .kisan-html-react-root .view.print-target {
-    width: 186mm !important;
-    max-width: 186mm !important;
-    margin: 0 auto !important;
-    padding: 12mm 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #fff !important;
     box-sizing: border-box;
+  }
+  /* बोर्डर-बॉक्स मॉडल में टेबल की चौड़ाई = container; यह भी
+     overflow की आखिरी सुरक्षा है। */
+  .kisan-html-react-root .view.print-target table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed;
+  }
+  /* ── आखिरी overflow-guard ─────────────────────────────────────────
+     प्रिंट में कोई भी तत्व printable area से चौड़ा न हो। पहले grid/flex
+     के कारण देयक प्रपत्र की टेबलें दाईं ओर पेज से बाहर निकल जातीं। */
+  .kisan-html-react-root .view.print-target,
+  .kisan-html-react-root .view.print-target * {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  .kisan-html-react-root .view.print-target .grid2 {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .kisan-html-react-root .view.print-target .grid2 > *,
+  .kisan-html-react-root .view.print-target .farmer-signature > * {
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
   }
   .kisan-html-react-root .aff-page-break,
   .kisan-html-react-root .pv-page-break {
@@ -2072,11 +2121,72 @@
     padding: 0 !important;
     border-radius: 0 !important;
   }
-  .kisan-html-react-root table,
-  .kisan-html-react-root tr,
-  .kisan-html-react-root td,
-  .kisan-html-react-root th {
+  /* ── टेबल: दाईं ओर कटना न हो, और सिर्फ पंक्ति अटूट रहे ─────────────
+     पुराना नियम `table,tr,td,th { page-break-inside: avoid }` था — इससे
+     लंबी टेबल (10+ पंक्तियाँ) एक पेज में न समाए तो ब्राउज़र उसे
+     force-crunch कर देता था, जिससे टेबल स्क्रीन/पेज से बाहर निकल जाती थी।
+     अब: टेबल free-flow, केवल पंक्ति/सेल अटूट। */
+  .kisan-html-react-root .view.print-target table,
+  .kisan-html-react-root .view.print-target td,
+  .kisan-html-react-root .view.print-target th {
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  .kisan-html-react-root .view.print-target table {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  .kisan-html-react-root .view.print-target tr {
     page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* लंबा टेक्स्ट (किसान का नाम, बैंक शाखा) सेल से बाहर न निकले */
+  .kisan-html-react-root .view.print-target td,
+  .kisan-html-react-root .view.print-target th {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    vertical-align: top;
+  }
+  /* nowrap सेल प्रिंट में लाइन-ब्रेक करने दें ताकि टेबल फटे नहीं */
+  .kisan-html-react-root .view.print-target td.calc,
+  .kisan-html-react-root .view.print-target .xbox td.v,
+  .kisan-html-react-root .view.print-target .appfield b,
+  .kisan-html-react-root .view.print-target .kv .r b {
+    white-space: normal !important;
+  }
+  /* ── हर तार्किक भाग अटूट ────────────────────────────────────────────
+     उपयोगकर्ता की माँग: कोई भाग आधा टूटकर दो पेजों में न जाए।
+     `break-inside: avoid` का अर्थ exactly यही है — अगर भाग current
+     page पर fit होता है तो वहीं रहेगा, fit नहीं होता तो अगले page
+     पर पूरा शुरू होगा। */
+  .kisan-html-react-root .view.print-target .appdoc > *,
+  .kisan-html-react-root .view.print-target .bill-doc > *,
+  .kisan-html-react-root .view.print-target .affidavit-doc > *,
+  .kisan-html-react-root .view.print-target .grid2,
+  .kisan-html-react-root .view.print-target .report-box,
+  .kisan-html-react-root .view.print-target .declaration-box,
+  .kisan-html-react-root .view.print-target .prabhari-box,
+  .kisan-html-react-root .view.print-target .note,
+  .kisan-html-react-root .view.print-target .summaryTbl,
+  .kisan-html-react-root .view.print-target .farmer-signature,
+  .kisan-html-react-root .view.print-target .report-sign,
+  .kisan-html-react-root .view.print-target .save-bar {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* शीर्षक अपने नीचे की सामग्री से अलग न पड़े */
+  .kisan-html-react-root .view.print-target .st,
+  .kisan-html-react-root .view.print-target h2,
+  .kisan-html-react-root .view.print-target h3,
+  .kisan-html-react-root .view.print-target h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .kisan-html-react-root .view.print-target p,
+  .kisan-html-react-root .view.print-target li {
+    orphans: 3;
+    widows: 3;
   }
   .kisan-html-react-root .ln {
     background: transparent !important;

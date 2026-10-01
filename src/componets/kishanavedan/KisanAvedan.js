@@ -164,6 +164,7 @@ export default function KisanAavedan() {
       tehsil: (user && user.tehsil) || ""
     };
 
+    const printCleanupRef = { fn: null };
     try {
       (function() {
         "use strict";
@@ -188,7 +189,7 @@ export default function KisanAavedan() {
         };
         const DL = {dlVermi:"vermiMaterial"};
         const COLS = {
-          vermi:{amt:r=>num(r.amt),c:[["item","कार्य / सामग्री का विवरण",0,0,"dlVermi"],["amt","बिल राशि (₹)",0,"n"]]}
+          vermi:{amt:r=>num(r.amt),c:[["item","कार्य / सामग्री का विवरण","62%",0,"dlVermi"],["amt","बिल राशि (₹)","38%",0,"n"]]}
         };
         const sum = k => (S[k]||[]).reduce((a,r)=>a+COLS[k].amt(r),0);
         const SECTIONS = {
@@ -470,9 +471,11 @@ export default function KisanAavedan() {
 
         function tableHTML(k){
           const cfg=COLS[k];
-          let h='<table class="expense-table"><thead><tr><th style="width:38px">क्र०</th>';
+          let h='<table class="expense-table">';
+          h+='<colgroup><col style="width:38px">'+cfg.c.map(c=>`<col style="width:${c[2]||"auto"}">`).join("")+'<col style="width:46px"></colgroup>';
+          h+='<thead><tr><th>क्र०</th>';
           cfg.c.forEach(c=>h+=`<th>${c[1]}</th>`);
-          h+='</tr></thead><tbody>';
+          h+='<th class="noprint">क्रिया</th></tr></thead><tbody>';
           S[k].forEach((r,i)=>{
             h+=`<tr><td class="n">${i+1}</td>`;
             cfg.c.forEach(c=>{
@@ -484,6 +487,7 @@ export default function KisanAavedan() {
           const ai = cfg.c.findIndex(c=>c[0]==="_amt"||c[0]==="amt");
           h+=`<tr class="tot"><td colspan="${ai+1}" style="text-align:right">योग</td><td class="calc num" data-tot="${k}">${fmtN(sum(k))}</td>`;
           for(let j=ai+1;j<cfg.c.length;j++) h+="<td></td>";
+          h+='<td class="noprint"></td>';
           h+='</tr></tbody></table>';
           h+=`<button class="addrow" data-add="${k}">+ पंक्ति जोड़ें</button>`;
           return h;
@@ -546,8 +550,8 @@ export default function KisanAavedan() {
             + '</div>'
 
             + '<div class="st">कृषक की खेती का विवरण</div>'
-            + '<table class="expense-table"><thead><tr>'
-            +   '<th style="width:38px">क्र०</th><th>फसल / बागवानी फसल का नाम</th><th style="width:140px">क्षेत्रफल (हे०)</th><th class="noprint" style="width:60px">क्रिया</th>'
+            + '<table class="expense-table"><colgroup><col style="width:38px"><col><col style="width:140px"><col class="noprint" style="width:60px"></colgroup><thead><tr>'
+            +   '<th>क्र०</th><th>फसल / बागवानी फसल का नाम</th><th>क्षेत्रफल (हे०)</th><th class="noprint">क्रिया</th>'
             + '</tr></thead><tbody>' + (cropHTML || '<tr><td colspan="4" class="empty">कोई फसल नहीं जोड़ी गई</td></tr>') + '</tbody></table>'
             + '<button type="button" class="addrow" id="addCropBtn">+ फसल जोड़ें</button>'
             + saveBar("area", "भूमि एवं फसल विवरण")
@@ -663,7 +667,7 @@ export default function KisanAavedan() {
           const c = calc();
           const stdCost = num(S.norm.vStdCost) || 33333;
           const rate = num(S.norm.vRate) || 75;
-          let tbl = `<table><thead><tr><th>क्र०</th><th>कार्य / सामग्री</th><th class="num">बिल राशि (₹)</th></tr></thead><tbody>`;
+          let tbl = `<table><thead><tr><th style="width:10%">क्र०</th><th style="width:58%">कार्य / सामग्री</th><th class="num" style="width:32%">बिल राशि (₹)</th></tr></thead><tbody>`;
           c.rows.forEach((r,i)=>{ tbl += `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.name)}</td><td class="num" id="r${i}a"></td></tr>`; });
           tbl += `</tbody><tfoot><tr><th colspan="2" class="num">योग</th><th class="num" id="tA">₹ 0.00</th></tr></tfoot></table>`;
 
@@ -677,7 +681,7 @@ export default function KisanAavedan() {
             + saveBar("mb", "एम०बी० मूल्यांकन")
 
             + '<div class="st">1. कृषक का विवरण</div>'
-            + '<table><tbody>'
+            + '<table><colgroup><col style="width:20%"><col style="width:30%"><col style="width:20%"><col style="width:30%"></colgroup><tbody>'
             +   '<tr><td>नाम कृषक</td><td>' + esc(S.f.name||"…………") + '</td><td>पिता / पति का नाम</td><td>' + esc(S.f.father||"…………") + '</td></tr>'
             +   '<tr><td>ग्राम</td><td>' + esc(S.f.village||"…………") + '</td><td>विकासखण्ड</td><td>' + esc(S.f.block||"…………") + '</td></tr>'
             +   '<tr><td>जनपद</td><td>' + esc(S.f.dist||"…………") + '</td><td>आधार संख्या</td><td>' + esc(S.f.aadhar||"…………") + '</td></tr>'
@@ -687,7 +691,7 @@ export default function KisanAavedan() {
             + saveBar("bank", "बैंक विवरण")
 
             + '<div class="st">2. इकाई का विवरण</div>'
-            + '<table><tbody>'
+            + '<table><colgroup><col style="width:34%"><col style="width:66%"></colgroup><tbody>'
             +   '<tr><td>यूनिट का आकार</td><td>10 फीट × 8 फीट × 2.5 फीट (पक्की संरचना)</td></tr>'
             +   '<tr><td>मानक लागत</td><td>₹ ' + stdCost.toLocaleString("en-IN") + '</td></tr>'
             +   '<tr><td>राजसहायता दर</td><td>' + rate + '%</td></tr>'
@@ -697,7 +701,7 @@ export default function KisanAavedan() {
             + tbl
 
             + '<div class="st">4. राजसहायता की गणना — तीनों में से न्यूनतम</div>'
-            + '<table class="summaryTbl"><tbody>'
+            + '<table class="summaryTbl"><colgroup><col style="width:62%"><col style="width:38%"></colgroup><tbody>'
             +   '<tr><td>बिल / वाउचर के अनुसार कुल व्यय</td><td class="sv" id="xBill">—</td></tr>'
             +   '<tr><td>एम०बी० मूल्यांकन धनराशि</td><td class="sv" id="xMb">—</td></tr>'
             +   '<tr><td>मानक लागत (10 फीट × 8 फीट × 2.5 फीट)</td><td class="sv" id="xStdCost">—</td></tr>'
@@ -782,14 +786,14 @@ export default function KisanAavedan() {
         function showSub(v){
           subCur = v;
           if(cur !== "filling") return;
-          const fillingSection = document.querySelector('.view[data-v="filling"]');
+          clearPrintMarks();
+          const fillingSection = root.querySelector('.view[data-v="filling"]');
           if(fillingSection){
             fillingSection.querySelectorAll(".view[data-v]").forEach(s=>{
               s.classList.toggle("on", s.dataset.v===v);
-              s.classList.remove("print-target");
             });
           }
-          document.querySelectorAll("#subnav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
+          root.querySelectorAll("#subnav a").forEach(a=>a.classList.toggle("on", a.dataset.go===v));
           if(v==="application") buildApplication();
           else if(v==="affidavit") buildAffidavit();
           else if(v==="work"){ buildWork(); refresh(); }
@@ -798,11 +802,11 @@ export default function KisanAavedan() {
         }
         function showTab(tab){
           cur = tab;
-          document.querySelectorAll("main > .view").forEach(s=>{
+          clearPrintMarks();
+          root.querySelectorAll("main > .view").forEach(s=>{
             s.classList.toggle("on", s.dataset.v===tab);
-            s.classList.remove("print-target");
           });
-          document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.tab===tab));
+          root.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.tab===tab));
           if(tab==="register"){
             loadRegistrations();
             const subnav = document.getElementById("subnav");
@@ -1072,34 +1076,60 @@ export default function KisanAavedan() {
           }
         });
 
-        function printCurrent(){
-          document.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target"));
-          let target;
-          if(cur === "filling"){
-            const fillingSection = document.querySelector('.view[data-v="filling"]');
-            target = fillingSection ? fillingSection.querySelector('.view[data-v="'+subCur+'"]') : null;
-          } else {
-            target = document.querySelector('.view[data-v="'+cur+'"]');
-          }
+        function clearPrintMarks(){
+          if(!root) return;
+          root.querySelectorAll(".view").forEach(v=>v.classList.remove("print-target","has-print-target"));
+        }
+        function markPrintTarget(target){
+          /* `.view` छुपा देता है (CSS) — इसलिए पूरी ancestor chain पर
+             has-print-target लगाना ज़रूरी, वरना प्रिंट खाली आता है। */
+          clearPrintMarks();
           if(!target) return;
           target.classList.add("print-target");
+          let p = target.parentElement;
+          while(p && p !== root){
+            if(p.classList && p.classList.contains("view")) p.classList.add("has-print-target");
+            p = p.parentElement;
+          }
+        }
+        function markForPrint(){
+          let target;
+          if(cur === "filling"){
+            const fillingSection = root.querySelector('.view[data-v="filling"]');
+            target = fillingSection ? fillingSection.querySelector('.view[data-v="'+subCur+'"]') : null;
+          } else {
+            target = root.querySelector('.view[data-v="'+cur+'"]');
+          }
+          if(target) markPrintTarget(target);
+        }
+        function printCurrent(){
+          markForPrint();
           window.print();
         }
+        const onBeforePrint = ()=>{ closePreview(); markForPrint(); };
+        window.addEventListener("beforeprint", onBeforePrint);
+        window.addEventListener("afterprint", clearPrintMarks);
+        printCleanupRef.fn = ()=>{
+          window.removeEventListener("beforeprint", onBeforePrint);
+          window.removeEventListener("afterprint", clearPrintMarks);
+        };
         const PV_TITLES = {application:"आवेदन पत्र", affidavit:"शपथ-पत्र", work:"व्यय विवरण", bill:"देयक प्रपत्र", register:"उपयोगकर्ता पंजीकरण"};
         function openPreview(){
           const overlay = document.getElementById("pvOverlay");
           const body = document.getElementById("pvBody");
           let target;
           if(cur === "filling"){
-            const fillingSection = document.querySelector('.view[data-v="filling"]');
+            const fillingSection = root.querySelector('.view[data-v="filling"]');
             target = fillingSection ? fillingSection.querySelector('.view[data-v="'+subCur+'"]') : null;
           } else {
-            target = document.querySelector('.view[data-v="'+cur+'"]');
+            target = root.querySelector('.view[data-v="'+cur+'"]');
           }
           if(!overlay || !body || !target) return;
           const activeView = cur==="filling" ? subCur : cur;
           document.getElementById("pvTitle").textContent = "प्रिंट पूर्वावलोकन — " + (PV_TITLES[activeView] || "प्रपत्र");
           body.innerHTML = "";
+          const sheet = document.createElement("div");
+          sheet.className = "pv-sheet";
           const clone = target.cloneNode(true);
           clone.classList.add("on");
           const liveFields = target.querySelectorAll("input,select,textarea");
@@ -1110,7 +1140,8 @@ export default function KisanAavedan() {
             if(cf.type === "checkbox" || cf.type === "radio") cf.checked = liveFields[i].checked;
             else cf.value = liveFields[i].value;
           }
-          body.appendChild(clone);
+          sheet.appendChild(clone);
+          body.appendChild(sheet);
           overlay.hidden = false;
           overlay.scrollTop = 0;
         }
@@ -1145,7 +1176,6 @@ export default function KisanAavedan() {
         const pvOverlayEl = document.getElementById("pvOverlay");
         if (pvOverlayEl) pvOverlayEl.addEventListener("click", e=>{ if(e.target === e.currentTarget) closePreview(); });
         document.addEventListener("keydown", e=>{ if(e.key === "Escape") closePreview(); });
-        window.addEventListener("beforeprint", ()=>{ closePreview(); });
       })();
     } catch (error) {
       console.error("Kisan Aavedan Portal initialization failed:", error);
@@ -1163,6 +1193,7 @@ export default function KisanAavedan() {
       window.removeEventListener("resize", syncAppNav);
       window.removeEventListener("load", syncAppNav);
       window.clearTimeout(navSyncTimer);
+      if (printCleanupRef.fn) printCleanupRef.fn();
       centerStore.onChange = null;
       root.innerHTML = "";
     };
