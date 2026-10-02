@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import "../kishanavedan/DragfruitsAndKiwi.css";
 
 const ID_PREFIX = "dragon-";
@@ -67,6 +67,52 @@ const CENTERS = [
 ];
 
 const RELATIONS = ["सहखातेदार", "भाई", "पुत्र", "पिता", "पत्नी", "अन्य"];
+const API_DRAGON_FRUIT = "https://mahadevaaya.com/govbillingsystem/backend/api/dragon-fruit-kisan/";
+
+// GET पर ?center_name=... भेजने पर सर्वर खाली मिलने पर 404 दे देता है,
+// इसलिए पूरी सूची लेकर केंद्र छानना frontend पर ही किया जाता है (portal जैसा)।
+const apiFetch = async (url, options = {}) => {
+  const method = (options.method || "GET").toUpperCase();
+  return fetch(url, { ...options, method, credentials: "omit" });
+};
+
+const readApiResponse = async (response) => {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+  if (!text) return {};
+  try { return JSON.parse(text); }
+  catch {
+    throw new Error(contentType.toLowerCase().includes("application/json")
+      ? "सर्वर का उत्तर पढ़ा नहीं जा सका।"
+      : `सर्वर से अपेक्षित JSON नहीं मिला (${response.status})।`);
+  }
+};
+
+const normalizeText = value => String(value === null || value === undefined ? "" : value).replace(/\s+/g, " ").trim();
+
+const centerMatches = (recordCenter, wantedCenter) => {
+  const wanted = normalizeText(wantedCenter).toLowerCase();
+  const actual = normalizeText(recordCenter).toLowerCase();
+  if (!wanted || !actual) return true;
+  return actual === wanted || actual.includes(wanted) || wanted.includes(actual);
+};
+
+const recordList = data => (Array.isArray(data) ? data : (data?.results || []));
+const recordPersonal = record => (record?.personal_details || record || {});
+const recordFormId = record => record?.form_id || record?.personal_details?.form_id || "";
+
+const createDragonForm = () => ({
+  name: "", father: "", gender: "पुरुष", mobile: "", aadhaar: "", udyan: "",
+  district: "", block: "", center: "", village: "", post: "", appno: "", remarks: "",
+  beneficiary: "individual", bankHolder: "", bankName: "", bankBranch: "", bankAccount: "",
+  bankIfsc: "", bankType: "बचत खाता", workMode: "firm", firmName: "", firmReg: "", workRemark: "",
+  declWater: "", declIrrigation: "", declPrevious: "", declLand: "", declInspection: "", declShare: "",
+});
+
+const createLandRows = () => [
+  { rel: "स्वयं", name: "", father: "", village: "", khata: "", khasra: "", gender: "पुरुष", area: "" },
+  ...Array.from({ length: 4 }, () => ({ rel: "", name: "", father: "", village: "", khata: "", khasra: "", gender: "पुरुष", area: "" }))
+];
 
 const DragfruitsAndKiwi = () => {
   const [activeSideTab, setActiveSideTab] = useState("view");
@@ -75,21 +121,19 @@ const DragfruitsAndKiwi = () => {
   const [flashAnchor, setFlashAnchor] = useState(null);
   const [headerH, setHeaderH] = useState(0);
   const [footerH, setFooterH] = useState(0);
+  const [activePage, setActivePage] = useState("register");
+  const [formId, setFormId] = useState("");
+  const [registration, setRegistration] = useState({ name: "", mobile: "", center: "कोटद्वार" });
+  const [registeredRows, setRegisteredRows] = useState([]);
+  const [registrationsLoading, setRegistrationsLoading] = useState(false);
+  const [apiMessage, setApiMessage] = useState("");
+  const [savingStage, setSavingStage] = useState("");
+  const [saveStates, setSaveStates] = useState({});
+  const [voucherRows, setVoucherRows] = useState([["", "", "", "", "", ""]]);
 
   // Form States
-  const [form, setForm] = useState({
-    name: "", father: "", gender: "पुरुष", mobile: "", aadhaar: "", udyan: "",
-    district: "", block: "", center: "", village: "", post: "", appno: "DRG-2026-0001", remarks: "",
-    bankHolder: "", bankName: "", bankBranch: "", bankAccount: "",
-    bankIfsc: "", bankType: "बचत खाता",
-    workMode: "firm", firmName: "", firmReg: "", workRemark: "",
-    declWater: "", declIrrigation: "", declPrevious: "", declLand: "", declInspection: "", declShare: "",
-  });
-
-  const [landRows, setLandRows] = useState([
-    { rel: "स्वयं", name: "", father: "", village: "", khata: "", khasra: "", gender: "पुरुष", area: "" },
-    ...Array(4).fill({ rel: "", name: "", father: "", village: "", khata: "", khasra: "", gender: "पुरुष", area: "" })
-  ]);
+  const [form, setForm] = useState(createDragonForm);
+  const [landRows, setLandRows] = useState(createLandRows);
 
   // Render & Print States
   const [showAppPrint, setShowAppPrint] = useState(false);
@@ -300,6 +344,12 @@ const DragfruitsAndKiwi = () => {
     });
   };
 
+  const handleVoucherChange = (rowIndex, columnIndex, value) => {
+    setVoucherRows(previous => previous.map((row, index) => (
+      index === rowIndex ? row.map((cell, cellIndex) => cellIndex === columnIndex ? value : cell) : row
+    )));
+  };
+
   const saveDraft = () => {
     localStorage.setItem("projectApp", JSON.stringify({ form, landRows }));
     alert("आवेदन Draft सुरक्षित हो गया।");
@@ -314,6 +364,267 @@ const DragfruitsAndKiwi = () => {
     } else {
       alert("कोई Draft उपलब्ध नहीं है।");
     }
+  };
+
+  const getApiError = (data, response) => {
+    if (typeof data === "string") return data;
+    return data?.detail || data?.error || data?.message || `अनुरोध विफल (status ${response.status})`;
+  };
+
+  const fetchAllRegistrations = async () => {
+    const response = await apiFetch(API_DRAGON_FRUIT);
+    if (response.status === 404) return [];
+    const data = await readApiResponse(response);
+    if (!response.ok) throw new Error(getApiError(data, response));
+    return recordList(data);
+  };
+
+  const loadRegistrations = useCallback(async (centerName = registration.center) => {
+    setRegistrationsLoading(true);
+    try {
+      const all = await fetchAllRegistrations();
+      setRegisteredRows(all.filter(record => centerMatches(recordPersonal(record).center_name, centerName)));
+      setApiMessage("");
+    } catch (error) {
+      setRegisteredRows([]);
+      setApiMessage(`सूची लोड नहीं हो सकी: ${error.message || "अज्ञात त्रुटि"}`);
+    } finally {
+      setRegistrationsLoading(false);
+    }
+  }, [registration.center]);
+
+  useEffect(() => {
+    loadRegistrations(registration.center);
+  }, [loadRegistrations, registration.center]);
+
+  const registerFarmer = async (event) => {
+    event.preventDefault();
+    if (!registration.name.trim()) { setApiMessage("कृषक का नाम भरना अनिवार्य है।"); return; }
+    if (!/^\d{10}$/.test(registration.mobile.trim())) { setApiMessage("10 अंक का सही मोबाइल नंबर भरें।"); return; }
+    try {
+      setSavingStage("register");
+      const response = await apiFetch(API_DRAGON_FRUIT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ farmer_name: registration.name.trim(), mobile: registration.mobile.trim(), center_name: registration.center })
+      });
+      const data = await readApiResponse(response);
+      if (!response.ok) throw new Error(getApiError(data, response));
+      const newFormId = data.form_id || data.personal_details?.form_id;
+      if (!newFormId) throw new Error("सर्वर से फॉर्म आईडी नहीं मिली।");
+      setForm({ ...createDragonForm(), name: registration.name.trim(), mobile: registration.mobile.trim(), center: registration.center, appno: newFormId });
+      setLandRows(createLandRows());
+      setVoucherRows([["", "", "", "", "", ""]]);
+      setFormId(newFormId);
+      setSaveStates({});
+      setActivePage("filling");
+      setApiMessage(`पंजीकरण सफल। फॉर्म आईडी: ${newFormId}`);
+      await loadRegistrations(registration.center);
+    } catch (error) {
+      setApiMessage(`पंजीकरण विफल: ${error.message || "अज्ञात त्रुटि"}`);
+    } finally {
+      setSavingStage("");
+    }
+  };
+
+  const applyApiRecord = (record) => {
+    const personal = record.personal_details || record;
+    const documents = record.document_details || {};
+    const id = record.form_id || personal.form_id || "";
+    const farmerType = personal.farmer_type || "व्यक्तिगत कृषक";
+    const bankType = personal.bank_account_type || "Savings";
+    setForm({
+      ...createDragonForm(),
+      name: personal.farmer_name || "",
+      father: personal.father_husband_name || "",
+      gender: personal.gender || "पुरुष",
+      mobile: personal.mobile || "",
+      aadhaar: personal.aadhaar || "",
+      udyan: personal.udyan_card_no || "",
+      district: personal.district || "",
+      block: personal.block || "",
+      center: personal.center_name || personal.center || registration.center,
+      village: personal.village || "",
+      post: personal.post || "",
+      appno: id,
+      remarks: personal.remarks || "",
+      beneficiary: farmerType.includes("समूह") ? "group" : "individual",
+      bankHolder: personal.bank_holder_name || "",
+      bankName: personal.bank_name || "",
+      bankBranch: personal.bank_branch || "",
+      bankAccount: personal.bank_account_number || "",
+      bankIfsc: personal.bank_ifsc || "",
+      bankType: bankType === "Current" ? "चालू खाता" : bankType === "Other" ? "अन्य" : "बचत खाता",
+      workMode: personal.work_mode === "स्वयं" ? "self" : "firm",
+      firmName: personal.firm_name || "",
+      firmReg: personal.firm_registration_no || "",
+      workRemark: personal.work_remark || "",
+      declWater: documents.declaration_no_waterlogging || "",
+      declIrrigation: documents.declaration_irrigation_available || "",
+      declPrevious: documents.declaration_previous_benefit || "",
+      declLand: documents.declaration_land_correct || "",
+      declInspection: documents.declaration_inspection_consent || "",
+      declShare: documents.declaration_farmer_share || "",
+    });
+    const land = personal.land_work_details || [];
+    setLandRows(land.length ? land.map(row => ({
+      rel: row[0] || "", name: row[1] || "", father: row[2] || "", gender: row[3] || "पुरुष",
+      village: row[4] || "", khata: row[5] || "", khasra: row[6] || "", area: row[7] || ""
+    })) : createLandRows());
+    const vouchers = documents.anudan_voucher || [];
+    setVoucherRows(vouchers.length ? vouchers.map(row => [...row]) : [["", "", "", "", "", ""]]);
+    setFormId(id);
+    setSaveStates({});
+  };
+
+  const openRegisteredForm = async (formIdToOpen) => {
+    try {
+      setSavingStage("loading");
+      let records = registeredRows;
+      if (!records.some(item => recordFormId(item) === formIdToOpen)) {
+        records = await fetchAllRegistrations();
+        setRegisteredRows(records);
+      }
+      const record = records.find(item => recordFormId(item) === formIdToOpen);
+      if (!record) throw new Error(`फॉर्म ${formIdToOpen} सूची में नहीं मिला।`);
+      applyApiRecord(record);
+      setActivePage("filling");
+      setApiMessage(`फॉर्म ${formIdToOpen} सर्वर से लोड हुआ।`);
+      window.scrollTo(0, 0);
+    } catch (error) {
+      setApiMessage(`फॉर्म लोड नहीं हो सका: ${error.message || "अज्ञात त्रुटि"}`);
+    } finally {
+      setSavingStage("");
+    }
+  };
+
+  const saveSteps = (activeFormId = formId) => [
+    { key: "personal", label: "आवेदक विवरण", payload: {
+      form_id: activeFormId, farmer_name: form.name, father_husband_name: form.father, gender: form.gender,
+      udyan_card_no: form.udyan, mobile: form.mobile, aadhaar: form.aadhaar, district: form.district,
+      block: form.block, center: form.center, village: form.village, post: form.post,
+      farmer_type: form.beneficiary === "group" ? "समूह" : "व्यक्तिगत कृषक", remarks: form.remarks
+    } },
+    { key: "land", label: "भूमि एवं कार्य विवरण", payload: {
+      form_id: activeFormId,
+      land_work_details: landRows.filter(row => row.name || row.father || row.village || row.khata || row.khasra || row.area)
+        .map(row => [row.rel, row.name, row.father, row.gender, row.village, row.khata, row.khasra, row.area])
+    } },
+    { key: "bank", label: "बैंक विवरण", payload: {
+      form_id: activeFormId, bank_holder_name: form.bankHolder, bank_name: form.bankName,
+      bank_branch: form.bankBranch, bank_account_number: form.bankAccount, bank_ifsc: form.bankIfsc,
+      bank_account_type: form.bankType === "चालू खाता" ? "Current" : form.bankType === "अन्य" ? "Other" : "Savings",
+      bank_proof: null
+    } },
+    { key: "work", label: "कार्य निष्पादन विवरण", payload: {
+      form_id: activeFormId, work_mode: form.workMode === "self" ? "स्वयं" : "फर्म",
+      firm_name: form.firmName, firm_registration_no: form.firmReg, work_remark: form.workRemark
+    } },
+    { key: "documents", label: "दस्तावेज", payload: {
+      form_id: activeFormId, land_record_khatauni: null, aadhaar_identity: null,
+      horticulture_card: null, bank_passbook_cancelled_cheque: null,
+      land_map_other_record: null, other_document: null
+    } },
+    { key: "declarations", label: "घोषणाएँ", payload: {
+      form_id: activeFormId, declaration_no_waterlogging: form.declWater,
+      declaration_irrigation_available: form.declIrrigation, declaration_previous_benefit: form.declPrevious,
+      declaration_land_correct: form.declLand, declaration_inspection_consent: form.declInspection,
+      declaration_farmer_share: form.declShare
+    } },
+    { key: "vouchers", label: "अनुदान व्यय", payload: {
+      form_id: activeFormId,
+      anudan_voucher: voucherRows.filter(row => row.some(value => String(value || "").trim() !== ""))
+    } }
+  ];
+
+  const putStage = async (step) => {
+    const response = await apiFetch(API_DRAGON_FRUIT, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(step.payload)
+    });
+    const data = await readApiResponse(response);
+    if (!response.ok) throw new Error(getApiError(data, response));
+  };
+
+  const saveOneStage = async (key) => {
+    if (!formId || savingStage) return;
+    const step = saveSteps().find(item => item.key === key);
+    if (!step) return;
+    setSavingStage(key);
+    setSaveStates(previous => ({ ...previous, [key]: "सहेजा जा रहा है…" }));
+    try {
+      await putStage(step);
+      setSaveStates(previous => ({ ...previous, [key]: "सहेजा गया" }));
+      setApiMessage(`${step.label} सफलतापूर्वक सहेजा गया।`);
+    } catch (error) {
+      setSaveStates(previous => ({ ...previous, [key]: `विफल: ${error.message || "त्रुटि"}` }));
+      setApiMessage(`${step.label} सहेजा नहीं जा सका: ${error.message || "अज्ञात त्रुटि"}`);
+    } finally {
+      setSavingStage("");
+    }
+  };
+
+  const saveAllStages = async () => {
+    if (!formId || savingStage) return;
+    let completed = 0;
+    setSavingStage("all");
+    for (const step of saveSteps()) {
+      setSaveStates(previous => ({ ...previous, [step.key]: "सहेजा जा रहा है…" }));
+      try {
+        await putStage(step);
+        completed += 1;
+        setSaveStates(previous => ({ ...previous, [step.key]: "सहेजा गया" }));
+      } catch (error) {
+        setSaveStates(previous => ({ ...previous, [step.key]: `विफल: ${error.message || "त्रुटि"}` }));
+        setApiMessage(`${completed} / 7 चरण सहेजे गए। ${step.label}: ${error.message || "अज्ञात त्रुटि"}`);
+        setSavingStage("");
+        return;
+      }
+    }
+    setApiMessage("सभी 7 चरण सफलतापूर्वक सहेजे गए।");
+    setSavingStage("");
+  };
+
+  const deleteRegisteredForm = async (formIdToDelete) => {
+    if (!window.confirm(`फॉर्म ${formIdToDelete} को स्थायी रूप से हटाएँ?`)) return;
+    try {
+      setSavingStage("delete");
+      const response = await apiFetch(API_DRAGON_FRUIT, {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form_ids: [formIdToDelete] })
+      });
+      const data = await readApiResponse(response);
+      if (!response.ok) throw new Error(getApiError(data, response));
+      if (formId === formIdToDelete) {
+        setFormId("");
+        setForm(createDragonForm());
+        setLandRows(createLandRows());
+        setVoucherRows([["", "", "", "", "", ""]]);
+        setActivePage("register");
+      }
+      setApiMessage(`फॉर्म ${formIdToDelete} हटा दिया गया।`);
+      await loadRegistrations(registration.center);
+    } catch (error) {
+      setApiMessage(`फॉर्म हटाया नहीं जा सका: ${error.message || "अज्ञात त्रुटि"}`);
+    } finally {
+      setSavingStage("");
+    }
+  };
+
+  const startNewApplication = () => {
+    setForm(createDragonForm());
+    setLandRows(createLandRows());
+    setVoucherRows([["", "", "", "", "", ""]]);
+    setFormId("");
+    setSaveStates({});
+    setActivePage("register");
+  };
+
+  const goToFilling = () => {
+    setSideOpen(false);
+    setActivePage("filling");
+    if (!formId) setApiMessage("कोई फॉर्म चयनित नहीं — सहेजने के लिए पहले 'कृषक पंजीकरण' से पंजीकरण करें या कोई फॉर्म खोलें।");
+    window.scrollTo(0, 0);
   };
 
   const goToStep = (i) => {
@@ -368,11 +679,66 @@ const DragfruitsAndKiwi = () => {
         <main className="wrap">
           <div className="card noprint">
             <div className="tabs">
-              <button type="button" className="tab active">🐉 ड्रैगन फ्रूट</button>
+              <button type="button" className={`tab ${activePage === "register" ? "active" : ""}`} onClick={() => { setSideOpen(false); setActivePage("register"); }}>कृषक पंजीकरण</button>
+              <button type="button" className={`tab ${activePage === "filling" ? "active" : ""}`} onClick={goToFilling}>प्रपत्र भरना {formId ? `· ${formId}` : ""}</button>
             </div>
-            <div className="note">
+            {activePage === "filling" && <div className="note">
               <b>महत्वपूर्ण:</b> किसान के अंतिम मानक पत्र में प्रति इकाई Rate नहीं दिखाया जाएगा।
               Master Standard के आधार पर अंदर से गणना होगी और किसान को Component-wise कुल लागत दिखाई जाएगी।
+            </div>}
+          </div>
+
+          {apiMessage && <div className={`api-message ${apiMessage.includes("विफल") || apiMessage.includes("नहीं") ? "error" : "success"}`} role="status">{apiMessage}</div>}
+
+          {activePage === "register" ? (
+            <section className="card noprint registration-screen">
+              <h2>कृषक पंजीकरण</h2>
+              <p className="card-intro">पहले किसान का पंजीकरण करें। सर्वर से मिली फॉर्म आईडी पर आवेदन के बाकी चरण सहेजें।</p>
+              <form className="grid" onSubmit={registerFarmer}>
+                <div className="field"><label htmlFor="reg-farmer-name">कृषक का नाम<span className="req">*</span></label><input id="reg-farmer-name" value={registration.name} onChange={event => setRegistration({ ...registration, name: event.target.value })} required /></div>
+                <div className="field"><label htmlFor="reg-farmer-mobile">मोबाइल नंबर<span className="req">*</span></label><input id="reg-farmer-mobile" inputMode="numeric" maxLength={10} value={registration.mobile} onChange={event => setRegistration({ ...registration, mobile: event.target.value })} required /></div>
+                <div className="field"><label htmlFor="reg-farmer-center">केंद्र<span className="req">*</span></label><select id="reg-farmer-center" value={registration.center} onChange={event => setRegistration({ ...registration, center: event.target.value })}>{CENTERS.map(center => <option key={center} value={center}>{center}</option>)}</select></div>
+                <div className="field"><button className="btn" type="submit" disabled={Boolean(savingStage)}>{savingStage === "register" ? "पंजीकरण हो रहा है…" : "पंजीकरण करें"}</button></div>
+              </form>
+              <div className="registration-list-head">
+                <div><h3>पंजीकृत किसान</h3><span className="small">केंद्र: {registration.center}{registeredRows.length ? ` · ${registeredRows.length} फॉर्म` : ""}</span></div>
+                <button type="button" className="btn secondary" onClick={() => loadRegistrations(registration.center)} disabled={Boolean(savingStage) || registrationsLoading}>{registrationsLoading ? "लोड हो रहा है…" : "सूची ताज़ा करें"}</button>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>क्र०</th><th>फॉर्म आईडी</th><th>कृषक का नाम</th><th>मोबाइल</th><th>केंद्र</th><th>भूमि (हे०)</th><th>स्थिति</th><th>क्रिया</th></tr></thead>
+                  <tbody>
+                    {registeredRows.length ? registeredRows.map((record, index) => {
+                      const personal = recordPersonal(record);
+                      const id = recordFormId(record);
+                      const landArea = (personal.land_work_details || []).reduce((sum, row) => sum + num(Array.isArray(row) ? row[7] : row?.area), 0);
+                      const filled = Boolean(
+                        normalizeText(personal.bank_account_number) || normalizeText(personal.bank_ifsc)
+                        || normalizeText(personal.father_husband_name) || normalizeText(personal.district) || normalizeText(personal.block)
+                        || (personal.land_work_details || []).length
+                        || (record?.document_details?.anudan_voucher || []).length
+                      );
+                      return <tr key={id || index} className={id && id === formId ? "sel" : ""}>
+                        <td className="qty">{index + 1}</td>
+                        <td><b>{id || "—"}</b></td><td>{personal.farmer_name || "—"}</td>
+                        <td>{personal.mobile || "—"}</td><td>{personal.center_name || personal.center || "—"}</td>
+                        <td className="qty">{landArea > 0 ? landArea.toFixed(2) : "—"}</td>
+                        <td><span className={`reg-status ${filled ? "ok" : "wait"}`}>{filled ? "भरा गया" : "पंजीकृत (रिक्त)"}</span></td>
+                        <td><div className="registration-actions">
+                          <button type="button" className="btn secondary" onClick={() => openRegisteredForm(id)} disabled={Boolean(savingStage)}>फॉर्म खोलें / संपादित करें</button>
+                          <button type="button" className="btn danger" onClick={() => deleteRegisteredForm(id)} disabled={Boolean(savingStage)}>हटाएँ</button>
+                        </div></td>
+                      </tr>;
+                    }) : <tr><td colSpan="8">{registrationsLoading ? "लोड हो रहा है…" : "इस केंद्र के लिए कोई पंजीकरण नहीं मिला।"}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : (
+            <>
+          <div className="card noprint">
+            <div className="note">
+              <b>चयनित फॉर्म:</b> {formId} · सभी चरण इसी फॉर्म आईडी के साथ सर्वर पर सहेजें।
             </div>
           </div>
 
@@ -402,10 +768,22 @@ const DragfruitsAndKiwi = () => {
               <button type="button" className="btn" onClick={() => goToStep(Math.min(APP_STEPS.length - 1, workflowStep + 1))}>
                 {workflowStep === APP_STEPS.length - 1 ? "✓ अंतिम समीक्षा" : "अगला चरण →"}
               </button>
-              <button type="button" className="btn secondary" onClick={() => { setForm({ gender: "पुरुष", beneficiary: "individual", bankType: "बचत खाता", workMode: "firm" }); setLandRows(Array(5).fill({ rel: "स्वयं", name: "", father: "", village: "", khata: "", khasra: "", gender: "पुरुष", area: "" })); }}>🆕 नया आवेदन</button>
+              <button type="button" className="btn secondary" onClick={startNewApplication}>🆕 नया आवेदन</button>
               <button type="button" className="btn gold" onClick={() => goToStep(6)}>💰 अनुदान पर जाएँ</button>
             </div>
           </div>
+
+          <section className="card noprint api-save-panel">
+            <div className="registration-list-head"><div><h3>सर्वर पर सहेजें</h3><span className="small">फॉर्म आईडी: {formId}</span></div>
+              <button type="button" className="btn" onClick={saveAllStages} disabled={Boolean(savingStage)}>{savingStage === "all" ? "सभी चरण सहेजे जा रहे हैं…" : "सभी 7 चरण सहेजें"}</button>
+            </div>
+            <div className="save-stage-list">{[
+              ["personal", "आवेदक विवरण"], ["land", "भूमि विवरण"], ["bank", "बैंक विवरण"],
+              ["work", "कार्य निष्पादन"], ["documents", "दस्तावेज"], ["declarations", "घोषणाएँ"], ["vouchers", "अनुदान व्यय"]
+            ].map(([key, label]) => <button key={key} type="button" className="btn secondary" onClick={() => saveOneStage(key)} disabled={Boolean(savingStage)}>
+              {label}{saveStates[key] ? ` · ${saveStates[key]}` : " · सहेजें"}
+            </button>)}</div>
+          </section>
 
           {/* Application Form Section */}
           <section className={`card noprint ${anchorCls("wf-basic")}`} id={`${ID_PREFIX}wf-basic`}>
@@ -424,7 +802,7 @@ const DragfruitsAndKiwi = () => {
               <div className="field"><label htmlFor="f-center">उद्यान सचल दल केंद्र<span className="req">*</span></label><select id="f-center" value={form.center} onChange={e => setForm({ ...form, center: e.target.value })}><option value="">-- केंद्र चुनें --</option>{CENTERS.map((c) => (<option key={c} value={c}>{c}</option>))}</select></div>
               <div className="field"><label htmlFor="f-village">ग्राम<span className="req">*</span></label><input id="f-village" placeholder="ग्राम का नाम" value={form.village} onChange={e => setForm({ ...form, village: e.target.value })} /></div>
               <div className="field"><label htmlFor="f-post">पोस्ट</label><input id="f-post" placeholder="पोस्ट ऑफिस" value={form.post} onChange={e => setForm({ ...form, post: e.target.value })} /></div>
-              <div className="field"><label htmlFor="f-beneficiary">लाभार्थी का प्रकार</label><select id="f-beneficiary" defaultValue="individual" onChange={e => setForm({ ...form, beneficiary: e.target.value })}><option value="individual">व्यक्तिगत कृषक</option><option value="group">समूह</option></select></div>
+              <div className="field"><label htmlFor="f-beneficiary">लाभार्थी का प्रकार</label><select id="f-beneficiary" value={form.beneficiary} onChange={e => setForm({ ...form, beneficiary: e.target.value })}><option value="individual">व्यक्तिगत कृषक</option><option value="group">समूह</option></select></div>
               <div className="field"><label htmlFor="f-appno">आवेदन संख्या</label><input id="f-appno" readOnly placeholder="स्वतः जारी" value={form.appno} onChange={e => setForm({ ...form, appno: e.target.value })} /><span className="hint">Draft सुरक्षित करने पर स्वतः बनेगी।</span></div>
               <div className="field full"><label htmlFor="f-remark">भूमि / परियोजना संबंधी टिप्पणी</label><textarea id="f-remark" placeholder="यदि कोई विशेष बात हो तो यहाँ लिखें" value={form.remarks} onChange={e => setForm({ ...form, remarks: e.target.value })} /></div>
             </div>
@@ -517,6 +895,21 @@ const DragfruitsAndKiwi = () => {
                 <div className="field"><label>स्थलीय निरीक्षण हेतु सहमति<span className="req">*</span></label><select value={form.declInspection} onChange={e => setForm({ ...form, declInspection: e.target.value })}><option value="">-- चुनें --</option><option value="हाँ">हाँ</option><option value="नहीं">नहीं</option></select></div>
                 <div className="field"><label>कृषक अंश वहन करने की सहमति<span className="req">*</span></label><select value={form.declShare} onChange={e => setForm({ ...form, declShare: e.target.value })}><option value="">-- चुनें --</option><option value="हाँ">हाँ</option><option value="नहीं">नहीं</option></select></div>
               </div>
+            </div>
+
+            <div className="inner-card">
+              <h3>अनुदान बिल / वाउचर</h3>
+              <p className="card-intro">हर पंक्ति सर्वर पर चरण, घटक, बिल संख्या, राशि और भुगतान पाने वाले के क्रम में सहेजी जाएगी।</p>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>चरण</th><th>कार्य / घटक</th><th>बिल संख्या</th><th>राशि</th><th>भुगतान किसे</th><th>फर्म / कृषक का नाम</th><th>क्रिया</th></tr></thead>
+                  <tbody>{voucherRows.map((row, rowIndex) => <tr key={rowIndex}>
+                    {row.map((value, columnIndex) => <td key={columnIndex}><input aria-label={["चरण", "कार्य / घटक", "बिल संख्या", "राशि", "भुगतान किसे", "फर्म / कृषक का नाम"][columnIndex]} value={value} onChange={event => handleVoucherChange(rowIndex, columnIndex, event.target.value)} /></td>)}
+                    <td><button type="button" className="btn danger" onClick={() => setVoucherRows(previous => previous.length > 1 ? previous.filter((_, index) => index !== rowIndex) : [["", "", "", "", "", ""]])}>हटाएँ</button></td>
+                  </tr>)}</tbody>
+                </table>
+              </div>
+              <button type="button" className="btn secondary" onClick={() => setVoucherRows(previous => [...previous, ["", "", "", "", "", ""]])}>+ वाउचर जोड़ें</button>
             </div>
 
             {/* Process */}
@@ -706,11 +1099,13 @@ const DragfruitsAndKiwi = () => {
             </section>
           )}
 
+          </>)}
         </main>
 
         <div className="footer noprint">Dragon Fruit Farmer Application &amp; Project Standard System</div>
       </div>
 
+      {activePage === "filling" && <>
       <button type="button" className="side-toggle" aria-expanded={sideOpen} onClick={() => setSideOpen((v) => !v)}>☰ दस्तावेज विकल्प</button>
 
       <aside className={`side-tabs ${sideOpen ? "open" : ""}`} aria-label="दस्तावेज विकल्प">
@@ -725,7 +1120,7 @@ const DragfruitsAndKiwi = () => {
           <h4>मुख्य कार्य</h4>
           <div className="side-group">
             <div className="side-group-title">आवेदन एवं मानक</div>
-            <button type="button" className="side-action" onClick={() => { setForm({ gender: "पुरुष", beneficiary: "individual", bankType: "बचत खाता", workMode: "firm" }); setLandRows(Array(5).fill({ rel: "स्वयं", name: "", father: "", village: "", khata: "", khasra: "", gender: "पुरुष", area: "" })); }}>🆕 नया आवेदन शुरू करें</button>
+            <button type="button" className="side-action" onClick={startNewApplication}>🆕 नया आवेदन शुरू करें</button>
             <button type="button" className="side-action" onClick={handleGenerate}>✓ आवेदन से किसान-विशिष्ट मानक बनाएं</button>
             <button type="button" className="side-action" onClick={saveDraft}>💾 Draft सुरक्षित करें</button>
             <button type="button" className="side-action" onClick={loadDraft}>↶ Draft लोड करें</button>
@@ -832,6 +1227,7 @@ const DragfruitsAndKiwi = () => {
           </div>
         </div>
       </aside>
+      </>}
     </div>
   );
 };

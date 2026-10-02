@@ -300,6 +300,59 @@
   color: #fff;
   box-shadow: 0 2px 7px rgba(30, 96, 145, .22);
 }
+.tab:disabled,
+.drag-fruits-root .btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.registration-screen > h2 { margin-bottom: 6px; }
+.registration-screen .field > .btn { margin-top: 22px; }
+.registration-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 18px 0 10px;
+}
+.registration-list-head h3 { font-size: var(--fs-h3); }
+.registration-actions,
+.save-stage-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.save-stage-list { margin-top: 10px; }
+.drag-fruits-root .btn.danger {
+  background: #a62929;
+  color: #fff;
+}
+.drag-fruits-root .btn.danger:hover { background: #851f1f; }
+.api-message {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #9fc7aa;
+  border-radius: var(--radius-sm);
+  background: #edf8ef;
+  color: #215c31;
+}
+.api-message.error {
+  border-color: #e2aaaa;
+  background: #fff1f1;
+  color: #812626;
+}
+.registration-screen .table-wrap input { min-width: 90px; width: 100%; }
+.registration-screen tr.sel td { background: #eef6fb; }
+.reg-status {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid var(--rule, #c6cdc4);
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.reg-status.ok { border-color: #9fc7aa; background: #edf8ef; color: #215c31; }
+.reg-status.wait { border-color: #e2cdaa; background: #fdf6e9; color: #7a5312; }
+.inner-card .table-wrap input { min-width: 100px; width: 100%; }
 
 /* ========================================================================
    Grid form
