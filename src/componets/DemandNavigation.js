@@ -171,7 +171,7 @@ const DemandNavigation = () => {
                   fontWeight: isActive("/DragfruitsAndKiwi") ? "bold" : "normal",
                 }}
               >
-               Drag
+              ड्रैगन फ्रूट (Dragonfruit)
               </NavDropdown.Item>
                 <NavDropdown.Item
                 active={isActive("/KiwiFruits")}
@@ -180,7 +180,7 @@ const DemandNavigation = () => {
                   fontWeight: isActive("/KiwiFruits") ? "bold" : "normal",
                 }}
               >
-               Kiwi
+               कीवी (Kiwi)
               </NavDropdown.Item>
             </NavDropdown>
           </Nav>

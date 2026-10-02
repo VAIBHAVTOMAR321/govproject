@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import "../kishanavedan/DragfruitsAndKiwi.css";
+import { useAuth } from "../../context/AuthContext";
 
 const ID_PREFIX = "dragon-";
 
@@ -246,6 +247,27 @@ const CENTERS = [
 ];
 
 const RELATIONS = ["सहखातेदार", "भाई", "पुत्र", "पिता", "पत्नी", "अन्य"];
+
+// लॉगिन केंद्र (AuthContext) से केंद्र नाम निकालने का साझा तरीका
+const getCenterNameFromUser = (authUser) => {
+  if (!authUser) return "";
+  const candidates = [
+    authUser.center_name,
+    authUser.centerName,
+    authUser.center?.center_name,
+    authUser.center?.name,
+    authUser.profile?.center_name,
+    authUser.centre?.center_name,
+    authUser.data?.center_name,
+    // केंद्र लॉगिन में केंद्र का नाम "username" में आता है
+    authUser.username,
+    authUser.name,
+  ];
+  const direct = candidates.find(
+    (value) => value !== null && value !== undefined && String(value).trim() !== "",
+  );
+  return direct ? String(direct).trim() : "";
+};
 const API_DRAGON_FRUIT =
   "https://mahadevaaya.com/govbillingsystem/backend/api/dragon-fruit-kisan/";
 
@@ -347,6 +369,8 @@ const createLandRows = () => [
 ];
 
 const DragfruitsAndKiwi = () => {
+  const { user } = useAuth();
+  const authCenter = getCenterNameFromUser(user);
   const [activeSideTab, setActiveSideTab] = useState("view");
   const [workflowStep, setWorkflowStep] = useState(0);
   const [sideOpen, setSideOpen] = useState(false);
@@ -358,7 +382,7 @@ const DragfruitsAndKiwi = () => {
   const [registration, setRegistration] = useState({
     name: "",
     mobile: "",
-    center: "कोटद्वार",
+    center: "",
   });
   const [registeredRows, setRegisteredRows] = useState([]);
   const [registrationsLoading, setRegistrationsLoading] = useState(false);
@@ -376,6 +400,14 @@ const DragfruitsAndKiwi = () => {
   const [docRemoved, setDocRemoved] = useState({});
   const [docUrls, setDocUrls] = useState(createEmptyDocUrls);
   const [docInputTick, setDocInputTick] = useState(0);
+
+  // लॉगिन केंद्र AuthContext से आता है — यहाँ पंजीकरण का केंद्र उसी से बदला जाता है
+  useEffect(() => {
+    if (!authCenter) return;
+    setRegistration((prev) =>
+      prev.center === authCenter ? prev : { ...prev, center: authCenter },
+    );
+  }, [authCenter]);
 
   // Render & Print States
   const [showAppPrint, setShowAppPrint] = useState(false);
@@ -888,6 +920,7 @@ const DragfruitsAndKiwi = () => {
   );
 
   useEffect(() => {
+    if (!registration.center) return;
     loadRegistrations(registration.center);
   }, [loadRegistrations, registration.center]);
 
@@ -899,6 +932,10 @@ const DragfruitsAndKiwi = () => {
     }
     if (!/^\d{10}$/.test(registration.mobile.trim())) {
       setApiMessage("10 अंक का सही मोबाइल नंबर भरें।");
+      return;
+    }
+    if (!registration.center) {
+      setApiMessage("लॉगिन केंद्र नहीं मिला — कृषक पंजीकरण करने के लिए केंद्र आवश्यक है।");
       return;
     }
     try {
@@ -1490,7 +1527,7 @@ const DragfruitsAndKiwi = () => {
                   setActivePage("register");
                 }}
               >
-                कृषक पंजीकरण
+                ड्रैगन फ्रूट कृषक पंजीकरण
               </button>
               <button
                 type="button"
@@ -1520,7 +1557,7 @@ const DragfruitsAndKiwi = () => {
 
           {activePage === "register" ? (
             <section className="card noprint registration-screen">
-              <h2>कृषक पंजीकरण</h2>
+              <h2>ड्रैगन फ्रूट कृषक पंजीकरण</h2>
               <p className="card-intro">
                 पहले किसान का पंजीकरण करें। सर्वर से मिली फॉर्म आईडी पर आवेदन के
                 बाकी चरण सहेजें।
@@ -1567,6 +1604,7 @@ const DragfruitsAndKiwi = () => {
                   <select
                     id="reg-farmer-center"
                     value={registration.center}
+                    disabled={Boolean(authCenter)}
                     onChange={(event) =>
                       setRegistration({
                         ...registration,
@@ -1574,12 +1612,19 @@ const DragfruitsAndKiwi = () => {
                       })
                     }
                   >
+                    {!authCenter && <option value="">केंद्र चुनें</option>}
                     {CENTERS.map((center) => (
                       <option key={center} value={center}>
                         {center}
                       </option>
                     ))}
+                    {authCenter && !CENTERS.includes(authCenter) && (
+                      <option value={authCenter}>{authCenter}</option>
+                    )}
                   </select>
+                  {authCenter && (
+                    <span className="small">लॉगिन केंद्र — बदला नहीं जा सकता</span>
+                  )}
                 </div>
                 <div className="field">
                   <button

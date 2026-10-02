@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import "../kishanavedan/Kiwi.css";
+import { useAuth } from "../../context/AuthContext";
 
 const ID_PREFIX = "kiwi-";
 
@@ -228,7 +229,23 @@ const recordList = data => Array.isArray(data) ? data : (data?.data || data?.res
 const recordPersonal = record => record?.personal_details || record || {};
 const recordFormId = record => record?.form_id || record?.personal_details?.form_id || "";
 
+// लॉगिन केंद्र (AuthContext) से केंद्र नाम निकालने का साझा तरीका
+const getCenterNameFromUser = authUser => {
+  if (!authUser) return "";
+  const candidates = [
+    authUser.center_name, authUser.centerName, authUser.center?.center_name,
+    authUser.center?.name, authUser.profile?.center_name, authUser.centre?.center_name,
+    authUser.data?.center_name,
+    // केंद्र लॉगिन में केंद्र का नाम "username" में आता है
+    authUser.username, authUser.name,
+  ];
+  const direct = candidates.find(v => v !== null && v !== undefined && String(v).trim() !== "");
+  return direct ? String(direct).trim() : "";
+};
+
 const KiwiFruits = () => {
+  const { user } = useAuth();
+  const authCenter = getCenterNameFromUser(user);
   const [activeSideTab, setActiveSideTab] = useState("view");
   const [workflowStep, setWorkflowStep] = useState(0);
   const [sideOpen, setSideOpen] = useState(false);
@@ -237,7 +254,7 @@ const KiwiFruits = () => {
   const [footerH, setFooterH] = useState(0);
   const [activePage, setActivePage] = useState("register");
   const [formId, setFormId] = useState("");
-  const [registration, setRegistration] = useState({ name: "", mobile: "", center: "कोटद्वार" });
+  const [registration, setRegistration] = useState({ name: "", mobile: "", center: "" });
   const [registeredRows, setRegisteredRows] = useState([]);
   const [registrationsLoading, setRegistrationsLoading] = useState(false);
   const [apiMessage, setApiMessage] = useState("");
@@ -254,6 +271,12 @@ const KiwiFruits = () => {
   const [docRemoved, setDocRemoved] = useState({});
   const [docUrls, setDocUrls] = useState(createEmptyDocUrls);
   const [docInputTick, setDocInputTick] = useState(0);
+
+  // लॉगिन केंद्र AuthContext से आता है — यहाँ पंजीकरण का केंद्र उसी से बदला जाता है
+  useEffect(() => {
+    if (!authCenter) return;
+    setRegistration(prev => (prev.center === authCenter ? prev : { ...prev, center: authCenter }));
+  }, [authCenter]);
 
   const clearPrintClasses = () => {
     PRINT_CLASSES.forEach((c) => document.body.classList.remove(c));
@@ -698,6 +721,7 @@ const KiwiFruits = () => {
   }, [registration.center]);
 
   useEffect(() => {
+    if (!registration.center) return;
     loadRegistrations(registration.center);
   }, [loadRegistrations, registration.center]);
 
@@ -709,6 +733,10 @@ const KiwiFruits = () => {
     }
     if (!/^\d{10}$/.test(registration.mobile.trim())) {
       setApiMessage("10 अंक का सही मोबाइल नंबर भरें।");
+      return;
+    }
+    if (!registration.center) {
+      setApiMessage("लॉगिन केंद्र नहीं मिला — कृषक पंजीकरण करने के लिए केंद्र आवश्यक है।");
       return;
     }
     try {
@@ -1083,7 +1111,7 @@ const KiwiFruits = () => {
         <main className="wrap">
           <div className="card noprint kiwi-page-tabs">
             <div className="tabs">
-              <button type="button" className={`tab ${activePage === "register" ? "active" : ""}`} onClick={() => setActivePage("register")}>कृषक पंजीकरण</button>
+              <button type="button" className={`tab ${activePage === "register" ? "active" : ""}`} onClick={() => setActivePage("register")}>कीवी कृषक पंजीकरण</button>
               <button type="button" className={`tab ${activePage === "filling" ? "active" : ""}`} onClick={() => { setActivePage("filling"); if (!formId) setApiMessage("सहेजने के लिए पहले पंजीकरण करें या कोई फॉर्म खोलें।"); }}>प्रपत्र भरना {formId ? `· ${formId}` : ""}</button>
             </div>
             {activePage === "filling" && <div className="note"><b>चयनित फॉर्म:</b> {formId || "फॉर्म आईडी उपलब्ध नहीं"} · सभी चरण Kiwi किसान API पर सहेजें।</div>}
@@ -1096,7 +1124,14 @@ const KiwiFruits = () => {
               <form className="grid" onSubmit={registerFarmer}>
                 <div className="field"><label htmlFor="kiwi-reg-name">कृषक का नाम<span className="req">*</span></label><input id="kiwi-reg-name" value={registration.name} onChange={event => setRegistration({ ...registration, name: event.target.value })} required /></div>
                 <div className="field"><label htmlFor="kiwi-reg-mobile">मोबाइल नंबर<span className="req">*</span></label><input id="kiwi-reg-mobile" inputMode="numeric" maxLength={10} value={registration.mobile} onChange={event => setRegistration({ ...registration, mobile: event.target.value })} required /></div>
-                <div className="field"><label htmlFor="kiwi-reg-center">केंद्र<span className="req">*</span></label><select id="kiwi-reg-center" value={registration.center} onChange={event => setRegistration({ ...registration, center: event.target.value })}>{CENTERS.map(center => <option key={center} value={center}>{center}</option>)}</select></div>
+                <div className="field"><label htmlFor="kiwi-reg-center">केंद्र<span className="req">*</span></label>
+                  <select id="kiwi-reg-center" value={registration.center} disabled={Boolean(authCenter)} onChange={event => setRegistration({ ...registration, center: event.target.value })}>
+                    {!authCenter && <option value="">केंद्र चुनें</option>}
+                    {CENTERS.map(center => <option key={center} value={center}>{center}</option>)}
+                    {authCenter && !CENTERS.includes(authCenter) && <option value={authCenter}>{authCenter}</option>}
+                  </select>
+                  {authCenter && <span className="small">लॉगिन केंद्र — बदला नहीं जा सकता</span>}
+                </div>
                 <div className="field"><button className="btn" type="submit" disabled={Boolean(savingStage)}>{savingStage === "register" ? "पंजीकरण हो रहा है…" : "पंजीकरण करें"}</button></div>
               </form>
               <div className="registration-list-head"><div><h3>पंजीकृत कीवी कृषक</h3><span className="small">केंद्र: {registration.center}{registeredRows.length ? ` · ${registeredRows.length} फॉर्म` : ""}</span></div><button type="button" className="btn secondary" onClick={() => loadRegistrations(registration.center)} disabled={Boolean(savingStage) || registrationsLoading}>{registrationsLoading ? "लोड हो रहा है…" : "सूची ताज़ा करें"}</button></div>
