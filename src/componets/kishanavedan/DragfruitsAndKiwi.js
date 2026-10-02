@@ -196,6 +196,27 @@ const SELECTED_SECTIONS = {
   consent: "consentPrint",
   anudan: "anudanPrint",
 };
+const API_MEDIA_BASE = "https://mahadevaaya.com/govbillingsystem/backend";
+const MAX_DOC_BYTES = 5 * 1024 * 1024;
+// scope: "documents" → document_details, scope: "personal" → personal_details
+const DOC_FIELDS = [
+  { key: "land_record_khatauni", label: "भूमि अभिलेख / खतौनी" },
+  { key: "aadhaar_identity", label: "आधार / पहचान" },
+  { key: "horticulture_card", label: "उद्यान कार्ड" },
+  { key: "bank_passbook_cancelled_cheque", label: "बैंक पासबुक / cancelled cheque" },
+  { key: "land_map_other_record", label: "भूमि नक्शा / अन्य अभिलेख" },
+  { key: "other_document", label: "अन्य दस्तावेज" },
+  { key: "bank_proof", label: "बैंक पासबुक / cancelled cheque (बैंक प्रमाण)", scope: "personal" },
+];
+const docMediaUrl = (path) => {
+  const value = String(path == null ? "" : path).trim();
+  if (!value || value === "null" || value === "undefined") return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("/")) return `${API_MEDIA_BASE}${value}`;
+  return `${API_MEDIA_BASE}/${value}`;
+};
+const createEmptyDocUrls = () =>
+  DOC_FIELDS.reduce((acc, field) => ({ ...acc, [field.key]: "" }), {});
 
 const CENTERS = [
   "कोटद्वार",
@@ -349,6 +370,12 @@ const DragfruitsAndKiwi = () => {
   // Form States
   const [form, setForm] = useState(createDragonForm);
   const [landRows, setLandRows] = useState(createLandRows);
+
+  // Uploaded / Pending Documents
+  const [docFiles, setDocFiles] = useState({});
+  const [docRemoved, setDocRemoved] = useState({});
+  const [docUrls, setDocUrls] = useState(createEmptyDocUrls);
+  const [docInputTick, setDocInputTick] = useState(0);
 
   // Render & Print States
   const [showAppPrint, setShowAppPrint] = useState(false);
@@ -743,6 +770,66 @@ const DragfruitsAndKiwi = () => {
     );
   };
 
+  const syncDocUrls = (record) => {
+    const personal = recordPersonal(record);
+    const documents = record?.document_details || {};
+    setDocUrls(
+      DOC_FIELDS.reduce(
+        (acc, field) => ({
+          ...acc,
+          [field.key]: docMediaUrl(
+            field.scope === "personal"
+              ? personal[field.key]
+              : documents[field.key],
+          ),
+        }),
+        {},
+      ),
+    );
+  };
+
+  const resetDocState = () => {
+    setDocFiles({});
+    setDocRemoved({});
+    setDocUrls(createEmptyDocUrls());
+    setDocInputTick((tick) => tick + 1);
+  };
+
+  const handleDocFileChange = (key, file) => {
+    if (!file) return;
+    if (file.size > MAX_DOC_BYTES) {
+      setApiMessage(
+        `"${file.name}" 5 MB से बड़ी है — अधिकतम 5 MB की फाइल चुनें।`,
+      );
+      setDocInputTick((tick) => tick + 1);
+      return;
+    }
+    setDocFiles((previous) => ({ ...previous, [key]: file }));
+    setDocRemoved((previous) => {
+      if (!previous[key]) return previous;
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const clearDocField = (key) => {
+    setDocFiles((previous) => {
+      if (!previous[key]) return previous;
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+    setDocRemoved((previous) =>
+      docUrls[key] ? { ...previous, [key]: true } : previous,
+    );
+    setDocUrls((previous) => ({ ...previous, [key]: "" }));
+    setDocInputTick((tick) => tick + 1);
+  };
+
+  const pendingDocKeys = () =>
+    Object.keys(docRemoved).filter((key) => docRemoved[key]);
+
   const saveDraft = () => {
     localStorage.setItem("projectApp", JSON.stringify({ form, landRows }));
     alert("आवेदन Draft सुरक्षित हो गया।");
@@ -840,6 +927,7 @@ const DragfruitsAndKiwi = () => {
       setVoucherRows([["", "", "", "", "", ""]]);
       setFormId(newFormId);
       setSaveStates({});
+      resetDocState();
       setActivePage("filling");
       setApiMessage(`पंजीकरण सफल। फॉर्म आईडी: ${newFormId}`);
       await loadRegistrations(registration.center);
@@ -916,6 +1004,10 @@ const DragfruitsAndKiwi = () => {
         : [["", "", "", "", "", ""]],
     );
     setFormId(id);
+    setDocFiles({});
+    setDocRemoved({});
+    setDocInputTick((tick) => tick + 1);
+    syncDocUrls(record);
     setSaveStates({});
   };
 
@@ -973,6 +1065,7 @@ const DragfruitsAndKiwi = () => {
         land_work_details: landRows
           .filter(
             (row) =>
+              row.rel ||
               row.name ||
               row.father ||
               row.village ||
@@ -995,6 +1088,7 @@ const DragfruitsAndKiwi = () => {
     {
       key: "bank",
       label: "बैंक विवरण",
+      acceptsFiles: true,
       payload: {
         form_id: activeFormId,
         bank_holder_name: form.bankHolder,
@@ -1008,7 +1102,6 @@ const DragfruitsAndKiwi = () => {
             : form.bankType === "अन्य"
               ? "Other"
               : "Savings",
-        bank_proof: null,
       },
     },
     {
@@ -1025,14 +1118,9 @@ const DragfruitsAndKiwi = () => {
     {
       key: "documents",
       label: "दस्तावेज",
+      acceptsFiles: true,
       payload: {
         form_id: activeFormId,
-        land_record_khatauni: null,
-        aadhaar_identity: null,
-        horticulture_card: null,
-        bank_passbook_cancelled_cheque: null,
-        land_map_other_record: null,
-        other_document: null,
       },
     },
     {
@@ -1060,14 +1148,56 @@ const DragfruitsAndKiwi = () => {
     },
   ];
 
-  const putStage = async (step) => {
-    const response = await apiFetch(API_DRAGON_FRUIT, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(step.payload),
+  const buildMultipartBody = (step) => {
+    const formData = new FormData();
+    Object.entries(step.payload).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") return;
+      formData.append(
+        key,
+        typeof value === "object" ? JSON.stringify(value) : String(value),
+      );
     });
+    DOC_FIELDS.forEach((field) => {
+      const file = docFiles[field.key];
+      if (file) formData.append(field.key, file, file.name || field.label);
+    });
+    pendingDocKeys().forEach((key) => formData.append(key, ""));
+    return formData;
+  };
+
+  const hasDocChanges = () =>
+    DOC_FIELDS.some((field) => docFiles[field.key]) ||
+    pendingDocKeys().length > 0;
+
+  const putStage = async (step) => {
+    const options = { method: "PUT" };
+    if (step.acceptsFiles && hasDocChanges()) {
+      options.body = buildMultipartBody(step);
+    } else {
+      options.headers = { "Content-Type": "application/json" };
+      options.body = JSON.stringify(step.payload);
+    }
+    const response = await apiFetch(API_DRAGON_FRUIT, options);
     const data = await readApiResponse(response);
     if (!response.ok) throw new Error(getApiError(data, response));
+    return data;
+  };
+
+  const refreshDocUrls = async (activeFormId) => {
+    if (!activeFormId) return;
+    try {
+      const all = await fetchAllRegistrations();
+      const records = all.filter((record) =>
+        centerMatches(recordPersonal(record).center_name, registration.center),
+      );
+      setRegisteredRows(records);
+      const record = records.find(
+        (item) => recordFormId(item) === activeFormId,
+      );
+      if (record) syncDocUrls(record);
+    } catch {
+      setApiMessage("फाइलें सहेजी गईं, पर सूची ताज़ा नहीं हो सकी।");
+    }
   };
 
   const saveOneStage = async (key) => {
@@ -1087,9 +1217,18 @@ const DragfruitsAndKiwi = () => {
     setSavingStage(key);
     setSaveStates((previous) => ({ ...previous, [key]: "सहेजा जा रहा है…" }));
     try {
+      const uploadedDocs = step.acceptsFiles && hasDocChanges();
       await putStage(step);
       setSaveStates((previous) => ({ ...previous, [key]: "सहेजा गया" }));
-      setApiMessage(`${step.label} सफलतापूर्वक सहेजा गया।`);
+      setApiMessage(
+        uploadedDocs
+          ? `${step.label} सफलतापूर्वक सहेजा गया — फाइलें अपलोड हो गईं।`
+          : `${step.label} सफलतापूर्वक सहेजा गया।`,
+      );
+      if (uploadedDocs) {
+        resetDocState();
+        await refreshDocUrls(formId);
+      }
     } catch (error) {
       setSaveStates((previous) => ({
         ...previous,
@@ -1113,9 +1252,14 @@ const DragfruitsAndKiwi = () => {
         [step.key]: "सहेजा जा रहा है…",
       }));
       try {
+        const uploadedDocs = step.acceptsFiles && hasDocChanges();
         await putStage(step);
         completed += 1;
         setSaveStates((previous) => ({ ...previous, [step.key]: "सहेजा गया" }));
+        if (uploadedDocs) {
+          resetDocState();
+          await refreshDocUrls(formId);
+        }
       } catch (error) {
         setSaveStates((previous) => ({
           ...previous,
@@ -1150,6 +1294,7 @@ const DragfruitsAndKiwi = () => {
         setLandRows(createLandRows());
         setVoucherRows([["", "", "", "", "", ""]]);
         setActivePage("register");
+        resetDocState();
       }
       setApiMessage(`फॉर्म ${formIdToDelete} हटा दिया गया।`);
       await loadRegistrations(registration.center);
@@ -1168,6 +1313,7 @@ const DragfruitsAndKiwi = () => {
     setVoucherRows([["", "", "", "", "", ""]]);
     setFormId("");
     setSaveStates({});
+    resetDocState();
     setActivePage("register");
   };
 
@@ -1216,6 +1362,73 @@ const DragfruitsAndKiwi = () => {
       </span>
     </div>
   );
+  const pendingDocCount =
+    DOC_FIELDS.filter((field) => docFiles[field.key]).length +
+    pendingDocKeys().length;
+
+  const docFieldInput = (field, inputId) => {
+    const pending = docFiles[field.key];
+    const savedUrl = docUrls[field.key];
+    const markedForRemoval = Boolean(docRemoved[field.key]);
+    return (
+      <div className="field" key={field.key}>
+        <label htmlFor={inputId}>{field.label}</label>
+        <input
+          id={inputId}
+          key={`${field.key}-${docInputTick}`}
+          type="file"
+          accept="image/*,.pdf"
+          disabled={Boolean(savingStage)}
+          onChange={(event) => {
+            handleDocFileChange(
+              field.key,
+              event.target.files && event.target.files[0],
+            );
+            event.target.value = "";
+          }}
+        />
+        <div className="doc-field-state">
+          {markedForRemoval ? (
+            <span className="doc-pending">
+              यह दस्तावेज सहेजते ही सर्वर से हट जाएगा।
+            </span>
+          ) : null}
+          {!markedForRemoval && pending ? (
+            <span className="doc-pending">नई फाइल चुनी गई: {pending.name}</span>
+          ) : null}
+          {!markedForRemoval && !pending && savedUrl ? (
+            <span className="doc-saved">सर्वर पर सहेजी गई फाइल उपलब्ध है।</span>
+          ) : null}
+          {!markedForRemoval && !pending && !savedUrl ? (
+            <span className="hint">JPG / PNG / PDF (अधिकतम 5 MB)</span>
+          ) : null}
+        </div>
+        <div className="doc-field-actions">
+          {savedUrl ? (
+            <a
+              className="btn gold"
+              href={savedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              👁 फाइल देखें
+            </a>
+          ) : null}
+          {pending || savedUrl || markedForRemoval ? (
+            <button
+              type="button"
+              className="btn danger"
+              onClick={() => clearDocField(field.key)}
+              disabled={Boolean(savingStage)}
+            >
+              हटाएँ
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   const selectSideTab = (id) => {
     setActiveSideTab(id);
     if (window.matchMedia("(max-width: 1180px)").matches) setSideOpen(false);
@@ -1888,6 +2101,21 @@ const DragfruitsAndKiwi = () => {
                                   handleLandChange(i, "name", e.target.value)
                                 }
                               />
+                              {i !== 0 && (
+                                <select
+                                  className="land-gender-select"
+                                  aria-label={`लिंग — भूमि पंक्ति ${i + 1}`}
+                                  value={r.gender || "पुरुष"}
+                                  disabled={!r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(i, "gender", e.target.value)
+                                  }
+                                >
+                                  <option value="पुरुष">पुरुष</option>
+                                  <option value="महिला">महिला</option>
+                                  <option value="अन्य">अन्य</option>
+                                </select>
+                              )}
                             </td>
                             <td data-label="पिता का नाम">
                               <input
@@ -2069,13 +2297,7 @@ const DragfruitsAndKiwi = () => {
                       </select>
                     </div>
                     <div className="field full">
-                      <label htmlFor="b-doc">
-                        बैंक पासबुक / cancelled cheque
-                      </label>
-                      <input id="b-doc" type="file" accept="image/*,.pdf" />
-                      <span className="hint">
-                        यदि आवश्यक हो तो JPG / PNG / PDF (अधिकतम 5 MB)।
-                      </span>
+                      {docFieldInput(DOC_FIELDS[6], "b-doc")}
                     </div>
                   </div>
                 </div>
@@ -2149,36 +2371,39 @@ const DragfruitsAndKiwi = () => {
                 >
                   <h3>आवश्यक दस्तावेज</h3>
                   <p className="card-intro">
-                    प्रत्येक दस्तावेज का प्रारूप चुनें — फाइल नाम यहाँ दिखाई
-                    देगी।
+                    प्रत्येक दस्तावेज की फाइल चुनें — चुनी गई फाइल का नाम यहाँ
+                    दिखेगा। "सहेजें — दस्तावेज" दबाते ही फाइल PUT (multipart)
+                    अपलोड होगी और सर्वर से लौटे URL पर "फाइल देखें" बटन मिलेगा।
                   </p>
                   <div className="grid">
-                    <div className="field">
-                      <label htmlFor="d-land">भूमि अभिलेख / खतौनी</label>
-                      <input id="d-land" type="file" accept="image/*,.pdf" />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="d-id">आधार / पहचान</label>
-                      <input id="d-id" type="file" accept="image/*,.pdf" />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="d-card">उद्यान कार्ड</label>
-                      <input id="d-card" type="file" accept="image/*,.pdf" />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="d-cheque">
-                        बैंक पासबुक / cancelled cheque
-                      </label>
-                      <input id="d-cheque" type="file" accept="image/*,.pdf" />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="d-map">भूमि नक्शा / अन्य अभिलेख</label>
-                      <input id="d-map" type="file" accept="image/*,.pdf" />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="d-other">अन्य दस्तावेज</label>
-                      <input id="d-other" type="file" accept="image/*,.pdf" />
-                    </div>
+                    {DOC_FIELDS.slice(0, 6).map((field) =>
+                      docFieldInput(field, `d-${field.key}`),
+                    )}
+                  </div>
+                  <div className="doc-summary">
+                    चयनित नई फाइलें:{" "}
+                    <b>
+                      {
+                        DOC_FIELDS.filter((field) => docFiles[field.key])
+                          .length
+                      }
+                    </b>{" "}
+                    · हटाने हेतु चिन्हित: <b>{pendingDocKeys().length}</b> ·
+                    सर्वर पर सहेजी गई:{" "}
+                    <b>
+                      {
+                        DOC_FIELDS.filter((field) => docUrls[field.key])
+                          .length
+                      }{" "}
+                      / {DOC_FIELDS.length}
+                    </b>
+                    {pendingDocCount ? (
+                      <span className="doc-summary-warn">
+                        {" "}
+                        — सहेजें बटन दबाने के बाद ही सर्वर पर अपलोड/हटाने की
+                        क्रिया होगी।
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 {saveStepControl("documents", "दस्तावेज")}
