@@ -1501,7 +1501,7 @@ const DragfruitsAndKiwi = () => {
         <header className="top noprint">
           <div className="top-inner">
             <div className="brand">
-              <span className="brand-badge">🐉</span>
+              <span className="brand-badge"></span>
               <h1>कृषक आवेदन एवं स्वचालित परियोजना मानक प्रणाली</h1>
             </div>
             <p className="top-sub">
@@ -4298,14 +4298,14 @@ const DragfruitsAndKiwi = () => {
                   className="side-action"
                   onClick={() => applyDemo("dragonSelf")}
                 >
-                  🐉 Dragon — केवल स्वयं
+                   Dragon — केवल स्वयं
                 </button>
                 <button
                   type="button"
                   className="side-action"
                   onClick={() => applyDemo("dragonCo")}
                 >
-                  🐉 Dragon — सह-खातेदार
+                   Dragon — सह-खातेदार
                 </button>
               </div>
             </div>
