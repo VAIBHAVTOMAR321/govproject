@@ -663,13 +663,23 @@ export default function KisanAavedan() {
         }
 
         /* ===================== Render: Bill ===================== */
+        // व्यय टैब में भरी गई सामग्री-वार प्रविष्टियाँ ही देयक में दिखेंगी
+        function expenseBillRows(){
+          return (S.vermi||[]).filter(r => String(r.item||"").trim() !== "" || num(r.amt) > 0);
+        }
         function buildVermiBill(){
-          const c = calc();
           const stdCost = num(S.norm.vStdCost) || 33333;
           const rate = num(S.norm.vRate) || 75;
-          let tbl = `<table><thead><tr><th style="width:10%">क्र०</th><th style="width:58%">कार्य / सामग्री</th><th class="num" style="width:32%">बिल राशि (₹)</th></tr></thead><tbody>`;
-          c.rows.forEach((r,i)=>{ tbl += `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.name)}</td><td class="num" id="r${i}a"></td></tr>`; });
-          tbl += `</tbody><tfoot><tr><th colspan="2" class="num">योग</th><th class="num" id="tA">₹ 0.00</th></tr></tfoot></table>`;
+          const expRows = expenseBillRows();
+          let tbl = `<table><colgroup><col style="width:10%"><col style="width:58%"><col class="num" style="width:32%"></colgroup><thead><tr><th style="width:10%">क्र०</th><th style="width:58%">कार्य / सामग्री का विवरण</th><th class="num" style="width:32%">बिल राशि (₹)</th></tr></thead><tbody>`;
+          if(expRows.length){
+            expRows.forEach((r,i)=>{
+              tbl += `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.item||"…………")}</td><td class="num" id="r${i}a"></td></tr>`;
+            });
+          } else {
+            tbl += `<tr><td colspan="3" class="empty">व्यय विवरण में कोई प्रविष्टि नहीं जोड़ी गई है।</td></tr>`;
+          }
+          tbl += `</tbody><tfoot><tr><th colspan="2" class="num">कुल योग</th><th class="num" id="tA">₹ 0.00</th></tr></tfoot></table>`;
 
           document.getElementById("billOut").innerHTML = 
             '<div class="appdoc" style="padding:34px 40px">'
@@ -730,7 +740,6 @@ export default function KisanAavedan() {
             +   '<div>दिनांक : <b id="bill_date_disp">…………</b><br>स्थान : <b id="bill_place_disp">…………</b></div>'
             +   '<div style="text-align:right">हस्ताक्षर कृषक<br><br><b id="oName">…………</b></div>'
             + '</div>'
-            + '<div class="grid2 noprint" style="margin-top:10px"><div class="field"><label>दिनांक</label><input type="date" data-f="date"></div><div class="field"><label>स्थान</label><input data-f="place"></div></div>'
 
             + '<div class="st">6. प्रभारी की आख्या एवं सत्यापन</div>'
             + '<div class="report-box">प्रमाणित किया जाता है कि मेरे द्वारा वर्मी कम्पोस्ट इकाई के निर्माण कार्य का स्थलीय निरीक्षण कर लिया गया है तथा इकाई विभागीय मानक (10 फीट × 8 फीट × 2.5 फीट) के अनुरूप पूर्ण पायी गयी। एम०बी० (मापपुस्तिका) के अनुसार कनिष्ठ अभियन्ता द्वारा तैयार मूल्यांकन धनराशि : <b id="xMbVerify">…………</b>। बिल में दर्शायी गयी कुल राशि : <b id="xBillVerify">…………</b>। बिल, एम०बी० एवं स्थलीय सत्यापन का मिलान करने के उपरान्त लागू आधार पर देय राजसहायता धनराशि <b id="xSubVerify">—</b> कृषक को भुगतान हेतु देयक सत्यापित कर संस्तुति सहित अग्रसारित।</div>'
@@ -751,8 +760,8 @@ export default function KisanAavedan() {
         const set = (id,v) => { const el=document.getElementById(id); if(el) el.innerHTML=v; };
         function refresh(){
           const c = calc();
-          c.rows.forEach((r,i)=>{ set("r"+i+"a",fmtN(r.amt)); });
-          set("tA",fmtN(c.bill));
+          expenseBillRows().forEach((r,i)=>{ set("r"+i+"a",fmtN(num(r.amt))); });
+          set("tA",fmtN(sum("vermi")));
           set("xBill", c.bill?fmt0(c.bill):"—"); set("xMb", c.mb?fmt0(c.mb):"—");
           set("xStdCost", fmt0(c.standardCost));
           set("xBase",fmt0(c.base)); set("xRate",(c.rate*100).toFixed(0)+"%"); set("xSub",fmt0(c.sub));

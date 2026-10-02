@@ -418,6 +418,9 @@
   overflow: hidden;
   margin-bottom: 12px;
 }
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-date-place {
+  display: none !important;
+}
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .bill-kicker {
   background: #2563eb !important;
   color: #fff !important;

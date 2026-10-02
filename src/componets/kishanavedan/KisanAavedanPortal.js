@@ -1036,7 +1036,7 @@ export default function KisanAavedanPortal() {
             <div class="decl">प्रमाणित किया जाता है कि मेरे द्वारा ${planLabel} अन्तर्गत ${kaam} पर उक्तानुसार धनराशि व्यय की गई है।
             अतः राजसहायता की धनराशि <span class="blank" id="oSub1"></span> (<span id="oWords1"></span> रुपये मात्र) का भुगतान मुझे करने की कृपा कीजिएगा।</div>
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;gap:20px">
-              <div style="flex:0 0 auto">
+              <div class="bill-date-place" style="flex:0 0 auto">
                 <div style="display:flex;gap:6px;align-items:baseline"><b>देयक दिनांक:</b><input class="ln sm" type="date" data-f="billDate"></div>
                 <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान:</b><input class="ln sm" value="${esc(centerLine())}" readonly></div>
               </div>
