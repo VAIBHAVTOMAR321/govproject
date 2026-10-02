@@ -146,6 +146,7 @@ const HTML_BODY = `
 
 export default function KisanAavedanPortal() {
   const rootRef = useRef(null);
+  const docListeners = useRef(null);
   const { user } = useAuth();
   const centerName = useMemo(() => getCenterNameFromUser(user), [user]);
   const centerRef = useRef(centerName);
@@ -351,7 +352,7 @@ export default function KisanAavedanPortal() {
           const body=document.getElementById("standardsBody");
           const title=document.getElementById("standardsTitle");
           if(!body) return;
-          title.textContent="फेंसिंग राजसहायता के मानक";
+          if(title) title.textContent="फेंसिंग राजसहायता के मानक";
           S.norm.fRate = 80;
           S.norm.fCostHa = 200000;
           S.norm.fCap = 0;
@@ -368,7 +369,9 @@ export default function KisanAavedanPortal() {
         }
         function buildWork(){
           buildStandards();
-          document.getElementById("workLead").textContent = S.scheme==="fencing"
+          const workLead=document.getElementById("workLead");
+          if(!document.getElementById("workBody")) return;
+          if(workLead) workLead.textContent = S.scheme==="fencing"
             ? "बिल एवं वाउचर के अनुसार पूरा व्यय भरें। हर अनुभाग का योग अपने आप देयक की सम्बन्धित पंक्ति में चला जाएगा।"
             : "इकाई निर्माण पर हुआ पूरा व्यय भरें। हर पंक्ति में पहले कार्य / विवरण चुनें, फिर उसी के सामने बिल राशि डालें।";
           safeSetHTML("workBody", SECTIONS[S.scheme].map(([k,t,n])=>
@@ -907,8 +910,12 @@ export default function KisanAavedanPortal() {
         }
 
         function buildApplication(){
-          document.querySelector('[data-v="application"] .head').textContent = "फेंसिंग आवेदन पत्र";
-          document.querySelector('[data-v="application"] .lead').textContent =
+          const appSection=document.querySelector('[data-v="application"]');
+          if(!appSection) return;
+          const headEl=appSection.querySelector(".head");
+          if(headEl) headEl.textContent = "फेंसिंग आवेदन पत्र";
+          const leadEl=appSection.querySelector(".lead");
+          if(leadEl) leadEl.textContent =
             fenceHeading()+" / घेरबाड़ के लिए आवेदन पत्र — केवल चयनित योजना की जानकारी।";
           buildFencingApplication();
         }
@@ -1763,7 +1770,7 @@ export default function KisanAavedanPortal() {
           if(row) row.classList.add("print-selected");
         }
 
-        document.addEventListener("input", e=>{
+        const onDocInput = e=>{
           const t=e.target;
           if(t.dataset.land){
             const i=+t.dataset.land, k=t.dataset.k;
@@ -1788,8 +1795,8 @@ export default function KisanAavedanPortal() {
             S[k][i][t.dataset.k]=t.value;
             refreshWorkTotals();
           }
-        });
-        document.addEventListener("change", e=>{
+        };
+        const onDocChange = e=>{
           const t=e.target;
           if(t.dataset.f){ S.f[t.dataset.f]=t.value; refresh();
             if(LANG_FIELDS.includes(t.dataset.f)){ rebuildDocs(); }
@@ -1801,8 +1808,8 @@ export default function KisanAavedanPortal() {
           if(id && DL[id] && t.value.trim() && !S.lists[DL[id]].includes(t.value.trim())){
             S.lists[DL[id]].push(t.value.trim()); buildLists();
           }
-        });
-        document.addEventListener("click", e=>{
+        };
+        const onDocClick = e=>{
           const b=e.target.closest("[data-add],[data-del],[data-go],[data-tab],[data-save],[data-open],[data-delform],[data-land-del],#addLandRow"); if(!b) return;
           if(b.id==="addLandRow"){
             if(!S.landRows) S.landRows=[];
@@ -1825,7 +1832,10 @@ export default function KisanAavedanPortal() {
           if(b.dataset.add){ S[b.dataset.add].push({}); buildWork(); refresh(); }
           else if(b.dataset.del){ const k=b.dataset.del; S[k].splice(+b.dataset.i,1); if(!S[k].length) S[k].push({}); buildWork(); refresh(); }
           else if(b.dataset.go){ show(b.dataset.go); }
-        });
+        };
+        document.addEventListener("input", onDocInput);
+        document.addEventListener("change", onDocChange);
+        document.addEventListener("click", onDocClick);
         const bGoEl=document.getElementById("bGo");
         if(bGoEl) bGoEl.onclick = ()=>{ showTab("filling"); show("bill"); };
         const regFormEl=document.getElementById("regForm");
@@ -1896,12 +1906,13 @@ export default function KisanAavedanPortal() {
         if(pvOverlayEl) pvOverlayEl.addEventListener("click", e=>{
           if(e.target === e.currentTarget) closePreview();
         });
-        document.addEventListener("keydown", e=>{
+        const onDocKeydown = e=>{
           if(e.key==="Escape") closePreview();
-        });
-        window.addEventListener("beforeprint", ()=>{ closePreview(); });
+        };
+        document.addEventListener("keydown", onDocKeydown);
 
-        document.getElementById("scheme").value = S.scheme;
+        const schemeEl=document.getElementById("scheme");
+        if(schemeEl) schemeEl.value = S.scheme;
         setFormId("");
         AUTH_CENTER = authCenter;
         showTab("register");
@@ -1911,11 +1922,21 @@ export default function KisanAavedanPortal() {
           const r = rootRef.current;
           if(r) r.querySelectorAll(".print-target, .has-print-target").forEach(v=>v.classList.remove("print-target","has-print-target"));
         }
-        window.addEventListener('beforeprint', setFenceMappingPrintRow);
-        window.addEventListener('afterprint', ()=>{
+        const onBeforePrint = ()=>{ closePreview(); setFenceMappingPrintRow(); };
+        const onAfterPrint = ()=>{
           document.querySelectorAll('#fenceMappingApplicationTable tbody tr').forEach(tr=>tr.classList.remove('print-selected'));
           clearPrintTarget();
-        });
+        };
+        window.addEventListener('beforeprint', onBeforePrint);
+        window.addEventListener('afterprint', onAfterPrint);
+        docListeners.current = ()=>{
+          document.removeEventListener("input", onDocInput);
+          document.removeEventListener("change", onDocChange);
+          document.removeEventListener("click", onDocClick);
+          document.removeEventListener("keydown", onDocKeydown);
+          window.removeEventListener("beforeprint", onBeforePrint);
+          window.removeEventListener("afterprint", onAfterPrint);
+        };
       })();
     } catch (error) {
       console.error("Kisan Aavedan Portal initialization failed:", error);
@@ -1930,6 +1951,10 @@ export default function KisanAavedanPortal() {
       window.removeEventListener("resize", syncAppNav);
       window.removeEventListener("load", syncAppNav);
       window.clearTimeout(navSyncTimer);
+      if (docListeners.current) {
+        docListeners.current();
+        docListeners.current = null;
+      }
       root.innerHTML = "";
     };
   }, []);
