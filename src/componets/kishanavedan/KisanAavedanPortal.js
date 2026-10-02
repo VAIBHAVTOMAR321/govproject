@@ -948,9 +948,9 @@ export default function KisanAavedanPortal() {
               <h3 class="bill-title">${title}</h3>
               <div class="bill-rule"></div>
               <div class="bill-meta">
-                <div><span>योजना</span><b>${schemeName}</b></div>
-                <div><span>कार्यालय</span><b>उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल)</b></div>
-                <div><span>वित्तीय वर्ष</span><b>2026-27</b></div>
+                <div><span>योजना :</span><b>${schemeName}</b></div>
+                <div><span>कार्यालय :</span><b>उद्यान विशेषज्ञ, कोटद्वार (गढ़वाल)</b></div>
+                <div><span>वित्तीय वर्ष :</span><b>2026-27</b></div>
               </div>
             </div>
             <div class="serial-layout">
@@ -994,7 +994,7 @@ export default function KisanAavedanPortal() {
               <div class="serial-section">
                 <div class="serial-title">5. प्रभारी द्वारा स्थलीय सत्यापन</div>
                 <div class="kv">
-                  <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><b> मी०</b>:<span class="auto calc-hint" id="oAllowedLen">…………</span></div>
+                  <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><span class="auto calc-hint" id="oAllowedLen">…………</span></div>
                   <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen||"")}"><b> मी०</b></div>
                   <div class="r"><b>कार्य में कमी:</b><span class="auto" id="oShort"></span> मी०</div>
                   <div class="r"><b>वास्तविक क्षेत्रफल (कमी समायोजित):</b><span class="auto" id="oActualArea"></span> हे०</div>
@@ -1079,7 +1079,7 @@ export default function KisanAavedanPortal() {
           if(S.scheme==="fencing"){
             const dispHec = (c.totalHec||0) > 0 ? c.totalHec : c.hec;
             const m = fenceStandard(dispHec);
-            set("oArea", dispHec>0 ? dispHec.toFixed(2) : "…………");
+            set("oArea", dispHec>0 ? dispHec.toFixed(2)+" हे०" : "…………");
             set("oFenceLen", m ? fmtN(m.len).replace(/\.00$/,"") : "…………");
             set("oPoles", m ? fmtN(m.poles).replace(/\.00$/,"") : "…………");
           }
