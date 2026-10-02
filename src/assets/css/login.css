@@ -160,6 +160,125 @@
   padding: 8px 12px;
 }
 
+/* ======================================================================
+   Login page hardening
+   Global stylesheets in this app redefine bare .btn / .dropdown-menu /
+   .dropdown-item rules, so every control on this page is styled with its
+   own .login-page scope to guarantee it stays visible and readable.
+   ====================================================================== */
+.login-page .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Login type selector (Admin / Center / Nursery) */
+.login-page .dropdown-toggle {
+  color: #0b488f !important;
+  background-color: #ffffff !important;
+  border-color: #0b488f !important;
+  font-size: 0.85rem !important;
+  font-weight: 600;
+}
+
+.login-page .dropdown-toggle:hover,
+.login-page .dropdown-toggle:focus,
+.login-page .dropdown-toggle.show,
+.login-page .dropdown-toggle:active {
+  color: #ffffff !important;
+  background-color: #0b488f !important;
+  border-color: #0b488f !important;
+}
+
+.login-page .dropdown-menu {
+  font-size: 0.85rem !important;
+  min-width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  z-index: 1050;
+}
+
+.login-page .dropdown-item {
+  font-size: 0.85rem !important;
+  color: #1f2937 !important;
+  padding: 8px 12px;
+}
+
+.login-page .dropdown-item:hover,
+.login-page .dropdown-item:focus {
+  color: #0b488f !important;
+  background-color: #e9f1fb !important;
+}
+
+/* Inputs must never inherit an unreadable or white-on-white treatment */
+.login-page .form-control,
+.login-page .form-select {
+  font-size: 0.85rem !important;
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.login-page .form-control::placeholder {
+  color: #94a3b8 !important;
+}
+
+.login-page .form-control:focus,
+.login-page .form-select:focus {
+  border-color: #0b488f;
+  box-shadow: 0 0 0 0.2rem rgba(11, 72, 143, 0.15);
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+}
+
+/* Submit button */
+.login-page .login-btn {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+  border: 1px solid #0056b3 !important;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem !important;
+  padding: 9px 16px;
+}
+
+.login-page .login-btn:hover,
+.login-page .login-btn:focus {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%) !important;
+}
+
+.login-page .login-btn:disabled {
+  opacity: 0.7;
+}
+
+/* Labels, alerts and helpers */
+.login-page .form-label {
+  color: #1f2937 !important;
+  font-size: 0.8rem !important;
+  font-weight: 600;
+}
+
+.login-page .alert {
+  font-size: 0.8rem !important;
+  padding: 8px 12px;
+}
+
+.login-page .change-password p {
+  color: #0b488f;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.login-page .form-check-label,
+.login-page .remember-me {
+  color: #1f2937 !important;
+  font-size: 0.8rem !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 767px) {
   .login-container {

@@ -197,7 +197,7 @@
 /* ========================================================================
    Cards
    ======================================================================== */
-.card {
+.kiwi-root .card {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -208,9 +208,9 @@
   min-width: 0;
 }
 
-.card > h2,
-.card > h3,
-.inner-card > h3 {
+.kiwi-root .card > h2,
+.kiwi-root .card > h3,
+.kiwi-root .inner-card > h3 {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -221,12 +221,12 @@
   letter-spacing: .1px;
   line-height: 1.35;
 }
-.card > h2 {
+.kiwi-root .card > h2 {
   padding-bottom: 9px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--line-soft);
 }
-.card > h2 .idx {
+.kiwi-root .card > h2 .idx {
   flex: 0 0 auto;
   width: 22px;
   height: 22px;
@@ -238,12 +238,12 @@
   font-size: 11.5px;
   font-weight: 900;
 }
-.card > h3,
-.inner-card > h3 {
+.kiwi-root .card > h3,
+.kiwi-root .inner-card > h3 {
   font-size: var(--fs-h3);
   color: var(--primary);
 }
-.card > h3 {
+.kiwi-root .card > h3 {
   padding-bottom: 7px;
   margin-bottom: 4px;
   border-bottom: 1px dashed var(--line);
@@ -405,7 +405,7 @@
   padding-top: 12px;
   border-top: 1px solid var(--line-soft);
 }
-.btn {
+.kiwi-root .btn {
   border: 0;
   border-radius: var(--radius-sm);
   padding: 8px 14px;
@@ -420,16 +420,16 @@
   overflow-wrap: break-word;
   transition: background .15s, box-shadow .15s, transform .05s;
 }
-.btn:hover { background: var(--primary-dark); }
-.btn:active { transform: translateY(1px); }
-.btn.secondary {
+.kiwi-root .btn:hover { background: var(--primary-dark); }
+.kiwi-root .btn:active { transform: translateY(1px); }
+.kiwi-root .btn.secondary {
   background: #e8f4eb;
   color: var(--primary);
   border: 1px solid #bcd8c3;
 }
-.btn.secondary:hover { background: #d6e9dc; }
-.btn.gold { background: var(--accent); }
-.btn.gold:hover { background: #966f08; }
+.kiwi-root .btn.secondary:hover { background: #d6e9dc; }
+.kiwi-root .btn.gold { background: var(--accent); }
+.kiwi-root .btn.gold:hover { background: #966f08; }
 
 /* ========================================================================
    Notes / errors
