@@ -96,9 +96,14 @@
 .kiwi-root h1,
 .kiwi-root h2,
 .kiwi-root h3,
-.kiwi-root h4,
-.kiwi-root p {
+.kiwi-root h4
+ {
   margin: 0;
+  font-size:16px;
+  font-weight: 600;
+}
+.kiwi-root p{
+  font-size: 14px;
 }
 
 /* ========================================================================
@@ -527,7 +532,7 @@
   background: transparent;
 }
 .kiwi-root th {
-  background: #e2f0e6;
+ 
   text-align: center;
   color: var(--primary-darker);
   font-size: 11px;
