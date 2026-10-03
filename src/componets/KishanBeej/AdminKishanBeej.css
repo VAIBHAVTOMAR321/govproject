@@ -78,6 +78,19 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
+.admin-tab-count {
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 11px;
+  text-align: center;
+}
+
+.tab-btn.active .admin-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Filters */
 .admin-filters {
   display: flex;
@@ -885,6 +898,67 @@ body.admin-application-view-open {
   font-weight: 700;
 }
 
+.print-array-table {
+  font-size: 9pt;
+}
+
+.print-array-table th {
+  border: 1px solid #555;
+  padding: 2mm;
+  background: #f2f2f2;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-print-empty {
+  margin: 0;
+  color: #64748b;
+}
+
+.admin-form-page {
+  margin-top: 8mm;
+  padding-top: 5mm;
+  border-top: 1px solid #94a3b8;
+}
+
+.admin-form-page-title {
+  margin: 0 0 5mm;
+  color: #111827;
+  text-align: center;
+  font-size: 15pt;
+}
+
+.admin-form-section-title {
+  margin: 5mm 0 2mm;
+  font-size: 11pt;
+}
+
+.admin-form-list {
+  padding-left: 7mm;
+}
+
+.admin-form-list li {
+  margin: 2mm 0;
+  line-height: 1.5;
+}
+
+.admin-form-note {
+  margin: 3mm 0;
+  font-size: 9pt;
+}
+
+.admin-signature {
+  margin-top: 8mm;
+  text-align: right;
+  line-height: 2;
+}
+
+.admin-consent-record + .admin-consent-record {
+  margin-top: 8mm;
+  padding-top: 5mm;
+  border-top: 1px dashed #94a3b8;
+}
+
 .print-list {
   margin: 0;
   padding-left: 7mm;
@@ -1552,4 +1626,3 @@ body.admin-application-view-open {
     page-break-inside: avoid !important;
   }
 }
-
