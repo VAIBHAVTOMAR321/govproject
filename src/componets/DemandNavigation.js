@@ -114,15 +114,7 @@ const DemandNavigation = () => {
               >
                 लाइब्रेरी
               </NavDropdown.Item>
-              <NavDropdown.Item
-                active={isActive("/MonthAttendance")}
-                onClick={() => navigate("/MonthAttendance")}
-                style={{
-                  fontWeight: isActive("/MonthAttendance") ? "bold" : "normal",
-                }}
-              >
-                मासिक उपस्थिति
-              </NavDropdown.Item>
+            
               <NavDropdown.Item
                 active={isActive("/VetanMang")}
                 onClick={() => navigate("/VetanMang")}
