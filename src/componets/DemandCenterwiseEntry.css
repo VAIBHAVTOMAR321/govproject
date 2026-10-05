@@ -612,6 +612,7 @@
   .dynamic-report-filter-wrap {
     min-width: calc(50% - 5px);
   }
+
   .dynamic-report-filter-menu {
     position: fixed;
     left: 8px;
@@ -633,6 +634,9 @@
 @media (max-width: 480px) {
   .dynamic-report-filter-wrap {
     min-width: 100%;
+     position: relative;
+  min-width: 145px;
+  flex: 1 1 0px;
   }
   .report-tab-date-filter .row > div {
     width: 100%;
