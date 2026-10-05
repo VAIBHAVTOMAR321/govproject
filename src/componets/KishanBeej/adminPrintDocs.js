@@ -39,7 +39,7 @@ export const buildPrintDocuments = (schemeType, application, fenceMapRows, cente
     case "kisan":
       return buildFencingDocuments(raw, normalizeFenceMap(fenceMapRows), centerName);
     case "vermi":
-      return buildVermiDocuments(raw);
+      return buildVermiDocuments(raw, centerName);
     case "dragon":
       return buildDragonDocuments(raw);
     case "kiwi":

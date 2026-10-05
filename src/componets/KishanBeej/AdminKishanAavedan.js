@@ -7,12 +7,25 @@ import { ADMIN_PRINT_CSS } from './adminPrintStyle';
 const API_BASE = 'https://mahadevaaya.com/govbillingsystem/backend/api';
 
 // KisanAavedanPortal.js → getCenterNameFromUser(): लॉग-इन केंद्र का नाम।
-// फेंसिंग आवेदन/शपथ-पत्र/देयक के "स्थान" पंक्ति में यही नाम आता है।
+// फेंसिंग/वर्मी आवेदन/शपथ-पत्र/देयक के "स्थान" एवं "केन्द्र का नाम" पंक्ति में यही नाम आता है।
+// सेंटर लॉगिन में वास्तविक केंद्र नाम CenterContext (localStorage "centerData") में
+// रहता है, इसलिए वहाँ से भी पढ़ा जाता है।
+const readStoredCenterName = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('centerData'));
+    const name = stored?.centerName || stored?.center_name || stored?.username;
+    return name ? String(name).trim() : '';
+  } catch {
+    return '';
+  }
+};
+
 const getCenterNameFromUser = (authUser) => {
-  if (!authUser) return '';
+  if (!authUser) return readStoredCenterName();
   const candidates = [
     authUser.center_name, authUser.centerName, authUser.username, authUser.name,
     authUser.center?.center_name, authUser.center?.name, authUser.profile?.center_name,
+    readStoredCenterName(),
   ];
   const direct = candidates.find((value) => value !== null && value !== undefined && String(value).trim() !== '');
   return direct ? String(direct).trim() : '';

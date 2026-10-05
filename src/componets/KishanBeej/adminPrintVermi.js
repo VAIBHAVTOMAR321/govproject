@@ -14,7 +14,7 @@ const genderFromApi = (value) => {
   return "";
 };
 
-const buildVermiState = (raw) => {
+const buildVermiState = (raw, centerName) => {
   const personal = raw.personal || {};
   const expenses = raw.expenses || {};
 
@@ -30,6 +30,9 @@ const buildVermiState = (raw) => {
   const mbLoaded = mbSources.find((value) => value !== null && value !== undefined && String(value).trim() !== "");
 
   return {
+    // AdminKishanAavedan.js → getCenterNameFromUser(): लॉग-इन केंद्र का नाम,
+    // अन्यथा "……………………" (KisanAvedan.js → centerLine()).
+    centerLine: (centerName || "").trim() || "……………………",
     name: personal.full_name || personal.farmer_name || "",
     father: personal.father_name || personal.father_husband_name || "",
     village: personal.village || "",
@@ -182,7 +185,7 @@ const buildVermiApplicationHtml = (state) => {
     <div class="declaration-box prabhari-box">
       <p>प्रमाणित किया जाता है कि कृषक द्वारा प्रस्तुत आवेदन, भूमि अभिलेख एवं अन्य संबंधित अभिलेखों का परीक्षण कर लिया गया है। आवेदन में अंकित विवरण एवं प्रस्तुत अभिलेख सही पाए गए हैं।अतः कृषक आवेदन <strong>उद्यान विशेषज्ञ, कोटद्वार महोदय की सेवा में वर्क ऑर्डर जारी करने हेतु संस्तुति सहित अग्रसारित</strong> है।</p>
       <p style="margin-top:24px;"><strong>प्रभारी, उद्यान सचल दल केन्द्र</strong><br>
-      <strong>केन्द्र का नाम :</strong> <span style="display:inline-block;min-width:300px;border-bottom:1px solid #333;text-align:center">&nbsp;</span></p>
+      <strong>केन्द्र का नाम :</strong> <span style="display:inline-block;min-width:300px;border-bottom:1px solid #333;text-align:center">${esc(f.centerLine)}</span></p>
     </div>
   </div>`;
 };
@@ -323,12 +326,12 @@ const buildVermiBillHtml = (state) => {
 
     <div class="st">6. प्रभारी की आख्या एवं सत्यापन</div>
     <div class="report-box">प्रमाणित किया जाता है कि मेरे द्वारा वर्मी कम्पोस्ट इकाई के निर्माण कार्य का स्थलीय निरीक्षण कर लिया गया है तथा इकाई विभागीय मानक (10 फीट × 8 फीट × 2.5 फीट) के अनुरूप पूर्ण पायी गयी। एम०बी० (मापपुस्तिका) के अनुसार कनिष्ठ अभियन्ता द्वारा तैयार मूल्यांकन धनराशि : <b>${c.mb ? fmt0(c.mb) : "…………"}</b>। बिल में दर्शायी गयी कुल राशि : <b>${c.bill > 0 ? fmt0(c.bill) : "…………"}</b>। बिल, एम०बी० एवं स्थलीय सत्यापन का मिलान करने के उपरान्त लागू आधार पर देय राजसहायता धनराशि <b>${fmt0(c.sub)}</b> कृषक को भुगतान हेतु देयक सत्यापित कर संस्तुति सहित अग्रसारित।</div>
-    <div class="report-sign" style="margin-top:24px;text-align:right;line-height:1.8">हस्ताक्षर प्रभारी<br>…………</div>
+    <div class="report-sign" style="margin-top:24px;text-align:right;line-height:1.8">हस्ताक्षर प्रभारी<br><b>प्रभारी, उद्यान सचल दल केन्द्र :</b> ${esc(f.centerLine)}</div>
   </div>`;
 };
 
-export const buildVermiDocuments = (raw) => {
-  const state = buildVermiState(raw);
+export const buildVermiDocuments = (raw, centerName) => {
+  const state = buildVermiState(raw, centerName);
   return [
     { id: "application", label: "आवेदन पत्र", html: buildVermiApplicationHtml(state), pageBreakBefore: false },
     { id: "affidavit", label: "शपथ-पत्र", html: buildVermiAffidavitHtml(state), pageBreakBefore: true },
