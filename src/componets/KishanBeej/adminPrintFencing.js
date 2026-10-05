@@ -99,6 +99,7 @@ const buildFenceState = (raw, fenceMap, centerName) => {
   if (num(personal.subsidy_rate) > 0) rate = num(personal.subsidy_rate);
   if (num(expenses.subsidy_rate) > 0) rate = num(expenses.subsidy_rate);
   rate = rate >= 60 ? 80 : 50;
+  const isBarbedWire = fenceMaterial === "कंटीले तार" || fenceMaterial === "कंटीले तार (बार्बड वायर)";
 
   const costHa = num(expenses.unit_cost_per_hectare) > 0 ? num(expenses.unit_cost_per_hectare) : 200000;
   const cap = expenses.additional_max_limit !== undefined && expenses.additional_max_limit !== null && String(expenses.additional_max_limit) !== ""
@@ -148,9 +149,9 @@ const buildFenceState = (raw, fenceMap, centerName) => {
     // KisanAavedanPortal.js → centerLine() = लॉग-इन केंद्र का नाम, अन्यथा "……………………"
     centerLine: (centerName || "").trim() || "……………………",
     fenceMaterial,
-    fenceHeading: fenceMaterial === "कंटीले तार" ? "कंटीले तार" : "चेनलिंक फेंसिंग",
-    fenceKaamPhrase: fenceMaterial === "कंटीले तार" ? "कंटीले तार की घेरबाड़" : "चेनलिंक फेंसिंग की घेरबाड़",
-    fenceMaterialName: fenceMaterial === "कंटीले तार" ? "कंटीले तार (बार्बड वायर)" : "चेनलिंक जाली",
+    fenceHeading: isBarbedWire ? "कंटीले तार" : "चेनलिंक फेंसिंग",
+    fenceKaamPhrase: isBarbedWire ? "कंटीले तार की घेरबाड़" : "चेनलिंक फेंसिंग की घेरबाड़",
+    fenceMaterialName: isBarbedWire ? "कंटीले तार (बार्बड वायर)" : "चेनलिंक जाली",
     gender,
     rate,
     costHa,
@@ -522,11 +523,13 @@ const buildFencingApplicationHtml = (state) => {
     <h3 style="text-decoration:underline">${esc(state.planType)} अन्तर्गत ${state.fenceHeading} हेतु</h3>
     <h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4>
     <div class="appnote">
-      <b>योजना:</b> ${roSelect(state.planType, ["जिला योजना", "राज्य सेक्टर योजना"], `style="margin-left:8px;padding:3px"`)}
-      <span style="margin-left:18px"><b>लिंग:</b></span> ${roSelect(state.gender, ["पुरुष", "महिला"], `style="margin-left:8px;padding:3px"`)}
-      <span style="margin-left:18px"><b>फेंसिंग सामग्री:</b></span> ${roSelect(state.fenceMaterial, ["चेनलिंक जाली", "कंटीले तार (बार्बड वायर)"], `style="margin-left:8px;padding:3px"`)}
-      <span style="margin-left:18px"><b>फेंसिंग राजसहायता दर:</b></span> ${roSelect(String(rate), ["50", "80"], `style="margin-left:8px;padding:3px"`)}
-      <span style="margin-left:12px">सभी श्रेणियों के लिए समान चयनित दर लागू होगी। चुनी गयी सामग्री (चेनलिंक/कंटीले तार) के अनुसार भाषा पूरे आवेदन एवं अनुदान (देयक) प्रपत्र में स्वतः बदल जाती है।</span>
+      <div class="appnote-values">
+        <span class="appnote-entry"><b>योजना:</b> ${esc(state.planType)}</span>
+        <span class="appnote-entry"><b>लिंग:</b> ${esc(state.gender)}</span>
+        <span class="appnote-entry"><b>फेंसिंग सामग्री:</b> ${esc(state.fenceMaterialName)}</span>
+        <span class="appnote-entry"><b>फेंसिंग राजसहायता दर:</b> ${rate}%</span>
+      </div>
+      <div class="appnote-explanation">सभी श्रेणियों के लिए समान चयनित दर लागू होगी। चुनी गयी सामग्री (चेनलिंक/कंटीले तार) के अनुसार भाषा पूरे आवेदन एवं अनुदान (देयक) प्रपत्र में स्वतः बदल जाती है।</div>
     </div>
     <h5>उद्यान कार्ड विवरण — फेंसिंग आवेदन के लिए अनिवार्य</h5>
     <table class="landtable infoTable"><tbody>

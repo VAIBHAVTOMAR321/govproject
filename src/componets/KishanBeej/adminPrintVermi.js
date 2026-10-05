@@ -102,7 +102,7 @@ const calcVermi = (state) => {
   return { bill, mb, base, bases, rate, sub: subsidy, own: bill - subsidy, cap: state.cap, capped, standardCost, shortfall, rows };
 };
 
-const field = (label, input) => `<div class="field"><label>${label}</label>${input}</div>`;
+const field = (label, input) => `<div class="field"><label>${label}</label><div class="field-value-line">${input}</div></div>`;
 
 const buildVermiApplicationHtml = (state) => {
   const f = state;

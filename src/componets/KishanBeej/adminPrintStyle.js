@@ -255,6 +255,13 @@ body {
   box-sizing: border-box;
   overflow-wrap: anywhere;
 }
+.admin-print-sheet .appnote-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+.admin-print-sheet .appnote-entry { white-space: normal; }
+.admin-print-sheet .appnote-explanation { margin-top: 4px; }
 .admin-print-sheet .noprint,
 .admin-print-sheet .addrow,
 .admin-print-sheet .rm,
@@ -329,8 +336,20 @@ body {
   gap: 4px 10px;
 }
 .admin-print-sheet .field label { display: block; font-size: 10.5px; color: #1e293b; margin-bottom: 1px; }
-.admin-print-sheet .field input,
-.admin-print-sheet .field select { width: 100%; border-bottom: 1px solid #000 !important; }
+.admin-print-sheet .field-value-line {
+  display: block;
+  width: 100%;
+  min-height: 18px;
+  border-bottom: 1px solid #000 !important;
+}
+.admin-print-sheet .field-value-line input,
+.admin-print-sheet .field-value-line select {
+  display: block;
+  width: 100%;
+  min-height: 17px;
+  border: 0 !important;
+  padding: 0 2px !important;
+}
 .admin-print-sheet .st {
   display: block;
   background: #fff !important;
