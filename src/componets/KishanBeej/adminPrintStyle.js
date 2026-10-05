@@ -52,6 +52,14 @@ body {
   color: #000 !important;
   text-align: center;
   text-decoration: none;
+  font-size:16px;
+  margin: 0 0 2px !important;
+}
+  .admin-print-sheet .appdoc h4 {
+  color: #000000 !important;
+  text-align: center;
+  text-decoration: none;
+  font-size:16px;
   margin: 0 0 2px !important;
 }
 .admin-print-sheet .bill-title {
@@ -362,6 +370,17 @@ body {
   text-align: center;
   margin: 10px 0 0 !important;
   padding: 3px 6px !important;
+}
+/* वर्मी कम्पोस्ट आवेदन पत्र — शीर्षक बायाँ किनारे पर, बॉर्डर रहित */
+.admin-print-sheet .vermi-appdoc h4 { text-align: left; }
+.admin-print-sheet .vermi-appdoc .st {
+  text-align: left;
+  border: 0 !important;
+  color: #1e3a8a !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 10px 0 2px !important;
+  font-size:14px;
 }
 .admin-print-sheet .declaration-box p { margin: 4px 0; }
 .admin-print-sheet .farmer-signature {

@@ -115,10 +115,10 @@ const buildVermiApplicationHtml = (state) => {
         .join("")
     : `<tr><td colspan="3" class="empty">कोई फसल नहीं जोड़ी गई</td></tr>`;
 
-  return `<div class="appdoc">
+  return `<div class="appdoc vermi-appdoc">
     <div style="text-align:center;font-size:11.5px;color:#65746B;margin:2px 0 4px">उद्यान विभाग · वित्तीय वर्ष 2026-27</div>
     <h3 style="text-decoration:underline">राज्य सेक्टर योजना अन्तर्गत वर्मी कम्पोस्ट इकाई हेतु</h3>
-    <h4 style="color:var(--ink);font-size:16px;font-weight:600">कृषक आवेदन पत्र</h4>
+    <h4 style="color:var(--ink);font-size:16px;font-weight:600; text-align: center;">कृषक आवेदन पत्र</h4>
 
     <div class="st">आवेदक का विवरण</div>
     <div class="grid2">
