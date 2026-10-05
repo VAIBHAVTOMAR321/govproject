@@ -340,7 +340,7 @@ body {
   display: block;
   width: 100%;
   min-height: 18px;
-  border-bottom: 1px solid #000 !important;
+
 }
 .admin-print-sheet .field-value-line input,
 .admin-print-sheet .field-value-line select {
