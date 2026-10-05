@@ -302,7 +302,7 @@ body {
   background: transparent !important;
   color: #000 !important;
   border: 0 !important;
-  border-bottom: 1px solid #333 !important;
+  
   border-radius: 0 !important;
   box-shadow: none !important;
   font: inherit;
@@ -335,7 +335,7 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 4px 10px;
 }
-.admin-print-sheet .field label { display: block; font-size: 10.5px; color: #1e293b; margin-bottom: 1px; }
+.admin-print-sheet .field label { display: block; font-size: 13px; color: #64748b; margin-bottom: 1px; }
 .admin-print-sheet .field-value-line {
   display: block;
   width: 100%;
