@@ -587,6 +587,7 @@
   border: 1px solid #000 !important;
   padding: 3px 5px;
   font-size: 11px;
+
   color: #000;
   background: #fff !important;
   vertical-align: middle;
@@ -700,6 +701,19 @@
 }
 .kisan-html-react-root :is(.pv-sheet, .view.print-target) .print-selected > td {
   background: #ededed !important;
+}
+/* भूमि तालिका — स्क्रीन पर सभी पंक्तियाँ, प्रिंट/पूर्वावलोकन में केवल भरी हुई पंक्तियाँ */
+.kisan-html-react-root .land-sno-print {
+  display: none;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .land-sno-screen {
+  display: none;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .land-sno-print {
+  display: inline;
+}
+.kisan-html-react-root :is(.pv-sheet, .view.print-target) .land-row-empty {
+  display: none;
 }
 
 /* === REGISTRATION LIST ACTIONS === */

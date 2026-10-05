@@ -188,6 +188,12 @@ export default function KisanAavedanPortal() {
         const fmt0 = n => "₹ " + Math.round(Number(n)||0).toLocaleString("en-IN");
         const fmtN = n => (Number(n)||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
         const esc  = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+        const landRowHasValue = (r,i)=>{
+          if(i===0) return true;
+          if(!r) return false;
+          return num(r.hec)>0
+            || ["name","father","khasra","aadhaar"].some(k=>String(r[k]==null?"":r[k]).trim()!=="");
+        };
 
         // Helper to safely replace innerHTML without crashing on focused elements
         const safeSetHTML = (id, html) => {
@@ -741,9 +747,15 @@ export default function KisanAavedanPortal() {
                 <th style="width:110px">${applicantWord()} की प्रस्तावित भूमि — फेंसिंग हेतु</th>
                 <th class="noprint" style="width:46px">क्रिया</th>
               </tr></thead>
-              <tbody>${(S.landRows||[]).map((r,i)=>`
-                <tr>
-                  <td style="text-align:center">${i+1}</td>
+              <tbody>${(()=>{
+                const rows=S.landRows||[];
+                let printedNo=0;
+                return rows.map((r,i)=>{
+                  const has=landRowHasValue(r,i);
+                  if(has) printedNo++;
+                  return `
+                <tr class="land-row${has?"":" land-row-empty"}">
+                  <td class="land-sno" style="text-align:center"><span class="land-sno-screen">${i+1}</span><span class="land-sno-print">${has?printedNo:""}</span></td>
                   <td><input data-land="${i}" data-k="relation" value="${esc(r.relation||"")}" placeholder="भूमि किसकी / विवरण"></td>
                   <td>${i===0
                     ? `<input class="landSelfName" value="${esc(S.f.name||"")}" placeholder="नाम खतौनी अनुसार" readonly tabindex="-1">`
@@ -758,7 +770,9 @@ export default function KisanAavedanPortal() {
                     : `<input data-land="${i}" data-k="aadhaar" value="${esc(r.aadhaar||"")}" inputmode="numeric" maxlength="12" placeholder="आधार संख्या">`}</td>
                   <td><input data-land="${i}" data-k="hec" inputmode="decimal" value="${esc(r.hec||"")}" placeholder="हे०"></td>
                   <td class="noprint" style="text-align:center">${i===0 ? "" : `<button type="button" class="land-remove" data-land-del="${i}" title="यह पंक्ति हटाएँ">×</button>`}</td>
-                </tr>`).join("")}
+                </tr>`;
+                }).join("");
+              })()}
                 <tr class="tot">
                   <td colspan="7" style="text-align:right">प्रस्तावित भूमि का क्षेत्रफल (कुल हे०) — वास्तविक आवेदन क्षेत्रफल</td>
                   <td class="calc">${fmtN(d.totalHec)}</td>
@@ -769,18 +783,7 @@ export default function KisanAavedanPortal() {
             <div class="noprint land-row-actions">
               <button type="button" class="addrow" id="addLandRow">+ पंक्ति जोड़ें</button>
             </div>
-            <h5>निर्धारित क्षेत्रफल एवं फेंसिंग मानक मैपिंग</h5>
-            <table class="landtable" id="fenceMappingApplicationTable">
-              <thead><tr>
-                <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०</th><th>खम्बे</th>
-              </tr></thead>
-              <tbody>${getFenceMap().map(x=>`<tr data-map-hec="${x.hec.toFixed(2)}">
-                <td style="text-align:center">${x.nali}</td>
-                <td style="text-align:center">${x.hec.toFixed(2)}</td>
-                <td style="text-align:center"><b>${x.len}</b></td>
-                <td style="text-align:center">${x.poles}</td>
-              </tr>`).join("")}</tbody>
-            </table>
+           
             <p class="appnote noprint" style="margin-top:6px">
               फेंसिंग के लिए ऊपर दर्ज सभी भूमि पंक्तियों का क्षेत्रफल जोड़कर कुल क्षेत्रफल निकलेगा। यही कुल क्षेत्रफल ऊपर दी गयी मैपिंग तालिका के किसी एक निर्धारित अंक से हूबहू मिलना आवश्यक है। कुल क्षेत्रफल किसी भी निर्धारित अंक से मेल नहीं होने पर किसान का फेंसिंग आवेदन लागू नहीं माना जाएगा।
             </p>
