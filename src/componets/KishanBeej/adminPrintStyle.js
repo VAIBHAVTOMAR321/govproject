@@ -350,6 +350,8 @@ body {
   border: 0 !important;
   padding: 0 2px !important;
 }
+  .st{
+  text-align: justify;}
 .admin-print-sheet .st {
   display: block;
   background: #fff !important;
