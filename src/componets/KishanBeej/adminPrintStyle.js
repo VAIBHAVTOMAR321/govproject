@@ -66,6 +66,7 @@ body {
   color: #000;
   font-weight: 700;
   text-align: center;
+  font-size: 20px;
   margin: 0 0 2px;
 }
 .admin-print-sheet .bill-header {
