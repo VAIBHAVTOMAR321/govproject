@@ -72,6 +72,40 @@ const formatDate = (dateString) => {
   }
 };
 
+// Helper to convert date to HTML date input format (YYYY-MM-DD)
+const formatDateForInput = (dateString) => {
+  if (!dateString) return '';
+  try {
+    // Try parsing various date formats
+    let date;
+    // If already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    // Try parsing DD/MM/YYYY or DD-MM-YYYY
+    const parts = dateString.split(/[\/\-]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        date = new Date(year, month - 1, day);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+    }
+    // Fallback: try native Date parsing
+    date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  return '';
+};
+
 function VetanMang() {
   const { user } = useAuth();
   const centerName = getCenterNameFromUser(user);
@@ -998,7 +1032,7 @@ function VetanMang() {
                                   <td key={cIdx}>
                                     <input
                                       type="date"
-                                      value={cell}
+                                      value={formatDateForInput(cell)}
                                       onChange={(e) => handleReportDataChange(rIdx, cIdx, e.target.value)}
                                     />
                                   </td>
