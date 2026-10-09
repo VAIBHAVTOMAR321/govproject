@@ -411,6 +411,7 @@
   padding: 20px;
   margin: 0; /* Reset Bootstrap margin */
   overflow-y: auto; /* Form content scrolls */
+  overflow-x: hidden; /* No horizontal scroll on modal */
 }
 
 /* Form fields - FIXED */
@@ -426,9 +427,10 @@
   overflow: visible;
 }
 
-/* Table scroll area - NO SCROLL, table is inline */
+/* Table scroll area - horizontal scroll enabled, vertical handled by modal */
 .vm-modal > form > .vm-table-container > .vm-table-scroll {
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
   min-height: 0;
   border: none;
   border-radius: 0;
@@ -494,6 +496,7 @@
   padding: 20px !important;
   margin: 0 !important;
   overflow-y: auto !important; /* Form scrolls */
+  overflow-x: hidden !important; /* No horizontal scroll on modal */
 }
 
 .vm-add-report-modal > .vm-alert {
@@ -513,7 +516,8 @@
 }
 
 .vm-add-report-modal > form > .vm-table-container > .vm-table-scroll {
-  overflow: visible !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   min-height: 0 !important;
   border: none !important;
   border-radius: 0 !important;
