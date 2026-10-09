@@ -92,13 +92,39 @@ function VetanMang() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewReport, setPreviewReport] = useState(null);
+  const [editingReportId, setEditingReportId] = useState(null);
 
   const openAddModal = () => {
+    setEditingReportId(null);
+    setFormData({
+      center_name: centerName || '',
+      month: '',
+      financial_year: '2026-27',
+      letter_number: '',
+      report_date: '',
+      subject: 'वेतन मांग पत्र एवं उपस्थिति सूचना',
+      report_data: []
+    });
+    setShowFormModal(true);
+  };
+
+  const openEditModal = (report) => {
+    setEditingReportId(report.id);
+    setFormData({
+      center_name: report.center_name,
+      month: report.month,
+      financial_year: report.financial_year,
+      letter_number: report.letter_number,
+      report_date: report.report_date,
+      subject: report.subject,
+      report_data: report.report_data || []
+    });
     setShowFormModal(true);
   };
 
   const closeAddModal = () => {
     setShowFormModal(false);
+    setEditingReportId(null);
   };
 
   const openPreviewModal = (report) => {
@@ -431,17 +457,20 @@ function VetanMang() {
     );
 
     const payload = { ...formData, report_data: cleanedReportData };
+    const isEditing = !!editingReportId;
+    const url = isEditing ? `${API_URL}${editingReportId}/` : API_URL;
+    const method = isEditing ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       const result = await response.json();
       if (result.success) {
-        setMessage({ text: 'वेतन मांग पत्र सफलतापूर्वक सहेजा गया।', type: 'success' });
+        setMessage({ text: isEditing ? 'रिपोर्ट सफलतापूर्वक अद्यतन की गई।' : 'वेतन मांग पत्र सफलतापूर्वक सहेजा गया।', type: 'success' });
         setFormData({
           center_name: centerName || '',
           month: '',
@@ -451,6 +480,7 @@ function VetanMang() {
           subject: 'वेतन मांग पत्र एवं उपस्थिति सूचना',
           report_data: []
         });
+        setEditingReportId(null);
         fetchReports();
       } else {
         throw new Error(result.message || "Submission failed");
@@ -458,6 +488,34 @@ function VetanMang() {
     } catch (error) {
       console.error("Error posting report:", error);
       setMessage({ text: 'सबमिशन में त्रुटि हुई। कृपया पुनः प्रयास करें।', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Delete a report
+  const handleDeleteReport = async (reportId) => {
+    if (!window.confirm('क्या आप वाकई इस रिपोर्ट को हटाना चाहते हैं?')) return;
+
+    setIsLoading(true);
+    setMessage({ text: '', type: '' });
+
+    try {
+      const response = await fetch(`${API_URL}${reportId}/`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setMessage({ text: 'रिपोर्ट सफलतापूर्वक हटा दी गई।', type: 'success' });
+        fetchReports();
+      } else {
+        throw new Error(result.message || "Delete failed");
+      }
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      setMessage({ text: 'हटाने में त्रुटि हुई। कृपया पुनः प्रयास करें।', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -832,7 +890,7 @@ function VetanMang() {
         <div className="vm-modal-overlay vm-add-report-overlay">
           <div className="vm-modal vm-add-report-modal">
             <div className="vm-modal-header">
-              <h2>नई रिपोर्ट दर्ज करें (Add New Report)</h2>
+              <h2>{editingReportId ? 'रिपोर्ट संपादित करें (Edit Report)' : 'नई रिपोर्ट दर्ज करें (Add New Report)'}</h2>
               <button type="button" className="vm-modal-close" onClick={closeAddModal}>×</button>
             </div>
 
@@ -1053,6 +1111,7 @@ function VetanMang() {
                         <th>वित्तीय वर्ष</th>
                         <th>रिपोर्ट दिनांक</th>
                         {TABLE_HEADERS.map((header, idx) => <th key={idx}>{header}</th>)}
+                        <th className="text-center" style={{ width: '120px' }}>कार्य</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1065,6 +1124,34 @@ function VetanMang() {
                             <td className="text-nowrap">{report.financial_year}</td>
                             <td className="text-nowrap">{report.report_date}</td>
                             {row.map((cell, cIdx) => <td key={cIdx}>{cell}</td>)}
+                            <td className="text-center">
+                              <div className="btn-group btn-group-sm" role="group">
+                                <Button
+                                  variant="outline-primary"
+                                  size="sm"
+                                  onClick={() => openEditModal(report)}
+                                  title="संपादित करें"
+                                >
+                                  संपादित
+                                </Button>
+                                <Button
+                                  variant="outline-info"
+                                  size="sm"
+                                  onClick={() => openPreviewModal(report)}
+                                  title="देखें / प्रिंट करें"
+                                >
+                                  देखें
+                                </Button>
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteReport(report.id)}
+                                  title="हटाएं"
+                                >
+                                  हटाएं
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))
                       )}

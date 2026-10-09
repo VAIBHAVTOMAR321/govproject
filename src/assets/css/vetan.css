@@ -278,19 +278,25 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  margin-top: 165px;
   background: rgba(15, 23, 42, 0.55);
 }
 
 .vm-modal {
   width: 100%;
-  padding: 14px;
   max-width: 1100px;
-  max-height: calc(100vh - 40px);
-  overflow: auto;
+  max-height: 90vh;
+  overflow: hidden;
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 25px 70px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.vm-modal > *:not(.vm-modal-header):not(.vm-form-actions) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .vm-modal-header {
@@ -747,18 +753,7 @@
   box-sizing: border-box !important;
 }
 
-.vm-add-report-modal {
-  width: min(1200px, 100%) !important;
-  height: min(94vh, 900px) !important;
-  max-width: 1200px !important;
-  max-height: 94vh !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-}
+
 
 .vm-add-report-modal .vm-modal-header {
   flex: 0 0 auto !important;

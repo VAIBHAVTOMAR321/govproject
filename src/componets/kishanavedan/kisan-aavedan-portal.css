@@ -50,114 +50,151 @@
   align-items: center;
   gap: 20px;
   flex-wrap: wrap;
-  background: var(--seal-dk);
+  background: linear-gradient(135deg, var(--seal-dk) 0%, var(--seal) 100%);
   color: #fff;
-  padding: 14px 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  padding: 16px 24px;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
 }
 .kisan-html-react-root .topbar .topbar-brand {
   flex: 1 1 240px;
   min-width: 0;
 }
 .kisan-html-react-root .topbar h1 {
-  font-size: 19px;
+  font-size: 20px;
   margin: 0;
   color: #fff;
-  font-weight: 700;
-  line-height: 1.4;
+  font-weight: 800;
+  line-height: 1.3;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 .kisan-html-react-root .topbar .sub {
-  font-size: 12.5px;
-  margin: 3px 0 0;
-  color: #94a3b8;
+  font-size: 13px;
+  margin: 4px 0 0;
+  color: #bfdbfe;
   line-height: 1.5;
+  font-weight: 500;
 }
 .kisan-html-react-root .topbar .topbar-scheme {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .kisan-html-react-root .topbar .tk {
-  font-size: 11px;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #94a3b8;
+  letter-spacing: 0.1em;
+  color: #bfdbfe;
   font-weight: 700;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .kisan-html-react-root .topbar select {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   background: #fff;
   color: #000000;
   font: inherit;
   font-size: 14px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 9px 14px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+.kisan-html-react-root .topbar select:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 /* === TOP TABS === */
 .kisan-html-react-root .tabs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   background: #fff;
   border-bottom: 1px solid var(--rule);
   padding: 0 24px;
   position: sticky;
   top: var(--app-nav-h, 0px);
   z-index: 30;
-  margin-top: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  margin-top: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 12px 12px 0 0;
 }
 .kisan-html-react-root .tabs a {
-  padding: 14px 26px;
+  padding: 15px 28px;
   color: var(--ink-soft);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
   background: transparent;
   border-bottom: 3px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  position: relative;
+}
+.kisan-html-react-root .tabs a::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--seal);
+  border-radius: 3px 3px 0 0;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
 }
 .kisan-html-react-root .tabs a:hover {
   color: var(--seal);
   background: var(--fill);
 }
+.kisan-html-react-root .tabs a:hover::after {
+  width: 80%;
+}
 .kisan-html-react-root .tabs a.on {
   color: var(--seal);
   border-bottom-color: var(--seal);
-  background: var(--fill);
+  background: linear-gradient(180deg, var(--fill) 0%, #fff 100%);
+}
+.kisan-html-react-root .tabs a.on::after {
+  width: 100%;
 }
 .kisan-html-react-root .tabs .tabs-preview {
-  margin: 8px 0 8px auto;
-  padding: 9px 18px;
+  margin: 10px 0 10px auto;
+  padding: 10px 20px;
   font: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #fff;
-  background: var(--seal);
+  background: linear-gradient(135deg, var(--seal) 0%, var(--seal-dk) 100%);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
   white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 .kisan-html-react-root .tabs .tabs-preview:hover {
-  background: var(--seal-dk);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+.kisan-html-react-root .tabs .tabs-preview:active {
+  transform: translateY(0);
 }
 
 /* === SUB TABS (inside filling view) === */
 .kisan-html-react-root .subtabs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   background: #fff;
   border-bottom: 1px solid var(--rule);
-  padding: 0 24px;
-  margin: 0 -24px 24px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  padding: 0 20px;
+  margin: 0 -20px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 8px 8px 0 0;
 }
 .kisan-html-react-root .subtabs a {
-  padding: 12px 20px;
+  padding: 12px 22px;
   color: var(--ink-soft);
   text-decoration: none;
   font-size: 13px;
@@ -166,15 +203,34 @@
   border-bottom: 3px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+}
+.kisan-html-react-root .subtabs a::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--seal);
+  border-radius: 3px 3px 0 0;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
 }
 .kisan-html-react-root .subtabs a:hover {
   color: var(--seal);
   background: var(--fill);
 }
+.kisan-html-react-root .subtabs a:hover::after {
+  width: 80%;
+}
 .kisan-html-react-root .subtabs a.on {
   color: var(--seal);
   border-bottom-color: var(--seal);
-  background: var(--fill);
+  background: linear-gradient(180deg, var(--fill) 0%, #fff 100%);
+}
+.kisan-html-react-root .subtabs a.on::after {
+  width: 100%;
 }
 
 /* === TOOLS === */
@@ -205,22 +261,37 @@
 .kisan-html-react-root .pv-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(15, 23, 42, 0.7);
   z-index: 2000;
   overflow: auto;
   padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
 }
 .kisan-html-react-root .pv-overlay[hidden] {
   display: none;
 }
 .kisan-html-react-root .pv-box {
   max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
-  margin-top: 60px;
   background: var(--paper);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 20px 45px rgba(0, 0, 42, 0.35);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  animation: pvSlideIn 0.3s ease-out;
+}
+@keyframes pvSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .kisan-html-react-root .pv-head {
   position: sticky;
@@ -228,20 +299,32 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--seal-dk);
+  background: linear-gradient(135deg, var(--seal-dk) 0%, var(--seal) 100%);
   color: #fff;
-  padding: 12px 18px;
+  padding: 14px 20px;
   z-index: 2;
-  border-radius: 10px 10px 0 0;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .kisan-html-react-root .pv-title {
   flex: 1;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.kisan-html-react-root .pv-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #fbbf24;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .kisan-html-react-root .pv-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 .kisan-html-react-root .pv-btn {
   background: #fff;
@@ -250,27 +333,35 @@
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 .kisan-html-react-root .pv-btn:hover {
   background: var(--fill);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.kisan-html-react-root .pv-btn:active {
+  transform: translateY(0);
 }
 .kisan-html-react-root .pv-btn.close {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 .kisan-html-react-root .pv-btn.close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 .kisan-html-react-root .pv-body {
-  padding: 16px;
+  padding: 20px;
   background: #6b7280;
   display: block;
   overflow-x: auto;
+  max-height: calc(100vh - 180px);
 }
 /* पूर्वावलोकन में असली A4 शीट (210mm × 297mm) जैसा रूप.
    box-sizing: border-box ज़रूरी — वरना 12mm padding 210mm के अतिरिक्त
@@ -869,22 +960,30 @@
 .kisan-html-react-root .card {
   background: var(--card);
   border: 1px solid var(--rule);
-  border-radius: 12px;
+  border-radius: 14px;
   margin-bottom: 24px;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    0 2px 4px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
   overflow: hidden;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.kisan-html-react-root .card:hover {
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.07),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
 }
 .kisan-html-react-root .card > .cap {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--rule);
-  background: var(--fill);
+  background: linear-gradient(90deg, var(--fill) 0%, #fff 100%);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 15.5px;
   color: var(--ink);
 }
 .kisan-html-react-root .cap i {
@@ -894,27 +993,28 @@
   border-radius: 50%;
   display: inline-block;
   flex: 0 0 10px;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 .kisan-html-react-root .cap small {
   margin-left: auto;
   font-weight: 500;
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .kisan-html-react-root .pad {
-  padding: 20px;
+  padding: 22px;
 }
 .kisan-html-react-root .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
 }
 .kisan-html-react-root label.f {
   display: block;
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-soft);
-  margin-bottom: 6px;
+  margin-bottom: 7px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -922,20 +1022,65 @@
 .kisan-html-react-root .pad > .grid select {
   width: 100%;
   font: inherit;
-  font-size: 14px;
-  padding: 10px 12px;
+  font-size: 14.5px;
+  padding: 11px 14px;
   border: 1px solid var(--rule);
   background: #fff;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--ink);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: all 0.2s;
 }
-.kisan-html-react-root .pad > .grid input:focus {
+.kisan-html-react-root .pad > .grid input:focus,
+.kisan-html-react-root .pad > .grid select:focus {
   outline: none;
   border-color: var(--seal);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  background: #fff;
+}
+.kisan-html-react-root .pad > .grid input::placeholder,
+.kisan-html-react-root .pad > .grid select::placeholder {
+  color: #94a3b8;
+}
+
+/* === FORM GRID (.grid2) — 2-column field layout === */
+.kisan-html-react-root .grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+}
+
+/* === FORM FIELD (.field) — label + input/select === */
+.kisan-html-react-root .field {
+  display: block;
+}
+.kisan-html-react-root .field label {
+  display: block;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+.kisan-html-react-root .field input,
+.kisan-html-react-root .field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink);
+  background: #fff;
+  transition: all 0.2s;
+}
+.kisan-html-react-root .field input:focus,
+.kisan-html-react-root .field select:focus {
+  outline: none;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+.kisan-html-react-root .field input::placeholder {
+  color: #94a3b8;
 }
 
 /* === TABLES === */
@@ -945,41 +1090,46 @@
   table-layout: fixed;
   border-collapse: collapse;
   box-sizing: border-box;
-  margin: 12px 0;
+  margin: 14px 0;
 }
 .kisan-html-react-root th {
   color: var(--ink);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 12.5px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 12px 10px;
+  padding: 14px 12px;
   text-align: left;
   border: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--fill) 0%, #f1f5f9 100%);
 }
 .kisan-html-react-root .expense-table th {
   color: #000 !important;
 }
 .kisan-html-react-root td {
   border: 1px solid var(--rule);
-  padding: 4px;
+  padding: 10px 12px;
   vertical-align: middle;
   overflow-wrap: anywhere;
   word-break: break-word;
   box-sizing: border-box;
+  transition: background 0.2s;
+}
+.kisan-html-react-root tbody tr:hover td {
+  background: var(--fill);
 }
 .kisan-html-react-root td.n {
   text-align: center;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink-soft);
-  padding: 8px;
+  padding: 10px;
   font-weight: 600;
 }
 .kisan-html-react-root td input {
   width: 100%;
   font: inherit;
   font-size: 14px;
-  padding: 8px 10px;
+  padding: 9px 12px;
   border: 1px solid transparent;
   background: transparent;
   border-radius: 6px;
@@ -998,7 +1148,7 @@
 .kisan-html-react-root td.calc {
   text-align: right;
   white-space: nowrap;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--seal-dk);
@@ -1006,8 +1156,8 @@
 .kisan-html-react-root tr.tot td {
   background: var(--fill);
   font-weight: 700;
-  padding: 12px;
-  border-top: 1px solid var(--rule);
+  padding: 14px;
+  border-top: 2px solid var(--seal);
   border-bottom: 1px solid var(--rule);
   color: var(--ink);
 }
@@ -1016,32 +1166,50 @@
   border: none;
   color: #94a3b8;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
   transition: all 0.2s;
 }
 .kisan-html-react-root .rm:hover {
   color: var(--alert);
   background: rgba(220, 38, 38, 0.1);
+  transform: scale(1.1);
 }
 .kisan-html-react-root .addrow {
-  margin: 12px 0 4px;
+  margin: 14px 0 6px;
   background: #fff;
   border: 1px dashed var(--seal);
   color: var(--seal);
-  padding: 8px 16px;
+  padding: 10px 20px;
   font: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .kisan-html-react-root .addrow:hover {
   background: var(--seal);
   color: #fff;
+  border-style: solid;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+.kisan-html-react-root .addrow.solid {
+  background: linear-gradient(135deg, var(--seal) 0%, var(--seal-dk) 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+.kisan-html-react-root .addrow.solid:hover {
+  background: linear-gradient(135deg, var(--seal-dk) 0%, #1e3a8a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
 }
 
 /* === BOTTOM STRIP === */

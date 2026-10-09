@@ -3,13 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import './AdminKishanBeej.css';
 import { buildPrintDocuments, DEFAULT_PRINT_SELECTION, FENCING_LAND_DETAILS_API, SCHEME_PRINT_LABELS } from './adminPrintDocs';
 import { ADMIN_PRINT_CSS } from './adminPrintStyle';
+import FencingLandDetailsManager from '../FencingLandDetailsManager';
+// नया कंपोनेंट इम्पोर्ट किया गया
 
 const API_BASE = 'https://mahadevaaya.com/govbillingsystem/backend/api';
 
-// KisanAavedanPortal.js → getCenterNameFromUser(): लॉग-इन केंद्र का नाम।
-// फेंसिंग/वर्मी आवेदन/शपथ-पत्र/देयक के "स्थान" एवं "केन्द्र का नाम" पंक्ति में यही नाम आता है।
-// सेंटर लॉगिन में वास्तविक केंद्र नाम CenterContext (localStorage "centerData") में
-// रहता है, इसलिए वहाँ से भी पढ़ा जाता है।
 const readStoredCenterName = () => {
   try {
     const stored = JSON.parse(localStorage.getItem('centerData'));
@@ -70,8 +68,6 @@ async function fetchSchemeApplications(type, signal) {
   return records.map((record) => normalizeRecord(record, type));
 }
 
-// फेंसिंग मानक (अनुमन्य लम्बाई / खम्बे) — वही endpoint जो KisanAavedanPortal.js
-// और DragfruitsAndKiwi.js/KiwiFruits.js (mapping) उपयोग करते हैं।
 async function fetchFencingStandards(signal) {
   try {
     const response = await fetch(FENCING_LAND_DETAILS_API, { signal });
@@ -162,6 +158,9 @@ function AdminKishanAavedan() {
   const [fenceStandards, setFenceStandards] = useState(null);
   const [printSelection, setPrintSelection] = useState(DEFAULT_PRINT_SELECTION);
   const [activeDoc, setActiveDoc] = useState(null);
+  
+  // Fencing Details Modal State
+  const [showFencingModal, setShowFencingModal] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -300,6 +299,15 @@ function AdminKishanAavedan() {
             ))}
           </div>
           <div className="admin-filters">
+            {/* नया बटन जो मॉडल खोलेगा */}
+            <button 
+              type="button" 
+              className="view-btn" 
+              style={{ background: '#007bff', color: 'white', marginRight: '15px', whiteSpace: 'nowrap' }}
+              onClick={() => setShowFencingModal(true)}
+            >
+              ⚙️ Manage Fencing Details
+            </button>
             <div className="search-wrapper">
               <span className="search-icon">🔍</span>
               <input type="text" placeholder="Search Name, Form ID, Mobile..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="search-input" />
@@ -334,6 +342,29 @@ function AdminKishanAavedan() {
           </table>
         </div>
       </div>
+      
+      {/* फेंसिंग डिटेल्स मैनेजर मॉडल */}
+      {showFencingModal && (
+        <div className="application-preview-overlay" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setShowFencingModal(false);
+        }}>
+          <div className="application-preview-modal" role="dialog" aria-modal="true" aria-label="Fencing Land Details Manager" style={{ maxWidth: '1000px' }}>
+            <div className="preview-modal-head">
+              <div className="preview-heading-copy">
+                <span className="preview-eyebrow">सेटिंग्स</span>
+                <h2>Fencing Land Details</h2>
+                <span>Manage Permissible Length and Pillars Configuration</span>
+              </div>
+              <div className="preview-modal-actions">
+                <button type="button" className="preview-close" onClick={() => setShowFencingModal(false)} aria-label="बंद करें">×</button>
+              </div>
+            </div>
+            {/* नया कंपोनेंट यहाँ कॉल हो रहा है */}
+            <FencingLandDetailsManager />
+          </div>
+        </div>
+      )}
+
       {viewingApplication && (
         <div className="application-preview-overlay" onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeApplicationView();
