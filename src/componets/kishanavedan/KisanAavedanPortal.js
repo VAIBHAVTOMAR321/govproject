@@ -735,14 +735,14 @@ export default function KisanAavedanPortal() {
             <h5>3. भूमि एवं कार्य का विवरण</h5>
             <table class="landtable">
               <thead><tr>
-                <th style="width:42px">क्र.</th>
-                <th style="width:110px">भूमि किसकी / विवरण</th>
-                <th>नाम (खतौनी के अनुसार)</th>
-                <th>पिता का नाम</th>
-                <th style="width:120px">ग्राम</th>
-                <th style="width:120px">खसरा / खतौनी सं०</th>
-                <th style="width:125px">आधार संख्या</th>
-                <th style="width:110px">${applicantWord()} की प्रस्तावित भूमि — फेंसिंग हेतु</th>
+                <th style="width:38px">क्र.</th>
+                <th style="width:85px">भूमि किसकी / विवरण</th>
+                <th style="width:120px">नाम (खतौनी के अनुसार)</th>
+                <th style="width:105px">पिता का नाम</th>
+                <th style="width:100px">ग्राम</th>
+                <th style="width:100px">खसरा / खतौनी सं०</th>
+                <th style="width:95px">आधार संख्या</th>
+                <th style="width:90px">${applicantWord()} की प्रस्तावित भूमि — फेंसिंग हेतु</th>
                 <th class="noprint" style="width:46px">क्रिया</th>
               </tr></thead>
               <tbody>${(()=>{
