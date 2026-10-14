@@ -44,7 +44,6 @@ const HTML_BODY = `
   </header>
   <nav id="nav" class="tabs noprint">
     <a data-tab="register" class="on">उपयोगकर्ता पंजीकरण</a>
-    <a data-tab="filling">प्रपत्र भरना</a>
     <button type="button" class="tabs-preview" id="bPreview">प्रिंट पूर्वावलोकन</button>
   </nav>
   <div class="api-msg noprint" id="apiMsg" hidden></div>
