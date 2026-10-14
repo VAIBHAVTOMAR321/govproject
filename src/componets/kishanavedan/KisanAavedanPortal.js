@@ -1745,6 +1745,8 @@ export default function KisanAavedanPortal() {
             show(cur);
           }
           if(v==="register"){ loadRegistrations(); }
+          const strip=document.querySelector(".strip");
+          if(strip) strip.style.display = (v==="filling") ? "" : "none";
           const pv=document.getElementById("bPreview");
           if(pv) pv.disabled = (v!=="filling");
           window.scrollTo(0,0);
