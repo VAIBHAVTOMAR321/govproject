@@ -772,7 +772,9 @@ export default function KisanAavedanPortal() {
               })()}
                 <tr class="tot">
                   <td colspan="7" style="text-align:right">प्रस्तावित भूमि का क्षेत्रफल (कुल हे०) — वास्तविक आवेदन क्षेत्रफल</td>
-                  <td class="calc">${fmtN(d.totalHec)}</td>
+      <td class="calc" style="text-align: justify;">
+  ${fmtN(d.totalHec)}
+</td>
                   <td class="noprint"></td>
                 </tr>
               </tbody>
