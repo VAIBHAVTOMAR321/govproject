@@ -127,8 +127,6 @@ const HTML_BODY = `
   <div class="cell"><div class="k">एम०बी० मूल्यांकन</div><div class="v num" id="sMb">—</div></div>
   <div class="cell pay"><div class="k">देय राजसहायता <span id="sRate"></span></div><div class="v num" id="sSub">₹ 0</div></div>
   <div class="cell"><div class="k">कृषक द्वारा वहन</div><div class="v num" id="sOwn">₹ 0</div></div>
-
-  <button class="go" id="bGo">देयक देखें</button>
 </div>
 <div class="pv-overlay noprint" id="pvOverlay" hidden>
   <div class="pv-box" role="dialog" aria-modal="true" aria-label="प्रिंट पूर्वावलोकन">
@@ -1839,8 +1837,6 @@ export default function KisanAavedanPortal() {
         document.addEventListener("input", onDocInput);
         document.addEventListener("change", onDocChange);
         document.addEventListener("click", onDocClick);
-        const bGoEl=document.getElementById("bGo");
-        if(bGoEl) bGoEl.onclick = ()=>{ showTab("filling"); show("bill"); };
         const regFormEl=document.getElementById("regForm");
         if(regFormEl) regFormEl.addEventListener("submit", registerUser);
         const regRefreshEl=document.getElementById("regRefresh");
