@@ -792,7 +792,7 @@ export default function KisanAavedanPortal() {
             <table>
               <thead><tr>
                 <th>भूमि (नाली)</th><th>क्षेत्रफल (हे०)</th><th>अनुमन्य लम्बाई (मी०</th><th>खम्बे</th>
-                <th>लागत (₹)</th><th>राजसहायता 80%</th><th>राजसहायता 50%</th>
+                <th>लागत (₹)</th><th>राजसहायता (<span id="sumRateLblTh">${rate}</span>%)</th>
               </tr></thead>
               <tbody>
                 <tr>
@@ -801,11 +801,10 @@ export default function KisanAavedanPortal() {
                   <td style="text-align:center" id="sumLen">${d.exact?d.exact.len:"—"}</td>
                   <td style="text-align:center" id="sumPoles">${d.exact?d.exact.poles:"—"}</td>
                   <td style="text-align:right" id="sumCost">${fmt0(standard)}</td>
-                  <td style="text-align:right" id="sumSub80">${fmt0(Math.round(standard*0.8))}</td>
-                  <td style="text-align:right" id="sumSub50">${fmt0(Math.round(standard*0.5))}</td>
+                  <td style="text-align:right" id="sumSubSelected">${fmt0(subsidy)}</td>
                 </tr>
                 <tr class="tot">
-                  <td colspan="6" style="text-align:right">देय राजसहायता (चयनित दर <span id="sumRateLbl">${rate}</span>%)</td>
+                  <td colspan="5" style="text-align:right">देय राजसहायता (चयनित दर <span id="sumRateLbl">${rate}</span>%)</td>
                   <td class="calc" id="sumSubsidy">${fmt0(subsidy)}</td>
                 </tr>
               </tbody>
@@ -880,8 +879,8 @@ export default function KisanAavedanPortal() {
           set("sumLen", d.exact?d.exact.len:"—");
           set("sumPoles", d.exact?d.exact.poles:"—");
           set("sumCost", fmt0(standard));
-          set("sumSub80", fmt0(Math.round(standard*0.8)));
-          set("sumSub50", fmt0(Math.round(standard*0.5)));
+          set("sumSubSelected", fmt0(subsidy));
+          set("sumRateLblTh", rate);
           set("sumRateLbl", rate);
           set("sumSubsidy", fmt0(subsidy));
           set("appCertSub", fmt0(subsidy));
