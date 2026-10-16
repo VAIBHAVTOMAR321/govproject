@@ -159,6 +159,19 @@
 .kisan-html-react-root .tabs a.on::after {
   width: 100%;
 }
+.kisan-html-react-root .tabs a.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+.kisan-html-react-root .tabs a.disabled::after {
+  width: 0;
+}
+.kisan-html-react-root .tabs a.disabled:hover {
+  color: #94a3b8;
+  background: #f1f5f9;
+}
 .kisan-html-react-root .tabs .tabs-preview {
   margin: 10px 0 10px auto;
   padding: 10px 20px;

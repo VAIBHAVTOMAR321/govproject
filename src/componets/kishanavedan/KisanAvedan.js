@@ -30,7 +30,7 @@ const HTML_BODY = `
   </header>
   <nav id="nav" class="tabs noprint">
     <a data-tab="register" class="on">उपयोगकर्ता पंजीकरण</a>
-    <a data-tab="filling">प्रपत्र भरना</a>
+    <a data-tab="filling" class="disabled">प्रपत्र भरना</a>
     <button type="button" class="tabs-preview" id="bPreview">प्रिंट पूर्वावलोकन</button>
   </nav>
   <div class="api-msg noprint" id="apiMsg" hidden></div>
@@ -1073,6 +1073,7 @@ export default function KisanAavedan() {
           } else if(b.dataset.go){
             showSub(b.dataset.go);
           } else if(b.dataset.tab){
+            if(b.classList.contains("disabled")) return;
             showTab(b.dataset.tab);
           } else if(b.id === "regRefresh"){
             loadRegistrations();

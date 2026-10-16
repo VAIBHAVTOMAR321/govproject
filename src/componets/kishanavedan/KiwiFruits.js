@@ -1691,7 +1691,7 @@ const KiwiFruits = () => {
               >
                 कीवी कृषक पंजीकरण
               </button>
-              <button
+              {/* <button
                 type="button"
                 className={`tab ${activePage === "filling" ? "active" : ""}`}
                 onClick={() => {
@@ -1703,7 +1703,7 @@ const KiwiFruits = () => {
                 }}
               >
                 प्रपत्र भरना
-              </button>
+              </button> */}
             </div>
           </div>
           {apiMessage && (

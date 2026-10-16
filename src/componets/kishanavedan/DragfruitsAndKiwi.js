@@ -1462,15 +1462,15 @@ const DragfruitsAndKiwi = () => {
               >
                 ड्रैगन फ्रूट कृषक पंजीकरण
               </button>
-              <button
+              {/* <button
                 type="button"
                 className={`tab ${activePage === "filling" ? "active" : ""}`}
                 onClick={goToFilling}
               >
                 प्रपत्र भरना {formId ? `· ${formId}` : ""}
-              </button>
+              </button> */}
             </div>
-          </div>
+          </div>  
 
           {apiMessage && (
             <div
