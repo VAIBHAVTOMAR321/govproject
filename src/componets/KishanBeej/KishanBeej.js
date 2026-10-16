@@ -4,6 +4,7 @@ import "./KishanBeej.css";
 const API = {
   manak:
     "https://mahadevaaya.com/govbillingsystem/backend/api/kishan-beej-manak/",
+  schemes: "https://mahadevaaya.com/govbillingsystem/backend/api/beej-yojan/",
   avantan:
     "https://mahadevaaya.com/govbillingsystem/backend/api/kishan-beej-avantan/",
   vitran:
@@ -201,7 +202,6 @@ const MANAK_SECTIONS = [
     id: "identity",
     number: "01",
     title: "बीज और योजना की जानकारी",
-    description: "सबसे पहले बीज किस्म, श्रेणी और संबंधित योजना चुनें/भरें।",
     fields: [
       "seed_variety_name",
       "caste_category",
@@ -213,16 +213,14 @@ const MANAK_SECTIONS = [
     id: "seed",
     number: "02",
     title: "बीज दर और अनुदान",
-    description:
-      "पीले फ़ील्ड में केवल स्वीकृत बीज दर भरें। बीज मात्रा और बीज अनुदान Excel के सूत्रों से अपने-आप आएँगे।",
+    
     fields: ["approved_seed_rate_per_kg", "seed_quantity_grams_per_hectare"],
   },
   {
     id: "preparation",
     number: "03",
     title: "खेत तैयारी और पौधशाला",
-    description:
-      "पीले फ़ील्ड में मात्रा और दर भरें। हरे फ़ील्ड की राशि अपने-आप निकलेगी।",
+    
     fields: [
       "hectare_equivalent_preparation_quantity",
       "field_preparation_rate",
@@ -238,7 +236,6 @@ const MANAK_SECTIONS = [
     id: "compost",
     number: "04",
     title: "गोबर खाद",
-    description: "गोबर खाद की मात्रा और दर भरें; कृषक अंश स्वतः गणना होगा।",
     fields: [
       "cow_dung_compost_quantity_quintal_per_hectare",
       "cow_dung_compost_rate",
@@ -249,7 +246,6 @@ const MANAK_SECTIONS = [
     id: "planting",
     number: "05",
     title: "रोपण, सिंचाई और स्टेकिंग",
-    description: "मात्रा और दर दर्ज करें; कृषक अंश स्वतः अपडेट होगा।",
     fields: [
       "planting_irrigation_staking_quantity",
       "planting_irrigation_staking_rate",
@@ -260,7 +256,6 @@ const MANAK_SECTIONS = [
     id: "summary",
     number: "06",
     title: "कुल लागत का सारांश",
-    description: "यहाँ कुल लागत, कुल अनुदान और कुल कृषक अंश स्वतः दिखाई देंगे।",
     fields: [
       "total_project_cost_per_hectare",
       "total_subsidy_amount_per_hectare",
@@ -489,6 +484,18 @@ export default function KishanBeej() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [schemes, setSchemes] = useState([]);
+  const [schemeModal, setSchemeModal] = useState("");
+  const [schemeName, setSchemeName] = useState("");
+  const [schemeEditingId, setSchemeEditingId] = useState(null);
+  const [schemeSaving, setSchemeSaving] = useState(false);
+  const [schemeError, setSchemeError] = useState("");
+  const [schemeNotice, setSchemeNotice] = useState("");
+
+  const loadSchemes = useCallback(async () => {
+    const data = await request(API.schemes);
+    setSchemes(asList(data, ["results", "data", "schemes", "yojnas"]));
+  }, []);
 
   const loadManak = useCallback(async () => {
     const data = await request(API.manak, { method: "GET" });
@@ -523,7 +530,7 @@ export default function KishanBeej() {
     setLoading(true);
     setError("");
     try {
-      if (active === "manak") await loadManak();
+      if (active === "manak") await Promise.all([loadManak(), loadSchemes()]);
       if (active === "avantan")
         await Promise.all([loadAvantan(), loadManak(), loadCentres()]);
       if (active === "vitran") await loadVitran();
@@ -532,7 +539,7 @@ export default function KishanBeej() {
     } finally {
       setLoading(false);
     }
-  }, [active, loadAvantan, loadCentres, loadManak, loadVitran]);
+  }, [active, loadAvantan, loadCentres, loadManak, loadVitran, loadSchemes]);
 
   useEffect(() => {
     refreshActive();
@@ -709,6 +716,56 @@ export default function KishanBeej() {
     }
   }
 
+  async function saveScheme(event) {
+    event.preventDefault();
+    const name = schemeName.trim();
+    if (!name) {
+      setSchemeError("कृपया योजना का नाम भरें।");
+      return;
+    }
+    setSchemeSaving(true);
+    setSchemeError("");
+    setSchemeNotice("");
+    try {
+      await request(API.schemes, {
+        method: schemeEditingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(schemeEditingId ? { id: schemeEditingId, scheme_name: name } : { scheme_name: name }),
+      });
+      await loadSchemes();
+      setSchemeName("");
+      setSchemeEditingId(null);
+      setSchemeModal("view");
+      setSchemeNotice(schemeEditingId ? "योजना अपडेट हो गई।" : "योजना जोड़ दी गई।");
+    } catch (e) {
+      setSchemeError(e.message || "योजना सेव नहीं हो सकी।");
+    } finally {
+      setSchemeSaving(false);
+    }
+  }
+
+  async function deleteScheme(id) {
+    if (!window.confirm("क्या आप इस योजना को डिलीट करना चाहते हैं?")) return;
+    setSchemeSaving(true);
+    setSchemeError("");
+    try {
+      await request(API.schemes, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      await loadSchemes();
+      setSchemeNotice("योजना डिलीट हो गई।");
+      if (String(form.scheme_name) === String(schemes.find((item) => item.id === id)?.scheme_name)) {
+        setForm((old) => ({ ...old, scheme_name: "" }));
+      }
+    } catch (e) {
+      setSchemeError(e.message || "योजना डिलीट नहीं हो सकी।");
+    } finally {
+      setSchemeSaving(false);
+    }
+  }
+
   const renderField = ([key, label, type]) => (
     <Field
       key={key}
@@ -721,7 +778,18 @@ export default function KishanBeej() {
           : ""
       }
     >
-      {type === "center" ? (
+      {active === "manak" && key === "scheme_name" ? (
+        <select
+          required
+          value={form[key] ?? ""}
+          onChange={(e) => setForm((old) => ({ ...old, [key]: e.target.value }))}
+        >
+          <option value="">योजना चुनें</option>
+          {schemes.map((scheme) => (
+            <option key={scheme.id} value={scheme.scheme_name}>{scheme.scheme_name}</option>
+          ))}
+        </select>
+      ) : type === "center" ? (
         <select
           required
           value={form[key] ?? ""}
@@ -801,18 +869,8 @@ export default function KishanBeej() {
           placeholder={label}
         />
       )}
-      {active === "manak" && MANAK_CALCULATED_FIELDS.has(key) && (
-        <small className="kb-field-help">
-          ऑटो-कैलकुलेटेड · बदलने की आवश्यकता नहीं
-        </small>
-      )}
-      {active === "manak" && !MANAK_CALCULATED_FIELDS.has(key) && (
-        <small className="kb-field-help">
-          {type === "number"
-            ? "यह मान स्वयं भरें (पीला फ़ील्ड)"
-            : "यह जानकारी स्वयं भरें"}
-        </small>
-      )}
+      
+      
     </Field>
   );
 
@@ -827,20 +885,13 @@ export default function KishanBeej() {
             <p>मानक · आवंटन · वितरण</p>
           </div>
         </div>
-        <span className="kb-api-badge">
-          <i /> API से जुड़ा
-        </span>
       </header>
       <main className="kb-main">
         <section className="kb-intro">
           <div>
             <span className="kb-kicker">डेटा प्रबंधन</span>
             <h2>किसान बीज रिकॉर्ड</h2>
-            <p>
-              प्रत्येक टैब अपने API से डेटा लोड करता है। मानक और आवंटन में
-              जोड़ना, संपादित करना और हटाना उपलब्ध है। वितरण अभी दिए गए GET API
-              से दिखाया जाता है।
-            </p>
+            
           </div>
           <div className="kb-intro-stats">
             <div>
@@ -887,16 +938,19 @@ export default function KishanBeej() {
             )}
           </div>
           <div className="kb-stage-copy">
-            <span className="kb-kicker">लाइव API डेटा</span>
             <h2>{tabs.find((tab) => tab.key === active)?.title}</h2>
-            <p>
-              {active === "manak"
-                ? "बीज किस्म और प्रति हेक्टेयर लागत/अनुदान के मानक प्रबंधित करें।"
-                : active === "avantan"
-                  ? "केन्द्र और बीज किस्म मानक API से चुनें और स्वीकृत मात्रा दर्ज करें।"
-                  : "वितरण API से प्राप्त रिकॉर्ड तालिका में दिखाए जाते हैं।"}
-            </p>
+           
           </div>
+          {active === "manak" && (
+            <div className="kb-scheme-toolbar">
+              <button className="kb-primary-button" type="button" onClick={() => {
+                setSchemeName(""); setSchemeEditingId(null); setSchemeError(""); setSchemeNotice(""); setSchemeModal("add");
+              }}>＋ योजना जोड़ें</button>
+              <button className="kb-secondary-button" type="button" onClick={() => {
+                setSchemeError(""); setSchemeNotice(""); setSchemeEditingId(null); setSchemeName(""); setSchemeModal("view");
+              }}>योजना देखें ({schemes.length})</button>
+            </div>
+          )}
           <button
             className="kb-secondary-button"
             type="button"
@@ -940,21 +994,15 @@ export default function KishanBeej() {
               {active === "manak" ? (
                 <>
                   <div className="kb-manak-guide">
-                    <div className="kb-manak-guide-icon">✓</div>
                     <div>
-                      <strong>कैसे भरें?</strong>
-                      <p>
-                        पीले फ़ील्ड में मान स्वयं भरें। बीज किस्म, जाति श्रेणी,
-                        योजना का नाम और मानक-जाँच भी आप भरेंगे। हरे फ़ील्ड Excel
-                        शीट के सूत्रों से अपने-आप गणना होंगे।
-                      </p>
+                     
                     </div>
                     <div className="kb-field-legend">
                       <span>
                         <i className="kb-legend-yellow" /> भरना है
                       </span>
                       <span>
-                        <i className="kb-legend-green" /> अपने-आप
+                        <i className="kb-legend-green" /> स्वयं भरा जायेगा 
                       </span>
                     </div>
                   </div>
@@ -1010,7 +1058,6 @@ export default function KishanBeej() {
         <section className="kb-card">
           <div className="kb-card-heading kb-card-heading-wrap">
             <div>
-              <span className="kb-kicker">API रिकॉर्ड</span>
               <h3>
                 {tabs.find((tab) => tab.key === active)?.label} सूची ·{" "}
                 {filteredRows.length} रिकॉर्ड
@@ -1083,7 +1130,7 @@ export default function KishanBeej() {
             {notice}
           </div>
         )}
-        {active === "vitran" && (
+        {/* {active === "vitran" && (
           <div className="kb-note">
             <span className="kb-note-mark">i</span>
             <span>
@@ -1091,8 +1138,49 @@ export default function KishanBeej() {
               लिए API contract मिलने पर जोड़े जा सकते हैं।
             </span>
           </div>
-        )}
+        )} */}
       </main>
+      {schemeModal && (
+        <div className="kb-modal-backdrop" role="presentation" onMouseDown={(e) => {
+          if (e.target === e.currentTarget) setSchemeModal("");
+        }}>
+          <section className="kb-scheme-modal" role="dialog" aria-modal="true" aria-labelledby="kb-scheme-modal-title">
+            <div className="kb-card-heading">
+              <div>
+                <span className="kb-kicker">योजना प्रबंधन</span>
+                <h3 id="kb-scheme-modal-title">{schemeModal === "add" ? (schemeEditingId ? "योजना संपादित करें" : "नई योजना जोड़ें") : "उपलब्ध योजनाएँ"}</h3>
+              </div>
+              <button className="kb-secondary-button" type="button" onClick={() => setSchemeModal("")}>बंद करें ✕</button>
+            </div>
+            {schemeModal === "add" ? (
+              <form onSubmit={saveScheme}>
+                <Field label="योजना का नाम">
+                  <input autoFocus required value={schemeName} onChange={(e) => setSchemeName(e.target.value)} placeholder="योजना का नाम लिखें" />
+                </Field>
+                <div className="kb-form-actions">
+                  <button className="kb-primary-button" type="submit" disabled={schemeSaving}>{schemeSaving ? "सेव हो रहा है…" : schemeEditingId ? "अपडेट करें" : "योजना सेव करें"}</button>
+                  <button className="kb-secondary-button" type="button" onClick={() => { setSchemeModal("view"); setSchemeEditingId(null); setSchemeName(""); }}>योजना सूची</button>
+                </div>
+              </form>
+            ) : (
+              <div className="kb-scheme-list">
+                {schemes.length ? schemes.map((scheme) => (
+                  <div className="kb-scheme-row" key={scheme.id}>
+                    <div><strong>{scheme.scheme_name}</strong><small>ID: {scheme.id}</small></div>
+                    <div className="kb-scheme-actions">
+                      <button className="kb-small-button" type="button" onClick={() => { setSchemeName(scheme.scheme_name || ""); setSchemeEditingId(scheme.id); setSchemeError(""); setSchemeModal("add"); }}>संपादित करें</button>
+                      <button className="kb-danger-button" type="button" disabled={schemeSaving} onClick={() => deleteScheme(scheme.id)}>डिलीट</button>
+                    </div>
+                  </div>
+                )) : <div className="kb-empty">अभी कोई योजना उपलब्ध नहीं है।</div>}
+                <div className="kb-form-actions"><button className="kb-primary-button" type="button" onClick={() => { setSchemeName(""); setSchemeEditingId(null); setSchemeError(""); setSchemeModal("add"); }}>＋ नई योजना जोड़ें</button></div>
+              </div>
+            )}
+            {schemeError && <div className="kb-alert kb-alert-error" role="alert">{schemeError}</div>}
+            {schemeNotice && <div className="kb-alert" role="status">{schemeNotice}</div>}
+          </section>
+        </div>
+      )}
       <footer className="kb-footer">
         <span>किसान बीज प्रबंधन</span>
         <span>मानक, आवंटन और वितरण के लिए अलग API</span>

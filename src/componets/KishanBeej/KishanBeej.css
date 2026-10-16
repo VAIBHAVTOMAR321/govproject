@@ -1359,3 +1359,87 @@
     margin-left: 46px;
   }
 }
+
+/* Yojna management modal */
+.kb-scheme-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.kb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 28, 19, 0.58);
+}
+.kb-scheme-modal {
+  width: min(680px, 100%);
+  max-height: min(82vh, 760px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid #dce5de;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+}
+.kb-scheme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.kb-scheme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #e1e9e2;
+  border-radius: 10px;
+  background: #fbfdfb;
+}
+.kb-scheme-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.kb-scheme-row strong {
+  overflow-wrap: anywhere;
+  color: #173d2e;
+  font-size: 13px;
+}
+.kb-scheme-row small {
+  color: #7a887e;
+  font-size: 10px;
+}
+.kb-scheme-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 7px;
+}
+@media (max-width: 640px) {
+  .kb-scheme-toolbar {
+    width: 100%;
+  }
+  .kb-scheme-toolbar button {
+    flex: 1;
+  }
+  .kb-modal-backdrop {
+    padding: 10px;
+  }
+  .kb-scheme-modal {
+    padding: 15px;
+  }
+  .kb-scheme-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .kb-scheme-actions {
+    width: 100%;
+  }
+}
