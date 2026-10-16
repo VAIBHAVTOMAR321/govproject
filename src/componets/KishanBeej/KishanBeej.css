@@ -1174,3 +1174,188 @@
   cursor: not-allowed;
   opacity: 1;
 }
+
+/* Manak: yellow fields are user inputs; green-tinted fields are calculated outputs. */
+.kb-user-input-field input,
+.kb-user-input-field select {
+  background: #fff4b8 !important;
+  border-color: #e6d36b !important;
+}
+.kb-field input.kb-calculated-field,
+.kb-field input.kb-calculated-field:disabled {
+  background: #eaf2eb !important;
+  border-color: #cddfce !important;
+  color: #315b3b !important;
+  font-weight: 750;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* Simplified Manak entry flow */
+.kb-manak-guide {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin: 18px 0 22px;
+  border: 1px solid #d9e6dc;
+  border-radius: 14px;
+  background: #f6faf6;
+}
+.kb-manak-guide-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  background: #3e7650;
+  font-weight: 800;
+}
+.kb-manak-guide > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.kb-manak-guide strong {
+  color: #234b31;
+  font-size: 14px;
+}
+.kb-manak-guide p {
+  margin: 4px 0 0;
+  color: #5c6f61;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.kb-field-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.kb-field-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #4f6054;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.kb-field-legend i {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 1px solid #d3d8d0;
+}
+.kb-legend-yellow {
+  background: #fff0a8;
+}
+.kb-legend-green {
+  background: #e4f0e5;
+}
+.kb-manak-section {
+  margin: 0 0 17px;
+  padding: 18px 18px 5px;
+  border: 1px solid #e5ebe6;
+  border-radius: 14px;
+  background: #fff;
+}
+.kb-manak-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid #edf1ed;
+}
+.kb-manak-section-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #edf5ee;
+  color: #2f6840;
+  font-size: 12px;
+  font-weight: 800;
+}
+.kb-manak-section-heading h4 {
+  margin: 1px 0 4px;
+  color: #263e2e;
+  font-size: 15px;
+  font-weight: 750;
+}
+.kb-manak-section-heading p {
+  margin: 0;
+  color: #718076;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.kb-manak-section .kb-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px 16px;
+  margin: 16px 0 13px;
+}
+.kb-manak-section .kb-field {
+  align-self: start;
+}
+.kb-field-help {
+  display: block;
+  margin-top: 5px;
+  color: #728075;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.kb-manak-section .kb-calculated-wrap input.kb-calculated-field {
+  background: #eaf3eb !important;
+  border-color: #c9ddcd !important;
+}
+.kb-manak-section .kb-calculated-wrap > span {
+  color: #3d6547;
+}
+.kb-manak-section .kb-user-input-field input,
+.kb-manak-section .kb-user-input-field select {
+  background: #fff4b8 !important;
+  border-color: #e6d36b !important;
+}
+.kb-manak-summary {
+  background: #f8fbf8;
+  border-color: #cbdccd;
+}
+.kb-manak-summary .kb-manak-section-number {
+  background: #dcecdf;
+}
+@media (max-width: 900px) {
+  .kb-manak-section .kb-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kb-manak-guide {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .kb-field-legend {
+    flex-direction: row;
+    margin-left: 50px;
+  }
+}
+@media (max-width: 560px) {
+  .kb-manak-section {
+    padding: 14px 12px 3px;
+  }
+  .kb-manak-section .kb-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .kb-manak-guide {
+    padding: 13px;
+    gap: 10px;
+  }
+  .kb-manak-guide p {
+    font-size: 11px;
+  }
+  .kb-field-legend {
+    margin-left: 46px;
+  }
+}
