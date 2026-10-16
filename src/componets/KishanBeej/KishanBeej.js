@@ -213,14 +213,14 @@ const MANAK_SECTIONS = [
     id: "seed",
     number: "02",
     title: "बीज दर और अनुदान",
-    
+
     fields: ["approved_seed_rate_per_kg", "seed_quantity_grams_per_hectare"],
   },
   {
     id: "preparation",
     number: "03",
     title: "खेत तैयारी और पौधशाला",
-    
+
     fields: [
       "hectare_equivalent_preparation_quantity",
       "field_preparation_rate",
@@ -595,8 +595,7 @@ export default function KishanBeej() {
               ["allocation_limit_check", "आवंटन सीमा जाँच"],
               ["scheme_name", "योजना"],
               ["farmer_signature", "कृषक हस्ताक्षर"],
-              ["created_at", "बनाया गया"],
-              ["updated_at", "अपडेट किया गया"],
+              ["created_at", "भरा गया तिथि"],
             ];
     return keys.filter(([key]) =>
       currentRows.some((row) => Object.prototype.hasOwnProperty.call(row, key)),
@@ -729,14 +728,23 @@ export default function KishanBeej() {
     try {
       await request(API.schemes, {
         method: schemeEditingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(schemeEditingId ? { id: schemeEditingId, scheme_name: name } : { scheme_name: name }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(
+          schemeEditingId
+            ? { id: schemeEditingId, scheme_name: name }
+            : { scheme_name: name },
+        ),
       });
       await loadSchemes();
       setSchemeName("");
       setSchemeEditingId(null);
       setSchemeModal("view");
-      setSchemeNotice(schemeEditingId ? "योजना अपडेट हो गई।" : "योजना जोड़ दी गई।");
+      setSchemeNotice(
+        schemeEditingId ? "योजना अपडेट हो गई।" : "योजना जोड़ दी गई।",
+      );
     } catch (e) {
       setSchemeError(e.message || "योजना सेव नहीं हो सकी।");
     } finally {
@@ -751,12 +759,18 @@ export default function KishanBeej() {
     try {
       await request(API.schemes, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({ ids: [id] }),
       });
       await loadSchemes();
       setSchemeNotice("योजना डिलीट हो गई।");
-      if (String(form.scheme_name) === String(schemes.find((item) => item.id === id)?.scheme_name)) {
+      if (
+        String(form.scheme_name) ===
+        String(schemes.find((item) => item.id === id)?.scheme_name)
+      ) {
         setForm((old) => ({ ...old, scheme_name: "" }));
       }
     } catch (e) {
@@ -782,11 +796,15 @@ export default function KishanBeej() {
         <select
           required
           value={form[key] ?? ""}
-          onChange={(e) => setForm((old) => ({ ...old, [key]: e.target.value }))}
+          onChange={(e) =>
+            setForm((old) => ({ ...old, [key]: e.target.value }))
+          }
         >
           <option value="">योजना चुनें</option>
           {schemes.map((scheme) => (
-            <option key={scheme.id} value={scheme.scheme_name}>{scheme.scheme_name}</option>
+            <option key={scheme.id} value={scheme.scheme_name}>
+              {scheme.scheme_name}
+            </option>
           ))}
         </select>
       ) : type === "center" ? (
@@ -869,8 +887,6 @@ export default function KishanBeej() {
           placeholder={label}
         />
       )}
-      
-      
     </Field>
   );
 
@@ -891,7 +907,6 @@ export default function KishanBeej() {
           <div>
             <span className="kb-kicker">डेटा प्रबंधन</span>
             <h2>किसान बीज रिकॉर्ड</h2>
-            
           </div>
           <div className="kb-intro-stats">
             <div>
@@ -939,16 +954,35 @@ export default function KishanBeej() {
           </div>
           <div className="kb-stage-copy">
             <h2>{tabs.find((tab) => tab.key === active)?.title}</h2>
-           
           </div>
           {active === "manak" && (
             <div className="kb-scheme-toolbar">
-              <button className="kb-primary-button" type="button" onClick={() => {
-                setSchemeName(""); setSchemeEditingId(null); setSchemeError(""); setSchemeNotice(""); setSchemeModal("add");
-              }}>＋ योजना जोड़ें</button>
-              <button className="kb-secondary-button" type="button" onClick={() => {
-                setSchemeError(""); setSchemeNotice(""); setSchemeEditingId(null); setSchemeName(""); setSchemeModal("view");
-              }}>योजना देखें ({schemes.length})</button>
+              <button
+                className="kb-primary-button"
+                type="button"
+                onClick={() => {
+                  setSchemeName("");
+                  setSchemeEditingId(null);
+                  setSchemeError("");
+                  setSchemeNotice("");
+                  setSchemeModal("add");
+                }}
+              >
+                ＋ योजना जोड़ें
+              </button>
+              <button
+                className="kb-secondary-button"
+                type="button"
+                onClick={() => {
+                  setSchemeError("");
+                  setSchemeNotice("");
+                  setSchemeEditingId(null);
+                  setSchemeName("");
+                  setSchemeModal("view");
+                }}
+              >
+                योजना देखें ({schemes.length})
+              </button>
             </div>
           )}
           <button
@@ -994,15 +1028,13 @@ export default function KishanBeej() {
               {active === "manak" ? (
                 <>
                   <div className="kb-manak-guide">
-                    <div>
-                     
-                    </div>
+                    <div></div>
                     <div className="kb-field-legend">
                       <span>
                         <i className="kb-legend-yellow" /> भरना है
                       </span>
                       <span>
-                        <i className="kb-legend-green" /> स्वयं भरा जायेगा 
+                        <i className="kb-legend-green" /> स्वयं भरा जायेगा
                       </span>
                     </div>
                   </div>
@@ -1141,43 +1173,136 @@ export default function KishanBeej() {
         )} */}
       </main>
       {schemeModal && (
-        <div className="kb-modal-backdrop" role="presentation" onMouseDown={(e) => {
-          if (e.target === e.currentTarget) setSchemeModal("");
-        }}>
-          <section className="kb-scheme-modal" role="dialog" aria-modal="true" aria-labelledby="kb-scheme-modal-title">
+        <div
+          className="kb-modal-backdrop"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setSchemeModal("");
+          }}
+        >
+          <section
+            className="kb-scheme-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="kb-scheme-modal-title"
+          >
             <div className="kb-card-heading">
               <div>
                 <span className="kb-kicker">योजना प्रबंधन</span>
-                <h3 id="kb-scheme-modal-title">{schemeModal === "add" ? (schemeEditingId ? "योजना संपादित करें" : "नई योजना जोड़ें") : "उपलब्ध योजनाएँ"}</h3>
+                <h3 id="kb-scheme-modal-title">
+                  {schemeModal === "add"
+                    ? schemeEditingId
+                      ? "योजना संपादित करें"
+                      : "नई योजना जोड़ें"
+                    : "उपलब्ध योजनाएँ"}
+                </h3>
               </div>
-              <button className="kb-secondary-button" type="button" onClick={() => setSchemeModal("")}>बंद करें ✕</button>
+              <button
+                className="kb-secondary-button"
+                type="button"
+                onClick={() => setSchemeModal("")}
+              >
+                बंद करें ✕
+              </button>
             </div>
             {schemeModal === "add" ? (
               <form onSubmit={saveScheme}>
                 <Field label="योजना का नाम">
-                  <input autoFocus required value={schemeName} onChange={(e) => setSchemeName(e.target.value)} placeholder="योजना का नाम लिखें" />
+                  <input
+                    autoFocus
+                    required
+                    value={schemeName}
+                    onChange={(e) => setSchemeName(e.target.value)}
+                    placeholder="योजना का नाम लिखें"
+                  />
                 </Field>
                 <div className="kb-form-actions">
-                  <button className="kb-primary-button" type="submit" disabled={schemeSaving}>{schemeSaving ? "सेव हो रहा है…" : schemeEditingId ? "अपडेट करें" : "योजना सेव करें"}</button>
-                  <button className="kb-secondary-button" type="button" onClick={() => { setSchemeModal("view"); setSchemeEditingId(null); setSchemeName(""); }}>योजना सूची</button>
+                  <button
+                    className="kb-primary-button"
+                    type="submit"
+                    disabled={schemeSaving}
+                  >
+                    {schemeSaving
+                      ? "सेव हो रहा है…"
+                      : schemeEditingId
+                        ? "अपडेट करें"
+                        : "योजना सेव करें"}
+                  </button>
+                  <button
+                    className="kb-secondary-button"
+                    type="button"
+                    onClick={() => {
+                      setSchemeModal("view");
+                      setSchemeEditingId(null);
+                      setSchemeName("");
+                    }}
+                  >
+                    योजना सूची
+                  </button>
                 </div>
               </form>
             ) : (
               <div className="kb-scheme-list">
-                {schemes.length ? schemes.map((scheme) => (
-                  <div className="kb-scheme-row" key={scheme.id}>
-                    <div><strong>{scheme.scheme_name}</strong><small>ID: {scheme.id}</small></div>
-                    <div className="kb-scheme-actions">
-                      <button className="kb-small-button" type="button" onClick={() => { setSchemeName(scheme.scheme_name || ""); setSchemeEditingId(scheme.id); setSchemeError(""); setSchemeModal("add"); }}>संपादित करें</button>
-                      <button className="kb-danger-button" type="button" disabled={schemeSaving} onClick={() => deleteScheme(scheme.id)}>डिलीट</button>
+                {schemes.length ? (
+                  schemes.map((scheme) => (
+                    <div className="kb-scheme-row" key={scheme.id}>
+                      <div>
+                        <strong>{scheme.scheme_name}</strong>
+                        <small>ID: {scheme.id}</small>
+                      </div>
+                      <div className="kb-scheme-actions">
+                        <button
+                          className="kb-small-button"
+                          type="button"
+                          onClick={() => {
+                            setSchemeName(scheme.scheme_name || "");
+                            setSchemeEditingId(scheme.id);
+                            setSchemeError("");
+                            setSchemeModal("add");
+                          }}
+                        >
+                          संपादित करें
+                        </button>
+                        <button
+                          className="kb-danger-button"
+                          type="button"
+                          disabled={schemeSaving}
+                          onClick={() => deleteScheme(scheme.id)}
+                        >
+                          डिलीट
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )) : <div className="kb-empty">अभी कोई योजना उपलब्ध नहीं है।</div>}
-                <div className="kb-form-actions"><button className="kb-primary-button" type="button" onClick={() => { setSchemeName(""); setSchemeEditingId(null); setSchemeError(""); setSchemeModal("add"); }}>＋ नई योजना जोड़ें</button></div>
+                  ))
+                ) : (
+                  <div className="kb-empty">अभी कोई योजना उपलब्ध नहीं है।</div>
+                )}
+                <div className="kb-form-actions">
+                  <button
+                    className="kb-primary-button"
+                    type="button"
+                    onClick={() => {
+                      setSchemeName("");
+                      setSchemeEditingId(null);
+                      setSchemeError("");
+                      setSchemeModal("add");
+                    }}
+                  >
+                    ＋ नई योजना जोड़ें
+                  </button>
+                </div>
               </div>
             )}
-            {schemeError && <div className="kb-alert kb-alert-error" role="alert">{schemeError}</div>}
-            {schemeNotice && <div className="kb-alert" role="status">{schemeNotice}</div>}
+            {schemeError && (
+              <div className="kb-alert kb-alert-error" role="alert">
+                {schemeError}
+              </div>
+            )}
+            {schemeNotice && (
+              <div className="kb-alert" role="status">
+                {schemeNotice}
+              </div>
+            )}
           </section>
         </div>
       )}
