@@ -238,7 +238,7 @@ export default function KisanAavedanPortal() {
              planType:"जिला योजना", fenceMaterial:"चेनलिंक जाली", gender:"पुरुष",
              nali:"",area:"",fenceLen:"",poles:"",mbNo:"", verifiedLen:"260", allowedLen:"",
              mbLen:"",mbRate:"",mbAmt:"82000", date:new Date().toISOString().slice(0,10), billDate:"", place:"", officer:"", desig:""},
-          landRows:[{relation:"स्वयं",name:"",father:"",khasra:"",aadhaar:"",hec:"0.40"},{relation:"भाई",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पुत्र",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पिता",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""}],
+          landRows:[{relation:"स्वयं",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"भाई",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पुत्र",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"पिता",name:"",father:"",khasra:"",aadhaar:"",hec:""},{relation:"अन्य",name:"",father:"",khasra:"",aadhaar:"",hec:""}],
           material:[{}], footing:[{}], labour:[{}], other:[{}]
         });
         let S = blank();
