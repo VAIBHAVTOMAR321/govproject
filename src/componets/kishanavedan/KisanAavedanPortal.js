@@ -30,6 +30,9 @@ const centerLine = () => readCenterName() || "……………………";
 
 const HTML_BODY = `
 <style>
+.required-star{color:#dc2626;font-weight:800;margin-left:3px}
+.required-field{border-bottom:1px solid #dc2626!important}
+.required-field:focus{outline:2px solid rgba(220,38,38,.18);outline-offset:2px}
 .landtable input.landVil,.landtable input.landSelfName,.landtable input.landSelfFather,.landtable input.landSelfAadhaar{
   background:#EEF1EC;color:var(--ink-soft,#4A5A50);border-color:var(--rule,#C6CDC4);cursor:default
 }
@@ -1522,8 +1525,8 @@ export default function KisanAavedanPortal() {
               <div class="serial-section">
                 <div class="serial-title">4. एम०बी० (मापपुस्तिका) के अनुसार मूल्यांकन — कनिष्ठ अभियन्ता द्वारा तैयार</div>
                 <div class="kv">
-                  <div class="r"><b>मापी गयी वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="mbLen" inputmode="decimal" value="${esc(S.f.mbLen || "")}"><b> मी०</b></div>
-                  <div class="r"><b>अथवा सीधे एम०बी० धनराशि:</b><input class="ln rt sm" data-f="mbAmt" inputmode="decimal" value="${esc(S.f.mbAmt || "")}"><b> ₹</b><span style="font-size:12px;color:#4A5A50" id="oMbSrc"></span></div>
+                  <div class="r"><b>मापी गयी वास्तविक लम्बाई:<span class="required-star" aria-hidden="true">*</span></b><input class="ln rt sm required-field" data-f="mbLen" type="number" min="0.01" step="any" inputmode="decimal" required aria-required="true" title="मापी गयी वास्तविक लम्बाई भरना अनिवार्य है" value="${esc(S.f.mbLen || "")}"><b> मी०</b></div>
+                  <div class="r"><b>अथवा सीधे एम०बी० धनराशि:<span class="required-star" aria-hidden="true">*</span></b><input class="ln rt sm required-field" data-f="mbAmt" type="number" min="0.01" step="any" inputmode="decimal" required aria-required="true" title="एम०बी० धनराशि भरना अनिवार्य है" value="${esc(S.f.mbAmt || "")}"><b> ₹</b><span style="font-size:12px;color:#4A5A50" id="oMbSrc"></span></div>
                   <div class="r"><b>एम०बी० मूल्यांकन धनराशि:</b><span class="auto" id="oMb"></span></div>
                 </div>
               </div>
@@ -1531,7 +1534,7 @@ export default function KisanAavedanPortal() {
                 <div class="serial-title">5. प्रभारी द्वारा स्थलीय सत्यापन</div>
                 <div class="kv">
                   <div class="r"><b>क्षेत्रफलानुसार अनुमन्य लम्बाई:</b><span class="auto calc-hint" id="oAllowedLen">…………</span></div>
-                  <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:</b><input class="ln rt sm" data-f="verifiedLen" inputmode="decimal" value="${esc(S.f.verifiedLen || "")}"><b> मी०</b></div>
+                  <div class="r"><b>स्थलीय सत्यापित वास्तविक लम्बाई:<span class="required-star" aria-hidden="true">*</span></b><input class="ln rt sm required-field" data-f="verifiedLen" type="number" min="0.01" step="any" inputmode="decimal" required aria-required="true" title="स्थलीय सत्यापित वास्तविक लम्बाई भरना अनिवार्य है" value="${esc(S.f.verifiedLen || "")}"><b> मी०</b></div>
                   <div class="r"><b>कार्य में कमी:</b><span class="auto" id="oShort"></span> मी०</div>
                   <div class="r"><b>वास्तविक क्षेत्रफल (कमी समायोजित):</b><span class="auto" id="oActualArea"></span> हे०</div>
                   <div class="r"><b id="oStdLabel">मानक लागत: वास्तविक क्षेत्रफल (— हे०) × ₹2,00,000 प्रति हे०:</b><span class="auto" id="oStdCost"></span></div>
@@ -1579,7 +1582,7 @@ export default function KisanAavedanPortal() {
             अतः राजसहायता की धनराशि <span class="blank" id="oSub1"></span> (<span id="oWords1"></span> रुपये मात्र) का भुगतान मुझे करने की कृपा कीजिएगा।</div>
             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;gap:20px">
               <div class="bill-date-place" style="flex:0 0 auto">
-                <div style="display:flex;gap:6px;align-items:baseline"><b>देयक दिनांक:</b><input class="ln sm" type="date" data-f="billDate"></div>
+                <div style="display:flex;gap:6px;align-items:baseline"><b>देयक दिनांक:<span class="required-star" aria-hidden="true">*</span></b><input class="ln sm required-field" type="date" data-f="billDate" required aria-required="true" title="देयक दिनांक भरना अनिवार्य है"></div>
                 <div style="display:flex;gap:6px;align-items:baseline;margin-top:8px"><b>स्थान:</b><input class="ln sm" value="${esc(centerLine())}" readonly></div>
               </div>
               <div style="text-align:center;min-width:240px;border-top:1px solid var(--ink);padding-top:5px">
@@ -2216,6 +2219,59 @@ export default function KisanAavedanPortal() {
             <span class="save-hint">PUT · फॉर्म आईडी <b>${esc(FORM_ID || "चयनित नहीं")}</b></span>
           </div>`;
         }
+        function validateRequiredBillFields(showMessage = true) {
+          const requiredFields = [
+            { key: "billDate", label: "देयक दिनांक", type: "date" },
+            { key: "mbLen", label: "मापी गयी वास्तविक लम्बाई", type: "number" },
+            { key: "mbAmt", label: "एम०बी० धनराशि", type: "number" },
+            {
+              key: "verifiedLen",
+              label: "स्थलीय सत्यापित वास्तविक लम्बाई",
+              type: "number",
+            },
+          ];
+          const missing = requiredFields.filter(({ key, type }) => {
+            const value = String(S.f[key] ?? "").trim();
+            if (!value) return true;
+            if (type === "number") {
+              const n = Number(value);
+              return !Number.isFinite(n) || n <= 0;
+            }
+            return false;
+          });
+
+          // Show native validation on the first missing field, even though the bill
+          // is rendered as a document rather than a normal HTML form.
+          if (missing.length) {
+            const first = document.querySelector(
+              `#billOut [data-f="${missing[0].key}"]`,
+            );
+            if (first) {
+              first.setCustomValidity(
+                missing[0].type === "number"
+                  ? "कृपया शून्य से अधिक मान भरें।"
+                  : "कृपया यह दिनांक भरें।",
+              );
+              first.reportValidity();
+              first.addEventListener(
+                "input",
+                () => first.setCustomValidity(""),
+                { once: true },
+              );
+              first.focus();
+            }
+            if (showMessage) {
+              apiMsg(
+                "कृपया सभी अनिवार्य फ़ील्ड भरें: " +
+                  missing.map((field) => field.label).join(", "),
+                "bad",
+              );
+            }
+            return false;
+          }
+          return true;
+        }
+
         async function saveAllSteps() {
           if (!FORM_ID) {
             apiMsg(
@@ -2224,6 +2280,7 @@ export default function KisanAavedanPortal() {
             );
             return;
           }
+          if (!validateRequiredBillFields()) return;
           if (!validateDistrict()) return;
           if (!validateDistinctDates()) return;
           const hint = document.getElementById("saveAllHint");
