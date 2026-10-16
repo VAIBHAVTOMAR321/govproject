@@ -158,7 +158,6 @@ const SIDE_TABS = [
   { id: "view", label: "👁 देखें" },
   { id: "print", label: "🖨 प्रिंट" },
   { id: "anudan", label: "💰 अनुदान" },
-  { id: "demo", label: "🧪 Demo" },
   { id: "steps", label: "🧭 चरण" },
 ];
 
@@ -204,10 +203,17 @@ const DOC_FIELDS = [
   { key: "land_record_khatauni", label: "भूमि अभिलेख / खतौनी" },
   { key: "aadhaar_identity", label: "आधार / पहचान" },
   { key: "horticulture_card", label: "उद्यान कार्ड" },
-  { key: "bank_passbook_cancelled_cheque", label: "बैंक पासबुक / cancelled cheque" },
+  {
+    key: "bank_passbook_cancelled_cheque",
+    label: "बैंक पासबुक / cancelled cheque",
+  },
   { key: "land_map_other_record", label: "भूमि नक्शा / अन्य अभिलेख" },
   { key: "other_document", label: "अन्य दस्तावेज" },
-  { key: "bank_proof", label: "बैंक पासबुक / cancelled cheque (बैंक प्रमाण)", scope: "personal" },
+  {
+    key: "bank_proof",
+    label: "बैंक पासबुक / cancelled cheque (बैंक प्रमाण)",
+    scope: "personal",
+  },
 ];
 const docMediaUrl = (path) => {
   const value = String(path == null ? "" : path).trim();
@@ -264,7 +270,8 @@ const getCenterNameFromUser = (authUser) => {
     authUser.name,
   ];
   const direct = candidates.find(
-    (value) => value !== null && value !== undefined && String(value).trim() !== "",
+    (value) =>
+      value !== null && value !== undefined && String(value).trim() !== "",
   );
   return direct ? String(direct).trim() : "";
 };
@@ -704,122 +711,6 @@ const DragfruitsAndKiwi = () => {
     }, 100);
   };
 
-  const applyDemo = (kind) => {
-    const co = kind.endsWith("Co");
-    setForm({
-      ...form,
-      name: "राम सिंह (DEMO)",
-      father: "कमल सिंह",
-      gender: "पुरुष",
-      mobile: "9876543210",
-      aadhaar: "999999999999",
-      district: "पौड़ी गढ़वाल",
-      block: "कोटद्वार",
-      center: "कोटद्वार",
-      village: "कोटद्वार",
-      post: "कोटद्वार",
-      beneficiary: "individual",
-      bankHolder: "राम सिंह (DEMO)",
-      bankName: "उत्तराखण्ड ग्रामीण बैंक (DEMO)",
-      bankBranch: "कोटद्वार शाखा",
-      bankAccount: "000000000001",
-      bankIfsc: "DEMO0123456",
-      bankType: "बचत खाता",
-      workMode: "self",
-      declWater: "हाँ",
-      declIrrigation: "हाँ",
-      declPrevious: "नहीं",
-      declLand: "हाँ",
-      declInspection: "हाँ",
-      declShare: "हाँ",
-    });
-    setLandRows((prev) => {
-      const newArr = [...prev];
-      newArr[0] = {
-        ...newArr[0],
-        khata: "00056",
-        khasra: "12/1",
-        area: "0.10",
-      };
-      newArr[1] = co
-        ? {
-            rel: "सहखातेदार",
-            name: "मोहन सिंह (DEMO)",
-            father: "हरि सिंह",
-            village: "कोटद्वार",
-            khata: "00057",
-            khasra: "12/2",
-            area: "0.10",
-            gender: "पुरुष",
-          }
-        : {
-            rel: "",
-            name: "",
-            father: "",
-            village: "",
-            khata: "",
-            khasra: "",
-            gender: "पुरुष",
-            area: "",
-          };
-      return newArr;
-    });
-    setTimeout(() => {
-      handleGenerate();
-      handleBuildAffidavit();
-    }, 200);
-  };
-
-  const handleLandChange = (i, field, val) => {
-    setLandRows((prev) => {
-      const newArr = [...prev];
-      newArr[i] = { ...newArr[i], [field]: val };
-      if (field === "rel" && !val) {
-        newArr[i] = {
-          ...newArr[i],
-          name: "",
-          father: "",
-          village: "",
-          khata: "",
-          khasra: "",
-          area: "",
-          gender: "पुरुष",
-        };
-      }
-      return newArr;
-    });
-  };
-
-  const handleVoucherChange = (rowIndex, columnIndex, value) => {
-    setVoucherRows((previous) =>
-      previous.map((row, index) =>
-        index === rowIndex
-          ? row.map((cell, cellIndex) =>
-              cellIndex === columnIndex ? value : cell,
-            )
-          : row,
-      ),
-    );
-  };
-
-  const syncDocUrls = (record) => {
-    const personal = recordPersonal(record);
-    const documents = record?.document_details || {};
-    setDocUrls(
-      DOC_FIELDS.reduce(
-        (acc, field) => ({
-          ...acc,
-          [field.key]: docMediaUrl(
-            field.scope === "personal"
-              ? personal[field.key]
-              : documents[field.key],
-          ),
-        }),
-        {},
-      ),
-    );
-  };
-
   const resetDocState = () => {
     setDocFiles({});
     setDocRemoved({});
@@ -935,7 +826,9 @@ const DragfruitsAndKiwi = () => {
       return;
     }
     if (!registration.center) {
-      setApiMessage("लॉगिन केंद्र नहीं मिला — कृषक पंजीकरण करने के लिए केंद्र आवश्यक है।");
+      setApiMessage(
+        "लॉगिन केंद्र नहीं मिला — कृषक पंजीकरण करने के लिए केंद्र आवश्यक है।",
+      );
       return;
     }
     try {
@@ -1046,6 +939,57 @@ const DragfruitsAndKiwi = () => {
     setDocInputTick((tick) => tick + 1);
     syncDocUrls(record);
     setSaveStates({});
+  };
+
+  // Keep the existing land, voucher, and document state update behavior.
+  const handleLandChange = (i, field, val) => {
+    setLandRows((prev) => {
+      const newArr = [...prev];
+      newArr[i] = { ...newArr[i], [field]: val };
+      if (field === "rel" && !val) {
+        newArr[i] = {
+          ...newArr[i],
+          name: "",
+          father: "",
+          village: "",
+          khata: "",
+          khasra: "",
+          area: "",
+          gender: "पुरुष",
+        };
+      }
+      return newArr;
+    });
+  };
+
+  const handleVoucherChange = (rowIndex, columnIndex, value) => {
+    setVoucherRows((previous) =>
+      previous.map((row, index) =>
+        index === rowIndex
+          ? row.map((cell, cellIndex) =>
+              cellIndex === columnIndex ? value : cell,
+            )
+          : row,
+      ),
+    );
+  };
+
+  const syncDocUrls = (record) => {
+    const personal = recordPersonal(record);
+    const documents = record?.document_details || {};
+    setDocUrls(
+      DOC_FIELDS.reduce(
+        (acc, field) => ({
+          ...acc,
+          [field.key]: docMediaUrl(
+            field.scope === "personal"
+              ? personal[field.key]
+              : documents[field.key],
+          ),
+        }),
+        {},
+      ),
+    );
   };
 
   const openRegisteredForm = async (formIdToOpen) => {
@@ -1364,15 +1308,13 @@ const DragfruitsAndKiwi = () => {
     window.scrollTo(0, 0);
   };
 
+  // Workflow navigation switches tabs; it intentionally does not scroll the page.
   const goToStep = (i) => {
-    const step = APP_STEPS[i];
-    if (!step) return;
+    if (!APP_STEPS[i]) return;
     setWorkflowStep(i);
-    if (window.matchMedia("(max-width: 1180px)").matches) setSideOpen(false);
-    const el = document.getElementById(`${ID_PREFIX}${step.anchor}`);
-    if (!el) return;
-    setFlashAnchor(step.anchor);
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setFlashAnchor(null);
+    setSideOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const anchorCls = (anchor) =>
@@ -1504,15 +1446,6 @@ const DragfruitsAndKiwi = () => {
               <span className="brand-badge"></span>
               <h1>कृषक आवेदन एवं स्वचालित परियोजना मानक प्रणाली</h1>
             </div>
-            <p className="top-sub">
-              ड्रैगन फ्रूट (कमलम) — आवेदन के क्षेत्रफल के अनुसार कार्य, मात्रा,
-              Specification, Component लागत, परियोजना लागत, कृषक अंश एवं अनुदान
-            </p>
-            <div className="top-tags">
-              <span>🟢 स्वचालित मानक</span>
-              <span>🟡 चरणबद्ध अनुदान</span>
-              <span>🔵 प्रिंट-रेडी</span>
-            </div>
           </div>
         </header>
 
@@ -1537,13 +1470,6 @@ const DragfruitsAndKiwi = () => {
                 प्रपत्र भरना {formId ? `· ${formId}` : ""}
               </button>
             </div>
-            {activePage === "filling" && (
-              <div className="note">
-                <b>महत्वपूर्ण:</b> किसान के अंतिम मानक पत्र में प्रति इकाई Rate
-                नहीं दिखाया जाएगा। Master Standard के आधार पर अंदर से गणना होगी
-                और किसान को Component-wise कुल लागत दिखाई जाएगी।
-              </div>
-            )}
           </div>
 
           {apiMessage && (
@@ -1623,7 +1549,9 @@ const DragfruitsAndKiwi = () => {
                     )}
                   </select>
                   {authCenter && (
-                    <span className="small">लॉगिन केंद्र — बदला नहीं जा सकता</span>
+                    <span className="small">
+                      लॉगिन केंद्र — बदला नहीं जा सकता
+                    </span>
                   )}
                 </div>
                 <div className="field">
@@ -1755,13 +1683,6 @@ const DragfruitsAndKiwi = () => {
             </section>
           ) : (
             <>
-              <div className="card noprint">
-                <div className="note">
-                  <b>चयनित फॉर्म:</b> {formId} · सभी चरण इसी फॉर्म आईडी के साथ
-                  सर्वर पर सहेजें।
-                </div>
-              </div>
-
               {/* Workflow Card */}
               <div className="workflow-card noprint">
                 <div className="workflow-head">
@@ -1785,15 +1706,24 @@ const DragfruitsAndKiwi = () => {
                     }}
                   />
                 </div>
-                <div className="workflow-steps">
+                <div
+                  className="workflow-steps workflow-tabs"
+                  role="tablist"
+                  aria-label="आवेदन के चरण"
+                >
                   {APP_STEPS.map((s, i) => (
                     <button
                       key={i}
+                      id={`workflow-tab-${i}`}
                       type="button"
+                      role="tab"
+                      aria-selected={i === workflowStep}
+                      aria-controls={`workflow-panel-${i}`}
                       className={`workflow-step ${i === workflowStep ? "active" : ""} ${i < workflowStep ? "done" : ""}`}
                       onClick={() => goToStep(i)}
                     >
-                      {i + 1}. {s.title}
+                      <span className="workflow-tab-number">{i + 1}</span>
+                      <span>{s.title}</span>
                     </button>
                   ))}
                 </div>
@@ -1833,1074 +1763,1083 @@ const DragfruitsAndKiwi = () => {
                 </div>
               </div>
 
-              <section className="card noprint api-save-panel">
-                <div className="registration-list-head">
-                  <div>
-                    <h3>सर्वर पर सहेजें</h3>
-                    <span className="small">फॉर्म आईडी: {formId}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={saveAllStages}
-                    disabled={Boolean(savingStage)}
-                  >
-                    {savingStage === "all"
-                      ? "सभी चरण सहेजे जा रहे हैं…"
-                      : "सभी 7 चरण सहेजें"}
-                  </button>
-                </div>
-                <div className="save-stage-list">
-                  {[
-                    ["personal", "आवेदक विवरण"],
-                    ["land", "भूमि विवरण"],
-                    ["bank", "बैंक विवरण"],
-                    ["work", "कार्य निष्पादन"],
-                    ["documents", "दस्तावेज"],
-                    ["declarations", "घोषणाएँ"],
-                    ["vouchers", "अनुदान व्यय"],
-                  ].map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className="btn secondary"
-                      onClick={() => saveOneStage(key)}
-                      disabled={Boolean(savingStage)}
-                    >
-                      {label}
-                      {saveStates[key] ? ` · ${saveStates[key]}` : " · सहेजें"}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
               {/* Application Form Section */}
               <section
                 className={`card noprint ${anchorCls("wf-basic")}`}
                 id={`${ID_PREFIX}wf-basic`}
               >
-                <h2>
-                  <span className="idx">1</span> कृषक का आवेदन
+                <h2 className="workflow-section-heading">
+                  <span className="idx">{workflowStep + 1}</span>{" "}
+                  {APP_STEPS[workflowStep].title}
                 </h2>
-                <p className="card-intro">
-                  किसान अपने वास्तविक प्रस्तावित क्षेत्रफल के अनुसार आवेदन भरे।
-                  इसी क्षेत्रफल से नीचे पूरा व्यक्तिगत परियोजना मानक स्वतः
-                  बनेगा।
+                <p className="card-intro workflow-section-intro">
+                  {APP_STEPS[workflowStep].sub}
                 </p>
 
-                <div className="grid">
-                  <div className="field">
-                    <label htmlFor="f-name">
-                      कृषक का नाम<span className="req">*</span>
-                    </label>
-                    <input
-                      id="f-name"
-                      placeholder="पूरा नाम"
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-father">
-                      पिता / पति का नाम<span className="req">*</span>
-                    </label>
-                    <input
-                      id="f-father"
-                      placeholder="पिता / पति का नाम"
-                      value={form.father}
-                      onChange={(e) =>
-                        setForm({ ...form, father: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-gender">लिंग</label>
-                    <select
-                      id="f-gender"
-                      value={form.gender}
-                      onChange={(e) =>
-                        setForm({ ...form, gender: e.target.value })
-                      }
-                    >
-                      <option>पुरुष</option>
-                      <option>महिला</option>
-                      <option>अन्य</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-hortcard">उद्यान कार्ड संख्या</label>
-                    <input
-                      id="f-hortcard"
-                      inputMode="numeric"
-                      placeholder="वैकल्पिक"
-                      value={form.udyan}
-                      onChange={(e) =>
-                        setForm({ ...form, udyan: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-mobile">
-                      मोबाइल नम्बर<span className="req">*</span>
-                    </label>
-                    <input
-                      id="f-mobile"
-                      inputMode="numeric"
-                      maxLength={10}
-                      placeholder="10 अंक"
-                      value={form.mobile}
-                      onChange={(e) =>
-                        setForm({ ...form, mobile: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-aadhaar">आधार संख्या</label>
-                    <input
-                      id="f-aadhaar"
-                      inputMode="numeric"
-                      maxLength={12}
-                      placeholder="XXXX XXXX 1234"
-                      value={form.aadhaar}
-                      onChange={(e) =>
-                        setForm({ ...form, aadhaar: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-district">
-                      जनपद<span className="req">*</span>
-                    </label>
-                    <input
-                      id="f-district"
-                      placeholder="जनपद का नाम"
-                      value={form.district}
-                      onChange={(e) =>
-                        setForm({ ...form, district: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-block">
-                      विकासखण्ड<span className="req">*</span>
-                    </label>
-                    <input
-                      id="f-block"
-                      placeholder="विकासखण्ड का नाम"
-                      value={form.block}
-                      onChange={(e) =>
-                        setForm({ ...form, block: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-center">
-                      उद्यान सचल दल केंद्र<span className="req">*</span>
-                    </label>
-                    <select
-                      id="f-center"
-                      value={form.center}
-                      onChange={(e) =>
-                        setForm({ ...form, center: e.target.value })
-                      }
-                    >
-                      <option value="">-- केंद्र चुनें --</option>
-                      {CENTERS.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-village">
-                      ग्राम<span className="req">*</span>
-                    </label>
-                    <input
-                      id="f-village"
-                      placeholder="ग्राम का नाम"
-                      value={form.village}
-                      onChange={(e) =>
-                        setForm({ ...form, village: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-post">पोस्ट</label>
-                    <input
-                      id="f-post"
-                      placeholder="पोस्ट ऑफिस"
-                      value={form.post}
-                      onChange={(e) =>
-                        setForm({ ...form, post: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-beneficiary">लाभार्थी का प्रकार</label>
-                    <select
-                      id="f-beneficiary"
-                      value={form.beneficiary}
-                      onChange={(e) =>
-                        setForm({ ...form, beneficiary: e.target.value })
-                      }
-                    >
-                      <option value="individual">व्यक्तिगत कृषक</option>
-                      <option value="group">समूह</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="f-appno">आवेदन संख्या</label>
-                    <input
-                      id="f-appno"
-                      readOnly
-                      placeholder="स्वतः जारी"
-                      value={form.appno}
-                      onChange={(e) =>
-                        setForm({ ...form, appno: e.target.value })
-                      }
-                    />
-                    <span className="hint">
-                      Draft सुरक्षित करने पर स्वतः बनेगी।
-                    </span>
-                  </div>
-                  <div className="field full">
-                    <label htmlFor="f-remark">
-                      भूमि / परियोजना संबंधी टिप्पणी
-                    </label>
-                    <textarea
-                      id="f-remark"
-                      placeholder="यदि कोई विशेष बात हो तो यहाँ लिखें"
-                      value={form.remarks}
-                      onChange={(e) =>
-                        setForm({ ...form, remarks: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                {saveStepControl("personal", "आवेदक विवरण")}
-
-                {/* Land Table */}
                 <div
-                  className={`inner-card ${anchorCls("wf-land")}`}
-                  id={`${ID_PREFIX}wf-land`}
+                  id="workflow-panel-0"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-0"
+                  className={`workflow-tab-panel ${workflowStep === 0 ? "active" : ""}`}
                 >
-                  <h3>भूमि एवं कार्य का विवरण</h3>
-                  <p className="card-intro">
-                    <b>स्वयं</b> वाली पहली पंक्ति किसान की ऊपर भरी गई जानकारी से
-                    स्वतः भरेगी। यदि प्रस्तावित भूमि में सहखातेदार / अन्य
-                    खातेदार की भूमि शामिल है तो नीचे की पंक्ति में संबंध चुनकर
-                    उसका विवरण एवं क्षेत्रफल भरें।
-                  </p>
-                  <div className="table-wrap">
-                    <table className="land-table">
-                      <thead>
-                        <tr>
-                          <th>क्र.</th>
-                          <th>भूमि किसकी / विवरण</th>
-                          <th>नाम (खतौनी के अनुसार)</th>
-                          <th>पिता का नाम</th>
-                          <th>ग्राम</th>
-                          <th>खाता सं०</th>
-                          <th>खसरा / खतौनी सं०</th>
-                          <th>प्रस्तावित भूमि (हे०)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {landRows.map((r, i) => (
-                          <tr key={i}>
-                            <td className="qty" data-label="क्रमांक">
-                              {i + 1}
-                            </td>
-                            <td data-label="भूमि किसकी">
-                              <select
-                                value={r.rel}
-                                disabled={i === 0}
-                                onChange={(e) =>
-                                  handleLandChange(i, "rel", e.target.value)
-                                }
-                              >
-                                {i === 0 ? (
-                                  <option value="स्वयं">स्वयं</option>
-                                ) : (
-                                  <>
-                                    <option value="">— चयन करें —</option>
-                                    {RELATIONS.map((rel) => (
-                                      <option key={rel} value={rel}>
-                                        {rel}
-                                      </option>
-                                    ))}
-                                  </>
-                                )}
-                              </select>
-                            </td>
-                            <td data-label="नाम (खतौनी)">
-                              <input
-                                placeholder="नाम"
-                                value={r.name}
-                                readOnly={i === 0}
-                                disabled={i !== 0 && !r.rel}
-                                onChange={(e) =>
-                                  handleLandChange(i, "name", e.target.value)
-                                }
-                              />
-                              {i !== 0 && (
-                                <select
-                                  className="land-gender-select"
-                                  aria-label={`लिंग — भूमि पंक्ति ${i + 1}`}
-                                  value={r.gender || "पुरुष"}
-                                  disabled={!r.rel}
-                                  onChange={(e) =>
-                                    handleLandChange(i, "gender", e.target.value)
-                                  }
-                                >
-                                  <option value="पुरुष">पुरुष</option>
-                                  <option value="महिला">महिला</option>
-                                  <option value="अन्य">अन्य</option>
-                                </select>
-                              )}
-                            </td>
-                            <td data-label="पिता का नाम">
-                              <input
-                                placeholder="पिता का नाम"
-                                value={r.father}
-                                readOnly={i === 0}
-                                disabled={i !== 0 && !r.rel}
-                                onChange={(e) =>
-                                  handleLandChange(i, "father", e.target.value)
-                                }
-                              />
-                            </td>
-                            <td data-label="ग्राम">
-                              <input
-                                placeholder="ग्राम"
-                                value={r.village}
-                                readOnly={i === 0}
-                                disabled={i !== 0 && !r.rel}
-                                onChange={(e) =>
-                                  handleLandChange(i, "village", e.target.value)
-                                }
-                              />
-                            </td>
-                            <td data-label="खाता सं०">
-                              <input
-                                placeholder="खाता सं०"
-                                value={r.khata}
-                                disabled={i !== 0 && !r.rel}
-                                onChange={(e) =>
-                                  handleLandChange(i, "khata", e.target.value)
-                                }
-                              />
-                            </td>
-                            <td data-label="खसरा / खतौनी">
-                              <input
-                                placeholder="खसरा / खतौनी"
-                                value={r.khasra}
-                                disabled={i !== 0 && !r.rel}
-                                onChange={(e) =>
-                                  handleLandChange(i, "khasra", e.target.value)
-                                }
-                              />
-                            </td>
-                            <td data-label="क्षेत्रफल (हे०)">
-                              <input
-                                className="land-area"
-                                type="number"
-                                min="0"
-                                step="0.0001"
-                                placeholder="हे०"
-                                value={r.area}
-                                disabled={i !== 0 && !r.rel}
-                                onChange={(e) =>
-                                  handleLandChange(i, "area", e.target.value)
-                                }
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="summary" style={{ marginBottom: 0 }}>
-                    <div className="metric">
-                      <span>प्रस्तावित क्षेत्रफल (नाली)</span>
-                      <b>{derivedNali().toFixed(2)} नाली</b>
-                    </div>
-                    <div className="metric">
-                      <span>कुल भूमि क्षेत्रफल</span>
-                      <b>{landTotalHa().toFixed(2)} हे०</b>
-                    </div>
-                    <div className="metric">
-                      <span>क्षेत्रफल (हेक्टेयर)</span>
-                      <b>{hectare().toFixed(2)} हे०</b>
-                    </div>
-                    <div className="metric">
-                      <span>स्थिति</span>
-                      <b>{landTotalHa() > 0 ? "✓ पूर्ण" : "✕ अपूर्ण"}</b>
-                    </div>
-                  </div>
-                  <div className="err" />
-                </div>
-                {saveStepControl("land", "भूमि विवरण")}
-
-                {/* Bank Details */}
-                <div
-                  className={`inner-card ${anchorCls("wf-bank")}`}
-                  id={`${ID_PREFIX}wf-bank`}
-                >
-                  <h3>बैंक खाता विवरण</h3>
-                  <p className="card-intro">
-                    अनुदान / राजसहायता भुगतान हेतु किसान के बैंक खाते की जानकारी
-                    भरें।
-                  </p>
                   <div className="grid">
                     <div className="field">
-                      <label htmlFor="b-holder">
-                        खाता धारक का नाम<span className="req">*</span>
+                      <label htmlFor="f-name">
+                        कृषक का नाम<span className="req">*</span>
                       </label>
                       <input
-                        id="b-holder"
-                        placeholder="बैंक पासबुक के अनुसार"
-                        value={form.bankHolder}
+                        id="f-name"
+                        placeholder="पूरा नाम"
+                        value={form.name}
                         onChange={(e) =>
-                          setForm({ ...form, bankHolder: e.target.value })
+                          setForm({ ...form, name: e.target.value })
                         }
                       />
                     </div>
                     <div className="field">
-                      <label htmlFor="b-bank">
-                        बैंक का नाम<span className="req">*</span>
+                      <label htmlFor="f-father">
+                        पिता / पति का नाम<span className="req">*</span>
                       </label>
                       <input
-                        id="b-bank"
-                        placeholder="बैंक का नाम"
-                        value={form.bankName}
+                        id="f-father"
+                        placeholder="पिता / पति का नाम"
+                        value={form.father}
                         onChange={(e) =>
-                          setForm({ ...form, bankName: e.target.value })
+                          setForm({ ...form, father: e.target.value })
                         }
                       />
                     </div>
                     <div className="field">
-                      <label htmlFor="b-branch">
-                        शाखा का नाम<span className="req">*</span>
-                      </label>
-                      <input
-                        id="b-branch"
-                        placeholder="शाखा"
-                        value={form.bankBranch}
-                        onChange={(e) =>
-                          setForm({ ...form, bankBranch: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="b-acct">
-                        बैंक खाता संख्या<span className="req">*</span>
-                      </label>
-                      <input
-                        id="b-acct"
-                        inputMode="numeric"
-                        placeholder="खाता संख्या"
-                        value={form.bankAccount}
-                        onChange={(e) =>
-                          setForm({ ...form, bankAccount: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="b-ifsc">
-                        IFSC Code<span className="req">*</span>
-                      </label>
-                      <input
-                        id="b-ifsc"
-                        maxLength={11}
-                        className="ifsc-input"
-                        placeholder="ABCD0123456"
-                        value={form.bankIfsc}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            bankIfsc: e.target.value.toUpperCase(),
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="b-type">खाता प्रकार</label>
+                      <label htmlFor="f-gender">लिंग</label>
                       <select
-                        id="b-type"
-                        value={form.bankType}
+                        id="f-gender"
+                        value={form.gender}
                         onChange={(e) =>
-                          setForm({ ...form, bankType: e.target.value })
+                          setForm({ ...form, gender: e.target.value })
                         }
                       >
-                        <option>बचत खाता</option>
-                        <option>चालू खाता</option>
+                        <option>पुरुष</option>
+                        <option>महिला</option>
                         <option>अन्य</option>
                       </select>
                     </div>
-                    <div className="field full">
-                      {docFieldInput(DOC_FIELDS[6], "b-doc")}
-                    </div>
-                  </div>
-                </div>
-                {saveStepControl("bank", "बैंक विवरण")}
-
-                {/* Work Execution */}
-                <div className="inner-card">
-                  <h3>कार्य निष्पादन का विकल्प</h3>
-                  <div className="grid">
                     <div className="field">
-                      <label htmlFor="w-mode">
-                        कार्य किसके द्वारा कराया जाएगा
-                        <span className="req">*</span>
+                      <label htmlFor="f-hortcard">उद्यान कार्ड संख्या</label>
+                      <input
+                        id="f-hortcard"
+                        inputMode="numeric"
+                        placeholder="वैकल्पिक"
+                        value={form.udyan}
+                        onChange={(e) =>
+                          setForm({ ...form, udyan: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="f-mobile">
+                        मोबाइल नम्बर<span className="req">*</span>
+                      </label>
+                      <input
+                        id="f-mobile"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="10 अंक"
+                        value={form.mobile}
+                        onChange={(e) =>
+                          setForm({ ...form, mobile: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="f-aadhaar">आधार संख्या</label>
+                      <input
+                        id="f-aadhaar"
+                        inputMode="numeric"
+                        maxLength={12}
+                        placeholder="XXXX XXXX 1234"
+                        value={form.aadhaar}
+                        onChange={(e) =>
+                          setForm({ ...form, aadhaar: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="f-district">
+                        जनपद<span className="req">*</span>
+                      </label>
+                      <input
+                        id="f-district"
+                        placeholder="जनपद का नाम"
+                        value={form.district}
+                        onChange={(e) =>
+                          setForm({ ...form, district: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="f-block">
+                        विकासखण्ड<span className="req">*</span>
+                      </label>
+                      <input
+                        id="f-block"
+                        placeholder="विकासखण्ड का नाम"
+                        value={form.block}
+                        onChange={(e) =>
+                          setForm({ ...form, block: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="f-center">
+                        उद्यान सचल दल केंद्र<span className="req">*</span>
                       </label>
                       <select
-                        id="w-mode"
-                        value={form.workMode}
+                        id="f-center"
+                        value={form.center}
                         onChange={(e) =>
-                          setForm({ ...form, workMode: e.target.value })
+                          setForm({ ...form, center: e.target.value })
                         }
                       >
-                        <option value="firm">
-                          विभागीय पंजीकृत / Empanelled Firm
-                        </option>
-                        <option value="self">कृषक द्वारा स्वयं</option>
+                        <option value="">-- केंद्र चुनें --</option>
+                        {CENTERS.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="field">
-                      <label htmlFor="w-firm">Firm का नाम</label>
+                      <label htmlFor="f-village">
+                        ग्राम<span className="req">*</span>
+                      </label>
                       <input
-                        id="w-firm"
-                        placeholder="यदि लागू हो"
-                        value={form.firmName}
+                        id="f-village"
+                        placeholder="ग्राम का नाम"
+                        value={form.village}
                         onChange={(e) =>
-                          setForm({ ...form, firmName: e.target.value })
+                          setForm({ ...form, village: e.target.value })
                         }
                       />
                     </div>
                     <div className="field">
-                      <label htmlFor="w-reg">Firm Registration No.</label>
+                      <label htmlFor="f-post">पोस्ट</label>
                       <input
-                        id="w-reg"
-                        placeholder="यदि लागू हो"
-                        value={form.firmReg}
+                        id="f-post"
+                        placeholder="पोस्ट ऑफिस"
+                        value={form.post}
                         onChange={(e) =>
-                          setForm({ ...form, firmReg: e.target.value })
+                          setForm({ ...form, post: e.target.value })
                         }
                       />
                     </div>
+                    <div className="field">
+                      <label htmlFor="f-beneficiary">लाभार्थी का प्रकार</label>
+                      <select
+                        id="f-beneficiary"
+                        value={form.beneficiary}
+                        onChange={(e) =>
+                          setForm({ ...form, beneficiary: e.target.value })
+                        }
+                      >
+                        <option value="individual">व्यक्तिगत कृषक</option>
+                        <option value="group">समूह</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="f-appno">आवेदन संख्या</label>
+                      <input
+                        id="f-appno"
+                        readOnly
+                        placeholder="स्वतः जारी"
+                        value={form.appno}
+                        onChange={(e) =>
+                          setForm({ ...form, appno: e.target.value })
+                        }
+                      />
+                      <span className="hint">
+                        Draft सुरक्षित करने पर स्वतः बनेगी।
+                      </span>
+                    </div>
                     <div className="field full">
-                      <label htmlFor="w-remark">
-                        कार्य / भुगतान से संबंधित टिप्पणी
+                      <label htmlFor="f-remark">
+                        भूमि / परियोजना संबंधी टिप्पणी
                       </label>
                       <textarea
-                        id="w-remark"
-                        placeholder="विशेष निर्देश यदि कोई हों"
-                        value={form.workRemark}
+                        id="f-remark"
+                        placeholder="यदि कोई विशेष बात हो तो यहाँ लिखें"
+                        value={form.remarks}
                         onChange={(e) =>
-                          setForm({ ...form, workRemark: e.target.value })
+                          setForm({ ...form, remarks: e.target.value })
                         }
                       />
                     </div>
                   </div>
+                  {saveStepControl("personal", "आवेदक विवरण")}
                 </div>
-                {saveStepControl("work", "कार्य निष्पादन")}
 
-                {/* Documents */}
                 <div
-                  className={`inner-card ${anchorCls("wf-docs")}`}
-                  id={`${ID_PREFIX}wf-docs`}
+                  id="workflow-panel-1"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-1"
+                  className={`workflow-tab-panel ${workflowStep === 1 ? "active" : ""}`}
                 >
-                  <h3>आवश्यक दस्तावेज</h3>
-                  <p className="card-intro">
-                    प्रत्येक दस्तावेज की फाइल चुनें — चुनी गई फाइल का नाम यहाँ
-                    दिखेगा। "सहेजें — दस्तावेज" दबाते ही फाइल PUT (multipart)
-                    अपलोड होगी और सर्वर से लौटे URL पर "फाइल देखें" बटन मिलेगा।
-                  </p>
-                  <div className="grid">
-                    {DOC_FIELDS.slice(0, 6).map((field) =>
-                      docFieldInput(field, `d-${field.key}`),
-                    )}
-                  </div>
-                  <div className="doc-summary">
-                    चयनित नई फाइलें:{" "}
-                    <b>
-                      {
-                        DOC_FIELDS.filter((field) => docFiles[field.key])
-                          .length
-                      }
-                    </b>{" "}
-                    · हटाने हेतु चिन्हित: <b>{pendingDocKeys().length}</b> ·
-                    सर्वर पर सहेजी गई:{" "}
-                    <b>
-                      {
-                        DOC_FIELDS.filter((field) => docUrls[field.key])
-                          .length
-                      }{" "}
-                      / {DOC_FIELDS.length}
-                    </b>
-                    {pendingDocCount ? (
-                      <span className="doc-summary-warn">
-                        {" "}
-                        — सहेजें बटन दबाने के बाद ही सर्वर पर अपलोड/हटाने की
-                        क्रिया होगी।
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                {saveStepControl("documents", "दस्तावेज")}
-
-                {/* Declaration */}
-                <div
-                  className={`inner-card ${anchorCls("wf-standard")}`}
-                  id={`${ID_PREFIX}wf-standard`}
-                >
-                  <h3>पात्रता एवं किसान घोषणा</h3>
-                  <p className="card-intro">
-                    आवेदन स्वीकृति हेतु निम्न सभी बिंदुओं का सही उत्तर दें।
-                  </p>
-                  <div className="grid">
-                    <div className="field">
-                      <label>
-                        भूमि में जलभराव नहीं है<span className="req">*</span>
-                      </label>
-                      <select
-                        value={form.declWater}
-                        onChange={(e) =>
-                          setForm({ ...form, declWater: e.target.value })
-                        }
-                      >
-                        <option value="">-- चुनें --</option>
-                        <option value="हाँ">हाँ</option>
-                        <option value="नहीं">नहीं</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>
-                        सिंचाई सुविधा उपलब्ध है<span className="req">*</span>
-                      </label>
-                      <select
-                        value={form.declIrrigation}
-                        onChange={(e) =>
-                          setForm({ ...form, declIrrigation: e.target.value })
-                        }
-                      >
-                        <option value="">-- चुनें --</option>
-                        <option value="हाँ">हाँ</option>
-                        <option value="नहीं">नहीं</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>
-                        पूर्व में इसी योजना का लाभ लिया है?
-                        <span className="req">*</span>
-                      </label>
-                      <select
-                        value={form.declPrevious}
-                        onChange={(e) =>
-                          setForm({ ...form, declPrevious: e.target.value })
-                        }
-                      >
-                        <option value="">-- चुनें --</option>
-                        <option value="हाँ">हाँ</option>
-                        <option value="नहीं">नहीं</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>
-                        भूमि / अभिलेख सही हैं<span className="req">*</span>
-                      </label>
-                      <select
-                        value={form.declLand}
-                        onChange={(e) =>
-                          setForm({ ...form, declLand: e.target.value })
-                        }
-                      >
-                        <option value="">-- चुनें --</option>
-                        <option value="हाँ">हाँ</option>
-                        <option value="नहीं">नहीं</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>
-                        स्थलीय निरीक्षण हेतु सहमति<span className="req">*</span>
-                      </label>
-                      <select
-                        value={form.declInspection}
-                        onChange={(e) =>
-                          setForm({ ...form, declInspection: e.target.value })
-                        }
-                      >
-                        <option value="">-- चुनें --</option>
-                        <option value="हाँ">हाँ</option>
-                        <option value="नहीं">नहीं</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>
-                        कृषक अंश वहन करने की सहमति<span className="req">*</span>
-                      </label>
-                      <select
-                        value={form.declShare}
-                        onChange={(e) =>
-                          setForm({ ...form, declShare: e.target.value })
-                        }
-                      >
-                        <option value="">-- चुनें --</option>
-                        <option value="हाँ">हाँ</option>
-                        <option value="नहीं">नहीं</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                {saveStepControl("declarations", "घोषणाएँ")}
-
-                <div className="inner-card">
-                  <h3>अनुदान बिल / वाउचर</h3>
-                  <p className="card-intro">
-                    हर पंक्ति सर्वर पर चरण, घटक, बिल संख्या, राशि और भुगतान पाने
-                    वाले के क्रम में सहेजी जाएगी।
-                  </p>
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>चरण</th>
-                          <th>कार्य / घटक</th>
-                          <th>बिल संख्या</th>
-                          <th>राशि</th>
-                          <th>भुगतान किसे</th>
-                          <th>फर्म / कृषक का नाम</th>
-                          <th>क्रिया</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {voucherRows.map((row, rowIndex) => (
-                          <tr key={rowIndex}>
-                            {row.map((value, columnIndex) => (
-                              <td key={columnIndex}>
-                                <input
-                                  aria-label={
-                                    [
-                                      "चरण",
-                                      "कार्य / घटक",
-                                      "बिल संख्या",
-                                      "राशि",
-                                      "भुगतान किसे",
-                                      "फर्म / कृषक का नाम",
-                                    ][columnIndex]
+                  {/* Land Table */}
+                  <div
+                    className={`inner-card ${anchorCls("wf-land")}`}
+                    id={`${ID_PREFIX}wf-land`}
+                  >
+                    <h3>भूमि एवं कार्य का विवरण</h3>
+                    <p className="card-intro">
+                      <b>स्वयं</b> वाली पहली पंक्ति किसान की ऊपर भरी गई जानकारी
+                      से स्वतः भरेगी। यदि प्रस्तावित भूमि में सहखातेदार / अन्य
+                      खातेदार की भूमि शामिल है तो नीचे की पंक्ति में संबंध चुनकर
+                      उसका विवरण एवं क्षेत्रफल भरें।
+                    </p>
+                    <div className="table-wrap">
+                      <table className="land-table">
+                        <thead>
+                          <tr>
+                            <th>क्र.</th>
+                            <th>भूमि किसकी / विवरण</th>
+                            <th>नाम (खतौनी के अनुसार)</th>
+                            <th>पिता का नाम</th>
+                            <th>ग्राम</th>
+                            <th>खाता सं०</th>
+                            <th>खसरा / खतौनी सं०</th>
+                            <th>प्रस्तावित भूमि (हे०)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {landRows.map((r, i) => (
+                            <tr key={i}>
+                              <td className="qty" data-label="क्रमांक">
+                                {i + 1}
+                              </td>
+                              <td data-label="भूमि किसकी">
+                                <select
+                                  value={r.rel}
+                                  disabled={i === 0}
+                                  onChange={(e) =>
+                                    handleLandChange(i, "rel", e.target.value)
                                   }
-                                  value={value}
-                                  onChange={(event) =>
-                                    handleVoucherChange(
-                                      rowIndex,
-                                      columnIndex,
-                                      event.target.value,
+                                >
+                                  {i === 0 ? (
+                                    <option value="स्वयं">स्वयं</option>
+                                  ) : (
+                                    <>
+                                      <option value="">— चयन करें —</option>
+                                      {RELATIONS.map((rel) => (
+                                        <option key={rel} value={rel}>
+                                          {rel}
+                                        </option>
+                                      ))}
+                                    </>
+                                  )}
+                                </select>
+                              </td>
+                              <td data-label="नाम (खतौनी)">
+                                <input
+                                  placeholder="नाम"
+                                  value={r.name}
+                                  readOnly={i === 0}
+                                  disabled={i !== 0 && !r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(i, "name", e.target.value)
+                                  }
+                                />
+                                {i !== 0 && (
+                                  <select
+                                    className="land-gender-select"
+                                    aria-label={`लिंग — भूमि पंक्ति ${i + 1}`}
+                                    value={r.gender || "पुरुष"}
+                                    disabled={!r.rel}
+                                    onChange={(e) =>
+                                      handleLandChange(
+                                        i,
+                                        "gender",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="पुरुष">पुरुष</option>
+                                    <option value="महिला">महिला</option>
+                                    <option value="अन्य">अन्य</option>
+                                  </select>
+                                )}
+                              </td>
+                              <td data-label="पिता का नाम">
+                                <input
+                                  placeholder="पिता का नाम"
+                                  value={r.father}
+                                  readOnly={i === 0}
+                                  disabled={i !== 0 && !r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(
+                                      i,
+                                      "father",
+                                      e.target.value,
                                     )
                                   }
                                 />
                               </td>
-                            ))}
-                            <td>
-                              <button
-                                type="button"
-                                className="btn danger"
-                                onClick={() =>
-                                  setVoucherRows((previous) =>
-                                    previous.length > 1
-                                      ? previous.filter(
-                                          (_, index) => index !== rowIndex,
-                                        )
-                                      : [["", "", "", "", "", ""]],
-                                  )
-                                }
-                              >
-                                हटाएँ
-                              </button>
-                            </td>
+                              <td data-label="ग्राम">
+                                <input
+                                  placeholder="ग्राम"
+                                  value={r.village}
+                                  readOnly={i === 0}
+                                  disabled={i !== 0 && !r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(
+                                      i,
+                                      "village",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </td>
+                              <td data-label="खाता सं०">
+                                <input
+                                  placeholder="खाता सं०"
+                                  value={r.khata}
+                                  disabled={i !== 0 && !r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(i, "khata", e.target.value)
+                                  }
+                                />
+                              </td>
+                              <td data-label="खसरा / खतौनी">
+                                <input
+                                  placeholder="खसरा / खतौनी"
+                                  value={r.khasra}
+                                  disabled={i !== 0 && !r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(
+                                      i,
+                                      "khasra",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </td>
+                              <td data-label="क्षेत्रफल (हे०)">
+                                <input
+                                  className="land-area"
+                                  type="number"
+                                  min="0"
+                                  step="0.0001"
+                                  placeholder="हे०"
+                                  value={r.area}
+                                  disabled={i !== 0 && !r.rel}
+                                  onChange={(e) =>
+                                    handleLandChange(i, "area", e.target.value)
+                                  }
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="summary" style={{ marginBottom: 0 }}>
+                      <div className="metric">
+                        <span>प्रस्तावित क्षेत्रफल (नाली)</span>
+                        <b>{derivedNali().toFixed(2)} नाली</b>
+                      </div>
+                      <div className="metric">
+                        <span>कुल भूमि क्षेत्रफल</span>
+                        <b>{landTotalHa().toFixed(2)} हे०</b>
+                      </div>
+                      <div className="metric">
+                        <span>क्षेत्रफल (हेक्टेयर)</span>
+                        <b>{hectare().toFixed(2)} हे०</b>
+                      </div>
+                      <div className="metric">
+                        <span>स्थिति</span>
+                        <b>{landTotalHa() > 0 ? "✓ पूर्ण" : "✕ अपूर्ण"}</b>
+                      </div>
+                    </div>
+                    <div className="err" />
+                  </div>
+                  {saveStepControl("land", "भूमि विवरण")}
+                </div>
+
+                <div
+                  id="workflow-panel-2"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-2"
+                  className={`workflow-tab-panel ${workflowStep === 2 ? "active" : ""}`}
+                >
+                  {/* Bank Details */}
+                  <div
+                    className={`inner-card ${anchorCls("wf-bank")}`}
+                    id={`${ID_PREFIX}wf-bank`}
+                  >
+                    <h3>बैंक खाता विवरण</h3>
+                    <p className="card-intro">
+                      अनुदान / राजसहायता भुगतान हेतु किसान के बैंक खाते की
+                      जानकारी भरें।
+                    </p>
+                    <div className="grid">
+                      <div className="field">
+                        <label htmlFor="b-holder">
+                          खाता धारक का नाम<span className="req">*</span>
+                        </label>
+                        <input
+                          id="b-holder"
+                          placeholder="बैंक पासबुक के अनुसार"
+                          value={form.bankHolder}
+                          onChange={(e) =>
+                            setForm({ ...form, bankHolder: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="b-bank">
+                          बैंक का नाम<span className="req">*</span>
+                        </label>
+                        <input
+                          id="b-bank"
+                          placeholder="बैंक का नाम"
+                          value={form.bankName}
+                          onChange={(e) =>
+                            setForm({ ...form, bankName: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="b-branch">
+                          शाखा का नाम<span className="req">*</span>
+                        </label>
+                        <input
+                          id="b-branch"
+                          placeholder="शाखा"
+                          value={form.bankBranch}
+                          onChange={(e) =>
+                            setForm({ ...form, bankBranch: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="b-acct">
+                          बैंक खाता संख्या<span className="req">*</span>
+                        </label>
+                        <input
+                          id="b-acct"
+                          inputMode="numeric"
+                          placeholder="खाता संख्या"
+                          value={form.bankAccount}
+                          onChange={(e) =>
+                            setForm({ ...form, bankAccount: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="b-ifsc">
+                          IFSC Code<span className="req">*</span>
+                        </label>
+                        <input
+                          id="b-ifsc"
+                          maxLength={11}
+                          className="ifsc-input"
+                          placeholder="ABCD0123456"
+                          value={form.bankIfsc}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              bankIfsc: e.target.value.toUpperCase(),
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="b-type">खाता प्रकार</label>
+                        <select
+                          id="b-type"
+                          value={form.bankType}
+                          onChange={(e) =>
+                            setForm({ ...form, bankType: e.target.value })
+                          }
+                        >
+                          <option>बचत खाता</option>
+                          <option>चालू खाता</option>
+                          <option>अन्य</option>
+                        </select>
+                      </div>
+                      <div className="field full">
+                        {docFieldInput(DOC_FIELDS[6], "b-doc")}
+                      </div>
+                    </div>
+                  </div>
+                  {saveStepControl("bank", "बैंक विवरण")}
+
+                  {/* Work Execution */}
+                  <div className="inner-card">
+                    <h3>कार्य निष्पादन का विकल्प</h3>
+                    <div className="grid">
+                      <div className="field">
+                        <label htmlFor="w-mode">
+                          कार्य किसके द्वारा कराया जाएगा
+                          <span className="req">*</span>
+                        </label>
+                        <select
+                          id="w-mode"
+                          value={form.workMode}
+                          onChange={(e) =>
+                            setForm({ ...form, workMode: e.target.value })
+                          }
+                        >
+                          <option value="firm">
+                            विभागीय पंजीकृत / Empanelled Firm
+                          </option>
+                          <option value="self">कृषक द्वारा स्वयं</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label htmlFor="w-firm">Firm का नाम</label>
+                        <input
+                          id="w-firm"
+                          placeholder="यदि लागू हो"
+                          value={form.firmName}
+                          onChange={(e) =>
+                            setForm({ ...form, firmName: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="w-reg">Firm Registration No.</label>
+                        <input
+                          id="w-reg"
+                          placeholder="यदि लागू हो"
+                          value={form.firmReg}
+                          onChange={(e) =>
+                            setForm({ ...form, firmReg: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="field full">
+                        <label htmlFor="w-remark">
+                          कार्य / भुगतान से संबंधित टिप्पणी
+                        </label>
+                        <textarea
+                          id="w-remark"
+                          placeholder="विशेष निर्देश यदि कोई हों"
+                          value={form.workRemark}
+                          onChange={(e) =>
+                            setForm({ ...form, workRemark: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {saveStepControl("work", "कार्य निष्पादन")}
+                </div>
+
+                <div
+                  id="workflow-panel-3"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-3"
+                  className={`workflow-tab-panel ${workflowStep === 3 ? "active" : ""}`}
+                >
+                  {/* Documents */}
+                  <div
+                    className={`inner-card ${anchorCls("wf-docs")}`}
+                    id={`${ID_PREFIX}wf-docs`}
+                  >
+                    <h3>आवश्यक दस्तावेज</h3>
+                    <p className="card-intro">
+                      प्रत्येक दस्तावेज की फाइल चुनें — चुनी गई फाइल का नाम यहाँ
+                      दिखेगा। "सहेजें — दस्तावेज" दबाते ही फाइल PUT (multipart)
+                      अपलोड होगी और सर्वर से लौटे URL पर "फाइल देखें" बटन
+                      मिलेगा।
+                    </p>
+                    <div className="grid">
+                      {DOC_FIELDS.slice(0, 6).map((field) =>
+                        docFieldInput(field, `d-${field.key}`),
+                      )}
+                    </div>
+                    <div className="doc-summary">
+                      चयनित नई फाइलें:{" "}
+                      <b>
+                        {
+                          DOC_FIELDS.filter((field) => docFiles[field.key])
+                            .length
+                        }
+                      </b>{" "}
+                      · हटाने हेतु चिन्हित: <b>{pendingDocKeys().length}</b> ·
+                      सर्वर पर सहेजी गई:{" "}
+                      <b>
+                        {
+                          DOC_FIELDS.filter((field) => docUrls[field.key])
+                            .length
+                        }{" "}
+                        / {DOC_FIELDS.length}
+                      </b>
+                      {pendingDocCount ? (
+                        <span className="doc-summary-warn">
+                          {" "}
+                          — सहेजें बटन दबाने के बाद ही सर्वर पर अपलोड/हटाने की
+                          क्रिया होगी।
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  {saveStepControl("documents", "दस्तावेज")}
+
+                  {/* Declaration */}
+                  <div
+                    className={`inner-card ${anchorCls("wf-standard")}`}
+                    id={`${ID_PREFIX}wf-standard`}
+                  >
+                    <h3>पात्रता एवं किसान घोषणा</h3>
+                    <p className="card-intro">
+                      आवेदन स्वीकृति हेतु निम्न सभी बिंदुओं का सही उत्तर दें।
+                    </p>
+                    <div className="grid">
+                      <div className="field">
+                        <label>
+                          भूमि में जलभराव नहीं है<span className="req">*</span>
+                        </label>
+                        <select
+                          value={form.declWater}
+                          onChange={(e) =>
+                            setForm({ ...form, declWater: e.target.value })
+                          }
+                        >
+                          <option value="">-- चुनें --</option>
+                          <option value="हाँ">हाँ</option>
+                          <option value="नहीं">नहीं</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>
+                          सिंचाई सुविधा उपलब्ध है<span className="req">*</span>
+                        </label>
+                        <select
+                          value={form.declIrrigation}
+                          onChange={(e) =>
+                            setForm({ ...form, declIrrigation: e.target.value })
+                          }
+                        >
+                          <option value="">-- चुनें --</option>
+                          <option value="हाँ">हाँ</option>
+                          <option value="नहीं">नहीं</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>
+                          पूर्व में इसी योजना का लाभ लिया है?
+                          <span className="req">*</span>
+                        </label>
+                        <select
+                          value={form.declPrevious}
+                          onChange={(e) =>
+                            setForm({ ...form, declPrevious: e.target.value })
+                          }
+                        >
+                          <option value="">-- चुनें --</option>
+                          <option value="हाँ">हाँ</option>
+                          <option value="नहीं">नहीं</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>
+                          भूमि / अभिलेख सही हैं<span className="req">*</span>
+                        </label>
+                        <select
+                          value={form.declLand}
+                          onChange={(e) =>
+                            setForm({ ...form, declLand: e.target.value })
+                          }
+                        >
+                          <option value="">-- चुनें --</option>
+                          <option value="हाँ">हाँ</option>
+                          <option value="नहीं">नहीं</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>
+                          स्थलीय निरीक्षण हेतु सहमति
+                          <span className="req">*</span>
+                        </label>
+                        <select
+                          value={form.declInspection}
+                          onChange={(e) =>
+                            setForm({ ...form, declInspection: e.target.value })
+                          }
+                        >
+                          <option value="">-- चुनें --</option>
+                          <option value="हाँ">हाँ</option>
+                          <option value="नहीं">नहीं</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>
+                          कृषक अंश वहन करने की सहमति
+                          <span className="req">*</span>
+                        </label>
+                        <select
+                          value={form.declShare}
+                          onChange={(e) =>
+                            setForm({ ...form, declShare: e.target.value })
+                          }
+                        >
+                          <option value="">-- चुनें --</option>
+                          <option value="हाँ">हाँ</option>
+                          <option value="नहीं">नहीं</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  {saveStepControl("declarations", "घोषणाएँ")}
+                </div>
+
+                <div
+                  id="workflow-panel-6"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-6"
+                  className={`workflow-tab-panel ${workflowStep === 6 ? "active" : ""}`}
+                >
+                  <div className="inner-card">
+                    <h3>अनुदान बिल / वाउचर</h3>
+                    <p className="card-intro">
+                      हर पंक्ति सर्वर पर चरण, घटक, बिल संख्या, राशि और भुगतान
+                      पाने वाले के क्रम में सहेजी जाएगी।
+                    </p>
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>चरण</th>
+                            <th>कार्य / घटक</th>
+                            <th>बिल संख्या</th>
+                            <th>राशि</th>
+                            <th>भुगतान किसे</th>
+                            <th>फर्म / कृषक का नाम</th>
+                            <th>क्रिया</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {voucherRows.map((row, rowIndex) => (
+                            <tr key={rowIndex}>
+                              {row.map((value, columnIndex) => (
+                                <td key={columnIndex}>
+                                  <input
+                                    aria-label={
+                                      [
+                                        "चरण",
+                                        "कार्य / घटक",
+                                        "बिल संख्या",
+                                        "राशि",
+                                        "भुगतान किसे",
+                                        "फर्म / कृषक का नाम",
+                                      ][columnIndex]
+                                    }
+                                    value={value}
+                                    onChange={(event) =>
+                                      handleVoucherChange(
+                                        rowIndex,
+                                        columnIndex,
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                              ))}
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn danger"
+                                  onClick={() =>
+                                    setVoucherRows((previous) =>
+                                      previous.length > 1
+                                        ? previous.filter(
+                                            (_, index) => index !== rowIndex,
+                                          )
+                                        : [["", "", "", "", "", ""]],
+                                    )
+                                  }
+                                >
+                                  हटाएँ
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() =>
+                        setVoucherRows((previous) => [
+                          ...previous,
+                          ["", "", "", "", "", ""],
+                        ])
+                      }
+                    >
+                      + वाउचर जोड़ें
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={() =>
-                      setVoucherRows((previous) => [
-                        ...previous,
-                        ["", "", "", "", "", ""],
-                      ])
-                    }
-                  >
-                    + वाउचर जोड़ें
-                  </button>
-                </div>
-                {saveStepControl("vouchers", "अनुदान व्यय")}
-
-                {/* Process */}
-                <div
-                  className={`inner-card ${anchorCls("wf-affidavit")}`}
-                  id={`${ID_PREFIX}wf-affidavit`}
-                >
-                  <h3>निरीक्षण एवं अनुदान प्रक्रिया</h3>
-                  <div className="stage-grid">
-                    <div className="stage">
-                      <b>चरण 1 — Infrastructure Verification</b>
-                      <span className="small">
-                        निर्धारित infrastructure पूर्ण होने पर स्थलीय / संयुक्त
-                        निरीक्षण एवं सत्यापन।
-                      </span>
-                    </div>
-                    <div className="stage">
-                      <b>चरण 2 — 90% पौध जीवितता</b>
-                      <span className="small">
-                        द्वितीय निरीक्षण में पौधों की कम से कम 90% जीवितता का
-                        सत्यापन।
-                      </span>
-                    </div>
-                    <div className="stage">
-                      <b>चरण 3 — उत्पादन / फल सत्यापन</b>
-                      <span className="small">
-                        तृतीय निरीक्षण में लागू योजना के अनुसार फल / गुणवत्ता /
-                        मात्रा का सत्यापन।
-                      </span>
-                    </div>
-                  </div>
-                  <p
-                    className="card-intro"
-                    style={{ marginTop: "9px", marginBottom: 0 }}
-                  >
-                    <b>पौध अनुदान:</b> लागू योजना / स्वीकृति के अनुसार चरणबद्ध
-                    भुगतान (70% + 20% + 10%)।
-                  </p>
-                </div>
-
-                <div className="err" />
-                <div
-                  className={`btns ${anchorCls("wf-grant")}`}
-                  id={`${ID_PREFIX}wf-grant`}
-                >
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={handleGenerate}
-                  >
-                    ✓ आवेदन से किसान-विशिष्ट मानक बनाएं
-                  </button>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={saveDraft}
-                  >
-                    💾 Draft सुरक्षित करें
-                  </button>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={loadDraft}
-                  >
-                    ↶ Draft लोड करें
-                  </button>
-                  <button
-                    type="button"
-                    className="btn gold"
-                    onClick={() => handlePrint("app")}
-                  >
-                    🖨️ आवेदन पत्र Print
-                  </button>
-                  <button
-                    type="button"
-                    className="btn gold"
-                    onClick={() => handlePrint("project")}
-                  >
-                    🖨️ पूर्ण परियोजना मानक Print
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={handleBuildAffidavit}
-                  >
-                    📜 शपथ-पत्र तैयार करें
-                  </button>
-                  <button
-                    type="button"
-                    className="btn gold"
-                    onClick={() => handlePrint("affidavit")}
-                  >
-                    🖨️ शपथ-पत्र Print
-                  </button>
-                  <button
-                    type="button"
-                    className="btn gold"
-                    onClick={() => handlePrint("consent")}
-                  >
-                    🖨️ सहमति / NOC Print
-                  </button>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={() => handlePrint("all")}
-                  >
-                    📑 सभी शपथ-पत्र / सहमति Print
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={handleBuildAnudan}
-                  >
-                    💰 अनुदान देयक तैयार करें
-                  </button>
-                  <button
-                    type="button"
-                    className="btn gold"
-                    onClick={() => handlePrint("anudan")}
-                  >
-                    🖨️ अनुदान देयक Print
-                  </button>
+                  {saveStepControl("vouchers", "अनुदान व्यय")}
                 </div>
 
                 <div
-                  className={`print-select ${anchorCls("wf-review")}`}
-                  id={`${ID_PREFIX}wf-review`}
+                  id="workflow-panel-5"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-5"
+                  className={`workflow-tab-panel ${workflowStep === 5 ? "active" : ""}`}
                 >
-                  <h3>🖨️ चयनित दस्तावेज एक साथ Print करें</h3>
-                  <div className="small">
-                    आवेदन पत्र में संलग्न दस्तावेज सूची + घोषणा तथा प्रभारी की
-                    आख्या स्वतः शामिल हैं।
+                  {/* Process */}
+                  <div
+                    className={`inner-card ${anchorCls("wf-affidavit")}`}
+                    id={`${ID_PREFIX}wf-affidavit`}
+                  >
+                    <h3>निरीक्षण एवं अनुदान प्रक्रिया</h3>
+                    <div className="stage-grid">
+                      <div className="stage">
+                        <b>चरण 1 — Infrastructure Verification</b>
+                        <span className="small">
+                          निर्धारित infrastructure पूर्ण होने पर स्थलीय /
+                          संयुक्त निरीक्षण एवं सत्यापन।
+                        </span>
+                      </div>
+                      <div className="stage">
+                        <b>चरण 2 — 90% पौध जीवितता</b>
+                        <span className="small">
+                          द्वितीय निरीक्षण में पौधों की कम से कम 90% जीवितता का
+                          सत्यापन।
+                        </span>
+                      </div>
+                      <div className="stage">
+                        <b>चरण 3 — उत्पादन / फल सत्यापन</b>
+                        <span className="small">
+                          तृतीय निरीक्षण में लागू योजना के अनुसार फल / गुणवत्ता
+                          / मात्रा का सत्यापन।
+                        </span>
+                      </div>
+                    </div>
+                    <p
+                      className="card-intro"
+                      style={{ marginTop: "9px", marginBottom: 0 }}
+                    >
+                      <b>पौध अनुदान:</b> लागू योजना / स्वीकृति के अनुसार चरणबद्ध
+                      भुगतान (70% + 20% + 10%)।
+                    </p>
                   </div>
-                  <div className="print-options">
-                    <label className="print-option">
-                      <input
-                        type="checkbox"
-                        checked={printCheckboxes.app}
-                        onChange={(e) =>
-                          setPrintCheckboxes({
-                            ...printCheckboxes,
-                            app: e.target.checked,
-                          })
-                        }
-                      />{" "}
-                      <span>आवेदन पत्र</span>
-                    </label>
-                    <label className="print-option">
-                      <input
-                        type="checkbox"
-                        checked={printCheckboxes.project}
-                        onChange={(e) =>
-                          setPrintCheckboxes({
-                            ...printCheckboxes,
-                            project: e.target.checked,
-                          })
-                        }
-                      />{" "}
-                      <span>पूर्ण परियोजना मानक</span>
-                    </label>
-                    <label className="print-option">
-                      <input
-                        type="checkbox"
-                        checked={printCheckboxes.aff}
-                        onChange={(e) =>
-                          setPrintCheckboxes({
-                            ...printCheckboxes,
-                            aff: e.target.checked,
-                          })
-                        }
-                      />{" "}
-                      <span>मुख्य शपथ-पत्र / स्व-घोषणा</span>
-                    </label>
-                    <label className="print-option">
-                      <input
-                        type="checkbox"
-                        checked={printCheckboxes.consent}
-                        onChange={(e) =>
-                          setPrintCheckboxes({
-                            ...printCheckboxes,
-                            consent: e.target.checked,
-                          })
-                        }
-                      />{" "}
-                      <span>सह-खातेदार सहमति / NOC</span>
-                    </label>
-                    <label className="print-option">
-                      <input
-                        type="checkbox"
-                        checked={printCheckboxes.anudan}
-                        onChange={(e) =>
-                          setPrintCheckboxes({
-                            ...printCheckboxes,
-                            anudan: e.target.checked,
-                          })
-                        }
-                      />{" "}
-                      <span>अनुदान देयक / भुगतान प्रपत्र</span>
-                    </label>
-                  </div>
-                  <div className="aff-actions">
+                </div>
+
+                <div
+                  id="workflow-panel-4"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-4"
+                  className={`workflow-tab-panel ${workflowStep === 4 ? "active" : ""}`}
+                >
+                  <div className="err" />
+                  <div
+                    className={`btns ${anchorCls("wf-grant")}`}
+                    id={`${ID_PREFIX}wf-grant`}
+                  >
                     <button
                       type="button"
                       className="btn"
-                      onClick={() => handlePrint("selected")}
+                      onClick={handleGenerate}
                     >
-                      🖨️ चयनित सभी दस्तावेज Print करें
+                      ✓ आवेदन से किसान-विशिष्ट मानक बनाएं
                     </button>
                     <button
                       type="button"
                       className="btn secondary"
-                      onClick={() =>
-                        setPrintCheckboxes({
-                          app: true,
-                          project: true,
-                          aff: true,
-                          consent: true,
-                          anudan: true,
-                        })
-                      }
+                      onClick={saveDraft}
                     >
-                      ☑ सभी चुनें
+                      💾 Draft सुरक्षित करें
                     </button>
                     <button
                       type="button"
                       className="btn secondary"
-                      onClick={() =>
-                        setPrintCheckboxes({
-                          app: false,
-                          project: false,
-                          aff: false,
-                          consent: false,
-                          anudan: false,
-                        })
-                      }
+                      onClick={loadDraft}
                     >
-                      ☐ सभी हटाएँ
+                      ↶ Draft लोड करें
+                    </button>
+                    <button
+                      type="button"
+                      className="btn gold"
+                      onClick={() => handlePrint("app")}
+                    >
+                      🖨️ आवेदन पत्र Print
+                    </button>
+                    <button
+                      type="button"
+                      className="btn gold"
+                      onClick={() => handlePrint("project")}
+                    >
+                      🖨️ पूर्ण परियोजना मानक Print
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={handleBuildAffidavit}
+                    >
+                      📜 शपथ-पत्र तैयार करें
+                    </button>
+                    <button
+                      type="button"
+                      className="btn gold"
+                      onClick={() => handlePrint("affidavit")}
+                    >
+                      🖨️ शपथ-पत्र Print
+                    </button>
+                    <button
+                      type="button"
+                      className="btn gold"
+                      onClick={() => handlePrint("consent")}
+                    >
+                      🖨️ सहमति / NOC Print
+                    </button>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() => handlePrint("all")}
+                    >
+                      📑 सभी शपथ-पत्र / सहमति Print
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={handleBuildAnudan}
+                    >
+                      💰 अनुदान देयक तैयार करें
+                    </button>
+                    <button
+                      type="button"
+                      className="btn gold"
+                      onClick={() => handlePrint("anudan")}
+                    >
+                      🖨️ अनुदान देयक Print
                     </button>
                   </div>
                 </div>
 
-                <div className="demo-tools">
-                  <b>🧪 Demo Testing — Affidavit</b>
-                  <div className="card-intro" style={{ margin: "5px 0 0" }}>
-                    नीचे से demo data लगाकर स्वयं की भूमि और स्वयं + सह-खातेदार
-                    दोनों affidavit तुरंत test करें।
-                  </div>
-                  <div className="demo-row">
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      onClick={() => applyDemo("dragonSelf")}
-                    >
-                      Dragon Demo — केवल स्वयं
-                    </button>
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      onClick={() => applyDemo("dragonCo")}
-                    >
-                      Dragon Demo — सह-खातेदार
-                    </button>
+                <div
+                  id="workflow-panel-7"
+                  role="tabpanel"
+                  aria-labelledby="workflow-tab-7"
+                  className={`workflow-tab-panel ${workflowStep === 7 ? "active" : ""}`}
+                >
+                  <div
+                    className={`print-select ${anchorCls("wf-review")}`}
+                    id={`${ID_PREFIX}wf-review`}
+                  >
+                    <h3>🖨️ चयनित दस्तावेज एक साथ Print करें</h3>
+                    <div className="small">
+                      आवेदन पत्र में संलग्न दस्तावेज सूची + घोषणा तथा प्रभारी की
+                      आख्या स्वतः शामिल हैं।
+                    </div>
+                    <div className="print-options">
+                      <label className="print-option">
+                        <input
+                          type="checkbox"
+                          checked={printCheckboxes.app}
+                          onChange={(e) =>
+                            setPrintCheckboxes({
+                              ...printCheckboxes,
+                              app: e.target.checked,
+                            })
+                          }
+                        />{" "}
+                        <span>आवेदन पत्र</span>
+                      </label>
+                      <label className="print-option">
+                        <input
+                          type="checkbox"
+                          checked={printCheckboxes.project}
+                          onChange={(e) =>
+                            setPrintCheckboxes({
+                              ...printCheckboxes,
+                              project: e.target.checked,
+                            })
+                          }
+                        />{" "}
+                        <span>पूर्ण परियोजना मानक</span>
+                      </label>
+                      <label className="print-option">
+                        <input
+                          type="checkbox"
+                          checked={printCheckboxes.aff}
+                          onChange={(e) =>
+                            setPrintCheckboxes({
+                              ...printCheckboxes,
+                              aff: e.target.checked,
+                            })
+                          }
+                        />{" "}
+                        <span>मुख्य शपथ-पत्र / स्व-घोषणा</span>
+                      </label>
+                      <label className="print-option">
+                        <input
+                          type="checkbox"
+                          checked={printCheckboxes.consent}
+                          onChange={(e) =>
+                            setPrintCheckboxes({
+                              ...printCheckboxes,
+                              consent: e.target.checked,
+                            })
+                          }
+                        />{" "}
+                        <span>सह-खातेदार सहमति / NOC</span>
+                      </label>
+                      <label className="print-option">
+                        <input
+                          type="checkbox"
+                          checked={printCheckboxes.anudan}
+                          onChange={(e) =>
+                            setPrintCheckboxes({
+                              ...printCheckboxes,
+                              anudan: e.target.checked,
+                            })
+                          }
+                        />{" "}
+                        <span>अनुदान देयक / भुगतान प्रपत्र</span>
+                      </label>
+                    </div>
+                    <div className="aff-actions">
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => handlePrint("selected")}
+                      >
+                        🖨️ चयनित सभी दस्तावेज Print करें
+                      </button>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() =>
+                          setPrintCheckboxes({
+                            app: true,
+                            project: true,
+                            aff: true,
+                            consent: true,
+                            anudan: true,
+                          })
+                        }
+                      >
+                        ☑ सभी चुनें
+                      </button>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() =>
+                          setPrintCheckboxes({
+                            app: false,
+                            project: false,
+                            aff: false,
+                            consent: false,
+                            anudan: false,
+                          })
+                        }
+                      >
+                        ☐ सभी हटाएँ
+                      </button>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -3882,7 +3821,7 @@ const DragfruitsAndKiwi = () => {
             aria-expanded={sideOpen}
             onClick={() => setSideOpen((v) => !v)}
           >
-            ☰ दस्तावेज विकल्प
+            {sideOpen ? "✕ पैनल बंद करें" : "☰ कार्य पैनल"}
           </button>
 
           <aside
@@ -4279,33 +4218,6 @@ const DragfruitsAndKiwi = () => {
                     <b>चरण 4 — देयक / Print</b>
                     <span>अनुदान देयक तैयार और print करें</span>
                   </div>
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={`side-pane ${activeSideTab === "demo" ? "active" : ""}`}
-            >
-              <h4>Demo Testing</h4>
-              <div className="side-group">
-                <div className="side-group-title">Affidavit Demo</div>
-                <div className="side-mini">
-                  Demo data लगाकर स्वयं की भूमि और स्वयं + सह-खातेदार दोनों
-                  affidavit तुरंत test करें।
-                </div>
-                <button
-                  type="button"
-                  className="side-action"
-                  onClick={() => applyDemo("dragonSelf")}
-                >
-                   Dragon — केवल स्वयं
-                </button>
-                <button
-                  type="button"
-                  className="side-action"
-                  onClick={() => applyDemo("dragonCo")}
-                >
-                   Dragon — सह-खातेदार
                 </button>
               </div>
             </div>
