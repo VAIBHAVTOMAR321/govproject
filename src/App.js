@@ -51,6 +51,7 @@ import KisanAvedan from "./componets/kishanavedan/KisanAvedan";
 import KisanAavedan from "./componets/kishanavedan/KisanAvedan";
 import DragfruitsAndKiwi from "./componets/kishanavedan/DragfruitsAndKiwi";
 import KiwiFruits from "./componets/kishanavedan/KiwiFruits";
+import VirtanKishanBeej from "./componets/virtranbeej/VirtanKishanBeej";
 
 // Navbar wrapper component that uses useAuth (must be inside AuthProvider)
 function NavbarWrapper() {
@@ -63,7 +64,8 @@ function NavbarWrapper() {
     "/LibrarySystem",
     "/MonthReport",
     "/AdminVetanMang",
-    "/AdminKishanAavedan"
+    "/AdminKishanAavedan",
+    "/VirtanKishanBeej"
   ]);
   const hiddenPaths = new Set([
     "/Dashboard",
@@ -352,6 +354,14 @@ function AppContent() {
             element={
               <ProtectedRoute allowedLoginTypes={["demand"]}>
                 <DemandKrishiwiseEntry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/VirtanKishanBeej"
+            element={
+              <ProtectedRoute allowedLoginTypes={["demand"]}>
+                <VirtanKishanBeej />
               </ProtectedRoute>
             }
           />
