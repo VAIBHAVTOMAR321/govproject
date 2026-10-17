@@ -96,6 +96,15 @@ const DemandNavigation = () => {
                     : "normal",
               }}
             >
+               <NavDropdown.Item
+                active={isActive("/GetViewLibrary")}
+                onClick={() => navigate("/VirtanKishanBeej")}
+                style={{
+                  fontWeight: isActive("/VirtanKishanBeej") ? "bold" : "normal",
+                }}
+              >
+                वितरन किसान बीज
+              </NavDropdown.Item>
               <NavDropdown.Item
                 active={isActive("/CenterUdyanBill")}
                 onClick={() => navigate("/CenterUdyanBill")}

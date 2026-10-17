@@ -95,7 +95,8 @@ function NavbarWrapper() {
     "/AdminKishanAavedan",
     "/KisanAvedan",
     "/DragfruitsAndKiwi",
-    "/KiwiFruits"
+    "/KiwiFruits",
+  
     
   ]);
 
