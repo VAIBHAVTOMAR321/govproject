@@ -1112,7 +1112,7 @@ const AllBills = () => {
             </Col>
           </Row>
 
-          <Row className="left-top">
+          <Row className="">
             <Col lg={12} md={12} sm={12} className="all-bills-main-column">
               <Container fluid className="dashboard-body-main bg-home all-bills-content">
                 <h1 className="page-title small-fonts">{translations.allBills}</h1>
@@ -1491,7 +1491,7 @@ const AllBills = () => {
                                         </tr>
 
                                         <tr>
-                                          <td colSpan={9} className="p-0" className={isExpanded ? "all-bills-expanded-cell is-expanded" : "all-bills-expanded-cell"}>
+                                          <td colSpan={9} className={`p-0 ${isExpanded ? "all-bills-expanded-cell is-expanded" : "all-bills-expanded-cell"}`}>
                                             <Collapse in={isExpanded}>
                                               <div className="p-3 bg-light">
                                                 <Row className="mb-2 align-items-center">
@@ -1731,8 +1731,8 @@ const AllBills = () => {
                 <tr>
                   <th className="all-bills-page-name-heading">{translations.subniveshName}</th>
                   <th
-                    className="text-center"
-                    className="all-bills-page-number-heading"
+                  
+                    className="all-bills-page-number-heading text-center"
                   >
                     {translations.pageNo}
                   </th>
@@ -1745,8 +1745,8 @@ const AllBills = () => {
                       {entry.names.join(", ")}
                     </td>
                     <td
-                      className="text-center page-number-cell"
-                      className="all-bills-page-number-cell"
+                      
+                      className="all-bills-page-number-cell text-center"
                     >
                       {entry.pageNo}
                     </td>
