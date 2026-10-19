@@ -1863,11 +1863,10 @@ f.modal-title {
   }
 
   .dynamic-report-filter-menu {
-    position: fixed;
-    left: 10px;
-    right: 10px;
-    top: 120px;
-    width: auto;
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    width: min(280px, 100%);
     max-width: none;
   }
 
@@ -3834,4 +3833,46 @@ f.modal-title {
 .progress-hierarchy-mode-group .css-13cymwt-control,
 .progress-hierarchy-mode-group .css-t3ipsp-control {
   min-height: 36px;
+}
+
+/* Mobile: 4401 बिक्री हेतु (sale) and all report filters stay attached
+   to their trigger button and keep proper spacing on small screens. */
+@media (max-width: 768px) {
+  .dynamic-report-filterbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .dynamic-report-filter-wrap {
+    width: 100%;
+  }
+
+  .dynamic-report-filter-btn {
+    width: 100%;
+    justify-content: space-between;
+    white-space: normal;
+  }
+
+  .dynamic-report-clear-btn {
+    width: 100%;
+  }
+
+  .dynamic-report-view-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .dynamic-report-view-row select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .dynamic-report-filter-menu {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
 }
